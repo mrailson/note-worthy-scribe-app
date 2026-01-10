@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/toastWrapper";
-import { ScribeSession, ConsultationCategory } from "@/types/scribe";
+import { ScribeSession, ConsultationCategory, ConsultationType } from "@/types/scribe";
 import { format, isToday, isYesterday, startOfWeek, isAfter } from "date-fns";
 
 export type DateFilter = 'all' | 'today' | 'yesterday' | 'this_week';
@@ -90,34 +90,57 @@ export const useScribeHistory = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Fetch from dedicated gp_consultations table with joined notes and transcripts
       const { data, error } = await supabase
-        .from('meetings')
-        .select('*')
+        .from('gp_consultations')
+        .select(`
+          *,
+          gp_consultation_notes (*),
+          gp_consultation_transcripts (*)
+        `)
         .eq('user_id', user.id)
-        .in('meeting_type', ['scribe', 'consultation'])
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
 
       const formattedSessions: ScribeSession[] = (data || []).map(item => {
-        const transcript = item.live_transcript_text || item.whisper_transcript_text || '';
+        // Get transcript from joined table (1:1 relationship)
+        const transcriptData = Array.isArray(item.gp_consultation_transcripts) 
+          ? item.gp_consultation_transcripts[0] 
+          : item.gp_consultation_transcripts;
+        const transcript = transcriptData?.transcript_text || '';
+        
+        // Get notes from joined table (1:1 relationship)
+        const notesData = Array.isArray(item.gp_consultation_notes) 
+          ? item.gp_consultation_notes[0] 
+          : item.gp_consultation_notes;
+        const soapNotes = notesData?.soap_notes;
+        const heidiNotes = notesData?.heidi_notes;
+
         return {
           id: item.id,
-          title: item.title || 'Untitled Session',
+          title: item.title || 'Untitled Consultation',
           transcript,
-          summary: item.overview || '',
-          actionItems: item.notes_style_2 || '',
-          keyPoints: item.notes_style_3 || '',
-          quickSummary: generateQuickSummary(item.soap_notes, item.overview, transcript),
-          duration: item.duration_minutes || 0,
+          summary: '',
+          actionItems: '',
+          keyPoints: '',
+          quickSummary: generateQuickSummary(soapNotes, null, transcript),
+          duration: Math.ceil((item.duration_seconds || 0) / 60),
           wordCount: item.word_count || calculateWordCount(transcript),
           createdAt: item.created_at,
           updatedAt: item.updated_at,
           status: item.status as 'recording' | 'completed' | 'archived' || 'completed',
-          sessionType: item.meeting_type,
-          // consultation_category might not exist in DB yet, default to 'general'
-          consultationCategory: 'general' as ConsultationCategory,
+          sessionType: 'consultation',
+          consultationCategory: (item.consultation_category || 'general') as ConsultationCategory,
+          consultationType: (item.consultation_type || 'f2f') as ConsultationType,
+          soapNote: soapNotes ? {
+            S: soapNotes.S || '',
+            O: soapNotes.O || '',
+            A: soapNotes.A || '',
+            P: soapNotes.P || ''
+          } : undefined,
+          heidiNote: heidiNotes ? heidiNotes : undefined,
         };
       });
 
@@ -176,6 +199,10 @@ export const useScribeHistory = () => {
     duration?: number;
     wordCount?: number;
     title?: string;
+    soapNote?: { S: string; O: string; A: string; P: string };
+    heidiNote?: any;
+    consultationType?: string;
+    consultationCategory?: string;
   }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -184,69 +211,99 @@ export const useScribeHistory = () => {
         return null;
       }
 
-      const meetingData = {
-        title: sessionData.title || `Scribe Session - ${format(new Date(), 'dd MMM yyyy HH:mm')}`,
-        live_transcript_text: sessionData.transcript,
-        overview: sessionData.summary || "",
-        notes_style_2: sessionData.actionItems || "",
-        notes_style_3: sessionData.keyPoints || "",
-        created_at: new Date().toISOString(),
-        start_time: new Date().toISOString(),
-        user_id: user.id,
-        meeting_type: 'scribe',
-        duration_minutes: sessionData.duration || 0,
-        word_count: sessionData.wordCount || 0,
-        status: 'completed',
-      };
-
-      const { data, error } = await supabase
-        .from('meetings')
-        .insert([meetingData])
+      // 1. Insert into gp_consultations
+      const { data: consultationData, error: consultationError } = await supabase
+        .from('gp_consultations')
+        .insert([{
+          user_id: user.id,
+          title: sessionData.title || `Consultation - ${format(new Date(), 'dd MMM yyyy HH:mm')}`,
+          consultation_type: sessionData.consultationType || 'f2f',
+          consultation_category: sessionData.consultationCategory || 'general',
+          status: 'completed',
+          duration_seconds: (sessionData.duration || 0) * 60,
+          word_count: sessionData.wordCount || 0
+        }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (consultationError) throw consultationError;
+
+      const consultationId = consultationData.id;
+
+      // 2. Insert transcript
+      await supabase.from('gp_consultation_transcripts').insert([{
+        consultation_id: consultationId,
+        transcript_text: sessionData.transcript,
+        transcription_service: 'whisper'
+      }]);
+
+      // 3. Insert notes if available
+      if (sessionData.soapNote || sessionData.heidiNote) {
+        await supabase.from('gp_consultation_notes').insert([{
+          consultation_id: consultationId,
+          note_format: sessionData.heidiNote ? 'heidi' : 'soap',
+          soap_notes: sessionData.soapNote || null,
+          heidi_notes: sessionData.heidiNote || null
+        }]);
+      }
 
       const newSession: ScribeSession = {
-        id: data.id,
-        title: data.title,
-        transcript: data.live_transcript_text || '',
-        summary: data.overview || '',
-        actionItems: data.notes_style_2 || '',
-        keyPoints: data.notes_style_3 || '',
-        duration: data.duration_minutes || 0,
-        wordCount: data.word_count || 0,
-        createdAt: data.created_at,
+        id: consultationData.id,
+        title: consultationData.title,
+        transcript: sessionData.transcript,
+        summary: sessionData.summary || '',
+        actionItems: sessionData.actionItems || '',
+        keyPoints: sessionData.keyPoints || '',
+        duration: sessionData.duration || 0,
+        wordCount: sessionData.wordCount || 0,
+        createdAt: consultationData.created_at,
         status: 'completed',
+        sessionType: 'consultation',
+        consultationCategory: (sessionData.consultationCategory || 'general') as ConsultationCategory,
       };
 
       setSessions(prev => [newSession, ...prev]);
       setCurrentSession(newSession);
-      showToast.success("Session saved successfully", { section: 'gpscribe' });
+      showToast.success("Consultation saved successfully", { section: 'gpscribe' });
       return newSession;
     } catch (error) {
       console.error('Save session error:', error);
-      showToast.error('Failed to save session', { section: 'gpscribe' });
+      showToast.error('Failed to save consultation', { section: 'gpscribe' });
       return null;
     }
   }, []);
 
   const loadSession = useCallback(async (sessionId: string) => {
     try {
+      // Load from dedicated gp_consultations table with joined data
       const { data, error } = await supabase
-        .from('meetings')
-        .select('*')
+        .from('gp_consultations')
+        .select(`
+          *,
+          gp_consultation_notes (*),
+          gp_consultation_transcripts (*)
+        `)
         .eq('id', sessionId)
         .single();
 
       if (error) throw error;
 
-      // Parse SOAP notes if they exist
+      // Get transcript from joined table
+      const transcriptData = Array.isArray(data.gp_consultation_transcripts) 
+        ? data.gp_consultation_transcripts[0] 
+        : data.gp_consultation_transcripts;
+      const transcript = transcriptData?.transcript_text || '';
+
+      // Get notes from joined table
+      const notesData = Array.isArray(data.gp_consultation_notes) 
+        ? data.gp_consultation_notes[0] 
+        : data.gp_consultation_notes;
+      
       let soapNote: { S: string; O: string; A: string; P: string } | undefined;
-      if (data.soap_notes) {
-        const soapData = typeof data.soap_notes === 'string' 
-          ? JSON.parse(data.soap_notes) 
-          : data.soap_notes;
+      if (notesData?.soap_notes) {
+        const soapData = typeof notesData.soap_notes === 'string' 
+          ? JSON.parse(notesData.soap_notes) 
+          : notesData.soap_notes;
         soapNote = {
           S: soapData.S || '',
           O: soapData.O || '',
@@ -258,33 +315,36 @@ export const useScribeHistory = () => {
       const session: ScribeSession = {
         id: data.id,
         title: data.title,
-        transcript: data.live_transcript_text || data.whisper_transcript_text || '',
-        summary: data.overview || '',
-        actionItems: data.notes_style_2 || '',
-        keyPoints: data.notes_style_3 || '',
+        transcript,
+        summary: '',
+        actionItems: '',
+        keyPoints: '',
         soapNote,
-        duration: data.duration_minutes || 0,
+        heidiNote: notesData?.heidi_notes || undefined,
+        duration: Math.ceil((data.duration_seconds || 0) / 60),
         wordCount: data.word_count || 0,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         status: data.status as 'recording' | 'completed' | 'archived' || 'completed',
-        sessionType: data.meeting_type,
-        consultationType: data.meeting_type === 'consultation' ? 'f2f' : undefined,
+        sessionType: 'consultation',
+        consultationType: (data.consultation_type || 'f2f') as ConsultationType,
+        consultationCategory: (data.consultation_category || 'general') as ConsultationCategory,
       };
 
       setCurrentSession(session);
       return session;
     } catch (error) {
       console.error('Load session error:', error);
-      showToast.error('Failed to load session', { section: 'gpscribe' });
+      showToast.error('Failed to load consultation', { section: 'gpscribe' });
       return null;
     }
   }, []);
 
   const deleteSession = useCallback(async (sessionId: string) => {
     try {
+      // Delete from gp_consultations (cascade will delete related records)
       const { error } = await supabase
-        .from('meetings')
+        .from('gp_consultations')
         .delete()
         .eq('id', sessionId);
 
@@ -295,11 +355,11 @@ export const useScribeHistory = () => {
         setCurrentSession(null);
       }
 
-      showToast.success("Session deleted successfully", { section: 'gpscribe' });
+      showToast.success("Consultation deleted successfully", { section: 'gpscribe' });
       return true;
     } catch (error) {
       console.error('Delete session error:', error);
-      showToast.error('Failed to delete session', { section: 'gpscribe' });
+      showToast.error('Failed to delete consultation', { section: 'gpscribe' });
       return false;
     }
   }, [currentSession]);
