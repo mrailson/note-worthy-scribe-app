@@ -101,26 +101,27 @@ function buildBrandingSection(practiceContext: ImageGenerationRequest['practiceC
   if (!practiceContext?.practiceName) return '';
   
   // Determine if branding should be included based on request type
-  const brandingTypes = ['leaflet', 'newsletter', 'waiting-room', 'form-header', 'campaign', 'poster'];
+  const brandingTypes = ['leaflet', 'newsletter', 'waiting-room', 'form-header', 'campaign', 'poster', 'social'];
   if (!brandingTypes.includes(requestType)) return '';
   
-  let branding = `\nPRACTICE BRANDING TO INCLUDE:\n`;
-  branding += `- Practice/Organisation Name: ${practiceContext.practiceName}\n`;
+  let branding = `\n⚠️ MANDATORY PRACTICE BRANDING - YOU MUST INCLUDE THESE EXACT DETAILS:\n`;
+  branding += `- Practice/Organisation Name: "${practiceContext.practiceName}" (use this EXACT text, not a placeholder)\n`;
   
   if (practiceContext.practicePhone) {
-    branding += `- Phone: ${practiceContext.practicePhone}\n`;
+    branding += `- Phone: "${practiceContext.practicePhone}" (display this actual number)\n`;
   }
   if (practiceContext.practiceWebsite) {
-    branding += `- Website: ${practiceContext.practiceWebsite}\n`;
+    branding += `- Website: "${practiceContext.practiceWebsite}" (display this actual URL)\n`;
   }
   if (practiceContext.practiceAddress) {
-    branding += `- Address: ${practiceContext.practiceAddress}\n`;
+    branding += `- Address: "${practiceContext.practiceAddress}"\n`;
   }
   if (practiceContext.pcnName) {
-    branding += `- PCN: ${practiceContext.pcnName}\n`;
+    branding += `- PCN: "${practiceContext.pcnName}"\n`;
   }
   
-  branding += `\nInclude this branding information in an appropriate position on the visual (e.g., header, footer, or corner).`;
+  branding += `\nCRITICAL: Do NOT use placeholder text like "[Your Name Here]" or "[Contact Details]". `;
+  branding += `Use the ACTUAL values provided above. Display the practice name and contact details prominently on the image.`;
   
   return branding;
 }
@@ -142,7 +143,10 @@ serve(async (req) => {
       prompt: prompt.substring(0, 100), 
       requestType,
       contextLength: conversationContext?.length || 0,
-      hasDocumentContent: !!documentContent
+      hasDocumentContent: !!documentContent,
+      hasPracticeContext: !!practiceContext,
+      practiceName: practiceContext?.practiceName || 'NOT PROVIDED',
+      practicePhone: practiceContext?.practicePhone || 'NOT PROVIDED'
     });
 
     // Handle QR code generation separately using the qrcode library
@@ -381,12 +385,15 @@ SOCIAL MEDIA DESIGN REQUIREMENTS:
 - NHS-appropriate colour scheme
 - Simple, uncluttered layout
 - Include call-to-action if relevant (e.g., "Book Now", "Learn More")
+${practiceContext?.practiceName ? `- MUST display the practice name "${practiceContext.practiceName}" prominently at top or bottom` : ''}
+${practiceContext?.practicePhone ? `- MUST include contact number "${practiceContext.practicePhone}" visibly on the image` : ''}
 
 ${SPELLING_REFERENCE}
 
 Content guidelines:
 - Keep all content professional and social media appropriate
-- Suitable for Facebook, Instagram, or Twitter/X`;
+- Suitable for Facebook, Instagram, or Twitter/X
+- NO placeholder text - use the real practice details provided above`;
     } else if (requestType === 'waiting-room') {
       // Waiting room display poster
       const brandingSection = buildBrandingSection(practiceContext, requestType);
