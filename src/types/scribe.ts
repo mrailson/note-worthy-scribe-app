@@ -70,9 +70,12 @@ export interface ScribeSession {
 
 export type ConsultationViewMode = 'soap' | 'narrative' | 'summary';
 
+export type NoteStyle = 'shorthand' | 'standard';
+
 export interface ScribeSettings {
   outputFormat: 'soap' | 'summary' | 'notes' | 'detailed';
   noteFormat: NoteFormat; // Which note format to use
+  noteStyle: NoteStyle; // GP Shorthand vs Standard notes
   emrFormat: 'emis' | 'systmone';
   transcriptionService: 'whisper' | 'assembly' | 'dual';
   autoSave: boolean;
@@ -139,6 +142,7 @@ export const CONSULTATION_TYPE_SHORT: Record<ConsultationType, string> = {
 export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   outputFormat: 'soap',
   noteFormat: 'heidi', // Default to Heidi format
+  noteStyle: 'standard', // Default to standard notes
   emrFormat: 'emis',
   transcriptionService: 'whisper',
   autoSave: true,
