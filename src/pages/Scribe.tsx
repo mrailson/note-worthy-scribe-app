@@ -241,7 +241,11 @@ const Scribe = () => {
                   onCancelHeidiEdit={consultation.cancelHeidiEdit}
                   onSaveHeidiEdit={consultation.saveHeidiEdit}
                   onHeidiEditContentChange={consultation.updateHeidiEditContent}
-                  onSaveConsultation={consultation.saveConsultation}
+                  onSaveConsultation={async () => {
+                    await consultation.saveConsultation();
+                    // Refresh history after saving
+                    history.fetchSessions();
+                  }}
                   onNewConsultation={consultation.newConsultation}
                   onRegenerate={consultation.regenerateNotes}
                   onExportPDF={handleExportPDF}
