@@ -98,8 +98,8 @@ export const ConsultationNoteState = ({
         <CardHeader className={`pb-3 ${isMobile ? 'px-3 py-4' : ''}`}>
           <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between flex-wrap gap-3'}`}>
             <div className={`flex items-center ${isMobile ? 'gap-3' : 'gap-4'}`}>
-              <div className={`rounded-full bg-green-100 dark:bg-green-900/30 ${isMobile ? 'p-1.5' : 'p-2'}`}>
-                <FileCheck className={`text-green-600 dark:text-green-400 ${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
+              <div className={`rounded-full bg-green-100 dark:bg-green-900/30 ${isMobile ? 'p-2' : 'p-3'}`}>
+                <FileCheck className={`text-green-600 dark:text-green-400 ${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
               </div>
               <div>
                 <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
