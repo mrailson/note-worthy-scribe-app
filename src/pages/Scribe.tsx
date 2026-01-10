@@ -201,9 +201,11 @@ const Scribe = () => {
               {consultation.consultationState === 'ready' && (
                 <ConsultationReadyState
                   consultationType={consultation.consultationType}
+                  consultationCategory={consultation.consultationCategory}
                   patientConsent={consultation.patientConsent}
                   settings={consultation.settings}
                   onTypeChange={consultation.setConsultationType}
+                  onCategoryChange={consultation.setConsultationCategory}
                   onConsentChange={consultation.setPatientConsent}
                   onStart={consultation.startConsultation}
                   onOpenSettings={() => setActiveTab('settings')}

@@ -2,6 +2,8 @@ export type ConsultationState = 'ready' | 'recording' | 'generating' | 'review';
 
 export type ConsultationType = 'f2f' | 'telephone' | 'video';
 
+export type ConsultationCategory = 'general' | 'agewell' | 'social_prescriber';
+
 // Legacy SOAP format (maintained for backwards compatibility)
 export interface SOAPNote {
   S: string; // Subjective - History
@@ -138,6 +140,12 @@ export const CONSULTATION_TYPE_SHORT: Record<ConsultationType, string> = {
   f2f: 'F2F',
   telephone: 'T/C',
   video: 'Video'
+};
+
+export const CONSULTATION_CATEGORY_LABELS: Record<ConsultationCategory, string> = {
+  general: 'General Consultation',
+  agewell: 'Age Well Consultation',
+  social_prescriber: 'Social Prescriber'
 };
 
 export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {

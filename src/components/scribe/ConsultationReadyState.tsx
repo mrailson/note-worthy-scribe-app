@@ -3,15 +3,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ConsultationTypeSelector } from "./ConsultationTypeSelector";
 import { PatientConsentBanner } from "./PatientConsentBanner";
 import { ScribeDevDisclaimer } from "./ScribeDevDisclaimer";
-import { ConsultationType, ScribeSettings } from "@/types/scribe";
+import { ConsultationType, ConsultationCategory, ScribeSettings } from "@/types/scribe";
 import { Mic, Settings2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ConsultationReadyStateProps {
   consultationType: ConsultationType;
+  consultationCategory: ConsultationCategory;
   patientConsent: boolean;
   settings: ScribeSettings;
   onTypeChange: (type: ConsultationType) => void;
+  onCategoryChange: (category: ConsultationCategory) => void;
   onConsentChange: (consent: boolean) => void;
   onStart: () => void;
   onOpenSettings: () => void;
@@ -19,9 +21,11 @@ interface ConsultationReadyStateProps {
 
 export const ConsultationReadyState = ({
   consultationType,
+  consultationCategory,
   patientConsent,
   settings,
   onTypeChange,
+  onCategoryChange,
   onConsentChange,
   onStart,
   onOpenSettings
@@ -48,15 +52,12 @@ export const ConsultationReadyState = ({
           </div>
 
           {/* Consultation Type */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Consultation Type
-            </label>
-            <ConsultationTypeSelector
-              value={consultationType}
-              onChange={onTypeChange}
-            />
-          </div>
+          <ConsultationTypeSelector
+            value={consultationType}
+            category={consultationCategory}
+            onChange={onTypeChange}
+            onCategoryChange={onCategoryChange}
+          />
 
           {/* Patient Consent */}
           {settings.showConsentReminder && (
