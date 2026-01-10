@@ -14,6 +14,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { toast } from "sonner";
 import { TranscriptDisplay } from "./TranscriptDisplay";
 import { ConsultationViewControls } from "./ConsultationViewControls";
+import { NoteStyleToggle } from "./NoteStyleToggle";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ScribeHistoryPanelProps {
@@ -156,6 +157,11 @@ export const ScribeHistoryPanel = ({
                   <FileText className="h-3 w-3" />
                   {currentSession.wordCount || 0} words
                 </span>
+                <span className="text-muted-foreground/40">|</span>
+                <NoteStyleToggle
+                  style={settings.consultationDetailLevel === 1 ? 'shorthand' : 'standard'}
+                  onStyleChange={(style) => handleDetailLevelChange(style === 'shorthand' ? 1 : 3)}
+                />
                 <span className="text-muted-foreground/40">|</span>
                 <div className="flex items-center gap-0.5">
                   <Tooltip>
