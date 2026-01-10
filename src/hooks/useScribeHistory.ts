@@ -19,7 +19,7 @@ export const useScribeHistory = () => {
         .from('meetings')
         .select('*')
         .eq('user_id', user.id)
-        .eq('meeting_type', 'scribe')
+        .in('meeting_type', ['scribe', 'consultation'])
         .order('created_at', { ascending: false })
         .limit(50);
 
