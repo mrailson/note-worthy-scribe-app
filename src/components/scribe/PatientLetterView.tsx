@@ -395,7 +395,7 @@ ${letterContent}</div>
         <ScrollArea className="h-[500px]">
           <div className="p-8">
             {/* Letterhead */}
-            <div className="text-center border-b-2 border-primary pb-4 mb-6">
+            <div className="text-center border-b-2 border-primary pb-2 mb-4">
               {practiceDetails?.logoUrl && (
                 <img 
                   src={practiceDetails.logoUrl} 
@@ -404,13 +404,10 @@ ${letterContent}</div>
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
-                  className="h-24 mx-auto mb-3 object-contain"
+                  className="h-48 mx-auto object-contain"
                 />
               )}
-              <h2 className="text-xl font-bold text-primary">
-                {practiceDetails?.name || 'GP Surgery'}
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground">
                 {practiceDetails?.address}
                 {practiceDetails?.phone && <><br/>Tel: {practiceDetails.phone}</>}
                 {practiceDetails?.email && <> | {practiceDetails.email}</>}
