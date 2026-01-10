@@ -19,7 +19,8 @@ serve(async (req) => {
       consultationType = 'f2f', 
       outputFormat = 'heidi', 
       detailLevel = 3,
-      noteFormat = 'heidi'
+      noteFormat = 'heidi',
+      contextContent
     } = await req.json();
 
     if (!transcript || typeof transcript !== 'string') {
@@ -164,7 +165,7 @@ Guidelines:
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Please analyse this consultation transcript and generate clinical notes. Remember: ONLY include information explicitly stated in the transcript. Leave sections blank if information was not mentioned.\n\nTRANSCRIPT:\n${transcript}` }
+          { role: 'user', content: `Please analyse this consultation transcript and generate clinical notes. Remember: ONLY include information explicitly stated in the transcript. Leave sections blank if information was not mentioned.\n\nTRANSCRIPT:\n${transcript}${contextContent ? `\n\nADDITIONAL CLINICAL CONTEXT PROVIDED:\n${contextContent}` : ''}` }
         ],
         response_format: { type: "json_object" },
         max_tokens: 3000,

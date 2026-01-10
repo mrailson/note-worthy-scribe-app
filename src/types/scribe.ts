@@ -86,6 +86,28 @@ export interface PatientContext {
   rawExtract?: string;    // Original text extracted for debugging
 }
 
+// Context file for consultation (blood results, screenshots, documents)
+export interface ConsultationContextFile {
+  id: string;
+  name: string;
+  type: 'image' | 'document';
+  content: string;        // Extracted text content
+  preview?: string;       // Base64 preview for images
+  addedAt: string;
+  isProcessing?: boolean;
+  error?: string;
+}
+
+// "So Far" AI analysis result
+export interface SoFarAnalysis {
+  summary: string;
+  issuesDiscussed: string[];
+  outstandingQuestions: string[];
+  suggestedWrapUp: string[];
+  redFlagsIdentified: string[];
+  lastUpdated: string;
+}
+
 export interface ScribeSettings {
   outputFormat: 'soap' | 'summary' | 'notes' | 'detailed';
   noteFormat: NoteFormat; // Which note format to use

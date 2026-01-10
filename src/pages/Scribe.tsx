@@ -292,12 +292,15 @@ const Scribe = () => {
                 showLiveTranscript={consultation.settings.showLiveTranscript}
                 patientContext={consultation.patientContext}
                 showPatientBanner={consultation.settings.showPatientBannerDuringRecording}
+                contextFiles={consultation.contextFiles}
                 formatDuration={consultation.formatDuration}
                 onPause={consultation.pauseRecording}
                 onResume={consultation.resumeRecording}
                 onFinish={consultation.finishConsultation}
                 onCancel={consultation.cancelConsultation}
                 onClearPatientContext={consultation.clearPatientContext}
+                onAddContextFile={consultation.addContextFile}
+                onRemoveContextFile={consultation.removeContextFile}
               />
             )}
             
