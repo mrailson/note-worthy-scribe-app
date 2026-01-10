@@ -23,6 +23,8 @@ interface PracticeDetails {
   address?: string;
   phone?: string;
   email?: string;
+  logoUrl?: string;
+  signature?: string;
 }
 
 interface ReferralWorkspaceProps {
@@ -83,7 +85,7 @@ export function ReferralWorkspace({
         // First try to get the default practice
         const { data: defaultPractice } = await supabase
           .from('practice_details')
-          .select('practice_name, address, phone, email')
+          .select('practice_name, address, phone, email, practice_logo_url, letter_signature')
           .eq('user_id', userId)
           .eq('is_default', true)
           .maybeSingle();
@@ -94,6 +96,8 @@ export function ReferralWorkspace({
             address: defaultPractice.address || undefined,
             phone: defaultPractice.phone || undefined,
             email: defaultPractice.email || undefined,
+            logoUrl: defaultPractice.practice_logo_url || undefined,
+            signature: defaultPractice.letter_signature || undefined,
           });
           return;
         }
@@ -101,7 +105,7 @@ export function ReferralWorkspace({
         // Fallback to most recent practice
         const { data: anyPractice } = await supabase
           .from('practice_details')
-          .select('practice_name, address, phone, email')
+          .select('practice_name, address, phone, email, practice_logo_url, letter_signature')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .limit(1)
@@ -113,6 +117,8 @@ export function ReferralWorkspace({
             address: anyPractice.address || undefined,
             phone: anyPractice.phone || undefined,
             email: anyPractice.email || undefined,
+            logoUrl: anyPractice.practice_logo_url || undefined,
+            signature: anyPractice.letter_signature || undefined,
           });
         }
       } catch (error) {

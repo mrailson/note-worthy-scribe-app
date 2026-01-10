@@ -10,13 +10,14 @@ import { Edit, Save, Copy, Download, Sparkles, ChevronDown, Check, Loader2 } fro
 import { ReferralDraft, ReferralPriority, PRIORITY_LABELS, PRIORITY_COLOURS } from "@/types/referral";
 import { useToast } from "@/hooks/use-toast";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
-import notewellLogo from "@/assets/notewell-logo.png";
 
 interface PracticeDetails {
   name?: string;
   address?: string;
   phone?: string;
   email?: string;
+  logoUrl?: string;
+  signature?: string;
 }
 
 interface ReferralEditorModalProps {
@@ -228,13 +229,19 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
                 <div className="p-6 max-h-[50vh] overflow-y-auto">
                   {/* Letterhead */}
                   <div className="flex items-start justify-between mb-6 pb-4 border-b">
-                    {/* Logo on left */}
+                    {/* Practice logo on left */}
                     <div className="flex-shrink-0">
-                      <img 
-                        src={notewellLogo} 
-                        alt="Notewell AI" 
-                        className="h-16 w-auto"
-                      />
+                      {practiceDetails?.logoUrl ? (
+                        <img 
+                          src={practiceDetails.logoUrl} 
+                          alt={practiceDetails?.name || "Practice Logo"} 
+                          className="h-16 w-auto max-w-[200px] object-contain"
+                        />
+                      ) : (
+                        <div className="h-16 w-32 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
+                          No Logo
+                        </div>
+                      )}
                     </div>
                     
                     {/* Practice details on right */}
@@ -260,6 +267,16 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
                       {renderLetterWithHighlights(draft.letterContent)}
                     </div>
                   </div>
+
+                  {/* Signature block */}
+                  {practiceDetails?.signature && (
+                    <div className="mt-8 pt-4 border-t">
+                      <div 
+                        className="text-sm text-foreground"
+                        dangerouslySetInnerHTML={{ __html: practiceDetails.signature }}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
