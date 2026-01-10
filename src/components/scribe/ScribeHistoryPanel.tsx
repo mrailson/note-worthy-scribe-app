@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle } from "@/types/scribe";
-import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2 } from "lucide-react";
+import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { TranscriptDisplay } from "./TranscriptDisplay";
 import { ConsultationViewControls } from "./ConsultationViewControls";
 import { NoteStyleToggle } from "./NoteStyleToggle";
+import { PatientLetterView } from "./PatientLetterView";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ScribeHistoryPanelProps {
@@ -318,6 +319,23 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     </TooltipTrigger>
                     <TooltipContent side="bottom">Quick Summary</TooltipContent>
                   </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleViewModeChange('patient')}
+                        className={cn(
+                          "p-1.5 rounded-md transition-colors",
+                          settings.consultationViewMode === 'patient' 
+                            ? "text-primary bg-primary/10" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        aria-label="Patient Letter"
+                      >
+                        <User className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Patient Letter</TooltipContent>
+                  </Tooltip>
                   <div className="w-px h-4 bg-border mx-1" />
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -507,6 +525,15 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                           </pre>
                         </CardContent>
                       </Card>
+                    )}
+
+                    {/* Patient Letter View Mode */}
+                    {settings.consultationViewMode === 'patient' && (
+                      <PatientLetterView
+                        transcript={currentSession.transcript}
+                        consultationType={currentSession.consultationType}
+                        soapNote={currentSoapNote || undefined}
+                      />
                     )}
                   </div>
                 ) : (

@@ -68,7 +68,7 @@ export interface ScribeSession {
   consultationType?: ConsultationType;
 }
 
-export type ConsultationViewMode = 'soap' | 'narrative' | 'summary';
+export type ConsultationViewMode = 'soap' | 'narrative' | 'summary' | 'patient';
 
 export type NoteStyle = 'shorthand' | 'standard';
 
