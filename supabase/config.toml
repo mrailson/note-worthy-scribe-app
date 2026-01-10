@@ -377,3 +377,12 @@ verify_jwt = true
 
 [functions.generate-scribe-notes]
 verify_jwt = true
+
+[functions.analyse-referral-suggestions]
+verify_jwt = true
+
+[functions.generate-referral-draft]
+verify_jwt = true
+
+[functions.rewrite-referral-tone]
+verify_jwt = true
