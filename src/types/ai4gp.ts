@@ -2,7 +2,7 @@ export interface GeneratedImage {
   url: string;
   alt: string;
   prompt: string;
-  requestType?: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'general';
+  requestType?: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'leaflet' | 'newsletter' | 'social' | 'waiting-room' | 'form-header' | 'campaign' | 'general';
 }
 
 export interface GeneratedAudio {
