@@ -76,12 +76,15 @@ export function ReferralWorkspace({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
 
-  // Fetch practice details for letterhead
+  // Fetch practice details and GP signature for letterhead
   useEffect(() => {
     const fetchPracticeDetails = async () => {
       if (!userId) return;
       
       try {
+        // Fetch practice details
+        let practiceData: any = null;
+        
         // First try to get the default practice
         const { data: defaultPractice } = await supabase
           .from('practice_details')
@@ -91,34 +94,51 @@ export function ReferralWorkspace({
           .maybeSingle();
         
         if (defaultPractice) {
-          setPracticeDetails({
-            name: defaultPractice.practice_name,
-            address: defaultPractice.address || undefined,
-            phone: defaultPractice.phone || undefined,
-            email: defaultPractice.email || undefined,
-            logoUrl: defaultPractice.practice_logo_url || undefined,
-            signature: defaultPractice.letter_signature || undefined,
-          });
-          return;
+          practiceData = defaultPractice;
+        } else {
+          // Fallback to most recent practice
+          const { data: anyPractice } = await supabase
+            .from('practice_details')
+            .select('practice_name, address, phone, email, practice_logo_url, letter_signature')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          practiceData = anyPractice;
         }
 
-        // Fallback to most recent practice
-        const { data: anyPractice } = await supabase
-          .from('practice_details')
-          .select('practice_name, address, phone, email, practice_logo_url, letter_signature')
+        // Fetch GP signature from gp_signature_settings (Digital Signature in My Profile)
+        const { data: gpSignature } = await supabase
+          .from('gp_signature_settings')
+          .select('gp_name, qualifications, practice_name, job_title')
           .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(1)
+          .eq('is_default', true)
           .maybeSingle();
-        
-        if (anyPractice) {
+
+        // Build signature from gp_signature_settings if available
+        let signatureHtml = '';
+        if (gpSignature) {
+          signatureHtml = `<p>Regards</p><p></p><p>${gpSignature.gp_name || ''}</p>`;
+          if (gpSignature.job_title) {
+            signatureHtml += `<p>${gpSignature.job_title}</p>`;
+          }
+          if (gpSignature.practice_name) {
+            signatureHtml += `<p>${gpSignature.practice_name}</p>`;
+          }
+        } else if (practiceData?.letter_signature) {
+          // Fallback to letter_signature from practice_details
+          signatureHtml = practiceData.letter_signature;
+        }
+
+        if (practiceData) {
           setPracticeDetails({
-            name: anyPractice.practice_name,
-            address: anyPractice.address || undefined,
-            phone: anyPractice.phone || undefined,
-            email: anyPractice.email || undefined,
-            logoUrl: anyPractice.practice_logo_url || undefined,
-            signature: anyPractice.letter_signature || undefined,
+            name: practiceData.practice_name,
+            address: practiceData.address || undefined,
+            phone: practiceData.phone || undefined,
+            email: practiceData.email || undefined,
+            logoUrl: practiceData.practice_logo_url || undefined,
+            signature: signatureHtml || undefined,
           });
         }
       } catch (error) {

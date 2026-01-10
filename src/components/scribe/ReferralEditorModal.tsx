@@ -72,18 +72,19 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
     cleaned = cleaned.replace(/^\s*\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\s*$/gim, '');
     
     // Remove practice name/address block at the start (before "Dear" or recipient)
-    // This removes lines like "Oak Lane Medical Practice", address lines, tel, email before the main letter
     const dearIndex = cleaned.search(/\bDear\b/i);
     if (dearIndex > 0) {
-      // Check if there's a recipient section before "Dear"
       const beforeDear = cleaned.substring(0, dearIndex);
       const recipientMatch = beforeDear.match(/\[?(?:Recipient|Department|Service)[^\]]*\]?/i);
       if (recipientMatch) {
-        // Keep from recipient onwards
         const recipientIndex = beforeDear.indexOf(recipientMatch[0]);
         cleaned = cleaned.substring(recipientIndex);
       }
     }
+    
+    // Remove signature block at the end (Regards, Yours sincerely, etc. and following lines)
+    // Match "Regards" or "Yours sincerely/faithfully" and everything after
+    cleaned = cleaned.replace(/\n\s*(Regards|Yours\s+(?:sincerely|faithfully)|Kind\s+regards|Best\s+wishes)[\s\S]*$/i, '');
     
     // Clean up multiple blank lines
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
