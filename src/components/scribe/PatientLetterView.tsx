@@ -393,21 +393,23 @@ ${letterContent}</div>
       {/* Letter Preview */}
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-blue-50/50 to-white dark:from-slate-900/50 dark:to-slate-950 overflow-hidden">
         <ScrollArea className="h-[500px]">
-          <div className="px-8 pt-4 pb-8">
+          <div className="px-8 pt-0 pb-6">
             {/* Letterhead */}
-            <div className="text-center border-b-2 border-primary pb-1 mb-3">
+            <div className="text-center border-b-2 border-primary pb-0 mb-2">
               {practiceDetails?.logoUrl && (
-                <img 
-                  src={practiceDetails.logoUrl} 
-                  alt={`${practiceDetails.name} logo`} 
-                  loading="lazy"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                  className="h-32 mx-auto object-contain"
-                />
+                <div className="mx-auto h-28 overflow-hidden">
+                  <img 
+                    src={practiceDetails.logoUrl} 
+                    alt={`${practiceDetails.name} logo`} 
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                    className="h-full w-auto mx-auto object-contain scale-[2.2] block"
+                  />
+                </div>
               )}
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground leading-tight">
                 {practiceDetails?.address}
                 {practiceDetails?.phone && <><br/>Tel: {practiceDetails.phone}</>}
                 {practiceDetails?.email && <> | {practiceDetails.email}</>}
