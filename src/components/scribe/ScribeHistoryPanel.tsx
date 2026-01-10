@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle, CONSULTATION_CATEGORY_LABELS, ConsultationCategory } from "@/types/scribe";
-import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart } from "lucide-react";
+import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -67,6 +69,12 @@ export const ScribeHistoryPanel = ({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratedNotes, setRegeneratedNotes] = useState<SOAPNote | null>(null);
   const [displaySettingsOpen, setDisplaySettingsOpen] = useState(false);
+  
+  // Multi-select state
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteAllConfirmText, setDeleteAllConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const copyToClipboard = (text: string, _label: string) => {
     navigator.clipboard.writeText(text);
@@ -161,6 +169,68 @@ export const ScribeHistoryPanel = ({
     setRegeneratedNotes(null);
     onClearCurrentSession();
   }, [onClearCurrentSession]);
+
+  // Multi-select handlers
+  const toggleSelectMode = useCallback(() => {
+    setIsSelectMode(prev => !prev);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleSelection = useCallback((sessionId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(sessionId)) {
+        next.delete(sessionId);
+      } else {
+        next.add(sessionId);
+      }
+      return next;
+    });
+  }, []);
+
+  const selectAll = useCallback(() => {
+    setSelectedIds(new Set(filteredSessions.map(s => s.id)));
+  }, [filteredSessions]);
+
+  const deselectAll = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleDeleteSelected = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      const deletePromises = Array.from(selectedIds).map(id => onDeleteSession(id));
+      await Promise.all(deletePromises);
+      setSelectedIds(new Set());
+      setIsSelectMode(false);
+      toast.success(`Deleted ${selectedIds.size} session(s)`);
+    } catch (error) {
+      console.error('Error deleting sessions:', error);
+      toast.error('Failed to delete some sessions');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [selectedIds, onDeleteSession]);
+
+  const handleDeleteAll = useCallback(async () => {
+    if (deleteAllConfirmText.toLowerCase() !== 'delete all') return;
+    
+    setIsDeleting(true);
+    try {
+      const deletePromises = filteredSessions.map(s => onDeleteSession(s.id));
+      await Promise.all(deletePromises);
+      setDeleteAllConfirmText('');
+      setIsSelectMode(false);
+      toast.success(`Deleted ${filteredSessions.length} session(s)`);
+    } catch (error) {
+      console.error('Error deleting sessions:', error);
+      toast.error('Failed to delete some sessions');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [deleteAllConfirmText, filteredSessions, onDeleteSession]);
 
   const getNarrativeText = useCallback(() => {
     if (!currentSoapNote) return '';
@@ -609,14 +679,134 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <History className="h-5 w-5" />
           Session History
+          {isSelectMode && selectedIds.size > 0 && (
+            <Badge variant="secondary">{selectedIds.size} selected</Badge>
+          )}
         </h2>
-        <Button variant="outline" size="sm" onClick={onRefresh}>
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {!isSelectMode ? (
+            <>
+              <Button variant="outline" size="sm" onClick={toggleSelectMode}>
+                <CheckSquare className="h-4 w-4 mr-2" />
+                Select
+              </Button>
+              <Button variant="outline" size="sm" onClick={onRefresh}>
+                Refresh
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" onClick={selectAll}>
+                Select All
+              </Button>
+              <Button variant="ghost" size="sm" onClick={deselectAll}>
+                Clear
+              </Button>
+              
+              {/* Delete Selected */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    disabled={selectedIds.size === 0 || isDeleting}
+                    className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Selected ({selectedIds.size})
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete {selectedIds.size} Session(s)?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete {selectedIds.size} selected session(s)? 
+                      This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDeleteSelected}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete Selected'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              {/* Delete All */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    disabled={filteredSessions.length === 0 || isDeleting}
+                  >
+                    Delete All
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete All {filteredSessions.length} Sessions?</AlertDialogTitle>
+                    <AlertDialogDescription className="space-y-3">
+                      <p>
+                        This will permanently delete <strong>all {filteredSessions.length} sessions</strong> currently shown. 
+                        This action cannot be undone.
+                      </p>
+                      <p className="text-sm">
+                        To confirm, type <strong className="text-destructive">delete all</strong> below:
+                      </p>
+                      <Input
+                        value={deleteAllConfirmText}
+                        onChange={(e) => setDeleteAllConfirmText(e.target.value)}
+                        placeholder="Type 'delete all' to confirm"
+                        className="mt-2"
+                      />
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setDeleteAllConfirmText('')}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDeleteAll}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={deleteAllConfirmText.toLowerCase() !== 'delete all' || isDeleting}
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete All Sessions'
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <Button variant="ghost" size="sm" onClick={toggleSelectMode}>
+                <XSquare className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -646,14 +836,32 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
           <div className="space-y-3 pr-4">
             {filteredSessions.map((session) => {
               const CategoryIcon = categoryIcons[session.consultationCategory || 'general'];
+              const isSelected = selectedIds.has(session.id);
               return (
                 <Card 
                   key={session.id} 
-                  className="hover:bg-muted/50 transition-colors cursor-pointer"
-                  onClick={() => onLoadSession(session.id)}
+                  className={cn(
+                    "hover:bg-muted/50 transition-colors cursor-pointer",
+                    isSelectMode && isSelected && "ring-2 ring-primary bg-primary/5"
+                  )}
+                  onClick={() => {
+                    if (isSelectMode) {
+                      toggleSelection(session.id);
+                    } else {
+                      onLoadSession(session.id);
+                    }
+                  }}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
+                      {isSelectMode && (
+                        <div className="mr-3 mt-0.5" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleSelection(session.id)}
+                          />
+                        </div>
+                      )}
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <CategoryIcon className="h-4 w-4 text-muted-foreground" />
@@ -676,7 +884,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         <Badge variant={session.status === 'completed' ? 'secondary' : 'outline'}>
                           {session.status}
                         </Badge>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        {!isSelectMode && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                       </div>
                     </div>
                   </CardHeader>
@@ -702,43 +910,45 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                       </p>
                     )}
                     
-                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onLoadSession(session.id);
-                        }}
-                      >
-                        View Session
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Session?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete this session and all its data. This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => onDeleteSession(session.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                    {!isSelectMode && (
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onLoadSession(session.id);
+                          }}
+                        >
+                          View Session
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Session?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete this session and all its data. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => onDeleteSession(session.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );
