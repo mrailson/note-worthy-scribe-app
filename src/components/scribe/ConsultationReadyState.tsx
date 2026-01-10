@@ -42,7 +42,7 @@ export const ConsultationReadyState = ({
   return (
     <div className={`flex flex-col items-center justify-center min-h-[60vh] gap-4 ${isMobile ? 'px-2' : 'px-4'}`}>
       {/* Development Disclaimer */}
-      <ScribeDevDisclaimer className="w-full max-w-xl" />
+      {settings.showDevDisclaimer && <ScribeDevDisclaimer className="w-full max-w-xl" />}
       
       <Card className="w-full max-w-xl">
         <CardContent className={`space-y-5 ${isMobile ? 'pt-4 px-3' : 'pt-6 space-y-6'}`}>

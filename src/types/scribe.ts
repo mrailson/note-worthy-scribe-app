@@ -133,6 +133,7 @@ export interface ScribeSettings {
   showNotMentioned: boolean; // Show lines containing "None mentioned", "N/A", etc.
   showPatientBannerDuringRecording: boolean; // Show patient details during recording
   historyRetention: HistoryRetention; // How long to keep consultation history
+  showDevDisclaimer: boolean; // Show/hide the development disclaimer banner
 }
 
 export interface ScribeTranscriptData {
@@ -208,5 +209,6 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   consultationDetailLevel: 3,
   showNotMentioned: false, // Default to hiding "None mentioned" lines
   showPatientBannerDuringRecording: true, // Default to showing patient banner
-  historyRetention: '1week' // Default to 1 week retention
+  historyRetention: '1week', // Default to 1 week retention
+  showDevDisclaimer: true // Default to showing development disclaimer
 };
