@@ -33,7 +33,14 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
     'create leave calendar image', 'generate leave calendar', 'leave calendar picture',
     'as a visual', 'in picture form', 'in image form', 'in visual form',
     'create a picture', 'make a picture', 'show pictorially', 'display pictorially',
-    'convert to image', 'convert to picture', 'turn this into', 'make this into an image'
+    'convert to image', 'convert to picture', 'turn this into', 'make this into an image',
+    // New practice communication triggers
+    'create a leaflet', 'make a leaflet', 'design a leaflet', 'generate a leaflet', 'patient leaflet',
+    'create a newsletter', 'make a newsletter', 'design a newsletter', 'newsletter header',
+    'create a social media post', 'make a social media post', 'design a social media post', 'social media image', 'facebook post', 'instagram post',
+    'create a waiting room', 'waiting room poster', 'waiting room display', 'reception display',
+    'create a letterhead', 'make a letterhead', 'design a letterhead', 'document header', 'form header',
+    'create a campaign', 'campaign poster', 'health campaign', 'flu campaign', 'vaccination campaign'
   ];
   
   // Medium-confidence keywords (need more context)
@@ -41,7 +48,9 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
     'visually', 'graphic', 'illustration', 'show me',
     'calendar view', 'visual calendar', 'graphical',
     'flowchart', 'flow chart', 'mind map', 'timeline',
-    'poster for', 'banner for', 'notice for', 'sign for'
+    'poster for', 'banner for', 'notice for', 'sign for',
+    // Practice communication types as medium confidence
+    'leaflet for', 'newsletter for', 'social post', 'display for', 'campaign for'
   ];
 
   // Follow-up phrases that indicate user wants the AI to generate an image
