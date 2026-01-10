@@ -3,6 +3,7 @@ import {
   ConsultationState, 
   ConsultationType, 
   ConsultationNote, 
+  ConsultationViewMode,
   ScribeConsultation,
   SOAPNote,
   HeidiNote,
@@ -49,6 +50,9 @@ export const useScribeConsultation = () => {
     impression: '',
     plan: ''
   });
+
+  // View mode state
+  const [viewMode, setViewMode] = useState<ConsultationViewMode>('soap');
   
   const consultationIdRef = useRef<string | null>(null);
   
@@ -397,6 +401,7 @@ export const useScribeConsultation = () => {
     editContent,
     heidiEditStates,
     heidiEditContent,
+    viewMode,
     
     // Recording passthrough
     isRecording: recording.isRecording,
@@ -430,5 +435,7 @@ export const useScribeConsultation = () => {
     saveHeidiEdit,
     updateHeidiEditContent,
     copyHeidiSection,
+    // View mode
+    setViewMode,
   };
 };
