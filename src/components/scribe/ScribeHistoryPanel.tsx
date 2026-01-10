@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle } from "@/types/scribe";
-import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap } from "lucide-react";
+import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -42,6 +42,7 @@ export const ScribeHistoryPanel = ({
 }: ScribeHistoryPanelProps) => {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratedNotes, setRegeneratedNotes] = useState<SOAPNote | null>(null);
+  const [displaySettingsOpen, setDisplaySettingsOpen] = useState(false);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -275,6 +276,19 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     </TooltipTrigger>
                     <TooltipContent side="bottom">Quick Summary</TooltipContent>
                   </Tooltip>
+                  <div className="w-px h-4 bg-border mx-1" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setDisplaySettingsOpen(true)}
+                        className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+                        aria-label="Display Settings"
+                      >
+                        <Settings2 className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Display Settings</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             </div>
@@ -287,8 +301,10 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
               </TabsList>
               
               <TabsContent value="consultation" className="mt-4 space-y-6">
-                {/* View Controls */}
+                {/* Display Settings Modal */}
                 <ConsultationViewControls
+                  open={displaySettingsOpen}
+                  onOpenChange={setDisplaySettingsOpen}
                   viewMode={settings.consultationViewMode}
                   detailLevel={settings.consultationDetailLevel}
                   isRegenerating={isRegenerating}
