@@ -459,6 +459,12 @@ export const useScribeConsultation = () => {
         return;
       }
 
+      // Use recording transcript or imported transcript
+      const transcriptToSave = recording.transcript || importedTranscript;
+      const wordCountToSave = recording.wordCount || 
+        (importedTranscript ? importedTranscript.split(/\s+/).filter(w => w.length > 0).length : 0);
+      const durationToSave = recording.duration || 0;
+
       // 1. Insert into gp_consultations (main table)
       const { data: consultationData, error: consultationError } = await supabase
         .from('gp_consultations')
@@ -470,8 +476,8 @@ export const useScribeConsultation = () => {
           status: 'completed',
           patient_consent: patientConsent,
           consent_timestamp: consentTimestamp || null,
-          duration_seconds: recording.duration,
-          word_count: recording.wordCount
+          duration_seconds: durationToSave,
+          word_count: wordCountToSave
         }])
         .select()
         .single();
@@ -485,9 +491,9 @@ export const useScribeConsultation = () => {
         .from('gp_consultation_transcripts')
         .insert([{
           consultation_id: consultationId,
-          transcript_text: recording.transcript,
-          cleaned_transcript: recording.transcript,
-          transcription_service: 'whisper'
+          transcript_text: transcriptToSave,
+          cleaned_transcript: transcriptToSave,
+          transcription_service: importedTranscript ? 'imported' : 'whisper'
         }]);
 
       if (transcriptError) throw transcriptError;
@@ -537,7 +543,7 @@ export const useScribeConsultation = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [consultationNote, consultationType, consultationCategory, recording, isSaving, isSaved, patientConsent, consentTimestamp, settings.noteFormat, contextFiles]);
+  }, [consultationNote, consultationType, consultationCategory, recording, importedTranscript, isSaving, isSaved, patientConsent, consentTimestamp, settings.noteFormat, contextFiles]);
 
   // Heidi section editing
   const startHeidiEdit = useCallback((section: keyof HeidiNote) => {
