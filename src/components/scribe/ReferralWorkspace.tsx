@@ -108,28 +108,8 @@ export function ReferralWorkspace({
           practiceData = anyPractice;
         }
 
-        // Fetch GP signature from gp_signature_settings (Digital Signature in My Profile)
-        const { data: gpSignature } = await supabase
-          .from('gp_signature_settings')
-          .select('gp_name, qualifications, practice_name, job_title')
-          .eq('user_id', userId)
-          .eq('is_default', true)
-          .maybeSingle();
-
-        // Build signature from gp_signature_settings if available
-        let signatureHtml = '';
-        if (gpSignature) {
-          signatureHtml = `<p>Regards</p><p></p><p>${gpSignature.gp_name || ''}</p>`;
-          if (gpSignature.job_title) {
-            signatureHtml += `<p>${gpSignature.job_title}</p>`;
-          }
-          if (gpSignature.practice_name) {
-            signatureHtml += `<p>${gpSignature.practice_name}</p>`;
-          }
-        } else if (practiceData?.letter_signature) {
-          // Fallback to letter_signature from practice_details
-          signatureHtml = practiceData.letter_signature;
-        }
+        // Use Digital Signature from practice_details.letter_signature
+        const signatureHtml = practiceData?.letter_signature || '';
 
         if (practiceData) {
           setPracticeDetails({
