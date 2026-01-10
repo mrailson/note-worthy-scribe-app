@@ -37,7 +37,7 @@ interface ScribeImportPanelProps {
 type ImportTab = 'paste' | 'audio' | 'document';
 
 export const ScribeImportPanel = ({ settings, onNotesGenerated }: ScribeImportPanelProps) => {
-  const [activeImportTab, setActiveImportTab] = useState<ImportTab>('paste');
+  const [activeImportTab, setActiveImportTab] = useState<ImportTab>('audio');
   const [pastedText, setPastedText] = useState('');
   const [consultationType, setConsultationType] = useState<ConsultationType>('f2f');
   const [consultationCategory, setConsultationCategory] = useState<ConsultationCategory>('general');
