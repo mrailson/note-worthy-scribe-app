@@ -35,7 +35,7 @@ export const ConsultationTypeSelector = ({
   return (
     <div className="space-y-4">
       {/* Consultation Category */}
-      <div className="space-y-2">
+      <div className="space-y-2 text-center">
         <label className="text-xs font-medium text-muted-foreground">
           Consultation Category
         </label>
@@ -44,7 +44,7 @@ export const ConsultationTypeSelector = ({
           value={category} 
           onValueChange={(v) => v && onCategoryChange(v as ConsultationCategory)}
           disabled={disabled}
-          className={`justify-start flex-wrap ${isMobile ? 'gap-1.5' : ''}`}
+          className={`justify-center flex-wrap ${isMobile ? 'gap-1.5' : ''}`}
         >
           {(Object.keys(CONSULTATION_CATEGORY_LABELS) as ConsultationCategory[]).map((cat) => (
             <ToggleGroupItem
@@ -61,7 +61,7 @@ export const ConsultationTypeSelector = ({
       </div>
 
       {/* Consultation Type (Method) */}
-      <div className="space-y-2">
+      <div className="space-y-2 text-center">
         <label className="text-xs font-medium text-muted-foreground">
           Consultation Method
         </label>
@@ -70,7 +70,7 @@ export const ConsultationTypeSelector = ({
           value={value} 
           onValueChange={(v) => v && onChange(v as ConsultationType)}
           disabled={disabled}
-          className={`justify-start ${isMobile ? 'w-full' : ''}`}
+          className={`justify-center ${isMobile ? 'w-full' : ''}`}
         >
           {(Object.keys(CONSULTATION_TYPE_LABELS) as ConsultationType[]).map((type) => (
             <ToggleGroupItem
