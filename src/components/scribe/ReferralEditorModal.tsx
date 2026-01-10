@@ -10,6 +10,14 @@ import { Edit, Save, Copy, Download, Sparkles, ChevronDown, Check, Loader2 } fro
 import { ReferralDraft, ReferralPriority, PRIORITY_LABELS, PRIORITY_COLOURS } from "@/types/referral";
 import { useToast } from "@/hooks/use-toast";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import notewellLogo from "@/assets/notewell-logo.png";
+
+interface PracticeDetails {
+  name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+}
 
 interface ReferralEditorModalProps {
   isOpen: boolean;
@@ -21,6 +29,7 @@ interface ReferralEditorModalProps {
   onConfirm: () => void;
   onUnconfirm: () => void;
   isRewriting: boolean;
+  practiceDetails?: PracticeDetails;
 }
 
 const TONE_OPTIONS = [
@@ -40,6 +49,7 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
   onConfirm,
   onUnconfirm,
   isRewriting,
+  practiceDetails,
 }) => {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -216,6 +226,34 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
                 </div>
               ) : (
                 <div className="p-6 max-h-[50vh] overflow-y-auto">
+                  {/* Letterhead */}
+                  <div className="flex items-start justify-between mb-6 pb-4 border-b">
+                    {/* Logo on left */}
+                    <div className="flex-shrink-0">
+                      <img 
+                        src={notewellLogo} 
+                        alt="Notewell AI" 
+                        className="h-16 w-auto"
+                      />
+                    </div>
+                    
+                    {/* Practice details on right */}
+                    <div className="text-right text-sm text-muted-foreground">
+                      {practiceDetails?.name && (
+                        <p className="font-semibold text-foreground">{practiceDetails.name}</p>
+                      )}
+                      {practiceDetails?.address && (
+                        <p className="whitespace-pre-line">{practiceDetails.address}</p>
+                      )}
+                      {practiceDetails?.phone && (
+                        <p>Tel: {practiceDetails.phone}</p>
+                      )}
+                      {practiceDetails?.email && (
+                        <p>Email: {practiceDetails.email}</p>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Formatted letter view with highlighted missing fields */}
                   <div className="prose prose-sm max-w-none">
                     <div className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
