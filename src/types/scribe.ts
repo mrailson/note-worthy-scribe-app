@@ -61,6 +61,7 @@ export interface ScribeSession {
   soapNote?: SOAPNote;
   heidiNote?: HeidiNote;
   noteFormat?: NoteFormat;
+  quickSummary?: string; // One-liner for quick clinical identification
   duration: number;
   wordCount: number;
   createdAt: string;
@@ -68,6 +69,7 @@ export interface ScribeSession {
   status: 'recording' | 'completed' | 'archived';
   sessionType?: string;
   consultationType?: ConsultationType;
+  consultationCategory?: ConsultationCategory;
 }
 
 export type ConsultationViewMode = 'soap' | 'narrative' | 'summary' | 'patient';

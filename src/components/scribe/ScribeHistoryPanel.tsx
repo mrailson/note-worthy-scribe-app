@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle } from "@/types/scribe";
-import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User } from "lucide-react";
+import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle, CONSULTATION_CATEGORY_LABELS, ConsultationCategory } from "@/types/scribe";
+import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -16,10 +16,12 @@ import { TranscriptDisplay } from "./TranscriptDisplay";
 import { ConsultationViewControls } from "./ConsultationViewControls";
 import { NoteStyleToggle } from "./NoteStyleToggle";
 import { PatientLetterView } from "./PatientLetterView";
+import { SessionHistorySearch, DateFilter, CategoryFilter } from "./SessionHistorySearch";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ScribeHistoryPanelProps {
   sessions: ScribeSession[];
+  filteredSessions: ScribeSession[];
   isLoading: boolean;
   currentSession: ScribeSession | null;
   onLoadSession: (sessionId: string) => void;
@@ -28,10 +30,25 @@ interface ScribeHistoryPanelProps {
   onClearCurrentSession: () => void;
   settings: ScribeSettings;
   onUpdateSetting: <K extends keyof ScribeSettings>(key: K, value: ScribeSettings[K]) => void;
+  // Search and filter props
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  dateFilter: DateFilter;
+  onDateFilterChange: (filter: DateFilter) => void;
+  categoryFilter: CategoryFilter;
+  onCategoryFilterChange: (filter: CategoryFilter) => void;
 }
+
+// Category icon mapping
+const categoryIcons: Record<ConsultationCategory, typeof Stethoscope> = {
+  general: Stethoscope,
+  agewell: Heart,
+  social_prescriber: HandHeart,
+};
 
 export const ScribeHistoryPanel = ({
   sessions,
+  filteredSessions,
   isLoading,
   currentSession,
   onLoadSession,
@@ -40,6 +57,12 @@ export const ScribeHistoryPanel = ({
   onClearCurrentSession,
   settings,
   onUpdateSetting,
+  searchTerm,
+  onSearchChange,
+  dateFilter,
+  onDateFilterChange,
+  categoryFilter,
+  onCategoryFilterChange,
 }: ScribeHistoryPanelProps) => {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratedNotes, setRegeneratedNotes] = useState<SOAPNote | null>(null);
@@ -596,90 +619,133 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
         </Button>
       </div>
 
-      <ScrollArea className="h-[500px]">
-        <div className="space-y-3 pr-4">
-          {sessions.map((session) => (
-            <Card 
-              key={session.id} 
-              className="hover:bg-muted/50 transition-colors cursor-pointer"
-              onClick={() => onLoadSession(session.id)}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-base line-clamp-1">
-                      {session.title}
-                    </CardTitle>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {session.duration ? `${Math.floor(session.duration)}m` : '0m'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <FileText className="h-3 w-3" />
-                        {session.wordCount || 0} words
-                      </span>
+      {/* Search and Filters */}
+      <SessionHistorySearch
+        searchTerm={searchTerm}
+        onSearchChange={onSearchChange}
+        dateFilter={dateFilter}
+        onDateFilterChange={onDateFilterChange}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={onCategoryFilterChange}
+        resultCount={filteredSessions.length}
+        totalCount={sessions.length}
+      />
+
+      {filteredSessions.length === 0 ? (
+        <Card>
+          <CardContent className="py-8">
+            <div className="flex flex-col items-center justify-center text-muted-foreground">
+              <History className="h-8 w-8 mb-2 opacity-50" />
+              <p className="font-medium">No consultations found</p>
+              <p className="text-sm">Try adjusting your search or filters</p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <ScrollArea className="h-[450px]">
+          <div className="space-y-3 pr-4">
+            {filteredSessions.map((session) => {
+              const CategoryIcon = categoryIcons[session.consultationCategory || 'general'];
+              return (
+                <Card 
+                  key={session.id} 
+                  className="hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => onLoadSession(session.id)}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <CategoryIcon className="h-4 w-4 text-muted-foreground" />
+                          <CardTitle className="text-base line-clamp-1">
+                            {session.title}
+                          </CardTitle>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {session.duration ? `${Math.floor(session.duration)}m` : '0m'}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <FileText className="h-3 w-3" />
+                            {session.wordCount || 0} words
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={session.status === 'completed' ? 'secondary' : 'outline'}>
+                          {session.status}
+                        </Badge>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={session.status === 'completed' ? 'secondary' : 'outline'}>
-                      {session.status}
-                    </Badge>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <p className="text-sm text-muted-foreground mb-3">
-                  {format(new Date(session.createdAt), 'dd MMM yyyy, HH:mm')}
-                </p>
-                {session.transcript && (
-                  <p className="text-sm text-foreground/70 line-clamp-2 mb-3">
-                    {session.transcript.substring(0, 150)}...
-                  </p>
-                )}
-                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onLoadSession(session.id);
-                    }}
-                  >
-                    View Session
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {format(new Date(session.createdAt), 'dd MMM yyyy, HH:mm')}
+                    </p>
+                    
+                    {/* Quick Summary - Key clinical one-liner */}
+                    {session.quickSummary && (
+                      <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30 mb-3">
+                        <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                        <p className="text-sm text-amber-800 dark:text-amber-200 line-clamp-2">
+                          {session.quickSummary}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Fallback to transcript preview if no quick summary */}
+                    {!session.quickSummary && session.transcript && (
+                      <p className="text-sm text-foreground/70 line-clamp-2 mb-3">
+                        {session.transcript.substring(0, 150)}...
+                      </p>
+                    )}
+                    
+                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onLoadSession(session.id);
+                        }}
+                      >
+                        View Session
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Session?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete this session and all its data. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={() => onDeleteSession(session.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </ScrollArea>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Session?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete this session and all its data. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => onDeleteSession(session.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      )}
     </div>
   );
 };

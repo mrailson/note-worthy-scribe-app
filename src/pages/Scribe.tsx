@@ -248,6 +248,7 @@ const Scribe = () => {
             <TabsContent value="history">
               <ScribeHistoryPanel
                 sessions={history.sessions}
+                filteredSessions={history.filteredSessions}
                 isLoading={history.isLoading}
                 currentSession={history.currentSession}
                 onLoadSession={handleLoadSession}
@@ -256,6 +257,12 @@ const Scribe = () => {
                 onClearCurrentSession={history.clearCurrentSession}
                 settings={settingsHook.settings}
                 onUpdateSetting={settingsHook.updateSetting}
+                searchTerm={history.searchTerm}
+                onSearchChange={history.setSearchTerm}
+                dateFilter={history.dateFilter}
+                onDateFilterChange={history.setDateFilter}
+                categoryFilter={history.categoryFilter}
+                onCategoryFilterChange={history.setCategoryFilter}
               />
             </TabsContent>
 
