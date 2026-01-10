@@ -5,7 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote } from "@/types/scribe";
-import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight } from "lucide-react";
+import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -144,15 +146,71 @@ export const ScribeHistoryPanel = ({
               </div>
               <Badge variant="secondary">{currentSession.status}</Badge>
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2 flex-wrap">
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 {currentSession.duration ? `${Math.floor(currentSession.duration)} min` : '0 min'}
               </span>
-              <span className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                {currentSession.wordCount || 0} words
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1">
+                  <FileText className="h-3 w-3" />
+                  {currentSession.wordCount || 0} words
+                </span>
+                <span className="text-muted-foreground/40">|</span>
+                <div className="flex items-center gap-0.5">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleViewModeChange('soap')}
+                        className={cn(
+                          "p-1.5 rounded-md transition-colors",
+                          settings.consultationViewMode === 'soap' 
+                            ? "text-primary bg-primary/10" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        aria-label="Structured (SOAP)"
+                      >
+                        <List className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Structured (SOAP)</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleViewModeChange('narrative')}
+                        className={cn(
+                          "p-1.5 rounded-md transition-colors",
+                          settings.consultationViewMode === 'narrative' 
+                            ? "text-primary bg-primary/10" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        aria-label="Narrative"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Narrative</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleViewModeChange('summary')}
+                        className={cn(
+                          "p-1.5 rounded-md transition-colors",
+                          settings.consultationViewMode === 'summary' 
+                            ? "text-primary bg-primary/10" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        aria-label="Quick Summary"
+                      >
+                        <Zap className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Quick Summary</TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
