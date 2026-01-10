@@ -3231,6 +3231,183 @@ export type Database = {
         }
         Relationships: []
       }
+      gp_consultation_context: {
+        Row: {
+          consultation_id: string
+          content_type: string
+          created_at: string
+          extracted_text: string | null
+          file_path: string | null
+          id: string
+          name: string
+          preview_url: string | null
+        }
+        Insert: {
+          consultation_id: string
+          content_type: string
+          created_at?: string
+          extracted_text?: string | null
+          file_path?: string | null
+          id?: string
+          name: string
+          preview_url?: string | null
+        }
+        Update: {
+          consultation_id?: string
+          content_type?: string
+          created_at?: string
+          extracted_text?: string | null
+          file_path?: string | null
+          id?: string
+          name?: string
+          preview_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gp_consultation_context_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "gp_consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gp_consultation_notes: {
+        Row: {
+          consultation_id: string
+          created_at: string
+          heidi_notes: Json | null
+          id: string
+          note_format: string | null
+          note_style: string | null
+          patient_letter: string | null
+          referral_letter: string | null
+          snomed_codes: string[] | null
+          soap_notes: Json | null
+          trainee_feedback: string | null
+          updated_at: string
+        }
+        Insert: {
+          consultation_id: string
+          created_at?: string
+          heidi_notes?: Json | null
+          id?: string
+          note_format?: string | null
+          note_style?: string | null
+          patient_letter?: string | null
+          referral_letter?: string | null
+          snomed_codes?: string[] | null
+          soap_notes?: Json | null
+          trainee_feedback?: string | null
+          updated_at?: string
+        }
+        Update: {
+          consultation_id?: string
+          created_at?: string
+          heidi_notes?: Json | null
+          id?: string
+          note_format?: string | null
+          note_style?: string | null
+          patient_letter?: string | null
+          referral_letter?: string | null
+          snomed_codes?: string[] | null
+          soap_notes?: Json | null
+          trainee_feedback?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gp_consultation_notes_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: true
+            referencedRelation: "gp_consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gp_consultation_transcripts: {
+        Row: {
+          cleaned_transcript: string | null
+          confidence_score: number | null
+          consultation_id: string
+          created_at: string
+          id: string
+          transcript_text: string | null
+          transcription_service: string | null
+        }
+        Insert: {
+          cleaned_transcript?: string | null
+          confidence_score?: number | null
+          consultation_id: string
+          created_at?: string
+          id?: string
+          transcript_text?: string | null
+          transcription_service?: string | null
+        }
+        Update: {
+          cleaned_transcript?: string | null
+          confidence_score?: number | null
+          consultation_id?: string
+          created_at?: string
+          id?: string
+          transcript_text?: string | null
+          transcription_service?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gp_consultation_transcripts_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: true
+            referencedRelation: "gp_consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gp_consultations: {
+        Row: {
+          consent_timestamp: string | null
+          consultation_category: string | null
+          consultation_type: string
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          patient_consent: boolean | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          consent_timestamp?: string | null
+          consultation_category?: string | null
+          consultation_type?: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          patient_consent?: boolean | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          consent_timestamp?: string | null
+          consultation_category?: string | null
+          consultation_type?: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          patient_consent?: boolean | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       gp_practices: {
         Row: {
           address: string | null

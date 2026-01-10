@@ -403,7 +403,7 @@ export const useScribeConsultation = () => {
     });
   }, []);
 
-  // Save consultation to database
+  // Save consultation to database (using dedicated gp_consultations tables)
   const saveConsultation = useCallback(async () => {
     // Guard against duplicate saves
     if (isSaving) {
@@ -430,21 +430,75 @@ export const useScribeConsultation = () => {
         return;
       }
 
-      const soapNote = consultationNote.soapNote;
+      // 1. Insert into gp_consultations (main table)
+      const { data: consultationData, error: consultationError } = await supabase
+        .from('gp_consultations')
+        .insert([{
+          user_id: userData.user.id,
+          title: `${CONSULTATION_TYPE_LABELS[consultationType]} Consultation`,
+          consultation_type: consultationType,
+          consultation_category: consultationCategory,
+          status: 'completed',
+          patient_consent: patientConsent,
+          consent_timestamp: consentTimestamp || null,
+          duration_seconds: recording.duration,
+          word_count: recording.wordCount
+        }])
+        .select()
+        .single();
 
-      const { error } = await supabase.from('meetings').insert([{
-        user_id: userData.user.id,
-        title: `${CONSULTATION_TYPE_LABELS[consultationType]} Consultation`,
-        meeting_type: 'consultation',
-        live_transcript_text: recording.transcript,
-        soap_notes: JSON.parse(JSON.stringify(consultationNote.soapNote)),
-        overview: `${soapNote.S.substring(0, 100)}...`,
-        status: 'completed',
-        duration_minutes: Math.ceil(recording.duration / 60),
-        word_count: recording.wordCount
-      }]);
+      if (consultationError) throw consultationError;
 
-      if (error) throw error;
+      const consultationId = consultationData.id;
+
+      // 2. Insert transcript into gp_consultation_transcripts
+      const { error: transcriptError } = await supabase
+        .from('gp_consultation_transcripts')
+        .insert([{
+          consultation_id: consultationId,
+          transcript_text: recording.transcript,
+          cleaned_transcript: recording.transcript,
+          transcription_service: 'whisper'
+        }]);
+
+      if (transcriptError) throw transcriptError;
+
+      // 3. Insert notes into gp_consultation_notes
+      const { error: notesError } = await supabase
+        .from('gp_consultation_notes')
+        .insert([{
+          consultation_id: consultationId,
+          note_format: consultationNote.noteFormat || 'heidi',
+          note_style: settings.noteFormat,
+          soap_notes: JSON.parse(JSON.stringify(consultationNote.soapNote)),
+          heidi_notes: consultationNote.heidiNote ? JSON.parse(JSON.stringify(consultationNote.heidiNote)) : null,
+          snomed_codes: consultationNote.snomedCodes || []
+        }]);
+
+      if (notesError) throw notesError;
+
+      // 4. Insert context files if any
+      if (contextFiles.length > 0) {
+        const contextInserts = contextFiles
+          .filter(f => !f.isProcessing && !f.error)
+          .map(f => ({
+            consultation_id: consultationId,
+            name: f.name,
+            content_type: f.type === 'image' ? 'image' : 'document',
+            extracted_text: f.content || null,
+            preview_url: f.preview || null
+          }));
+
+        if (contextInserts.length > 0) {
+          const { error: contextError } = await supabase
+            .from('gp_consultation_context')
+            .insert(contextInserts);
+
+          if (contextError) {
+            console.warn('Failed to save context files:', contextError);
+          }
+        }
+      }
       
       setIsSaved(true);
       showToast.success('Consultation saved', { section: 'gpscribe' });
@@ -454,7 +508,7 @@ export const useScribeConsultation = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [consultationNote, consultationType, recording, isSaving, isSaved]);
+  }, [consultationNote, consultationType, consultationCategory, recording, isSaving, isSaved, patientConsent, consentTimestamp, settings.noteFormat, contextFiles]);
 
   // Heidi section editing
   const startHeidiEdit = useCallback((section: keyof HeidiNote) => {
