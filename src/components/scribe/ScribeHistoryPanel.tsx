@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle, CONSULTATION_CATEGORY_LABELS, ConsultationCategory } from "@/types/scribe";
-import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare } from "lucide-react";
+import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -77,6 +77,34 @@ export const ScribeHistoryPanel = ({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteAllConfirmText, setDeleteAllConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+  
+  // Calculate paginated sessions
+  const paginatedSessions = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredSessions.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredSessions, currentPage]);
+  
+  const totalPages = Math.ceil(filteredSessions.length / ITEMS_PER_PAGE);
+  
+  // Reset to page 1 when filters change
+  const handleSearchChange = useCallback((value: string) => {
+    setCurrentPage(1);
+    onSearchChange(value);
+  }, [onSearchChange]);
+  
+  const handleDateFilterChange = useCallback((filter: DateFilter) => {
+    setCurrentPage(1);
+    onDateFilterChange(filter);
+  }, [onDateFilterChange]);
+  
+  const handleCategoryFilterChange = useCallback((filter: CategoryFilter) => {
+    setCurrentPage(1);
+    onCategoryFilterChange(filter);
+  }, [onCategoryFilterChange]);
 
   const copyToClipboard = (text: string, _label: string) => {
     navigator.clipboard.writeText(text);
@@ -820,11 +848,11 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
       {/* Search and Filters */}
       <SessionHistorySearch
         searchTerm={searchTerm}
-        onSearchChange={onSearchChange}
+        onSearchChange={handleSearchChange}
         dateFilter={dateFilter}
-        onDateFilterChange={onDateFilterChange}
+        onDateFilterChange={handleDateFilterChange}
         categoryFilter={categoryFilter}
-        onCategoryFilterChange={onCategoryFilterChange}
+        onCategoryFilterChange={handleCategoryFilterChange}
         resultCount={filteredSessions.length}
         totalCount={sessions.length}
       />
@@ -840,9 +868,9 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
           </CardContent>
         </Card>
       ) : (
-        <ScrollArea className={isMobile ? "h-[calc(100vh-380px)]" : "h-[450px]"}>
-          <div className={`space-y-3 ${isMobile ? 'pr-2' : 'pr-4'}`}>
-            {filteredSessions.map((session) => {
+        <div className="space-y-4">
+          <div className={`space-y-3`}>
+            {paginatedSessions.map((session) => {
               const CategoryIcon = categoryIcons[session.consultationCategory || 'general'];
               const isSelected = selectedIds.has(session.id);
               return (
@@ -962,7 +990,39 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
               );
             })}
           </div>
-        </ScrollArea>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredSessions.length)} of {filteredSessions.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  {!isMobile && <span className="ml-1">Previous</span>}
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  {!isMobile && <span className="mr-1">Next</span>}
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
