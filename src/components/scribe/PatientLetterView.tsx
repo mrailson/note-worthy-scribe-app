@@ -271,8 +271,18 @@ export const PatientLetterView = ({
 
   const handleDownloadWord = async () => {
     try {
-      const { generateWordDocument } = await import('@/utils/documentGenerators');
-      await generateWordDocument(getPlainTextLetter(), 'Patient Consultation Summary');
+      const { generatePatientLetterDocument } = await import('@/utils/documentGenerators');
+      await generatePatientLetterDocument({
+        letterContent,
+        practiceName: practiceDetails?.name,
+        practiceAddress: practiceDetails?.address,
+        practicePhone: practiceDetails?.phone,
+        practiceEmail: practiceDetails?.email,
+        practiceLogoUrl: practiceDetails?.logoUrl,
+        gpName: gpDetails?.name,
+        gpTitle: gpDetails?.title,
+        date: format(new Date(), 'd MMMM yyyy')
+      });
     } catch (error) {
       console.error('Error generating Word document:', error);
       toast.error('Failed to download Word document');
