@@ -38,6 +38,15 @@ export class DesktopWhisperTranscriber {
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private activityCheckInterval: NodeJS.Timeout | null = null;
+  
+  // VAD-based silence detection for smoother real-time experience
+  private silenceTimer: NodeJS.Timeout | null = null;
+  private lastSpeechTime = 0;
+  private isSpeaking = false;
+  private chunkStartTime = 0;
+  private readonly SILENCE_THRESHOLD = 0.015; // RMS threshold for speech detection
+  private readonly SILENCE_DURATION_MS = 1500; // 1.5 seconds of silence triggers flush
+  private readonly MIN_CHUNK_DURATION_MS = 2000; // Minimum 2 seconds before flushing
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -59,13 +68,13 @@ export class DesktopWhisperTranscriber {
   }
   
   private startActivityMonitoring() {
-    if (!this.analyser || !this.onAudioActivity) return;
+    if (!this.analyser) return;
     
     const bufferLength = this.analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
     
     this.activityCheckInterval = setInterval(() => {
-      if (!this.analyser) return;
+      if (!this.analyser || !this.isRecording) return;
       
       this.analyser.getByteTimeDomainData(dataArray);
       let sum = 0;
@@ -75,17 +84,87 @@ export class DesktopWhisperTranscriber {
       }
       const rms = Math.sqrt(sum / bufferLength);
       
+      // Track speech activity for VAD-based flushing
+      const wasSpeaking = this.isSpeaking;
+      this.isSpeaking = rms > this.SILENCE_THRESHOLD;
+      
+      if (this.isSpeaking) {
+        // Speech detected - record timestamp and clear silence timer
+        this.lastSpeechTime = Date.now();
+        if (this.silenceTimer) {
+          clearTimeout(this.silenceTimer);
+          this.silenceTimer = null;
+        }
+      } else if (wasSpeaking && !this.isSpeaking) {
+        // Transition from speaking to silence - schedule early flush
+        this.scheduleSilenceFlush();
+      }
+      
       // Call callback with activity status
       if (this.onAudioActivity) {
-        this.onAudioActivity(rms > 0.01);
+        this.onAudioActivity(this.isSpeaking);
       }
     }, 100); // Check every 100ms
+  }
+  
+  /**
+   * Schedule an early chunk flush when silence is detected
+   * This provides smoother real-time feedback to clinicians
+   */
+  private scheduleSilenceFlush() {
+    if (this.silenceTimer) return; // Already scheduled
+    
+    this.silenceTimer = setTimeout(() => {
+      const timeSinceLastSpeech = Date.now() - this.lastSpeechTime;
+      const chunkDuration = Date.now() - this.chunkStartTime;
+      
+      // Only flush if we have enough audio and silence has been maintained
+      if (timeSinceLastSpeech >= this.SILENCE_DURATION_MS && 
+          chunkDuration >= this.MIN_CHUNK_DURATION_MS &&
+          this.audioChunks.length > 0 &&
+          this.isRecording) {
+        console.log(`🔇 Silence detected for ${(timeSinceLastSpeech/1000).toFixed(1)}s after ${(chunkDuration/1000).toFixed(1)}s of audio - flushing chunk early`);
+        this.flushCurrentChunk();
+      }
+      
+      this.silenceTimer = null;
+    }, this.SILENCE_DURATION_MS);
+  }
+  
+  /**
+   * Flush current audio chunk early (triggered by silence detection)
+   * Stops and restarts the MediaRecorder to send current audio for transcription
+   */
+  private flushCurrentChunk() {
+    // Cancel the scheduled timer-based chunk
+    if (this.transcriptionTimeout) {
+      clearTimeout(this.transcriptionTimeout);
+      this.transcriptionTimeout = null;
+    }
+    
+    // Stop and restart the recorder to trigger ondataavailable
+    if (this.mediaRecorder?.state === 'recording' && this.isRecording) {
+      this.mediaRecorder.stop();
+      
+      // Restart recording after brief pause
+      setTimeout(() => {
+        if (this.mediaRecorder && this.isRecording) {
+          this.chunkStartTime = Date.now();
+          this.mediaRecorder.start();
+          this.scheduleNextChunk();
+        }
+      }, 100);
+    }
   }
   
   private stopActivityMonitoring() {
     if (this.activityCheckInterval) {
       clearInterval(this.activityCheckInterval);
       this.activityCheckInterval = null;
+    }
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer);
+      this.silenceTimer = null;
     }
     if (this.audioContext) {
       this.audioContext.close();
@@ -216,18 +295,17 @@ export class DesktopWhisperTranscriber {
         }
       });
       
-      // Set up audio activity monitoring if callback provided
-      if (this.onAudioActivity) {
-        this.audioContext = new AudioContext({ sampleRate: 48000 });
-        this.analyser = this.audioContext.createAnalyser();
-        this.analyser.fftSize = 256;
-        
-        const source = this.audioContext.createMediaStreamSource(this.stream);
-        source.connect(this.analyser);
-        
-        // Start checking for audio activity
-        this.startActivityMonitoring();
-      }
+      // Set up audio activity monitoring for VAD-based silence detection
+      // This is always enabled for smoother real-time transcription experience
+      this.audioContext = new AudioContext({ sampleRate: 48000 });
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = 256;
+      
+      const source = this.audioContext.createMediaStreamSource(this.stream);
+      source.connect(this.analyser);
+      
+      // Start checking for audio activity (VAD + optional callback)
+      this.startActivityMonitoring();
 
       // Check supported MIME types for desktop
       const mimeTypes = [
@@ -289,6 +367,10 @@ export class DesktopWhisperTranscriber {
   private startChunkedRecording() {
     if (!this.mediaRecorder || !this.isRecording) return;
 
+    // Track when this chunk started for VAD minimum duration
+    this.chunkStartTime = Date.now();
+    this.lastSpeechTime = Date.now(); // Assume starting with speech
+    
     // Start recording
     this.mediaRecorder.start();
     
@@ -320,6 +402,8 @@ export class DesktopWhisperTranscriber {
         // Start new recording immediately after a brief pause
         setTimeout(() => {
           if (this.mediaRecorder && this.isRecording) {
+            this.chunkStartTime = Date.now(); // Reset chunk start time
+            this.lastSpeechTime = Date.now(); // Reset speech time
             this.mediaRecorder.start();
             this.scheduleNextChunk();
           }
