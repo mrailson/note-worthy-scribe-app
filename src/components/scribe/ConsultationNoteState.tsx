@@ -1,12 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ConsultationNote, ConsultationType, CONSULTATION_TYPE_LABELS, SOAPNote, HeidiNote, ScribeEditStates, HeidiEditStates, ScribeSettings } from "@/types/scribe";
+import { ConsultationNote, ConsultationType, ConsultationViewMode, CONSULTATION_TYPE_LABELS, SOAPNote, HeidiNote, ScribeEditStates, HeidiEditStates, ScribeSettings } from "@/types/scribe";
 import { SOAPNoteEditor } from "./SOAPNoteEditor";
 import { HeidiNoteEditor } from "./HeidiNoteEditor";
 import { QuickActionsBar } from "./QuickActionsBar";
-import { Clock, FileCheck, Stethoscope, Shield } from "lucide-react";
+import { Clock, FileCheck, Stethoscope, Shield, List, FileText, Zap } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface ConsultationNoteStateProps {
   consultationNote: ConsultationNote;
@@ -36,6 +38,9 @@ interface ConsultationNoteStateProps {
   onNewConsultation: () => void;
   onExportPDF?: () => void;
   onExportWord?: () => void;
+  // View mode
+  viewMode?: ConsultationViewMode;
+  onViewModeChange?: (mode: ConsultationViewMode) => void;
 }
 
 export const ConsultationNoteState = ({
@@ -62,7 +67,9 @@ export const ConsultationNoteState = ({
   onSaveConsultation,
   onNewConsultation,
   onExportPDF,
-  onExportWord
+  onExportWord,
+  viewMode = 'soap',
+  onViewModeChange
 }: ConsultationNoteStateProps) => {
   const isMobile = useIsMobile();
 
@@ -103,7 +110,7 @@ export const ConsultationNoteState = ({
               </div>
             </div>
             
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
               <div className="flex items-center gap-1.5">
                 <Stethoscope className="h-4 w-4" />
                 <span>{CONSULTATION_TYPE_LABELS[consultationType]}</span>
@@ -112,8 +119,66 @@ export const ConsultationNoteState = ({
                 <Clock className="h-4 w-4" />
                 <span>{duration}</span>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <span>{wordCount} words</span>
+                {onViewModeChange && (
+                  <>
+                    <span className="text-muted-foreground/40">|</span>
+                    <div className="flex items-center gap-0.5">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => onViewModeChange('soap')}
+                            className={cn(
+                              "p-1.5 rounded-md transition-colors",
+                              viewMode === 'soap' 
+                                ? "text-primary bg-primary/10" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            aria-label="Structured (SOAP)"
+                          >
+                            <List className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Structured (SOAP)</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => onViewModeChange('narrative')}
+                            className={cn(
+                              "p-1.5 rounded-md transition-colors",
+                              viewMode === 'narrative' 
+                                ? "text-primary bg-primary/10" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            aria-label="Narrative"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Narrative</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => onViewModeChange('summary')}
+                            className={cn(
+                              "p-1.5 rounded-md transition-colors",
+                              viewMode === 'summary' 
+                                ? "text-primary bg-primary/10" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            aria-label="Quick Summary"
+                          >
+                            <Zap className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Quick Summary</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

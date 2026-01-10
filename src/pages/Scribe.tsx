@@ -192,6 +192,8 @@ const Scribe = () => {
                   onNewConsultation={consultation.newConsultation}
                   onExportPDF={handleExportPDF}
                   onExportWord={handleExportWord}
+                  viewMode={consultation.viewMode}
+                  onViewModeChange={consultation.setViewMode}
                 />
               )}
             </TabsContent>
