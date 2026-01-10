@@ -72,7 +72,7 @@ export interface ScribeSession {
   consultationCategory?: ConsultationCategory;
 }
 
-export type ConsultationViewMode = 'soap' | 'narrative' | 'summary' | 'patient';
+export type ConsultationViewMode = 'soap' | 'narrative' | 'summary' | 'patient' | 'referral';
 
 export type NoteStyle = 'shorthand' | 'standard';
 

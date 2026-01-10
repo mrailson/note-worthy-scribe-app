@@ -250,6 +250,9 @@ const Scribe = () => {
                   onViewModeChange={consultation.setViewMode}
                   isSaving={consultation.isSaving}
                   isSaved={consultation.isSaved}
+                  transcript={consultation.transcript}
+                  userId={user?.id}
+                  patientContext={consultation.patientContext}
                 />
               )}
             </TabsContent>
