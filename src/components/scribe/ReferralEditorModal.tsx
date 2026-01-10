@@ -47,6 +47,40 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
   const [clinicallyAppropriate, setClinicallyAppropriate] = useState(false);
   const [factsAccurate, setFactsAccurate] = useState(false);
 
+  // Render letter content with missing fields highlighted in yellow
+  const renderLetterWithHighlights = (content: string) => {
+    // Match [[MISSING: ...]] or [MISSING: ...] or common placeholder patterns
+    const missingPattern = /\[\[MISSING:\s*([^\]]+)\]\]|\[MISSING:\s*([^\]]+)\]|\[([^\]]*(?:please update|Patient Name|Date of Birth|NHS Number|Practice|Phone|Email|GMC|Name|Address|DOB)[^\]]*)\]/gi;
+    
+    const parts = content.split(missingPattern);
+    
+    return parts.map((part, index) => {
+      if (part === undefined || part === '') return null;
+      
+      // Check if this part matches a missing field pattern
+      const isMissingField = missingPattern.test(`[[MISSING: ${part}]]`) || 
+                            missingPattern.test(`[${part}]`) ||
+                            /please update|Patient Name|Date of Birth|NHS Number|GMC|MISSING/i.test(part);
+      
+      // Reset the regex lastIndex
+      missingPattern.lastIndex = 0;
+      
+      if (isMissingField && part.trim()) {
+        return (
+          <span 
+            key={index} 
+            className="bg-yellow-200 text-yellow-900 px-1 rounded font-medium"
+            title="Missing information - please complete"
+          >
+            [{part.replace(/MISSING:\s*/i, '')}]
+          </span>
+        );
+      }
+      
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   const handleSaveEdit = () => {
     onContentChange(editedContent);
     setIsEditing(false);
@@ -178,11 +212,11 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
                 </div>
               ) : (
                 <div className="p-6 max-h-[50vh] overflow-y-auto">
-                  {/* Simple formatted letter view */}
+                  {/* Formatted letter view with highlighted missing fields */}
                   <div className="prose prose-sm max-w-none">
-                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground bg-transparent p-0 m-0 border-none">
-                      {draft.letterContent}
-                    </pre>
+                    <div className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
+                      {renderLetterWithHighlights(draft.letterContent)}
+                    </div>
                   </div>
                 </div>
               )}

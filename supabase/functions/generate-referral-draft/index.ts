@@ -69,81 +69,130 @@ serve(async (req) => {
         };
       }
       
-      // Fetch practice details - try practice_id from profile or get first practice for user
-      const { data: practice } = await supabase
+      // Fetch practice details - try default first, then any practice for user
+      let practice = null;
+      const { data: defaultPractice } = await supabase
         .from('practice_details')
         .select('*')
         .eq('user_id', userId)
+        .eq('is_default', true)
         .maybeSingle();
+      
+      if (defaultPractice) {
+        practice = defaultPractice;
+      } else {
+        // Fallback to most recent practice for user
+        const { data: anyPractice } = await supabase
+          .from('practice_details')
+          .select('*')
+          .eq('user_id', userId)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        practice = anyPractice;
+      }
       
       if (practice) {
         practiceDetails = practice;
+        console.log('Found practice details:', practice.practice_name, practice.address);
+      } else {
+        console.log('No practice details found for user:', userId);
       }
     }
+
+    // Format today's date in UK format
+    const today = new Date();
+    const dateOptions: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+    const formattedDate = today.toLocaleDateString('en-GB', dateOptions);
 
     const systemPrompt = `You are a UK NHS GP referral letter drafting assistant. Generate a professional referral letter based on the provided information.
 
 CRITICAL RULES (Scribe-Safe):
 1. ONLY use facts explicitly provided - never fabricate examination findings, test results, or history
 2. Use intent-based language: "Please assess..." not "I have diagnosed..."
-3. If information is missing, use placeholders like "[Please confirm: duration of symptoms]"
+3. If information is missing, mark placeholders with [[MISSING: description]] format so they are clearly visible
 4. Never state diagnoses unless the clinician explicitly confirmed one
 5. Frame clinical concerns as "concerning for" or "to exclude" not definitive statements
 
-LETTER STRUCTURE:
-1. Header with practice details and date
-2. Recipient service clearly stated
-3. Patient demographics (if provided)
-4. Reason for referral (1-2 sentences, factual)
-5. Clinical summary:
-   - Presenting symptoms with time course
-   - Relevant positives and negatives
-   - Risk factors
-   - Current medications (if relevant)
-   - Investigations done/planned
-6. Requested action (what you're asking them to do)
-7. Safety-netting given (only if confirmed)
-8. Closing with clinician contact details
+LETTER FORMAT:
+The letter should follow this structure:
+
+**[PRACTICE NAME]**
+[Practice Address Line 1]
+[Practice Address Line 2 if applicable]
+Tel: [Phone]
+Email: [Email]
+
+[Date]
+
+[Recipient Department]
+[Recipient Service Address if known, otherwise leave blank]
+
+Dear Colleague,
+
+Re: [Urgency] Referral for [[MISSING: Patient Name]], [[MISSING: Date of Birth]]
+
+[Body of letter - clinical details, reason for referral, what you're asking them to do]
+
+Thank you for your attention to this [urgency] matter. Please feel free to contact me at [Phone] or [Email] should you require any further information.
+
+Yours sincerely,
+
+[Clinician Name]
+[Job Title]
+GMC: [GMC Number]
+[Practice Name]
+[Practice Address]
+
+IMPORTANT FORMATTING RULES:
+- Do NOT include qualifications like MBBS, MBChB etc after the clinician name
+- Include Practice Name and Address in the signature block
+- Use [[MISSING: description]] format for any information that is not provided
+- Use the actual date provided, not a placeholder
+- Keep the letter concise and professional - UK NHS style
 
 URGENCY WORDING:
 - routine: "I would be grateful if you could see..."
 - urgent: "I would be grateful for an urgent review..."
 - 2ww: "I am referring under the 2 week wait pathway..."
-- same-day: "I am requesting same-day assessment..."
+- same-day: "I am requesting same-day assessment..."`;
 
-Keep the letter concise and professional. UK NHS style.`;
 
-    // Build practice info - prefer practice_details, fall back to GP signature settings
-    const practiceName = practiceDetails?.practice_name || gpDetails?.practice_name || '';
-    const practiceAddress = practiceDetails?.address || '';
-    const practicePhone = practiceDetails?.phone || '';
-    const practiceEmail = practiceDetails?.email || '';
+    // Build info for the prompt - use actual values or MISSING markers
+    const practiceName = practiceDetails?.practice_name || '[[MISSING: Practice Name]]';
+    const practiceAddress = practiceDetails?.address || '[[MISSING: Practice Address]]';
+    const practicePhone = practiceDetails?.phone || '[[MISSING: Phone Number]]';
+    const practiceEmail = practiceDetails?.email || '[[MISSING: Email Address]]';
     
     // Build GP info - prefer GP signature settings, fall back to profile
-    const gpName = gpDetails?.full_name || profileDetails?.full_name || '';
-    const gpJobTitle = gpDetails?.job_title || profileDetails?.role || profileDetails?.title || '';
-    const gpGmc = gpDetails?.gmc_number || '';
-    const gpQualifications = gpDetails?.qualifications || '';
+    const gpName = gpDetails?.full_name || profileDetails?.full_name || '[[MISSING: Clinician Name]]';
+    const gpJobTitle = gpDetails?.job_title || profileDetails?.role || profileDetails?.title || '[[MISSING: Job Title]]';
+    const gpGmc = gpDetails?.gmc_number || '[[MISSING: GMC Number]]';
 
     const practiceInfo = `
-Practice: ${practiceName || '[Practice Name - please update in Settings]'}
-Address: ${practiceAddress || '[Practice Address - please update in Settings]'}
-Phone: ${practicePhone || '[Phone - please update in Settings]'}
-Email: ${practiceEmail || '[Email - please update in Settings]'}`;
+Practice Name: ${practiceName}
+Practice Address: ${practiceAddress}
+Practice Phone: ${practicePhone}
+Practice Email: ${practiceEmail}`;
 
     const gpInfo = `
-GP Name: ${gpName || '[Your Name - please update in Settings]'}
-Job Title: ${gpJobTitle || '[Job Title - please update in Settings]'}
-GMC: ${gpGmc || '[GMC Number - please update in Settings]'}
-Qualifications: ${gpQualifications || ''}`;
+Clinician Name: ${gpName}
+Job Title: ${gpJobTitle}
+GMC Number: ${gpGmc}`;
 
     const patientInfo = patientContext ? `
-Patient Name: ${patientContext.name || '[Patient Name]'}
-DOB: ${patientContext.dob || '[DOB]'}
-NHS Number: ${patientContext.nhsNumber || '[NHS Number]'}
-Address: ${patientContext.address || '[Address]'}` : '';
+Patient Name: ${patientContext.name || '[[MISSING: Patient Name]]'}
+DOB: ${patientContext.dob || '[[MISSING: Date of Birth]]'}
+NHS Number: ${patientContext.nhsNumber || '[[MISSING: NHS Number]]'}
+Address: ${patientContext.address || ''}` : `
+Patient Name: [[MISSING: Patient Name]]
+DOB: [[MISSING: Date of Birth]]
+NHS Number: [[MISSING: NHS Number]]`;
 
     const userContent = `Generate a referral letter for the following:
+
+TODAY'S DATE: ${formattedDate}
 
 REFERRAL TYPE: ${suggestion.displayName}
 SPECIALTY: ${suggestion.specialty}
@@ -161,14 +210,17 @@ Medications: ${extractedFacts?.medications?.join(', ') || 'Not stated'}
 Investigations: ${extractedFacts?.investigations?.join(', ') || 'None documented'}
 Clinician Plan Statements: ${extractedFacts?.planStatements?.join(', ') || 'None'}
 
-MISSING INFORMATION (flag in letter):
+MISSING INFORMATION TO FLAG:
 ${suggestion.contraFlags?.join(', ') || 'None flagged'}
 
+PRACTICE AND CLINICIAN DETAILS:
 ${practiceInfo}
 ${gpInfo}
+
+PATIENT DETAILS:
 ${patientInfo}
 
-Generate the complete referral letter. Include clear placeholders [in brackets] for any missing critical information.`;
+Generate the complete referral letter using the exact details provided. Use [[MISSING: description]] format for any information that was not provided.`;
 
     console.log('Generating referral draft for:', suggestion.displayName);
 
