@@ -184,7 +184,6 @@ export const PatientLetterView = ({
 
         setLetterContent(cleaned);
         onLetterGenerated?.(cleaned);
-        toast.success('Patient letter generated');
       }
     } catch (error) {
       console.error('Error generating patient letter:', error);
@@ -197,7 +196,6 @@ export const PatientLetterView = ({
   const copyToClipboard = () => {
     const plainText = getPlainTextLetter();
     navigator.clipboard.writeText(plainText);
-    toast.success('Letter copied to clipboard');
   };
 
   const handlePrint = () => {
@@ -275,7 +273,6 @@ export const PatientLetterView = ({
     try {
       const { generateWordDocument } = await import('@/utils/documentGenerators');
       await generateWordDocument(getPlainTextLetter(), 'Patient Consultation Summary');
-      toast.success('Word document downloaded');
     } catch (error) {
       console.error('Error generating Word document:', error);
       toast.error('Failed to download Word document');
