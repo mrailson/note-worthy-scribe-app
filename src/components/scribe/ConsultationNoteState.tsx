@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ConsultationNote, ConsultationType, ConsultationViewMode, CONSULTATION_TYPE_LABELS, SOAPNote, HeidiNote, ScribeEditStates, HeidiEditStates, ScribeSettings } from "@/types/scribe";
+import { ConsultationNote, ConsultationType, ConsultationViewMode, CONSULTATION_TYPE_LABELS, SOAPNote, HeidiNote, ScribeEditStates, HeidiEditStates, ScribeSettings, PatientContext } from "@/types/scribe";
 import { SOAPNoteEditor } from "./SOAPNoteEditor";
 import { HeidiNoteEditor } from "./HeidiNoteEditor";
+import { ReferralWorkspace } from "./ReferralWorkspace";
 import { QuickActionsBar } from "./QuickActionsBar";
-import { Clock, FileCheck, Stethoscope, Shield, List, FileText, Zap } from "lucide-react";
+import { Clock, FileCheck, Stethoscope, Shield, List, FileText, Zap, Send } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +46,10 @@ interface ConsultationNoteStateProps {
   // Save state
   isSaving?: boolean;
   isSaved?: boolean;
+  // Referral data
+  transcript?: string;
+  userId?: string;
+  patientContext?: PatientContext;
 }
 
 export const ConsultationNoteState = ({
@@ -76,7 +81,10 @@ export const ConsultationNoteState = ({
   viewMode = 'soap',
   onViewModeChange,
   isSaving = false,
-  isSaved = false
+  isSaved = false,
+  transcript,
+  userId,
+  patientContext
 }: ConsultationNoteStateProps) => {
   const isMobile = useIsMobile();
 
@@ -183,6 +191,23 @@ export const ConsultationNoteState = ({
                         </TooltipTrigger>
                         <TooltipContent side="bottom">Quick Summary</TooltipContent>
                       </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => onViewModeChange('referral')}
+                            className={cn(
+                              "p-1.5 rounded-md transition-colors",
+                              viewMode === 'referral' 
+                                ? "text-primary bg-primary/10" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            aria-label="Referrals"
+                          >
+                            <Send className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Referrals</TooltipContent>
+                      </Tooltip>
                     </div>
                   </>
                 )}
@@ -206,32 +231,48 @@ export const ConsultationNoteState = ({
         </CardContent>
       </Card>
 
-      {/* Notes Editor - Heidi or SOAP format */}
-      <ScrollArea className={isMobile ? 'h-[calc(100vh-320px)]' : ''}>
-        {useHeidiFormat ? (
-          <HeidiNoteEditor
-            heidiNote={consultationNote.heidiNote!}
-            editStates={heidiEditStates}
-            editContent={heidiEditContent}
-            onCopySection={onCopyHeidiSection}
-            onStartEdit={onStartHeidiEdit}
-            onCancelEdit={onCancelHeidiEdit}
-            onSaveEdit={onSaveHeidiEdit}
-            onEditContentChange={onHeidiEditContentChange}
+      {/* Notes Editor or Referral Workspace */}
+      {viewMode === 'referral' ? (
+        <div className={isMobile ? 'h-[calc(100vh-320px)]' : 'min-h-[500px]'}>
+          <ReferralWorkspace
+            transcript={transcript}
+            notes={useHeidiFormat ? consultationNote.heidiNote : consultationNote.soapNote}
+            consultationType={consultationType}
+            userId={userId}
+            patientContext={patientContext ? {
+              name: patientContext.name,
+              dob: patientContext.dateOfBirth,
+              nhsNumber: patientContext.nhsNumber
+            } : undefined}
           />
-        ) : (
-          <SOAPNoteEditor
-            soapNote={consultationNote.soapNote}
-            editStates={editStates}
-            editContent={editContent}
-            onCopySection={onCopySection}
-            onStartEdit={onStartEdit}
-            onCancelEdit={onCancelEdit}
-            onSaveEdit={onSaveEdit}
-            onEditContentChange={onEditContentChange}
-          />
-        )}
-      </ScrollArea>
+        </div>
+      ) : (
+        <ScrollArea className={isMobile ? 'h-[calc(100vh-320px)]' : ''}>
+          {useHeidiFormat ? (
+            <HeidiNoteEditor
+              heidiNote={consultationNote.heidiNote!}
+              editStates={heidiEditStates}
+              editContent={heidiEditContent}
+              onCopySection={onCopyHeidiSection}
+              onStartEdit={onStartHeidiEdit}
+              onCancelEdit={onCancelHeidiEdit}
+              onSaveEdit={onSaveHeidiEdit}
+              onEditContentChange={onHeidiEditContentChange}
+            />
+          ) : (
+            <SOAPNoteEditor
+              soapNote={consultationNote.soapNote}
+              editStates={editStates}
+              editContent={editContent}
+              onCopySection={onCopySection}
+              onStartEdit={onStartEdit}
+              onCancelEdit={onCancelEdit}
+              onSaveEdit={onSaveEdit}
+              onEditContentChange={onEditContentChange}
+            />
+          )}
+        </ScrollArea>
+      )}
 
       {/* SNOMED Codes if available */}
       {consultationNote.snomedCodes && consultationNote.snomedCodes.length > 0 && (
