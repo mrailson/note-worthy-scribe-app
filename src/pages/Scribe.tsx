@@ -243,6 +243,8 @@ const Scribe = () => {
                   onExportWord={handleExportWord}
                   viewMode={consultation.viewMode}
                   onViewModeChange={consultation.setViewMode}
+                  isSaving={consultation.isSaving}
+                  isSaved={consultation.isSaved}
                 />
               )}
             </TabsContent>

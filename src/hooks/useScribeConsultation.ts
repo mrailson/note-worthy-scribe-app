@@ -29,6 +29,8 @@ export const useScribeConsultation = () => {
   const [consentTimestamp, setConsentTimestamp] = useState<string | undefined>();
   const [consultationNote, setConsultationNote] = useState<ConsultationNote | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [settings, setSettings] = useState<ScribeSettings>(DEFAULT_SCRIBE_SETTINGS);
   const [patientContext, setPatientContext] = useState<PatientContext | null>(null);
   const [contextFiles, setContextFiles] = useState<ConsultationContextFile[]>([]);
@@ -281,6 +283,7 @@ export const useScribeConsultation = () => {
     setConsentTimestamp(undefined);
     setPatientContext(null);
     setContextFiles([]);
+    setIsSaved(false); // Reset saved state for new consultation
     setEditStates({ S: false, O: false, A: false, P: false });
     setEditContent({ S: '', O: '', A: '', P: '' });
     setHeidiEditStates({
@@ -402,12 +405,25 @@ export const useScribeConsultation = () => {
 
   // Save consultation to database
   const saveConsultation = useCallback(async () => {
+    // Guard against duplicate saves
+    if (isSaving) {
+      console.log('Save already in progress, ignoring duplicate call');
+      return;
+    }
+    
+    if (isSaved) {
+      showToast.info('Consultation already saved', { section: 'gpscribe' });
+      return;
+    }
+
     if (!consultationNote?.soapNote) {
       showToast.error('No notes to save', { section: 'gpscribe' });
       return;
     }
 
     try {
+      setIsSaving(true);
+      
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) {
         showToast.error('Not authenticated', { section: 'gpscribe' });
@@ -415,7 +431,6 @@ export const useScribeConsultation = () => {
       }
 
       const soapNote = consultationNote.soapNote;
-      const summaryText = `${soapNote.S}\n\n${soapNote.O}\n\n${soapNote.A}\n\n${soapNote.P}`;
 
       const { error } = await supabase.from('meetings').insert([{
         user_id: userData.user.id,
@@ -430,12 +445,16 @@ export const useScribeConsultation = () => {
       }]);
 
       if (error) throw error;
+      
+      setIsSaved(true);
       showToast.success('Consultation saved', { section: 'gpscribe' });
     } catch (error) {
       console.error('Save error:', error);
       showToast.error('Failed to save consultation', { section: 'gpscribe' });
+    } finally {
+      setIsSaving(false);
     }
-  }, [consultationNote, consultationType, recording]);
+  }, [consultationNote, consultationType, recording, isSaving, isSaved]);
 
   // Heidi section editing
   const startHeidiEdit = useCallback((section: keyof HeidiNote) => {
@@ -499,6 +518,8 @@ export const useScribeConsultation = () => {
     consentTimestamp,
     consultationNote,
     isGenerating,
+    isSaving,
+    isSaved,
     settings,
     editStates,
     editContent,

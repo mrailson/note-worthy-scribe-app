@@ -6,7 +6,9 @@ import {
   Save, 
   Download,
   RotateCcw,
-  RefreshCw
+  RefreshCw,
+  Loader2,
+  Check
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -26,6 +28,8 @@ interface QuickActionsBarProps {
   onExportWord?: () => void;
   onGeneratePatientLetter?: () => void;
   disabled?: boolean;
+  isSaving?: boolean;
+  isSaved?: boolean;
 }
 
 export const QuickActionsBar = ({
@@ -37,7 +41,9 @@ export const QuickActionsBar = ({
   onExportPDF,
   onExportWord,
   onGeneratePatientLetter,
-  disabled = false
+  disabled = false,
+  isSaving = false,
+  isSaved = false
 }: QuickActionsBarProps) => {
   const isMobile = useIsMobile();
   
@@ -59,13 +65,19 @@ export const QuickActionsBar = ({
       </Button>
 
       <Button
-        variant="outline"
+        variant={isSaved ? "secondary" : "outline"}
         onClick={onSave}
-        disabled={disabled}
+        disabled={disabled || isSaving || isSaved}
         className="gap-2"
       >
-        <Save className="h-4 w-4" />
-        {isMobile ? 'Save' : 'Save Consultation'}
+        {isSaving ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : isSaved ? (
+          <Check className="h-4 w-4" />
+        ) : (
+          <Save className="h-4 w-4" />
+        )}
+        {isSaving ? 'Saving...' : isSaved ? 'Saved' : (isMobile ? 'Save' : 'Save Consultation')}
       </Button>
 
       {/* Export Dropdown */}
