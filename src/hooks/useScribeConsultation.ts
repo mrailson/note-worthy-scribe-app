@@ -318,7 +318,8 @@ export const useScribeConsultation = () => {
         soap_notes: JSON.parse(JSON.stringify(consultationNote.soapNote)),
         overview: `${soapNote.S.substring(0, 100)}...`,
         status: 'completed',
-        duration_minutes: Math.ceil(recording.duration / 60)
+        duration_minutes: Math.ceil(recording.duration / 60),
+        word_count: recording.wordCount
       }]);
 
       if (error) throw error;
