@@ -112,6 +112,28 @@ export const ScribeHistoryPanel = ({
   const getNarrativeText = () => {
     if (!currentSoapNote) return '';
     const { S, O, A, P } = currentSoapNote;
+    const isShorthand = settings.noteStyle === 'shorthand';
+    
+    if (isShorthand) {
+      // GP Shorthand narrative - concise clinical note
+      const extractKey = (text: string, maxWords: number = 15) => {
+        const cleaned = text.replace(/[-•]/g, '').trim();
+        const words = cleaned.split(/\s+/).slice(0, maxWords);
+        return words.join(' ') || '-';
+      };
+      
+      const hpc = S.match(/HPC[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(S, 20);
+      const oeFinding = O.match(/O\/E[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(O, 12);
+      const dx = A.match(/\d+\.\s*([^•\n]+)/)?.[1]?.trim() || extractKey(A, 10);
+      const rx = P.match(/(?:Rx|Treatment)[:\s]*([^•\n-]+)/i)?.[1]?.trim() || '';
+      const fu = P.match(/(?:F\/U|Follow)[:\s-]*([^•\n]+)/i)?.[1]?.trim() || '';
+      const safety = P.match(/(?:Safety|S\/N)[:\s-]*([^•\n]+)/i)?.[1]?.trim() || '';
+      
+      return `Hx: ${extractKey(hpc, 20)}
+O/E: ${extractKey(oeFinding, 12)}
+Dx: ${extractKey(dx, 10)}${rx ? `\nRx: ${extractKey(rx, 12)}` : ''}${fu ? `\nF/U: ${extractKey(fu, 8)}` : ''}${safety ? `\nS/N: ${extractKey(safety, 10)}` : ''}`.trim();
+    }
+    
     return `${S}\n\n${O}\n\n${A}\n\n${P}`;
   };
 
@@ -352,22 +374,39 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
 
                     {/* Narrative View Mode */}
                     {settings.consultationViewMode === 'narrative' && (
-                      <Card className="border-2">
+                      <Card className={cn(
+                        "border-2 bg-gradient-to-br to-transparent",
+                        settings.noteStyle === 'shorthand' 
+                          ? "from-amber-500/10 border-amber-500/30" 
+                          : "from-background"
+                      )}>
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
-                            <CardTitle className="text-base flex items-center gap-2">
-                              <FileText className="h-4 w-4" />
-                              Clinical Note
-                            </CardTitle>
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <FileText className="h-4 w-4" />
+                                {settings.noteStyle === 'shorthand' ? 'GP Shorthand' : 'Clinical Note'}
+                              </CardTitle>
+                              {settings.noteStyle === 'shorthand' && (
+                                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30">
+                                  Concise
+                                </Badge>
+                              )}
+                            </div>
                             <Button variant="ghost" size="sm" onClick={() => copyToClipboard(getNarrativeText(), 'Clinical note')}>
                               <Copy className="h-3 w-3 mr-1" /> Copy All
                             </Button>
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <p className="whitespace-pre-wrap leading-relaxed text-sm">{getNarrativeText()}</p>
-                          </div>
+                          <pre className={cn(
+                            "whitespace-pre-wrap font-sans leading-relaxed",
+                            settings.noteStyle === 'shorthand' 
+                              ? "text-base font-medium tracking-tight" 
+                              : "text-sm"
+                          )}>
+                            {getNarrativeText()}
+                          </pre>
                         </CardContent>
                       </Card>
                     )}
