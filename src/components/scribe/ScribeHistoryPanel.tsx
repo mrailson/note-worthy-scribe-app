@@ -45,9 +45,8 @@ export const ScribeHistoryPanel = ({
   const [regeneratedNotes, setRegeneratedNotes] = useState<SOAPNote | null>(null);
   const [displaySettingsOpen, setDisplaySettingsOpen] = useState(false);
 
-  const copyToClipboard = (text: string, label: string) => {
+  const copyToClipboard = (text: string, _label: string) => {
     navigator.clipboard.writeText(text);
-    toast.success(`${label} copied to clipboard`);
   };
 
   const currentSoapNote = regeneratedNotes || currentSession?.soapNote;
@@ -124,7 +123,6 @@ export const ScribeHistoryPanel = ({
             A: data.A,
             P: data.P
           });
-          toast.success(`Notes regenerated at ${newLevel === 1 ? 'Code' : newLevel === 2 ? 'Brief' : newLevel === 3 ? 'Standard' : newLevel === 4 ? 'Detailed' : 'Full'} detail`);
         }
       } catch (error) {
         console.error('Failed to regenerate notes:', error);
