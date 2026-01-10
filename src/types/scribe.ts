@@ -76,6 +76,15 @@ export type ConsultationViewMode = 'soap' | 'narrative' | 'summary' | 'patient';
 
 export type NoteStyle = 'shorthand' | 'standard';
 
+export type HistoryRetention = '1hour' | '1day' | '1week' | '1month';
+
+export const HISTORY_RETENTION_LABELS: Record<HistoryRetention, string> = {
+  '1hour': '1 Hour',
+  '1day': '1 Day',
+  '1week': '1 Week',
+  '1month': '1 Month'
+};
+
 // Patient context extracted from clinical system screenshot
 export interface PatientContext {
   name: string;
@@ -123,6 +132,7 @@ export interface ScribeSettings {
   consultationDetailLevel: number;
   showNotMentioned: boolean; // Show lines containing "None mentioned", "N/A", etc.
   showPatientBannerDuringRecording: boolean; // Show patient details during recording
+  historyRetention: HistoryRetention; // How long to keep consultation history
 }
 
 export interface ScribeTranscriptData {
@@ -197,5 +207,6 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   consultationViewMode: 'soap',
   consultationDetailLevel: 3,
   showNotMentioned: false, // Default to hiding "None mentioned" lines
-  showPatientBannerDuringRecording: true // Default to showing patient banner
+  showPatientBannerDuringRecording: true, // Default to showing patient banner
+  historyRetention: '1week' // Default to 1 week retention
 };
