@@ -292,7 +292,17 @@ export const PatientLetterView = ({
     const practicePhone = practiceDetails?.phone || '';
     const practiceEmail = practiceDetails?.email || '';
     const gpName = gpDetails?.name || 'Your GP';
-    const gpTitle = gpDetails?.title || 'General Practitioner';
+    const gpTitle = gpDetails?.title || '';
+
+    // Combine title and name on same line
+    const fullSignatureName = gpTitle ? `${gpTitle} ${gpName}` : gpName;
+
+    // Build practice contact line
+    const practiceContactLines = [
+      practiceName,
+      practicePhone ? `Tel: ${practicePhone}` : '',
+      practiceEmail ? `Email: ${practiceEmail}` : ''
+    ].filter(Boolean).join('\n');
 
     return `${practiceName}
 ${practiceAddr}
@@ -307,8 +317,9 @@ ${letterContent}
 
 Kind regards,
 
-${gpName}
-${gpTitle}`;
+
+${fullSignatureName}
+${practiceContactLines}`;
   };
 
   const getFormattedLetterHTML = () => {
@@ -318,7 +329,10 @@ ${gpTitle}`;
     const practicePhone = practiceDetails?.phone || '';
     const practiceEmail = practiceDetails?.email || '';
     const gpName = gpDetails?.name || 'Your GP';
-    const gpTitle = gpDetails?.title || 'General Practitioner';
+    const gpTitle = gpDetails?.title || '';
+
+    // Combine title and name on same line
+    const fullSignatureName = gpTitle ? `${gpTitle} ${gpName}` : gpName;
 
     return `
       <div class="letterhead">
@@ -333,9 +347,10 @@ ${gpTitle}`;
 
 ${letterContent}</div>
       <div class="signature">
-        Kind regards,<br/><br/>
-        <span class="gp-name">${gpName}</span><br/>
-        ${gpTitle}
+        Kind regards,<br/><br/><br/>
+        <span class="gp-name">${fullSignatureName}</span><br/>
+        ${practiceName}<br/>
+        ${practicePhone ? `Tel: ${practicePhone}` : ''}${practiceEmail ? `<br/>Email: ${practiceEmail}` : ''}
       </div>
     `;
   };
@@ -415,10 +430,20 @@ ${letterContent}</div>
               </div>
               
               {/* Signature */}
-              <div className="mt-8 space-y-1">
+              <div className="mt-8">
                 <p>Kind regards,</p>
-                <p className="font-bold mt-4">{gpDetails?.name || 'Your GP'}</p>
-                <p className="text-sm text-muted-foreground">{gpDetails?.title || 'General Practitioner'}</p>
+                <p className="font-bold mt-6">
+                  {gpDetails?.title ? `${gpDetails.title} ` : ''}{gpDetails?.name || 'Your GP'}
+                </p>
+                {practiceDetails?.name && (
+                  <p className="text-sm text-muted-foreground mt-1">{practiceDetails.name}</p>
+                )}
+                {practiceDetails?.phone && (
+                  <p className="text-sm text-muted-foreground">Tel: {practiceDetails.phone}</p>
+                )}
+                {practiceDetails?.email && (
+                  <p className="text-sm text-muted-foreground">Email: {practiceDetails.email}</p>
+                )}
               </div>
             </div>
           </div>
