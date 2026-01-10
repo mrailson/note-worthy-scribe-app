@@ -33,9 +33,9 @@ export const ConsultationReadyState = ({
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 gap-4">
       {/* Development Disclaimer */}
-      <ScribeDevDisclaimer className="w-full max-w-lg" />
+      <ScribeDevDisclaimer className="w-full max-w-xl" />
       
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-xl">
         <CardContent className="pt-6 space-y-6">
           {/* Header */}
           <div className="text-center space-y-2">
