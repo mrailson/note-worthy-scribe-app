@@ -72,6 +72,13 @@ serve(async (req) => {
 15. Your role is DOCUMENTATION of what was said, NOT clinical reasoning or interpretation
 16. The "problemsDiscussed" field should ONLY list the problems/issues the patient mentioned - NOT your interpretation of what those problems might indicate
 
+⚠️ DRUG HISTORY (DH) - STRICT PLACEMENT AND CONTENT RULES:
+17. DH belongs EXCLUSIVELY in the History section - NEVER place DH in Examination
+18. DH should appear as the FINAL item in the History section (after SH)
+19. DO NOT infer or generate diagnoses from medications - if the patient takes Ramipril, do NOT add "Hypertension" to PMH
+20. DO NOT summarise or modify medication content - transcribe EXACTLY what was stated
+21. Format: "DH: [exact medications as stated]" - no additions, no inferences, no diagnosis generation
+
 This is a ${consultationTypeLabel} consultation.
 
 DETAIL LEVEL INSTRUCTION: ${detailInstruction}
@@ -81,23 +88,27 @@ Generate a JSON response with exactly these fields:
 {
   "consultationHeader": "[${consultationTypeLabel}] [Specify if seen alone or seen with someone based on introductions] [Reason for visit/presenting complaint from booking or stated reason]",
   
-  "history": "Format as bullet points:
-- HPC: [History of presenting complaint - what, when, duration, severity, associated symptoms - ONLY what the patient said]
-- ICE: [Patient's Ideas, Concerns and Expectations - only if mentioned]
-- Red flags: [Presence or ABSENCE of red flag symptoms - ONLY those actually asked about or mentioned]
-- Risk factors: [Relevant risk factors if mentioned]
-- PMH: [Past medical history if mentioned]
-- PSH: [Past surgical history if mentioned]
-- DH: [Drug history/current medications if mentioned]
-- Allergies: [ONLY if explicitly mentioned, otherwise leave completely blank]
-- FH: [Family history if relevant and mentioned]
-- SH: [Social history - lives with, occupation, smoking/alcohol/drugs, recent travel, carers if mentioned]",
+"history": "Format as bullet points. ONLY include lines that have EXPLICIT information from the transcript:
+- HPC: [History of presenting complaint - ONLY what the patient actually said]
+- ICE: [Patient's Ideas, Concerns and Expectations - ONLY if patient explicitly stated these, otherwise OMIT this line]
+- Red flags: [ONLY red flags that were EXPLICITLY asked about AND the patient's response - otherwise OMIT this line]
+- Risk factors: [ONLY if explicitly mentioned - otherwise OMIT this line]
+- PMH: [ONLY if past medical history was explicitly mentioned - do NOT infer from medications - otherwise OMIT this line entirely]
+- PSH: [ONLY if past surgical history was explicitly mentioned - otherwise OMIT this line entirely]
+- Allergies: [ONLY if allergies were explicitly asked/stated - otherwise OMIT this line entirely]
+- FH: [ONLY if family history was explicitly discussed - otherwise OMIT this line entirely]
+- SH: [Social history - ONLY if explicitly discussed. Each element is INDEPENDENT - only include elements that were LITERALLY SAID. OMIT entire line if nothing discussed]
+- DH: [FINAL ITEM IN HISTORY - Exact medications as stated. Do NOT infer diagnoses from medications. Do NOT summarise or modify. Transcribe VERBATIM. OMIT if not discussed]
 
-  "examination": "Format as bullet points:
+⚠️ DH MUST be the LAST item in History. NEVER place DH in Examination section.
+⚠️ If a section heading has NO explicit content from the transcript, DO NOT include that heading at all.",
+
+"examination": "Format as bullet points:
 - Vitals: [T, Sats %, HR, BP, RR - only those mentioned]
 - O/E: [Physical or mental state examination findings - only what was examined and stated]
-- Investigations: [Any results mentioned - bloods, imaging, etc.]
-(For telephone/video consultations, note 'Remote consultation - limited examination' if no examination was possible, but include any patient-reported observations)",
+- Results: [Investigation RESULTS already available and discussed - bloods, imaging results, test results. NOT planned investigations]
+(For telephone/video consultations, note 'Remote consultation - limited examination' if no examination was possible, but include any patient-reported observations)
+⚠️ DO NOT include Drug History (DH) here - DH belongs in History section ONLY as the FINAL item.",
 
   "problemsDiscussed": "[1. Problem/issue raised by patient or discussed]
 [2. Second problem/issue if applicable]
