@@ -393,9 +393,9 @@ ${letterContent}</div>
       {/* Letter Preview */}
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-blue-50/50 to-white dark:from-slate-900/50 dark:to-slate-950 overflow-hidden">
         <ScrollArea className="h-[500px]">
-          <div className="p-8">
+          <div className="px-8 pt-4 pb-8">
             {/* Letterhead */}
-            <div className="text-center border-b-2 border-primary pb-2 mb-4">
+            <div className="text-center border-b-2 border-primary pb-1 mb-3">
               {practiceDetails?.logoUrl && (
                 <img 
                   src={practiceDetails.logoUrl} 
@@ -404,7 +404,7 @@ ${letterContent}</div>
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
-                  className="h-48 mx-auto object-contain"
+                  className="h-32 mx-auto object-contain"
                 />
               )}
               <p className="text-xs text-muted-foreground">
