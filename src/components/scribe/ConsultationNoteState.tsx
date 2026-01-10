@@ -36,6 +36,7 @@ interface ConsultationNoteStateProps {
   // Actions
   onSaveConsultation: () => void;
   onNewConsultation: () => void;
+  onRegenerate?: () => void;
   onExportPDF?: () => void;
   onExportWord?: () => void;
   // View mode
@@ -66,6 +67,7 @@ export const ConsultationNoteState = ({
   onHeidiEditContentChange,
   onSaveConsultation,
   onNewConsultation,
+  onRegenerate,
   onExportPDF,
   onExportWord,
   viewMode = 'soap',
@@ -190,6 +192,7 @@ export const ConsultationNoteState = ({
             onCopyAll={onCopyAll}
             onSave={onSaveConsultation}
             onNewConsultation={onNewConsultation}
+            onRegenerate={onRegenerate}
             onExportPDF={onExportPDF}
             onExportWord={onExportWord}
           />
