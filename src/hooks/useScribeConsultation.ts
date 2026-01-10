@@ -5,13 +5,17 @@ import {
   ConsultationNote, 
   ScribeConsultation,
   SOAPNote,
+  HeidiNote,
   ScribeSettings,
-  DEFAULT_SCRIBE_SETTINGS
+  DEFAULT_SCRIBE_SETTINGS,
+  CONSULTATION_TYPE_LABELS,
+  HeidiEditStates,
+  HeidiEditContent
 } from "@/types/scribe";
 import { useScribeRecording } from "./useScribeRecording";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { formatSoapNote } from "@/utils/emrFormatters";
+import { formatSoapNote, formatHeidiNote } from "@/utils/emrFormatters";
 
 export const useScribeConsultation = () => {
   const [consultationState, setConsultationState] = useState<ConsultationState>('ready');
@@ -22,12 +26,28 @@ export const useScribeConsultation = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [settings, setSettings] = useState<ScribeSettings>(DEFAULT_SCRIBE_SETTINGS);
   
-  // Edit states for SOAP sections
+  // Edit states for SOAP sections (legacy)
   const [editStates, setEditStates] = useState({
     S: false, O: false, A: false, P: false
   });
   const [editContent, setEditContent] = useState({
     S: '', O: '', A: '', P: ''
+  });
+
+  // Edit states for Heidi sections
+  const [heidiEditStates, setHeidiEditStates] = useState<HeidiEditStates>({
+    consultationHeader: false,
+    history: false,
+    examination: false,
+    impression: false,
+    plan: false
+  });
+  const [heidiEditContent, setHeidiEditContent] = useState<HeidiEditContent>({
+    consultationHeader: '',
+    history: '',
+    examination: '',
+    impression: '',
+    plan: ''
   });
   
   const consultationIdRef = useRef<string | null>(null);
@@ -85,35 +105,59 @@ export const useScribeConsultation = () => {
       setConsultationState('generating');
       setIsGenerating(true);
 
-      console.log('Generating SOAP notes for consultation...');
+      console.log('Generating notes for consultation using Heidi format...');
 
       const { data, error } = await supabase.functions.invoke('generate-scribe-notes', {
         body: { 
           transcript: result.transcript,
           consultationType,
-          outputFormat: 'soap'
+          outputFormat: 'heidi',
+          noteFormat: settings.noteFormat,
+          detailLevel: settings.consultationDetailLevel
         }
       });
 
       if (error) throw error;
 
+      // Build the note object based on returned data
       const note: ConsultationNote = {
         soapNote: {
-          S: data.S || data.subjective || '',
-          O: data.O || data.objective || '',
-          A: data.A || data.assessment || '',
+          S: data.S || data.history || '',
+          O: data.O || data.examination || '',
+          A: data.A || data.impression || '',
           P: data.P || data.plan || ''
         },
+        heidiNote: data.consultationHeader !== undefined ? {
+          consultationHeader: data.consultationHeader || '',
+          history: data.history || '',
+          examination: data.examination || '',
+          impression: data.impression || '',
+          plan: data.plan || ''
+        } : undefined,
+        noteFormat: data.noteFormat || settings.noteFormat,
         snomedCodes: data.snomedCodes || []
       };
 
       setConsultationNote(note);
+      
+      // Set edit content for SOAP
       setEditContent({
         S: note.soapNote.S,
         O: note.soapNote.O,
         A: note.soapNote.A,
         P: note.soapNote.P
       });
+
+      // Set edit content for Heidi if available
+      if (note.heidiNote) {
+        setHeidiEditContent({
+          consultationHeader: note.heidiNote.consultationHeader,
+          history: note.heidiNote.history,
+          examination: note.heidiNote.examination,
+          impression: note.heidiNote.impression,
+          plan: note.heidiNote.plan
+        });
+      }
       
       setConsultationState('review');
       toast.success('Notes generated successfully');
@@ -124,7 +168,7 @@ export const useScribeConsultation = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [recording, consultationType]);
+  }, [recording, consultationType, settings.noteFormat, settings.consultationDetailLevel]);
 
   // Cancel consultation
   const cancelConsultation = useCallback(async () => {
@@ -146,19 +190,52 @@ export const useScribeConsultation = () => {
     setConsentTimestamp(undefined);
     setEditStates({ S: false, O: false, A: false, P: false });
     setEditContent({ S: '', O: '', A: '', P: '' });
+    setHeidiEditStates({
+      consultationHeader: false,
+      history: false,
+      examination: false,
+      impression: false,
+      plan: false
+    });
+    setHeidiEditContent({
+      consultationHeader: '',
+      history: '',
+      examination: '',
+      impression: '',
+      plan: ''
+    });
   }, [recording]);
 
   // Copy to clipboard with EMR formatting
   const copyToClipboard = useCallback(async (section?: keyof SOAPNote) => {
-    if (!consultationNote?.soapNote) return;
+    if (!consultationNote) return;
 
     try {
-      const formattedText = formatSoapNote(
-        settings.emrFormat,
-        consultationNote.soapNote,
-        section,
-        CONSULTATION_TYPE_LABELS[consultationType]
-      );
+      let formattedText: string;
+      
+      // Use Heidi format if available, otherwise fall back to SOAP
+      if (consultationNote.heidiNote && consultationNote.noteFormat === 'heidi') {
+        // Map SOAP section keys to Heidi keys for section copying
+        const heidiSectionMap: Record<keyof SOAPNote, keyof HeidiNote> = {
+          S: 'history',
+          O: 'examination',
+          A: 'impression',
+          P: 'plan'
+        };
+        const heidiSection = section ? heidiSectionMap[section] : undefined;
+        formattedText = formatHeidiNote(
+          settings.emrFormat,
+          consultationNote.heidiNote,
+          heidiSection
+        );
+      } else {
+        formattedText = formatSoapNote(
+          settings.emrFormat,
+          consultationNote.soapNote,
+          section,
+          CONSULTATION_TYPE_LABELS[consultationType]
+        );
+      }
 
       await navigator.clipboard.writeText(formattedText);
       toast.success(section ? `${section} copied to clipboard` : 'Notes copied to clipboard');
@@ -252,6 +329,60 @@ export const useScribeConsultation = () => {
     }
   }, [consultationNote, consultationType, recording]);
 
+  // Heidi section editing
+  const startHeidiEdit = useCallback((section: keyof HeidiNote) => {
+    if (!consultationNote?.heidiNote) return;
+    setHeidiEditContent(prev => ({
+      ...prev,
+      [section]: consultationNote.heidiNote![section]
+    }));
+    setHeidiEditStates(prev => ({ ...prev, [section]: true }));
+  }, [consultationNote]);
+
+  const cancelHeidiEdit = useCallback((section: keyof HeidiNote) => {
+    setHeidiEditStates(prev => ({ ...prev, [section]: false }));
+  }, []);
+
+  const saveHeidiEdit = useCallback((section: keyof HeidiNote) => {
+    if (!consultationNote) return;
+    
+    setConsultationNote(prev => {
+      if (!prev || !prev.heidiNote) return prev;
+      return {
+        ...prev,
+        heidiNote: {
+          ...prev.heidiNote,
+          [section]: heidiEditContent[section]
+        }
+      };
+    });
+    setHeidiEditStates(prev => ({ ...prev, [section]: false }));
+    toast.success(`${section} section updated`);
+  }, [consultationNote, heidiEditContent]);
+
+  const updateHeidiEditContent = useCallback((section: keyof HeidiNote, content: string) => {
+    setHeidiEditContent(prev => ({ ...prev, [section]: content }));
+  }, []);
+
+  // Copy Heidi section to clipboard
+  const copyHeidiSection = useCallback(async (section: keyof HeidiNote) => {
+    if (!consultationNote?.heidiNote) return;
+
+    try {
+      const formattedText = formatHeidiNote(
+        settings.emrFormat,
+        consultationNote.heidiNote,
+        section
+      );
+
+      await navigator.clipboard.writeText(formattedText);
+      toast.success(`${section} copied to clipboard`);
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast.error('Failed to copy to clipboard');
+    }
+  }, [consultationNote, settings.emrFormat]);
+
   return {
     // State
     consultationState,
@@ -263,6 +394,8 @@ export const useScribeConsultation = () => {
     settings,
     editStates,
     editContent,
+    heidiEditStates,
+    heidiEditContent,
     
     // Recording passthrough
     isRecording: recording.isRecording,
@@ -290,11 +423,11 @@ export const useScribeConsultation = () => {
     saveConsultation,
     pauseRecording: recording.pauseRecording,
     resumeRecording: recording.resumeRecording,
+    // Heidi-specific actions
+    startHeidiEdit,
+    cancelHeidiEdit,
+    saveHeidiEdit,
+    updateHeidiEditContent,
+    copyHeidiSection,
   };
-};
-
-const CONSULTATION_TYPE_LABELS: Record<ConsultationType, string> = {
-  f2f: 'Face to Face',
-  telephone: 'Telephone',
-  video: 'Video'
 };
