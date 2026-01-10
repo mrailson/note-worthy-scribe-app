@@ -1,17 +1,9 @@
 import { useState, useCallback, useEffect } from "react";
-import { ScribeSettings } from "@/types/scribe";
+import { ScribeSettings, DEFAULT_SCRIBE_SETTINGS } from "@/types/scribe";
 import { toast } from "sonner";
 
-const DEFAULT_SETTINGS: ScribeSettings = {
-  outputFormat: 'summary',
-  transcriptionService: 'whisper',
-  autoSave: true,
-  showTimestamps: false,
-  tickerEnabled: true,
-};
-
 export const useScribeSettings = () => {
-  const [settings, setSettings] = useState<ScribeSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<ScribeSettings>(DEFAULT_SCRIBE_SETTINGS);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
 
@@ -21,7 +13,7 @@ export const useScribeSettings = () => {
       const saved = localStorage.getItem('scribeSettings');
       if (saved) {
         const parsed = JSON.parse(saved);
-        setSettings({ ...DEFAULT_SETTINGS, ...parsed });
+        setSettings({ ...DEFAULT_SCRIBE_SETTINGS, ...parsed });
       }
       setSettingsLoaded(true);
     } catch (error) {
@@ -41,7 +33,7 @@ export const useScribeSettings = () => {
   }, [settings]);
 
   const resetSettings = useCallback(() => {
-    setSettings(DEFAULT_SETTINGS);
+    setSettings(DEFAULT_SCRIBE_SETTINGS);
     try {
       localStorage.removeItem('scribeSettings');
       toast.success("Settings reset to defaults");
@@ -54,7 +46,11 @@ export const useScribeSettings = () => {
     key: K,
     value: ScribeSettings[K]
   ) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings(prev => {
+      const updated = { ...prev, [key]: value };
+      localStorage.setItem('scribeSettings', JSON.stringify(updated));
+      return updated;
+    });
   }, []);
 
   return {
