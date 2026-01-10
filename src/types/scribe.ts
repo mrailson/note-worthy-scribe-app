@@ -173,7 +173,7 @@ export interface HeidiEditContent {
   plan: string;
 }
 
-export type ScribeTab = 'consultation' | 'history' | 'settings';
+export type ScribeTab = 'consultation' | 'import' | 'history' | 'settings';
 
 export const CONSULTATION_TYPE_LABELS: Record<ConsultationType, string> = {
   f2f: 'Face to Face',
