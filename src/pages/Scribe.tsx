@@ -188,13 +188,13 @@ const Scribe = () => {
                   {isMobile ? "Consult" : "Consultation"}
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="import" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
-                <Upload className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
-                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Import</span>
-              </TabsTrigger>
               <TabsTrigger value="history" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
                 <History className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
                 <span className={isMobile ? "text-xs" : "hidden sm:inline"}>History</span>
+              </TabsTrigger>
+              <TabsTrigger value="import" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
+                <Upload className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
+                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Import</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
                 <Settings className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
