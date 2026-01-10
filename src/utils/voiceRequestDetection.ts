@@ -170,6 +170,22 @@ export function detectVoiceRequest(
 }
 
 /**
+ * Checks if text is just a voice instruction pattern without actual content
+ */
+function isVoiceInstructionOnly(text: string): boolean {
+  const instructionPatterns = [
+    /^use\s+a?\s*(?:clear[\s,]*)?(?:professional[\s,]*)?(?:british[\s,]*)?\s*voice:?\s*$/i,
+    /^\[note:\s*i\s*(?:have\s+)?uploaded/i,
+    /^please\s+(?:analyze|analyse)\s+these?\s+files?/i,
+  ];
+  
+  const cleanedText = text.trim();
+  if (cleanedText.length < 50) return true; // Too short to be meaningful content
+  
+  return instructionPatterns.some(p => p.test(cleanedText));
+}
+
+/**
  * Extracts inline text from the user's message when they provide text directly
  * e.g., "create a voice file from this: Here is some text to speak"
  */
@@ -193,9 +209,19 @@ export function extractInlineTextForVoice(message: string): string {
   for (const pattern of inlinePatterns) {
     const match = message.match(pattern);
     if (match && match[1]) {
-      const extractedText = match[1].trim();
+      let extractedText = match[1].trim();
+      
+      // Remove the "[Note: I have uploaded...]" metadata that gets appended
+      extractedText = extractedText.replace(/\[Note:\s*I\s*(?:have\s+)?uploaded[^\]]*\]/gi, '').trim();
+      
+      // Skip if extracted text is just voice instruction or too short
+      if (isVoiceInstructionOnly(extractedText)) {
+        console.log('🎤 Skipping inline extraction - appears to be instruction only');
+        continue;
+      }
+      
       // Only return if we have meaningful content (more than a few words)
-      if (extractedText.length > 20) {
+      if (extractedText.length > 50) {
         console.log('🎤 Extracted inline text for voice:', extractedText.substring(0, 100) + '...');
         return extractedText;
       }
