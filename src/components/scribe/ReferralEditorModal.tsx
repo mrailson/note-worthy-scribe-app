@@ -6,10 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Edit, Save, Copy, Download, Sparkles, ChevronDown, Check, AlertCircle, Loader2 } from "lucide-react";
+import { Edit, Save, Copy, Download, Sparkles, ChevronDown, Check, AlertCircle, Loader2 } from "lucide-react";
 import { ReferralDraft, ReferralPriority, PRIORITY_LABELS, PRIORITY_COLOURS } from "@/types/referral";
-import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 import { useToast } from "@/hooks/use-toast";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
@@ -136,9 +134,9 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-6xl w-full max-h-[90vh] p-0 gap-0">
+      <DialogContent className="max-w-6xl w-full max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
         {/* Header */}
-        <DialogHeader className="p-6 pb-4 border-b">
+        <DialogHeader className="p-6 pb-4 border-b shrink-0">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <DialogTitle className="text-xl font-semibold">
@@ -161,10 +159,10 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
           </div>
         </DialogHeader>
 
-        {/* Content */}
-        <ScrollArea className="flex-1 max-h-[calc(90vh-280px)]">
+        {/* Content - scrollable area */}
+        <div className="flex-1 overflow-y-auto min-h-0">
           <div className="p-6">
-            <div className="border rounded-lg bg-card shadow-sm">
+            <div className="border rounded-lg bg-white shadow-sm overflow-hidden">
               {isEditing ? (
                 <div className="p-4 space-y-3">
                   <Label htmlFor="edit-letter" className="text-sm font-medium">
@@ -179,16 +177,21 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
                   />
                 </div>
               ) : (
-                <div className="p-8">
-                  <FormattedLetterContent content={draft.letterContent} />
+                <div className="p-6 max-h-[50vh] overflow-y-auto">
+                  {/* Simple formatted letter view */}
+                  <div className="prose prose-sm max-w-none">
+                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground bg-transparent p-0 m-0 border-none">
+                      {draft.letterContent}
+                    </pre>
+                  </div>
                 </div>
               )}
             </div>
           </div>
-        </ScrollArea>
+        </div>
 
-        {/* Footer */}
-        <div className="border-t p-6 space-y-4">
+        {/* Footer - fixed at bottom */}
+        <div className="border-t p-4 space-y-3 shrink-0 bg-background">
           {/* Safety netting */}
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -233,35 +236,35 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
             </div>
           )}
 
-          {/* Action buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          {/* Action buttons - wrap on smaller screens */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {isEditing ? (
                 <>
-                  <Button onClick={handleSaveEdit}>
+                  <Button size="sm" onClick={handleSaveEdit}>
                     <Save className="h-4 w-4 mr-2" />
-                    Save Changes
+                    Save
                   </Button>
-                  <Button variant="outline" onClick={handleCancelEdit}>
+                  <Button size="sm" variant="outline" onClick={handleCancelEdit}>
                     Cancel
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button variant="outline" onClick={() => setIsEditing(true)}>
+                  <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                     <Edit className="h-4 w-4 mr-2" />
-                    Edit Letter
+                    Edit
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" disabled={isRewriting}>
+                      <Button size="sm" variant="outline" disabled={isRewriting}>
                         {isRewriting ? (
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         ) : (
                           <Sparkles className="h-4 w-4 mr-2" />
                         )}
-                        Adjust Tone
-                        <ChevronDown className="h-4 w-4 ml-2" />
+                        Tone
+                        <ChevronDown className="h-4 w-4 ml-1" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
@@ -281,27 +284,28 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handleCopyToClipboard}>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleCopyToClipboard}>
                 <Copy className="h-4 w-4 mr-2" />
                 Copy
               </Button>
-              <Button variant="outline" onClick={handleDownloadDocx}>
+              <Button size="sm" variant="outline" onClick={handleDownloadDocx}>
                 <Download className="h-4 w-4 mr-2" />
-                Download DOCX
+                DOCX
               </Button>
               {draft.clinicianConfirmed ? (
-                <Button variant="outline" onClick={onUnconfirm}>
+                <Button size="sm" variant="outline" onClick={onUnconfirm}>
                   <Check className="h-4 w-4 mr-2 text-green-600" />
                   Confirmed
                 </Button>
               ) : (
                 <Button 
+                  size="sm"
                   onClick={handleConfirm}
                   disabled={!clinicallyAppropriate || !factsAccurate}
                 >
                   <Check className="h-4 w-4 mr-2" />
-                  Confirm Referral
+                  Confirm
                 </Button>
               )}
             </div>
