@@ -73,19 +73,27 @@ export const ScribeHistoryPanel = ({
     onUpdateSetting('showNotMentioned', show);
   }, [onUpdateSetting]);
 
-  // Filter out "None mentioned", "N/A", "Nil", etc. lines when toggle is off
+  // Filter out "None mentioned", "None discussed", blank values, etc. when toggle is off
   const filterNotMentioned = useCallback((text: string): string => {
     if (settings.showNotMentioned) return text;
     
-    const notMentionedPatterns = /\b(none\s*mentioned|not\s*mentioned|n\/a|nil|not\s*applicable|no\s*significant|not\s*recorded|not\s*documented)\b/i;
+    // Pattern for "None mentioned", "None discussed", "None given", "None made", etc.
+    const notMentionedPatterns = /\b(none\s*mentioned|not\s*mentioned|none\s*discussed|none\s*given|none\s*made|none\s*required|n\/a|nil|not\s*applicable|no\s*significant|not\s*recorded|not\s*documented)\b/i;
+    
+    // Pattern for lines with only a label and no content (e.g., "- Allergies:" or "Allergies:")
+    const blankValuePattern = /^[-•]?\s*[\w\s\/]+:\s*$/;
     
     return text
       .split('\n')
       .filter(line => {
         const trimmed = line.trim();
-        // Keep empty lines and lines that don't match the patterns
+        // Keep empty lines (for spacing between sections)
         if (!trimmed) return true;
-        return !notMentionedPatterns.test(trimmed);
+        // Remove lines matching "none mentioned" patterns
+        if (notMentionedPatterns.test(trimmed)) return false;
+        // Remove lines that are just labels with no value
+        if (blankValuePattern.test(trimmed)) return false;
+        return true;
       })
       .join('\n')
       .replace(/\n{3,}/g, '\n\n'); // Clean up multiple empty lines
