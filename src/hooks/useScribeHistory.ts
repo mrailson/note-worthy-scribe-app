@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import { ScribeSession } from "@/types/scribe";
 import { format } from "date-fns";
 
@@ -43,7 +43,7 @@ export const useScribeHistory = () => {
       setSessions(formattedSessions);
     } catch (error) {
       console.error('Fetch sessions error:', error);
-      toast.error('Failed to load session history');
+      showToast.error('Failed to load session history', { section: 'gpscribe' });
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +65,7 @@ export const useScribeHistory = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error("User not authenticated");
+        showToast.error("User not authenticated", { section: 'gpscribe' });
         return null;
       }
 
@@ -107,11 +107,11 @@ export const useScribeHistory = () => {
 
       setSessions(prev => [newSession, ...prev]);
       setCurrentSession(newSession);
-      toast.success("Session saved successfully");
+      showToast.success("Session saved successfully", { section: 'gpscribe' });
       return newSession;
     } catch (error) {
       console.error('Save session error:', error);
-      toast.error('Failed to save session');
+      showToast.error('Failed to save session', { section: 'gpscribe' });
       return null;
     }
   }, []);
@@ -161,7 +161,7 @@ export const useScribeHistory = () => {
       return session;
     } catch (error) {
       console.error('Load session error:', error);
-      toast.error('Failed to load session');
+      showToast.error('Failed to load session', { section: 'gpscribe' });
       return null;
     }
   }, []);
@@ -180,11 +180,11 @@ export const useScribeHistory = () => {
         setCurrentSession(null);
       }
 
-      toast.success("Session deleted successfully");
+      showToast.success("Session deleted successfully", { section: 'gpscribe' });
       return true;
     } catch (error) {
       console.error('Delete session error:', error);
-      toast.error('Failed to delete session');
+      showToast.error('Failed to delete session', { section: 'gpscribe' });
       return false;
     }
   }, [currentSession]);

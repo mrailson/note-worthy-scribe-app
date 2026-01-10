@@ -15,7 +15,7 @@ import {
 } from "@/types/scribe";
 import { useScribeRecording } from "./useScribeRecording";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import { formatSoapNote, formatHeidiNote } from "@/utils/emrFormatters";
 
 export const useScribeConsultation = () => {
@@ -73,7 +73,7 @@ export const useScribeConsultation = () => {
   // Start consultation
   const startConsultation = useCallback(async () => {
     if (settings.showConsentReminder && !patientConsent) {
-      toast.error("Please confirm patient consent before starting");
+      showToast.error("Please confirm patient consent before starting", { section: 'gpscribe' });
       return false;
     }
 
@@ -90,7 +90,7 @@ export const useScribeConsultation = () => {
       return true;
     } catch (error) {
       console.error('Failed to start consultation:', error);
-      toast.error('Failed to start consultation');
+      showToast.error('Failed to start consultation', { section: 'gpscribe' });
       return false;
     }
   }, [patientConsent, recording, settings.showConsentReminder]);
@@ -101,7 +101,7 @@ export const useScribeConsultation = () => {
       const result = await recording.stopRecording();
       
       if (!result?.transcript?.trim()) {
-        toast.error("No transcript available to generate notes");
+        showToast.error("No transcript available to generate notes", { section: 'gpscribe' });
         setConsultationState('ready');
         return;
       }
@@ -164,10 +164,10 @@ export const useScribeConsultation = () => {
       }
       
       setConsultationState('review');
-      toast.success('Notes generated successfully');
+      showToast.success('Notes generated successfully', { section: 'gpscribe' });
     } catch (error) {
       console.error('Error generating notes:', error);
-      toast.error('Failed to generate notes. Please try again.');
+      showToast.error('Failed to generate notes. Please try again.', { section: 'gpscribe' });
       setConsultationState('recording');
     } finally {
       setIsGenerating(false);
@@ -179,13 +179,13 @@ export const useScribeConsultation = () => {
     const transcript = recording.transcript;
     
     if (!transcript?.trim()) {
-      toast.error("No transcript available to regenerate notes");
+      showToast.error("No transcript available to regenerate notes", { section: 'gpscribe' });
       return;
     }
 
     try {
       setIsGenerating(true);
-      toast.info('Regenerating notes with updated prompts...');
+      showToast.info('Regenerating notes with updated prompts...', { section: 'gpscribe' });
 
       const { data, error } = await supabase.functions.invoke('generate-scribe-notes', {
         body: { 
@@ -239,10 +239,10 @@ export const useScribeConsultation = () => {
         });
       }
       
-      toast.success('Notes regenerated successfully');
+      showToast.success('Notes regenerated successfully', { section: 'gpscribe' });
     } catch (error) {
       console.error('Error regenerating notes:', error);
-      toast.error('Failed to regenerate notes');
+      showToast.error('Failed to regenerate notes', { section: 'gpscribe' });
     } finally {
       setIsGenerating(false);
     }
@@ -256,7 +256,7 @@ export const useScribeConsultation = () => {
     setConsultationNote(null);
     setPatientConsent(false);
     setConsentTimestamp(undefined);
-    toast.info('Consultation cancelled');
+    showToast.info('Consultation cancelled', { section: 'gpscribe' });
   }, [recording]);
 
   // New consultation (from review state)
@@ -316,10 +316,10 @@ export const useScribeConsultation = () => {
       }
 
       await navigator.clipboard.writeText(formattedText);
-      toast.success(section ? `${section} copied to clipboard` : 'Notes copied to clipboard');
+      showToast.success(section ? `${section} copied to clipboard` : 'Notes copied to clipboard', { section: 'gpscribe' });
     } catch (error) {
       console.error('Copy failed:', error);
-      toast.error('Failed to copy to clipboard');
+      showToast.error('Failed to copy to clipboard', { section: 'gpscribe' });
     }
   }, [consultationNote, settings.emrFormat, consultationType]);
 
@@ -351,7 +351,7 @@ export const useScribeConsultation = () => {
       };
     });
     setEditStates(prev => ({ ...prev, [section]: false }));
-    toast.success(`${section} section updated`);
+    showToast.success(`${section} section updated`, { section: 'gpscribe' });
   }, [consultationNote, editContent]);
 
   // Update edit content
@@ -374,14 +374,14 @@ export const useScribeConsultation = () => {
   // Save consultation to database
   const saveConsultation = useCallback(async () => {
     if (!consultationNote?.soapNote) {
-      toast.error('No notes to save');
+      showToast.error('No notes to save', { section: 'gpscribe' });
       return;
     }
 
     try {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) {
-        toast.error('Not authenticated');
+        showToast.error('Not authenticated', { section: 'gpscribe' });
         return;
       }
 
@@ -401,10 +401,10 @@ export const useScribeConsultation = () => {
       }]);
 
       if (error) throw error;
-      toast.success('Consultation saved');
+      showToast.success('Consultation saved', { section: 'gpscribe' });
     } catch (error) {
       console.error('Save error:', error);
-      toast.error('Failed to save consultation');
+      showToast.error('Failed to save consultation', { section: 'gpscribe' });
     }
   }, [consultationNote, consultationType, recording]);
 
@@ -436,7 +436,7 @@ export const useScribeConsultation = () => {
       };
     });
     setHeidiEditStates(prev => ({ ...prev, [section]: false }));
-    toast.success(`${section} section updated`);
+    showToast.success(`${section} section updated`, { section: 'gpscribe' });
   }, [consultationNote, heidiEditContent]);
 
   const updateHeidiEditContent = useCallback((section: keyof HeidiNote, content: string) => {
@@ -455,10 +455,10 @@ export const useScribeConsultation = () => {
       );
 
       await navigator.clipboard.writeText(formattedText);
-      toast.success(`${section} copied to clipboard`);
+      showToast.success(`${section} copied to clipboard`, { section: 'gpscribe' });
     } catch (error) {
       console.error('Copy failed:', error);
-      toast.error('Failed to copy to clipboard');
+      showToast.error('Failed to copy to clipboard', { section: 'gpscribe' });
     }
   }, [consultationNote, settings.emrFormat]);
 

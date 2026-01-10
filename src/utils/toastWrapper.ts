@@ -13,7 +13,7 @@ interface ToastOptions {
 }
 
 // Sections where success/info toasts are disabled
-const DISABLED_TOAST_SECTIONS: ToastSection[] = ['complaints', 'ai4gp'];
+const DISABLED_TOAST_SECTIONS: ToastSection[] = ['complaints', 'ai4gp', 'gpscribe'];
 
 // Helper to check if a section is enabled
 const isSectionEnabled = (section?: ToastSection): boolean => {
