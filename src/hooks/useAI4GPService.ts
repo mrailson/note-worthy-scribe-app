@@ -593,7 +593,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       }
       
       // Check if this is a voice file generation request
-      const voiceDetection = detectVoiceRequest(messageToUse, previousMessagesForDetection);
+      // Pass uploaded files so we can extract text from them for voice generation
+      const voiceDetection = detectVoiceRequest(
+        messageToUse, 
+        previousMessagesForDetection,
+        userMessage.files?.map(f => ({ name: f.name, content: f.content, type: f.type }))
+      );
       
       if (voiceDetection.isVoiceRequest && voiceDetection.confidence !== 'low' && voiceDetection.textToSpeak) {
         console.log('🎤 Voice request detected:', voiceDetection);
