@@ -289,6 +289,7 @@ const Scribe = () => {
                 onDateFilterChange={history.setDateFilter}
                 categoryFilter={history.categoryFilter}
                 onCategoryFilterChange={history.setCategoryFilter}
+                userId={user?.id}
               />
             </TabsContent>
 

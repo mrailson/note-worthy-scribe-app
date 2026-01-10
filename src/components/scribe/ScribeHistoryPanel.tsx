@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle, CONSULTATION_CATEGORY_LABELS, ConsultationCategory } from "@/types/scribe";
-import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft } from "lucide-react";
+import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft, Send } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ import { ConsultationViewControls } from "./ConsultationViewControls";
 import { NoteStyleToggle } from "./NoteStyleToggle";
 import { PatientLetterView } from "./PatientLetterView";
 import { SessionHistorySearch, DateFilter, CategoryFilter } from "./SessionHistorySearch";
+import { ReferralWorkspace } from "./ReferralWorkspace";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ScribeHistoryPanelProps {
@@ -40,6 +41,7 @@ interface ScribeHistoryPanelProps {
   onDateFilterChange: (filter: DateFilter) => void;
   categoryFilter: CategoryFilter;
   onCategoryFilterChange: (filter: CategoryFilter) => void;
+  userId?: string;
 }
 
 // Category icon mapping
@@ -66,6 +68,7 @@ export const ScribeHistoryPanel = ({
   onDateFilterChange,
   categoryFilter,
   onCategoryFilterChange,
+  userId,
 }: ScribeHistoryPanelProps) => {
   const isMobile = useIsMobile();
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -462,6 +465,23 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     </TooltipTrigger>
                     <TooltipContent side="bottom">Patient Letter</TooltipContent>
                   </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleViewModeChange('referral')}
+                        className={cn(
+                          "p-1.5 rounded-md transition-colors",
+                          settings.consultationViewMode === 'referral' 
+                            ? "text-primary bg-primary/10" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        aria-label="Referral"
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Referral</TooltipContent>
+                  </Tooltip>
                   <div className="w-px h-4 bg-border mx-1" />
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -481,8 +501,9 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
           </CardHeader>
           <CardContent className="space-y-4">
             <Tabs defaultValue="consultation" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="consultation">F2F Consultation</TabsTrigger>
+                <TabsTrigger value="referral">Referral</TabsTrigger>
                 <TabsTrigger value="transcript">Transcript</TabsTrigger>
               </TabsList>
               
@@ -665,6 +686,17 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                 ) : (
                   <p className="text-muted-foreground text-center py-8">No consultation notes available</p>
                 )}
+              </TabsContent>
+              
+              <TabsContent value="referral" className="mt-4">
+                <div className={isMobile ? 'h-[calc(100vh-400px)]' : 'min-h-[500px]'}>
+                  <ReferralWorkspace
+                    transcript={currentSession.transcript}
+                    notes={currentSession.heidiNote || currentSession.soapNote}
+                    consultationType={currentSession.consultationType}
+                    userId={userId}
+                  />
+                </div>
               </TabsContent>
               
               <TabsContent value="transcript" className="mt-4">
