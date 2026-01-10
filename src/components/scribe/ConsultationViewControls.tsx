@@ -1,13 +1,14 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
-import { Settings2, ChevronDown, FileText, List, Zap, Loader2 } from "lucide-react";
+import { FileText, List, Zap, Loader2 } from "lucide-react";
 import { OUTPUT_LEVELS } from "@/constants/consultationSettings";
 import { ConsultationViewMode } from "@/types/scribe";
 
 interface ConsultationViewControlsProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   viewMode: ConsultationViewMode;
   detailLevel: number;
   isRegenerating: boolean;
@@ -16,44 +17,27 @@ interface ConsultationViewControlsProps {
 }
 
 export const ConsultationViewControls = ({
+  open,
+  onOpenChange,
   viewMode,
   detailLevel,
   isRegenerating,
   onViewModeChange,
   onDetailLevelChange,
 }: ConsultationViewControlsProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-
   const currentLevel = OUTPUT_LEVELS.find(level => level.value === detailLevel) || OUTPUT_LEVELS[2];
-  
-  const viewModeLabels: Record<ConsultationViewMode, string> = {
-    soap: 'SOAP',
-    narrative: 'Narrative',
-    summary: 'Summary'
-  };
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
-        <Button
-          variant="ghost"
-          className="w-full justify-between px-4 py-3 h-auto bg-muted/30 hover:bg-muted/50 border rounded-lg"
-        >
-          <div className="flex items-center gap-3">
-            <Settings2 className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">
-              Display: {viewModeLabels[viewMode]} · {currentLevel.label}
-            </span>
-            {isRegenerating && (
-              <Loader2 className="h-3 w-3 animate-spin text-primary" />
-            )}
-          </div>
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-        </Button>
-      </CollapsibleTrigger>
-      
-      <CollapsibleContent className="pt-3 space-y-4">
-        <div className="p-4 rounded-lg border bg-background space-y-5">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            Display Settings
+            {isRegenerating && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-5 pt-2">
           {/* View Mode */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground">View Mode</label>
@@ -114,7 +98,7 @@ export const ConsultationViewControls = ({
             </p>
           </div>
         </div>
-      </CollapsibleContent>
-    </Collapsible>
+      </DialogContent>
+    </Dialog>
   );
 };
