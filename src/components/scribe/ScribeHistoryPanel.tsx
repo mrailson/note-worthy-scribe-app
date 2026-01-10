@@ -50,6 +50,14 @@ export const ScribeHistoryPanel = ({
 
   const currentSoapNote = regeneratedNotes || currentSession?.soapNote;
 
+  // Calculate word count from actual notes content
+  const calculatedWordCount = currentSoapNote 
+    ? [currentSoapNote.S, currentSoapNote.O, currentSoapNote.A, currentSoapNote.P]
+        .join(' ')
+        .split(/\s+/)
+        .filter(word => word.length > 0).length
+    : currentSession?.wordCount || 0;
+
   const handleViewModeChange = useCallback((mode: ConsultationViewMode) => {
     onUpdateSetting('consultationViewMode', mode);
   }, [onUpdateSetting]);
@@ -185,7 +193,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
               <div className="flex items-center gap-2">
                 <span className="flex items-center gap-1">
                   <FileText className="h-3 w-3" />
-                  {currentSession.wordCount || 0} words
+                  {calculatedWordCount} words
                 </span>
                 <span className="text-muted-foreground/40">|</span>
                 <NoteStyleToggle
