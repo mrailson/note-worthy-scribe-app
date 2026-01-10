@@ -85,6 +85,7 @@ export interface ScribeSettings {
   showConsentReminder: boolean;
   consultationViewMode: ConsultationViewMode;
   consultationDetailLevel: number;
+  showNotMentioned: boolean; // Show lines containing "None mentioned", "N/A", etc.
 }
 
 export interface ScribeTranscriptData {
@@ -151,5 +152,6 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   defaultConsultationType: 'f2f',
   showConsentReminder: true,
   consultationViewMode: 'soap',
-  consultationDetailLevel: 3
+  consultationDetailLevel: 3,
+  showNotMentioned: false // Default to hiding "None mentioned" lines
 };

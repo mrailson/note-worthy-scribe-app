@@ -1,8 +1,9 @@
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
-import { FileText, List, Zap, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { FileText, List, Zap, Loader2, EyeOff } from "lucide-react";
 import { OUTPUT_LEVELS } from "@/constants/consultationSettings";
 import { ConsultationViewMode } from "@/types/scribe";
 
@@ -11,9 +12,11 @@ interface ConsultationViewControlsProps {
   onOpenChange: (open: boolean) => void;
   viewMode: ConsultationViewMode;
   detailLevel: number;
+  showNotMentioned: boolean;
   isRegenerating: boolean;
   onViewModeChange: (mode: ConsultationViewMode) => void;
   onDetailLevelChange: (level: number) => void;
+  onShowNotMentionedChange: (show: boolean) => void;
 }
 
 export const ConsultationViewControls = ({
@@ -21,9 +24,11 @@ export const ConsultationViewControls = ({
   onOpenChange,
   viewMode,
   detailLevel,
+  showNotMentioned,
   isRegenerating,
   onViewModeChange,
   onDetailLevelChange,
+  onShowNotMentionedChange,
 }: ConsultationViewControlsProps) => {
   const currentLevel = OUTPUT_LEVELS.find(level => level.value === detailLevel) || OUTPUT_LEVELS[2];
 
@@ -97,6 +102,24 @@ export const ConsultationViewControls = ({
               {currentLevel.description}
             </p>
           </div>
+
+          {/* Show Not Mentioned Toggle */}
+          <div className="flex items-center justify-between py-2 border-t">
+            <div className="flex items-center gap-2">
+              <EyeOff className="h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="show-not-mentioned" className="text-sm font-medium cursor-pointer">
+                Show "Not Mentioned" lines
+              </Label>
+            </div>
+            <Switch
+              id="show-not-mentioned"
+              checked={showNotMentioned}
+              onCheckedChange={onShowNotMentionedChange}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground -mt-3">
+            When off, hides lines containing "None mentioned", "N/A", "Nil", etc.
+          </p>
         </div>
       </DialogContent>
     </Dialog>
