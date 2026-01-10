@@ -11,9 +11,9 @@ interface DocumentEmailTabsProps {
 export const DocumentEmailTabs = ({ activeSubTab, onSubTabChange, isMobile }: DocumentEmailTabsProps) => {
   const subTabs = [
     { id: "text-email", label: "Text & Email", icon: Mail },
-    { id: "documents-images", label: "Documents & Images", icon: FileText },
+    { id: "history", label: "History", icon: History },
     { id: "voice-conversation", label: "Voice Conversation", icon: Mic },
-    { id: "history", label: "History", icon: History }
+    { id: "documents-images", label: "Documents & Images", icon: FileText }
   ];
 
   return (
