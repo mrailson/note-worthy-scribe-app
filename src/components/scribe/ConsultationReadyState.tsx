@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConsultationTypeSelector } from "./ConsultationTypeSelector";
 import { PatientConsentBanner } from "./PatientConsentBanner";
+import { ScribeDevDisclaimer } from "./ScribeDevDisclaimer";
 import { ConsultationType, ScribeSettings } from "@/types/scribe";
 import { Mic, Settings2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -30,7 +31,10 @@ export const ConsultationReadyState = ({
   const canStart = !settings.showConsentReminder || patientConsent;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 gap-4">
+      {/* Development Disclaimer */}
+      <ScribeDevDisclaimer className="w-full max-w-lg" />
+      
       <Card className="w-full max-w-lg">
         <CardContent className="pt-6 space-y-6">
           {/* Header */}
