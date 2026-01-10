@@ -5,7 +5,8 @@ import {
   FilePlus, 
   Save, 
   Download,
-  RotateCcw
+  RotateCcw,
+  RefreshCw
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -20,6 +21,7 @@ interface QuickActionsBarProps {
   onCopyAll: () => void;
   onSave: () => void;
   onNewConsultation: () => void;
+  onRegenerate?: () => void;
   onExportPDF?: () => void;
   onExportWord?: () => void;
   onGeneratePatientLetter?: () => void;
@@ -31,6 +33,7 @@ export const QuickActionsBar = ({
   onCopyAll,
   onSave,
   onNewConsultation,
+  onRegenerate,
   onExportPDF,
   onExportWord,
   onGeneratePatientLetter,
@@ -94,6 +97,19 @@ export const QuickActionsBar = ({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Regenerate Notes */}
+      {onRegenerate && (
+        <Button
+          variant="outline"
+          onClick={onRegenerate}
+          disabled={disabled}
+          className="gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          {!isMobile && 'Regenerate'}
+        </Button>
+      )}
 
       {/* New Consultation */}
       <Button

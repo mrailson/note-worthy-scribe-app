@@ -190,6 +190,7 @@ const Scribe = () => {
                   onHeidiEditContentChange={consultation.updateHeidiEditContent}
                   onSaveConsultation={consultation.saveConsultation}
                   onNewConsultation={consultation.newConsultation}
+                  onRegenerate={consultation.regenerateNotes}
                   onExportPDF={handleExportPDF}
                   onExportWord={handleExportWord}
                   viewMode={consultation.viewMode}

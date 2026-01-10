@@ -174,6 +174,80 @@ export const useScribeConsultation = () => {
     }
   }, [recording, consultationType, settings.noteFormat, settings.consultationDetailLevel]);
 
+  // Regenerate notes from existing transcript
+  const regenerateNotes = useCallback(async () => {
+    const transcript = recording.transcript;
+    
+    if (!transcript?.trim()) {
+      toast.error("No transcript available to regenerate notes");
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      toast.info('Regenerating notes with updated prompts...');
+
+      const { data, error } = await supabase.functions.invoke('generate-scribe-notes', {
+        body: { 
+          transcript,
+          consultationType,
+          outputFormat: 'heidi',
+          noteFormat: settings.noteFormat,
+          detailLevel: settings.consultationDetailLevel
+        }
+      });
+
+      if (error) throw error;
+
+      // Build the note object based on returned data
+      const note: ConsultationNote = {
+        soapNote: {
+          S: data.S || data.history || '',
+          O: data.O || data.examination || '',
+          A: data.A || data.impression || '',
+          P: data.P || data.plan || ''
+        },
+        heidiNote: data.consultationHeader !== undefined ? {
+          consultationHeader: data.consultationHeader || '',
+          history: data.history || '',
+          examination: data.examination || '',
+          impression: data.impression || '',
+          plan: data.plan || ''
+        } : undefined,
+        noteFormat: data.noteFormat || settings.noteFormat,
+        snomedCodes: data.snomedCodes || []
+      };
+
+      setConsultationNote(note);
+      
+      // Set edit content for SOAP
+      setEditContent({
+        S: note.soapNote.S,
+        O: note.soapNote.O,
+        A: note.soapNote.A,
+        P: note.soapNote.P
+      });
+
+      // Set edit content for Heidi if available
+      if (note.heidiNote) {
+        setHeidiEditContent({
+          consultationHeader: note.heidiNote.consultationHeader,
+          history: note.heidiNote.history,
+          examination: note.heidiNote.examination,
+          impression: note.heidiNote.impression,
+          plan: note.heidiNote.plan
+        });
+      }
+      
+      toast.success('Notes regenerated successfully');
+    } catch (error) {
+      console.error('Error regenerating notes:', error);
+      toast.error('Failed to regenerate notes');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [recording.transcript, consultationType, settings.noteFormat, settings.consultationDetailLevel]);
+
   // Cancel consultation
   const cancelConsultation = useCallback(async () => {
     await recording.stopRecording();
@@ -420,6 +494,7 @@ export const useScribeConsultation = () => {
     finishConsultation,
     cancelConsultation,
     newConsultation,
+    regenerateNotes,
     copyToClipboard,
     startEdit,
     cancelEdit,
