@@ -286,7 +286,7 @@ export const PatientContextCapture = ({
             >
               <div className="flex items-center gap-2 text-muted-foreground">
                 <ClipboardPaste className="h-4 w-4" />
-                <span className="text-sm font-medium">Patient Context (optional)</span>
+                <span className="text-sm font-medium">Patient Details (optional)</span>
               </div>
               
               {/* Visible paste area - textarea that accepts right-click paste */}
