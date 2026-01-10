@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { 
   ConsultationState, 
   ConsultationType, 
+  ConsultationCategory,
   ConsultationNote, 
   ConsultationViewMode,
   ScribeConsultation,
@@ -21,6 +22,7 @@ import { formatSoapNote, formatHeidiNote } from "@/utils/emrFormatters";
 export const useScribeConsultation = () => {
   const [consultationState, setConsultationState] = useState<ConsultationState>('ready');
   const [consultationType, setConsultationType] = useState<ConsultationType>('f2f');
+  const [consultationCategory, setConsultationCategory] = useState<ConsultationCategory>('general');
   const [patientConsent, setPatientConsent] = useState(false);
   const [consentTimestamp, setConsentTimestamp] = useState<string | undefined>();
   const [consultationNote, setConsultationNote] = useState<ConsultationNote | null>(null);
@@ -475,6 +477,7 @@ export const useScribeConsultation = () => {
     editContent,
     heidiEditStates,
     heidiEditContent,
+    consultationCategory,
     viewMode,
     
     // Recording passthrough
@@ -489,6 +492,7 @@ export const useScribeConsultation = () => {
     
     // Actions
     setConsultationType,
+    setConsultationCategory,
     setPatientConsent,
     startConsultation,
     finishConsultation,

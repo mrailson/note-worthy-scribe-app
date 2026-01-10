@@ -5,7 +5,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS } from "@/types/scribe";
 import { Settings, Save, RotateCcw, Stethoscope, Mic, Shield } from "lucide-react";
-import { ConsultationTypeSelector } from "./ConsultationTypeSelector";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Phone, Video, Users } from "lucide-react";
 
 interface ScribeSettingsPanelProps {
   settings: ScribeSettings;
@@ -13,6 +14,12 @@ interface ScribeSettingsPanelProps {
   onSaveSettings: () => void;
   onResetSettings: () => void;
 }
+
+const typeIcons: Record<ConsultationType, React.ReactNode> = {
+  f2f: <Users className="h-4 w-4" />,
+  telephone: <Phone className="h-4 w-4" />,
+  video: <Video className="h-4 w-4" />
+};
 
 export const ScribeSettingsPanel = ({
   settings,
@@ -32,11 +39,25 @@ export const ScribeSettingsPanel = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>Default Consultation Type</Label>
-            <ConsultationTypeSelector
-              value={settings.defaultConsultationType}
-              onChange={(type) => onUpdateSetting('defaultConsultationType', type)}
-            />
+            <Label>Default Consultation Method</Label>
+            <ToggleGroup 
+              type="single" 
+              value={settings.defaultConsultationType} 
+              onValueChange={(v) => v && onUpdateSetting('defaultConsultationType', v as ConsultationType)}
+              className="justify-start"
+            >
+              {(Object.keys(CONSULTATION_TYPE_LABELS) as ConsultationType[]).map((type) => (
+                <ToggleGroupItem
+                  key={type}
+                  value={type}
+                  aria-label={CONSULTATION_TYPE_LABELS[type]}
+                  className="flex items-center gap-2 px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                >
+                  {typeIcons[type]}
+                  <span className="hidden sm:inline">{CONSULTATION_TYPE_LABELS[type]}</span>
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
           </div>
 
           <div className="space-y-2">
