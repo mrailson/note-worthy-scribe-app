@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS } from "@/types/scribe";
-import { Settings, Save, RotateCcw, Stethoscope, Mic, Shield } from "lucide-react";
+import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS, HistoryRetention, HISTORY_RETENTION_LABELS } from "@/types/scribe";
+import { Settings, Save, RotateCcw, Stethoscope, Mic, Shield, Clock } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Phone, Video, Users } from "lucide-react";
 
@@ -176,6 +176,41 @@ export const ScribeSettingsPanel = ({
               checked={settings.showPatientBannerDuringRecording}
               onCheckedChange={(checked) => onUpdateSetting('showPatientBannerDuringRecording', checked)}
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* History Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            History Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="historyRetention">Consultation History Retention</Label>
+            <Select
+              value={settings.historyRetention}
+              onValueChange={(value: HistoryRetention) => 
+                onUpdateSetting('historyRetention', value)
+              }
+            >
+              <SelectTrigger id="historyRetention">
+                <SelectValue placeholder="Select retention period" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(HISTORY_RETENTION_LABELS) as HistoryRetention[]).map((key) => (
+                  <SelectItem key={key} value={key}>
+                    {HISTORY_RETENTION_LABELS[key]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Consultations older than this will be automatically removed
+            </p>
           </div>
         </CardContent>
       </Card>
