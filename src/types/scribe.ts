@@ -144,7 +144,7 @@ export const CONSULTATION_TYPE_SHORT: Record<ConsultationType, string> = {
 
 export const CONSULTATION_CATEGORY_LABELS: Record<ConsultationCategory, string> = {
   general: 'General Consultation',
-  agewell: 'Age Well Consultation',
+  agewell: 'Age Well',
   social_prescriber: 'Social Prescriber'
 };
 
