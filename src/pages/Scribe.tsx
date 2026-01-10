@@ -181,6 +181,13 @@ const Scribe = () => {
                   onCancelEdit={consultation.cancelEdit}
                   onSaveEdit={consultation.saveEdit}
                   onEditContentChange={consultation.updateEditContent}
+                  heidiEditStates={consultation.heidiEditStates}
+                  heidiEditContent={consultation.heidiEditContent}
+                  onCopyHeidiSection={consultation.copyHeidiSection}
+                  onStartHeidiEdit={consultation.startHeidiEdit}
+                  onCancelHeidiEdit={consultation.cancelHeidiEdit}
+                  onSaveHeidiEdit={consultation.saveHeidiEdit}
+                  onHeidiEditContentChange={consultation.updateHeidiEditContent}
                   onSaveConsultation={consultation.saveConsultation}
                   onNewConsultation={consultation.newConsultation}
                   onExportPDF={handleExportPDF}

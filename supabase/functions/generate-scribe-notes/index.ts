@@ -14,7 +14,13 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, consultationType = 'f2f', outputFormat = 'soap', detailLevel = 3 } = await req.json();
+    const { 
+      transcript, 
+      consultationType = 'f2f', 
+      outputFormat = 'heidi', 
+      detailLevel = 3,
+      noteFormat = 'heidi'
+    } = await req.json();
 
     if (!transcript || typeof transcript !== 'string') {
       return new Response(
@@ -23,49 +29,117 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Generating SOAP notes for ${consultationType} consultation, detail level: ${detailLevel}, transcript length: ${transcript.length} chars`);
+    console.log(`Generating ${noteFormat} notes for ${consultationType} consultation, detail level: ${detailLevel}, transcript length: ${transcript.length} chars`);
 
     const consultationTypeLabel = {
-      'f2f': 'face to face',
-      'telephone': 'telephone',
-      'video': 'video'
-    }[consultationType] || 'face to face';
+      'f2f': 'F2F',
+      'telephone': 'T/C',
+      'video': 'Video'
+    }[consultationType] || 'F2F';
 
-    // Detail level instructions
+    // Detail level instructions for Heidi format
     const detailLevelInstructions: Record<number, string> = {
-      1: "Use GP shorthand and medical codes only. Maximum brevity. Example: 'URTI, 2/7, no red flags. Rx: supportive. Safety-netted.'",
-      2: "Be extremely concise. Key points only in bullet format. No full sentences needed.",
-      3: "Standard complete clinical note with appropriate detail for EMR documentation.",
-      4: "Include comprehensive examination findings, detailed clinical reasoning, and thorough differential diagnosis discussion.",
-      5: "Include patient quotes where relevant, full contextual details, comprehensive history, and detailed clinical narrative."
+      1: "Use GP shorthand and medical codes only. Maximum brevity. Single-line bullet points. Example: 'HPC: Cough 2/7, dry, no SOB. O/E: Chest clear. Imp: URTI. Rx: Supportive, SN given.'",
+      2: "Be extremely concise. Key clinical points only in bullet format. No full sentences needed. Essential information only.",
+      3: "Standard complete clinical note with appropriate detail for EMR documentation. Full sentences where clinically relevant.",
+      4: "Include comprehensive examination findings, detailed clinical reasoning, and thorough discussion of differentials.",
+      5: "Include patient quotes where clinically relevant, full contextual details, comprehensive history, and detailed clinical narrative."
     };
 
     const detailInstruction = detailLevelInstructions[detailLevel] || detailLevelInstructions[3];
 
-    const systemPrompt = `You are an expert NHS GP clinical documentation assistant. Your task is to analyse a consultation transcript and generate structured SOAP notes suitable for UK primary care EMR systems (EMIS Web, SystmOne).
+    // Heidi-style anti-hallucination prompt
+    const heidiSystemPrompt = `You are an expert NHS GP clinical documentation assistant. Your task is to analyse a consultation transcript and generate structured clinical notes suitable for UK primary care EMR systems (EMIS Web, SystmOne).
+
+⚠️ CRITICAL ANTI-HALLUCINATION RULES - NEVER VIOLATE:
+1. NEVER fabricate, invent, or generate ANY clinical information not explicitly stated in the transcript
+2. NEVER create symptoms, examination findings, diagnoses, or plans that were not mentioned
+3. NEVER assume or infer information - if it wasn't said, don't include it
+4. If a section has no relevant information in the transcript, leave it EMPTY (blank)
+5. Use ONLY the transcript as your source - nothing else
+6. For allergies: include ONLY if explicitly mentioned, otherwise leave completely blank
+7. For safety netting: include ONLY the exact advice that was given, never invent warnings
+8. Do NOT write "not mentioned", "not documented", "nil", or similar - just leave blank
+9. Never generate your own patient details, assessment, diagnosis, differential, plan, interventions, or safety netting advice
 
 This is a ${consultationTypeLabel} consultation.
 
 DETAIL LEVEL INSTRUCTION: ${detailInstruction}
 
 Generate a JSON response with exactly these fields:
+
 {
-  "S": "Subjective section - Patient's presenting complaint, history of presenting complaint (HPC), relevant past medical history (PMH), drug history (DH), allergies, social history (SH), family history (FH). Write in concise clinical note style.",
-  "O": "Objective section - Examination findings, observations, vital signs mentioned. For telephone/video consultations, note 'Remote consultation - no physical examination performed' if appropriate, but include any patient-reported observations.",
-  "A": "Assessment section - Clinical impression, differential diagnoses, working diagnosis. Use appropriate clinical terminology.",
-  "P": "Plan section - Investigations ordered, prescriptions, referrals, follow-up arrangements, safety-netting advice given, patient education provided. Be specific about actions.",
+  "consultationHeader": "[${consultationTypeLabel}] [Specify if seen alone or seen with someone based on introductions] [Reason for visit/presenting complaint from booking or stated reason]",
+  
+  "history": "Format as bullet points:
+- HPC: [History of presenting complaint - what, when, duration, severity, associated symptoms]
+- ICE: [Patient's Ideas, Concerns and Expectations - only if mentioned]
+- Red flags: [Presence or ABSENCE of red flag symptoms relevant to the presenting complaint - always address this]
+- Risk factors: [Relevant risk factors if mentioned]
+- PMH: [Past medical history if mentioned]
+- PSH: [Past surgical history if mentioned]
+- DH: [Drug history/current medications if mentioned]
+- Allergies: [ONLY if explicitly mentioned, otherwise leave completely blank]
+- FH: [Family history if relevant and mentioned]
+- SH: [Social history - lives with, occupation, smoking/alcohol/drugs, recent travel, carers if mentioned]",
+
+  "examination": "Format as bullet points:
+- Vitals: [T, Sats %, HR, BP, RR - only those mentioned]
+- O/E: [Physical or mental state examination findings - only what was examined]
+- Investigations: [Any results mentioned - bloods, imaging, etc.]
+(For telephone/video consultations, note 'Remote consultation - limited examination' if no examination was possible, but include any patient-reported observations)",
+
+  "impression": "[1. Issue/problem name]. [Assessment/likely diagnosis if stated]
+- DDx: [Differential diagnoses if discussed]
+[2. Second issue if applicable]. [Assessment if stated]
+- DDx: [Differentials if discussed]
+(Number each distinct issue/problem. Include diagnosis ONLY if explicitly stated by clinician)",
+
+  "plan": "Format as bullet points:
+- Ix: [Investigations planned - bloods, imaging, referrals for tests]
+- Rx: [Treatment - medications prescribed with dose/duration if stated]
+- Referral: [Any referrals made]
+- F/U: [Follow-up arrangements with timeframe if stated]
+- Safety netting: [ONLY include the actual safety netting advice given - e.g., 'Return if fever persists >3 days, worsening SOB, or new symptoms. Attend A&E/call 999 if severe breathing difficulty.' - NEVER invent safety netting advice]",
+
   "snomedCodes": ["Optional array of relevant SNOMED CT codes if clearly identifiable conditions are mentioned"]
 }
 
 Guidelines:
 - Use British English spelling and NHS terminology
 - Adjust verbosity according to the detail level instruction above
-- Use standard medical abbreviations (PMH, DH, SH, FH, O/E, Ix, Rx, F/U)
-- Include all clinically relevant information from the transcript
-- If information is not mentioned, do not invent it - leave that aspect out or note "not documented"
-- For telephone consultations, acknowledge the consultation type appropriately
-- Safety-netting advice should always be documented in the Plan
+- Use standard medical abbreviations (HPC, PMH, PSH, DH, SH, FH, O/E, Ix, Rx, F/U, DDx, SOB, etc.)
+- For red flags: ALWAYS document whether relevant red flags were asked about/present/absent - this is a safety requirement
+- Empty sections should have empty strings, not "none" or "not mentioned"
 - Format for easy reading in EMR systems`;
+
+    // Legacy SOAP prompt for backwards compatibility
+    const soapSystemPrompt = `You are an expert NHS GP clinical documentation assistant. Your task is to analyse a consultation transcript and generate structured SOAP notes suitable for UK primary care EMR systems (EMIS Web, SystmOne).
+
+⚠️ CRITICAL ANTI-HALLUCINATION RULES - NEVER VIOLATE:
+1. NEVER fabricate, invent, or generate ANY clinical information not explicitly stated in the transcript
+2. If information was not mentioned, leave that section EMPTY - do not write "not mentioned" or "not documented"
+3. Use ONLY the transcript as your source of truth
+
+This is a ${consultationType === 'f2f' ? 'face to face' : consultationType} consultation.
+
+DETAIL LEVEL INSTRUCTION: ${detailInstruction}
+
+Generate a JSON response with exactly these fields:
+{
+  "S": "Subjective section - Patient's presenting complaint, history, PMH, DH, allergies, SH, FH. Only include what was mentioned.",
+  "O": "Objective section - Examination findings, observations, vital signs mentioned. For telephone/video, note if no physical examination possible.",
+  "A": "Assessment section - Clinical impression, differential diagnoses, working diagnosis. Only what was discussed.",
+  "P": "Plan section - Investigations, prescriptions, referrals, follow-up, safety-netting advice. Only include what was actually planned/advised.",
+  "snomedCodes": ["Optional array of relevant SNOMED CT codes"]
+}
+
+Guidelines:
+- Use British English spelling and NHS terminology
+- Use standard medical abbreviations
+- Empty sections should have empty strings, not placeholder text`;
+
+    const systemPrompt = noteFormat === 'heidi' ? heidiSystemPrompt : soapSystemPrompt;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -77,11 +151,11 @@ Guidelines:
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Please analyse this consultation transcript and generate SOAP notes:\n\n${transcript}` }
+          { role: 'user', content: `Please analyse this consultation transcript and generate clinical notes. Remember: ONLY include information explicitly stated in the transcript. Leave sections blank if information was not mentioned.\n\nTRANSCRIPT:\n${transcript}` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 2500,
-        temperature: 0.3,
+        max_tokens: 3000,
+        temperature: 0.1, // Lowered for maximum determinism and reduced hallucination
       }),
     });
 
@@ -97,19 +171,44 @@ Guidelines:
     let parsedContent;
     try {
       parsedContent = JSON.parse(content);
+      
+      // Ensure format field is set
+      parsedContent.noteFormat = noteFormat;
+      
+      // For Heidi format, also generate SOAP mapping for backwards compatibility
+      if (noteFormat === 'heidi' && parsedContent.history) {
+        parsedContent.S = parsedContent.history;
+        parsedContent.O = parsedContent.examination || '';
+        parsedContent.A = parsedContent.impression || '';
+        parsedContent.P = parsedContent.plan || '';
+      }
+      
     } catch (e) {
       console.error('Failed to parse OpenAI response:', content);
-      // Fallback structure if parsing fails
-      parsedContent = {
+      // Fallback structure
+      parsedContent = noteFormat === 'heidi' ? {
+        consultationHeader: '',
+        history: content,
+        examination: '',
+        impression: '',
+        plan: '',
+        noteFormat: 'heidi',
         S: content,
-        O: "",
-        A: "",
-        P: "",
+        O: '',
+        A: '',
+        P: '',
+        snomedCodes: []
+      } : {
+        S: content,
+        O: '',
+        A: '',
+        P: '',
+        noteFormat: 'soap',
         snomedCodes: []
       };
     }
 
-    console.log('Successfully generated SOAP notes');
+    console.log(`Successfully generated ${noteFormat} notes`);
 
     return new Response(JSON.stringify(parsedContent), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

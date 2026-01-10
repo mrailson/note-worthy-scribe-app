@@ -1,10 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ConsultationNote, ConsultationType, CONSULTATION_TYPE_LABELS, SOAPNote, ScribeEditStates, ScribeSettings } from "@/types/scribe";
+import { ConsultationNote, ConsultationType, CONSULTATION_TYPE_LABELS, SOAPNote, HeidiNote, ScribeEditStates, HeidiEditStates, ScribeSettings } from "@/types/scribe";
 import { SOAPNoteEditor } from "./SOAPNoteEditor";
+import { HeidiNoteEditor } from "./HeidiNoteEditor";
 import { QuickActionsBar } from "./QuickActionsBar";
-import { Clock, FileCheck, Stethoscope } from "lucide-react";
+import { Clock, FileCheck, Stethoscope, Shield } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Badge } from "@/components/ui/badge";
 
 interface ConsultationNoteStateProps {
   consultationNote: ConsultationNote;
@@ -12,6 +14,7 @@ interface ConsultationNoteStateProps {
   duration: string;
   wordCount: number;
   settings: ScribeSettings;
+  // SOAP editing (legacy)
   editStates: ScribeEditStates;
   editContent: Record<keyof SOAPNote, string>;
   onCopySection: (section: keyof SOAPNote) => void;
@@ -20,6 +23,15 @@ interface ConsultationNoteStateProps {
   onCancelEdit: (section: keyof SOAPNote) => void;
   onSaveEdit: (section: keyof SOAPNote) => void;
   onEditContentChange: (section: keyof SOAPNote, content: string) => void;
+  // Heidi editing
+  heidiEditStates?: HeidiEditStates;
+  heidiEditContent?: Record<keyof HeidiNote, string>;
+  onCopyHeidiSection?: (section: keyof HeidiNote) => void;
+  onStartHeidiEdit?: (section: keyof HeidiNote) => void;
+  onCancelHeidiEdit?: (section: keyof HeidiNote) => void;
+  onSaveHeidiEdit?: (section: keyof HeidiNote) => void;
+  onHeidiEditContentChange?: (section: keyof HeidiNote, content: string) => void;
+  // Actions
   onSaveConsultation: () => void;
   onNewConsultation: () => void;
   onExportPDF?: () => void;
@@ -40,12 +52,30 @@ export const ConsultationNoteState = ({
   onCancelEdit,
   onSaveEdit,
   onEditContentChange,
+  heidiEditStates,
+  heidiEditContent,
+  onCopyHeidiSection,
+  onStartHeidiEdit,
+  onCancelHeidiEdit,
+  onSaveHeidiEdit,
+  onHeidiEditContentChange,
   onSaveConsultation,
   onNewConsultation,
   onExportPDF,
   onExportWord
 }: ConsultationNoteStateProps) => {
   const isMobile = useIsMobile();
+
+  // Determine which format to display
+  const useHeidiFormat = consultationNote.noteFormat === 'heidi' && 
+    consultationNote.heidiNote && 
+    heidiEditStates && 
+    heidiEditContent &&
+    onCopyHeidiSection &&
+    onStartHeidiEdit &&
+    onCancelHeidiEdit &&
+    onSaveHeidiEdit &&
+    onHeidiEditContentChange;
 
   return (
     <div className="space-y-4 pb-24">
@@ -58,7 +88,15 @@ export const ConsultationNoteState = ({
                 <FileCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <CardTitle className="text-lg">Consultation Complete</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  Consultation Complete
+                  {useHeidiFormat && (
+                    <Badge variant="secondary" className="text-xs font-normal gap-1">
+                      <Shield className="h-3 w-3" />
+                      Anti-Hallucination
+                    </Badge>
+                  )}
+                </CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Review and edit your notes below
                 </p>
@@ -93,18 +131,31 @@ export const ConsultationNoteState = ({
         </CardContent>
       </Card>
 
-      {/* SOAP Notes Editor */}
+      {/* Notes Editor - Heidi or SOAP format */}
       <ScrollArea className={isMobile ? 'h-[calc(100vh-320px)]' : ''}>
-        <SOAPNoteEditor
-          soapNote={consultationNote.soapNote}
-          editStates={editStates}
-          editContent={editContent}
-          onCopySection={onCopySection}
-          onStartEdit={onStartEdit}
-          onCancelEdit={onCancelEdit}
-          onSaveEdit={onSaveEdit}
-          onEditContentChange={onEditContentChange}
-        />
+        {useHeidiFormat ? (
+          <HeidiNoteEditor
+            heidiNote={consultationNote.heidiNote!}
+            editStates={heidiEditStates}
+            editContent={heidiEditContent}
+            onCopySection={onCopyHeidiSection}
+            onStartEdit={onStartHeidiEdit}
+            onCancelEdit={onCancelHeidiEdit}
+            onSaveEdit={onSaveHeidiEdit}
+            onEditContentChange={onHeidiEditContentChange}
+          />
+        ) : (
+          <SOAPNoteEditor
+            soapNote={consultationNote.soapNote}
+            editStates={editStates}
+            editContent={editContent}
+            onCopySection={onCopySection}
+            onStartEdit={onStartEdit}
+            onCancelEdit={onCancelEdit}
+            onSaveEdit={onSaveEdit}
+            onEditContentChange={onEditContentChange}
+          />
+        )}
       </ScrollArea>
 
       {/* SNOMED Codes if available */}
