@@ -3807,7 +3807,7 @@ export type Database = {
           upload_started_at: string | null
           uploaded_to_s1_at: string | null
           uploader_name: string
-          user_id: string | null
+          user_id: string
           validated_at: string | null
           validated_by: string | null
           validation_result: Json | null
@@ -3892,7 +3892,7 @@ export type Database = {
           upload_started_at?: string | null
           uploaded_to_s1_at?: string | null
           uploader_name: string
-          user_id?: string | null
+          user_id: string
           validated_at?: string | null
           validated_by?: string | null
           validation_result?: Json | null
@@ -3977,7 +3977,7 @@ export type Database = {
           upload_started_at?: string | null
           uploaded_to_s1_at?: string | null
           uploader_name?: string
-          user_id?: string | null
+          user_id?: string
           validated_at?: string | null
           validated_by?: string | null
           validation_result?: Json | null
@@ -4044,6 +4044,39 @@ export type Database = {
           scan_date?: string | null
           scanned_by?: string | null
           scanned_by_user_id?: string | null
+        }
+        Relationships: []
+      }
+      lg_patients_audit_log: {
+        Row: {
+          action: string
+          action_details: Json | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          patient_id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          action_details?: Json | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          patient_id: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          action_details?: Json | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          patient_id?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
