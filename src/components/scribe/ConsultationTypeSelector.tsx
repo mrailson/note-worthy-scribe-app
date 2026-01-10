@@ -1,6 +1,7 @@
 import { ConsultationType, ConsultationCategory, CONSULTATION_TYPE_LABELS, CONSULTATION_CATEGORY_LABELS } from "@/types/scribe";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Phone, Video, Users, Stethoscope, Heart, HandHeart } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ConsultationTypeSelectorProps {
   value: ConsultationType;
@@ -29,6 +30,8 @@ export const ConsultationTypeSelector = ({
   onCategoryChange,
   disabled = false
 }: ConsultationTypeSelectorProps) => {
+  const isMobile = useIsMobile();
+
   return (
     <div className="space-y-4">
       {/* Consultation Category */}
@@ -41,17 +44,17 @@ export const ConsultationTypeSelector = ({
           value={category} 
           onValueChange={(v) => v && onCategoryChange(v as ConsultationCategory)}
           disabled={disabled}
-          className="justify-start flex-wrap"
+          className={`justify-start flex-wrap ${isMobile ? 'gap-1.5' : ''}`}
         >
           {(Object.keys(CONSULTATION_CATEGORY_LABELS) as ConsultationCategory[]).map((cat) => (
             <ToggleGroupItem
               key={cat}
               value={cat}
               aria-label={CONSULTATION_CATEGORY_LABELS[cat]}
-              className="flex items-center gap-2 px-3 py-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              className={`flex items-center gap-1.5 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground touch-manipulation ${isMobile ? 'px-2.5 py-2.5 h-auto' : 'px-3 py-2 gap-2'}`}
             >
               {categoryIcons[cat]}
-              <span className="text-xs sm:text-sm">{CONSULTATION_CATEGORY_LABELS[cat]}</span>
+              <span className={isMobile ? "text-xs" : "text-xs sm:text-sm"}>{CONSULTATION_CATEGORY_LABELS[cat]}</span>
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
@@ -67,17 +70,17 @@ export const ConsultationTypeSelector = ({
           value={value} 
           onValueChange={(v) => v && onChange(v as ConsultationType)}
           disabled={disabled}
-          className="justify-start"
+          className={`justify-start ${isMobile ? 'w-full' : ''}`}
         >
           {(Object.keys(CONSULTATION_TYPE_LABELS) as ConsultationType[]).map((type) => (
             <ToggleGroupItem
               key={type}
               value={type}
               aria-label={CONSULTATION_TYPE_LABELS[type]}
-              className="flex items-center gap-2 px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              className={`flex items-center gap-1.5 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground touch-manipulation ${isMobile ? 'flex-1 px-2 py-2.5 h-auto flex-col' : 'px-4 gap-2'}`}
             >
               {typeIcons[type]}
-              <span className="hidden sm:inline">{CONSULTATION_TYPE_LABELS[type]}</span>
+              <span className={isMobile ? "text-xs" : "hidden sm:inline"}>{CONSULTATION_TYPE_LABELS[type]}</span>
             </ToggleGroupItem>
           ))}
         </ToggleGroup>

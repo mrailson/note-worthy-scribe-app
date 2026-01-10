@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle, CONSULTATION_CATEGORY_LABELS, ConsultationCategory } from "@/types/scribe";
 import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -66,6 +67,7 @@ export const ScribeHistoryPanel = ({
   categoryFilter,
   onCategoryFilterChange,
 }: ScribeHistoryPanelProps) => {
+  const isMobile = useIsMobile();
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratedNotes, setRegeneratedNotes] = useState<SOAPNote | null>(null);
   const [displaySettingsOpen, setDisplaySettingsOpen] = useState(false);
@@ -325,24 +327,29 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={handleClearCurrentSession}>
+          <Button 
+            variant="ghost" 
+            size={isMobile ? "default" : "sm"} 
+            onClick={handleClearCurrentSession}
+            className={isMobile ? "w-full justify-start" : ""}
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to History
           </Button>
         </div>
 
         <Card>
-          <CardHeader>
-            <div className="flex items-start justify-between">
+          <CardHeader className={isMobile ? "px-3 py-4" : ""}>
+            <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-start justify-between'}`}>
               <div>
-                <CardTitle className="text-lg">{currentSession.title}</CardTitle>
+                <CardTitle className={isMobile ? "text-base" : "text-lg"}>{currentSession.title}</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {format(new Date(currentSession.createdAt), 'EEEE, d MMMM yyyy \'at\' HH:mm')}
+                  {format(new Date(currentSession.createdAt), isMobile ? 'd MMM yyyy, HH:mm' : 'EEEE, d MMMM yyyy \'at\' HH:mm')}
                 </p>
               </div>
-              <Badge variant="secondary">{currentSession.status}</Badge>
+              <Badge variant="secondary" className={isMobile ? "w-fit" : ""}>{currentSession.status}</Badge>
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2 flex-wrap">
+            <div className={`flex items-center gap-3 text-sm text-muted-foreground mt-2 flex-wrap ${isMobile ? 'gap-2' : 'gap-4'}`}>
               <span className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 {currentSession.duration ? `${Math.floor(currentSession.duration)} min` : '0 min'}
@@ -679,31 +686,31 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <History className="h-5 w-5" />
-          Session History
+      <div className={`flex items-center justify-between flex-wrap gap-2 ${isMobile ? 'flex-col items-start' : ''}`}>
+        <h2 className={`font-semibold flex items-center gap-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
+          <History className={isMobile ? "h-4 w-4" : "h-5 w-5"} />
+          {isMobile ? "History" : "Session History"}
           {isSelectMode && selectedIds.size > 0 && (
-            <Badge variant="secondary">{selectedIds.size} selected</Badge>
+            <Badge variant="secondary" className="text-xs">{selectedIds.size} selected</Badge>
           )}
         </h2>
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 ${isMobile ? 'w-full flex-wrap' : ''}`}>
           {!isSelectMode ? (
             <>
-              <Button variant="outline" size="sm" onClick={toggleSelectMode}>
-                <CheckSquare className="h-4 w-4 mr-2" />
-                Select
+              <Button variant="outline" size="sm" onClick={toggleSelectMode} className={isMobile ? "flex-1" : ""}>
+                <CheckSquare className="h-4 w-4 mr-1.5" />
+                {isMobile ? "Select" : "Select"}
               </Button>
-              <Button variant="outline" size="sm" onClick={onRefresh}>
+              <Button variant="outline" size="sm" onClick={onRefresh} className={isMobile ? "flex-1" : ""}>
                 Refresh
               </Button>
             </>
           ) : (
-            <>
-              <Button variant="ghost" size="sm" onClick={selectAll}>
-                Select All
+            <div className={`flex items-center gap-2 ${isMobile ? 'w-full flex-wrap' : ''}`}>
+              <Button variant="ghost" size="sm" onClick={selectAll} className={isMobile ? "text-xs px-2" : ""}>
+                {isMobile ? "All" : "Select All"}
               </Button>
-              <Button variant="ghost" size="sm" onClick={deselectAll}>
+              <Button variant="ghost" size="sm" onClick={deselectAll} className={isMobile ? "text-xs px-2" : ""}>
                 Clear
               </Button>
               
@@ -714,10 +721,10 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     variant="outline" 
                     size="sm" 
                     disabled={selectedIds.size === 0 || isDeleting}
-                    className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                    className={`text-destructive border-destructive/50 hover:bg-destructive/10 ${isMobile ? 'flex-1' : ''}`}
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Selected ({selectedIds.size})
+                    <Trash2 className="h-4 w-4 mr-1.5" />
+                    {isMobile ? `Del (${selectedIds.size})` : `Delete Selected (${selectedIds.size})`}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -755,8 +762,9 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     variant="destructive" 
                     size="sm"
                     disabled={filteredSessions.length === 0 || isDeleting}
+                    className={isMobile ? "flex-1" : ""}
                   >
-                    Delete All
+                    {isMobile ? "All" : "Delete All"}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -800,11 +808,11 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                 </AlertDialogContent>
               </AlertDialog>
 
-              <Button variant="ghost" size="sm" onClick={toggleSelectMode}>
-                <XSquare className="h-4 w-4 mr-2" />
+              <Button variant="ghost" size="sm" onClick={toggleSelectMode} className={isMobile ? "flex-1" : ""}>
+                <XSquare className="h-4 w-4 mr-1.5" />
                 Cancel
               </Button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -832,8 +840,8 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
           </CardContent>
         </Card>
       ) : (
-        <ScrollArea className="h-[450px]">
-          <div className="space-y-3 pr-4">
+        <ScrollArea className={isMobile ? "h-[calc(100vh-380px)]" : "h-[450px]"}>
+          <div className={`space-y-3 ${isMobile ? 'pr-2' : 'pr-4'}`}>
             {filteredSessions.map((session) => {
               const CategoryIcon = categoryIcons[session.consultationCategory || 'general'];
               const isSelected = selectedIds.has(session.id);
@@ -841,7 +849,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                 <Card 
                   key={session.id} 
                   className={cn(
-                    "hover:bg-muted/50 transition-colors cursor-pointer",
+                    "hover:bg-muted/50 transition-colors cursor-pointer touch-manipulation",
                     isSelectMode && isSelected && "ring-2 ring-primary bg-primary/5"
                   )}
                   onClick={() => {
@@ -852,7 +860,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     }
                   }}
                 >
-                  <CardHeader className="pb-2">
+                  <CardHeader className={`pb-2 ${isMobile ? 'px-3 py-3' : ''}`}>
                     <div className="flex items-start justify-between">
                       {isSelectMode && (
                         <div className="mr-3 mt-0.5" onClick={(e) => e.stopPropagation()}>
@@ -888,16 +896,16 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-0">
+                  <CardContent className={`pt-0 ${isMobile ? 'px-3 pb-3' : ''}`}>
                     <p className="text-sm text-muted-foreground mb-2">
                       {format(new Date(session.createdAt), 'dd MMM yyyy, HH:mm')}
                     </p>
                     
                     {/* Quick Summary - Key clinical one-liner */}
                     {session.quickSummary && (
-                      <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30 mb-3">
+                      <div className={`flex items-start gap-2 p-2 rounded-md bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30 mb-3 ${isMobile ? 'p-2' : ''}`}>
                         <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                        <p className="text-sm text-amber-800 dark:text-amber-200 line-clamp-2">
+                        <p className={`text-amber-800 dark:text-amber-200 line-clamp-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                           {session.quickSummary}
                         </p>
                       </div>
@@ -905,8 +913,8 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     
                     {/* Fallback to transcript preview if no quick summary */}
                     {!session.quickSummary && session.transcript && (
-                      <p className="text-sm text-foreground/70 line-clamp-2 mb-3">
-                        {session.transcript.substring(0, 150)}...
+                      <p className={`text-foreground/70 line-clamp-2 mb-3 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        {session.transcript.substring(0, isMobile ? 100 : 150)}...
                       </p>
                     )}
                     
@@ -914,14 +922,14 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button 
                           variant="outline" 
-                          size="sm" 
-                          className="flex-1"
+                          size={isMobile ? "default" : "sm"}
+                          className="flex-1 touch-manipulation"
                           onClick={(e) => {
                             e.stopPropagation();
                             onLoadSession(session.id);
                           }}
                         >
-                          View Session
+                          {isMobile ? "View" : "View Session"}
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

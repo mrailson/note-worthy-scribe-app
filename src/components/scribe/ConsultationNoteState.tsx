@@ -95,29 +95,29 @@ export const ConsultationNoteState = ({
     <div className="space-y-4 pb-24">
       {/* Header with Metadata */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-4">
-              <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
-                <FileCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+        <CardHeader className={`pb-3 ${isMobile ? 'px-3 py-4' : ''}`}>
+          <div className={`flex ${isMobile ? 'flex-col gap-3' : 'items-center justify-between flex-wrap gap-3'}`}>
+            <div className={`flex items-center ${isMobile ? 'gap-3' : 'gap-4'}`}>
+              <div className={`rounded-full bg-green-100 dark:bg-green-900/30 ${isMobile ? 'p-1.5' : 'p-2'}`}>
+                <FileCheck className={`text-green-600 dark:text-green-400 ${isMobile ? 'h-4 w-4' : 'h-5 w-5'}`} />
               </div>
               <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  Consultation Complete
+                <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
+                  {isMobile ? 'Complete' : 'Consultation Complete'}
                   {useHeidiFormat && (
                     <Badge variant="secondary" className="text-xs font-normal gap-1">
                       <Shield className="h-3 w-3" />
-                      Anti-Hallucination
+                      {isMobile ? 'Safe' : 'Anti-Hallucination'}
                     </Badge>
                   )}
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
                   Review and edit your notes below
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+            <div className={`flex items-center text-sm text-muted-foreground flex-wrap ${isMobile ? 'gap-2' : 'gap-4'}`}>
               <div className="flex items-center gap-1.5">
                 <Stethoscope className="h-4 w-4" />
                 <span>{CONSULTATION_TYPE_LABELS[consultationType]}</span>
