@@ -62,7 +62,7 @@ export const PatientLetterView = ({
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('full_name, title, email')
-          .eq('id', user.id)
+          .eq('user_id', user.id)
           .maybeSingle();
 
         if (profileError) {
@@ -83,6 +83,9 @@ export const PatientLetterView = ({
           .from('practice_details')
           .select('practice_name, address, phone, email, practice_logo_url, logo_url')
           .eq('user_id', user.id)
+          .order('is_default', { ascending: false })
+          .order('updated_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
 
         if (practiceError) {
@@ -348,7 +351,12 @@ ${letterContent}</div>
               {practiceDetails?.logoUrl && (
                 <img 
                   src={practiceDetails.logoUrl} 
-                  alt="Practice Logo" 
+                  alt={`${practiceDetails.name} logo`} 
+                  loading="lazy"
+                  onError={(e) => {
+                    // Hide broken logos rather than leaving a broken image icon
+                    e.currentTarget.style.display = 'none';
+                  }}
                   className="h-12 mx-auto mb-2 object-contain"
                 />
               )}
