@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, outputFormat = 'summary' } = await req.json();
+    const { transcript, consultationType = 'f2f', outputFormat = 'soap' } = await req.json();
 
     if (!transcript || typeof transcript !== 'string') {
       return new Response(
@@ -23,23 +23,36 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Generating scribe notes for transcript of ${transcript.length} chars, format: ${outputFormat}`);
+    console.log(`Generating SOAP notes for ${consultationType} consultation, transcript length: ${transcript.length} chars`);
 
-    const systemPrompt = `You are an expert note-taker and summariser. Analyse the provided transcript and generate structured notes.
+    const consultationTypeLabel = {
+      'f2f': 'face to face',
+      'telephone': 'telephone',
+      'video': 'video'
+    }[consultationType] || 'face to face';
 
-Your output must be a valid JSON object with exactly these fields:
+    const systemPrompt = `You are an expert NHS GP clinical documentation assistant. Your task is to analyse a consultation transcript and generate structured SOAP notes suitable for UK primary care EMR systems (EMIS Web, SystmOne).
+
+This is a ${consultationTypeLabel} consultation.
+
+Generate a JSON response with exactly these fields:
 {
-  "summary": "A concise summary of the main discussion points and outcomes (2-4 paragraphs)",
-  "actionItems": "A bulleted list of action items, tasks, or follow-ups identified in the conversation",
-  "keyPoints": "The key points, decisions, and important information from the transcript"
+  "S": "Subjective section - Patient's presenting complaint, history of presenting complaint (HPC), relevant past medical history (PMH), drug history (DH), allergies, social history (SH), family history (FH). Write in concise clinical note style.",
+  "O": "Objective section - Examination findings, observations, vital signs mentioned. For telephone/video consultations, note 'Remote consultation - no physical examination performed' if appropriate, but include any patient-reported observations.",
+  "A": "Assessment section - Clinical impression, differential diagnoses, working diagnosis. Use appropriate clinical terminology.",
+  "P": "Plan section - Investigations ordered, prescriptions, referrals, follow-up arrangements, safety-netting advice given, patient education provided. Be specific about actions.",
+  "snomedCodes": ["Optional array of relevant SNOMED CT codes if clearly identifiable conditions are mentioned"]
 }
 
 Guidelines:
-- Be concise but comprehensive
-- Use British English spelling
-- Format action items as a bulleted list with clear owners if mentioned
-- Key points should be the most important takeaways
-- If the transcript is unclear or lacks content, note this in the summary`;
+- Use British English spelling and NHS terminology
+- Be concise but clinically complete
+- Use standard medical abbreviations (PMH, DH, SH, FH, O/E, Ix, Rx, F/U)
+- Include all clinically relevant information from the transcript
+- If information is not mentioned, do not invent it - leave that aspect out or note "not documented"
+- For telephone consultations, acknowledge the consultation type appropriately
+- Safety-netting advice should always be documented in the Plan
+- Format for easy reading in EMR systems`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -51,10 +64,10 @@ Guidelines:
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Please analyse this transcript and generate notes:\n\n${transcript}` }
+          { role: 'user', content: `Please analyse this consultation transcript and generate SOAP notes:\n\n${transcript}` }
         ],
         response_format: { type: "json_object" },
-        max_tokens: 2000,
+        max_tokens: 2500,
         temperature: 0.3,
       }),
     });
@@ -73,14 +86,17 @@ Guidelines:
       parsedContent = JSON.parse(content);
     } catch (e) {
       console.error('Failed to parse OpenAI response:', content);
+      // Fallback structure if parsing fails
       parsedContent = {
-        summary: content,
-        actionItems: "",
-        keyPoints: ""
+        S: content,
+        O: "",
+        A: "",
+        P: "",
+        snomedCodes: []
       };
     }
 
-    console.log('Successfully generated scribe notes');
+    console.log('Successfully generated SOAP notes');
 
     return new Response(JSON.stringify(parsedContent), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

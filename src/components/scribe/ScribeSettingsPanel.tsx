@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScribeSettings } from "@/types/scribe";
-import { Settings, Save, RotateCcw } from "lucide-react";
+import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS } from "@/types/scribe";
+import { Settings, Save, RotateCcw, Stethoscope, Mic, Shield } from "lucide-react";
+import { ConsultationTypeSelector } from "./ConsultationTypeSelector";
 
 interface ScribeSettingsPanelProps {
   settings: ScribeSettings;
@@ -20,42 +21,54 @@ export const ScribeSettingsPanel = ({
   onResetSettings,
 }: ScribeSettingsPanelProps) => {
   return (
-    <div className="space-y-6">
-      {/* Output Settings */}
+    <div className="space-y-6 max-w-2xl mx-auto">
+      {/* Consultation Defaults */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Output Settings
+            <Stethoscope className="h-5 w-5" />
+            Consultation Defaults
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="outputFormat">Default Output Format</Label>
+            <Label>Default Consultation Type</Label>
+            <ConsultationTypeSelector
+              value={settings.defaultConsultationType}
+              onChange={(type) => onUpdateSetting('defaultConsultationType', type)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="emrFormat">EMR System</Label>
             <Select
-              value={settings.outputFormat}
-              onValueChange={(value: ScribeSettings['outputFormat']) => 
-                onUpdateSetting('outputFormat', value)
+              value={settings.emrFormat}
+              onValueChange={(value: 'emis' | 'systmone') => 
+                onUpdateSetting('emrFormat', value)
               }
             >
-              <SelectTrigger id="outputFormat">
-                <SelectValue placeholder="Select output format" />
+              <SelectTrigger id="emrFormat">
+                <SelectValue placeholder="Select EMR system" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="summary">Summary</SelectItem>
-                <SelectItem value="notes">Detailed Notes</SelectItem>
-                <SelectItem value="action-items">Action Items Focus</SelectItem>
-                <SelectItem value="detailed">Full Detailed Output</SelectItem>
+                <SelectItem value="emis">EMIS Web</SelectItem>
+                <SelectItem value="systmone">SystmOne (TPP)</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Notes will be formatted for easy copy-paste into your EMR
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Transcription Settings */}
+      {/* Recording Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Transcription Settings</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Mic className="h-5 w-5" />
+            Recording Settings
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -79,45 +92,54 @@ export const ScribeSettingsPanel = ({
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="showTimestamps">Show Timestamps</Label>
-              <p className="text-sm text-muted-foreground">Display timestamps in transcript</p>
+              <Label htmlFor="showLiveTranscript">Show Live Transcript</Label>
+              <p className="text-sm text-muted-foreground">
+                Display transcript during recording
+              </p>
             </div>
             <Switch
-              id="showTimestamps"
-              checked={settings.showTimestamps}
-              onCheckedChange={(checked) => onUpdateSetting('showTimestamps', checked)}
+              id="showLiveTranscript"
+              checked={settings.showLiveTranscript}
+              onCheckedChange={(checked) => onUpdateSetting('showLiveTranscript', checked)}
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="tickerEnabled">Live Ticker</Label>
-              <p className="text-sm text-muted-foreground">Show real-time transcription ticker</p>
-            </div>
-            <Switch
-              id="tickerEnabled"
-              checked={settings.tickerEnabled}
-              onCheckedChange={(checked) => onUpdateSetting('tickerEnabled', checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Auto-Save Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Auto-Save Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="autoSave">Auto-Save Drafts</Label>
-              <p className="text-sm text-muted-foreground">Automatically save transcript drafts</p>
+              <p className="text-sm text-muted-foreground">
+                Automatically save transcript drafts
+              </p>
             </div>
             <Switch
               id="autoSave"
               checked={settings.autoSave}
               onCheckedChange={(checked) => onUpdateSetting('autoSave', checked)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Consent Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Consent & Privacy
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="showConsentReminder">Patient Consent Reminder</Label>
+              <p className="text-sm text-muted-foreground">
+                Require consent confirmation before each consultation
+              </p>
+            </div>
+            <Switch
+              id="showConsentReminder"
+              checked={settings.showConsentReminder}
+              onCheckedChange={(checked) => onUpdateSetting('showConsentReminder', checked)}
             />
           </div>
         </CardContent>
