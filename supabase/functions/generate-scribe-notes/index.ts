@@ -72,15 +72,6 @@ serve(async (req) => {
 15. Your role is DOCUMENTATION of what was said, NOT clinical reasoning or interpretation
 16. The "problemsDiscussed" field should ONLY list the problems/issues the patient mentioned - NOT your interpretation of what those problems might indicate
 
-⚠️ OPTIONAL SECTIONS - OMISSION RULES:
-17. For OPTIONAL sections (SH, FH, Allergies, PSH): If NOT explicitly discussed in the transcript, OMIT THE ENTIRE LINE from output. Do not write the heading. Do not write "not discussed". Simply EXCLUDE it completely.
-18. SOCIAL HISTORY IS HIGH-RISK FOR FABRICATION:
-    - "Lives alone" must ONLY appear if the patient or clinician EXPLICITLY stated this
-    - Occupation must ONLY appear if EXPLICITLY discussed
-    - Smoking/alcohol/drug status must ONLY appear if EXPLICITLY asked AND answered
-    - If SH was NOT discussed at all, the ENTIRE SH line must be OMITTED from output
-    - This section is frequently scrutinised in complaints and safeguarding reviews - DO NOT FABRICATE
-
 This is a ${consultationTypeLabel} consultation.
 
 DETAIL LEVEL INSTRUCTION: ${detailInstruction}
@@ -90,19 +81,17 @@ Generate a JSON response with exactly these fields:
 {
   "consultationHeader": "[${consultationTypeLabel}] [Specify if seen alone or seen with someone based on introductions] [Reason for visit/presenting complaint from booking or stated reason]",
   
-  "history": "Format as bullet points. ONLY include lines that have EXPLICIT information from the transcript:
-- HPC: [History of presenting complaint - ONLY what the patient actually said]
-- ICE: [Patient's Ideas, Concerns and Expectations - ONLY if patient explicitly stated these, otherwise OMIT this line]
-- Red flags: [ONLY red flags that were EXPLICITLY asked about AND the patient's response - otherwise OMIT this line]
-- Risk factors: [ONLY if explicitly mentioned - otherwise OMIT this line]
-- PMH: [ONLY if past medical history was explicitly mentioned - otherwise OMIT this line entirely]
-- PSH: [ONLY if past surgical history was explicitly mentioned - otherwise OMIT this line entirely]
-- DH: [ONLY if current medications were explicitly discussed - otherwise OMIT this line]
-- Allergies: [ONLY if allergies were explicitly asked/stated - otherwise OMIT this line entirely]
-- FH: [ONLY if family history was explicitly discussed - otherwise OMIT this line entirely]
-- SH: [ONLY if social history was EXPLICITLY discussed - otherwise OMIT this ENTIRE line. DO NOT fabricate living situation, occupation, or substance use. This is a HIGH-RISK section for complaints.]
-
-⚠️ CRITICAL: If a section heading has NO explicit content from the transcript, DO NOT include that heading at all. Empty sections = no line, NOT 'not mentioned'",
+  "history": "Format as bullet points:
+- HPC: [History of presenting complaint - what, when, duration, severity, associated symptoms - ONLY what the patient said]
+- ICE: [Patient's Ideas, Concerns and Expectations - only if mentioned]
+- Red flags: [Presence or ABSENCE of red flag symptoms - ONLY those actually asked about or mentioned]
+- Risk factors: [Relevant risk factors if mentioned]
+- PMH: [Past medical history if mentioned]
+- PSH: [Past surgical history if mentioned]
+- DH: [Drug history/current medications if mentioned]
+- Allergies: [ONLY if explicitly mentioned, otherwise leave completely blank]
+- FH: [Family history if relevant and mentioned]
+- SH: [Social history - lives with, occupation, smoking/alcohol/drugs, recent travel, carers if mentioned]",
 
   "examination": "Format as bullet points:
 - Vitals: [T, Sats %, HR, BP, RR - only those mentioned]
@@ -176,21 +165,11 @@ Guidelines:
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Please analyse this consultation transcript and generate clinical notes.
-
-CRITICAL RULES - READ CAREFULLY:
-1. ONLY include information EXPLICITLY stated in the transcript
-2. If a section (SH, FH, Allergies, PSH) was NOT discussed, OMIT that line entirely - do NOT include the heading
-3. NEVER fabricate living arrangements, occupation, or lifestyle factors - this is a common error
-4. Empty sections = no line at all, NOT "not mentioned" or placeholder text
-5. Social history is HIGH-RISK for fabrication - only include if EXPLICITLY discussed
-
-TRANSCRIPT:
-${transcript}${contextContent ? `\n\nADDITIONAL CLINICAL CONTEXT PROVIDED:\n${contextContent}` : ''}` }
+          { role: 'user', content: `Please analyse this consultation transcript and generate clinical notes. Remember: ONLY include information explicitly stated in the transcript. Leave sections blank if information was not mentioned.\n\nTRANSCRIPT:\n${transcript}${contextContent ? `\n\nADDITIONAL CLINICAL CONTEXT PROVIDED:\n${contextContent}` : ''}` }
         ],
         response_format: { type: "json_object" },
         max_tokens: 3000,
-        temperature: 0.05, // Very low for maximum determinism and minimal hallucination risk
+        temperature: 0.1, // Lowered for maximum determinism and reduced hallucination
       }),
     });
 
