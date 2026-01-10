@@ -74,10 +74,6 @@ export const PatientContextCapture = ({
     }
   }, []);
 
-  // Focus the paste target to enable right-click > Paste
-  const handleAreaClick = useCallback(() => {
-    pasteTargetRef.current?.focus();
-  }, []);
 
   // Set up paste listener
   useEffect(() => {
@@ -283,42 +279,59 @@ export const PatientContextCapture = ({
             </div>
           ) : (
             <div
-              onClick={handleAreaClick}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={cn(
-                "space-y-3 cursor-pointer rounded-md p-2 -m-2 transition-colors",
-                isFocused && "ring-2 ring-primary/50 bg-primary/5"
-              )}
+              className="space-y-3"
             >
-              {/* Hidden contenteditable for right-click paste support */}
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <ClipboardPaste className="h-4 w-4" />
+                <span className="text-sm font-medium">Patient Context (optional)</span>
+              </div>
+              
+              {/* Visible paste area - textarea that accepts right-click paste */}
               <div
                 ref={pasteTargetRef}
                 contentEditable
                 onPaste={handlePasteEvent}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
-                className="sr-only"
+                onMouseDown={(e) => {
+                  // Ensure focus is maintained on right-click
+                  if (e.button === 2) {
+                    e.currentTarget.focus();
+                  }
+                }}
+                onContextMenu={(e) => {
+                  // Ensure the element stays focused when context menu opens
+                  pasteTargetRef.current?.focus();
+                }}
+                className={cn(
+                  "w-full min-h-[60px] p-3 rounded-md border border-dashed text-center text-sm text-muted-foreground",
+                  "bg-muted/30 cursor-text transition-all outline-none",
+                  "hover:border-primary/50 hover:bg-muted/50",
+                  "focus:ring-2 focus:ring-primary/50 focus:border-primary focus:bg-primary/5",
+                  "flex items-center justify-center",
+                  isFocused && "ring-2 ring-primary/50 border-primary bg-primary/5"
+                )}
                 tabIndex={0}
-                aria-label="Paste area for patient context"
+                aria-label="Click here then right-click to paste, or use Ctrl+V"
                 suppressContentEditableWarning
-              />
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <ClipboardPaste className="h-4 w-4" />
-                <span className="text-sm font-medium">Patient Context (optional)</span>
+                style={{ caretColor: 'transparent' }}
+              >
+                <span className="pointer-events-none select-none">
+                  Click here, then paste (Ctrl+V or right-click &gt; Paste)
+                </span>
               </div>
+              
               <p className="text-xs text-muted-foreground">
-                Paste a screenshot from your clinical system (Ctrl+V, right-click &gt; Paste, or drag &amp; drop) to capture patient details.
+                Or drag &amp; drop an image, or use the upload button below.
               </p>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    fileInputRef.current?.click();
-                  }}
+                  onClick={() => fileInputRef.current?.click()}
                   className="gap-2"
                 >
                   <Upload className="h-4 w-4" />
