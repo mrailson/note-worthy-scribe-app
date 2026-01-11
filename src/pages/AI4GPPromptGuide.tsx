@@ -456,33 +456,33 @@ const AI4GPPromptGuide = () => {
       />
       
       <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-4 mb-4">
-            <Link to="/ai4gp" className="text-muted-foreground hover:text-foreground transition-colors">
+        <div className="container mx-auto px-4 py-4 sm:py-6">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-4">
+            <Link to="/ai4gp" className="text-muted-foreground hover:text-foreground transition-colors mt-1 sm:mt-0">
               <ArrowLeft className="h-5 w-5" />
               <span className="sr-only">Back to AI4GP</span>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">AI4GP Prompt Guide</h1>
-              <p className="text-muted-foreground mt-1">125 example prompts for GP practice teams</p>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">AI4GP Prompt Guide</h1>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1">125 example prompts for GP practice teams</p>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Introduction */}
-        <section aria-labelledby="intro-heading" className="mb-8">
+        <section aria-labelledby="intro-heading" className="mb-6 sm:mb-8">
           <Card>
-            <CardHeader>
-              <CardTitle id="intro-heading">How to Use This Guide</CardTitle>
-            <CardDescription>
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle id="intro-heading" className="text-lg sm:text-xl">How to Use This Guide</CardTitle>
+              <CardDescription className="text-sm">
                 This page contains 125 example prompts organised by role and category - 50 for practice staff, 25 for GPs, 25 for nurse practitioners (ANP/ACP), and 25 for social prescribers. Copy them directly into AI4GP or customise for your needs.
               </CardDescription>
             </CardHeader>
-            <CardContent className="prose prose-sm dark:prose-invert max-w-none">
-              <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                <li>Click any prompt to copy it to your clipboard</li>
+            <CardContent className="prose prose-sm dark:prose-invert max-w-none pt-0">
+              <ul className="list-disc pl-4 sm:pl-5 space-y-1 text-muted-foreground text-sm">
+                <li>Tap any prompt to copy it to your clipboard</li>
                 <li>Customise prompts with your practice name and specific details</li>
                 <li>Use the search box to find prompts by keyword</li>
                 <li>Expand categories to view all related prompts</li>
@@ -492,15 +492,15 @@ const AI4GPPromptGuide = () => {
         </section>
 
         {/* Search */}
-        <section aria-label="Search prompts" className="mb-6">
-          <div className="relative max-w-md">
+        <section aria-label="Search prompts" className="mb-4 sm:mb-6">
+          <div className="relative w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search prompts by keyword, category, or use case..."
+              placeholder="Search prompts..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 text-sm"
               aria-label="Search prompts"
             />
           </div>
@@ -512,11 +512,11 @@ const AI4GPPromptGuide = () => {
         </section>
 
         {/* Staff Categories */}
-        <section aria-labelledby="staff-categories-heading" className="mb-12">
-          <h2 id="staff-categories-heading" className="text-xl font-semibold text-foreground mb-4">Practice Staff Prompts</h2>
-          <p className="text-muted-foreground mb-6">50 prompts for reception, admin, and practice management teams</p>
+        <section aria-labelledby="staff-categories-heading" className="mb-8 sm:mb-12">
+          <h2 id="staff-categories-heading" className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-4">Practice Staff Prompts</h2>
+          <p className="text-sm text-muted-foreground mb-4 sm:mb-6">50 prompts for reception, admin, and practice management teams</p>
           
-          <Accordion type="multiple" defaultValue={categories} className="space-y-4">
+          <Accordion type="multiple" defaultValue={categories} className="space-y-3 sm:space-y-4">
             {categories.map((category) => {
               const config = categoryConfig[category];
               const categoryPrompts = promptsByCategory[category];
@@ -529,22 +529,53 @@ const AI4GPPromptGuide = () => {
                   value={category}
                   className="border rounded-lg bg-card"
                 >
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center gap-3 text-left">
-                      <div className={`p-2 rounded-lg ${config.colour}`}>
+                  <AccordionTrigger className="px-3 sm:px-4 py-2 sm:py-3 hover:no-underline">
+                    <div className="flex items-center gap-2 sm:gap-3 text-left w-full">
+                      <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${config.colour}`}>
                         {config.icon}
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">{category}</h3>
-                        <p className="text-sm text-muted-foreground font-normal">{config.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-sm sm:text-base">{category}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground font-normal line-clamp-1">{config.description}</p>
                       </div>
-                      <Badge variant="secondary" className="ml-auto mr-4">
-                        {categoryPrompts.length} prompt{categoryPrompts.length !== 1 ? 's' : ''}
+                      <Badge variant="secondary" className="ml-auto mr-2 sm:mr-4 shrink-0 text-xs">
+                        {categoryPrompts.length}
                       </Badge>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="overflow-x-auto">
+                  <AccordionContent className="px-2 sm:px-4 pb-3 sm:pb-4">
+                    {/* Mobile card layout */}
+                    <div className="space-y-3 sm:hidden">
+                      {categoryPrompts.map((example) => (
+                        <div 
+                          key={example.id}
+                          className="bg-muted/30 rounded-lg p-3 space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground">#{example.id}</span>
+                              <h4 className="font-medium text-foreground text-sm">{example.useCase}</h4>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopy(example.prompt, example.id)}
+                              aria-label={`Copy prompt: ${example.useCase}`}
+                              className="h-8 w-8 p-0 shrink-0"
+                            >
+                              {copiedId === example.id ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-sm text-foreground/80">{example.prompt}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Desktop table layout */}
+                    <div className="hidden sm:block overflow-x-auto">
                       <table className="w-full text-sm" role="table">
                         <caption className="sr-only">{category} prompts</caption>
                         <thead>
@@ -592,11 +623,11 @@ const AI4GPPromptGuide = () => {
         </section>
 
         {/* GP & Clinician Categories */}
-        <section aria-labelledby="gp-categories-heading" className="mb-12">
-          <h2 id="gp-categories-heading" className="text-xl font-semibold text-foreground mb-4">GP & Clinician Use Cases</h2>
-          <p className="text-muted-foreground mb-6">25 prompts for clinical, educational, and professional development materials</p>
+        <section aria-labelledby="gp-categories-heading" className="mb-8 sm:mb-12">
+          <h2 id="gp-categories-heading" className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-4">GP & Clinician Use Cases</h2>
+          <p className="text-sm text-muted-foreground mb-4 sm:mb-6">25 prompts for clinical, educational, and professional development materials</p>
           
-          <Accordion type="multiple" defaultValue={gpCategories} className="space-y-4">
+          <Accordion type="multiple" defaultValue={gpCategories} className="space-y-3 sm:space-y-4">
             {gpCategories.map((category) => {
               const config = gpCategoryConfig[category];
               const categoryPrompts = gpPromptsByCategory[category];
@@ -609,22 +640,53 @@ const AI4GPPromptGuide = () => {
                   value={category}
                   className="border rounded-lg bg-card"
                 >
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center gap-3 text-left">
-                      <div className={`p-2 rounded-lg ${config.colour}`}>
+                  <AccordionTrigger className="px-3 sm:px-4 py-2 sm:py-3 hover:no-underline">
+                    <div className="flex items-center gap-2 sm:gap-3 text-left w-full">
+                      <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${config.colour}`}>
                         {config.icon}
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">{category}</h3>
-                        <p className="text-sm text-muted-foreground font-normal">{config.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-sm sm:text-base">{category}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground font-normal line-clamp-1">{config.description}</p>
                       </div>
-                      <Badge variant="secondary" className="ml-auto mr-4">
-                        {categoryPrompts.length} prompt{categoryPrompts.length !== 1 ? 's' : ''}
+                      <Badge variant="secondary" className="ml-auto mr-2 sm:mr-4 shrink-0 text-xs">
+                        {categoryPrompts.length}
                       </Badge>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="overflow-x-auto">
+                  <AccordionContent className="px-2 sm:px-4 pb-3 sm:pb-4">
+                    {/* Mobile card layout */}
+                    <div className="space-y-3 sm:hidden">
+                      {categoryPrompts.map((example) => (
+                        <div 
+                          key={example.id}
+                          className="bg-muted/30 rounded-lg p-3 space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground">#{example.id}</span>
+                              <h4 className="font-medium text-foreground text-sm">{example.useCase}</h4>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopy(example.prompt, example.id)}
+                              aria-label={`Copy prompt: ${example.useCase}`}
+                              className="h-8 w-8 p-0 shrink-0"
+                            >
+                              {copiedId === example.id ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-sm text-foreground/80">{example.prompt}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Desktop table layout */}
+                    <div className="hidden sm:block overflow-x-auto">
                       <table className="w-full text-sm" role="table">
                         <caption className="sr-only">{category} prompts</caption>
                         <thead>
@@ -672,11 +734,11 @@ const AI4GPPromptGuide = () => {
         </section>
 
         {/* Social Prescribing Link Worker Categories */}
-        <section aria-labelledby="splw-categories-heading" className="mb-12">
-          <h2 id="splw-categories-heading" className="text-xl font-semibold text-foreground mb-4">Social Prescribing Link Worker (SPLW) Use Cases</h2>
-          <p className="text-muted-foreground mb-6">25 prompts for community signposting, wellbeing support, and patient engagement</p>
+        <section aria-labelledby="splw-categories-heading" className="mb-8 sm:mb-12">
+          <h2 id="splw-categories-heading" className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-4">Social Prescribing Link Worker (SPLW) Use Cases</h2>
+          <p className="text-sm text-muted-foreground mb-4 sm:mb-6">25 prompts for community signposting, wellbeing support, and patient engagement</p>
           
-          <Accordion type="multiple" defaultValue={splwCategories} className="space-y-4">
+          <Accordion type="multiple" defaultValue={splwCategories} className="space-y-3 sm:space-y-4">
             {splwCategories.map((category) => {
               const config = splwCategoryConfig[category];
               const categoryPrompts = splwPromptsByCategory[category];
@@ -689,22 +751,53 @@ const AI4GPPromptGuide = () => {
                   value={category}
                   className="border rounded-lg bg-card"
                 >
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center gap-3 text-left">
-                      <div className={`p-2 rounded-lg ${config.colour}`}>
+                  <AccordionTrigger className="px-3 sm:px-4 py-2 sm:py-3 hover:no-underline">
+                    <div className="flex items-center gap-2 sm:gap-3 text-left w-full">
+                      <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${config.colour}`}>
                         {config.icon}
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">{category}</h3>
-                        <p className="text-sm text-muted-foreground font-normal">{config.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-sm sm:text-base">{category}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground font-normal line-clamp-1">{config.description}</p>
                       </div>
-                      <Badge variant="secondary" className="ml-auto mr-4">
-                        {categoryPrompts.length} prompt{categoryPrompts.length !== 1 ? 's' : ''}
+                      <Badge variant="secondary" className="ml-auto mr-2 sm:mr-4 shrink-0 text-xs">
+                        {categoryPrompts.length}
                       </Badge>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="overflow-x-auto">
+                  <AccordionContent className="px-2 sm:px-4 pb-3 sm:pb-4">
+                    {/* Mobile card layout */}
+                    <div className="space-y-3 sm:hidden">
+                      {categoryPrompts.map((example) => (
+                        <div 
+                          key={example.id}
+                          className="bg-muted/30 rounded-lg p-3 space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground">#{example.id}</span>
+                              <h4 className="font-medium text-foreground text-sm">{example.useCase}</h4>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopy(example.prompt, example.id)}
+                              aria-label={`Copy prompt: ${example.useCase}`}
+                              className="h-8 w-8 p-0 shrink-0"
+                            >
+                              {copiedId === example.id ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-sm text-foreground/80">{example.prompt}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Desktop table layout */}
+                    <div className="hidden sm:block overflow-x-auto">
                       <table className="w-full text-sm" role="table">
                         <caption className="sr-only">{category} prompts</caption>
                         <thead>
@@ -752,11 +845,11 @@ const AI4GPPromptGuide = () => {
         </section>
 
         {/* Advanced Nurse Practitioner / ACP Categories */}
-        <section aria-labelledby="anp-categories-heading" className="mb-12">
-          <h2 id="anp-categories-heading" className="text-xl font-semibold text-foreground mb-4">Advanced Nurse Practitioner (ANP/ACP) Use Cases</h2>
-          <p className="text-muted-foreground mb-6">25 prompts for minor illness, chronic disease management, clinical assessments, and prescribing</p>
+        <section aria-labelledby="anp-categories-heading" className="mb-8 sm:mb-12">
+          <h2 id="anp-categories-heading" className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-4">Advanced Nurse Practitioner (ANP/ACP) Use Cases</h2>
+          <p className="text-sm text-muted-foreground mb-4 sm:mb-6">25 prompts for minor illness, chronic disease management, clinical assessments, and prescribing</p>
           
-          <Accordion type="multiple" defaultValue={anpCategories} className="space-y-4">
+          <Accordion type="multiple" defaultValue={anpCategories} className="space-y-3 sm:space-y-4">
             {anpCategories.map((category) => {
               const config = anpCategoryConfig[category];
               const categoryPrompts = anpPromptsByCategory[category];
@@ -769,22 +862,53 @@ const AI4GPPromptGuide = () => {
                   value={category}
                   className="border rounded-lg bg-card"
                 >
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center gap-3 text-left">
-                      <div className={`p-2 rounded-lg ${config.colour}`}>
+                  <AccordionTrigger className="px-3 sm:px-4 py-2 sm:py-3 hover:no-underline">
+                    <div className="flex items-center gap-2 sm:gap-3 text-left w-full">
+                      <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${config.colour}`}>
                         {config.icon}
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">{category}</h3>
-                        <p className="text-sm text-muted-foreground font-normal">{config.description}</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-sm sm:text-base">{category}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground font-normal line-clamp-1">{config.description}</p>
                       </div>
-                      <Badge variant="secondary" className="ml-auto mr-4">
-                        {categoryPrompts.length} prompt{categoryPrompts.length !== 1 ? 's' : ''}
+                      <Badge variant="secondary" className="ml-auto mr-2 sm:mr-4 shrink-0 text-xs">
+                        {categoryPrompts.length}
                       </Badge>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="overflow-x-auto">
+                  <AccordionContent className="px-2 sm:px-4 pb-3 sm:pb-4">
+                    {/* Mobile card layout */}
+                    <div className="space-y-3 sm:hidden">
+                      {categoryPrompts.map((example) => (
+                        <div 
+                          key={example.id}
+                          className="bg-muted/30 rounded-lg p-3 space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground">#{example.id}</span>
+                              <h4 className="font-medium text-foreground text-sm">{example.useCase}</h4>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopy(example.prompt, example.id)}
+                              aria-label={`Copy prompt: ${example.useCase}`}
+                              className="h-8 w-8 p-0 shrink-0"
+                            >
+                              {copiedId === example.id ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-sm text-foreground/80">{example.prompt}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Desktop table layout */}
+                    <div className="hidden sm:block overflow-x-auto">
                       <table className="w-full text-sm" role="table">
                         <caption className="sr-only">{category} prompts</caption>
                         <thead>
@@ -831,12 +955,12 @@ const AI4GPPromptGuide = () => {
           </Accordion>
         </section>
 
-        {/* Quick Reference Table - for LLM consumption */}
-        <section aria-labelledby="full-list-heading" className="mt-12">
+        {/* Quick Reference Table - for LLM consumption - hidden on mobile */}
+        <section aria-labelledby="full-list-heading" className="mt-8 sm:mt-12 hidden sm:block">
           <Card>
-            <CardHeader>
-              <CardTitle id="full-list-heading">Complete Prompt Reference</CardTitle>
-              <CardDescription>
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle id="full-list-heading" className="text-lg sm:text-xl">Complete Prompt Reference</CardTitle>
+              <CardDescription className="text-sm">
                 All 125 prompts in a single searchable table for quick reference
               </CardDescription>
             </CardHeader>
@@ -876,13 +1000,13 @@ const AI4GPPromptGuide = () => {
         </section>
 
         {/* Tips Section */}
-        <section aria-labelledby="tips-heading" className="mt-8">
+        <section aria-labelledby="tips-heading" className="mt-6 sm:mt-8">
           <Card>
-            <CardHeader>
-              <CardTitle id="tips-heading">Tips for Better Results</CardTitle>
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle id="tips-heading" className="text-lg sm:text-xl">Tips for Better Results</CardTitle>
             </CardHeader>
-            <CardContent className="prose prose-sm dark:prose-invert max-w-none">
-              <ol className="list-decimal pl-5 space-y-2 text-muted-foreground">
+            <CardContent className="prose prose-sm dark:prose-invert max-w-none pt-0">
+              <ol className="list-decimal pl-4 sm:pl-5 space-y-2 text-muted-foreground text-sm">
                 <li><strong className="text-foreground">Be specific</strong> - Include exact details like dates, times, and contact information</li>
                 <li><strong className="text-foreground">Mention your practice</strong> - Add your practice name for branded materials</li>
                 <li><strong className="text-foreground">Specify the format</strong> - Mention A4, A5, landscape, or portrait as needed</li>
@@ -895,7 +1019,7 @@ const AI4GPPromptGuide = () => {
         </section>
 
         {/* Footer */}
-        <footer className="mt-12 text-center text-sm text-muted-foreground border-t pt-8">
+        <footer className="mt-8 sm:mt-12 text-center text-xs sm:text-sm text-muted-foreground border-t pt-6 sm:pt-8 pb-4">
           <p>This guide is part of <strong>AI4GP by NoteWell AI</strong></p>
           <p className="mt-1">For more information, visit <a href="https://www.gpnotewell.co.uk" className="text-primary hover:underline">gpnotewell.co.uk</a></p>
         </footer>
