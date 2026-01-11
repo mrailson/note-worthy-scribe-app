@@ -37,10 +37,10 @@ serve(async (req) => {
 
     console.log(`Syncing action items for meeting: ${meetingId}`);
 
-    // Fetch all action items for this meeting
+    // Fetch all action items for this meeting (minimal columns for performance)
     const { data: actionItems, error: fetchError } = await supabase
       .from('meeting_action_items')
-      .select('*')
+      .select('id, action_text, assignee_name, due_date, priority, status, sort_order')
       .eq('meeting_id', meetingId)
       .order('sort_order', { ascending: true });
 
@@ -49,41 +49,57 @@ serve(async (req) => {
       throw fetchError;
     }
 
-    // Fetch the current meeting summary
-    const { data: summary, error: summaryError } = await supabase
+    // Fetch the current meeting summary (if it exists)
+    const { data: summaryRow, error: summaryError } = await supabase
       .from('meeting_summaries')
       .select('summary')
       .eq('meeting_id', meetingId)
-      .single();
+      .maybeSingle();
 
-    if (summaryError && summaryError.code !== 'PGRST116') {
+    if (summaryError) {
       console.error('Error fetching summary:', summaryError);
       throw summaryError;
     }
 
+    // If no meeting_summaries row yet, fall back to the latest saved Standard minutes on the meeting row.
+    const baseSummary = summaryRow?.summary ?? (await (async () => {
+      const { data: meetingRow } = await supabase
+        .from('meetings')
+        .select('notes_style_3')
+        .eq('id', meetingId)
+        .maybeSingle();
+
+      return meetingRow?.notes_style_3 ?? '';
+    })());
+
     // Generate the new action items markdown section
     const actionItemsMarkdown = generateActionItemsMarkdown(actionItems || []);
 
-    // Update the summary with new action items section
-    if (summary?.summary) {
-      const updatedSummary = updateActionItemsInSummary(summary.summary, actionItemsMarkdown);
-      
-      const { error: updateError } = await supabase
-        .from('meeting_summaries')
-        .update({ 
+    // Update the summary with new action items section (or create it if missing)
+    const updatedSummary = updateActionItemsInSummary(baseSummary, actionItemsMarkdown);
+
+    const { error: upsertError } = await supabase
+      .from('meeting_summaries')
+      .upsert(
+        {
+          meeting_id: meetingId,
           summary: updatedSummary,
-          action_items: (actionItems || []).map(item => item.action_text),
-          updated_at: new Date().toISOString()
-        })
-        .eq('meeting_id', meetingId);
+          action_items: (actionItems || []).map((item) => item.action_text),
+          key_points: [],
+          decisions: [],
+          next_steps: [],
+          ai_generated: false,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'meeting_id' }
+      );
 
-      if (updateError) {
-        console.error('Error updating summary:', updateError);
-        throw updateError;
-      }
-
-      console.log(`Successfully synced ${actionItems?.length || 0} action items`);
+    if (upsertError) {
+      console.error('Error upserting summary:', upsertError);
+      throw upsertError;
     }
+
+    console.log(`Successfully synced ${actionItems?.length || 0} action items`);
 
     return new Response(
       JSON.stringify({ 
@@ -136,13 +152,48 @@ function generateActionItemsMarkdown(actionItems: ActionItem[]): string {
 }
 
 function updateActionItemsInSummary(summary: string, newActionItemsSection: string): string {
-  // Find and replace the existing action items section
-  const actionItemsRegex = /## Action Items[\s\S]*?(?=##[^#]|$)/i;
-  
-  if (actionItemsRegex.test(summary)) {
-    return summary.replace(actionItemsRegex, newActionItemsSection + '\n');
-  } else {
-    // Append if no existing section
-    return summary + '\n\n' + newActionItemsSection;
+  const sectionLines = newActionItemsSection.trimEnd().split(/\r?\n/);
+
+  const original = (summary ?? '').toString();
+  const lines = original.split(/\r?\n/);
+
+  const isActionItemsHeading = (line: string) =>
+    /^#{1,3}\s*action\s+items\s*:?\s*$/i.test(line.trim());
+
+  // Main section headings (## Something) or (# Something) mark the end of the Action Items section.
+  // We intentionally do NOT stop at ### headings, because we generate "### Completed" inside Action Items.
+  const isMainHeading = (line: string) => /^#{1,2}\s+\S/.test(line.trim());
+
+  const out: string[] = [];
+  let inserted = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (isActionItemsHeading(lines[i])) {
+      // Insert the new section once at the first occurrence and remove ALL existing Action Items sections.
+      if (!inserted) {
+        if (out.length && out[out.length - 1].trim() !== '') out.push('');
+        out.push(...sectionLines);
+        out.push('');
+        inserted = true;
+      }
+
+      // Skip old section body until next main heading (or end).
+      i++;
+      while (i < lines.length && !isMainHeading(lines[i])) {
+        i++;
+      }
+      i--; // compensate for loop increment
+      continue;
+    }
+
+    out.push(lines[i]);
   }
+
+  const cleaned = out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd();
+
+  if (!inserted) {
+    return cleaned ? `${cleaned}\n\n${newActionItemsSection.trimEnd()}\n` : `${newActionItemsSection.trimEnd()}\n`;
+  }
+
+  return cleaned + '\n';
 }
