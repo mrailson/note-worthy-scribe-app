@@ -271,11 +271,25 @@ export const useActionItems = (meetingId: string) => {
 
       if (error) throw error;
       
-      const existingItems = (data as ActionItem[]) || [];
-      setActionItems(existingItems);
+      const rawItems = (data as ActionItem[]) || [];
+      
+      // Dedupe action items and clean up duplicates in DB
+      const { uniqueItems, idsToDelete } = planActionItemsDedupe(rawItems);
+      
+      // Delete duplicates in background
+      if (idsToDelete.length > 0) {
+        console.log(`Deleting ${idsToDelete.length} duplicate action items`);
+        supabase
+          .from('meeting_action_items')
+          .delete()
+          .in('id', idsToDelete)
+          .then(() => console.log('Duplicate cleanup complete'));
+      }
+      
+      setActionItems(uniqueItems);
 
       // If no items exist and we haven't tried extraction yet, extract from notes
-      if (existingItems.length === 0 && !hasExtractedFromNotes) {
+      if (uniqueItems.length === 0 && !hasExtractedFromNotes) {
         setHasExtractedFromNotes(true);
         
         // Fetch the meeting summary to extract action items
