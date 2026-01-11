@@ -76,11 +76,6 @@ export const MeetingDetailsTabs = ({
             <span className="hidden sm:inline">Meeting Overview</span>
             <span className="sm:hidden">Overview</span>
           </TabsTrigger>
-          <TabsTrigger value="audio" className="flex items-center gap-2 py-2">
-            <Headphones className="h-4 w-4" />
-            <span className="hidden sm:inline">Audio Summary</span>
-            <span className="sm:hidden">Audio</span>
-          </TabsTrigger>
           <TabsTrigger value="actions" className="flex items-center gap-2 py-2">
             <CheckSquare className="h-4 w-4" />
             <span className="hidden sm:inline">Action Items</span>
@@ -95,6 +90,11 @@ export const MeetingDetailsTabs = ({
             <MessageCircle className="h-4 w-4" />
             <span className="hidden sm:inline">Ask AI</span>
             <span className="sm:hidden">AI</span>
+          </TabsTrigger>
+          <TabsTrigger value="audio" className="flex items-center gap-2 py-2">
+            <Headphones className="h-4 w-4" />
+            <span className="hidden sm:inline">Audio Summary</span>
+            <span className="sm:hidden">Audio</span>
           </TabsTrigger>
           <TabsTrigger value="documents" className="flex items-center gap-2 py-2">
             <FileDown className="h-4 w-4" />
@@ -116,18 +116,6 @@ export const MeetingDetailsTabs = ({
           />
         </TabsContent>
 
-        <TabsContent value="audio" className="p-4">
-          <MeetingAudioStudio
-            meetingId={meetingId}
-            meetingTitle={meetingTitle}
-            audioOverviewUrl={audioOverviewUrl}
-            audioOverviewText={audioOverviewText}
-            audioOverviewDuration={audioOverviewDuration}
-            meetingDurationMinutes={meetingDurationMinutes}
-            onAudioGenerated={onRegenerateAudio}
-          />
-        </TabsContent>
-
         <TabsContent value="actions" className="p-4">
           <MeetingActionItemsTab
             meetingId={meetingId}
@@ -140,6 +128,18 @@ export const MeetingDetailsTabs = ({
           <MeetingQAPanel
             meetingId={meetingId}
             meetingTitle={meetingTitle}
+          />
+        </TabsContent>
+
+        <TabsContent value="audio" className="p-4">
+          <MeetingAudioStudio
+            meetingId={meetingId}
+            meetingTitle={meetingTitle}
+            audioOverviewUrl={audioOverviewUrl}
+            audioOverviewText={audioOverviewText}
+            audioOverviewDuration={audioOverviewDuration}
+            meetingDurationMinutes={meetingDurationMinutes}
+            onAudioGenerated={onRegenerateAudio}
           />
         </TabsContent>
 
