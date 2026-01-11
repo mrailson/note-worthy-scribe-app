@@ -32,7 +32,7 @@ export const ContextBanner: React.FC<ContextBannerProps> = ({ onDismiss, classNa
         </p>
         <p className="text-blue-700/80 dark:text-blue-300/80 mt-1">
           {isPM 
-            ? <>This is a general assistance tool for practice management. <span className="font-semibold text-blue-800 dark:text-blue-200">Please do not enter patient identifiable information.</span></>
+            ? <>This is a general assistance tool for practice management.</>
             : <>This is a general assistance tool using NICE CKS and NHS guidance. <span className="font-semibold text-blue-800 dark:text-blue-200">Please do not enter patient identifiable information.</span></>
           }
         </p>
