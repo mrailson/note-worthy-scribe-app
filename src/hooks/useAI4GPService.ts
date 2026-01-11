@@ -30,7 +30,7 @@ export const useAI4GPService = () => {
   const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
   const [chatHistoryRetentionDays, setChatHistoryRetentionDays] = useState(30);
   const [hideGPClinical, setHideGPClinical] = useState(false);
-  const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-2.5-flash-image' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1'>('google/gemini-2.5-flash-image');
+  const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-2.5-flash-image' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1'>('google/gemini-3-pro-image-preview');
   
   // Image branding dialog state
   const [showBrandingDialog, setShowBrandingDialog] = useState(false);
@@ -1280,7 +1280,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setAutoCollapseUserPrompts(preferences.autoCollapseUserPrompts ?? false);
           setChatHistoryRetentionDays(preferences.chatHistoryRetentionDays ?? 30);
           setHideGPClinical(preferences.hideGPClinical ?? false);
-          setImageGenerationModel(preferences.imageGenerationModel ?? 'google/gemini-2.5-flash-image-preview');
+          setImageGenerationModel(preferences.imageGenerationModel ?? 'google/gemini-3-pro-image-preview');
           
           console.log('AI4GP settings loaded successfully');
         } else {
