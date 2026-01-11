@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic, BookOpen, Languages, PanelLeft } from 'lucide-react';
+import { Sparkles, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic, BookOpen, Languages, PanelLeft, Lightbulb, ExternalLink } from 'lucide-react';
 
 // Component imports
 import { LoginForm } from '@/components/LoginForm';
@@ -517,22 +517,6 @@ const AI4GPService = () => {
                         </Tooltip>
                       </TooltipProvider>
                       
-                      {/* History button next to title */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowSearchHistory(!showSearchHistory)}
-                        className={cn(
-                          "ml-2 sm:ml-3 flex-shrink-0",
-                          deviceInfo.isIPhone ? "px-3 h-10 min-w-[44px]" : "px-2 sm:px-3"
-                        )}
-                      >
-                        <History className={cn(
-                          deviceInfo.isIPhone ? "w-4 h-4" : "w-3 h-3 sm:w-4 sm:h-4 sm:mr-1"
-                        )} />
-                        <span className="hidden sm:inline text-xs">History</span>
-                      </Button>
-                      
                       {/* Meetings dropdown */}
                       <MeetingsDropdown
                         meetings={meetings}
@@ -741,12 +725,27 @@ const AI4GPService = () => {
                         ) : (
                           <>
                             
-                            {/* Role Selection Toggle - Always visible */}
-                            <div className="flex justify-center mb-2">
+                            {/* Role Selection Toggle with Prompts Link */}
+                            <div className="flex items-center justify-center gap-3 mb-2">
                               <RoleToggle
                                 selectedRole={selectedRole}
                                 onRoleChange={setSelectedRole}
                               />
+                              <a
+                                href="/ai4gp-prompts"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 px-2.5 py-1.5",
+                                  "text-xs text-muted-foreground hover:text-primary",
+                                  "border border-border rounded-lg hover:border-primary/50 hover:bg-accent/30",
+                                  "transition-all duration-150"
+                                )}
+                              >
+                                <Lightbulb className="w-3.5 h-3.5" />
+                                <span>{selectedRole === 'practice-manager' ? '150+' : '110+'} Prompts</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
                             </div>
                             
                             {/* Show PMHomeScreen for Practice Managers, GPHomeScreen for GP */}

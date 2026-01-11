@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  Lightbulb,
-  ExternalLink,
   ArrowLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -186,23 +184,6 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
               </div>
             </TooltipProvider>
 
-            <div className="flex items-center justify-center pt-2">
-              <a
-                href="/ai4gp-prompts"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  "inline-flex items-center gap-2 px-3 py-1.5",
-                  "text-sm text-muted-foreground hover:text-primary",
-                  "border border-border rounded-lg hover:border-primary/50 hover:bg-accent/30",
-                  "transition-all duration-150"
-                )}
-              >
-                <Lightbulb className="w-4 h-4" />
-                <span>110+ Prompts</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
 
             {/* Context Banner - full width, positioned below buttons */}
             {showBanner && (
