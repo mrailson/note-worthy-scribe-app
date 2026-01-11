@@ -371,8 +371,12 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
     }
 
     // Healthcare Local toggle: if enabled, restrict local items to NHS/GP/health-related only
+    // Exception: BBC Northamptonshire articles are always shown when the local source toggle is on
     if (isLocal && healthcareLocalOnly) {
-      if (article.source === 'Northampton Chronicle & Echo') {
+      // BBC Northamptonshire gets a pass when local source is explicitly enabled
+      if (article.source === 'BBC Northamptonshire' && enabledSources.has('local')) {
+        // Always show BBC Northamptonshire when local is toggled on
+      } else if (article.source === 'Northampton Chronicle & Echo') {
         if (!(isHealthRelated(article) || isHealthRelatedByUrl(article) || isHealthRelatedByTags(article))) return false;
       } else {
         if (!isHealthRelated(article)) return false;
