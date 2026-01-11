@@ -304,16 +304,28 @@ export const useActionItems = (meetingId: string) => {
       // If no items exist and we haven't tried extraction yet, extract from notes
       if (uniqueItems.length === 0 && !hasExtractedFromNotes) {
         setHasExtractedFromNotes(true);
-        
-        // Fetch the meeting summary to extract action items
-        const { data: summaryData } = await supabase
-          .from('meeting_summaries')
-          .select('summary')
-          .eq('meeting_id', meetingId)
-          .maybeSingle();
 
-        if (summaryData?.summary) {
-          await extractActionItemsFromNotes(summaryData.summary);
+        // Prefer the latest edited minutes saved on the meetings row (notes_style_3),
+        // falling back to meeting_summaries.summary for legacy meetings.
+        const [{ data: meetingRow }, { data: summaryRow }] = await Promise.all([
+          supabase
+            .from('meetings')
+            .select('notes_style_3')
+            .eq('id', meetingId)
+            .maybeSingle(),
+          supabase
+            .from('meeting_summaries')
+            .select('summary')
+            .eq('meeting_id', meetingId)
+            .maybeSingle(),
+        ]);
+
+        const sourceNotes =
+          (meetingRow?.notes_style_3 && meetingRow.notes_style_3.trim() ? meetingRow.notes_style_3 : null) ??
+          (summaryRow?.summary && summaryRow.summary.trim() ? summaryRow.summary : null);
+
+        if (sourceNotes) {
+          await extractActionItemsFromNotes(sourceNotes);
         }
       }
     } catch (error) {
@@ -517,15 +529,26 @@ export const useActionItems = (meetingId: string) => {
 
       setActionItems([]);
       
-      // Fetch the meeting summary to extract action items
-      const { data: summaryData } = await supabase
-        .from('meeting_summaries')
-        .select('summary')
-        .eq('meeting_id', meetingId)
-        .maybeSingle();
+      // Prefer latest edited minutes from meetings.notes_style_3, fallback to meeting_summaries.summary
+      const [{ data: meetingRow }, { data: summaryRow }] = await Promise.all([
+        supabase
+          .from('meetings')
+          .select('notes_style_3')
+          .eq('id', meetingId)
+          .maybeSingle(),
+        supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meetingId)
+          .maybeSingle(),
+      ]);
 
-      if (summaryData?.summary) {
-        await extractActionItemsFromNotes(summaryData.summary);
+      const sourceNotes =
+        (meetingRow?.notes_style_3 && meetingRow.notes_style_3.trim() ? meetingRow.notes_style_3 : null) ??
+        (summaryRow?.summary && summaryRow.summary.trim() ? summaryRow.summary : null);
+
+      if (sourceNotes) {
+        await extractActionItemsFromNotes(sourceNotes);
       }
     } catch (error) {
       console.error('Error clearing and re-extracting:', error);

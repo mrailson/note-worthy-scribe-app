@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export const useActionItemsCount = (meetingId: string) => {
@@ -6,26 +6,55 @@ export const useActionItemsCount = (meetingId: string) => {
 
   useEffect(() => {
     if (!meetingId) return;
-    
+
+    let cancelled = false;
+
     const fetchCount = async () => {
       const { data, error } = await supabase
         .from('meeting_action_items')
         .select('id, status, due_date, assignee_name')
         .eq('meeting_id', meetingId);
-      
+
+      if (cancelled) return;
+
       if (!error && data) {
-        const count = data.filter(item => {
-          if (item.status === 'Completed') return false;
-          const hasDueDate = item.due_date && item.due_date !== 'TBC' && item.due_date.trim() !== '';
-          const hasAssignee = item.assignee_name && item.assignee_name !== 'TBC' && item.assignee_name.trim() !== '';
-          return !hasDueDate || !hasAssignee;
-        }).length;
+        const count = data
+          .filter((item) => {
+            if (item.status === 'Completed') return false;
+            const hasDueDate = item.due_date && item.due_date !== 'TBC' && item.due_date.trim() !== '';
+            const hasAssignee = item.assignee_name && item.assignee_name !== 'TBC' && item.assignee_name.trim() !== '';
+            return !hasDueDate || !hasAssignee;
+          })
+          .length;
         setOpenItemsCount(count);
       }
     };
-    
+
     fetchCount();
+
+    const channel = supabase
+      .channel(`action-items-count-${meetingId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meeting_action_items',
+          filter: `meeting_id=eq.${meetingId}`,
+        },
+        () => {
+          // Refresh counts in the background whenever action items change
+          fetchCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [meetingId]);
 
   return { openItemsCount };
 };
+
