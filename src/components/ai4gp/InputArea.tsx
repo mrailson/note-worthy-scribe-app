@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FileProcessingProgress } from './FileProcessingProgress';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
 import { FileQuickActions } from './FileQuickActions';
+import { InputTipsHover } from './InputTipsHover';
 
 // Role-based placeholder tips
 const CLINICAL_TIPS = [
@@ -559,10 +560,9 @@ ${pastedText.trim()}
         </Button>
       </div>
       
-      <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
-        <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
-        to send • <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Esc</kbd>
-        to clear • <span className="text-amber-600">AI can make mistakes — please verify important information</span>
+      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
+        <InputTipsHover />
+        <span className="text-amber-600">AI can make mistakes — please verify important information</span>
       </div>
       
       <DocumentTranslateModal
