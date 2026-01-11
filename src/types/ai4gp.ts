@@ -105,6 +105,7 @@ export interface PracticeContext {
   // User details
   userFullName?: string;
   userEmail?: string;
+  userPhone?: string;
   userRole?: string;
   userRoles?: string[];
   emailSignature?: string;

@@ -22,7 +22,7 @@ export const usePracticeContext = () => {
       // Get user profile information
       const { data: userProfile } = await supabase
         .from('profiles')
-        .select('full_name, email')
+        .select('full_name, email, phone')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -149,6 +149,7 @@ export const usePracticeContext = () => {
           practiceWebsite: sharedPracticeDetails.website,
           userFullName: userProfile?.full_name,
           userEmail: userProfile?.email || user.email,
+          userPhone: userProfile?.phone,
           userRole: userRoles?.[0]?.role,
           userRoles: userRoles?.map(r => r.role) || [],
           emailSignature: sharedPracticeDetails.email_signature,
@@ -166,6 +167,7 @@ export const usePracticeContext = () => {
         setPracticeContext({
           userFullName: userProfile?.full_name,
           userEmail: userProfile?.email || user.email,
+          userPhone: userProfile?.phone,
           userRole: userRoles?.[0]?.role,
           userRoles: userRoles?.map(r => r.role) || []
         });

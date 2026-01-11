@@ -2,10 +2,11 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState, us
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { UploadedFile } from '@/types/ai4gp';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { UploadedFile, PracticeContext } from '@/types/ai4gp';
 import { useEnhancedFileProcessing } from '@/hooks/useEnhancedFileProcessing';
 import { EnhancedBrowserMic, EnhancedBrowserMicRef } from './EnhancedBrowserMic';
 import { useToast } from '@/hooks/use-toast';
@@ -58,6 +59,7 @@ interface InputAreaProps {
   setIsClinical: (clinical: boolean) => void;
   onNewChat?: () => void;
   userRole?: string;
+  practiceContext?: PracticeContext;
 }
 
 export interface InputAreaRef {
@@ -74,7 +76,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   isClinical,
   setIsClinical,
   onNewChat,
-  userRole
+  userRole,
+  practiceContext
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -238,6 +241,40 @@ ${pastedText.trim()}
     textareaRef.current?.focus();
   };
 
+  const [detailsPopoverOpen, setDetailsPopoverOpen] = useState(false);
+
+  const insertPracticeDetails = (type: 'name-only' | 'name-email-phone' | 'full-details' | 'my-details') => {
+    let details = '';
+    const { practiceName, practiceEmail, practicePhone, practiceAddress, userFullName, userEmail, userPhone } = practiceContext || {};
+    
+    switch (type) {
+      case 'name-only':
+        details = practiceName || '';
+        break;
+      case 'name-email-phone':
+        details = [practiceName, practiceEmail, practicePhone]
+          .filter(Boolean)
+          .join('\n');
+        break;
+      case 'full-details':
+        details = [practiceName, practicePhone, practiceEmail, practiceAddress]
+          .filter(Boolean)
+          .join('\n');
+        break;
+      case 'my-details':
+        details = [userFullName, userEmail, userPhone]
+          .filter(Boolean)
+          .join('\n');
+        break;
+    }
+    
+    if (details) {
+      setInput(input + (input.trim() ? '\n\n' : '') + details);
+    }
+    setDetailsPopoverOpen(false);
+    textareaRef.current?.focus();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -364,6 +401,67 @@ ${pastedText.trim()}
             disabled={isLoading}
             style={{ minHeight: '140px' }}
           />
+          
+          {/* Insert details button - only shown when there's text and practice context exists */}
+          {input.trim().length > 0 && (practiceContext?.practiceName || practiceContext?.userFullName) && (
+            <Popover open={detailsPopoverOpen} onOpenChange={setDetailsPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute left-2 bottom-10 h-6 w-6 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full"
+                  title="Insert details"
+                >
+                  <ClipboardList className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent side="right" align="start" className="w-56 p-2">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground mb-2 px-2">
+                    Insert Details
+                  </p>
+                  {practiceContext?.practiceName && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-sm h-8"
+                        onClick={() => insertPracticeDetails('name-only')}
+                      >
+                        Practice Name Only
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-sm h-8"
+                        onClick={() => insertPracticeDetails('name-email-phone')}
+                      >
+                        Name, Email & Phone
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-sm h-8"
+                        onClick={() => insertPracticeDetails('full-details')}
+                      >
+                        Name, Phone, Email & Address
+                      </Button>
+                    </>
+                  )}
+                  {practiceContext?.userFullName && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-sm h-8"
+                      onClick={() => insertPracticeDetails('my-details')}
+                    >
+                      My Details
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
           
           {/* Clear button - only shown when there's text */}
           {input.trim().length > 0 && (
