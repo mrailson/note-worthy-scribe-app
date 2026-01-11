@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send, Users, MapPin, Compass, HandHeart, Activity, Sparkles, Syringe, ShieldCheck, Thermometer, HeartPulse, BookOpen, Bandage, FlaskConical, AlertTriangle, Scale, Repeat, ClipboardCheck, Building2, Briefcase, FileCheck, Landmark, ClipboardPen, Droplet, Gauge, Scissors, UserCheck } from 'lucide-react';
+import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send, Users, MapPin, Compass, HandHeart, Activity, Sparkles, Syringe, ShieldCheck, Thermometer, HeartPulse, BookOpen, Bandage, FlaskConical, AlertTriangle, Scale, Repeat, ClipboardCheck, Building2, Briefcase, FileCheck, Landmark, ClipboardPen, Droplet, Gauge, Scissors, UserCheck, Network, TrendingUp, Building, Handshake, Globe, Phone, ClipboardCopy, UserPlus, Signpost, Headphones } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
@@ -265,6 +265,72 @@ const hcaPromptExamples: PromptExample[] = [
   { id: 185, category: 'Patient Support', useCase: 'Chaperone information', prompt: 'Create a patient information leaflet explaining what a chaperone is and your right to request one' },
 ];
 
+// PCN/Neighbourhood Management prompts (211-230)
+const pcnPromptExamples: PromptExample[] = [
+  // DES & Specifications (211-214)
+  { id: 211, category: 'DES & Specifications', useCase: 'PCN DES service summary', prompt: 'Create an infographic summarising PCN DES requirements and service specifications for 2025/26' },
+  { id: 212, category: 'DES & Specifications', useCase: 'Enhanced Access reporting', prompt: 'Create a monthly Enhanced Access activity report template showing utilisation and patient feedback' },
+  { id: 213, category: 'DES & Specifications', useCase: 'IIF performance tracker', prompt: 'Create an IIF indicator dashboard showing performance across all PCN practices with RAG ratings' },
+  { id: 214, category: 'DES & Specifications', useCase: 'eHUB activity summary', prompt: 'Create a quarterly eHUB/digital triage activity report showing online consultation volumes' },
+
+  // ARRS Workforce (215-218)
+  { id: 215, category: 'ARRS Workforce', useCase: 'ARRS business case', prompt: 'Create a business case template for recruiting additional ARRS roles within PCN funding allocation' },
+  { id: 216, category: 'ARRS Workforce', useCase: 'Role integration guide', prompt: 'Create an ARRS role integration guide explaining how clinical pharmacists, FCP, and SPLWs work within practices' },
+  { id: 217, category: 'ARRS Workforce', useCase: 'Supervision framework', prompt: 'Create a clinical supervision framework document for ARRS staff across PCN practices' },
+  { id: 218, category: 'ARRS Workforce', useCase: 'Team structure chart', prompt: 'Create an organisational chart showing PCN workforce structure including ARRS and practice-based staff' },
+
+  // Population Health (219-222)
+  { id: 219, category: 'Population Health', useCase: 'Health inequalities dashboard', prompt: 'Create a population health dashboard showing health inequalities and deprivation indices across PCN' },
+  { id: 220, category: 'Population Health', useCase: 'Neighbourhood profile', prompt: 'Create a neighbourhood health profile template including demographics, disease prevalence, and service access' },
+  { id: 221, category: 'Population Health', useCase: 'Core20PLUS5 plan', prompt: 'Create a Core20PLUS5 action plan poster showing how we are addressing health inequalities in our PCN' },
+  { id: 222, category: 'Population Health', useCase: 'At-risk cohort report', prompt: 'Create a proactive care cohort report identifying patients at high risk of hospital admission' },
+
+  // PCN Governance (223-226)
+  { id: 223, category: 'PCN Governance', useCase: 'Board meeting agenda', prompt: 'Create a PCN Clinical Director board meeting agenda template with standard governance items' },
+  { id: 224, category: 'PCN Governance', useCase: 'Collaboration agreement', prompt: 'Create a practice collaboration agreement summary explaining how practices work together in the PCN' },
+  { id: 225, category: 'PCN Governance', useCase: 'Decision framework', prompt: 'Create a PCN decision-making framework infographic showing governance structure and voting arrangements' },
+  { id: 226, category: 'PCN Governance', useCase: 'Network development plan', prompt: 'Create a five-year PCN development plan template with strategic priorities and milestones' },
+
+  // Shared Services (227-230)
+  { id: 227, category: 'Shared Services', useCase: 'Extended Access poster', prompt: 'Create a patient-facing poster promoting PCN Extended Access appointments including evenings and weekends' },
+  { id: 228, category: 'Shared Services', useCase: 'PCN pharmacy services', prompt: 'Create a leaflet explaining PCN-wide clinical pharmacy services available to patients' },
+  { id: 229, category: 'Shared Services', useCase: 'Shared workforce rota', prompt: 'Create a shared workforce rota template for ARRS staff working across multiple PCN practices' },
+  { id: 230, category: 'Shared Services', useCase: 'Care coordinator pathway', prompt: 'Create a care coordinator referral pathway showing how practices can access PCN care coordination support' },
+];
+
+// Reception Team prompts (231-250)
+const receptionPromptExamples: PromptExample[] = [
+  // Appointment Management (231-234)
+  { id: 231, category: 'Appointment Management', useCase: 'Appointment types guide', prompt: 'Create a quick-reference guide for reception showing all appointment types, durations, and booking criteria' },
+  { id: 232, category: 'Appointment Management', useCase: 'DNA reduction letter', prompt: 'Create a patient letter explaining the impact of missed appointments and encouraging attendance' },
+  { id: 233, category: 'Appointment Management', useCase: 'Booking scripts', prompt: 'Create telephone scripts for reception staff booking routine, urgent, and chronic disease appointments' },
+  { id: 234, category: 'Appointment Management', useCase: 'Triage protocol poster', prompt: 'Create a reception desk poster showing appointment triage questions and escalation criteria' },
+
+  // Patient Communication (235-238)
+  { id: 235, category: 'Patient Communication', useCase: 'Common query scripts', prompt: 'Create telephone scripts for handling common patient queries - results, prescriptions, referrals' },
+  { id: 236, category: 'Patient Communication', useCase: 'Results notification', prompt: 'Create a template letter/SMS for notifying patients that test results are available for collection' },
+  { id: 237, category: 'Patient Communication', useCase: 'Test booking instructions', prompt: 'Create patient instructions for booking blood tests, ECGs, and other investigations' },
+  { id: 238, category: 'Patient Communication', useCase: 'Referral status letter', prompt: 'Create a letter template updating patients on the status of their secondary care referral' },
+
+  // Registration & Admin (239-242)
+  { id: 239, category: 'Registration & Admin', useCase: 'New patient pack', prompt: 'Create a new patient welcome pack explaining practice services, online access, and how to get help' },
+  { id: 240, category: 'Registration & Admin', useCase: 'Deduction letter', prompt: 'Create a patient deduction notification letter explaining removal from practice list and next steps' },
+  { id: 241, category: 'Registration & Admin', useCase: 'SAR request guide', prompt: 'Create a staff guide for handling Subject Access Requests under GDPR with timelines and process' },
+  { id: 242, category: 'Registration & Admin', useCase: 'SCR consent form', prompt: 'Create a patient information leaflet explaining Summary Care Record and additional information sharing' },
+
+  // Signposting & Triage (243-246)
+  { id: 243, category: 'Signposting & Triage', useCase: 'Pharmacy First poster', prompt: 'Create a waiting room poster promoting Pharmacy First for minor ailments and conditions covered' },
+  { id: 244, category: 'Signposting & Triage', useCase: 'Self-care guide', prompt: 'Create a reception signposting card for common conditions that can be managed with self-care' },
+  { id: 245, category: 'Signposting & Triage', useCase: 'Urgent vs routine', prompt: 'Create a visual flowchart helping reception staff assess urgent vs routine appointment needs' },
+  { id: 246, category: 'Signposting & Triage', useCase: 'Emergency escalation', prompt: 'Create a quick-reference card for reception showing when to advise patients to call 111 or 999' },
+
+  // Front Desk Operations (247-250)
+  { id: 247, category: 'Front Desk Operations', useCase: 'Difficult conversations', prompt: 'Create a training guide with scripts for handling difficult conversations and de-escalation techniques' },
+  { id: 248, category: 'Front Desk Operations', useCase: 'Translation services', prompt: 'Create a quick-reference guide for booking interpreter services and using Language Line' },
+  { id: 249, category: 'Front Desk Operations', useCase: 'Accessibility support', prompt: 'Create an accessibility support card showing available adjustments for patients with disabilities' },
+  { id: 250, category: 'Front Desk Operations', useCase: 'Handover template', prompt: 'Create a reception shift handover template ensuring continuity between morning and afternoon teams' },
+];
+
 // Advanced Nurse Practitioner / ACP prompts (186-210)
 const anpPromptExamples: PromptExample[] = [
   // Minor Illness Management (186-190)
@@ -503,6 +569,62 @@ const hcaCategoryConfig: Record<string, { icon: React.ReactNode; description: st
   }
 };
 
+const pcnCategoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
+  'DES & Specifications': {
+    icon: <FileCheck className="h-5 w-5" />,
+    description: 'PCN DES, Enhanced Access, IIF, and service specifications',
+    colour: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+  },
+  'ARRS Workforce': {
+    icon: <Network className="h-5 w-5" />,
+    description: 'ARRS recruitment, integration, and supervision',
+    colour: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+  },
+  'Population Health': {
+    icon: <TrendingUp className="h-5 w-5" />,
+    description: 'Health inequalities, Core20PLUS5, and proactive care',
+    colour: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+  },
+  'PCN Governance': {
+    icon: <Building className="h-5 w-5" />,
+    description: 'Board meetings, collaboration agreements, and decision-making',
+    colour: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+  },
+  'Shared Services': {
+    icon: <Handshake className="h-5 w-5" />,
+    description: 'Extended access, shared workforce, and PCN-wide services',
+    colour: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200'
+  }
+};
+
+const receptionCategoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
+  'Appointment Management': {
+    icon: <Calendar className="h-5 w-5" />,
+    description: 'Booking guidance, triage protocols, and DNA reduction',
+    colour: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+  },
+  'Patient Communication': {
+    icon: <Phone className="h-5 w-5" />,
+    description: 'Telephone scripts, results notification, and query handling',
+    colour: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+  },
+  'Registration & Admin': {
+    icon: <UserPlus className="h-5 w-5" />,
+    description: 'Patient registration, deductions, and GDPR requests',
+    colour: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+  },
+  'Signposting & Triage': {
+    icon: <Signpost className="h-5 w-5" />,
+    description: 'Pharmacy First, self-care guidance, and escalation',
+    colour: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+  },
+  'Front Desk Operations': {
+    icon: <Headphones className="h-5 w-5" />,
+    description: 'Difficult conversations, translation, and accessibility',
+    colour: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200'
+  }
+};
+
 const anpCategoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
   'Minor Illness': {
     icon: <Thermometer className="h-5 w-5" />,
@@ -542,8 +664,10 @@ const splwCategories = Object.keys(splwCategoryConfig);
 const pharmacistCategories = Object.keys(pharmacistCategoryConfig);
 const practiceManagerCategories = Object.keys(practiceManagerCategoryConfig);
 const hcaCategories = Object.keys(hcaCategoryConfig);
+const pcnCategories = Object.keys(pcnCategoryConfig);
+const receptionCategories = Object.keys(receptionCategoryConfig);
 const anpCategories = Object.keys(anpCategoryConfig);
-const allPrompts = [...promptExamples, ...gpPromptExamples, ...splwPromptExamples, ...pharmacistPromptExamples, ...practiceManagerPromptExamples, ...hcaPromptExamples, ...anpPromptExamples];
+const allPrompts = [...promptExamples, ...gpPromptExamples, ...splwPromptExamples, ...pharmacistPromptExamples, ...practiceManagerPromptExamples, ...hcaPromptExamples, ...pcnPromptExamples, ...receptionPromptExamples, ...anpPromptExamples];
 
 const AI4GPPromptGuide = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -619,9 +743,29 @@ const AI4GPPromptGuide = () => {
     );
   }, [searchTerm]);
 
+  const filteredPcnPrompts = useMemo(() => {
+    if (!searchTerm.trim()) return pcnPromptExamples;
+    const term = searchTerm.toLowerCase();
+    return pcnPromptExamples.filter(
+      p => p.useCase.toLowerCase().includes(term) || 
+           p.prompt.toLowerCase().includes(term) ||
+           p.category.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
+
+  const filteredReceptionPrompts = useMemo(() => {
+    if (!searchTerm.trim()) return receptionPromptExamples;
+    const term = searchTerm.toLowerCase();
+    return receptionPromptExamples.filter(
+      p => p.useCase.toLowerCase().includes(term) || 
+           p.prompt.toLowerCase().includes(term) ||
+           p.category.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
+
   const filteredAllPrompts = useMemo(() => {
-    return [...filteredStaffPrompts, ...filteredGpPrompts, ...filteredSplwPrompts, ...filteredPharmacistPrompts, ...filteredPracticeManagerPrompts, ...filteredHcaPrompts, ...filteredAnpPrompts];
-  }, [filteredStaffPrompts, filteredGpPrompts, filteredSplwPrompts, filteredPharmacistPrompts, filteredPracticeManagerPrompts, filteredHcaPrompts, filteredAnpPrompts]);
+    return [...filteredStaffPrompts, ...filteredGpPrompts, ...filteredSplwPrompts, ...filteredPharmacistPrompts, ...filteredPracticeManagerPrompts, ...filteredHcaPrompts, ...filteredPcnPrompts, ...filteredReceptionPrompts, ...filteredAnpPrompts];
+  }, [filteredStaffPrompts, filteredGpPrompts, filteredSplwPrompts, filteredPharmacistPrompts, filteredPracticeManagerPrompts, filteredHcaPrompts, filteredPcnPrompts, filteredReceptionPrompts, filteredAnpPrompts]);
 
   const promptsByCategory = useMemo(() => {
     return categories.reduce((acc, category) => {
@@ -672,6 +816,20 @@ const AI4GPPromptGuide = () => {
     }, {} as Record<string, PromptExample[]>);
   }, [filteredHcaPrompts]);
 
+  const pcnPromptsByCategory = useMemo(() => {
+    return pcnCategories.reduce((acc, category) => {
+      acc[category] = filteredPcnPrompts.filter(p => p.category === category);
+      return acc;
+    }, {} as Record<string, PromptExample[]>);
+  }, [filteredPcnPrompts]);
+
+  const receptionPromptsByCategory = useMemo(() => {
+    return receptionCategories.reduce((acc, category) => {
+      acc[category] = filteredReceptionPrompts.filter(p => p.category === category);
+      return acc;
+    }, {} as Record<string, PromptExample[]>);
+  }, [filteredReceptionPrompts]);
+
   const handleCopy = async (prompt: string, id: number) => {
     try {
       await navigator.clipboard.writeText(prompt);
@@ -686,10 +844,10 @@ const AI4GPPromptGuide = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="AI4GP Prompt Guide | 210 Example Prompts for GP Practices | NoteWell AI"
-        description="Comprehensive guide with 210 example prompts for practice staff, practice managers, GPs, HCAs, clinical pharmacists, nurse practitioners, and social prescribers - clinical protocols, patient education, and more using AI4GP."
+        title="AI4GP Prompt Guide | 250 Example Prompts for GP Practices | NoteWell AI"
+        description="Comprehensive guide with 250 example prompts for practice staff, practice managers, PCN managers, reception teams, GPs, HCAs, clinical pharmacists, nurse practitioners, and social prescribers - clinical protocols, patient education, and more using AI4GP."
         canonical="https://www.gpnotewell.co.uk/ai4gp-prompts"
-        keywords="AI4GP prompts, GP practice prompts, practice manager prompts, HCA prompts, clinical pharmacist prompts, ANP prompts, nurse practitioner, social prescribing, SPLW prompts, clinical protocols, patient education, CQC compliance"
+        keywords="AI4GP prompts, GP practice prompts, practice manager prompts, PCN prompts, reception team prompts, HCA prompts, clinical pharmacist prompts, ANP prompts, nurse practitioner, social prescribing, SPLW prompts, clinical protocols, patient education, CQC compliance"
       />
       
       <header className="border-b bg-card">
@@ -701,7 +859,7 @@ const AI4GPPromptGuide = () => {
             </Link>
             <div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">AI4GP Prompt Guide</h1>
-              <p className="text-sm sm:text-base text-muted-foreground mt-1">210 example prompts for GP practice teams</p>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1">250 example prompts for GP practice and PCN teams</p>
             </div>
           </div>
         </div>
@@ -714,7 +872,7 @@ const AI4GPPromptGuide = () => {
             <CardHeader className="pb-3 sm:pb-6">
               <CardTitle id="intro-heading" className="text-lg sm:text-xl">How to Use This Guide</CardTitle>
               <CardDescription className="text-sm">
-                This page contains 210 example prompts organised by role and category - 50 for practice staff, 20 for practice managers, 25 for GPs, 25 for social prescribers, 20 for clinical pharmacists, 20 for HCAs, and 25 for nurse practitioners (ANP/ACP). Copy them directly into AI4GP or customise for your needs.
+                This page contains 250 example prompts organised by role and category - 50 for practice staff, 20 for reception teams, 20 for practice managers, 20 for PCN/Neighbourhood, 25 for GPs, 25 for social prescribers, 20 for clinical pharmacists, 20 for HCAs, and 25 for nurse practitioners (ANP/ACP). Copy them directly into AI4GP or customise for your needs.
               </CardDescription>
             </CardHeader>
             <CardContent className="prose prose-sm dark:prose-invert max-w-none pt-0">
@@ -757,6 +915,117 @@ const AI4GPPromptGuide = () => {
             {categories.map((category) => {
               const config = categoryConfig[category];
               const categoryPrompts = promptsByCategory[category];
+              
+              if (categoryPrompts.length === 0) return null;
+              
+              return (
+                <AccordionItem 
+                  key={category} 
+                  value={category}
+                  className="border rounded-lg bg-card"
+                >
+                  <AccordionTrigger className="px-3 sm:px-4 py-2 sm:py-3 hover:no-underline">
+                    <div className="flex items-center gap-2 sm:gap-3 text-left w-full">
+                      <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${config.colour}`}>
+                        {config.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-sm sm:text-base">{category}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground font-normal line-clamp-1">{config.description}</p>
+                      </div>
+                      <Badge variant="secondary" className="ml-auto mr-2 sm:mr-4 shrink-0 text-xs">
+                        {categoryPrompts.length}
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-2 sm:px-4 pb-3 sm:pb-4">
+                    {/* Mobile card layout */}
+                    <div className="space-y-3 sm:hidden">
+                      {categoryPrompts.map((example) => (
+                        <div 
+                          key={example.id}
+                          className="bg-muted/30 rounded-lg p-3 space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground">#{example.id}</span>
+                              <h4 className="font-medium text-foreground text-sm">{example.useCase}</h4>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopy(example.prompt, example.id)}
+                              aria-label={`Copy prompt: ${example.useCase}`}
+                              className="h-8 w-8 p-0 shrink-0"
+                            >
+                              {copiedId === example.id ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-sm text-foreground/80">{example.prompt}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Desktop table layout */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full text-sm" role="table">
+                        <caption className="sr-only">{category} prompts</caption>
+                        <thead>
+                          <tr className="border-b">
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-8">#</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-48">Use Case</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground">Example Prompt</th>
+                            <th scope="col" className="text-right py-2 font-medium text-muted-foreground w-20">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {categoryPrompts.map((example) => (
+                            <tr 
+                              key={example.id} 
+                              className="border-b last:border-0 hover:bg-muted/50 transition-colors"
+                            >
+                              <td className="py-3 pr-4 text-muted-foreground">{example.id}</td>
+                              <td className="py-3 pr-4 font-medium text-foreground">{example.useCase}</td>
+                              <td className="py-3 pr-4 text-foreground">{example.prompt}</td>
+                              <td className="py-3 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopy(example.prompt, example.id)}
+                                  aria-label={`Copy prompt: ${example.useCase}`}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  {copiedId === example.id ? (
+                                    <Check className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </section>
+
+        {/* Reception Team Categories */}
+        <section aria-labelledby="reception-categories-heading" className="mb-8 sm:mb-12">
+          <h2 id="reception-categories-heading" className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-4">Reception Team Use Cases</h2>
+          <p className="text-sm text-muted-foreground mb-4 sm:mb-6">20 prompts for appointment management, patient communication, signposting, and front desk operations</p>
+          
+          <Accordion type="multiple" defaultValue={receptionCategories} className="space-y-3 sm:space-y-4">
+            {receptionCategories.map((category) => {
+              const config = receptionCategoryConfig[category];
+              const categoryPrompts = receptionPromptsByCategory[category];
               
               if (categoryPrompts.length === 0) return null;
               
@@ -1303,6 +1572,117 @@ const AI4GPPromptGuide = () => {
           </Accordion>
         </section>
 
+        {/* PCN/Neighbourhood Management Categories */}
+        <section aria-labelledby="pcn-categories-heading" className="mb-8 sm:mb-12">
+          <h2 id="pcn-categories-heading" className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-4">PCN/Neighbourhood Management Use Cases</h2>
+          <p className="text-sm text-muted-foreground mb-4 sm:mb-6">20 prompts for DES specifications, ARRS workforce, population health, governance, and shared services</p>
+          
+          <Accordion type="multiple" defaultValue={pcnCategories} className="space-y-3 sm:space-y-4">
+            {pcnCategories.map((category) => {
+              const config = pcnCategoryConfig[category];
+              const categoryPrompts = pcnPromptsByCategory[category];
+              
+              if (categoryPrompts.length === 0) return null;
+              
+              return (
+                <AccordionItem 
+                  key={category} 
+                  value={category}
+                  className="border rounded-lg bg-card"
+                >
+                  <AccordionTrigger className="px-3 sm:px-4 py-2 sm:py-3 hover:no-underline">
+                    <div className="flex items-center gap-2 sm:gap-3 text-left w-full">
+                      <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${config.colour}`}>
+                        {config.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-sm sm:text-base">{category}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground font-normal line-clamp-1">{config.description}</p>
+                      </div>
+                      <Badge variant="secondary" className="ml-auto mr-2 sm:mr-4 shrink-0 text-xs">
+                        {categoryPrompts.length}
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-2 sm:px-4 pb-3 sm:pb-4">
+                    {/* Mobile card layout */}
+                    <div className="space-y-3 sm:hidden">
+                      {categoryPrompts.map((example) => (
+                        <div 
+                          key={example.id}
+                          className="bg-muted/30 rounded-lg p-3 space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground">#{example.id}</span>
+                              <h4 className="font-medium text-foreground text-sm">{example.useCase}</h4>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopy(example.prompt, example.id)}
+                              aria-label={`Copy prompt: ${example.useCase}`}
+                              className="h-8 w-8 p-0 shrink-0"
+                            >
+                              {copiedId === example.id ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-sm text-foreground/80">{example.prompt}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Desktop table layout */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full text-sm" role="table">
+                        <caption className="sr-only">{category} prompts</caption>
+                        <thead>
+                          <tr className="border-b">
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-8">#</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-48">Use Case</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground">Example Prompt</th>
+                            <th scope="col" className="text-right py-2 font-medium text-muted-foreground w-20">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {categoryPrompts.map((example) => (
+                            <tr 
+                              key={example.id} 
+                              className="border-b last:border-0 hover:bg-muted/50 transition-colors"
+                            >
+                              <td className="py-3 pr-4 text-muted-foreground">{example.id}</td>
+                              <td className="py-3 pr-4 font-medium text-foreground">{example.useCase}</td>
+                              <td className="py-3 pr-4 text-foreground">{example.prompt}</td>
+                              <td className="py-3 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopy(example.prompt, example.id)}
+                                  aria-label={`Copy prompt: ${example.useCase}`}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  {copiedId === example.id ? (
+                                    <Check className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </section>
+
         {/* Healthcare Assistant (HCA) Categories */}
         <section aria-labelledby="hca-categories-heading" className="mb-8 sm:mb-12">
           <h2 id="hca-categories-heading" className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-4">Healthcare Assistant (HCA) Use Cases</h2>
@@ -1531,7 +1911,7 @@ const AI4GPPromptGuide = () => {
             <CardHeader className="pb-3 sm:pb-6">
               <CardTitle id="full-list-heading" className="text-lg sm:text-xl">Complete Prompt Reference</CardTitle>
               <CardDescription className="text-sm">
-                All 210 prompts in a single searchable table for quick reference
+                All 250 prompts in a single searchable table for quick reference
               </CardDescription>
             </CardHeader>
             <CardContent>
