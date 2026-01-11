@@ -242,7 +242,7 @@ export const ActionItemRow = ({
                 {item.assignee_name}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-2" align="start">
+            <PopoverContent className="w-64 p-2" align="start" side="top" collisionPadding={16} avoidCollisions>
               <div className="space-y-1">
                 {/* Custom name input */}
                 <div className="px-1 pb-2">
@@ -355,7 +355,7 @@ export const ActionItemRow = ({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-48 p-2" align="start">
+            <PopoverContent className="w-48 p-2" align="start" side="top" collisionPadding={16} avoidCollisions>
               <div className="space-y-1">
                 {DUE_DATE_OPTIONS.map((option) => (
                   <Button
