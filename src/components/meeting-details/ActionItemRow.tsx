@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Check, Trash2, GripVertical, User, Calendar, Flag, Clock, CalendarDays } from 'lucide-react';
+import { Check, Trash2, GripVertical, User, Calendar, Flag, Clock, CalendarDays, Circle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -197,12 +197,23 @@ export const ActionItemRow = ({
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </div>
 
-      {/* Checkbox */}
-      <Checkbox
-        checked={isCompleted}
-        onCheckedChange={() => onToggleStatus(item.id)}
-        className="mt-0.5"
-      />
+      {/* Complete action button */}
+      <button
+        onClick={() => onToggleStatus(item.id)}
+        className={cn(
+          "mt-0.5 transition-all duration-200 hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full",
+          isCompleted 
+            ? "text-green-600 dark:text-green-500" 
+            : "text-muted-foreground/50 hover:text-green-600 dark:hover:text-green-500"
+        )}
+        title={isCompleted ? "Mark as incomplete" : "Mark as complete"}
+      >
+        {isCompleted ? (
+          <CheckCircle2 className="h-5 w-5 fill-current" />
+        ) : (
+          <Circle className="h-5 w-5" />
+        )}
+      </button>
 
       {/* Content */}
       <div className="flex-1 min-w-0 space-y-2">
