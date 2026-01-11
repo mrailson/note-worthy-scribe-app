@@ -1734,7 +1734,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         timestamp: userMessage.timestamp,
         isStreaming: false,
         responseTime,
-        model: 'Gemini Image',
+        model: imageGenerationModel === 'google/gemini-2.5-flash-image-preview' ? 'Nano Banana' : 
+               imageGenerationModel === 'google/gemini-3-pro-image-preview' ? 'Gemini 3 Pro' : 'Gemini 2.5 Pro',
         generatedImages: [data.image as GeneratedImage]
       };
 
