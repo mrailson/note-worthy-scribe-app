@@ -250,22 +250,27 @@ ${pastedText.trim()}
     
     switch (type) {
       case 'name-only':
-        details = practiceName || '';
+        if (practiceName) {
+          details = `My practice details: ${practiceName}`;
+        }
         break;
       case 'name-email-phone':
-        details = [practiceName, practiceEmail, practicePhone]
-          .filter(Boolean)
-          .join('\n');
+        const contactParts = [practiceName, practiceEmail, practicePhone].filter(Boolean);
+        if (contactParts.length > 0) {
+          details = `Please include my practice contact details: ${contactParts.join(', ')}`;
+        }
         break;
       case 'full-details':
-        details = [practiceName, practicePhone, practiceEmail, practiceAddress]
-          .filter(Boolean)
-          .join('\n');
+        const fullParts = [practiceName, practicePhone, practiceEmail, practiceAddress].filter(Boolean);
+        if (fullParts.length > 0) {
+          details = `Please include my full practice details: ${fullParts.join(', ')}`;
+        }
         break;
       case 'my-details':
-        details = [userFullName, userEmail, userPhone]
-          .filter(Boolean)
-          .join('\n');
+        const myParts = [userFullName, userEmail, userPhone].filter(Boolean);
+        if (myParts.length > 0) {
+          details = `My personal contact details are: ${myParts.join(', ')}`;
+        }
         break;
     }
     
@@ -416,7 +421,7 @@ ${pastedText.trim()}
                   <ClipboardList className="w-4 h-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent side="right" align="start" className="w-56 p-2">
+              <PopoverContent side="right" align="start" className="w-72 p-2">
                 <div className="space-y-1">
                   <p className="text-xs font-medium text-muted-foreground mb-2 px-2">
                     Insert Details
@@ -426,26 +431,35 @@ ${pastedText.trim()}
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full justify-start text-sm h-8"
+                        className="w-full justify-start text-sm h-auto py-2 flex-col items-start"
                         onClick={() => insertPracticeDetails('name-only')}
                       >
-                        Practice Name Only
+                        <span>My Practice Name</span>
+                        <span className="text-xs text-destructive font-normal truncate max-w-full">
+                          {practiceContext.practiceName}
+                        </span>
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full justify-start text-sm h-8"
+                        className="w-full justify-start text-sm h-auto py-2 flex-col items-start"
                         onClick={() => insertPracticeDetails('name-email-phone')}
                       >
-                        Name, Email & Phone
+                        <span>Practice Name, Email & Phone</span>
+                        <span className="text-xs text-destructive font-normal truncate max-w-full">
+                          {[practiceContext.practiceName, practiceContext.practiceEmail, practiceContext.practicePhone].filter(Boolean).join(', ')}
+                        </span>
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full justify-start text-sm h-8"
+                        className="w-full justify-start text-sm h-auto py-2 flex-col items-start"
                         onClick={() => insertPracticeDetails('full-details')}
                       >
-                        Name, Phone, Email & Address
+                        <span>Full Practice Details</span>
+                        <span className="text-xs text-destructive font-normal truncate max-w-full">
+                          {[practiceContext.practiceName, practiceContext.practicePhone, practiceContext.practiceEmail].filter(Boolean).join(', ')}...
+                        </span>
                       </Button>
                     </>
                   )}
@@ -453,10 +467,13 @@ ${pastedText.trim()}
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-full justify-start text-sm h-8"
+                      className="w-full justify-start text-sm h-auto py-2 flex-col items-start"
                       onClick={() => insertPracticeDetails('my-details')}
                     >
-                      My Details
+                      <span>My Personal Details</span>
+                      <span className="text-xs text-destructive font-normal truncate max-w-full">
+                        {[practiceContext.userFullName, practiceContext.userEmail].filter(Boolean).join(', ')}
+                      </span>
                     </Button>
                   )}
                 </div>
