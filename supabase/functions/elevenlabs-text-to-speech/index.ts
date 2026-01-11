@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, language = 'en', voice = 'Sarah' } = await req.json()
+    const { text, language = 'en', voice = 'Sarah', voiceId: directVoiceId } = await req.json()
 
     if (!text) {
       throw new Error('Text is required')
@@ -23,7 +23,7 @@ serve(async (req) => {
       throw new Error('ElevenLabs API key not configured')
     }
 
-    // Voice ID mapping for ElevenLabs voices
+    // Voice ID mapping for ElevenLabs voices (by name)
     const voiceIds: Record<string, string> = {
       'alloy': 'EXAVITQu4vr4xnSDxMaL', // Sarah
       'echo': '9BWtsMINqrJLrRacOk9x',  // Aria  
@@ -34,10 +34,20 @@ serve(async (req) => {
       'Roger': 'CwhRBWXzGAHq8TQ4Fs17',
       'Laura': 'FGY2WhTYpPnrIDTdsKH5',
       'Charlie': 'IKne3meq5aSn9XLyUdCD',
-      'George': 'JBFqnCBsd6RMkjVDRZzb'
+      'George': 'JBFqnCBsd6RMkjVDRZzb',
+      'Alice': 'Xb7hH8MSUJpSbSDYk0k2',
+      'Lily': 'pFZP5JQG7iQjIQuC4Bku',
+      'Matilda': 'XrExE9yKIg1WjnnlVkGX',
+      'Jessica': 'cgSgspJ2msm6clMCkdW9',
+      'Brian': 'nPczCjzI2devNBz1zQrb',
+      'Daniel': 'onwK4e9ZLuTAKqWW03F9',
+      'Will': 'bIHbv24MWmeRgasZH58o',
+      'Chris': 'iP95p4xoKVk53GoZ742B',
+      'Callum': 'N2lVS1w4EtoT3dr4eOWO',
     }
 
-    const voiceId = voiceIds[voice] || voiceIds['alloy']
+    // Use direct voiceId if provided, otherwise look up by name
+    const voiceId = directVoiceId || voiceIds[voice] || voiceIds['Sarah']
 
     // Generate speech using ElevenLabs
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
