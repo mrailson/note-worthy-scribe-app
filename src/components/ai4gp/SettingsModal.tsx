@@ -148,35 +148,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <TabsList className="grid w-full grid-cols-5 h-11 p-1 bg-muted/50 rounded-lg">
               <TabsTrigger 
                 value="display" 
-                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
               >
                 <Monitor className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Display</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="session" 
-                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
               >
                 <Brain className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Session</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="local" 
-                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
               >
                 <MapPin className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Local</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="media" 
-                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
               >
                 <Image className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Media</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="data" 
-                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                className="text-xs sm:text-sm rounded-md data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
               >
                 <Clock className="h-4 w-4 mr-2" />
                 <span className="hidden sm:inline">Data</span>
