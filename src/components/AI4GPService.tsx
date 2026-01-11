@@ -634,7 +634,7 @@ const AI4GPService = () => {
               {showNews && (
                 <div className="flex-1 overflow-y-auto bg-background">
                   <div className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-lg font-semibold">GP News & Local Health News</h2>
+                    <h2 className="text-lg font-semibold">Notewell GP News Portal</h2>
                     <button
                       onClick={() => setShowNews(false)}
                       className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 rounded hover:bg-muted/50"

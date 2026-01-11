@@ -99,24 +99,99 @@ const isNhsPolicyArticle = (article: NewsArticle) => {
   return nhsPolicySources.has(article.source) && !isAlertArticle(article);
 };
 
-// Source definitions with icons and colors
+// Source definitions with icons, colors and brand styling
 type SourceConfig = {
   key: string;
   label: string;
+  abbrev: string;
   icon: React.ReactNode;
-  color: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
   sources: string[];
 };
 
 const sourceConfigs: SourceConfig[] = [
-  { key: 'nhs', label: 'NHS England', icon: <Building2 className="w-4 h-4" />, color: 'text-blue-600', sources: ['NHS England', 'NHS England News'] },
-  { key: 'nice', label: 'NICE', icon: <FileText className="w-4 h-4" />, color: 'text-purple-600', sources: ['NICE Guidance', 'NICE News', 'NICE'] },
-  { key: 'mhra', label: 'MHRA', icon: <ShieldAlert className="w-4 h-4" />, color: 'text-amber-600', sources: ['MHRA Alerts', 'MHRA'] },
-  { key: 'dhsc', label: 'DHSC', icon: <Stethoscope className="w-4 h-4" />, color: 'text-green-600', sources: ['DHSC'] },
-  { key: 'bbc', label: 'BBC', icon: <Globe className="w-4 h-4" />, color: 'text-red-600', sources: ['BBC Health', 'BBC Northamptonshire'] },
-  { key: 'pulse', label: 'Pulse Today', icon: <Heart className="w-4 h-4" />, color: 'text-pink-600', sources: ['Pulse Today'] },
-  { key: 'guardian', label: 'Guardian', icon: <Newspaper className="w-4 h-4" />, color: 'text-slate-600', sources: ['The Guardian Health'] },
-  { key: 'local', label: 'Local News', icon: <MapPin className="w-4 h-4" />, color: 'text-teal-600', sources: ['Northants Live'] },
+  { 
+    key: 'nhs', 
+    label: 'NHS England', 
+    abbrev: 'NHS',
+    icon: <Building2 className="w-4 h-4" />, 
+    bgColor: 'bg-blue-600',
+    textColor: 'text-white',
+    borderColor: 'border-blue-600',
+    sources: ['NHS England', 'NHS England News'] 
+  },
+  { 
+    key: 'nice', 
+    label: 'NICE Guidance', 
+    abbrev: 'NICE',
+    icon: <FileText className="w-4 h-4" />, 
+    bgColor: 'bg-purple-600',
+    textColor: 'text-white',
+    borderColor: 'border-purple-600',
+    sources: ['NICE Guidance', 'NICE News', 'NICE'] 
+  },
+  { 
+    key: 'mhra', 
+    label: 'MHRA Alerts', 
+    abbrev: 'MHRA',
+    icon: <ShieldAlert className="w-4 h-4" />, 
+    bgColor: 'bg-amber-500',
+    textColor: 'text-white',
+    borderColor: 'border-amber-500',
+    sources: ['MHRA Alerts', 'MHRA'] 
+  },
+  { 
+    key: 'dhsc', 
+    label: 'DHSC', 
+    abbrev: 'DHSC',
+    icon: <Stethoscope className="w-4 h-4" />, 
+    bgColor: 'bg-green-600',
+    textColor: 'text-white',
+    borderColor: 'border-green-600',
+    sources: ['DHSC'] 
+  },
+  { 
+    key: 'bbc', 
+    label: 'BBC Health', 
+    abbrev: 'BBC',
+    icon: <Globe className="w-4 h-4" />, 
+    bgColor: 'bg-red-600',
+    textColor: 'text-white',
+    borderColor: 'border-red-600',
+    sources: ['BBC Health', 'BBC Northamptonshire'] 
+  },
+  { 
+    key: 'pulse', 
+    label: 'Pulse Today', 
+    abbrev: 'Pulse',
+    icon: <Heart className="w-4 h-4" />, 
+    bgColor: 'bg-pink-600',
+    textColor: 'text-white',
+    borderColor: 'border-pink-600',
+    sources: ['Pulse Today'] 
+  },
+  { 
+    key: 'guardian', 
+    label: 'The Guardian', 
+    abbrev: 'Guardian',
+    icon: <Newspaper className="w-4 h-4" />, 
+    bgColor: 'bg-slate-800',
+    textColor: 'text-white',
+    borderColor: 'border-slate-800',
+    sources: ['The Guardian Health'] 
+  },
+  { 
+    key: 'local', 
+    label: 'Local Northants', 
+    abbrev: 'Local',
+    icon: <MapPin className="w-4 h-4" />, 
+    bgColor: 'bg-teal-600',
+    textColor: 'text-white',
+    borderColor: 'border-teal-600',
+    sources: ['Northants Live'] 
+  },
 ];
 
 const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFiltersInHeader?: boolean; cleanView?: boolean }) => {
@@ -640,9 +715,10 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
     }));
 
     return (
-      <div className="p-4 bg-muted/30 rounded-lg mb-4 space-y-3">
+      <div className="p-4 bg-muted/30 rounded-lg mb-4 space-y-4">
+        {/* Header with controls */}
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">News Sources</span>
+          <span className="text-sm font-semibold">Filter News Sources</span>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Images only</span>
@@ -654,63 +730,88 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
             </div>
             <div className="flex gap-1">
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 size="sm" 
-                className="text-xs h-6 px-2"
+                className="text-xs h-7 px-3 font-medium"
                 onClick={() => toggleAllSources(true)}
               >
-                All
+                All On
               </Button>
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 size="sm" 
-                className="text-xs h-6 px-2"
+                className="text-xs h-7 px-3 font-medium"
                 onClick={() => toggleAllSources(false)}
               >
-                None
+                All Off
               </Button>
             </div>
           </div>
         </div>
         
+        {/* Source Toggle Buttons - Brand styled */}
         <TooltipProvider>
-          <div className="flex flex-wrap gap-2">
-            {sourceCounts.map(config => (
-              <Tooltip key={config.key}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={enabledSources.has(config.key) ? 'default' : 'outline'}
-                    size="sm"
-                    className={`gap-1.5 transition-all ${
-                      enabledSources.has(config.key) 
-                        ? '' 
-                        : 'opacity-50 grayscale'
-                    }`}
-                    onClick={() => toggleSource(config.key)}
-                  >
-                    <span className={enabledSources.has(config.key) ? config.color : 'text-muted-foreground'}>
-                      {config.icon}
-                    </span>
-                    <span className="hidden sm:inline">{config.label}</span>
-                    {config.count > 0 && (
-                      <Badge 
-                        variant={enabledSources.has(config.key) ? 'secondary' : 'outline'} 
-                        className="text-xs ml-1"
-                      >
-                        {config.count}
-                      </Badge>
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{config.label}: {config.count} articles</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+            {sourceCounts.map(config => {
+              const isEnabled = enabledSources.has(config.key);
+              return (
+                <Tooltip key={config.key}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => toggleSource(config.key)}
+                      className={`
+                        relative flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 transition-all duration-200
+                        ${isEnabled 
+                          ? `${config.bgColor} ${config.textColor} ${config.borderColor} shadow-md hover:opacity-90` 
+                          : 'bg-muted/50 text-muted-foreground border-dashed border-muted-foreground/30 opacity-50 hover:opacity-70'
+                        }
+                      `}
+                    >
+                      {/* Icon */}
+                      <div className={`${isEnabled ? '' : 'grayscale'}`}>
+                        {config.icon}
+                      </div>
+                      
+                      {/* Abbreviation */}
+                      <span className={`text-xs font-bold ${isEnabled ? '' : 'line-through'}`}>
+                        {config.abbrev}
+                      </span>
+                      
+                      {/* Count badge */}
+                      {config.count > 0 && (
+                        <Badge 
+                          variant={isEnabled ? 'secondary' : 'outline'}
+                          className={`
+                            absolute -top-2 -right-2 text-[10px] px-1.5 min-w-[20px] h-5
+                            ${isEnabled ? 'bg-white text-slate-900 shadow-sm' : ''}
+                          `}
+                        >
+                          {config.count}
+                        </Badge>
+                      )}
+                      
+                      {/* Disabled overlay strike */}
+                      {!isEnabled && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <div className="w-full h-0.5 bg-muted-foreground/30 rotate-45" />
+                        </div>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p className="font-medium">{config.label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {config.count} article{config.count !== 1 ? 's' : ''} • Click to {isEnabled ? 'hide' : 'show'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
           </div>
         </TooltipProvider>
         
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+        {/* Footer with stats */}
+        <div className="flex items-center justify-between pt-3 border-t border-border/50">
           <div className="flex flex-wrap gap-2">
             <ToggleGroup type="multiple" value={[
               ...(pulseEnabled ? ['pulse'] : [])
@@ -719,7 +820,7 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
             }} className="justify-start">
               <ToggleGroupItem
                 value="pulse"
-                className="text-xs gap-1"
+                className="text-xs gap-1 h-8"
               >
                 {pulseEnabled ? <Radio className="w-3 h-3 animate-pulse" /> : <Activity className="w-3 h-3" />}
                 Auto-Refresh
@@ -728,7 +829,7 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
           </div>
           
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs font-medium">
               {prioritizedArticles.length} articles
             </Badge>
             {pulseEnabled && (
