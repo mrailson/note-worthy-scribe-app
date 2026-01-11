@@ -116,7 +116,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        syncedCount: actionItems?.length || 0 
+        syncedCount: actionItems?.length || 0,
+        updatedSummary: updatedSummary,
+        meetingUpdated: !meetingUpdateError
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

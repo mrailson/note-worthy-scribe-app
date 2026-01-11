@@ -490,10 +490,23 @@ export const useActionItems = (meetingId: string) => {
     try {
       setIsSyncing(true);
       // Call edge function to sync action items to meeting notes
-      await supabase.functions.invoke('sync-meeting-action-items', {
+      const { data, error } = await supabase.functions.invoke('sync-meeting-action-items', {
         body: { meetingId },
       });
+      
+      if (error) throw error;
+      
       setLastSyncedAt(new Date());
+      
+      // Dispatch custom event to notify Notes modal to refresh immediately
+      // This ensures deterministic UI update without relying on realtime
+      window.dispatchEvent(new CustomEvent('meeting-notes-updated', { 
+        detail: { 
+          meetingId, 
+          notesStyle3: data?.updatedSummary || null 
+        } 
+      }));
+      
       if (showToast) {
         toast({
           title: 'Synced to notes',

@@ -317,11 +317,30 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
   // State to allow user override of long meeting plain text view
   const [forceFancyView, setForceFancyView] = useState(false);
+  
+  // Notes view mode: default to 'plain' for large notes to avoid main-thread freezing
+  // User can toggle to 'formatted' for full rendering
+  const [notesViewMode, setNotesViewMode] = useState<'plain' | 'formatted'>('plain');
 
   // Reset override when meeting changes
   useEffect(() => {
     setForceFancyView(false);
+    // Auto-select view mode based on content size:
+    // Default to plain for notes > 10KB to avoid freezing
+    const notesLength = notesStyle3?.length || 0;
+    setNotesViewMode(notesLength > 10000 ? 'plain' : 'formatted');
   }, [meeting?.id]);
+  
+  // Update view mode when notesStyle3 changes significantly
+  useEffect(() => {
+    if (!notesStyle3) return;
+    const len = notesStyle3.length;
+    // If notes are very large and we're on formatted, switch to plain
+    if (len > 15000 && notesViewMode === 'formatted') {
+      console.log('📝 Large notes detected, switching to plain view for responsiveness');
+      setNotesViewMode('plain');
+    }
+  }, [notesStyle3]);
 
   // Determine if this is a long meeting (75+ minutes) to skip expensive rendering
   const isLongMeetingRaw = React.useMemo(() => {
@@ -608,126 +627,134 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
              
              console.log('✅ Transcript fetched for meeting', currentMeetingId, ':', transcriptData.length, 'segments');
             
-            // Calculate size early to detect large transcripts
-            const rawSize = JSON.stringify(transcriptData).length;
-            console.log('📊 Transcript size:', (rawSize / 1024).toFixed(2), 'KB');
-            setTranscriptSize(rawSize);
+           // Calculate size using cheaper method (sum of segment lengths instead of JSON.stringify)
+             const rawSize = transcriptData.reduce((acc: number, seg: any) => acc + (seg.transcript?.length || 0), 0);
+             console.log('📊 Transcript size (estimated):', (rawSize / 1024).toFixed(2), 'KB');
+             setTranscriptSize(rawSize);
+             
+             // If transcript is very large (>30KB), set flag for pagination
+             if (rawSize > 30000) {
+               console.warn('⚠️ Large transcript detected, will use pagination');
+               setIsLargeTranscript(true);
+             } else {
+               setIsLargeTranscript(false);
+             }
             
-            // If transcript is very large (>30KB), set flag for pagination
-            if (rawSize > 30000) {
-              console.warn('⚠️ Large transcript detected, will use pagination');
-              setIsLargeTranscript(true);
-            } else {
-              setIsLargeTranscript(false);
-            }
+             // Combine segments immediately for fast display
+             const allSegments = transcriptData
+               .map((segment: any) => segment.transcript)
+               .join(' ');
+             
+             // Set raw transcript immediately so UI is responsive
+             if (meeting?.id === currentMeetingId) {
+               setTranscript(allSegments);
+               setTranscriptLoaded(true);
+               setIsLoadingTranscript(false);
+             }
+             
+             // Defer heavy processing to idle callback for better responsiveness
+             requestIdleCallback(async () => {
+               try {
+                 const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
+                 
+                 console.log('📝 Raw transcript preview:', allSegments.substring(0, 200));
+                 
+                 // Normalise the combined transcript
+                 const normalised = normaliseTranscript(allSegments);
+                 console.log(`📝 Transcript normalised using ${normalised.used} approach`);
+                 
+                 // Add natural paragraph breaks to plain text for better readability
+                 const formatWithParagraphs = (text: string): string => {
+                   const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
+                   const paragraphs: string[] = [];
+                   let currentParagraph: string[] = [];
+                   
+                   sentences.forEach((sentence, idx) => {
+                     currentParagraph.push(sentence);
+                     const shouldBreak = 
+                       currentParagraph.length >= 4 || 
+                       (currentParagraph.length >= 2 && (
+                         sentence.includes('?') || 
+                         sentence.length > 200 ||
+                         idx === sentences.length - 1
+                       ));
+                     
+                     if (shouldBreak) {
+                       paragraphs.push(currentParagraph.join(' '));
+                       currentParagraph = [];
+                     }
+                   });
+                   
+                   if (currentParagraph.length > 0) {
+                     paragraphs.push(currentParagraph.join(' '));
+                   }
+                   
+                   return paragraphs.join('\n\n');
+                 };
+                 
+                 const formattedPlain = formatWithParagraphs(normalised.plain);
             
-            // Import normaliser
-            const { normaliseTranscript } = await import('@/lib/transcriptNormaliser');
-            
-            // Combine and normalise each segment first to avoid concatenation issues
-            const allSegments = transcriptData
-              .map(segment => segment.transcript)
-              .join(' '); // This will join multiple JSON arrays if present
-            
-            console.log('📝 Raw transcript preview:', allSegments.substring(0, 200));
-            
-            // Normalise the combined transcript
-            const normalised = normaliseTranscript(allSegments);
-            console.log(`📝 Transcript normalised using ${normalised.used} approach`);
-            console.log('📝 Normalised preview:', normalised.plain.substring(0, 200));
-            
-            // Add natural paragraph breaks to plain text for better readability
-            const formatWithParagraphs = (text: string): string => {
-              // Split on sentence endings followed by capital letters (new sentence)
-              const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
-              const paragraphs: string[] = [];
-              let currentParagraph: string[] = [];
-              
-              sentences.forEach((sentence, idx) => {
-                currentParagraph.push(sentence);
-                
-                // Create paragraph break every 3-5 sentences or at natural breaks
-                const shouldBreak = 
-                  currentParagraph.length >= 4 || 
-                  (currentParagraph.length >= 2 && (
-                    sentence.includes('?') || 
-                    sentence.length > 200 ||
-                    idx === sentences.length - 1
-                  ));
-                
-                if (shouldBreak) {
-                  paragraphs.push(currentParagraph.join(' '));
-                  currentParagraph = [];
-                }
-              });
-              
-              // Add any remaining sentences
-              if (currentParagraph.length > 0) {
-                paragraphs.push(currentParagraph.join(' '));
-              }
-              
-              return paragraphs.join('\n\n');
-            };
-            
-            // Apply paragraph formatting to plain text
-            const formattedPlain = formatWithParagraphs(normalised.plain);
-            
-            // Final validation before setting state
-            if (meeting?.id === currentMeetingId) {
-              // Build context prefix from saved meeting_context if available and not already present
-              const contextData = (manualData as any)?.meeting_context as any;
-              let contextPrefix = '';
-              try {
-                if (contextData && !/=== MEETING CONTEXT ===/i.test(normalised.plain)) {
-                  const ctxParts: string[] = ['=== MEETING CONTEXT ==='];
-                  if (contextData.attendees) ctxParts.push(`ATTENDEES:\n${contextData.attendees}`);
-                  if (contextData.agenda) ctxParts.push(`AGENDA:\n${contextData.agenda}`);
-                  if (contextData.additional_notes) ctxParts.push(`NOTES:\n${contextData.additional_notes}`);
-                  if (Array.isArray(contextData.uploaded_files) && contextData.uploaded_files.length) {
-                    ctxParts.push('UPLOADED DOCUMENTS:');
-                    contextData.uploaded_files.forEach((f: any, i: number) => {
-                      if (f?.content) ctxParts.push(`- Document ${i + 1}:\n${f.content}`);
-                    });
-                  }
-                  ctxParts.push('=== TRANSCRIPT ===');
-                  contextPrefix = ctxParts.join('\n\n') + '\n\n';
-                  console.log('ℹ️ Prepending meeting context to transcript display');
-                }
-              } catch (e) {
-                console.warn('⚠️ Failed to build meeting context prefix:', e);
-              }
+                 // Final validation before setting enhanced state
+                 if (meeting?.id === currentMeetingId) {
+                   const contextData = (manualData as any)?.meeting_context as any;
+                   let contextPrefix = '';
+                   try {
+                     if (contextData && !/=== MEETING CONTEXT ===/i.test(normalised.plain)) {
+                       const ctxParts: string[] = ['=== MEETING CONTEXT ==='];
+                       if (contextData.attendees) ctxParts.push(`ATTENDEES:\n${contextData.attendees}`);
+                       if (contextData.agenda) ctxParts.push(`AGENDA:\n${contextData.agenda}`);
+                       if (contextData.additional_notes) ctxParts.push(`NOTES:\n${contextData.additional_notes}`);
+                       if (Array.isArray(contextData.uploaded_files) && contextData.uploaded_files.length) {
+                         ctxParts.push('UPLOADED DOCUMENTS:');
+                         contextData.uploaded_files.forEach((f: any, i: number) => {
+                           if (f?.content) ctxParts.push(`- Document ${i + 1}:\n${f.content}`);
+                         });
+                       }
+                       ctxParts.push('=== TRANSCRIPT ===');
+                       contextPrefix = ctxParts.join('\n\n') + '\n\n';
+                       console.log('ℹ️ Prepending meeting context to transcript display');
+                     }
+                   } catch (e) {
+                     console.warn('⚠️ Failed to build meeting context prefix:', e);
+                   }
 
-              // Use plain text with paragraph formatting for better readability
-              const preferPlain = isLargeTranscript || rawSize > 30000;
-              const preferred = preferPlain ? formattedPlain : normalised.html;
-              const finalTranscript = contextPrefix
-                ? (preferPlain ? contextPrefix + formattedPlain : contextPrefix + normalised.html)
-                : preferred;
-              setTranscript(finalTranscript);
-              return finalTranscript;
-            } else {
-              console.warn('⚠️ Meeting changed during transcript processing, discarding results');
-              return '';
-            }
+                   const preferPlain = isLargeTranscript || rawSize > 30000;
+                   const preferred = preferPlain ? formattedPlain : normalised.html;
+                   const finalTranscript = contextPrefix
+                     ? (preferPlain ? contextPrefix + formattedPlain : contextPrefix + normalised.html)
+                     : preferred;
+                   
+                   // Update with enhanced formatted version
+                   setTranscript(finalTranscript);
+                   console.log('✅ Transcript enhanced with formatting');
+                 }
+               } catch (e) {
+                 console.warn('⚠️ Deferred transcript formatting failed:', e);
+               }
+             }, { timeout: 2000 });
+             
+             return allSegments;
           } else {
-            console.log('📝 No transcript data found for meeting:', currentMeetingId);
-            setTranscript('');
-            setTranscriptSize(0);
-            setIsLargeTranscript(false);
-            return '';
-          }
-        
-     } catch (error) {
-       console.error('Error fetching transcript data for meeting', currentMeetingId, ':', error);
-       return '';
-      } finally {
-        // Only update loading state if we're still on the same meeting
-        if (meeting?.id === currentMeetingId) {
-          setIsLoadingTranscript(false);
-          setTranscriptLoaded(true); // Mark transcript as loaded
-        }
-      }
-   };
+             console.log('📝 No transcript data found for meeting:', currentMeetingId);
+             setTranscript('');
+             setTranscriptSize(0);
+             setIsLargeTranscript(false);
+             setTranscriptLoaded(true);
+             setIsLoadingTranscript(false);
+             return '';
+           }
+         
+      } catch (error) {
+        console.error('Error fetching transcript data for meeting', currentMeetingId, ':', error);
+        return '';
+       } finally {
+         // Only update loading state if we're still on the same meeting
+         if (meeting?.id === currentMeetingId) {
+           setIsLoadingTranscript(false);
+           setTranscriptLoaded(true);
+         }
+       }
+    };
 
    const loadExistingNoteStyles = async () => {
      if (!meeting?.id) {
@@ -901,10 +928,45 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     };
   }, [isOpen, meeting?.id]);
 
+  // Listen for custom 'meeting-notes-updated' event from Action Items sync
+  // This provides deterministic UI refresh without relying on realtime
+  useEffect(() => {
+    if (!isOpen || !meeting?.id) return;
+
+    const handleNotesUpdated = (event: CustomEvent<{ meetingId: string; notesStyle3?: string | null }>) => {
+      if (event.detail.meetingId === meeting.id) {
+        console.log('📝 Received meeting-notes-updated event, refreshing notes');
+        if (event.detail.notesStyle3) {
+          setNotesStyle3(event.detail.notesStyle3);
+          setMinutesHtml(''); // Clear cached HTML to force re-render
+        } else {
+          // Refetch from DB if no content in event
+          supabase
+            .from('meetings')
+            .select('notes_style_3')
+            .eq('id', meeting.id)
+            .single()
+            .then(({ data }) => {
+              if (data?.notes_style_3) {
+                setNotesStyle3(data.notes_style_3);
+                setMinutesHtml('');
+              }
+            });
+        }
+      }
+    };
+
+    window.addEventListener('meeting-notes-updated', handleNotesUpdated as EventListener);
+
+    return () => {
+      window.removeEventListener('meeting-notes-updated', handleNotesUpdated as EventListener);
+    };
+  }, [isOpen, meeting?.id]);
+
   // Load existing SOAP notes from database
   const loadExistingSoapNotes = async () => {
     if (!meeting?.id || !user?.id) return;
-
+    
     const currentMeetingId = meeting.id;
     console.log('🩺 Loading existing SOAP notes for meeting:', currentMeetingId);
 
@@ -3644,42 +3706,50 @@ ${transcriptToUse}`;
                                 </div>
                                 ) : (
                                    <div className="space-y-4 relative min-h-[500px]">
-                                      {/* Animated loading overlay */}
-                                      {isGeneratingStyle3 && (
-                                        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
-                                          <div className="flex flex-col items-center gap-4 animate-scale-in">
-                                            <div className="relative">
-                                              <RefreshCw className="h-12 w-12 text-primary animate-spin" />
-                                              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                                            </div>
-                                            <div className="text-center space-y-2">
-                                              <p className="text-lg font-semibold">Regenerating Notes</p>
-                                              <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
-                                            </div>
-                                          </div>
-                                        </div>
-                                       )}
+                                       {/* Non-blocking inline banner for regeneration (replaces fixed full-screen overlay) */}
+                                       {isGeneratingStyle3 && (
+                                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 flex items-center gap-3 animate-fade-in">
+                                           <RefreshCw className="h-5 w-5 text-blue-600 animate-spin flex-shrink-0" />
+                                           <div className="flex-1">
+                                             <p className="text-sm font-medium text-blue-900">Regenerating Notes</p>
+                                             <p className="text-xs text-blue-700">Creating your updated meeting minutes...</p>
+                                           </div>
+                                         </div>
+                                        )}
                                        
-                                      {isLongMeeting ? (
-                                        /* Long meeting: Show basic/plain view without heavy formatting */
-                                        <div className="flex flex-col h-full space-y-2">
-                                          <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-                                            This meeting is over 60 minutes long. Showing basic text notes to keep things responsive.{' '}
-                                            <button 
-                                              onClick={() => setForceFancyView(true)}
-                                              className="underline hover:text-amber-900 font-medium"
-                                            >
-                                              Switch to formatted view
-                                            </button>
-                                          </div>
+                                      {/* Plain text mode OR long meetings - always responsive */}
+                                      {(notesViewMode === 'plain' || isLongMeeting) && !forceFancyView ? (
+                                         <div className="flex flex-col h-full space-y-2">
+                                           <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded px-3 py-2 flex items-center justify-between">
+                                             <span>
+                                               {isLongMeeting 
+                                                 ? 'Long meeting detected. Showing plain text for responsiveness.' 
+                                                 : 'Showing plain text view for faster loading.'}
+                                             </span>
+                                             <button 
+                                               onClick={() => {
+                                                 if (isLongMeeting) {
+                                                   setForceFancyView(true);
+                                                 } else {
+                                                   setNotesViewMode('formatted');
+                                                 }
+                                               }}
+                                               className="underline hover:text-slate-900 font-medium ml-2"
+                                             >
+                                               Switch to formatted view
+                                             </button>
+                                           </div>
 
-                                          <ScrollArea className="flex-1 rounded border bg-white p-4">
-                                            <pre className="whitespace-pre-wrap text-sm font-nhs text-slate-900 leading-relaxed">
-                                              {plainTextPreview || notesStyle3 || "No standard notes are available for this meeting."}
-                                            </pre>
-                                          </ScrollArea>
-                                        </div>
-                                      ) : forceFancyView && isLongMeetingRaw ? (
+                                           <ScrollArea className="flex-1 rounded border bg-white p-4">
+                                             <pre 
+                                               className="whitespace-pre-wrap font-nhs text-slate-900 leading-relaxed"
+                                               style={{ fontSize: `${fontSizeStyle1}px`, lineHeight: `${fontSizeStyle1 * 1.6}px` }}
+                                             >
+                                               {plainTextPreview || notesStyle3 || "No standard notes are available for this meeting."}
+                                             </pre>
+                                           </ScrollArea>
+                                         </div>
+                                       ) : forceFancyView && isLongMeetingRaw ? (
                                         /* Long meeting with user override: Use worker-based formatting */
                                         <div className="flex flex-col h-full space-y-2">
                                           {isWorkerFormatting ? (
@@ -3768,10 +3838,19 @@ ${transcriptToUse}`;
                                             </ScrollArea>
                                           )}
                                         </div>
-                                      ) : (
-                                        /* Short meeting: Use existing formatted view */
-                                        <>
-                                          {isLoadingVariation ? (
+                                      ) : notesViewMode === 'formatted' ? (
+                                         /* Formatted view for shorter meetings */
+                                         <div className="flex flex-col h-full space-y-2">
+                                           <div className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded px-3 py-2 flex items-center justify-between">
+                                             <span>Formatted view</span>
+                                             <button 
+                                               onClick={() => setNotesViewMode('plain')}
+                                               className="underline hover:text-slate-900 font-medium ml-2"
+                                             >
+                                               Switch to plain text
+                                             </button>
+                                           </div>
+                                           {isLoadingVariation ? (
                                             <div className="flex items-center justify-center h-32">
                                               <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                                             </div>
@@ -3831,9 +3910,19 @@ ${transcriptToUse}`;
                                              </div>
                                             </>
                                           )}
-                                        </>
-                                      )}
-                                  </div>
+                                         </div>
+                                       ) : (
+                                         /* Fallback: plain text */
+                                         <ScrollArea className="flex-1 rounded border bg-white p-4">
+                                           <pre 
+                                             className="whitespace-pre-wrap font-nhs text-slate-900 leading-relaxed"
+                                             style={{ fontSize: `${fontSizeStyle1}px`, lineHeight: `${fontSizeStyle1 * 1.6}px` }}
+                                           >
+                                             {plainTextPreview || notesStyle3 || "No standard notes are available for this meeting."}
+                                           </pre>
+                                         </ScrollArea>
+                                       )}
+                                   </div>
                                 )}
                             </div>
                           )}

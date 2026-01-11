@@ -29,7 +29,7 @@ export const TranscriptTabContent: React.FC<TranscriptTabContentProps> = ({
   onTranscriptChange,
   onShowContextDialog,
 }) => {
-  console.log('📝 TranscriptTabContent render - isLargeTranscript:', isLargeTranscript, 'transcriptLength:', transcript?.length);
+  // Removed console.log to reduce render overhead
   
   return (
     <div className="flex-1 overflow-hidden mt-0 bg-white h-full">
