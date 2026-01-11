@@ -168,13 +168,6 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
   return (
     <div className="p-3 sm:p-4">
       <div className="space-y-3">
-        {/* Context Banner - shown after prompt insertion */}
-        {showBanner && activeView.type === 'main' && (
-          <div className="max-w-2xl mx-auto">
-            <ContextBanner onDismiss={() => setShowBanner(false)} />
-          </div>
-        )}
-
         {activeView.type === 'main' ? (
           <>
             <TooltipProvider delayDuration={200}>
@@ -210,6 +203,13 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
+
+            {/* Context Banner - positioned below buttons, above input */}
+            {showBanner && (
+              <div className="w-full max-w-3xl mx-auto pt-4">
+                <ContextBanner onDismiss={() => setShowBanner(false)} />
+              </div>
+            )}
           </>
         ) : activeView.type === 'subcategories' ? (
           <div className="space-y-3 max-w-2xl mx-auto">
