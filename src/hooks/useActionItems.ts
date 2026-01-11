@@ -170,8 +170,11 @@ export const useActionItems = (meetingId: string) => {
     const seenTexts = new Set<string>();
     const extractedItems: Array<{ text: string; assignee: string; dueDate: string; priority: 'High' | 'Medium' | 'Low' }> = [];
 
-    // Method 1: Parse markdown TABLE format (| Action | Responsible Party | Deadline | Priority |)
-    const tableMatch = notes.match(/# ACTION ITEMS\s*\n\|[^\n]+\|\s*\n\|[-|\s]+\|\s*\n([\s\S]*?)(?=\n#|\n\n#|$)/i);
+    // Method 1: Parse markdown TABLE format under an "Action Items" heading
+    // Supports headings like "# ACTION ITEMS", "## Action Items", etc.
+    const tableMatch = notes.match(
+      /#{1,3}\s*(?:ACTION\s+ITEMS|Action\s+Items)\s*\n\|[^\n]+\|\s*\n\|[-|\s:]+\|\s*\n([\s\S]*?)(?=\n#{1,3}\s+|\n\n#{1,3}\s+|$)/i
+    );
     if (tableMatch && tableMatch[1]) {
       const tableRows = tableMatch[1].split('\n').filter(line => line.trim().startsWith('|'));
       
@@ -184,7 +187,7 @@ export const useActionItems = (meetingId: string) => {
           // Skip if action text is too short or is a header
           if (actionText.length < 10 || actionText.match(/^Action$/i)) continue;
           
-          // Normalize and dedupe
+          // Normalise and dedupe
           const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
           if (seenTexts.has(normalizedText)) continue;
           seenTexts.add(normalizedText);
