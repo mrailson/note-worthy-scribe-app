@@ -98,6 +98,7 @@ import QuickRecord from "./pages/QuickRecord";
 import GPTranslationService from "./pages/GPTranslationService";
 import AuthConfirm from "./pages/AuthConfirm";
 import Scribe from "./pages/Scribe";
+import AI4GPPromptGuide from "./pages/AI4GPPromptGuide";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 
 const App = () => {
@@ -293,6 +294,7 @@ const App = () => {
               <Route path="/bp-calculator" element={<BPCalculator />} />
               <Route path="/public/bp-calculator" element={<PublicBPCalculator />} />
               <Route path="/scribe" element={<Scribe />} />
+              <Route path="/ai4gp-prompts" element={<AI4GPPromptGuide />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
