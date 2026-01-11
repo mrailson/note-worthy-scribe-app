@@ -4812,10 +4812,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     setEditingTitle("");
   };
 
-  // Handle viewing meeting summary
+  // Handle viewing meeting summary - OPTIMISED: Open modal immediately, load data in background
   const handleViewMeetingSummary = async (meetingId: string) => {
     console.log('🔍 handleViewMeetingSummary called with meetingId:', meetingId);
-    console.log('🔍 Current fullPageModalOpen state:', fullPageModalOpen);
     
     // Block operation during recording to prevent interference
     if (!isResourceOperationSafe()) {
@@ -4823,40 +4822,48 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       return;
     }
     
+    // OPTIMISATION: Open modal IMMEDIATELY with minimal data to show loading state
+    // This prevents the 40-second wait before modal appears
+    setModalMeeting({ 
+      id: meetingId, 
+      title: 'Loading...', 
+      start_time: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      _isLoading: true 
+    });
+    setModalNotes('');
+    setFullPageModalOpen(true);
+    console.log('📝 Modal opened immediately with loading state');
+    
     try {
-      // Fetch meeting details
-      const { data: meeting, error: meetingError } = await supabase
-        .from('meetings')
-        .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup')
-        .eq('id', meetingId)
-        .eq('user_id', user?.id)
-        .single();
+      // Fetch meeting details and summary in PARALLEL with minimal columns
+      const [meetingResult, summaryResult] = await Promise.all([
+        supabase
+          .from('meetings')
+          .select('id, title, start_time, end_time, created_at, duration_minutes, notes_style_2, notes_style_3, notes_style_4, notes_style_5')
+          .eq('id', meetingId)
+          .eq('user_id', user?.id)
+          .single(),
+        supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meetingId)
+          .maybeSingle()
+      ]);
 
-      if (meetingError) throw meetingError;
-      console.log('🔍 Meeting data fetched:', meeting);
-
-      // Fetch existing summary if available
-      const { data: summaryData, error: summaryError } = await supabase
-        .from('meeting_summaries')
-        .select('*')
-        .eq('meeting_id', meetingId)
-        .maybeSingle();
+      if (meetingResult.error) throw meetingResult.error;
       
-      console.log('🔍 Summary data fetched:', summaryData?.summary ? 'Summary exists' : 'No summary');
+      console.log('🔍 Meeting data fetched:', meetingResult.data?.title);
+      console.log('🔍 Summary data fetched:', summaryResult.data?.summary ? 'Summary exists' : 'No summary');
       
-      // Set all modal states together
-      setModalMeeting(meeting);
-      setModalNotes(summaryData?.summary || '');
-      
-      // Use setTimeout to ensure state updates are applied before opening modal
-      setTimeout(() => {
-        console.log('📝 Opening modal with meeting:', meeting?.title);
-        setFullPageModalOpen(true);
-      }, 100);
+      // Update modal with actual data
+      setModalMeeting(meetingResult.data);
+      setModalNotes(summaryResult.data?.summary || '');
       
     } catch (error: any) {
       console.error("❌ Error Loading Meeting:", error.message);
       showToast.error("Failed to load meeting notes", { section: 'meeting_manager' });
+      setFullPageModalOpen(false);
     }
   };
 
