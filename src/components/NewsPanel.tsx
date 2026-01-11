@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw, Activity, Radio } from "lucide-react";
+import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw, Activity, Radio, AlertTriangle, Building2, Globe, Newspaper, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface NewsArticle {
   id: string;
@@ -26,6 +27,8 @@ interface NewsArticle {
   created_at: string;
   image_url?: string;
 }
+
+type NewsCategory = 'all' | 'nhs-policy' | 'local' | 'alerts';
 
 // Decode common HTML entities and numeric codes
 const decodeEntities = (input: string) => {
@@ -79,11 +82,28 @@ const isHealthRelatedByUrl = (a: NewsArticle) => {
   return healthKeywords.some(k => u.includes(k)) || u.includes('/health');
 };
 
+// Category definitions for filtering
+const nhsPolicySources = new Set([
+  'NHS England', 'NHS England News', 'DHSC', 'NICE Guidance', 'NICE News', 'NICE', 
+  'Pulse Today', 'BBC Health', 'The Guardian Health'
+]);
+const alertSources = new Set(['MHRA Alerts', 'MHRA']);
+
+const isAlertArticle = (article: NewsArticle) => {
+  return alertSources.has(article.source) || article.tags.includes('ALERT');
+};
+
+const isNhsPolicyArticle = (article: NewsArticle) => {
+  return nhsPolicySources.has(article.source) && !isAlertArticle(article);
+};
+
 const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFiltersInHeader?: boolean; cleanView?: boolean }) => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [activeCategory, setActiveCategory] = useState<NewsCategory>('all');
   
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [fullContent, setFullContent] = useState<string>('');
@@ -115,7 +135,7 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
         .from('news_articles')
         .select('*')
         .order('published_at', { ascending: false })
-        .limit(40);
+        .limit(60);
 
       console.log('Fetch result:', { data, error });
 
@@ -128,6 +148,7 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
         summary: decodeEntities(a.summary),
         content: decodeEntities(a.content),
       })));
+      setLastUpdated(new Date());
 
     } catch (error) {
       console.error('Error fetching news:', error);
@@ -143,6 +164,7 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
       setLoading(true);
       const { error } = await supabase.functions.invoke('fetch-gp-news', { body: {} });
       if (error) throw error;
+      setLastUpdated(new Date());
       toast.success('Latest news loaded');
     } catch (error) {
       console.error('Error refreshing news:', error);
@@ -237,15 +259,22 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
     ));
   };
 
-  // Filter articles based on selected filters and toggles
+  // Filter articles based on selected filters, toggles, and category
   const filteredArticles = articles.filter(article => {
     const isLocal = isLocalArticle(article);
+    const isAlert = isAlertArticle(article);
+    const isNhsPolicy = isNhsPolicyArticle(article);
     
-    // Local toggle: if showLocal is false, exclude all local articles
-    if (!showLocal && isLocal) return false;
+    // Category filter
+    if (activeCategory === 'alerts' && !isAlert) return false;
+    if (activeCategory === 'local' && !isLocal) return false;
+    if (activeCategory === 'nhs-policy' && !isNhsPolicy) return false;
     
-    // Front view should only show articles with images, except allow local Northamptonshire items without images
-    if ((!article.image_url || !article.image_url.trim()) && !isLocal) return false;
+    // Local toggle: if showLocal is false, exclude all local articles (unless in local category)
+    if (!showLocal && isLocal && activeCategory !== 'local') return false;
+    
+    // Front view should only show articles with images, except allow local Northamptonshire items and alerts without images
+    if ((!article.image_url || !article.image_url.trim()) && !isLocal && !isAlert) return false;
     
     if (filterTag !== 'all' && !article.tags.includes(filterTag)) return false;
     if (filterSource !== 'all' && article.source !== filterSource) return false;
@@ -271,20 +300,40 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
     return true;
   });
 
+  // Get alert articles for the banner (always shown regardless of category)
+  const alertArticles = articles.filter(isAlertArticle).slice(0, 3);
+
   // Use strictly filtered list to avoid leaking unrelated local items
   const displayedArticles = filteredArticles;
   
-  // Prioritize Northamptonshire-related articles to the top, then by date desc
+  // Prioritize Northamptonshire-related articles to the top, then alerts, then by date desc
   const prioritizedArticles = [...displayedArticles].sort((a, b) => {
+    // Alerts first when not in alerts category
+    if (activeCategory !== 'alerts') {
+      const aAlert = isAlertArticle(a) ? 1 : 0;
+      const bAlert = isAlertArticle(b) ? 1 : 0;
+      if (aAlert !== bAlert) return bAlert - aAlert;
+    }
+    
+    // Then local articles
     const al = isLocalArticle(a) ? 1 : 0;
     const bl = isLocalArticle(b) ? 1 : 0;
     if (al !== bl) return bl - al;
+    
     return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
   });
   
   // Get unique tags and sources for filters
   const allTags = [...new Set(articles.flatMap(article => article.tags))];
   const allSources = [...new Set(articles.map(article => article.source))];
+
+  // Category counts
+  const categoryCounts = {
+    all: articles.length,
+    'nhs-policy': articles.filter(isNhsPolicyArticle).length,
+    local: articles.filter(isLocalArticle).length,
+    alerts: articles.filter(isAlertArticle).length,
+  };
 
   const FilterControls = () => (
     <div className="flex gap-2">
@@ -413,6 +462,105 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
     );
   }
 
+  // Alerts Banner Component
+  const AlertsBanner = () => {
+    if (alertArticles.length === 0 || activeCategory === 'alerts') return null;
+    
+    return (
+      <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+        <div className="flex items-center gap-2 mb-2">
+          <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+            MHRA Alerts & Safety Notices
+          </span>
+          <Badge variant="outline" className="text-xs bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700">
+            {alertArticles.length} new
+          </Badge>
+        </div>
+        <div className="space-y-1">
+          {alertArticles.map(alert => (
+            <a 
+              key={alert.id}
+              href={alert.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-sm text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 hover:underline truncate"
+            >
+              • {alert.title}
+            </a>
+          ))}
+        </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="mt-2 text-xs text-amber-700 dark:text-amber-300"
+          onClick={() => setActiveCategory('alerts')}
+        >
+          View all alerts →
+        </Button>
+      </div>
+    );
+  };
+
+  // Category Tabs Component
+  const CategoryTabs = () => (
+    <div className="flex flex-wrap gap-2 mb-4">
+      <Button
+        variant={activeCategory === 'all' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setActiveCategory('all')}
+        className="gap-1.5"
+      >
+        <Newspaper className="w-3.5 h-3.5" />
+        All
+        <Badge variant="secondary" className="ml-1 text-xs">{categoryCounts.all}</Badge>
+      </Button>
+      <Button
+        variant={activeCategory === 'nhs-policy' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setActiveCategory('nhs-policy')}
+        className="gap-1.5"
+      >
+        <Building2 className="w-3.5 h-3.5" />
+        NHS / Policy
+        <Badge variant="secondary" className="ml-1 text-xs">{categoryCounts['nhs-policy']}</Badge>
+      </Button>
+      <Button
+        variant={activeCategory === 'local' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setActiveCategory('local')}
+        className="gap-1.5"
+      >
+        <MapPin className="w-3.5 h-3.5" />
+        Local
+        <Badge variant="secondary" className="ml-1 text-xs">{categoryCounts.local}</Badge>
+      </Button>
+      <Button
+        variant={activeCategory === 'alerts' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setActiveCategory('alerts')}
+        className={`gap-1.5 ${categoryCounts.alerts > 0 ? 'border-amber-400 dark:border-amber-600' : ''}`}
+      >
+        <AlertTriangle className={`w-3.5 h-3.5 ${categoryCounts.alerts > 0 ? 'text-amber-500' : ''}`} />
+        Alerts
+        {categoryCounts.alerts > 0 && (
+          <Badge className="ml-1 text-xs bg-amber-500 text-white">{categoryCounts.alerts}</Badge>
+        )}
+      </Button>
+    </div>
+  );
+
+  // Last Updated indicator
+  const LastUpdatedIndicator = () => (
+    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      {lastUpdated && (
+        <span>
+          Updated: {lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+        </span>
+      )}
+    </div>
+  );
+
   const QuickToggleBar = () => (
     <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/30 rounded-lg mb-4">
       <div className="flex flex-wrap gap-2">
@@ -461,6 +609,7 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
             Live
           </Badge>
         )}
+        <LastUpdatedIndicator />
       </div>
     </div>
   );
@@ -474,7 +623,8 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
     <div>
       {/* Header with Refresh and Filter Controls - hidden in cleanView */}
       {!cleanView && (
-        <div className="flex items-center justify-end mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <LastUpdatedIndicator />
           <div className="flex gap-2">
             <Button 
               variant="outline" 
@@ -489,6 +639,12 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
           </div>
         </div>
       )}
+
+      {/* Category Tabs - hidden in cleanView */}
+      {!cleanView && <CategoryTabs />}
+
+      {/* Alerts Banner - shown when there are alerts and not in alerts category */}
+      {!cleanView && <AlertsBanner />}
 
       {/* Quick Toggle Bar - hidden in cleanView */}
       {!cleanView && <QuickToggleBar />}
