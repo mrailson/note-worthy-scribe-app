@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send } from 'lucide-react';
+import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send, Users, MapPin, Compass, HandHeart, Activity, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
@@ -126,6 +126,46 @@ const gpPromptExamples: PromptExample[] = [
   { id: 75, category: 'Referral Support', useCase: 'MSK pathway', prompt: 'Create a flowchart showing when to refer for physiotherapy, MSK, or orthopaedics' },
 ];
 
+// Social Prescribing Link Worker prompts (76-100)
+const splwPromptExamples: PromptExample[] = [
+  // Community Resources (76-80)
+  { id: 76, category: 'Community Resources', useCase: 'Local services directory', prompt: 'Create a visual directory of local community services including food banks, befriending services, and debt advice' },
+  { id: 77, category: 'Community Resources', useCase: 'Walking groups map', prompt: 'Create a leaflet showing local walking groups with meeting times, locations, and contact details' },
+  { id: 78, category: 'Community Resources', useCase: 'Community centre guide', prompt: 'Create a guide to our local community centres with activities, opening hours, and accessibility information' },
+  { id: 79, category: 'Community Resources', useCase: 'Volunteer opportunities', prompt: 'Create a poster promoting local volunteering opportunities and how to get involved' },
+  { id: 80, category: 'Community Resources', useCase: 'Support groups directory', prompt: 'Create a patient handout listing local support groups for bereavement, carers, and long-term conditions' },
+
+  // Wellbeing Support (81-85)
+  { id: 81, category: 'Wellbeing Support', useCase: 'Five ways to wellbeing', prompt: 'Create a visual poster explaining the Five Ways to Wellbeing - Connect, Be Active, Take Notice, Keep Learning, Give' },
+  { id: 82, category: 'Wellbeing Support', useCase: 'Loneliness support', prompt: 'Create a patient leaflet about combating loneliness with local befriending and social activities' },
+  { id: 83, category: 'Wellbeing Support', useCase: 'Sleep hygiene tips', prompt: 'Create a patient handout with practical tips for improving sleep quality' },
+  { id: 84, category: 'Wellbeing Support', useCase: 'Stress management', prompt: 'Create a visual guide to stress management techniques including breathing exercises and mindfulness' },
+  { id: 85, category: 'Wellbeing Support', useCase: 'Self-care wheel', prompt: 'Create a self-care wheel diagram showing different areas of wellbeing patients can focus on' },
+
+  // Group Activities (86-90)
+  { id: 86, category: 'Group Activities', useCase: 'Art therapy sessions', prompt: 'Create a poster promoting our weekly art therapy sessions - no experience needed' },
+  { id: 87, category: 'Group Activities', useCase: 'Gardening group', prompt: 'Create a leaflet promoting our community gardening project with benefits and how to join' },
+  { id: 88, category: 'Group Activities', useCase: 'Coffee morning', prompt: 'Create a social media post for our monthly coffee morning - reducing isolation through connection' },
+  { id: 89, category: 'Group Activities', useCase: 'Exercise classes', prompt: 'Create a poster showing our weekly exercise class schedule including chair-based exercise and gentle yoga' },
+  { id: 90, category: 'Group Activities', useCase: 'Cooking on a budget', prompt: 'Create a leaflet for our healthy eating on a budget workshops with dates and registration details' },
+
+  // Patient Engagement (91-94)
+  { id: 91, category: 'Patient Engagement', useCase: 'What is social prescribing', prompt: 'Create a patient leaflet explaining what social prescribing is and how it can help' },
+  { id: 92, category: 'Patient Engagement', useCase: 'First appointment guide', prompt: 'Create a handout explaining what to expect at your first social prescribing appointment' },
+  { id: 93, category: 'Patient Engagement', useCase: 'Goal setting worksheet', prompt: 'Create a visual goal-setting worksheet for patients to identify what matters most to them' },
+  { id: 94, category: 'Patient Engagement', useCase: 'Progress tracker', prompt: 'Create a simple wellbeing progress tracker patients can use between appointments' },
+
+  // Signposting Materials (95-97)
+  { id: 95, category: 'Signposting Materials', useCase: 'Benefits advice', prompt: 'Create a leaflet about accessing free benefits advice and support with PIP, UC, and attendance allowance' },
+  { id: 96, category: 'Signposting Materials', useCase: 'Housing support', prompt: 'Create a signposting handout for housing support services including repairs, adaptations, and tenancy advice' },
+  { id: 97, category: 'Signposting Materials', useCase: 'Carer support', prompt: 'Create a leaflet for unpaid carers explaining available support, respite services, and carers assessments' },
+
+  // Impact & Outcomes (98-100)
+  { id: 98, category: 'Impact & Outcomes', useCase: 'Service impact report', prompt: 'Create an infographic showing social prescribing outcomes - number of patients helped, activities accessed, wellbeing improvements' },
+  { id: 99, category: 'Impact & Outcomes', useCase: 'Patient testimonials', prompt: 'Create a poster featuring anonymous patient testimonials about how social prescribing has helped them' },
+  { id: 100, category: 'Impact & Outcomes', useCase: 'PCN presentation', prompt: 'Create presentation slides for PCN meetings showing social prescribing activity and impact data' },
+];
+
 const categoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
   'Patient Leaflets': {
     icon: <FileText className="h-5 w-5" />,
@@ -207,9 +247,43 @@ const gpCategoryConfig: Record<string, { icon: React.ReactNode; description: str
   }
 };
 
+const splwCategoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
+  'Community Resources': {
+    icon: <MapPin className="h-5 w-5" />,
+    description: 'Local services, directories, and community asset guides',
+    colour: 'bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200'
+  },
+  'Wellbeing Support': {
+    icon: <Sparkles className="h-5 w-5" />,
+    description: 'Mental health, self-care, and holistic wellbeing materials',
+    colour: 'bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-900 dark:text-fuchsia-200'
+  },
+  'Group Activities': {
+    icon: <Users className="h-5 w-5" />,
+    description: 'Promoting group sessions, classes, and community events',
+    colour: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+  },
+  'Patient Engagement': {
+    icon: <HandHeart className="h-5 w-5" />,
+    description: 'Materials to support patient conversations and goal-setting',
+    colour: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+  },
+  'Signposting Materials': {
+    icon: <Compass className="h-5 w-5" />,
+    description: 'Handouts for benefits, housing, and specialist support services',
+    colour: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200'
+  },
+  'Impact & Outcomes': {
+    icon: <Activity className="h-5 w-5" />,
+    description: 'Reporting, presentations, and showcasing service impact',
+    colour: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
+  }
+};
+
 const categories = Object.keys(categoryConfig);
 const gpCategories = Object.keys(gpCategoryConfig);
-const allPrompts = [...promptExamples, ...gpPromptExamples];
+const splwCategories = Object.keys(splwCategoryConfig);
+const allPrompts = [...promptExamples, ...gpPromptExamples, ...splwPromptExamples];
 
 const AI4GPPromptGuide = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -235,9 +309,19 @@ const AI4GPPromptGuide = () => {
     );
   }, [searchTerm]);
 
+  const filteredSplwPrompts = useMemo(() => {
+    if (!searchTerm.trim()) return splwPromptExamples;
+    const term = searchTerm.toLowerCase();
+    return splwPromptExamples.filter(
+      p => p.useCase.toLowerCase().includes(term) || 
+           p.prompt.toLowerCase().includes(term) ||
+           p.category.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
+
   const filteredAllPrompts = useMemo(() => {
-    return [...filteredStaffPrompts, ...filteredGpPrompts];
-  }, [filteredStaffPrompts, filteredGpPrompts]);
+    return [...filteredStaffPrompts, ...filteredGpPrompts, ...filteredSplwPrompts];
+  }, [filteredStaffPrompts, filteredGpPrompts, filteredSplwPrompts]);
 
   const promptsByCategory = useMemo(() => {
     return categories.reduce((acc, category) => {
@@ -253,6 +337,13 @@ const AI4GPPromptGuide = () => {
     }, {} as Record<string, PromptExample[]>);
   }, [filteredGpPrompts]);
 
+  const splwPromptsByCategory = useMemo(() => {
+    return splwCategories.reduce((acc, category) => {
+      acc[category] = filteredSplwPrompts.filter(p => p.category === category);
+      return acc;
+    }, {} as Record<string, PromptExample[]>);
+  }, [filteredSplwPrompts]);
+
   const handleCopy = async (prompt: string, id: number) => {
     try {
       await navigator.clipboard.writeText(prompt);
@@ -267,10 +358,10 @@ const AI4GPPromptGuide = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="AI4GP Prompt Guide | 75 Example Prompts for GP Practices | NoteWell AI"
-        description="Comprehensive guide with 75 example prompts for practice staff and clinicians - patient leaflets, social media, clinical protocols, consultation aids, and more using AI4GP."
+        title="AI4GP Prompt Guide | 100 Example Prompts for GP Practices | NoteWell AI"
+        description="Comprehensive guide with 100 example prompts for practice staff, clinicians, and social prescribers - patient leaflets, clinical protocols, community resources, and more using AI4GP."
         canonical="https://www.gpnotewell.co.uk/ai4gp-prompts"
-        keywords="AI4GP prompts, GP practice prompts, patient leaflet examples, NHS social media, clinical protocols, consultation aids, prescribing guidance"
+        keywords="AI4GP prompts, GP practice prompts, social prescribing, SPLW prompts, patient leaflet examples, NHS social media, clinical protocols, community resources"
       />
       
       <header className="border-b bg-card">
@@ -282,7 +373,7 @@ const AI4GPPromptGuide = () => {
             </Link>
             <div>
               <h1 className="text-3xl font-bold text-foreground">AI4GP Prompt Guide</h1>
-              <p className="text-muted-foreground mt-1">75 example prompts for GP practice staff and clinicians</p>
+              <p className="text-muted-foreground mt-1">100 example prompts for GP practice staff, clinicians, and social prescribers</p>
             </div>
           </div>
         </div>
@@ -295,7 +386,7 @@ const AI4GPPromptGuide = () => {
             <CardHeader>
               <CardTitle id="intro-heading">How to Use This Guide</CardTitle>
             <CardDescription>
-                This page contains 75 example prompts organised by category - 50 for practice staff and 25 for GPs and clinicians. Use these as starting points for creating your own materials, or copy them directly into AI4GP.
+                This page contains 100 example prompts organised by role and category - 50 for practice staff, 25 for GPs and clinicians, and 25 for social prescribing link workers. Use these as starting points for creating your own materials, or copy them directly into AI4GP.
               </CardDescription>
             </CardHeader>
             <CardContent className="prose prose-sm dark:prose-invert max-w-none">
@@ -489,13 +580,93 @@ const AI4GPPromptGuide = () => {
           </Accordion>
         </section>
 
+        {/* Social Prescribing Link Worker Categories */}
+        <section aria-labelledby="splw-categories-heading" className="mb-12">
+          <h2 id="splw-categories-heading" className="text-xl font-semibold text-foreground mb-4">Social Prescribing Link Worker (SPLW) Use Cases</h2>
+          <p className="text-muted-foreground mb-6">25 prompts for community signposting, wellbeing support, and patient engagement</p>
+          
+          <Accordion type="multiple" defaultValue={splwCategories} className="space-y-4">
+            {splwCategories.map((category) => {
+              const config = splwCategoryConfig[category];
+              const categoryPrompts = splwPromptsByCategory[category];
+              
+              if (categoryPrompts.length === 0) return null;
+              
+              return (
+                <AccordionItem 
+                  key={category} 
+                  value={category}
+                  className="border rounded-lg bg-card"
+                >
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <div className="flex items-center gap-3 text-left">
+                      <div className={`p-2 rounded-lg ${config.colour}`}>
+                        {config.icon}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">{category}</h3>
+                        <p className="text-sm text-muted-foreground font-normal">{config.description}</p>
+                      </div>
+                      <Badge variant="secondary" className="ml-auto mr-4">
+                        {categoryPrompts.length} prompt{categoryPrompts.length !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm" role="table">
+                        <caption className="sr-only">{category} prompts</caption>
+                        <thead>
+                          <tr className="border-b">
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-8">#</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-48">Use Case</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground">Example Prompt</th>
+                            <th scope="col" className="text-right py-2 font-medium text-muted-foreground w-20">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {categoryPrompts.map((example) => (
+                            <tr 
+                              key={example.id} 
+                              className="border-b last:border-0 hover:bg-muted/50 transition-colors"
+                            >
+                              <td className="py-3 pr-4 text-muted-foreground">{example.id}</td>
+                              <td className="py-3 pr-4 font-medium text-foreground">{example.useCase}</td>
+                              <td className="py-3 pr-4 text-foreground">{example.prompt}</td>
+                              <td className="py-3 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopy(example.prompt, example.id)}
+                                  aria-label={`Copy prompt: ${example.useCase}`}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  {copiedId === example.id ? (
+                                    <Check className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </section>
+
         {/* Quick Reference Table - for LLM consumption */}
         <section aria-labelledby="full-list-heading" className="mt-12">
           <Card>
             <CardHeader>
               <CardTitle id="full-list-heading">Complete Prompt Reference</CardTitle>
               <CardDescription>
-                All 75 prompts in a single searchable table for quick reference
+                All 100 prompts in a single searchable table for quick reference
               </CardDescription>
             </CardHeader>
             <CardContent>
