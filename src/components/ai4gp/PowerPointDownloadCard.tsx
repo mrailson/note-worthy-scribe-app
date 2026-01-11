@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Download, Presentation, FileText, Loader2, ExternalLink } from 'lucide-react';
+import { Download, Presentation, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GeneratedPresentation } from '@/types/ai4gp';
 
@@ -126,23 +126,6 @@ export const PowerPointDownloadCard: React.FC<PowerPointDownloadCardProps> = ({ 
               </>
             )}
           </Button>
-          
-          {presentation.gammaUrl && (
-            <Button 
-              variant="outline"
-              className="w-full gap-2"
-              asChild
-            >
-              <a 
-                href={presentation.gammaUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
-                <ExternalLink className="h-4 w-4" />
-                View &amp; Edit in Gamma
-              </a>
-            </Button>
-          )}
         </div>
       </CardContent>
     </Card>
