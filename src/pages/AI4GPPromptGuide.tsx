@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send, Users, MapPin, Compass, HandHeart, Activity, Sparkles } from 'lucide-react';
+import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send, Users, MapPin, Compass, HandHeart, Activity, Sparkles, Syringe, ShieldCheck, Thermometer, HeartPulse, BookOpen, Bandage } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
@@ -166,6 +166,46 @@ const splwPromptExamples: PromptExample[] = [
   { id: 100, category: 'Impact & Outcomes', useCase: 'PCN presentation', prompt: 'Create presentation slides for PCN meetings showing social prescribing activity and impact data' },
 ];
 
+// Advanced Nurse Practitioner / ACP prompts (101-125)
+const anpPromptExamples: PromptExample[] = [
+  // Minor Illness Management (101-105)
+  { id: 101, category: 'Minor Illness', useCase: 'Sore throat assessment', prompt: 'Create a patient handout explaining FeverPAIN scoring for sore throats and when antibiotics are needed' },
+  { id: 102, category: 'Minor Illness', useCase: 'UTI self-care', prompt: 'Create a patient leaflet on managing uncomplicated UTI symptoms and when to seek further help' },
+  { id: 103, category: 'Minor Illness', useCase: 'Childhood rashes', prompt: 'Create a visual guide helping parents identify common childhood rashes and when to worry' },
+  { id: 104, category: 'Minor Illness', useCase: 'Ear infection advice', prompt: 'Create a patient information leaflet about otitis media management and safety-netting advice' },
+  { id: 105, category: 'Minor Illness', useCase: 'Cough management', prompt: 'Create a handout explaining expected duration of coughs and self-care measures' },
+
+  // Chronic Disease Management (106-110)
+  { id: 106, category: 'Chronic Disease', useCase: 'Hypertension monitoring', prompt: 'Create a home blood pressure monitoring diary with instructions for patients' },
+  { id: 107, category: 'Chronic Disease', useCase: 'COPD action plan', prompt: 'Create a personalised COPD action plan template with rescue medication guidance' },
+  { id: 108, category: 'Chronic Disease', useCase: 'Diabetes foot care', prompt: 'Create a patient leaflet on diabetic foot care and daily foot check routine' },
+  { id: 109, category: 'Chronic Disease', useCase: 'Asthma inhaler technique', prompt: 'Create a step-by-step visual guide for correct MDI inhaler technique with spacer' },
+  { id: 110, category: 'Chronic Disease', useCase: 'Heart failure self-management', prompt: 'Create a patient handout on heart failure warning signs and daily weight monitoring' },
+
+  // Clinical Assessments (111-115)
+  { id: 111, category: 'Clinical Assessments', useCase: 'ABCDE assessment', prompt: 'Create a quick-reference card for systematic ABCDE patient assessment in acute presentations' },
+  { id: 112, category: 'Clinical Assessments', useCase: 'Respiratory examination', prompt: 'Create a visual checklist for comprehensive respiratory examination findings' },
+  { id: 113, category: 'Clinical Assessments', useCase: 'Abdominal assessment', prompt: 'Create a systematic abdominal examination guide with red flag findings' },
+  { id: 114, category: 'Clinical Assessments', useCase: 'Mental state examination', prompt: 'Create a mental state examination prompt card for use in depression and anxiety assessments' },
+  { id: 115, category: 'Clinical Assessments', useCase: 'Falls risk assessment', prompt: 'Create a falls risk assessment checklist for elderly patients' },
+
+  // Prescribing Support (116-119)
+  { id: 116, category: 'ANP Prescribing', useCase: 'Antibiotic choice guide', prompt: 'Create a quick-reference guide for first-line antibiotic choices in common infections' },
+  { id: 117, category: 'ANP Prescribing', useCase: 'Pain ladder', prompt: 'Create a visual WHO pain ladder with medication examples for each step' },
+  { id: 118, category: 'ANP Prescribing', useCase: 'Inhaler formulary', prompt: 'Create an inhaler comparison chart showing device types, costs, and carbon footprint' },
+  { id: 119, category: 'ANP Prescribing', useCase: 'Drug monitoring', prompt: 'Create a reference card for common drug monitoring requirements - bloods, timing, and frequency' },
+
+  // Wound Care & Procedures (120-122)
+  { id: 120, category: 'Wound Care', useCase: 'Wound assessment', prompt: 'Create a wound assessment documentation template using TIME framework' },
+  { id: 121, category: 'Wound Care', useCase: 'Dressing selection', prompt: 'Create a wound dressing selection guide based on wound type and exudate level' },
+  { id: 122, category: 'Wound Care', useCase: 'Leg ulcer pathway', prompt: 'Create a leg ulcer assessment and management pathway including ABPI guidance' },
+
+  // Professional Development (123-125)
+  { id: 123, category: 'ANP Development', useCase: 'CPD portfolio', prompt: 'Create a CPD reflection template for advanced practice competency development' },
+  { id: 124, category: 'ANP Development', useCase: 'Clinical supervision', prompt: 'Create a clinical supervision session record template for ANP practice' },
+  { id: 125, category: 'ANP Development', useCase: 'Competency framework', prompt: 'Create an infographic showing the four pillars of advanced practice' },
+];
+
 const categoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
   'Patient Leaflets': {
     icon: <FileText className="h-5 w-5" />,
@@ -280,10 +320,44 @@ const splwCategoryConfig: Record<string, { icon: React.ReactNode; description: s
   }
 };
 
+const anpCategoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
+  'Minor Illness': {
+    icon: <Thermometer className="h-5 w-5" />,
+    description: 'Patient information for common minor illness presentations',
+    colour: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+  },
+  'Chronic Disease': {
+    icon: <HeartPulse className="h-5 w-5" />,
+    description: 'Long-term condition management and self-care materials',
+    colour: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+  },
+  'Clinical Assessments': {
+    icon: <ShieldCheck className="h-5 w-5" />,
+    description: 'Examination checklists and assessment frameworks',
+    colour: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+  },
+  'ANP Prescribing': {
+    icon: <Syringe className="h-5 w-5" />,
+    description: 'Prescribing guidance, formularies, and drug information',
+    colour: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+  },
+  'Wound Care': {
+    icon: <Bandage className="h-5 w-5" />,
+    description: 'Wound assessment, dressing selection, and procedure guides',
+    colour: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200'
+  },
+  'ANP Development': {
+    icon: <BookOpen className="h-5 w-5" />,
+    description: 'CPD, supervision, and professional development materials',
+    colour: 'bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200'
+  }
+};
+
 const categories = Object.keys(categoryConfig);
 const gpCategories = Object.keys(gpCategoryConfig);
 const splwCategories = Object.keys(splwCategoryConfig);
-const allPrompts = [...promptExamples, ...gpPromptExamples, ...splwPromptExamples];
+const anpCategories = Object.keys(anpCategoryConfig);
+const allPrompts = [...promptExamples, ...gpPromptExamples, ...splwPromptExamples, ...anpPromptExamples];
 
 const AI4GPPromptGuide = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -319,9 +393,19 @@ const AI4GPPromptGuide = () => {
     );
   }, [searchTerm]);
 
+  const filteredAnpPrompts = useMemo(() => {
+    if (!searchTerm.trim()) return anpPromptExamples;
+    const term = searchTerm.toLowerCase();
+    return anpPromptExamples.filter(
+      p => p.useCase.toLowerCase().includes(term) || 
+           p.prompt.toLowerCase().includes(term) ||
+           p.category.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
+
   const filteredAllPrompts = useMemo(() => {
-    return [...filteredStaffPrompts, ...filteredGpPrompts, ...filteredSplwPrompts];
-  }, [filteredStaffPrompts, filteredGpPrompts, filteredSplwPrompts]);
+    return [...filteredStaffPrompts, ...filteredGpPrompts, ...filteredSplwPrompts, ...filteredAnpPrompts];
+  }, [filteredStaffPrompts, filteredGpPrompts, filteredSplwPrompts, filteredAnpPrompts]);
 
   const promptsByCategory = useMemo(() => {
     return categories.reduce((acc, category) => {
@@ -344,6 +428,13 @@ const AI4GPPromptGuide = () => {
     }, {} as Record<string, PromptExample[]>);
   }, [filteredSplwPrompts]);
 
+  const anpPromptsByCategory = useMemo(() => {
+    return anpCategories.reduce((acc, category) => {
+      acc[category] = filteredAnpPrompts.filter(p => p.category === category);
+      return acc;
+    }, {} as Record<string, PromptExample[]>);
+  }, [filteredAnpPrompts]);
+
   const handleCopy = async (prompt: string, id: number) => {
     try {
       await navigator.clipboard.writeText(prompt);
@@ -358,10 +449,10 @@ const AI4GPPromptGuide = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="AI4GP Prompt Guide | 100 Example Prompts for GP Practices | NoteWell AI"
-        description="Comprehensive guide with 100 example prompts for practice staff, clinicians, and social prescribers - patient leaflets, clinical protocols, community resources, and more using AI4GP."
+        title="AI4GP Prompt Guide | 125 Example Prompts for GP Practices | NoteWell AI"
+        description="Comprehensive guide with 125 example prompts for practice staff, GPs, nurse practitioners, and social prescribers - clinical protocols, patient education, and more using AI4GP."
         canonical="https://www.gpnotewell.co.uk/ai4gp-prompts"
-        keywords="AI4GP prompts, GP practice prompts, social prescribing, SPLW prompts, patient leaflet examples, NHS social media, clinical protocols, community resources"
+        keywords="AI4GP prompts, GP practice prompts, ANP prompts, nurse practitioner, social prescribing, SPLW prompts, clinical protocols, patient education"
       />
       
       <header className="border-b bg-card">
@@ -373,7 +464,7 @@ const AI4GPPromptGuide = () => {
             </Link>
             <div>
               <h1 className="text-3xl font-bold text-foreground">AI4GP Prompt Guide</h1>
-              <p className="text-muted-foreground mt-1">100 example prompts for GP practice staff, clinicians, and social prescribers</p>
+              <p className="text-muted-foreground mt-1">125 example prompts for GP practice teams</p>
             </div>
           </div>
         </div>
@@ -386,7 +477,7 @@ const AI4GPPromptGuide = () => {
             <CardHeader>
               <CardTitle id="intro-heading">How to Use This Guide</CardTitle>
             <CardDescription>
-                This page contains 100 example prompts organised by role and category - 50 for practice staff, 25 for GPs and clinicians, and 25 for social prescribing link workers. Use these as starting points for creating your own materials, or copy them directly into AI4GP.
+                This page contains 125 example prompts organised by role and category - 50 for practice staff, 25 for GPs, 25 for nurse practitioners (ANP/ACP), and 25 for social prescribers. Copy them directly into AI4GP or customise for your needs.
               </CardDescription>
             </CardHeader>
             <CardContent className="prose prose-sm dark:prose-invert max-w-none">
@@ -660,13 +751,93 @@ const AI4GPPromptGuide = () => {
           </Accordion>
         </section>
 
+        {/* Advanced Nurse Practitioner / ACP Categories */}
+        <section aria-labelledby="anp-categories-heading" className="mb-12">
+          <h2 id="anp-categories-heading" className="text-xl font-semibold text-foreground mb-4">Advanced Nurse Practitioner (ANP/ACP) Use Cases</h2>
+          <p className="text-muted-foreground mb-6">25 prompts for minor illness, chronic disease management, clinical assessments, and prescribing</p>
+          
+          <Accordion type="multiple" defaultValue={anpCategories} className="space-y-4">
+            {anpCategories.map((category) => {
+              const config = anpCategoryConfig[category];
+              const categoryPrompts = anpPromptsByCategory[category];
+              
+              if (categoryPrompts.length === 0) return null;
+              
+              return (
+                <AccordionItem 
+                  key={category} 
+                  value={category}
+                  className="border rounded-lg bg-card"
+                >
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <div className="flex items-center gap-3 text-left">
+                      <div className={`p-2 rounded-lg ${config.colour}`}>
+                        {config.icon}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">{category}</h3>
+                        <p className="text-sm text-muted-foreground font-normal">{config.description}</p>
+                      </div>
+                      <Badge variant="secondary" className="ml-auto mr-4">
+                        {categoryPrompts.length} prompt{categoryPrompts.length !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm" role="table">
+                        <caption className="sr-only">{category} prompts</caption>
+                        <thead>
+                          <tr className="border-b">
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-8">#</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-48">Use Case</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground">Example Prompt</th>
+                            <th scope="col" className="text-right py-2 font-medium text-muted-foreground w-20">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {categoryPrompts.map((example) => (
+                            <tr 
+                              key={example.id} 
+                              className="border-b last:border-0 hover:bg-muted/50 transition-colors"
+                            >
+                              <td className="py-3 pr-4 text-muted-foreground">{example.id}</td>
+                              <td className="py-3 pr-4 font-medium text-foreground">{example.useCase}</td>
+                              <td className="py-3 pr-4 text-foreground">{example.prompt}</td>
+                              <td className="py-3 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopy(example.prompt, example.id)}
+                                  aria-label={`Copy prompt: ${example.useCase}`}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  {copiedId === example.id ? (
+                                    <Check className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </section>
+
         {/* Quick Reference Table - for LLM consumption */}
         <section aria-labelledby="full-list-heading" className="mt-12">
           <Card>
             <CardHeader>
               <CardTitle id="full-list-heading">Complete Prompt Reference</CardTitle>
               <CardDescription>
-                All 100 prompts in a single searchable table for quick reference
+                All 125 prompts in a single searchable table for quick reference
               </CardDescription>
             </CardHeader>
             <CardContent>
