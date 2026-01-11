@@ -1768,7 +1768,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       setIsLoading(false);
       setPendingImageRequest(null);
     }
-  }, [pendingImageRequest, messages, saveSearchAutomatically]);
+  }, [pendingImageRequest, messages, saveSearchAutomatically, imageGenerationModel]);
 
   // Handle branding dialog cancel
   const handleBrandingCancel = useCallback(() => {
