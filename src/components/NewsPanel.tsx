@@ -110,13 +110,13 @@ type SourceConfig = {
 
 const sourceConfigs: SourceConfig[] = [
   { key: 'nhs', label: 'NHS England', abbrev: 'NHS', icon: <Building2 className="w-3.5 h-3.5" />, sources: ['NHS England', 'NHS England News'] },
-  { key: 'nice', label: 'NICE Guidance', abbrev: 'NICE', icon: <FileText className="w-3.5 h-3.5" />, sources: ['NICE Guidance', 'NICE News', 'NICE'] },
+  { key: 'nice', label: 'NICE', abbrev: 'NICE', icon: <FileText className="w-3.5 h-3.5" />, sources: ['NICE', 'NICE Guidance', 'NICE News'] },
   { key: 'mhra', label: 'MHRA Alerts', abbrev: 'MHRA', icon: <ShieldAlert className="w-3.5 h-3.5" />, sources: ['MHRA Alerts', 'MHRA'] },
   { key: 'dhsc', label: 'DHSC', abbrev: 'DHSC', icon: <Stethoscope className="w-3.5 h-3.5" />, sources: ['DHSC'] },
-  { key: 'bbc', label: 'BBC Health', abbrev: 'BBC', icon: <Globe className="w-3.5 h-3.5" />, sources: ['BBC Health', 'BBC Northamptonshire'] },
+  { key: 'bbc', label: 'BBC Health', abbrev: 'BBC', icon: <Globe className="w-3.5 h-3.5" />, sources: ['BBC Health'] },
   { key: 'pulse', label: 'Pulse Today', abbrev: 'Pulse', icon: <Heart className="w-3.5 h-3.5" />, sources: ['Pulse Today'] },
   { key: 'guardian', label: 'The Guardian', abbrev: 'Guardian', icon: <Newspaper className="w-3.5 h-3.5" />, sources: ['The Guardian Health'] },
-  { key: 'local', label: 'Local Northants', abbrev: 'Local', icon: <MapPin className="w-3.5 h-3.5" />, sources: ['Northants Live'] },
+  { key: 'local', label: 'Local Northants', abbrev: 'Local', icon: <MapPin className="w-3.5 h-3.5" />, sources: ['BBC Northamptonshire'] },
 ];
 
 const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFiltersInHeader?: boolean; cleanView?: boolean }) => {

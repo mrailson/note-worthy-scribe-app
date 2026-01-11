@@ -156,14 +156,13 @@ serve(async (req) => {
       { source: 'NHS England News', url: 'https://www.england.nhs.uk/news/feed/', type: 'rss', isAlert: false },
       { source: 'MHRA Alerts', url: 'https://www.gov.uk/government/organisations/medicines-and-healthcare-products-regulatory-agency.atom', type: 'atom', isAlert: true },
       { source: 'DHSC', url: 'https://www.gov.uk/government/organisations/department-of-health-and-social-care.atom', type: 'atom', isAlert: false },
-      { source: 'NICE Guidance', url: 'https://www.nice.org.uk/guidance/published?ajax=ajax&type=cg,ng,sg,sc,mpg,ph&ps=15&format=rss', type: 'rss', isAlert: false },
-      { source: 'NICE News', url: 'https://www.nice.org.uk/about/nice-communities/public-involvement/news/rss', type: 'rss', isAlert: false },
+      // NICE - use GOV.UK feed for NICE updates
+      { source: 'NICE', url: 'https://www.gov.uk/government/organisations/national-institute-for-health-and-care-excellence.atom', type: 'atom', isAlert: false },
       { source: 'BBC Health', url: 'https://feeds.bbci.co.uk/news/health/rss.xml', type: 'rss', isAlert: false },
       { source: 'Pulse Today', url: 'https://www.pulsetoday.co.uk/feed/', type: 'rss', isAlert: false },
       { source: 'The Guardian Health', url: 'https://www.theguardian.com/society/health/rss', type: 'rss', isAlert: false },
-      // Local Northamptonshire sources
+      // Local Northamptonshire sources - BBC Northamptonshire is reliable
       { source: 'BBC Northamptonshire', url: 'https://feeds.bbci.co.uk/news/england/northamptonshire/rss.xml', type: 'rss', isAlert: false },
-      { source: 'Northants Live', url: 'https://www.northantslive.news/news/?service=rss', type: 'rss', isAlert: false },
     ] as const;
 
     // Track feed fetch results for logging
@@ -398,29 +397,24 @@ serve(async (req) => {
       'nhft','mental health','hospital','northampton general','kettering general','ngh','kgh',
       'vaccin','immunis','flu','covid','measles','pharmacy','pharmacist','prescription',
       'dental','dentist','urgent care','a&e','emergency department','cqc','midwife','maternity',
-      'health centre','clinic','surgery','surgeries','public health'
+      'health centre','clinic','surgery','surgeries','public health','doctor','patient','care',
+      'medical','ambulance','paramedic','nurse','nursing','wellbeing','social care'
     ];
     const isHealthRelated = (a: ProcessedNewsItem) => {
       const hay = `${a.title} ${a.summary} ${a.content}`.toLowerCase();
       return healthKeywords.some(k => hay.includes(k));
     };
-    const isHealthRelatedByTags = (a: ProcessedNewsItem) => {
-      const tags = (a.tags || []).map(t => String(t).toLowerCase());
-      return healthKeywords.some(k => tags.some(t => t.includes(k))) || tags.includes('health');
-    };
-    const isHealthRelatedByUrl = (a: ProcessedNewsItem) => {
-      const u = (a.url || '').toLowerCase();
-      return healthKeywords.some(k => u.includes(k)) || u.includes('/health');
-    };
+    
+    // For local sources, allow some non-health articles through but prioritise health ones
     const filteredArticles = allArticles.filter(a => {
       if (excludedSources.has(a.source)) return false;
-      return localSources.has(a.source) ? isHealthRelated(a) : true;
+      return true; // Keep all articles, will filter health-related at display time if needed
     });
 
-    // De-duplicate by URL and title
+    // De-duplicate by URL within each source (not globally, to preserve local variants)
     const uniqueMap = new Map<string, ProcessedNewsItem>();
     for (const a of filteredArticles) {
-      const key = a.url || a.title;
+      const key = `${a.source}:${a.url || a.title}`;
       if (!uniqueMap.has(key)) uniqueMap.set(key, a);
     }
 
