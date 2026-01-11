@@ -224,6 +224,8 @@ const AI4GPService = () => {
     setChatHistoryRetentionDays,
     hideGPClinical,
     setHideGPClinical,
+    imageGenerationModel,
+    setImageGenerationModel,
     showBrandingDialog,
     setShowBrandingDialog,
     pendingImageRequest,
@@ -911,6 +913,8 @@ const AI4GPService = () => {
           onChatHistoryRetentionDaysChange={setChatHistoryRetentionDays}
           hideGPClinical={hideGPClinical}
           onHideGPClinicalChange={setHideGPClinical}
+          imageGenerationModel={imageGenerationModel}
+          onImageGenerationModelChange={setImageGenerationModel}
         />
 
       {/* Quick Image Modal */}
