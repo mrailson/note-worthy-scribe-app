@@ -364,7 +364,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     meetingId: meeting?.id,
     content: notesStyle3 || '',
     baseFontSize: fontSizeStyle1,
-    enabled: forceFancyView && isLongMeetingRaw // Only format when user clicks "Switch to formatted view"
+    enabled: forceFancyView && isLongMeetingRaw, // Only format when user clicks "Switch to formatted view"
+    previewEnabled: false
   });
 
   // Log for debugging
@@ -3651,20 +3652,20 @@ ${transcriptToUse}`;
                       )}
                       
                        <TabsContent value="style1" className="flex-1 overflow-auto pb-6">
-                         {!noteStylesLoaded ? (
-                           <div className="flex items-center justify-center h-full">
-                             <div className="text-center space-y-3">
-                               <div className="flex items-center justify-center gap-2">
-                                 <div className="flex gap-1">
-                                   <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0s_infinite]"></span>
-                                   <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.2s_infinite]"></span>
-                                   <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.4s_infinite]"></span>
-                                 </div>
-                               </div>
-                               <p className="text-sm text-muted-foreground">Loading meeting notes...</p>
-                             </div>
-                           </div>
-                         ) : isEditing && editingTab === "notes-style1" ? (
+                          {(!noteStylesLoaded && !notesStyle3?.trim()) ? (
+                            <div className="flex items-center justify-center h-full">
+                              <div className="text-center space-y-3">
+                                <div className="flex items-center justify-center gap-2">
+                                  <div className="flex gap-1">
+                                    <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0s_infinite]"></span>
+                                    <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.2s_infinite]"></span>
+                                    <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.4s_infinite]"></span>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-muted-foreground">Loading meeting notes...</p>
+                              </div>
+                            </div>
+                          ) : isEditing && editingTab === "notes-style1" ? (
                            <RichTextEditor
                              content={editingContent}
                              onChange={setEditingContent}
