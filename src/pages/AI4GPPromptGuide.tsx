@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send, Users, MapPin, Compass, HandHeart, Activity, Sparkles, Syringe, ShieldCheck, Thermometer, HeartPulse, BookOpen, Bandage } from 'lucide-react';
+import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send, Users, MapPin, Compass, HandHeart, Activity, Sparkles, Syringe, ShieldCheck, Thermometer, HeartPulse, BookOpen, Bandage, FlaskConical, AlertTriangle, Scale, Repeat, ClipboardCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
@@ -166,44 +166,77 @@ const splwPromptExamples: PromptExample[] = [
   { id: 100, category: 'Impact & Outcomes', useCase: 'PCN presentation', prompt: 'Create presentation slides for PCN meetings showing social prescribing activity and impact data' },
 ];
 
-// Advanced Nurse Practitioner / ACP prompts (101-125)
+// Clinical Pharmacist prompts (101-120)
+const pharmacistPromptExamples: PromptExample[] = [
+  // Medication Reviews (101-104)
+  { id: 101, category: 'Medication Reviews', useCase: 'Structured medication review', prompt: 'Create a visual checklist for conducting a structured medication review in elderly polypharmacy patients' },
+  { id: 102, category: 'Medication Reviews', useCase: 'Deprescribing guide', prompt: 'Create a patient-friendly leaflet explaining deprescribing and why reducing medications can improve health' },
+  { id: 103, category: 'Medication Reviews', useCase: 'High-risk medication review', prompt: 'Create a quick-reference card for reviewing DOACs, anticonvulsants, and other high-risk medications' },
+  { id: 104, category: 'Medication Reviews', useCase: 'Anticholinergic burden', prompt: 'Create an infographic showing anticholinergic burden scoring with common culprit medications' },
+
+  // Medicines Optimisation (105-108)
+  { id: 105, category: 'Medicines Optimisation', useCase: 'Inhaler technique', prompt: 'Create step-by-step visual guides comparing MDI, DPI, and soft mist inhaler techniques' },
+  { id: 106, category: 'Medicines Optimisation', useCase: 'Statin optimisation', prompt: 'Create a patient handout explaining statin therapy, benefits, and managing common side effects' },
+  { id: 107, category: 'Medicines Optimisation', useCase: 'Diabetes medication guide', prompt: 'Create a comparison chart of oral diabetes medications with key counselling points for each' },
+  { id: 108, category: 'Medicines Optimisation', useCase: 'Pain management pathway', prompt: 'Create a visual pain management stepladder with non-pharmacological and pharmacological options' },
+
+  // Medicines Safety (109-112)
+  { id: 109, category: 'Medicines Safety', useCase: 'Drug interaction alerts', prompt: 'Create a quick-reference poster showing clinically significant drug interactions in primary care' },
+  { id: 110, category: 'Medicines Safety', useCase: 'STOPP/START criteria', prompt: 'Create an infographic summarising key STOPP/START criteria for inappropriate prescribing in older adults' },
+  { id: 111, category: 'Medicines Safety', useCase: 'Monitoring requirements', prompt: 'Create a monitoring schedule chart for shared care medications including bloods and frequency' },
+  { id: 112, category: 'Medicines Safety', useCase: 'AKI sick day rules', prompt: 'Create a patient sick day rules card for medications to temporarily stop during acute illness' },
+
+  // Patient Education (113-116)
+  { id: 113, category: 'Pharmacist Patient Education', useCase: 'New medication counselling', prompt: 'Create a patient information template for starting a new long-term medication' },
+  { id: 114, category: 'Pharmacist Patient Education', useCase: 'Warfarin patient guide', prompt: 'Create a comprehensive warfarin patient guide covering INR, diet interactions, and safety tips' },
+  { id: 115, category: 'Pharmacist Patient Education', useCase: 'DOAC counselling', prompt: 'Create a patient leaflet comparing DOACs with key counselling points for each medication' },
+  { id: 116, category: 'Pharmacist Patient Education', useCase: 'Methotrexate safety', prompt: 'Create a methotrexate patient safety card with dosing reminders and warning signs' },
+
+  // Prescribing Support (117-120)
+  { id: 117, category: 'Prescribing Support', useCase: 'Antibiotic stewardship', prompt: 'Create an antibiotic choice guide aligned with local formulary for common infections' },
+  { id: 118, category: 'Prescribing Support', useCase: 'Repeat prescribing audit', prompt: 'Create an infographic showing repeat prescribing audit findings and quality improvement actions' },
+  { id: 119, category: 'Prescribing Support', useCase: 'Formulary switching guide', prompt: 'Create a quick-reference guide for formulary medication switches with equivalent dosing' },
+  { id: 120, category: 'Prescribing Support', useCase: 'Cost-effective alternatives', prompt: 'Create a comparison chart showing brand vs generic medication costs for common high-cost drugs' },
+];
+
+// Advanced Nurse Practitioner / ACP prompts (121-145)
 const anpPromptExamples: PromptExample[] = [
-  // Minor Illness Management (101-105)
-  { id: 101, category: 'Minor Illness', useCase: 'Sore throat assessment', prompt: 'Create a patient handout explaining FeverPAIN scoring for sore throats and when antibiotics are needed' },
-  { id: 102, category: 'Minor Illness', useCase: 'UTI self-care', prompt: 'Create a patient leaflet on managing uncomplicated UTI symptoms and when to seek further help' },
-  { id: 103, category: 'Minor Illness', useCase: 'Childhood rashes', prompt: 'Create a visual guide helping parents identify common childhood rashes and when to worry' },
-  { id: 104, category: 'Minor Illness', useCase: 'Ear infection advice', prompt: 'Create a patient information leaflet about otitis media management and safety-netting advice' },
-  { id: 105, category: 'Minor Illness', useCase: 'Cough management', prompt: 'Create a handout explaining expected duration of coughs and self-care measures' },
+  // Minor Illness Management (121-125)
+  { id: 121, category: 'Minor Illness', useCase: 'Sore throat assessment', prompt: 'Create a patient handout explaining FeverPAIN scoring for sore throats and when antibiotics are needed' },
+  { id: 122, category: 'Minor Illness', useCase: 'UTI self-care', prompt: 'Create a patient leaflet on managing uncomplicated UTI symptoms and when to seek further help' },
+  { id: 123, category: 'Minor Illness', useCase: 'Childhood rashes', prompt: 'Create a visual guide helping parents identify common childhood rashes and when to worry' },
+  { id: 124, category: 'Minor Illness', useCase: 'Ear infection advice', prompt: 'Create a patient information leaflet about otitis media management and safety-netting advice' },
+  { id: 125, category: 'Minor Illness', useCase: 'Cough management', prompt: 'Create a handout explaining expected duration of coughs and self-care measures' },
 
-  // Chronic Disease Management (106-110)
-  { id: 106, category: 'Chronic Disease', useCase: 'Hypertension monitoring', prompt: 'Create a home blood pressure monitoring diary with instructions for patients' },
-  { id: 107, category: 'Chronic Disease', useCase: 'COPD action plan', prompt: 'Create a personalised COPD action plan template with rescue medication guidance' },
-  { id: 108, category: 'Chronic Disease', useCase: 'Diabetes foot care', prompt: 'Create a patient leaflet on diabetic foot care and daily foot check routine' },
-  { id: 109, category: 'Chronic Disease', useCase: 'Asthma inhaler technique', prompt: 'Create a step-by-step visual guide for correct MDI inhaler technique with spacer' },
-  { id: 110, category: 'Chronic Disease', useCase: 'Heart failure self-management', prompt: 'Create a patient handout on heart failure warning signs and daily weight monitoring' },
+  // Chronic Disease Management (126-130)
+  { id: 126, category: 'Chronic Disease', useCase: 'Hypertension monitoring', prompt: 'Create a home blood pressure monitoring diary with instructions for patients' },
+  { id: 127, category: 'Chronic Disease', useCase: 'COPD action plan', prompt: 'Create a personalised COPD action plan template with rescue medication guidance' },
+  { id: 128, category: 'Chronic Disease', useCase: 'Diabetes foot care', prompt: 'Create a patient leaflet on diabetic foot care and daily foot check routine' },
+  { id: 129, category: 'Chronic Disease', useCase: 'Asthma inhaler technique', prompt: 'Create a step-by-step visual guide for correct MDI inhaler technique with spacer' },
+  { id: 130, category: 'Chronic Disease', useCase: 'Heart failure self-management', prompt: 'Create a patient handout on heart failure warning signs and daily weight monitoring' },
 
-  // Clinical Assessments (111-115)
-  { id: 111, category: 'Clinical Assessments', useCase: 'ABCDE assessment', prompt: 'Create a quick-reference card for systematic ABCDE patient assessment in acute presentations' },
-  { id: 112, category: 'Clinical Assessments', useCase: 'Respiratory examination', prompt: 'Create a visual checklist for comprehensive respiratory examination findings' },
-  { id: 113, category: 'Clinical Assessments', useCase: 'Abdominal assessment', prompt: 'Create a systematic abdominal examination guide with red flag findings' },
-  { id: 114, category: 'Clinical Assessments', useCase: 'Mental state examination', prompt: 'Create a mental state examination prompt card for use in depression and anxiety assessments' },
-  { id: 115, category: 'Clinical Assessments', useCase: 'Falls risk assessment', prompt: 'Create a falls risk assessment checklist for elderly patients' },
+  // Clinical Assessments (131-135)
+  { id: 131, category: 'Clinical Assessments', useCase: 'ABCDE assessment', prompt: 'Create a quick-reference card for systematic ABCDE patient assessment in acute presentations' },
+  { id: 132, category: 'Clinical Assessments', useCase: 'Respiratory examination', prompt: 'Create a visual checklist for comprehensive respiratory examination findings' },
+  { id: 133, category: 'Clinical Assessments', useCase: 'Abdominal assessment', prompt: 'Create a systematic abdominal examination guide with red flag findings' },
+  { id: 134, category: 'Clinical Assessments', useCase: 'Mental state examination', prompt: 'Create a mental state examination prompt card for use in depression and anxiety assessments' },
+  { id: 135, category: 'Clinical Assessments', useCase: 'Falls risk assessment', prompt: 'Create a falls risk assessment checklist for elderly patients' },
 
-  // Prescribing Support (116-119)
-  { id: 116, category: 'ANP Prescribing', useCase: 'Antibiotic choice guide', prompt: 'Create a quick-reference guide for first-line antibiotic choices in common infections' },
-  { id: 117, category: 'ANP Prescribing', useCase: 'Pain ladder', prompt: 'Create a visual WHO pain ladder with medication examples for each step' },
-  { id: 118, category: 'ANP Prescribing', useCase: 'Inhaler formulary', prompt: 'Create an inhaler comparison chart showing device types, costs, and carbon footprint' },
-  { id: 119, category: 'ANP Prescribing', useCase: 'Drug monitoring', prompt: 'Create a reference card for common drug monitoring requirements - bloods, timing, and frequency' },
+  // Prescribing Support (136-139)
+  { id: 136, category: 'ANP Prescribing', useCase: 'Antibiotic choice guide', prompt: 'Create a quick-reference guide for first-line antibiotic choices in common infections' },
+  { id: 137, category: 'ANP Prescribing', useCase: 'Pain ladder', prompt: 'Create a visual WHO pain ladder with medication examples for each step' },
+  { id: 138, category: 'ANP Prescribing', useCase: 'Inhaler formulary', prompt: 'Create an inhaler comparison chart showing device types, costs, and carbon footprint' },
+  { id: 139, category: 'ANP Prescribing', useCase: 'Drug monitoring', prompt: 'Create a reference card for common drug monitoring requirements - bloods, timing, and frequency' },
 
-  // Wound Care & Procedures (120-122)
-  { id: 120, category: 'Wound Care', useCase: 'Wound assessment', prompt: 'Create a wound assessment documentation template using TIME framework' },
-  { id: 121, category: 'Wound Care', useCase: 'Dressing selection', prompt: 'Create a wound dressing selection guide based on wound type and exudate level' },
-  { id: 122, category: 'Wound Care', useCase: 'Leg ulcer pathway', prompt: 'Create a leg ulcer assessment and management pathway including ABPI guidance' },
+  // Wound Care & Procedures (140-142)
+  { id: 140, category: 'Wound Care', useCase: 'Wound assessment', prompt: 'Create a wound assessment documentation template using TIME framework' },
+  { id: 141, category: 'Wound Care', useCase: 'Dressing selection', prompt: 'Create a wound dressing selection guide based on wound type and exudate level' },
+  { id: 142, category: 'Wound Care', useCase: 'Leg ulcer pathway', prompt: 'Create a leg ulcer assessment and management pathway including ABPI guidance' },
 
-  // Professional Development (123-125)
-  { id: 123, category: 'ANP Development', useCase: 'CPD portfolio', prompt: 'Create a CPD reflection template for advanced practice competency development' },
-  { id: 124, category: 'ANP Development', useCase: 'Clinical supervision', prompt: 'Create a clinical supervision session record template for ANP practice' },
-  { id: 125, category: 'ANP Development', useCase: 'Competency framework', prompt: 'Create an infographic showing the four pillars of advanced practice' },
+  // Professional Development (143-145)
+  { id: 143, category: 'ANP Development', useCase: 'CPD portfolio', prompt: 'Create a CPD reflection template for advanced practice competency development' },
+  { id: 144, category: 'ANP Development', useCase: 'Clinical supervision', prompt: 'Create a clinical supervision session record template for ANP practice' },
+  { id: 145, category: 'ANP Development', useCase: 'Competency framework', prompt: 'Create an infographic showing the four pillars of advanced practice' },
 ];
 
 const categoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
@@ -320,6 +353,34 @@ const splwCategoryConfig: Record<string, { icon: React.ReactNode; description: s
   }
 };
 
+const pharmacistCategoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
+  'Medication Reviews': {
+    icon: <ClipboardCheck className="h-5 w-5" />,
+    description: 'Structured medication reviews and deprescribing guidance',
+    colour: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200'
+  },
+  'Medicines Optimisation': {
+    icon: <FlaskConical className="h-5 w-5" />,
+    description: 'Optimising medication efficacy and patient outcomes',
+    colour: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'
+  },
+  'Medicines Safety': {
+    icon: <AlertTriangle className="h-5 w-5" />,
+    description: 'Drug interactions, monitoring, and safety protocols',
+    colour: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+  },
+  'Pharmacist Patient Education': {
+    icon: <MessageCircle className="h-5 w-5" />,
+    description: 'Patient counselling and medication information materials',
+    colour: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200'
+  },
+  'Prescribing Support': {
+    icon: <Scale className="h-5 w-5" />,
+    description: 'Formulary guidance, audits, and prescribing quality',
+    colour: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200'
+  }
+};
+
 const anpCategoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
   'Minor Illness': {
     icon: <Thermometer className="h-5 w-5" />,
@@ -356,8 +417,9 @@ const anpCategoryConfig: Record<string, { icon: React.ReactNode; description: st
 const categories = Object.keys(categoryConfig);
 const gpCategories = Object.keys(gpCategoryConfig);
 const splwCategories = Object.keys(splwCategoryConfig);
+const pharmacistCategories = Object.keys(pharmacistCategoryConfig);
 const anpCategories = Object.keys(anpCategoryConfig);
-const allPrompts = [...promptExamples, ...gpPromptExamples, ...splwPromptExamples, ...anpPromptExamples];
+const allPrompts = [...promptExamples, ...gpPromptExamples, ...splwPromptExamples, ...pharmacistPromptExamples, ...anpPromptExamples];
 
 const AI4GPPromptGuide = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -393,6 +455,16 @@ const AI4GPPromptGuide = () => {
     );
   }, [searchTerm]);
 
+  const filteredPharmacistPrompts = useMemo(() => {
+    if (!searchTerm.trim()) return pharmacistPromptExamples;
+    const term = searchTerm.toLowerCase();
+    return pharmacistPromptExamples.filter(
+      p => p.useCase.toLowerCase().includes(term) || 
+           p.prompt.toLowerCase().includes(term) ||
+           p.category.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
+
   const filteredAnpPrompts = useMemo(() => {
     if (!searchTerm.trim()) return anpPromptExamples;
     const term = searchTerm.toLowerCase();
@@ -404,8 +476,8 @@ const AI4GPPromptGuide = () => {
   }, [searchTerm]);
 
   const filteredAllPrompts = useMemo(() => {
-    return [...filteredStaffPrompts, ...filteredGpPrompts, ...filteredSplwPrompts, ...filteredAnpPrompts];
-  }, [filteredStaffPrompts, filteredGpPrompts, filteredSplwPrompts, filteredAnpPrompts]);
+    return [...filteredStaffPrompts, ...filteredGpPrompts, ...filteredSplwPrompts, ...filteredPharmacistPrompts, ...filteredAnpPrompts];
+  }, [filteredStaffPrompts, filteredGpPrompts, filteredSplwPrompts, filteredPharmacistPrompts, filteredAnpPrompts]);
 
   const promptsByCategory = useMemo(() => {
     return categories.reduce((acc, category) => {
@@ -428,6 +500,13 @@ const AI4GPPromptGuide = () => {
     }, {} as Record<string, PromptExample[]>);
   }, [filteredSplwPrompts]);
 
+  const pharmacistPromptsByCategory = useMemo(() => {
+    return pharmacistCategories.reduce((acc, category) => {
+      acc[category] = filteredPharmacistPrompts.filter(p => p.category === category);
+      return acc;
+    }, {} as Record<string, PromptExample[]>);
+  }, [filteredPharmacistPrompts]);
+
   const anpPromptsByCategory = useMemo(() => {
     return anpCategories.reduce((acc, category) => {
       acc[category] = filteredAnpPrompts.filter(p => p.category === category);
@@ -449,10 +528,10 @@ const AI4GPPromptGuide = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="AI4GP Prompt Guide | 125 Example Prompts for GP Practices | NoteWell AI"
-        description="Comprehensive guide with 125 example prompts for practice staff, GPs, nurse practitioners, and social prescribers - clinical protocols, patient education, and more using AI4GP."
+        title="AI4GP Prompt Guide | 145 Example Prompts for GP Practices | NoteWell AI"
+        description="Comprehensive guide with 145 example prompts for practice staff, GPs, clinical pharmacists, nurse practitioners, and social prescribers - clinical protocols, patient education, and more using AI4GP."
         canonical="https://www.gpnotewell.co.uk/ai4gp-prompts"
-        keywords="AI4GP prompts, GP practice prompts, ANP prompts, nurse practitioner, social prescribing, SPLW prompts, clinical protocols, patient education"
+        keywords="AI4GP prompts, GP practice prompts, clinical pharmacist prompts, ANP prompts, nurse practitioner, social prescribing, SPLW prompts, clinical protocols, patient education"
       />
       
       <header className="border-b bg-card">
@@ -464,7 +543,7 @@ const AI4GPPromptGuide = () => {
             </Link>
             <div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">AI4GP Prompt Guide</h1>
-              <p className="text-sm sm:text-base text-muted-foreground mt-1">125 example prompts for GP practice teams</p>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1">145 example prompts for GP practice teams</p>
             </div>
           </div>
         </div>
@@ -477,7 +556,7 @@ const AI4GPPromptGuide = () => {
             <CardHeader className="pb-3 sm:pb-6">
               <CardTitle id="intro-heading" className="text-lg sm:text-xl">How to Use This Guide</CardTitle>
               <CardDescription className="text-sm">
-                This page contains 125 example prompts organised by role and category - 50 for practice staff, 25 for GPs, 25 for nurse practitioners (ANP/ACP), and 25 for social prescribers. Copy them directly into AI4GP or customise for your needs.
+                This page contains 145 example prompts organised by role and category - 50 for practice staff, 25 for GPs, 25 for social prescribers, 20 for clinical pharmacists, and 25 for nurse practitioners (ANP/ACP). Copy them directly into AI4GP or customise for your needs.
               </CardDescription>
             </CardHeader>
             <CardContent className="prose prose-sm dark:prose-invert max-w-none pt-0">
@@ -844,6 +923,117 @@ const AI4GPPromptGuide = () => {
           </Accordion>
         </section>
 
+        {/* Clinical Pharmacist Categories */}
+        <section aria-labelledby="pharmacist-categories-heading" className="mb-8 sm:mb-12">
+          <h2 id="pharmacist-categories-heading" className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-4">Clinical Pharmacist Use Cases</h2>
+          <p className="text-sm text-muted-foreground mb-4 sm:mb-6">20 prompts for medication reviews, medicines optimisation, safety, and prescribing support</p>
+          
+          <Accordion type="multiple" defaultValue={pharmacistCategories} className="space-y-3 sm:space-y-4">
+            {pharmacistCategories.map((category) => {
+              const config = pharmacistCategoryConfig[category];
+              const categoryPrompts = pharmacistPromptsByCategory[category];
+              
+              if (categoryPrompts.length === 0) return null;
+              
+              return (
+                <AccordionItem 
+                  key={category} 
+                  value={category}
+                  className="border rounded-lg bg-card"
+                >
+                  <AccordionTrigger className="px-3 sm:px-4 py-2 sm:py-3 hover:no-underline">
+                    <div className="flex items-center gap-2 sm:gap-3 text-left w-full">
+                      <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${config.colour}`}>
+                        {config.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-sm sm:text-base">{category}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground font-normal line-clamp-1">{config.description}</p>
+                      </div>
+                      <Badge variant="secondary" className="ml-auto mr-2 sm:mr-4 shrink-0 text-xs">
+                        {categoryPrompts.length}
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-2 sm:px-4 pb-3 sm:pb-4">
+                    {/* Mobile card layout */}
+                    <div className="space-y-3 sm:hidden">
+                      {categoryPrompts.map((example) => (
+                        <div 
+                          key={example.id}
+                          className="bg-muted/30 rounded-lg p-3 space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground">#{example.id}</span>
+                              <h4 className="font-medium text-foreground text-sm">{example.useCase}</h4>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopy(example.prompt, example.id)}
+                              aria-label={`Copy prompt: ${example.useCase}`}
+                              className="h-8 w-8 p-0 shrink-0"
+                            >
+                              {copiedId === example.id ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-sm text-foreground/80">{example.prompt}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Desktop table layout */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full text-sm" role="table">
+                        <caption className="sr-only">{category} prompts</caption>
+                        <thead>
+                          <tr className="border-b">
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-8">#</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-48">Use Case</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground">Example Prompt</th>
+                            <th scope="col" className="text-right py-2 font-medium text-muted-foreground w-20">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {categoryPrompts.map((example) => (
+                            <tr 
+                              key={example.id} 
+                              className="border-b last:border-0 hover:bg-muted/50 transition-colors"
+                            >
+                              <td className="py-3 pr-4 text-muted-foreground">{example.id}</td>
+                              <td className="py-3 pr-4 font-medium text-foreground">{example.useCase}</td>
+                              <td className="py-3 pr-4 text-foreground">{example.prompt}</td>
+                              <td className="py-3 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopy(example.prompt, example.id)}
+                                  aria-label={`Copy prompt: ${example.useCase}`}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  {copiedId === example.id ? (
+                                    <Check className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </section>
+
         {/* Advanced Nurse Practitioner / ACP Categories */}
         <section aria-labelledby="anp-categories-heading" className="mb-8 sm:mb-12">
           <h2 id="anp-categories-heading" className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-4">Advanced Nurse Practitioner (ANP/ACP) Use Cases</h2>
@@ -961,7 +1151,7 @@ const AI4GPPromptGuide = () => {
             <CardHeader className="pb-3 sm:pb-6">
               <CardTitle id="full-list-heading" className="text-lg sm:text-xl">Complete Prompt Reference</CardTitle>
               <CardDescription className="text-sm">
-                All 125 prompts in a single searchable table for quick reference
+                All 145 prompts in a single searchable table for quick reference
               </CardDescription>
             </CardHeader>
             <CardContent>
