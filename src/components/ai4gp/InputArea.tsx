@@ -435,7 +435,7 @@ ${pastedText.trim()}
                         onClick={() => insertPracticeDetails('name-only')}
                       >
                         <span>My Practice Name</span>
-                        <span className="text-xs text-destructive font-normal truncate max-w-full">
+                        <span className="text-xs text-muted-foreground font-normal whitespace-normal break-words">
                           {practiceContext.practiceName}
                         </span>
                       </Button>
@@ -446,7 +446,7 @@ ${pastedText.trim()}
                         onClick={() => insertPracticeDetails('name-email-phone')}
                       >
                         <span>Practice Name, Email & Phone</span>
-                        <span className="text-xs text-destructive font-normal truncate max-w-full">
+                        <span className="text-xs text-muted-foreground font-normal whitespace-normal break-words">
                           {[practiceContext.practiceName, practiceContext.practiceEmail, practiceContext.practicePhone].filter(Boolean).join(', ')}
                         </span>
                       </Button>
@@ -457,8 +457,8 @@ ${pastedText.trim()}
                         onClick={() => insertPracticeDetails('full-details')}
                       >
                         <span>Full Practice Details</span>
-                        <span className="text-xs text-destructive font-normal truncate max-w-full">
-                          {[practiceContext.practiceName, practiceContext.practicePhone, practiceContext.practiceEmail].filter(Boolean).join(', ')}...
+                        <span className="text-xs text-muted-foreground font-normal whitespace-normal break-words">
+                          {[practiceContext.practiceName, practiceContext.practicePhone, practiceContext.practiceEmail, practiceContext.practiceAddress].filter(Boolean).join(', ')}
                         </span>
                       </Button>
                     </>
@@ -471,7 +471,7 @@ ${pastedText.trim()}
                       onClick={() => insertPracticeDetails('my-details')}
                     >
                       <span>My Personal Details</span>
-                      <span className="text-xs text-destructive font-normal truncate max-w-full">
+                      <span className="text-xs text-muted-foreground font-normal whitespace-normal break-words">
                         {[practiceContext.userFullName, practiceContext.userEmail].filter(Boolean).join(', ')}
                       </span>
                     </Button>
