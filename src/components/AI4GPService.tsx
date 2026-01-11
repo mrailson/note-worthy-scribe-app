@@ -123,7 +123,13 @@ const AI4GPService = () => {
   const [previewMeetingId, setPreviewMeetingId] = useState<string | null>(null);
   const [showMeetingPreview, setShowMeetingPreview] = useState(false);
   
-  const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
+  const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>(() => {
+    const saved = localStorage.getItem('ai4gp-selected-role');
+    if (saved === 'gp' || saved === 'practice-manager') {
+      return saved;
+    }
+    return 'gp';
+  });
   const [setDrugNameFn, setSetDrugNameFn] = useState<((drugName: string) => void) | null>(null);
   
   // Sidebar collapsed state - persisted in localStorage, default to collapsed
@@ -335,6 +341,11 @@ const AI4GPService = () => {
   // Determine if GP/Clinical should be hidden (either by setting or ICB member status)
   const isIcbMember = profile?.northamptonshire_icb_active === true;
   const shouldHideGPClinical = hideGPClinical || isIcbMember;
+
+  // Persist role selection to localStorage
+  React.useEffect(() => {
+    localStorage.setItem('ai4gp-selected-role', selectedRole);
+  }, [selectedRole]);
 
   // Force Practice Manager role when GP/Clinical is hidden or user is ICB member
   React.useEffect(() => {
