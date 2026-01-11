@@ -105,12 +105,13 @@ export const useActionItems = (meetingId: string) => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return;
 
-    // Find action items section - look for various heading formats
-    const actionItemsMatch = notes.match(/(?:#{1,3}\s*)?(?:Action Items|Actions|Action Points|Tasks)[\s\S]*?(?=(?:#{1,3}\s+[A-Z])|$)/i);
+    // Find the ACTION ITEMS section specifically - be more precise
+    const actionItemsMatch = notes.match(/#{1,3}\s*(?:ACTION ITEMS|Action Items)\s*\n([\s\S]*?)(?=\n#{1,3}\s+[A-Z]|$)/i);
     if (!actionItemsMatch) return;
 
-    const section = actionItemsMatch[0];
+    const section = actionItemsMatch[1] || actionItemsMatch[0];
     const lines = section.split('\n');
+    const seenTexts = new Set<string>();
     const extractedItems: Array<{ text: string; assignee: string; dueDate: string; priority: 'High' | 'Medium' | 'Low' }> = [];
 
     for (const line of lines) {
@@ -119,27 +120,33 @@ export const useActionItems = (meetingId: string) => {
       if (bulletMatch && bulletMatch[1].trim()) {
         const rawText = bulletMatch[1].trim();
         
-        // Skip header-like lines
-        if (rawText.match(/^(?:Action Items|Actions|Completed|Open)/i)) continue;
+        // Skip header-like lines (bold section headers, titles)
+        if (rawText.match(/^\*\*[^*]+\*\*:?\s*$/)) continue; // Skip **Bold Headers:**
+        if (rawText.match(/^(?:Action Items|Actions|Completed|Open|High Priority|Medium Priority|Low Priority)/i)) continue;
+        if (rawText.length < 10) continue; // Skip very short items
         
         const parsed = parseActionItemText(rawText);
-        if (parsed.actionText.length > 5) { // Avoid very short/empty items
-          extractedItems.push({
-            text: parsed.actionText,
-            assignee: parsed.assignee,
-            dueDate: parsed.dueDate,
-            priority: parsed.priority,
-          });
-        }
+        
+        // Deduplicate by normalized text
+        const normalizedText = parsed.actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
+        if (seenTexts.has(normalizedText)) continue;
+        if (normalizedText.length < 10) continue;
+        
+        seenTexts.add(normalizedText);
+        extractedItems.push({
+          text: parsed.actionText,
+          assignee: parsed.assignee,
+          dueDate: parsed.dueDate,
+          priority: parsed.priority,
+        });
       }
     }
 
-    // Insert all extracted items
-    for (let i = 0; i < extractedItems.length; i++) {
-      const item = extractedItems[i];
-      const newItem = {
+    // Insert all extracted items in a batch
+    if (extractedItems.length > 0) {
+      const itemsToInsert = extractedItems.map((item, i) => ({
         meeting_id: meetingId,
-        user_id: userData.user.id,
+        user_id: userData.user!.id,
         action_text: item.text,
         assignee_name: item.assignee,
         assignee_type: item.assignee === 'TBC' ? 'tbc' : 'custom' as const,
@@ -148,12 +155,10 @@ export const useActionItems = (meetingId: string) => {
         priority: item.priority,
         status: 'Open' as const,
         sort_order: i,
-      };
+      }));
 
-      await supabase.from('meeting_action_items').insert(newItem);
-    }
+      await supabase.from('meeting_action_items').insert(itemsToInsert);
 
-    if (extractedItems.length > 0) {
       // Refetch to get the newly created items
       const { data } = await supabase
         .from('meeting_action_items')
@@ -366,6 +371,36 @@ export const useActionItems = (meetingId: string) => {
     }
   };
 
+  // Clear all action items and re-extract from notes
+  const clearAndReExtract = async (): Promise<void> => {
+    try {
+      setIsLoading(true);
+      
+      // Delete all existing action items for this meeting
+      await supabase
+        .from('meeting_action_items')
+        .delete()
+        .eq('meeting_id', meetingId);
+
+      setActionItems([]);
+      
+      // Fetch the meeting summary to extract action items
+      const { data: summaryData } = await supabase
+        .from('meeting_summaries')
+        .select('summary')
+        .eq('meeting_id', meetingId)
+        .maybeSingle();
+
+      if (summaryData?.summary) {
+        await extractActionItemsFromNotes(summaryData.summary);
+      }
+    } catch (error) {
+      console.error('Error clearing and re-extracting:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const openItemsCount = actionItems.filter(i => i.status !== 'Completed').length;
 
   return {
@@ -378,6 +413,7 @@ export const useActionItems = (meetingId: string) => {
     deleteActionItem,
     toggleStatus,
     reorderActionItems,
+    clearAndReExtract,
     refetch: fetchActionItems,
   };
 };
