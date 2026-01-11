@@ -318,29 +318,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // State to allow user override of long meeting plain text view
   const [forceFancyView, setForceFancyView] = useState(false);
   
-  // Notes view mode: default to 'plain' for large notes to avoid main-thread freezing
-  // User can toggle to 'formatted' for full rendering
+  // Notes view mode: ALWAYS default to 'plain' for instant responsiveness
+  // User can opt into 'formatted' view by clicking the toggle
   const [notesViewMode, setNotesViewMode] = useState<'plain' | 'formatted'>('plain');
 
-  // Reset override when meeting changes
+  // Reset overrides when meeting changes - ALWAYS start with plain view for responsiveness
   useEffect(() => {
     setForceFancyView(false);
-    // Auto-select view mode based on content size:
-    // Default to plain for notes > 10KB to avoid freezing
-    const notesLength = notesStyle3?.length || 0;
-    setNotesViewMode(notesLength > 10000 ? 'plain' : 'formatted');
+    setNotesViewMode('plain'); // Always start plain for instant load
   }, [meeting?.id]);
-  
-  // Update view mode when notesStyle3 changes significantly
-  useEffect(() => {
-    if (!notesStyle3) return;
-    const len = notesStyle3.length;
-    // If notes are very large and we're on formatted, switch to plain
-    if (len > 15000 && notesViewMode === 'formatted') {
-      console.log('📝 Large notes detected, switching to plain view for responsiveness');
-      setNotesViewMode('plain');
-    }
-  }, [notesStyle3]);
 
   // Determine if this is a long meeting (75+ minutes) to skip expensive rendering
   const isLongMeetingRaw = React.useMemo(() => {
@@ -388,8 +374,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [isLongMeeting, meeting?.duration_minutes, meeting?.id]);
 
-  // Generate Minutes (Standard) HTML lazily - only when tab becomes active, with cache
+  // Generate Minutes (Standard) HTML lazily - ONLY when user explicitly selects formatted view
+  // This prevents expensive main-thread rendering from blocking the UI
   useEffect(() => {
+    // CRITICAL: Only run expensive rendering when user explicitly chooses formatted view
+    // Default plain view shows instantly without any processing
+    if (notesViewMode !== 'formatted') {
+      // Clear any pending renders when in plain mode
+      setIsRenderingMinutes(false);
+      return;
+    }
+
     if (activeNotesStyleTab !== 'style1') {
       return;
     }
@@ -441,48 +436,45 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
     }
 
-    // Defer rendering to avoid blocking modal open
-    const deferTimeout = setTimeout(() => {
-      setIsRenderingMinutes(true);
-      
-      // Add a safety timeout to prevent infinite hang
-      const safetyTimeout = setTimeout(() => {
-        console.warn('⚠️ Minutes rendering timed out after 5s, using plain markdown');
-        setMinutesHtml(notesStyle3);
+    // User explicitly requested formatted view - proceed with rendering
+    console.log('🎨 User requested formatted view, starting render...');
+    setIsRenderingMinutes(true);
+    
+    // Add a safety timeout to prevent infinite hang
+    const safetyTimeout = setTimeout(() => {
+      console.warn('⚠️ Minutes rendering timed out after 5s, using plain markdown');
+      setMinutesHtml(notesStyle3);
+      setIsRenderingMinutes(false);
+    }, 5000);
+
+    const id = requestIdleCallback(() => {
+      clearTimeout(safetyTimeout);
+      try {
+        console.log('🎨 Rendering minutes for meeting:', meeting?.id, 'length:', notesStyle3.length);
+        const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
+        setMinutesHtml(html);
+        if (key) localStorage.setItem(key, html);
+        console.log('✅ Minutes rendered successfully');
+      } catch (e) {
+        console.error('❌ Critical error rendering Standard minutes:', e);
+        // Fallback to plain markdown if rendering fails
+        const fallbackHtml = `<div class="p-4 bg-yellow-50 border border-yellow-200 rounded mb-4">
+          <p class="text-yellow-800 text-sm">⚠️ Unable to render formatted minutes. Displaying plain content.</p>
+        </div>
+        <div class="whitespace-pre-wrap">${notesStyle3}</div>`;
+        setMinutesHtml(fallbackHtml);
+        if (key) localStorage.setItem(key, fallbackHtml);
+        toast.error('Formatting error - displaying plain notes');
+      } finally {
         setIsRenderingMinutes(false);
-      }, 5000);
-
-      const id = requestIdleCallback(() => {
-        clearTimeout(safetyTimeout);
-        try {
-          console.log('🎨 Rendering minutes for meeting:', meeting?.id, 'length:', notesStyle3.length);
-          const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
-          setMinutesHtml(html);
-          if (key) localStorage.setItem(key, html);
-          console.log('✅ Minutes rendered successfully');
-        } catch (e) {
-          console.error('❌ Critical error rendering Standard minutes:', e);
-          // Fallback to plain markdown if rendering fails
-          const fallbackHtml = `<div class="p-4 bg-yellow-50 border border-yellow-200 rounded mb-4">
-            <p class="text-yellow-800 text-sm">⚠️ Unable to render formatted minutes. Displaying plain content.</p>
-          </div>
-          <div class="whitespace-pre-wrap">${notesStyle3}</div>`;
-          setMinutesHtml(fallbackHtml);
-          if (key) localStorage.setItem(key, fallbackHtml);
-          toast.error('Formatting error - displaying plain notes');
-        } finally {
-          setIsRenderingMinutes(false);
-        }
-      }, { timeout: 500 }); // Longer timeout for heavy rendering
-      
-      return () => {
-        clearTimeout(safetyTimeout);
-        cancelIdleCallback(id);
-      };
-    }, 300); // Small delay to let modal settle
-
-    return () => clearTimeout(deferTimeout);
-  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded, isLongMeetingRaw, isGeneratingStyle3]);
+      }
+    }, { timeout: 500 }); // Longer timeout for heavy rendering
+    
+    return () => {
+      clearTimeout(safetyTimeout);
+      cancelIdleCallback(id);
+    };
+  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded, isLongMeetingRaw, isGeneratingStyle3, notesViewMode]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
@@ -3855,24 +3847,20 @@ ${transcriptToUse}`;
                                               <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                                             </div>
                                           ) : (isRenderingMinutes && !minutesHtml && notesStyle3?.trim()) ? (
-                                            <div className="flex items-center justify-center min-h-[500px]">
-                                              <div className="flex flex-col items-center gap-4 animate-fade-in">
-                                                <div className="relative">
-                                                  <Sparkles className="h-12 w-12 text-primary animate-pulse" />
-                                                  <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                                                </div>
-                                                <div className="text-center space-y-2">
-                                                  <p className="text-lg font-semibold">Loading Meeting Minutes</p>
-                                                  <div className="flex items-center gap-2">
-                                                    <p className="text-sm text-muted-foreground">Formatting your notes</p>
-                                                    <div className="flex gap-1">
-                                                      <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0s_infinite]"></span>
-                                                      <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.2s_infinite]"></span>
-                                                      <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.4s_infinite]"></span>
-                                                    </div>
-                                                  </div>
-                                                </div>
+                                            /* Show plain text while formatting - keeps UI responsive */
+                                            <div className="space-y-2">
+                                              <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2 flex items-center gap-2">
+                                                <RefreshCw className="h-3 w-3 animate-spin" />
+                                                <span>Formatting notes... Showing plain text preview below.</span>
                                               </div>
+                                              <ScrollArea className="flex-1 rounded border bg-white p-4">
+                                                <pre 
+                                                  className="whitespace-pre-wrap font-nhs text-slate-900 leading-relaxed"
+                                                  style={{ fontSize: `${fontSizeStyle1}px`, lineHeight: `${fontSizeStyle1 * 1.6}px` }}
+                                                >
+                                                  {plainTextPreview || notesStyle3 || "No standard notes are available for this meeting."}
+                                                </pre>
+                                              </ScrollArea>
                                             </div>
                                           ) : (
                                             <>
