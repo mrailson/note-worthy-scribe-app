@@ -28,7 +28,7 @@ export const ContextBanner: React.FC<ContextBannerProps> = ({ onDismiss, classNa
           Tip: Add supporting information for better results
         </p>
         <p className="text-blue-600/80 dark:text-blue-400/80 mt-0.5">
-          Paste or upload clinical notes, letters, or test results to help the AI understand the full context.
+          This is a general assistance tool using NICE CKS and NHS guidance. <span className="font-medium">Do not enter patient identifiable information.</span>
         </p>
         <div className="flex items-center gap-3 mt-2 text-xs text-blue-600/70 dark:text-blue-400/70">
           <span className="flex items-center gap-1">
