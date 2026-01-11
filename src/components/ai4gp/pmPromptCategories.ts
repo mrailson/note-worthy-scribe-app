@@ -36,7 +36,17 @@ import {
   Briefcase,
   Clock,
   Star,
-  Stethoscope
+  Stethoscope,
+  Heart,
+  Share2,
+  QrCode,
+  Newspaper,
+  Building2,
+  Landmark,
+  Network,
+  Handshake,
+  Headphones,
+  Signpost
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -108,6 +118,7 @@ export const mainCategories: MainCategory[] = [
           { id: 'draft-sop', shortTitle: 'SOP', title: 'Draft SOP', description: 'Draft a standard operating procedure', prompt: 'Create a Standard Operating Procedure (SOP) for the following process in our GP practice:' },
           { id: 'draft-job', shortTitle: 'Job Description', title: 'Draft Job Description', description: 'Draft a job description', prompt: 'Draft a professional job description for the following role in our GP practice:' },
           { id: 'draft-proposal', shortTitle: 'Business Case', title: 'Draft Business Case', description: 'Draft a business case', prompt: 'Help me draft a business case proposal for the following initiative:' },
+          { id: 'draft-newsletter', shortTitle: 'Newsletter', title: 'Draft Newsletter', description: 'Draft a practice newsletter', prompt: 'Draft a practice newsletter for patients covering:' },
         ]
       },
       {
@@ -122,6 +133,7 @@ export const mainCategories: MainCategory[] = [
           { id: 'temp-form', shortTitle: 'Form', title: 'Create Form', description: 'Create a form template', prompt: 'Design a form template for collecting the following information:' },
           { id: 'temp-agenda', shortTitle: 'Meeting Agenda', title: 'Create Agenda', description: 'Create a meeting agenda template', prompt: 'Create a structured meeting agenda template for the following type of meeting:' },
           { id: 'temp-action-plan', shortTitle: 'Action Plan', title: 'Create Action Plan', description: 'Create an action plan template', prompt: 'Create an action plan template with SMART objectives for:' },
+          { id: 'temp-induction', shortTitle: 'Induction Pack', title: 'Create Induction Pack', description: 'Create new starter induction', prompt: 'Create a new starter induction checklist covering first day, first week, and first month activities for:' },
         ]
       },
       {
@@ -135,6 +147,20 @@ export const mainCategories: MainCategory[] = [
           { id: 'xl-formula', shortTitle: 'Excel Formula', title: 'Excel Formula Help', description: 'Get help with Excel formulas', prompt: 'Help me create an Excel formula to:' },
           { id: 'xl-analysis', shortTitle: 'Data Analysis', title: 'Analyse Data', description: 'Analyse spreadsheet data', prompt: 'Analyse this spreadsheet data and provide insights on:' },
           { id: 'xl-template', shortTitle: 'Tracker Template', title: 'Create Tracker', description: 'Create a tracking spreadsheet', prompt: 'Help me create a tracking spreadsheet template for:' },
+          { id: 'xl-budget', shortTitle: 'Budget Template', title: 'Budget Spreadsheet', description: 'Create budget template', prompt: 'Create a practice budget summary template with income and expenditure breakdown for:' },
+        ]
+      },
+      {
+        id: 'qr-codes',
+        shortTitle: 'QR Codes',
+        title: 'QR Codes',
+        description: 'Generate QR codes for patient resources',
+        icon: QrCode,
+        gradient: 'from-gray-500 to-gray-600',
+        prompts: [
+          { id: 'qr-website', shortTitle: 'Website', title: 'Website QR Code', description: 'Create website QR code', prompt: 'Create a QR code linking to our practice website' },
+          { id: 'qr-feedback', shortTitle: 'Feedback Form', title: 'Feedback QR Code', description: 'Create feedback QR code', prompt: 'Create a QR code for our online patient feedback form' },
+          { id: 'qr-nhsapp', shortTitle: 'NHS App', title: 'NHS App QR Code', description: 'Create NHS App QR code', prompt: 'Create a QR code linking to the NHS App download page' },
         ]
       },
     ]
@@ -148,18 +174,79 @@ export const mainCategories: MainCategory[] = [
     gradient: 'from-purple-500 to-purple-600',
     subCategories: [
       {
-        id: 'images',
-        shortTitle: 'Images',
-        title: 'Generate Images',
-        description: 'AI-generated images for your practice',
-        icon: Image,
+        id: 'patient-leaflets',
+        shortTitle: 'Leaflets',
+        title: 'Patient Leaflets',
+        description: 'Create patient information leaflets',
+        icon: FileText,
         gradient: 'from-purple-400 to-purple-500',
         prompts: [
-          { id: 'img-poster', shortTitle: 'Health Poster', title: 'Create Health Poster', description: 'Create a health awareness poster', prompt: 'Create a professional NHS-style health awareness poster about:' },
-          { id: 'img-social', shortTitle: 'Social Media', title: 'Create Social Post', description: 'Create social media graphic', prompt: 'Create an engaging social media graphic for our GP practice about:' },
-          { id: 'img-banner', shortTitle: 'Banner', title: 'Create Banner', description: 'Create a banner image', prompt: 'Create a professional banner image for our practice website/display about:' },
-          { id: 'img-infographic', shortTitle: 'Info Visual', title: 'Create Info Visual', description: 'Create an informational visual', prompt: 'Create a visual infographic-style image explaining:' },
-          { id: 'img-seasonal', shortTitle: 'Seasonal', title: 'Seasonal Campaign', description: 'Create seasonal health campaign image', prompt: 'Create a seasonal health campaign image for:' },
+          { id: 'leaf-diabetes', shortTitle: 'Diabetes', title: 'Diabetes Leaflet', description: 'Create diabetes management leaflet', prompt: 'Create a patient leaflet explaining Type 2 diabetes management including diet, exercise, and medication adherence' },
+          { id: 'leaf-wound', shortTitle: 'Wound Care', title: 'Wound Care Leaflet', description: 'Post-operative care leaflet', prompt: 'Create an A4 patient information leaflet for post-minor surgery wound care' },
+          { id: 'leaf-medication', shortTitle: 'Medication', title: 'Medication Leaflet', description: 'Medication side effects leaflet', prompt: 'Create a leaflet explaining common side effects of this medication and when to seek help:' },
+          { id: 'leaf-vaccine', shortTitle: 'Vaccinations', title: 'Vaccination Leaflet', description: 'Childhood vaccination leaflet', prompt: 'Create a parent-friendly leaflet about the childhood vaccination schedule' },
+          { id: 'leaf-mental', shortTitle: 'Mental Health', title: 'Mental Health Leaflet', description: 'Mental health support leaflet', prompt: 'Create a patient leaflet about anxiety management techniques and local support services' },
+        ]
+      },
+      {
+        id: 'social-media',
+        shortTitle: 'Social Media',
+        title: 'Social Media Posts',
+        description: 'Create engaging social content',
+        icon: Share2,
+        gradient: 'from-pink-500 to-pink-600',
+        prompts: [
+          { id: 'social-flu', shortTitle: 'Flu Campaign', title: 'Flu Vaccination Post', description: 'Flu vaccine campaign post', prompt: 'Create a social media image promoting flu vaccinations - book your appointment now' },
+          { id: 'social-hours', shortTitle: 'Extended Hours', title: 'Extended Hours Post', description: 'Announce extended hours', prompt: 'Create a social media post announcing our new Saturday morning appointments' },
+          { id: 'social-mental', shortTitle: 'Mental Health', title: 'Mental Health Week', description: 'Mental health awareness post', prompt: 'Create a social media graphic for Mental Health Awareness Week' },
+          { id: 'social-staff', shortTitle: 'New Staff', title: 'Welcome New Staff', description: 'Welcome new team member', prompt: 'Create a social media welcome post for our new team member:' },
+          { id: 'social-app', shortTitle: 'NHS App', title: 'NHS App Promotion', description: 'Promote NHS App', prompt: 'Create a social media post encouraging patients to use the NHS App for repeat prescriptions' },
+        ]
+      },
+      {
+        id: 'waiting-room',
+        shortTitle: 'Waiting Room',
+        title: 'Waiting Room Displays',
+        description: 'Posters and displays for waiting areas',
+        icon: Image,
+        gradient: 'from-amber-500 to-amber-600',
+        prompts: [
+          { id: 'wait-dna', shortTitle: 'DNA Reminder', title: 'DNA Poster', description: 'Missed appointments poster', prompt: 'Create a waiting room poster about DNA rates and how missed appointments affect others' },
+          { id: 'wait-respect', shortTitle: 'Staff Respect', title: 'Respect Staff Poster', description: 'Staff respect poster', prompt: 'Create a waiting room poster asking patients to be respectful to reception staff' },
+          { id: 'wait-prescription', shortTitle: 'Prescriptions', title: 'Prescription Times', description: 'Prescription turnaround poster', prompt: 'Create a waiting room display explaining prescription turnaround times - 48 hours' },
+          { id: 'wait-selfcare', shortTitle: 'Self-Care', title: 'Self-Care Guidance', description: 'Pharmacy first poster', prompt: 'Create a waiting room poster about self-care for minor illnesses - pharmacy first' },
+          { id: 'wait-services', shortTitle: 'Services', title: 'Practice Services', description: 'Services overview poster', prompt: 'Create a waiting room display listing all services we offer including travel vaccines' },
+          { id: 'wait-ppg', shortTitle: 'PPG', title: 'PPG Recruitment', description: 'PPG recruitment poster', prompt: 'Create a waiting room poster recruiting members for our Patient Participation Group' },
+        ]
+      },
+      {
+        id: 'health-campaigns',
+        shortTitle: 'Campaigns',
+        title: 'Health Campaigns',
+        description: 'Seasonal and awareness campaigns',
+        icon: Heart,
+        gradient: 'from-red-500 to-red-600',
+        prompts: [
+          { id: 'camp-bp', shortTitle: 'Blood Pressure', title: 'BP Awareness', description: 'Blood pressure campaign', prompt: 'Create a health campaign poster for Know Your Numbers blood pressure week' },
+          { id: 'camp-cervical', shortTitle: 'Cervical Screening', title: 'Smear Test Campaign', description: 'Cervical screening campaign', prompt: 'Create a cervical screening awareness campaign image - book your smear test' },
+          { id: 'camp-bowel', shortTitle: 'Bowel Cancer', title: 'FIT Test Campaign', description: 'Bowel cancer screening', prompt: 'Create a campaign poster encouraging patients to complete their FIT test' },
+          { id: 'camp-health-check', shortTitle: 'NHS Health Check', title: 'Health Check Campaign', description: 'NHS Health Checks poster', prompt: 'Create a campaign poster for our free NHS Health Checks for patients aged 40-74' },
+          { id: 'camp-smoking', shortTitle: 'Stoptober', title: 'Stop Smoking', description: 'Smoking cessation campaign', prompt: 'Create a Stoptober campaign poster with local quit smoking support details' },
+        ]
+      },
+      {
+        id: 'infographics',
+        shortTitle: 'Infographics',
+        title: 'Data Infographics',
+        description: 'Transform data into visual summaries',
+        icon: LayoutPanelTop,
+        gradient: 'from-teal-500 to-teal-600',
+        prompts: [
+          { id: 'info-qof', shortTitle: 'QOF Performance', title: 'QOF Infographic', description: 'QOF achievement rates', prompt: 'Create an infographic showing our QOF achievement rates for the past year' },
+          { id: 'info-fft', shortTitle: 'Patient Survey', title: 'FFT Results', description: 'Friends and Family results', prompt: 'Create an infographic summarising our Friends and Family Test results' },
+          { id: 'info-appointments', shortTitle: 'Appointments', title: 'Appointment Stats', description: 'Appointment statistics', prompt: 'Create an infographic showing our appointment availability and DNA rates' },
+          { id: 'info-demographics', shortTitle: 'Demographics', title: 'Patient Demographics', description: 'Practice demographics', prompt: 'Create an infographic showing our patient population demographics' },
+          { id: 'info-referral', shortTitle: 'Referral Pathway', title: 'Cancer Pathway', description: '2-week wait pathway', prompt: 'Create an infographic showing the 2-week wait cancer referral pathway' },
         ]
       },
       {
@@ -168,40 +255,13 @@ export const mainCategories: MainCategory[] = [
         title: 'Create Presentations',
         description: 'Build PowerPoint presentations',
         icon: Presentation,
-        gradient: 'from-amber-500 to-amber-600',
+        gradient: 'from-orange-500 to-orange-600',
         prompts: [
           { id: 'ppt-training', shortTitle: 'Training', title: 'Training Presentation', description: 'Create training slides', prompt: 'Create a training presentation for practice staff on:' },
           { id: 'ppt-meeting', shortTitle: 'Meeting', title: 'Meeting Presentation', description: 'Create meeting slides', prompt: 'Create a presentation for our practice meeting covering:' },
           { id: 'ppt-patient', shortTitle: 'Patient Ed', title: 'Patient Education', description: 'Create patient education slides', prompt: 'Create a patient education presentation about:' },
           { id: 'ppt-business', shortTitle: 'Business Case', title: 'Business Presentation', description: 'Create business case slides', prompt: 'Create a business case presentation for:' },
-        ]
-      },
-      {
-        id: 'infographics',
-        shortTitle: 'Infographics',
-        title: 'Create Infographics',
-        description: 'Transform data into visual summaries',
-        icon: LayoutPanelTop,
-        gradient: 'from-teal-500 to-teal-600',
-        prompts: [
-          { id: 'info-data', shortTitle: 'Data Summary', title: 'Data Infographic', description: 'Create data visualisation', prompt: 'Create an infographic summarising this data in a visually engaging way:' },
-          { id: 'info-process', shortTitle: 'Process Flow', title: 'Process Infographic', description: 'Create process flow visual', prompt: 'Create an infographic showing the steps in this process:' },
-          { id: 'info-comparison', shortTitle: 'Comparison', title: 'Comparison Visual', description: 'Create comparison infographic', prompt: 'Create a comparison infographic showing the differences between:' },
-          { id: 'info-timeline', shortTitle: 'Timeline', title: 'Timeline Visual', description: 'Create timeline infographic', prompt: 'Create a timeline infographic for:' },
-        ]
-      },
-      {
-        id: 'posters',
-        shortTitle: 'Posters',
-        title: 'Design Posters',
-        description: 'Professional posters for display',
-        icon: Palette,
-        gradient: 'from-pink-500 to-pink-600',
-        prompts: [
-          { id: 'post-waiting', shortTitle: 'Waiting Room', title: 'Waiting Room Poster', description: 'Create waiting room display', prompt: 'Create a professional poster for our waiting room about:' },
-          { id: 'post-staff', shortTitle: 'Staff Notice', title: 'Staff Notice', description: 'Create staff notice poster', prompt: 'Create a staff notice poster for our practice about:' },
-          { id: 'post-campaign', shortTitle: 'Campaign', title: 'Health Campaign', description: 'Create health campaign poster', prompt: 'Create a health campaign poster promoting:' },
-          { id: 'post-info', shortTitle: 'Information', title: 'Information Poster', description: 'Create information poster', prompt: 'Create an informational poster explaining:' },
+          { id: 'ppt-pcn', shortTitle: 'PCN Meeting', title: 'PCN Presentation', description: 'PCN meeting slides', prompt: 'Create presentation slides for PCN meetings showing:' },
         ]
       },
     ]
@@ -292,6 +352,7 @@ export const mainCategories: MainCategory[] = [
           { id: 'rec-questions', shortTitle: 'Interview Q\'s', title: 'Interview Questions', description: 'Generate interview questions', prompt: 'Generate competency-based interview questions for the role of:' },
           { id: 'rec-onboard', shortTitle: 'Onboarding', title: 'Onboarding Plan', description: 'Create onboarding checklist', prompt: 'Create a comprehensive onboarding checklist for a new:' },
           { id: 'rec-offer', shortTitle: 'Offer Letter', title: 'Offer Letter', description: 'Draft offer letter', prompt: 'Draft a professional offer letter for:' },
+          { id: 'rec-person-spec', shortTitle: 'Person Spec', title: 'Person Specification', description: 'Create person specification', prompt: 'Create a person specification for the role of:' },
         ]
       },
       {
@@ -306,6 +367,7 @@ export const mainCategories: MainCategory[] = [
           { id: 'train-plan', shortTitle: 'Training Plan', title: 'Training Plan', description: 'Create training plan', prompt: 'Create a training plan for staff on:' },
           { id: 'train-material', shortTitle: 'Materials', title: 'Training Materials', description: 'Create training materials', prompt: 'Create training materials covering:' },
           { id: 'train-assess', shortTitle: 'Assessment', title: 'Competency Assessment', description: 'Create competency assessment', prompt: 'Create a competency assessment for:' },
+          { id: 'train-calendar', shortTitle: 'Training Calendar', title: 'Training Calendar', description: 'Create training calendar', prompt: 'Create a quarterly training calendar for mandatory training sessions' },
         ]
       },
       {
@@ -319,6 +381,7 @@ export const mainCategories: MainCategory[] = [
           { id: 'rota-template', shortTitle: 'Rota Template', title: 'Create Rota Template', description: 'Create rota template', prompt: 'Help me create a rota template for:' },
           { id: 'rota-cover', shortTitle: 'Cover Request', title: 'Cover Request', description: 'Draft cover request', prompt: 'Draft a cover request email for:' },
           { id: 'rota-leave', shortTitle: 'Leave Policy', title: 'Leave Policy', description: 'Draft leave policy', prompt: 'Help me draft an annual leave policy including:' },
+          { id: 'rota-bank-holiday', shortTitle: 'Bank Holidays', title: 'Bank Holiday Schedule', description: 'Bank holiday opening hours', prompt: 'Create a calendar showing practice opening hours over Christmas and New Year' },
         ]
       },
       {
@@ -333,6 +396,22 @@ export const mainCategories: MainCategory[] = [
           { id: 'hr-appraisal', shortTitle: 'Appraisal', title: 'Appraisal Template', description: 'Create appraisal template', prompt: 'Create an appraisal template for:' },
           { id: 'hr-disciplinary', shortTitle: 'Disciplinary', title: 'Disciplinary Process', description: 'Draft disciplinary policy', prompt: 'Outline the disciplinary process for:' },
           { id: 'hr-wellbeing', shortTitle: 'Wellbeing', title: 'Staff Wellbeing', description: 'Create wellbeing initiative', prompt: 'Create a staff wellbeing initiative plan for:' },
+          { id: 'hr-eap', shortTitle: 'EAP Poster', title: 'EAP Promotion', description: 'EAP wellbeing poster', prompt: 'Create a staff wellbeing poster promoting the Employee Assistance Programme' },
+        ]
+      },
+      {
+        id: 'reception',
+        shortTitle: 'Reception',
+        title: 'Reception Team',
+        description: 'Scripts and guides for front desk',
+        icon: Headphones,
+        gradient: 'from-pink-500 to-pink-600',
+        prompts: [
+          { id: 'rec-appt-guide', shortTitle: 'Appointment Guide', title: 'Booking Guide', description: 'Appointment types guide', prompt: 'Create a quick-reference guide for reception showing all appointment types, durations, and booking criteria' },
+          { id: 'rec-scripts', shortTitle: 'Phone Scripts', title: 'Telephone Scripts', description: 'Common query scripts', prompt: 'Create telephone scripts for handling common patient queries - results, prescriptions, referrals' },
+          { id: 'rec-triage', shortTitle: 'Triage Questions', title: 'Triage Protocol', description: 'Appointment triage', prompt: 'Create a reception desk poster showing appointment triage questions and escalation criteria' },
+          { id: 'rec-difficult', shortTitle: 'Difficult Callers', title: 'Difficult Conversations', description: 'Managing difficult calls', prompt: 'Create guidance for handling difficult or aggressive callers at reception' },
+          { id: 'rec-signpost', shortTitle: 'Signposting', title: 'Pharmacy First Guide', description: 'Signposting to pharmacy', prompt: 'Create a reception signposting guide for Pharmacy First conditions' },
         ]
       },
     ]
@@ -532,6 +611,21 @@ export const mainCategories: MainCategory[] = [
           { id: 'nhs-latest', shortTitle: 'Latest Updates', title: 'Latest NHS Updates', description: 'Find latest NHS updates', prompt: 'Find the latest NHS guidance on:' },
           { id: 'nhs-nice', shortTitle: 'NICE Guidelines', title: 'NICE Guidelines', description: 'Search NICE guidelines', prompt: 'Find NICE guidelines for:' },
           { id: 'nhs-contractual', shortTitle: 'Contract Terms', title: 'Contractual Requirements', description: 'Find contract requirements', prompt: 'What are the contractual requirements for:' },
+          { id: 'nhs-contract-compare', shortTitle: 'Contract Comparison', title: 'GMS/PMS Comparison', description: 'Compare contracts', prompt: 'Create a comparison table of GMS, PMS, and APMS contracts highlighting key differences and requirements' },
+        ]
+      },
+      {
+        id: 'pcn',
+        shortTitle: 'PCN',
+        title: 'PCN & DES',
+        description: 'PCN requirements and specifications',
+        icon: Network,
+        gradient: 'from-purple-500 to-purple-600',
+        prompts: [
+          { id: 'pcn-des', shortTitle: 'DES Summary', title: 'PCN DES Requirements', description: 'PCN DES requirements', prompt: 'Create an infographic summarising PCN DES requirements and service specifications for 2025/26' },
+          { id: 'pcn-iif', shortTitle: 'IIF Tracker', title: 'IIF Performance', description: 'IIF indicator tracking', prompt: 'Create an IIF indicator dashboard showing performance across all PCN practices with RAG ratings' },
+          { id: 'pcn-arrs', shortTitle: 'ARRS Roles', title: 'ARRS Business Case', description: 'ARRS recruitment case', prompt: 'Create a business case template for recruiting additional ARRS roles within PCN funding allocation' },
+          { id: 'pcn-governance', shortTitle: 'PCN Governance', title: 'Board Agenda', description: 'PCN board meeting', prompt: 'Create a PCN Clinical Director board meeting agenda template with standard governance items' },
         ]
       },
       {
@@ -545,6 +639,7 @@ export const mainCategories: MainCategory[] = [
           { id: 'reg-cqc', shortTitle: 'CQC Regs', title: 'CQC Regulations', description: 'Find CQC regulations', prompt: 'What are the CQC requirements for:' },
           { id: 'reg-gdpr', shortTitle: 'GDPR/IG', title: 'Data Protection', description: 'Find GDPR guidance', prompt: 'What are the GDPR/data protection requirements for:' },
           { id: 'reg-employment', shortTitle: 'Employment', title: 'Employment Law', description: 'Find employment regulations', prompt: 'What are the employment law requirements for:' },
+          { id: 'reg-sar', shortTitle: 'SAR Requests', title: 'Subject Access', description: 'SAR handling guide', prompt: 'Create a staff guide for handling Subject Access Requests under GDPR with timelines and process' },
         ]
       },
       {
@@ -558,6 +653,7 @@ export const mainCategories: MainCategory[] = [
           { id: 'how-process', shortTitle: 'Process', title: 'Process Guide', description: 'Explain a process', prompt: 'Explain step-by-step how to:' },
           { id: 'how-best', shortTitle: 'Best Practice', title: 'Best Practice', description: 'Find best practice', prompt: 'What is the best practice for:' },
           { id: 'how-implement', shortTitle: 'Implementation', title: 'Implementation Guide', description: 'Implementation steps', prompt: 'How should we implement:' },
+          { id: 'how-continuity', shortTitle: 'Business Continuity', title: 'BCP Template', description: 'Business continuity plan', prompt: 'Create a business continuity plan template for GP practices covering IT failure, staff absence, and premises issues' },
         ]
       },
     ]
