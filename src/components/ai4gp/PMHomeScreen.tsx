@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { mainCategories, type MainCategory, type SubCategory, type PromptItem } from './pmPromptCategories';
+import { QuickTipsHover } from './QuickTipsHover';
 
 interface PMHomeScreenProps {
   setInput: (text: string) => void;
@@ -193,20 +194,21 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
               </div>
             </TooltipProvider>
 
-            <div className="flex justify-center pt-2">
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <QuickTipsHover />
               <a
                 href="/ai4gp-prompts"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  "inline-flex items-center gap-2 px-4 py-2",
+                  "inline-flex items-center gap-2 px-3 py-1.5",
                   "text-sm text-muted-foreground hover:text-primary",
                   "border border-border rounded-lg hover:border-primary/50 hover:bg-accent/30",
                   "transition-all duration-150"
                 )}
               >
                 <Lightbulb className="w-4 h-4" />
-                <span>150+ Prompt Ideas</span>
+                <span>150+ Prompts</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>

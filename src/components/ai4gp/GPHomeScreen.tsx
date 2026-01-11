@@ -19,7 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-
+import { QuickTipsHover } from './QuickTipsHover';
 interface GPHomeScreenProps {
   setInput: (text: string) => void;
   focusInput?: () => void;
@@ -199,21 +199,22 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
           </div>
         </TooltipProvider>
 
-        {/* Prompt Guide Link */}
-        <div className="flex justify-center pt-2">
+        {/* Quick Tips & Prompt Guide Links */}
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <QuickTipsHover />
           <a
             href="/ai4gp-prompts"
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              "inline-flex items-center gap-2 px-4 py-2",
+              "inline-flex items-center gap-2 px-3 py-1.5",
               "text-sm text-muted-foreground hover:text-primary",
               "border border-border rounded-lg hover:border-primary/50 hover:bg-accent/30",
               "transition-all duration-150"
             )}
           >
             <Lightbulb className="w-4 h-4" />
-            <span>290 Prompt Ideas</span>
+            <span>290 Prompts</span>
             <ExternalLink className="w-3 h-3" />
           </a>
         </div>
