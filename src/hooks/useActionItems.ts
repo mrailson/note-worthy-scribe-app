@@ -105,45 +105,79 @@ export const useActionItems = (meetingId: string) => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return;
 
-    // Find the ACTION ITEMS section specifically - be more precise
-    const actionItemsMatch = notes.match(/#{1,3}\s*(?:ACTION ITEMS|Action Items)\s*\n([\s\S]*?)(?=\n#{1,3}\s+[A-Z]|$)/i);
-    if (!actionItemsMatch) return;
-
-    const section = actionItemsMatch[1] || actionItemsMatch[0];
-    const lines = section.split('\n');
     const seenTexts = new Set<string>();
     const extractedItems: Array<{ text: string; assignee: string; dueDate: string; priority: 'High' | 'Medium' | 'Low' }> = [];
 
-    for (const line of lines) {
-      // Match bullet points: -, *, •, numbered lists
-      const bulletMatch = line.match(/^\s*(?:[-*•]|\d+\.)\s+(.+)/);
-      if (bulletMatch && bulletMatch[1].trim()) {
-        const rawText = bulletMatch[1].trim();
-        
-        // Skip header-like lines (bold section headers, titles)
-        if (rawText.match(/^\*\*[^*]+\*\*:?\s*$/)) continue; // Skip **Bold Headers:**
-        if (rawText.match(/^(?:Action Items|Actions|Completed|Open|High Priority|Medium Priority|Low Priority)/i)) continue;
-        if (rawText.length < 10) continue; // Skip very short items
-        
-        const parsed = parseActionItemText(rawText);
-        
-        // Deduplicate by normalized text
-        const normalizedText = parsed.actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
-        if (seenTexts.has(normalizedText)) continue;
-        if (normalizedText.length < 10) continue;
-        
-        seenTexts.add(normalizedText);
-        extractedItems.push({
-          text: parsed.actionText,
-          assignee: parsed.assignee,
-          dueDate: parsed.dueDate,
-          priority: parsed.priority,
-        });
+    // Method 1: Parse markdown TABLE format (| Action | Responsible Party | Deadline | Priority |)
+    const tableMatch = notes.match(/# ACTION ITEMS\s*\n\|[^\n]+\|\s*\n\|[-|\s]+\|\s*\n([\s\S]*?)(?=\n#|\n\n#|$)/i);
+    if (tableMatch && tableMatch[1]) {
+      const tableRows = tableMatch[1].split('\n').filter(line => line.trim().startsWith('|'));
+      
+      for (const row of tableRows) {
+        // Parse table row: | Action Text | Assignee | Deadline | Priority |
+        const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
+        if (cells.length >= 4) {
+          const [actionText, assignee, deadline, priority] = cells;
+          
+          // Skip if action text is too short or is a header
+          if (actionText.length < 10 || actionText.match(/^Action$/i)) continue;
+          
+          // Normalize and dedupe
+          const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
+          if (seenTexts.has(normalizedText)) continue;
+          seenTexts.add(normalizedText);
+          
+          extractedItems.push({
+            text: actionText,
+            assignee: assignee || 'TBC',
+            dueDate: deadline || 'TBC',
+            priority: (priority?.match(/High|Medium|Low/i)?.[0] as 'High' | 'Medium' | 'Low') || 'Medium',
+          });
+        }
+      }
+    }
+
+    // Method 2: Parse bullet point format (fallback if no table found)
+    if (extractedItems.length === 0) {
+      const bulletMatch = notes.match(/#{1,3}\s*(?:ACTION ITEMS|Action Items)\s*\n([\s\S]*?)(?=\n#{1,3}\s+[A-Z]|$)/i);
+      if (bulletMatch) {
+        const section = bulletMatch[1] || bulletMatch[0];
+        const lines = section.split('\n');
+
+        for (const line of lines) {
+          // Match bullet points: -, *, •, numbered lists
+          const match = line.match(/^\s*(?:[-*•]|\d+\.)\s+(.+)/);
+          if (match && match[1].trim()) {
+            const rawText = match[1].trim();
+            
+            // Skip header-like lines (bold section headers, titles)
+            if (rawText.match(/^\*\*[^*]+\*\*:?\s*$/)) continue;
+            if (rawText.match(/^(?:Action Items|Actions|Completed|Open|High Priority|Medium Priority|Low Priority)/i)) continue;
+            if (rawText.length < 10) continue;
+            
+            const parsed = parseActionItemText(rawText);
+            
+            // Deduplicate by normalized text
+            const normalizedText = parsed.actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
+            if (seenTexts.has(normalizedText)) continue;
+            if (normalizedText.length < 10) continue;
+            
+            seenTexts.add(normalizedText);
+            extractedItems.push({
+              text: parsed.actionText,
+              assignee: parsed.assignee,
+              dueDate: parsed.dueDate,
+              priority: parsed.priority,
+            });
+          }
+        }
       }
     }
 
     // Insert all extracted items in a batch
     if (extractedItems.length > 0) {
+      console.log(`Extracted ${extractedItems.length} action items from notes`);
+      
       const itemsToInsert = extractedItems.map((item, i) => ({
         meeting_id: meetingId,
         user_id: userData.user!.id,
@@ -167,6 +201,8 @@ export const useActionItems = (meetingId: string) => {
         .order('sort_order', { ascending: true });
       
       setActionItems((data as ActionItem[]) || []);
+    } else {
+      console.log('No action items found in notes');
     }
   };
 
