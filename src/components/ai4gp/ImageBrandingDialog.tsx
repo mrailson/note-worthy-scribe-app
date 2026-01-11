@@ -12,8 +12,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { PracticeContext } from '@/types/ai4gp';
-import { Image, Building2, Phone, Mail, Globe, MapPin, Network, ChevronDown, ChevronUp } from 'lucide-react';
+import { Image, Building2, Phone, Mail, Globe, MapPin, Network, ChevronDown, ChevronUp, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type BrandingLevel = 'none' | 'name-only' | 'name-contact' | 'full' | 'custom';
@@ -31,9 +32,11 @@ interface ImageBrandingDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   practiceContext: PracticeContext | null;
-  onConfirm: (brandingLevel: BrandingLevel, customBranding: CustomBrandingOptions) => void;
+  onConfirm: (brandingLevel: BrandingLevel, customBranding: CustomBrandingOptions, includeLogo: boolean) => void;
   onCancel: () => void;
   requestType: string;
+  includePracticeLogo: boolean;
+  onLogoToggleChange: (include: boolean) => void;
 }
 
 const DEFAULT_CUSTOM_OPTIONS: CustomBrandingOptions = {
@@ -52,10 +55,13 @@ export const ImageBrandingDialog: React.FC<ImageBrandingDialogProps> = ({
   onConfirm,
   onCancel,
   requestType,
+  includePracticeLogo,
+  onLogoToggleChange,
 }) => {
   const [brandingLevel, setBrandingLevel] = useState<BrandingLevel>('name-contact');
   const [customBranding, setCustomBranding] = useState<CustomBrandingOptions>(DEFAULT_CUSTOM_OPTIONS);
   const [showCustomOptions, setShowCustomOptions] = useState(false);
+  const [logoImageError, setLogoImageError] = useState(false);
 
   // Reset to sensible defaults when dialog opens
   useEffect(() => {
@@ -63,6 +69,7 @@ export const ImageBrandingDialog: React.FC<ImageBrandingDialogProps> = ({
       setBrandingLevel('name-contact');
       setCustomBranding(DEFAULT_CUSTOM_OPTIONS);
       setShowCustomOptions(false);
+      setLogoImageError(false);
     }
   }, [open]);
 
@@ -134,8 +141,11 @@ export const ImageBrandingDialog: React.FC<ImageBrandingDialogProps> = ({
   };
 
   const handleConfirm = () => {
-    onConfirm(brandingLevel, customBranding);
+    onConfirm(brandingLevel, customBranding, includePracticeLogo);
   };
+
+  // Check if logo is available and valid
+  const isLogoAvailable = !!practiceContext?.logoUrl && !logoImageError;
 
   const handleCancel = () => {
     onCancel();
@@ -172,6 +182,54 @@ export const ImageBrandingDialog: React.FC<ImageBrandingDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Standalone Logo Toggle Section */}
+          <div className={cn(
+            "rounded-lg border-2 p-4 space-y-3 transition-colors",
+            isLogoAvailable 
+              ? "border-primary/30 bg-primary/5" 
+              : "border-dashed border-muted-foreground/30 bg-muted/30"
+          )}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ImageIcon className={cn(
+                  "h-5 w-5",
+                  isLogoAvailable ? "text-primary" : "text-muted-foreground"
+                )} />
+                <div>
+                  <p className="font-medium">Include Practice Logo</p>
+                  <p className="text-sm text-muted-foreground">
+                    {isLogoAvailable 
+                      ? "Add your logo to the generated image" 
+                      : "No logo uploaded in My Profile settings"
+                    }
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={includePracticeLogo && isLogoAvailable}
+                onCheckedChange={onLogoToggleChange}
+                disabled={!isLogoAvailable}
+              />
+            </div>
+            
+            {/* Logo Preview when enabled and available */}
+            {includePracticeLogo && isLogoAvailable && practiceContext?.logoUrl && (
+              <div className="flex items-center gap-3 pt-3 border-t border-primary/20">
+                <span className="text-sm text-muted-foreground">Logo preview:</span>
+                <div className="relative">
+                  <img 
+                    src={practiceContext.logoUrl} 
+                    alt="Practice Logo" 
+                    className="h-12 max-w-[150px] object-contain border rounded-md bg-white p-1.5 shadow-sm"
+                    onError={() => setLogoImageError(true)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
           <RadioGroup
             value={brandingLevel}
             onValueChange={(v) => handleBrandingLevelChange(v as BrandingLevel)}
