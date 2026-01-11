@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { mainCategories, type MainCategory, type SubCategory, type PromptItem } from './pmPromptCategories';
+import { ContextBanner } from './ContextBanner';
 
 interface PMHomeScreenProps {
   setInput: (text: string) => void;
@@ -28,6 +29,7 @@ type ActiveView =
 export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const [activeView, setActiveView] = useState<ActiveView>({ type: 'main' });
+  const [showBanner, setShowBanner] = useState(true);
 
   const enhancePrompt = (prompt: string) => {
     if (!prompt) return prompt;
@@ -210,6 +212,13 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
+
+            {/* Context Banner - positioned below buttons, above input */}
+            {showBanner && (
+              <div className="w-full max-w-3xl mx-auto pt-4">
+                <ContextBanner onDismiss={() => setShowBanner(false)} />
+              </div>
+            )}
           </>
         ) : activeView.type === 'subcategories' ? (
           <div className="space-y-3 max-w-2xl mx-auto">
