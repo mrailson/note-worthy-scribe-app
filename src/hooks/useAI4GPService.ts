@@ -5,10 +5,11 @@ import { toast } from 'sonner';
 import { Message, UploadedFile, SearchHistory, GeneratedImage, GeneratedPresentation } from '@/types/ai4gp';
 import { useDisplayPreferences } from './useDisplayPreferences';
 import { prepareMessagesForAPI, getMemoryStats } from '@/utils/conversationMemory';
-import { detectImageRequest, extractImageContext, isReferringToPreviousContent } from '@/utils/imageRequestDetection';
+import { detectImageRequest, extractImageContext, isReferringToPreviousContent, ImageRequestDetection } from '@/utils/imageRequestDetection';
 import { detectVoiceRequest } from '@/utils/voiceRequestDetection';
 import { detectPowerPointRequest, getPresentationTypeDisplayName } from '@/utils/powerpointRequestDetection';
 import { VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
+import { BrandingLevel, CustomBrandingOptions } from '@/components/ai4gp/ImageBrandingDialog';
 
 export const useAI4GPService = () => {
   const { user } = useAuth();
@@ -29,6 +30,19 @@ export const useAI4GPService = () => {
   const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
   const [chatHistoryRetentionDays, setChatHistoryRetentionDays] = useState(30);
   const [hideGPClinical, setHideGPClinical] = useState(false);
+  
+  // Image branding dialog state
+  const [showBrandingDialog, setShowBrandingDialog] = useState(false);
+  const [pendingImageRequest, setPendingImageRequest] = useState<{
+    message: string;
+    imageDetection: ImageRequestDetection;
+    assistantMessageId: string;
+    startTime: number;
+    userMessage: Message;
+    newMessages: Message[];
+    documentContent?: string;
+    isVisualFromDocRequest: boolean;
+  } | null>(null);
   
   // Display Settings - now managed by useDisplayPreferences
   const {
@@ -509,95 +523,32 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           documentFilesCount: uploadedFiles.length
         });
         
-        // Extract context from previous messages - always include for better image generation
-        const conversationContext = extractImageContext(
-          imageDetection.imagePrompt || messageToUse,
-          messages.map(m => ({ role: m.role, content: m.content }))
-        );
-        
         // For visual types with document files, extract document content
         const documentContent = isVisualFromDocRequest && uploadedFiles.length > 0
           ? uploadedFiles.map(f => `## ${f.name}\n${f.content.substring(0, 8000)}`).join('\n\n')
           : undefined;
         
-        // Update message to show image generation in progress
+        // Store pending request and show branding dialog
+        setPendingImageRequest({
+          message: messageToUse,
+          imageDetection,
+          assistantMessageId,
+          startTime,
+          userMessage,
+          newMessages,
+          documentContent,
+          isVisualFromDocRequest
+        });
+        setShowBrandingDialog(true);
+        
+        // Update message to show waiting for branding selection
         setMessages(prev => prev.map(msg => 
           msg.id === assistantMessageId 
-            ? { ...msg, content: '🎨 Generating visual representation...', isStreaming: true }
+            ? { ...msg, content: '🎨 Waiting for branding options...', isStreaming: true }
             : msg
         ));
         
-        try {
-          const { data, error } = await supabase.functions.invoke('ai4gp-image-generation', {
-            body: {
-              prompt: messageToUse,
-              conversationContext,
-              documentContent,
-              practiceContext: {
-                practiceName: practiceContext?.practiceName,
-                pcnName: practiceContext?.pcnName,
-                organisationType: practiceContext?.organisationType,
-                practiceAddress: practiceContext?.practiceAddress,
-                practicePhone: practiceContext?.practicePhone,
-                practiceEmail: practiceContext?.practiceEmail,
-                practiceWebsite: practiceContext?.practiceWebsite,
-                logoUrl: practiceContext?.logoUrl
-              },
-              requestType: imageDetection.requestType
-            }
-          });
-          
-          if (error) {
-            console.error('Image generation error:', error);
-            throw new Error(error.message || 'Image generation failed');
-          }
-          
-          if (!data.success) {
-            throw new Error(data.error || 'Image generation failed');
-          }
-          
-          const endTime = Date.now();
-          const responseTime = endTime - startTime;
-          
-          // Create message with generated image
-          const imageMessage: Message = {
-            ...assistantMessage,
-            content: data.textResponse,
-            isStreaming: false,
-            responseTime,
-            model: 'Gemini 3',
-            generatedImages: [data.image as GeneratedImage]
-          };
-          
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId ? imageMessage : msg
-          ));
-          
-          // Auto-save the search
-          setTimeout(async () => {
-            const finalMessages = [...newMessages, imageMessage];
-            await saveSearchAutomatically(finalMessages);
-          }, 100);
-          
-          setIsLoading(false);
-          toast.success('Image generated successfully!');
-          return;
-          
-        } catch (imageError: any) {
-          console.error('Image generation failed:', imageError);
-          
-          // Fall back to regular AI response with explanation
-          const fallbackMessage = `I wasn't able to generate an image for that request. ${imageError.message || 'Please try again with a different description.'}\n\nWould you like me to describe the information in text format instead, or would you like to try a different image request?`;
-          
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId 
-              ? { ...msg, content: fallbackMessage, isStreaming: false }
-              : msg
-          ));
-          
-          setIsLoading(false);
-          return;
-        }
+        return; // Wait for user to select branding options
       }
       
       // Check if this is a voice file generation request
@@ -1699,6 +1650,139 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setInput(originalInput);
   }, [messages, uploadedFiles, buildSystemPrompt, verificationLevel, input, handleGPT5FastClinical, saveSearchAutomatically]);
 
+  // Handle branding selection and proceed with image generation
+  const handleBrandingConfirm = useCallback(async (
+    brandingLevel: BrandingLevel,
+    customBranding: CustomBrandingOptions,
+    practiceContext: any
+  ) => {
+    if (!pendingImageRequest) {
+      console.error('No pending image request');
+      setShowBrandingDialog(false);
+      return;
+    }
+
+    const {
+      message,
+      imageDetection,
+      assistantMessageId,
+      startTime,
+      userMessage,
+      newMessages,
+      documentContent,
+    } = pendingImageRequest;
+
+    setShowBrandingDialog(false);
+
+    // Update message to show image generation in progress
+    setMessages(prev => prev.map(msg => 
+      msg.id === assistantMessageId 
+        ? { ...msg, content: '🎨 Generating visual representation...', isStreaming: true }
+        : msg
+    ));
+
+    // Extract context from previous messages
+    const conversationContext = extractImageContext(
+      imageDetection.imagePrompt || message,
+      messages.map(m => ({ role: m.role, content: m.content }))
+    );
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai4gp-image-generation', {
+        body: {
+          prompt: message,
+          conversationContext,
+          documentContent,
+          practiceContext: {
+            practiceName: practiceContext?.practiceName,
+            pcnName: practiceContext?.pcnName,
+            organisationType: practiceContext?.organisationType,
+            practiceAddress: practiceContext?.practiceAddress,
+            practicePhone: practiceContext?.practicePhone,
+            practiceEmail: practiceContext?.practiceEmail,
+            practiceWebsite: practiceContext?.practiceWebsite,
+            logoUrl: practiceContext?.logoUrl,
+            // Pass branding options
+            brandingLevel,
+            customBranding
+          },
+          requestType: imageDetection.requestType
+        }
+      });
+
+      if (error) {
+        console.error('Image generation error:', error);
+        throw new Error(error.message || 'Image generation failed');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Image generation failed');
+      }
+
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
+
+      // Create message with generated image
+      const imageMessage: Message = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: data.textResponse,
+        timestamp: userMessage.timestamp,
+        isStreaming: false,
+        responseTime,
+        model: 'Gemini Image',
+        generatedImages: [data.image as GeneratedImage]
+      };
+
+      setMessages(prev => prev.map(msg => 
+        msg.id === assistantMessageId ? imageMessage : msg
+      ));
+
+      // Auto-save the search
+      setTimeout(async () => {
+        const finalMessages = [...newMessages, imageMessage];
+        await saveSearchAutomatically(finalMessages);
+      }, 100);
+
+      setIsLoading(false);
+      setPendingImageRequest(null);
+      toast.success('Image generated successfully!');
+
+    } catch (imageError: any) {
+      console.error('Image generation failed:', imageError);
+
+      // Fall back to regular AI response with explanation
+      const fallbackMessage = `I wasn't able to generate an image for that request. ${imageError.message || 'Please try again with a different description.'}\n\nWould you like me to describe the information in text format instead, or would you like to try a different image request?`;
+
+      setMessages(prev => prev.map(msg => 
+        msg.id === assistantMessageId 
+          ? { ...msg, content: fallbackMessage, isStreaming: false }
+          : msg
+      ));
+
+      setIsLoading(false);
+      setPendingImageRequest(null);
+    }
+  }, [pendingImageRequest, messages, saveSearchAutomatically]);
+
+  // Handle branding dialog cancel
+  const handleBrandingCancel = useCallback(() => {
+    if (pendingImageRequest) {
+      const { assistantMessageId } = pendingImageRequest;
+      
+      // Remove the assistant message or show cancelled
+      setMessages(prev => prev.map(msg => 
+        msg.id === assistantMessageId 
+          ? { ...msg, content: 'Image generation cancelled.', isStreaming: false }
+          : msg
+      ));
+    }
+    
+    setShowBrandingDialog(false);
+    setPendingImageRequest(null);
+    setIsLoading(false);
+  }, [pendingImageRequest]);
+
   return {
     messages,
     setMessages,
@@ -1761,6 +1845,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     chatHistoryRetentionDays,
     setChatHistoryRetentionDays,
     hideGPClinical,
-    setHideGPClinical
+    setHideGPClinical,
+    // Image branding dialog
+    showBrandingDialog,
+    setShowBrandingDialog,
+    pendingImageRequest,
+    handleBrandingConfirm,
+    handleBrandingCancel
   };
 };
