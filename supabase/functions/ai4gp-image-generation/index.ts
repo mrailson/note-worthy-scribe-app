@@ -320,11 +320,13 @@ Content guidelines:
       const keywordReference = extractedKeywords.length > 0 
         ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
         : '';
+      const brandingSection = buildBrandingSection(practiceContext, requestType);
       
       imagePrompt = `Create a professional single-page infographic that visualises the following content.
 
 SOURCE CONTENT TO VISUALISE:
 ${documentContent.substring(0, 5000)}
+${brandingSection}
 
 TEXT GUIDELINES:
 - Text should be clear and readable with professional typography
@@ -344,9 +346,12 @@ Content guidelines:
 - No explicit, offensive, or inappropriate imagery`;
     } else if (requestType === 'infographic') {
       // Infographic without document content - use prompt directly
+      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      
       imagePrompt = `Create a professional single-page infographic.
 
 ${prompt}
+${brandingSection}
 
 TEXT GUIDELINES:
 - Text should be clear and readable with professional typography
