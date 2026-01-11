@@ -28,7 +28,7 @@ export const ContextBanner: React.FC<ContextBannerProps> = ({ onDismiss, classNa
           Tip: Add supporting information for better results
         </p>
         <p className="text-blue-700/80 dark:text-blue-300/80 mt-1">
-          This is a general assistance tool using NICE CKS and NHS guidance. <span className="font-semibold text-blue-800 dark:text-blue-200">Do not enter patient identifiable information.</span>
+          This is a general assistance tool using NICE CKS and NHS guidance. <span className="font-semibold text-blue-800 dark:text-blue-200">Please do not enter patient identifiable information.</span>
         </p>
         <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-blue-700 dark:text-blue-300">
           <span className="flex items-center gap-1.5">
