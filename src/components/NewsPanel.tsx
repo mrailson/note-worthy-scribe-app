@@ -99,99 +99,24 @@ const isNhsPolicyArticle = (article: NewsArticle) => {
   return nhsPolicySources.has(article.source) && !isAlertArticle(article);
 };
 
-// Source definitions with icons, colors and brand styling
+// Source definitions with icons - subtle blue theme
 type SourceConfig = {
   key: string;
   label: string;
   abbrev: string;
   icon: React.ReactNode;
-  bgColor: string;
-  textColor: string;
-  borderColor: string;
   sources: string[];
 };
 
 const sourceConfigs: SourceConfig[] = [
-  { 
-    key: 'nhs', 
-    label: 'NHS England', 
-    abbrev: 'NHS',
-    icon: <Building2 className="w-4 h-4" />, 
-    bgColor: 'bg-blue-600',
-    textColor: 'text-white',
-    borderColor: 'border-blue-600',
-    sources: ['NHS England', 'NHS England News'] 
-  },
-  { 
-    key: 'nice', 
-    label: 'NICE Guidance', 
-    abbrev: 'NICE',
-    icon: <FileText className="w-4 h-4" />, 
-    bgColor: 'bg-purple-600',
-    textColor: 'text-white',
-    borderColor: 'border-purple-600',
-    sources: ['NICE Guidance', 'NICE News', 'NICE'] 
-  },
-  { 
-    key: 'mhra', 
-    label: 'MHRA Alerts', 
-    abbrev: 'MHRA',
-    icon: <ShieldAlert className="w-4 h-4" />, 
-    bgColor: 'bg-amber-500',
-    textColor: 'text-white',
-    borderColor: 'border-amber-500',
-    sources: ['MHRA Alerts', 'MHRA'] 
-  },
-  { 
-    key: 'dhsc', 
-    label: 'DHSC', 
-    abbrev: 'DHSC',
-    icon: <Stethoscope className="w-4 h-4" />, 
-    bgColor: 'bg-green-600',
-    textColor: 'text-white',
-    borderColor: 'border-green-600',
-    sources: ['DHSC'] 
-  },
-  { 
-    key: 'bbc', 
-    label: 'BBC Health', 
-    abbrev: 'BBC',
-    icon: <Globe className="w-4 h-4" />, 
-    bgColor: 'bg-red-600',
-    textColor: 'text-white',
-    borderColor: 'border-red-600',
-    sources: ['BBC Health', 'BBC Northamptonshire'] 
-  },
-  { 
-    key: 'pulse', 
-    label: 'Pulse Today', 
-    abbrev: 'Pulse',
-    icon: <Heart className="w-4 h-4" />, 
-    bgColor: 'bg-pink-600',
-    textColor: 'text-white',
-    borderColor: 'border-pink-600',
-    sources: ['Pulse Today'] 
-  },
-  { 
-    key: 'guardian', 
-    label: 'The Guardian', 
-    abbrev: 'Guardian',
-    icon: <Newspaper className="w-4 h-4" />, 
-    bgColor: 'bg-slate-800',
-    textColor: 'text-white',
-    borderColor: 'border-slate-800',
-    sources: ['The Guardian Health'] 
-  },
-  { 
-    key: 'local', 
-    label: 'Local Northants', 
-    abbrev: 'Local',
-    icon: <MapPin className="w-4 h-4" />, 
-    bgColor: 'bg-teal-600',
-    textColor: 'text-white',
-    borderColor: 'border-teal-600',
-    sources: ['Northants Live'] 
-  },
+  { key: 'nhs', label: 'NHS England', abbrev: 'NHS', icon: <Building2 className="w-3.5 h-3.5" />, sources: ['NHS England', 'NHS England News'] },
+  { key: 'nice', label: 'NICE Guidance', abbrev: 'NICE', icon: <FileText className="w-3.5 h-3.5" />, sources: ['NICE Guidance', 'NICE News', 'NICE'] },
+  { key: 'mhra', label: 'MHRA Alerts', abbrev: 'MHRA', icon: <ShieldAlert className="w-3.5 h-3.5" />, sources: ['MHRA Alerts', 'MHRA'] },
+  { key: 'dhsc', label: 'DHSC', abbrev: 'DHSC', icon: <Stethoscope className="w-3.5 h-3.5" />, sources: ['DHSC'] },
+  { key: 'bbc', label: 'BBC Health', abbrev: 'BBC', icon: <Globe className="w-3.5 h-3.5" />, sources: ['BBC Health', 'BBC Northamptonshire'] },
+  { key: 'pulse', label: 'Pulse Today', abbrev: 'Pulse', icon: <Heart className="w-3.5 h-3.5" />, sources: ['Pulse Today'] },
+  { key: 'guardian', label: 'The Guardian', abbrev: 'Guardian', icon: <Newspaper className="w-3.5 h-3.5" />, sources: ['The Guardian Health'] },
+  { key: 'local', label: 'Local Northants', abbrev: 'Local', icon: <MapPin className="w-3.5 h-3.5" />, sources: ['Northants Live'] },
 ];
 
 const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFiltersInHeader?: boolean; cleanView?: boolean }) => {
@@ -749,9 +674,9 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
           </div>
         </div>
         
-        {/* Source Toggle Buttons - Brand styled */}
+        {/* Source Toggle Buttons - Subtle blue theme */}
         <TooltipProvider>
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+          <div className="flex flex-wrap gap-2">
             {sourceCounts.map(config => {
               const isEnabled = enabledSources.has(config.key);
               return (
@@ -760,49 +685,29 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
                     <button
                       onClick={() => toggleSource(config.key)}
                       className={`
-                        relative flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 transition-all duration-200
+                        inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border
                         ${isEnabled 
-                          ? `${config.bgColor} ${config.textColor} ${config.borderColor} shadow-md hover:opacity-90` 
-                          : 'bg-muted/50 text-muted-foreground border-dashed border-muted-foreground/30 opacity-50 hover:opacity-70'
+                          ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20' 
+                          : 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50 opacity-60'
                         }
                       `}
                     >
-                      {/* Icon */}
-                      <div className={`${isEnabled ? '' : 'grayscale'}`}>
+                      <span className={isEnabled ? 'text-primary' : 'text-muted-foreground'}>
                         {config.icon}
-                      </div>
-                      
-                      {/* Abbreviation */}
-                      <span className={`text-xs font-bold ${isEnabled ? '' : 'line-through'}`}>
-                        {config.abbrev}
                       </span>
-                      
-                      {/* Count badge */}
+                      <span>{config.abbrev}</span>
                       {config.count > 0 && (
-                        <Badge 
-                          variant={isEnabled ? 'secondary' : 'outline'}
-                          className={`
-                            absolute -top-2 -right-2 text-[10px] px-1.5 min-w-[20px] h-5
-                            ${isEnabled ? 'bg-white text-slate-900 shadow-sm' : ''}
-                          `}
-                        >
+                        <span className={`
+                          text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center
+                          ${isEnabled ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}
+                        `}>
                           {config.count}
-                        </Badge>
-                      )}
-                      
-                      {/* Disabled overlay strike */}
-                      {!isEnabled && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="w-full h-0.5 bg-muted-foreground/30 rotate-45" />
-                        </div>
+                        </span>
                       )}
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
-                    <p className="font-medium">{config.label}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {config.count} article{config.count !== 1 ? 's' : ''} • Click to {isEnabled ? 'hide' : 'show'}
-                    </p>
+                    <p>{config.label}: {config.count} articles</p>
                   </TooltipContent>
                 </Tooltip>
               );
