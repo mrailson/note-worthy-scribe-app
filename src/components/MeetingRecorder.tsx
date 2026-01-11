@@ -4837,13 +4837,15 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     
     try {
       // Fetch meeting details and summary in PARALLEL with minimal columns
+      console.log('🔍 Fetching meeting data for:', meetingId, 'user:', user?.id);
+      
       const [meetingResult, summaryResult] = await Promise.all([
         supabase
           .from('meetings')
           .select('id, title, start_time, end_time, created_at, duration_minutes, notes_style_2, notes_style_3, notes_style_4, notes_style_5')
           .eq('id', meetingId)
           .eq('user_id', user?.id)
-          .single(),
+          .maybeSingle(), // Changed from .single() to avoid throwing on no match
         supabase
           .from('meeting_summaries')
           .select('summary')
@@ -4851,7 +4853,26 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           .maybeSingle()
       ]);
 
-      if (meetingResult.error) throw meetingResult.error;
+      console.log('🔍 Meeting query result:', { 
+        data: meetingResult.data ? 'exists' : 'null', 
+        error: meetingResult.error?.message || 'none' 
+      });
+      console.log('🔍 Summary query result:', { 
+        data: summaryResult.data ? 'exists' : 'null', 
+        error: summaryResult.error?.message || 'none' 
+      });
+
+      if (meetingResult.error) {
+        console.error('❌ Meeting query error:', meetingResult.error);
+        throw meetingResult.error;
+      }
+      
+      if (!meetingResult.data) {
+        console.error('❌ Meeting not found for ID:', meetingId);
+        showToast.error("Meeting not found", { section: 'meeting_manager' });
+        setFullPageModalOpen(false);
+        return;
+      }
       
       console.log('🔍 Meeting data fetched:', meetingResult.data?.title);
       console.log('🔍 Summary data fetched:', summaryResult.data?.summary ? 'Summary exists' : 'No summary');
@@ -4861,8 +4882,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       setModalNotes(summaryResult.data?.summary || '');
       
     } catch (error: any) {
-      console.error("❌ Error Loading Meeting:", error.message);
-      showToast.error("Failed to load meeting notes", { section: 'meeting_manager' });
+      console.error("❌ Error Loading Meeting:", error.message, error);
+      showToast.error("Failed to load meeting notes: " + (error.message || 'Unknown error'), { section: 'meeting_manager' });
       setFullPageModalOpen(false);
     }
   };
