@@ -21,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
 import { imageSubCategories, customImagePrompt, type ImageSubCategory, type ImageDetailPrompt } from './pmImagePrompts';
 
 interface PMHomeScreenProps {
@@ -171,6 +172,13 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
     return enhanced;
   };
 
+  const showPromptInsertedToast = () => {
+    toast.success('Prompt inserted', {
+      description: 'Add more details to get better results. You can upload, paste or drag documents to provide context.',
+      duration: 4000,
+    });
+  };
+
   const handleCardClick = (useCase: UseCase) => {
     if (useCase.hasSubMenu && useCase.id === 'image') {
       setActiveView({ type: 'image-categories' });
@@ -178,6 +186,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
       focusInput?.();
     } else {
       setInput(enhancePrompt(useCase.prompt));
+      showPromptInsertedToast();
     }
   };
 
@@ -185,6 +194,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
     if (category.prompts.length === 0) {
       setInput(customImagePrompt);
       setActiveView({ type: 'main' });
+      showPromptInsertedToast();
     } else {
       setActiveView({ type: 'image-details', category });
     }
@@ -193,6 +203,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
   const handleDetailPromptClick = (detailPrompt: ImageDetailPrompt) => {
     setInput(detailPrompt.prompt);
     setActiveView({ type: 'main' });
+    showPromptInsertedToast();
   };
 
   const handleBack = () => {
