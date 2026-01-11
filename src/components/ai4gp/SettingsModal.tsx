@@ -464,6 +464,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </CardContent>
           </Card>
 
+          {/* Image Generation Settings */}
+          <Card className="border-pink-200 bg-gradient-to-r from-background to-pink-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Image className="h-4 w-4 text-pink-600" />
+                Image Generation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">AI Model for Images</Label>
+                <Select 
+                  value={imageGenerationModel} 
+                  onValueChange={onImageGenerationModelChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border border-border z-[9999]">
+                    {IMAGE_MODEL_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {IMAGE_MODEL_OPTIONS.find(o => o.value === imageGenerationModel)?.description}
+                </p>
+              </div>
+              
+              <div className="p-3 bg-pink-50 rounded-lg border border-pink-200">
+                <div className="text-sm font-medium text-pink-800">🎨 Currently Using</div>
+                <div className="text-xs text-pink-700 mt-1">
+                  {IMAGE_MODEL_OPTIONS.find(o => o.value === imageGenerationModel)?.label || 'Nano Banana'}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Voice Settings */}
           <Card className="border-orange-200 bg-gradient-to-r from-background to-orange-50">
             <CardHeader>

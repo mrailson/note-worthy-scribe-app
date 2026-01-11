@@ -30,6 +30,7 @@ export const useAI4GPService = () => {
   const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
   const [chatHistoryRetentionDays, setChatHistoryRetentionDays] = useState(30);
   const [hideGPClinical, setHideGPClinical] = useState(false);
+  const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-2.5-flash-image-preview' | 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-pro'>('google/gemini-2.5-flash-image-preview');
   
   // Image branding dialog state
   const [showBrandingDialog, setShowBrandingDialog] = useState(false);
@@ -1279,6 +1280,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setAutoCollapseUserPrompts(preferences.autoCollapseUserPrompts ?? false);
           setChatHistoryRetentionDays(preferences.chatHistoryRetentionDays ?? 30);
           setHideGPClinical(preferences.hideGPClinical ?? false);
+          setImageGenerationModel(preferences.imageGenerationModel ?? 'google/gemini-2.5-flash-image-preview');
           
           console.log('AI4GP settings loaded successfully');
         } else {
@@ -1319,7 +1321,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         readingFont,
         autoCollapseUserPrompts,
         chatHistoryRetentionDays,
-        hideGPClinical
+        hideGPClinical,
+        imageGenerationModel
       };
 
       console.log('Saving AI4GP preferences:', preferences);
@@ -1348,7 +1351,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, imageGenerationModel]);
 
   // Save settings when they change (with debounce to avoid too many saves)
   useEffect(() => {
@@ -1846,6 +1849,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setChatHistoryRetentionDays,
     hideGPClinical,
     setHideGPClinical,
+    imageGenerationModel,
+    setImageGenerationModel,
     // Image branding dialog
     showBrandingDialog,
     setShowBrandingDialog,
