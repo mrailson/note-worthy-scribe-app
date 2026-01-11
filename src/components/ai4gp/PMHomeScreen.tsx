@@ -9,9 +9,9 @@ import {
   Search, 
   Sparkles,
   LayoutPanelTop,
-  Lightbulb
+  Lightbulb,
+  ExternalLink
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import {
@@ -208,8 +208,10 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
 
         {/* Prompt Guide Link */}
         <div className="flex justify-center pt-2">
-          <Link
-            to="/ai4gp-prompts"
+          <a
+            href="/ai4gp-prompts"
+            target="_blank"
+            rel="noopener noreferrer"
             className={cn(
               "inline-flex items-center gap-2 px-4 py-2",
               "text-sm text-muted-foreground hover:text-primary",
@@ -219,7 +221,8 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
           >
             <Lightbulb className="w-4 h-4" />
             <span>290 Prompt Ideas</span>
-          </Link>
+            <ExternalLink className="w-3 h-3" />
+          </a>
         </div>
       </div>
     </div>

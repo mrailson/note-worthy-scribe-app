@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send, Users, MapPin, Compass, HandHeart, Activity, Sparkles, Syringe, ShieldCheck, Thermometer, HeartPulse, BookOpen, Bandage, FlaskConical, AlertTriangle, Scale, Repeat, ClipboardCheck, Building2, Briefcase, FileCheck, Landmark, ClipboardPen, Droplet, Gauge, Scissors, UserCheck, Network, TrendingUp, Building, Handshake, Globe, Phone, ClipboardCopy, UserPlus, Signpost, Headphones, Bone, Dumbbell, ArrowRightCircle, Settings, Brain, ShieldAlert, Lightbulb, HeartHandshake } from 'lucide-react';
+import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send, Users, MapPin, Compass, HandHeart, Activity, Sparkles, Syringe, ShieldCheck, Thermometer, HeartPulse, BookOpen, Bandage, FlaskConical, AlertTriangle, Scale, Repeat, ClipboardCheck, Building2, Briefcase, FileCheck, Landmark, ClipboardPen, Droplet, Gauge, Scissors, UserCheck, Network, TrendingUp, Building, Handshake, Globe, Phone, ClipboardCopy, UserPlus, Signpost, Headphones, Bone, Dumbbell, ArrowRightCircle, Settings, Brain, ShieldAlert, Lightbulb, HeartHandshake, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
