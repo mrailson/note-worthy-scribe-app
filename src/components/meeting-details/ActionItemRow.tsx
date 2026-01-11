@@ -369,7 +369,7 @@ export const ActionItemRow = ({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-3" align="start" side="top" collisionPadding={16} avoidCollisions>
+            <PopoverContent className="w-auto p-3" align="start" side="bottom" collisionPadding={16} avoidCollisions onOpenAutoFocus={(e) => e.preventDefault()}>
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-1.5">
                   {DUE_DATE_OPTIONS.map((option) => (
