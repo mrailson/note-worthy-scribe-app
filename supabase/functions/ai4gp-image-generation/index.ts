@@ -10,6 +10,7 @@ interface ImageGenerationRequest {
   prompt: string;
   conversationContext: string;
   documentContent?: string;  // Content from attached files for visual generation
+  imageModel?: 'google/gemini-2.5-flash-image-preview' | 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-pro';
   practiceContext?: {
     practiceName?: string;
     pcnName?: string;
@@ -212,11 +213,15 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { prompt, conversationContext, documentContent, practiceContext, requestType } = await req.json() as ImageGenerationRequest;
+    const { prompt, conversationContext, documentContent, practiceContext, requestType, imageModel } = await req.json() as ImageGenerationRequest;
+
+    // Use selected model or default to Nano Banana
+    const selectedImageModel = imageModel || 'google/gemini-2.5-flash-image-preview';
 
     console.log('🎨 AI4GP Image Generation request:', { 
       prompt: prompt.substring(0, 100), 
       requestType,
+      imageModel: selectedImageModel,
       contextLength: conversationContext?.length || 0,
       hasDocumentContent: !!documentContent,
       hasPracticeContext: !!practiceContext,
@@ -568,9 +573,9 @@ Content guidelines:
 - No explicit, offensive, or inappropriate imagery`;
     }
 
-    console.log('🖼️ Generating image with Lovable AI Gateway...');
+    console.log('🖼️ Generating image with model:', selectedImageModel);
 
-    // Call Lovable AI Gateway with Gemini image model
+    // Call Lovable AI Gateway with selected image model
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -578,7 +583,7 @@ Content guidelines:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
+        model: selectedImageModel,
         messages: [
           { role: 'user', content: imagePrompt }
         ],
