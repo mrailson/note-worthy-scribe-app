@@ -36,7 +36,15 @@ interface VoicePreviewDemoProps {
 
 export const VoicePreviewDemo: React.FC<VoicePreviewDemoProps> = ({ onSelectVoice }) => {
   const [playingVoice, setPlayingVoice] = useState<string | null>(null);
-  const [selectedVoice, setSelectedVoice] = useState<string | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<string | null>(() => {
+    // Initialize from stored preference
+    const storedVoiceId = localStorage.getItem('audioVoiceSelection');
+    if (storedVoiceId) {
+      const matchingVoice = VOICE_DEMOS.find(v => v.voiceId === storedVoiceId);
+      return matchingVoice?.id || null;
+    }
+    return null;
+  });
 
   const playVoiceDemo = async (voice: VoiceDemo) => {
     if (playingVoice) return;
