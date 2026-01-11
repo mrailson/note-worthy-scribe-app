@@ -1683,6 +1683,7 @@ export type Database = {
           closed_at: string | null
           complaint_description: string
           complaint_on_behalf: boolean | null
+          complaint_source: string | null
           complaint_title: string
           consent_details: string | null
           consent_given: boolean | null
@@ -1714,6 +1715,7 @@ export type Database = {
           closed_at?: string | null
           complaint_description: string
           complaint_on_behalf?: boolean | null
+          complaint_source?: string | null
           complaint_title: string
           consent_details?: string | null
           consent_given?: boolean | null
@@ -1745,6 +1747,7 @@ export type Database = {
           closed_at?: string | null
           complaint_description?: string
           complaint_on_behalf?: boolean | null
+          complaint_source?: string | null
           complaint_title?: string
           consent_details?: string | null
           consent_given?: boolean | null

@@ -81,7 +81,8 @@ import { EnhancedAuditLogViewer } from "@/components/EnhancedAuditLogViewer";
 import { ComplaintAudioOverviewPlayer } from "@/components/complaints/ComplaintAudioOverviewPlayer";
 import { ComplaintReviewConversation } from "@/components/complaints/ComplaintReviewConversation";
 import { ComplaintReviewNote } from "@/components/complaints/ComplaintReviewNote";
-
+import { AddComplaintDocumentDialog } from "@/components/complaints/AddComplaintDocumentDialog";
+import { getComplaintSourceLabel, getAcknowledgementRecipientLabel } from "@/utils/complaintSourceLabels";
 
 interface Complaint {
   id: string;
@@ -113,6 +114,7 @@ interface Complaint {
   updated_at: string;
   practice_id: string | null;
   data_retention_date: string | null;
+  complaint_source: string | null;
   creator?: {
     full_name: string | null;
     email: string | null;
@@ -192,6 +194,7 @@ const ComplaintDetails = () => {
   const [showAudioSummarySection, setShowAudioSummarySection] = useState(false);
   const [showReviewNotesSection, setShowReviewNotesSection] = useState(false);
   const [isReSummarising, setIsReSummarising] = useState(false);
+  const [showAddDocumentDialog, setShowAddDocumentDialog] = useState(false);
 
 
   // Define all functions before useEffect
@@ -2163,19 +2166,31 @@ const ComplaintDetails = () => {
                 </CardContent>
               </Card>
 
-              {/* Original Complaint Files */}
-              {complaintDocuments.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Upload className="h-5 w-5" />
-                      Original Complaint Files
-                    </CardTitle>
-                    <CardDescription>
-                      Files and documents submitted with the original complaint
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+              {/* Original Complaint Files - Always show, with upload option */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Upload className="h-5 w-5" />
+                        Complaint Files & Documents
+                      </CardTitle>
+                      <CardDescription>
+                        Files and documents submitted with or related to this complaint
+                      </CardDescription>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAddDocumentDialog(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Document
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {complaintDocuments.length > 0 ? (
                     <div className="space-y-3">
                       {complaintDocuments.map((doc) => (
                         <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
@@ -2221,9 +2236,23 @@ const ComplaintDetails = () => {
                         </div>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">No documents uploaded yet</p>
+                      <p className="text-xs mt-1">Click "Add Document" to upload files</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Add Document Dialog */}
+              <AddComplaintDocumentDialog
+                open={showAddDocumentDialog}
+                onOpenChange={setShowAddDocumentDialog}
+                complaintId={complaintId || ''}
+                onSuccess={fetchComplaintDocuments}
+              />
 
               {/* Administrative Information */}
               <Card>
@@ -2235,6 +2264,12 @@ const ComplaintDetails = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="font-medium">Complaint Source</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {getComplaintSourceLabel(complaint.complaint_source)}
+                      </p>
+                    </div>
                     {complaint.assigned_to && (
                       <div>
                         <Label className="font-medium">Assigned To</Label>
@@ -2330,7 +2365,7 @@ const ComplaintDetails = () => {
                             {acknowledgementSentToPatient && (
                               <Badge variant="default" className="bg-green-600">
                                 <CheckCircle className="h-3 w-3 mr-1" />
-                                Sent to Patient
+                                Sent to {getAcknowledgementRecipientLabel(complaint?.complaint_source)}
                               </Badge>
                             )}
                             {complaint?.status === 'under_review' && acknowledgementSentToPatient && (
@@ -2346,7 +2381,7 @@ const ComplaintDetails = () => {
                               {acknowledgementSentAt && (
                                 <>
                                   <br />
-                                  Sent to patient: {format(new Date(acknowledgementSentAt), 'dd/MM/yyyy HH:mm')}
+                                  Sent to {getAcknowledgementRecipientLabel(complaint?.complaint_source).toLowerCase()}: {format(new Date(acknowledgementSentAt), 'dd/MM/yyyy HH:mm')}
                                 </>
                               )}
                               <br />
@@ -2372,7 +2407,7 @@ const ComplaintDetails = () => {
                               onCheckedChange={(checked) => handleMarkAcknowledgementSent(checked as boolean)}
                             />
                             <Label htmlFor="ack-sent" className="text-sm font-medium cursor-pointer">
-                              Mark acknowledgement as sent to patient
+                              Mark acknowledgement as sent to {getAcknowledgementRecipientLabel(complaint?.complaint_source)}
                             </Label>
                           </div>
                         </div>
