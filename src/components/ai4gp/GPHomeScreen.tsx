@@ -206,7 +206,7 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
 
             {/* Context Banner - positioned below buttons, above input */}
             {showBanner && (
-              <div className="w-full max-w-3xl mx-auto pt-4">
+              <div className="w-full max-w-4xl mx-auto pt-4">
                 <ContextBanner onDismiss={() => setShowBanner(false)} />
               </div>
             )}
