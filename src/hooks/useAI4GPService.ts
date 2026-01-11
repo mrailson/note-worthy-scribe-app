@@ -726,14 +726,13 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             title: gammaResponse.title || pptDetection.topic,
             slideCount: gammaResponse.slideCount || pptDetection.slideCount || 10,
             presentationType: getPresentationTypeDisplayName(pptDetection.presentationType),
-            sourceFiles: uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name) : undefined,
-            gammaUrl: gammaResponse.gammaUrl
+            sourceFiles: uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name) : undefined
           };
           
           // Create message with generated presentation
           const pptMessage: Message = {
             ...assistantMessage,
-            content: `✅ **Professional PowerPoint Generated!**\n\n**Title:** ${generatedPresentation.title}\n**Type:** ${generatedPresentation.presentationType}\n**Slides:** ${generatedPresentation.slideCount}\n${uploadedFiles.length > 0 ? `\n**Source Materials:** ${uploadedFiles.map(f => f.name).join(', ')}` : ''}${gammaResponse.gammaUrl ? `\n\n[View in Gamma](${gammaResponse.gammaUrl})` : ''}\n\n*Powered by Gamma AI for professional-grade design.*\n\nYour presentation is ready to download below.`,
+            content: `✅ **Professional PowerPoint Generated!**\n\n**Title:** ${generatedPresentation.title}\n**Type:** ${generatedPresentation.presentationType}\n**Slides:** ${generatedPresentation.slideCount}\n${uploadedFiles.length > 0 ? `\n**Source Materials:** ${uploadedFiles.map(f => f.name).join(', ')}` : ''}\n\n*Powered by Gamma AI for professional-grade design.*\n\nYour presentation is ready to download below.`,
             isStreaming: false,
             responseTime,
             model: 'Gamma AI',
