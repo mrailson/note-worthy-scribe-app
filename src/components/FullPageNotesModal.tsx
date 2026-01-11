@@ -178,7 +178,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       setActiveTab(initialTab);
     }
   }, [initialTab, isOpen]);
-  const [notesStyle2, setNotesStyle2] = useState("");
+  const [notesStyle2, setNotesStyle2] = useState(" ");
   const [notesStyle3, setNotesStyle3] = useState("");
   const [notesStyle4, setNotesStyle4] = useState("");
   const [isGeneratingStyle2, setIsGeneratingStyle2] = useState(false);
@@ -188,6 +188,19 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // Ref to prevent multiple simultaneous regeneration calls
   const isRegeneratingStyle3Ref = useRef(false);
   const [noteStylesLoaded, setNoteStylesLoaded] = useState(false);
+
+  // IMPORTANT: Seed Standard Minutes immediately from the provided notes prop
+  // so the modal never appears “stuck” while we fetch note styles in the background.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!meeting?.id) return;
+
+    const seeded = (notes || '').trim();
+    if (seeded) {
+      setNotesStyle3(seeded);
+      setNoteStylesLoaded(true);
+    }
+  }, [isOpen, meeting?.id, notes]);
   
   // Standard Minutes format variations
   const [selectedFormatVariation, setSelectedFormatVariation] = useState<string>('standard');
