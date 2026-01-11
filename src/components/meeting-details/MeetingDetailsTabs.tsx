@@ -8,7 +8,7 @@ import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { MeetingQAPanel } from "./MeetingQAPanel";
 import { MeetingActionItemsTab } from "./MeetingActionItemsTab";
 import { supabase } from "@/integrations/supabase/client";
-import { useActionItems } from "@/hooks/useActionItems";
+import { useActionItemsCount } from "@/hooks/useActionItemsCount";
 
 interface MeetingDetailsTabsProps {
   meetingId: string;
@@ -42,7 +42,7 @@ export const MeetingDetailsTabs = ({
   className = ""
 }: MeetingDetailsTabsProps) => {
   const [documentCount, setDocumentCount] = useState<number>(0);
-  const { openItemsCount } = useActionItems(meetingId);
+  const { openItemsCount } = useActionItemsCount(meetingId);
 
   // Fetch document count
   useEffect(() => {
