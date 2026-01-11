@@ -19,6 +19,16 @@ interface ImageGenerationRequest {
     practiceEmail?: string;
     practiceWebsite?: string;
     logoUrl?: string;
+    // New branding options
+    brandingLevel?: 'none' | 'name-only' | 'name-contact' | 'full' | 'custom';
+    customBranding?: {
+      name?: boolean;
+      address?: boolean;
+      phone?: boolean;
+      email?: boolean;
+      website?: boolean;
+      pcn?: boolean;
+    };
   };
   requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'leaflet' | 'newsletter' | 'social' | 'waiting-room' | 'form-header' | 'campaign' | 'general';
   includeBranding?: boolean;  // Option to include practice branding
@@ -96,32 +106,70 @@ MANDATORY SPELLING - COPY THESE EXACTLY:
 - "Forum" (NOT Fonum/Fourm)
 `;
 
-// Build practice branding section for prompts
+// Build practice branding section for prompts based on user's selected branding level
 function buildBrandingSection(practiceContext: ImageGenerationRequest['practiceContext'], requestType: string): string {
-  if (!practiceContext?.practiceName) return '';
+  if (!practiceContext) return '';
   
-  // Determine if branding should be included based on request type
-  const brandingTypes = ['leaflet', 'newsletter', 'waiting-room', 'form-header', 'campaign', 'poster', 'social'];
-  if (!brandingTypes.includes(requestType)) return '';
+  const brandingLevel = practiceContext.brandingLevel || 'full';
+  const customBranding = practiceContext.customBranding;
   
+  // If user chose 'none', return empty string
+  if (brandingLevel === 'none') {
+    return '';
+  }
+  
+  // Determine what to include based on branding level
+  const includeName = brandingLevel === 'full' || brandingLevel === 'name-only' || brandingLevel === 'name-contact' || 
+                      (brandingLevel === 'custom' && customBranding?.name);
+  const includePhone = brandingLevel === 'full' || brandingLevel === 'name-contact' || 
+                       (brandingLevel === 'custom' && customBranding?.phone);
+  const includeEmail = brandingLevel === 'full' || brandingLevel === 'name-contact' || 
+                       (brandingLevel === 'custom' && customBranding?.email);
+  const includeAddress = brandingLevel === 'full' || (brandingLevel === 'custom' && customBranding?.address);
+  const includeWebsite = brandingLevel === 'full' || (brandingLevel === 'custom' && customBranding?.website);
+  const includePcn = brandingLevel === 'full' || (brandingLevel === 'custom' && customBranding?.pcn);
+  
+  // Build the branding section with only selected items
   let branding = `\n⚠️ MANDATORY PRACTICE BRANDING - YOU MUST INCLUDE THESE EXACT DETAILS:\n`;
-  branding += `- Practice/Organisation Name: "${practiceContext.practiceName}" (use this EXACT text, not a placeholder)\n`;
+  let hasContent = false;
   
-  if (practiceContext.practicePhone) {
+  if (includeName && practiceContext.practiceName) {
+    branding += `- Practice/Organisation Name: "${practiceContext.practiceName}" (use this EXACT text, not a placeholder)\n`;
+    hasContent = true;
+  }
+  if (includePhone && practiceContext.practicePhone) {
     branding += `- Phone: "${practiceContext.practicePhone}" (display this actual number)\n`;
+    hasContent = true;
   }
-  if (practiceContext.practiceWebsite) {
-    branding += `- Website: "${practiceContext.practiceWebsite}" (display this actual URL)\n`;
+  if (includeEmail && practiceContext.practiceEmail) {
+    branding += `- Email: "${practiceContext.practiceEmail}" (display this actual email)\n`;
+    hasContent = true;
   }
-  if (practiceContext.practiceAddress) {
+  if (includeAddress && practiceContext.practiceAddress) {
     branding += `- Address: "${practiceContext.practiceAddress}"\n`;
+    hasContent = true;
   }
-  if (practiceContext.pcnName) {
+  if (includeWebsite && practiceContext.practiceWebsite) {
+    branding += `- Website: "${practiceContext.practiceWebsite}" (display this actual URL)\n`;
+    hasContent = true;
+  }
+  if (includePcn && practiceContext.pcnName) {
     branding += `- PCN: "${practiceContext.pcnName}"\n`;
+    hasContent = true;
   }
   
-  branding += `\nCRITICAL: Do NOT use placeholder text like "[Your Name Here]" or "[Contact Details]". `;
-  branding += `Use the ACTUAL values provided above. Display the practice name and contact details prominently on the image.`;
+  if (!hasContent) {
+    return '';
+  }
+  
+  branding += `\nCRITICAL: Do NOT use ANY placeholder text including:
+- "[Your Name Here]", "[Contact Details]", "[Practice Name]", "[Insert Practice Name]"
+- "Dr.'s Name", "Dr.'s Name Family Medical Practice", "Dr. Smith", "Dr Smith's Practice"
+- "Your Practice", "Your GP Surgery", "Sample Practice", "Example Surgery"
+- "123 Example Street", "[Address]", "[Phone Number]", "[Email]"
+- Any text in square brackets like [...] or angle brackets like <...>
+Use ONLY the ACTUAL values provided above. If a value is not provided, simply OMIT that detail entirely - do not use placeholder text.
+Display the practice branding prominently on the image.`;
   
   return branding;
 }

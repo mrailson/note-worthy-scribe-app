@@ -38,6 +38,7 @@ import { AI4GPUserGuide } from '@/components/ai4gp/AI4GPUserGuide';
 import { TranslationToolInterface } from '@/components/TranslationToolInterface';
 import { MeetingPreviewDrawer } from '@/components/ai4gp/MeetingPreviewDrawer';
 import { PowerPointGenerationOverlay } from '@/components/PowerPointGenerationOverlay';
+import { ImageBrandingDialog } from '@/components/ai4gp/ImageBrandingDialog';
 
   // Hook imports
 import { useIsMobile, useDeviceInfo } from '@/hooks/use-mobile';
@@ -222,7 +223,12 @@ const AI4GPService = () => {
     chatHistoryRetentionDays,
     setChatHistoryRetentionDays,
     hideGPClinical,
-    setHideGPClinical
+    setHideGPClinical,
+    showBrandingDialog,
+    setShowBrandingDialog,
+    pendingImageRequest,
+    handleBrandingConfirm,
+    handleBrandingCancel
   } = useAI4GPService();
 
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -993,6 +999,16 @@ const AI4GPService = () => {
         isVisible={isPowerPointGenerating || isFullPowerPointGenerating} 
         currentPhase={currentPhase}
         isFullVersion={isFullPowerPointGenerating}
+      />
+
+      {/* Image Branding Dialog */}
+      <ImageBrandingDialog
+        open={showBrandingDialog}
+        onOpenChange={setShowBrandingDialog}
+        practiceContext={practiceContext}
+        onConfirm={(brandingLevel, customBranding) => handleBrandingConfirm(brandingLevel, customBranding, practiceContext)}
+        onCancel={handleBrandingCancel}
+        requestType={pendingImageRequest?.imageDetection?.requestType || 'general'}
       />
 
     </>
