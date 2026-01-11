@@ -30,6 +30,7 @@ interface ImageGenerationRequest {
       website?: boolean;
       pcn?: boolean;
     };
+    includeLogo?: boolean;  // Whether to include practice logo
   };
   requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'leaflet' | 'newsletter' | 'social' | 'waiting-room' | 'form-header' | 'campaign' | 'general';
   includeBranding?: boolean;  // Option to include practice branding
@@ -113,9 +114,10 @@ function buildBrandingSection(practiceContext: ImageGenerationRequest['practiceC
   
   const brandingLevel = practiceContext.brandingLevel || 'full';
   const customBranding = practiceContext.customBranding;
+  const includeLogo = practiceContext.includeLogo && practiceContext.logoUrl;
   
-  // If user chose 'none', return empty string
-  if (brandingLevel === 'none') {
+  // If user chose 'none' and no logo, return empty string
+  if (brandingLevel === 'none' && !includeLogo) {
     return '';
   }
   
@@ -152,8 +154,28 @@ function buildBrandingSection(practiceContext: ImageGenerationRequest['practiceC
     availableDetails.push(`PCN: "${practiceContext.pcnName}"`);
   }
   
-  // If no actual details are available, return empty - DO NOT generate branding
-  if (availableDetails.length === 0) {
+  // Handle logo-only case (branding is 'none' but logo is enabled)
+  if (brandingLevel === 'none' && includeLogo) {
+    return `
+
+🖼️ LOGO ONLY - NO TEXT BRANDING:
+A practice logo has been provided and MUST be integrated into this image.
+Logo reference: The user's organisation logo should be included.
+
+Logo Placement Guidelines:
+- Position the logo professionally (typically top-left for leaflets/letterheads, centred for posters)
+- Ensure the logo is clearly visible but doesn't dominate the design
+- Maintain the logo's aspect ratio - DO NOT stretch or distort
+- The logo should blend harmoniously with the overall design aesthetic
+- Use appropriate sizing based on the content type
+
+DO NOT include any text-based practice details (no name, phone, email, address, or website).
+Focus only on integrating the logo visually.
+`;
+  }
+  
+  // If no actual details are available and no logo, return empty - DO NOT generate branding
+  if (availableDetails.length === 0 && !includeLogo) {
     return `
 
 ⚠️ CRITICAL - NO BRANDING AVAILABLE:
@@ -175,13 +197,30 @@ The following are the ONLY practice details available. Copy them EXACTLY as show
     branding += `• ${detail}\n`;
   }
   
-  branding += `
+  // Add logo integration instructions if enabled
+  if (includeLogo) {
+    branding += `
+🖼️ LOGO INTEGRATION:
+A practice logo has been provided and MUST be integrated into this image.
+Logo reference: The user's organisation logo should be included.
 
+Logo Placement Guidelines:
+- Position the logo professionally (typically top-left for leaflets/letterheads, top-right for posters, centred for social media)
+- Ensure the logo is clearly visible but proportionate to the overall design
+- Maintain the logo's aspect ratio - DO NOT stretch or distort
+- The logo should blend harmoniously with the overall design aesthetic and colour scheme
+- Use appropriate sizing based on the content type (larger for posters, smaller for leaflets)
+- Leave appropriate whitespace around the logo
+
+`;
+  }
+  
+  branding += `
 🚫 CRITICAL ANTI-HALLUCINATION RULES:
 1. Use ONLY the exact details listed above - copy them character-for-character
 2. DO NOT invent, create, or hallucinate ANY additional details
 3. If a detail is not listed above, DO NOT include it on the image
-4. DO NOT add a logo unless a logo URL was provided above
+4. DO NOT add a logo unless explicitly stated above that a logo should be included
 5. DO NOT add a phone number unless one was provided above
 6. DO NOT add an email unless one was provided above
 7. DO NOT add an address or postcode unless one was provided above
@@ -194,7 +233,7 @@ The following are the ONLY practice details available. Copy them EXACTLY as show
 - Fake postcodes like "AB12 3CD", "SW1A 1AA", "M1 1AA"
 - Fake addresses like "123 High Street", "1 Example Road"
 - Any placeholder text in [square brackets] or <angle brackets>
-- Any logo unless specifically provided
+- Any logo unless explicitly instructed to include one above
 
 Display ONLY the details listed above, positioned professionally on the image.
 `;

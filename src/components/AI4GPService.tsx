@@ -230,7 +230,9 @@ const AI4GPService = () => {
     setShowBrandingDialog,
     pendingImageRequest,
     handleBrandingConfirm,
-    handleBrandingCancel
+    handleBrandingCancel,
+    includePracticeLogo,
+    setIncludePracticeLogo
   } = useAI4GPService();
 
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -1011,9 +1013,11 @@ const AI4GPService = () => {
         open={showBrandingDialog}
         onOpenChange={setShowBrandingDialog}
         practiceContext={practiceContext}
-        onConfirm={(brandingLevel, customBranding) => handleBrandingConfirm(brandingLevel, customBranding, practiceContext)}
+        onConfirm={(brandingLevel, customBranding, includeLogo) => handleBrandingConfirm(brandingLevel, customBranding, practiceContext, includeLogo)}
         onCancel={handleBrandingCancel}
         requestType={pendingImageRequest?.imageDetection?.requestType || 'general'}
+        includePracticeLogo={includePracticeLogo}
+        onLogoToggleChange={setIncludePracticeLogo}
       />
 
     </>

@@ -31,6 +31,7 @@ export const useAI4GPService = () => {
   const [chatHistoryRetentionDays, setChatHistoryRetentionDays] = useState(30);
   const [hideGPClinical, setHideGPClinical] = useState(false);
   const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-2.5-flash-image' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1'>('google/gemini-3-pro-image-preview');
+  const [includePracticeLogo, setIncludePracticeLogo] = useState(true);
   
   // Image branding dialog state
   const [showBrandingDialog, setShowBrandingDialog] = useState(false);
@@ -1281,7 +1282,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setChatHistoryRetentionDays(preferences.chatHistoryRetentionDays ?? 30);
           setHideGPClinical(preferences.hideGPClinical ?? false);
           setImageGenerationModel(preferences.imageGenerationModel ?? 'google/gemini-3-pro-image-preview');
-          
+          setIncludePracticeLogo(preferences.includePracticeLogo ?? true);
           console.log('AI4GP settings loaded successfully');
         } else {
           console.log('No saved AI4GP preferences found, using defaults');
@@ -1322,7 +1323,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         autoCollapseUserPrompts,
         chatHistoryRetentionDays,
         hideGPClinical,
-        imageGenerationModel
+        imageGenerationModel,
+        includePracticeLogo
       };
 
       console.log('Saving AI4GP preferences:', preferences);
@@ -1351,7 +1353,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, imageGenerationModel]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, imageGenerationModel, includePracticeLogo]);
 
   // Save settings when they change (with debounce to avoid too many saves)
   useEffect(() => {
@@ -1657,7 +1659,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   const handleBrandingConfirm = useCallback(async (
     brandingLevel: BrandingLevel,
     customBranding: CustomBrandingOptions,
-    practiceContext: any
+    practiceContext: any,
+    includeLogo: boolean
   ) => {
     if (!pendingImageRequest) {
       console.error('No pending image request');
@@ -1708,7 +1711,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             logoUrl: practiceContext?.logoUrl,
             // Pass branding options
             brandingLevel,
-            customBranding
+            customBranding,
+            // Pass logo toggle state
+            includeLogo
           },
           requestType: imageDetection.requestType
         }
@@ -1858,6 +1863,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setShowBrandingDialog,
     pendingImageRequest,
     handleBrandingConfirm,
-    handleBrandingCancel
+    handleBrandingCancel,
+    // Practice logo toggle
+    includePracticeLogo,
+    setIncludePracticeLogo
   };
 };
