@@ -805,7 +805,7 @@ const AI4GPService = () => {
                   {/* Input Area at Bottom - Desktop only */}
                   {!showSettings && !showImageService && !isMobile && (
                     <div className="border-t">
-                      <InputArea
+                    <InputArea
                         ref={inputRef}
                         input={input}
                         setInput={setInput}
@@ -817,6 +817,7 @@ const AI4GPService = () => {
                         setIsClinical={setIsClinical}
                         onNewChat={handleNewSearch}
                         userRole={practiceContext?.userRole}
+                        practiceContext={practiceContext}
                       />
                     </div>
                   )}
