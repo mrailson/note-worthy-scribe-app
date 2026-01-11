@@ -129,47 +129,74 @@ function buildBrandingSection(practiceContext: ImageGenerationRequest['practiceC
   const includeWebsite = brandingLevel === 'full' || (brandingLevel === 'custom' && customBranding?.website);
   const includePcn = brandingLevel === 'full' || (brandingLevel === 'custom' && customBranding?.pcn);
   
-  // Build the branding section with only selected items
-  let branding = `\n⚠️ MANDATORY PRACTICE BRANDING - YOU MUST INCLUDE THESE EXACT DETAILS:\n`;
-  let hasContent = false;
+  // Build list of ONLY the details that are both selected AND actually have values
+  const availableDetails: string[] = [];
   
-  if (includeName && practiceContext.practiceName) {
-    branding += `- Practice/Organisation Name: "${practiceContext.practiceName}" (use this EXACT text, not a placeholder)\n`;
-    hasContent = true;
+  if (includeName && practiceContext.practiceName && practiceContext.practiceName.trim()) {
+    availableDetails.push(`Practice Name: "${practiceContext.practiceName}"`);
   }
-  if (includePhone && practiceContext.practicePhone) {
-    branding += `- Phone: "${practiceContext.practicePhone}" (display this actual number)\n`;
-    hasContent = true;
+  if (includePhone && practiceContext.practicePhone && practiceContext.practicePhone.trim()) {
+    availableDetails.push(`Phone: "${practiceContext.practicePhone}"`);
   }
-  if (includeEmail && practiceContext.practiceEmail) {
-    branding += `- Email: "${practiceContext.practiceEmail}" (display this actual email)\n`;
-    hasContent = true;
+  if (includeEmail && practiceContext.practiceEmail && practiceContext.practiceEmail.trim()) {
+    availableDetails.push(`Email: "${practiceContext.practiceEmail}"`);
   }
-  if (includeAddress && practiceContext.practiceAddress) {
-    branding += `- Address: "${practiceContext.practiceAddress}"\n`;
-    hasContent = true;
+  if (includeAddress && practiceContext.practiceAddress && practiceContext.practiceAddress.trim()) {
+    availableDetails.push(`Address: "${practiceContext.practiceAddress}"`);
   }
-  if (includeWebsite && practiceContext.practiceWebsite) {
-    branding += `- Website: "${practiceContext.practiceWebsite}" (display this actual URL)\n`;
-    hasContent = true;
+  if (includeWebsite && practiceContext.practiceWebsite && practiceContext.practiceWebsite.trim()) {
+    availableDetails.push(`Website: "${practiceContext.practiceWebsite}"`);
   }
-  if (includePcn && practiceContext.pcnName) {
-    branding += `- PCN: "${practiceContext.pcnName}"\n`;
-    hasContent = true;
+  if (includePcn && practiceContext.pcnName && practiceContext.pcnName.trim()) {
+    availableDetails.push(`PCN: "${practiceContext.pcnName}"`);
   }
   
-  if (!hasContent) {
-    return '';
+  // If no actual details are available, return empty - DO NOT generate branding
+  if (availableDetails.length === 0) {
+    return `
+
+⚠️ CRITICAL - NO BRANDING AVAILABLE:
+No practice details have been provided. DO NOT include ANY practice name, phone number, email, address, website, logo, or any other branding on this image.
+DO NOT INVENT OR HALLUCINATE any practice details. DO NOT use placeholder text like "Oak Lane Medical Practice", "0123 456789", "info@example.org", or "AB12 3CD".
+The image should have NO practice branding whatsoever - just focus on the content requested.
+`;
   }
   
-  branding += `\nCRITICAL: Do NOT use ANY placeholder text including:
-- "[Your Name Here]", "[Contact Details]", "[Practice Name]", "[Insert Practice Name]"
-- "Dr.'s Name", "Dr.'s Name Family Medical Practice", "Dr. Smith", "Dr Smith's Practice"
-- "Your Practice", "Your GP Surgery", "Sample Practice", "Example Surgery"
-- "123 Example Street", "[Address]", "[Phone Number]", "[Email]"
-- Any text in square brackets like [...] or angle brackets like <...>
-Use ONLY the ACTUAL values provided above. If a value is not provided, simply OMIT that detail entirely - do not use placeholder text.
-Display the practice branding prominently on the image.`;
+  // Build the branding section with ONLY the available details
+  let branding = `
+
+⚠️ MANDATORY PRACTICE BRANDING - USE ONLY THESE EXACT DETAILS:
+The following are the ONLY practice details available. Copy them EXACTLY as shown:
+
+`;
+  
+  for (const detail of availableDetails) {
+    branding += `• ${detail}\n`;
+  }
+  
+  branding += `
+
+🚫 CRITICAL ANTI-HALLUCINATION RULES:
+1. Use ONLY the exact details listed above - copy them character-for-character
+2. DO NOT invent, create, or hallucinate ANY additional details
+3. If a detail is not listed above, DO NOT include it on the image
+4. DO NOT add a logo unless a logo URL was provided above
+5. DO NOT add a phone number unless one was provided above
+6. DO NOT add an email unless one was provided above
+7. DO NOT add an address or postcode unless one was provided above
+8. DO NOT add a website unless one was provided above
+
+🚫 FORBIDDEN - DO NOT USE ANY OF THESE:
+- Made-up practice names like "Oak Lane Medical Practice", "Riverside Surgery", "Dr Smith's Practice"
+- Fake phone numbers like "0123 456789", "01onal 123456", "020 7123 4567"
+- Fake emails like "info@oaklanepractice.org", "contact@example.com"
+- Fake postcodes like "AB12 3CD", "SW1A 1AA", "M1 1AA"
+- Fake addresses like "123 High Street", "1 Example Road"
+- Any placeholder text in [square brackets] or <angle brackets>
+- Any logo unless specifically provided
+
+Display ONLY the details listed above, positioned professionally on the image.
+`;
   
   return branding;
 }
