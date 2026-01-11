@@ -27,7 +27,7 @@ type ActiveView =
 export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const [activeView, setActiveView] = useState<ActiveView>({ type: 'main' });
-  const [showBanner, setShowBanner] = useState(true);
+  const [showBanner, setShowBanner] = useState(false);
 
   const enhancePrompt = (prompt: string) => {
     if (!prompt) return prompt;
@@ -90,6 +90,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
   const handlePromptClick = (prompt: PromptItem) => {
     setInput(enhancePrompt(prompt.prompt));
     setActiveView({ type: 'main' });
+    setShowBanner(true);
     showPromptInsertedToast();
   };
 
