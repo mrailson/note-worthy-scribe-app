@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft } from 'lucide-react';
+import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
@@ -86,6 +86,46 @@ const promptExamples: PromptExample[] = [
   { id: 50, category: 'Newsletters', useCase: 'Monthly update', prompt: 'Create a January 2026 practice update newsletter header' },
 ];
 
+// GP & Clinician prompts (51-75)
+const gpPromptExamples: PromptExample[] = [
+  // Patient Education (51-55)
+  { id: 51, category: 'Patient Education', useCase: 'Red flag symptoms', prompt: 'Create a visual patient handout explaining red flag symptoms for headaches and when to seek urgent help' },
+  { id: 52, category: 'Patient Education', useCase: 'Treatment options diagram', prompt: 'Create a diagram comparing treatment options for knee osteoarthritis including lifestyle, medication, and surgical options' },
+  { id: 53, category: 'Patient Education', useCase: 'Explaining test results', prompt: 'Create a visual aid explaining what HbA1c levels mean and target ranges for diabetic patients' },
+  { id: 54, category: 'Patient Education', useCase: 'Medication mechanism', prompt: 'Create a simple diagram showing how ACE inhibitors work in controlling blood pressure' },
+  { id: 55, category: 'Patient Education', useCase: 'Lifestyle modification', prompt: 'Create a patient handout with visual tips for reducing cardiovascular risk through diet and exercise' },
+
+  // Clinical Protocols (56-59)
+  { id: 56, category: 'Clinical Protocols', useCase: 'Chest pain algorithm', prompt: 'Create a clinical decision flowchart for assessing acute chest pain in primary care' },
+  { id: 57, category: 'Clinical Protocols', useCase: 'Sepsis screening', prompt: 'Create a visual sepsis screening tool with NEWS2 scoring and escalation criteria' },
+  { id: 58, category: 'Clinical Protocols', useCase: 'Antibiotic guidelines', prompt: 'Create a quick-reference antibiotic prescribing guide for common UTI presentations' },
+  { id: 59, category: 'Clinical Protocols', useCase: 'Diabetes management pathway', prompt: 'Create a Type 2 diabetes treatment escalation pathway from diagnosis to insulin initiation' },
+
+  // Teaching & Training (60-64)
+  { id: 60, category: 'Teaching & Training', useCase: 'Dermatology teaching', prompt: 'Create a visual teaching slide comparing benign vs suspicious skin lesions using the ABCDE criteria' },
+  { id: 61, category: 'Teaching & Training', useCase: 'ECG interpretation', prompt: 'Create an educational poster showing common ECG abnormalities with example tracings' },
+  { id: 62, category: 'Teaching & Training', useCase: 'Consultation structure', prompt: 'Create a training infographic showing the Calgary-Cambridge consultation model' },
+  { id: 63, category: 'Teaching & Training', useCase: 'Examination technique', prompt: 'Create a step-by-step visual guide for performing a cardiovascular examination' },
+  { id: 64, category: 'Teaching & Training', useCase: 'Case-based learning', prompt: 'Create a case presentation template for significant event analysis discussions' },
+
+  // Consultation Aids (65-69)
+  { id: 65, category: 'Consultation Aids', useCase: 'Pain scale visual', prompt: 'Create a visual pain scale chart with faces and descriptions for use in consultations' },
+  { id: 66, category: 'Consultation Aids', useCase: 'Body diagram', prompt: 'Create a blank body diagram for patients to mark areas of pain or symptoms' },
+  { id: 67, category: 'Consultation Aids', useCase: 'Medication review checklist', prompt: 'Create a visual checklist for structured medication reviews in polypharmacy patients' },
+  { id: 68, category: 'Consultation Aids', useCase: 'Capacity assessment', prompt: 'Create a visual guide for assessing mental capacity using the MCA framework' },
+  { id: 69, category: 'Consultation Aids', useCase: 'Breaking bad news', prompt: 'Create a visual reference card for the SPIKES protocol for breaking bad news' },
+
+  // Prescribing Information (70-72)
+  { id: 70, category: 'Prescribing Information', useCase: 'Drug interaction warning', prompt: 'Create a visual quick-reference card showing common warfarin drug interactions' },
+  { id: 71, category: 'Prescribing Information', useCase: 'Opioid conversion chart', prompt: 'Create an opioid equianalgesic conversion chart for palliative care prescribing' },
+  { id: 72, category: 'Prescribing Information', useCase: 'Steroid equivalence', prompt: 'Create a corticosteroid equivalence chart with typical dosing for common conditions' },
+
+  // Referral Support (73-75)
+  { id: 73, category: 'Referral Support', useCase: '2-week wait criteria', prompt: 'Create a visual summary of 2-week wait cancer referral criteria for suspected lung cancer' },
+  { id: 74, category: 'Referral Support', useCase: 'NICE referral thresholds', prompt: 'Create an infographic showing NICE NG12 suspected cancer referral pathways' },
+  { id: 75, category: 'Referral Support', useCase: 'MSK pathway', prompt: 'Create a flowchart showing when to refer for physiotherapy, MSK, or orthopaedics' },
+];
+
 const categoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
   'Patient Leaflets': {
     icon: <FileText className="h-5 w-5" />,
@@ -134,13 +174,48 @@ const categoryConfig: Record<string, { icon: React.ReactNode; description: strin
   }
 };
 
+const gpCategoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
+  'Patient Education': {
+    icon: <Stethoscope className="h-5 w-5" />,
+    description: 'Visual aids and handouts for explaining conditions and treatments to patients',
+    colour: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200'
+  },
+  'Clinical Protocols': {
+    icon: <ClipboardList className="h-5 w-5" />,
+    description: 'Reference guides for clinical pathways, algorithms, and protocols',
+    colour: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'
+  },
+  'Teaching & Training': {
+    icon: <GraduationCap className="h-5 w-5" />,
+    description: 'Materials for medical students, trainees, and peer education',
+    colour: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200'
+  },
+  'Consultation Aids': {
+    icon: <MessageCircle className="h-5 w-5" />,
+    description: 'Visual tools and reference cards for use during consultations',
+    colour: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
+  },
+  'Prescribing Information': {
+    icon: <Pill className="h-5 w-5" />,
+    description: 'Medication information, conversions, and prescribing guidance',
+    colour: 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200'
+  },
+  'Referral Support': {
+    icon: <Send className="h-5 w-5" />,
+    description: 'Materials to support referral decisions and pathway guidance',
+    colour: 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200'
+  }
+};
+
 const categories = Object.keys(categoryConfig);
+const gpCategories = Object.keys(gpCategoryConfig);
+const allPrompts = [...promptExamples, ...gpPromptExamples];
 
 const AI4GPPromptGuide = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
-  const filteredPrompts = useMemo(() => {
+  const filteredStaffPrompts = useMemo(() => {
     if (!searchTerm.trim()) return promptExamples;
     const term = searchTerm.toLowerCase();
     return promptExamples.filter(
@@ -150,12 +225,33 @@ const AI4GPPromptGuide = () => {
     );
   }, [searchTerm]);
 
+  const filteredGpPrompts = useMemo(() => {
+    if (!searchTerm.trim()) return gpPromptExamples;
+    const term = searchTerm.toLowerCase();
+    return gpPromptExamples.filter(
+      p => p.useCase.toLowerCase().includes(term) || 
+           p.prompt.toLowerCase().includes(term) ||
+           p.category.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
+
+  const filteredAllPrompts = useMemo(() => {
+    return [...filteredStaffPrompts, ...filteredGpPrompts];
+  }, [filteredStaffPrompts, filteredGpPrompts]);
+
   const promptsByCategory = useMemo(() => {
     return categories.reduce((acc, category) => {
-      acc[category] = filteredPrompts.filter(p => p.category === category);
+      acc[category] = filteredStaffPrompts.filter(p => p.category === category);
       return acc;
     }, {} as Record<string, PromptExample[]>);
-  }, [filteredPrompts]);
+  }, [filteredStaffPrompts]);
+
+  const gpPromptsByCategory = useMemo(() => {
+    return gpCategories.reduce((acc, category) => {
+      acc[category] = filteredGpPrompts.filter(p => p.category === category);
+      return acc;
+    }, {} as Record<string, PromptExample[]>);
+  }, [filteredGpPrompts]);
 
   const handleCopy = async (prompt: string, id: number) => {
     try {
@@ -171,10 +267,10 @@ const AI4GPPromptGuide = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="AI4GP Prompt Guide | 50 Example Prompts for GP Practices | NoteWell AI"
-        description="Comprehensive guide with 50 example prompts for creating patient leaflets, social media posts, waiting room displays, health campaign materials, and more using AI4GP."
+        title="AI4GP Prompt Guide | 75 Example Prompts for GP Practices | NoteWell AI"
+        description="Comprehensive guide with 75 example prompts for practice staff and clinicians - patient leaflets, social media, clinical protocols, consultation aids, and more using AI4GP."
         canonical="https://www.gpnotewell.co.uk/ai4gp-prompts"
-        keywords="AI4GP prompts, GP practice prompts, patient leaflet examples, NHS social media, waiting room displays, health campaign materials"
+        keywords="AI4GP prompts, GP practice prompts, patient leaflet examples, NHS social media, clinical protocols, consultation aids, prescribing guidance"
       />
       
       <header className="border-b bg-card">
@@ -186,7 +282,7 @@ const AI4GPPromptGuide = () => {
             </Link>
             <div>
               <h1 className="text-3xl font-bold text-foreground">AI4GP Prompt Guide</h1>
-              <p className="text-muted-foreground mt-1">50 example prompts for GP practice staff</p>
+              <p className="text-muted-foreground mt-1">75 example prompts for GP practice staff and clinicians</p>
             </div>
           </div>
         </div>
@@ -198,8 +294,8 @@ const AI4GPPromptGuide = () => {
           <Card>
             <CardHeader>
               <CardTitle id="intro-heading">How to Use This Guide</CardTitle>
-              <CardDescription>
-                This page contains 50 example prompts organised by category. Use these as starting points for creating your own materials, or copy them directly into AI4GP.
+            <CardDescription>
+                This page contains 75 example prompts organised by category - 50 for practice staff and 25 for GPs and clinicians. Use these as starting points for creating your own materials, or copy them directly into AI4GP.
               </CardDescription>
             </CardHeader>
             <CardContent className="prose prose-sm dark:prose-invert max-w-none">
@@ -228,19 +324,100 @@ const AI4GPPromptGuide = () => {
           </div>
           {searchTerm && (
             <p className="text-sm text-muted-foreground mt-2">
-              Found {filteredPrompts.length} prompt{filteredPrompts.length !== 1 ? 's' : ''} matching "{searchTerm}"
+              Found {filteredAllPrompts.length} prompt{filteredAllPrompts.length !== 1 ? 's' : ''} matching "{searchTerm}"
             </p>
           )}
         </section>
 
-        {/* Categories */}
-        <section aria-labelledby="categories-heading">
-          <h2 id="categories-heading" className="sr-only">Prompt Categories</h2>
+        {/* Staff Categories */}
+        <section aria-labelledby="staff-categories-heading" className="mb-12">
+          <h2 id="staff-categories-heading" className="text-xl font-semibold text-foreground mb-4">Practice Staff Prompts</h2>
+          <p className="text-muted-foreground mb-6">50 prompts for reception, admin, and practice management teams</p>
           
           <Accordion type="multiple" defaultValue={categories} className="space-y-4">
             {categories.map((category) => {
               const config = categoryConfig[category];
               const categoryPrompts = promptsByCategory[category];
+              
+              if (categoryPrompts.length === 0) return null;
+              
+              return (
+                <AccordionItem 
+                  key={category} 
+                  value={category}
+                  className="border rounded-lg bg-card"
+                >
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <div className="flex items-center gap-3 text-left">
+                      <div className={`p-2 rounded-lg ${config.colour}`}>
+                        {config.icon}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">{category}</h3>
+                        <p className="text-sm text-muted-foreground font-normal">{config.description}</p>
+                      </div>
+                      <Badge variant="secondary" className="ml-auto mr-4">
+                        {categoryPrompts.length} prompt{categoryPrompts.length !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm" role="table">
+                        <caption className="sr-only">{category} prompts</caption>
+                        <thead>
+                          <tr className="border-b">
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-8">#</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-48">Use Case</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground">Example Prompt</th>
+                            <th scope="col" className="text-right py-2 font-medium text-muted-foreground w-20">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {categoryPrompts.map((example) => (
+                            <tr 
+                              key={example.id} 
+                              className="border-b last:border-0 hover:bg-muted/50 transition-colors"
+                            >
+                              <td className="py-3 pr-4 text-muted-foreground">{example.id}</td>
+                              <td className="py-3 pr-4 font-medium text-foreground">{example.useCase}</td>
+                              <td className="py-3 pr-4 text-foreground">{example.prompt}</td>
+                              <td className="py-3 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopy(example.prompt, example.id)}
+                                  aria-label={`Copy prompt: ${example.useCase}`}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  {copiedId === example.id ? (
+                                    <Check className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </section>
+
+        {/* GP & Clinician Categories */}
+        <section aria-labelledby="gp-categories-heading" className="mb-12">
+          <h2 id="gp-categories-heading" className="text-xl font-semibold text-foreground mb-4">GP & Clinician Use Cases</h2>
+          <p className="text-muted-foreground mb-6">25 prompts for clinical, educational, and professional development materials</p>
+          
+          <Accordion type="multiple" defaultValue={gpCategories} className="space-y-4">
+            {gpCategories.map((category) => {
+              const config = gpCategoryConfig[category];
+              const categoryPrompts = gpPromptsByCategory[category];
               
               if (categoryPrompts.length === 0) return null;
               
@@ -318,7 +495,7 @@ const AI4GPPromptGuide = () => {
             <CardHeader>
               <CardTitle id="full-list-heading">Complete Prompt Reference</CardTitle>
               <CardDescription>
-                All 50 prompts in a single searchable table for quick reference
+                All 75 prompts in a single searchable table for quick reference
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -334,7 +511,7 @@ const AI4GPPromptGuide = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {promptExamples.map((example) => (
+                    {allPrompts.map((example) => (
                       <tr 
                         key={example.id} 
                         className="border-b last:border-0 hover:bg-muted/30"
