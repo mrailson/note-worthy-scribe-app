@@ -14,14 +14,14 @@ export type ImageGenerationModel = 'google/gemini-2.5-flash-image' | 'google/gem
 
 export const IMAGE_MODEL_OPTIONS: { value: ImageGenerationModel; label: string; description: string }[] = [
   { 
-    value: 'google/gemini-2.5-flash-image', 
-    label: 'Nano Banana (Recommended)', 
-    description: 'Fast with good quality - best for most images' 
+    value: 'google/gemini-3-pro-image-preview', 
+    label: 'Gemini 3 Pro Image (Recommended)', 
+    description: 'Next-gen - highest quality, best accuracy' 
   },
   { 
-    value: 'google/gemini-3-pro-image-preview', 
-    label: 'Gemini 3 Pro Image', 
-    description: 'Next-gen - highest quality, slower' 
+    value: 'google/gemini-2.5-flash-image', 
+    label: 'Nano Banana', 
+    description: 'Fast with good quality - lighter tasks' 
   },
   { 
     value: 'openai/gpt-image-1', 
