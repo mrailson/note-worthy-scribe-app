@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send, Users, MapPin, Compass, HandHeart, Activity, Sparkles, Syringe, ShieldCheck, Thermometer, HeartPulse, BookOpen, Bandage, FlaskConical, AlertTriangle, Scale, Repeat, ClipboardCheck, Building2, Briefcase, FileCheck, Landmark, ClipboardPen, Droplet, Gauge, Scissors, UserCheck, Network, TrendingUp, Building, Handshake, Globe, Phone, ClipboardCopy, UserPlus, Signpost, Headphones, Bone, Dumbbell, ArrowRightCircle, Settings } from 'lucide-react';
+import { Copy, Check, Search, FileText, Share2, Monitor, Image, Calendar, QrCode, Newspaper, Heart, BarChart3, ArrowLeft, Stethoscope, ClipboardList, GraduationCap, MessageCircle, Pill, Send, Users, MapPin, Compass, HandHeart, Activity, Sparkles, Syringe, ShieldCheck, Thermometer, HeartPulse, BookOpen, Bandage, FlaskConical, AlertTriangle, Scale, Repeat, ClipboardCheck, Building2, Briefcase, FileCheck, Landmark, ClipboardPen, Droplet, Gauge, Scissors, UserCheck, Network, TrendingUp, Building, Handshake, Globe, Phone, ClipboardCopy, UserPlus, Signpost, Headphones, Bone, Dumbbell, ArrowRightCircle, Settings, Brain, ShieldAlert, Lightbulb, HeartHandshake } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
@@ -364,6 +364,39 @@ const fcpPromptExamples: PromptExample[] = [
   { id: 270, category: 'Service Development', useCase: 'Pathway development', prompt: 'Create an MSK pathway development plan showing integration of FCP services with practice workflows' },
 ];
 
+// Mental Health Practitioner prompts (271-290)
+const mhpPromptExamples: PromptExample[] = [
+  // Assessment & Triage (271-274)
+  { id: 271, category: 'MH Assessment', useCase: 'Initial mental health assessment', prompt: 'Create a primary care mental health assessment template covering presenting concerns, risk, and formulation' },
+  { id: 272, category: 'MH Assessment', useCase: 'PHQ-9 and GAD-7 explanation', prompt: 'Create a patient-friendly leaflet explaining PHQ-9 and GAD-7 questionnaires and what scores mean' },
+  { id: 273, category: 'MH Assessment', useCase: 'Risk assessment framework', prompt: 'Create a suicide and self-harm risk assessment quick-reference card for primary care clinicians' },
+  { id: 274, category: 'MH Assessment', useCase: 'Mental state examination', prompt: 'Create a mental state examination (MSE) documentation template with prompts for each domain' },
+
+  // Anxiety & Depression (275-278)
+  { id: 275, category: 'Anxiety & Depression', useCase: 'Anxiety self-help guide', prompt: 'Create a patient self-help leaflet for managing anxiety including breathing exercises and grounding techniques' },
+  { id: 276, category: 'Anxiety & Depression', useCase: 'Depression psychoeducation', prompt: 'Create an educational leaflet explaining depression as an illness with biological and psychological components' },
+  { id: 277, category: 'Anxiety & Depression', useCase: 'Medication counselling', prompt: 'Create a patient information leaflet about starting antidepressants including timelines and side effects' },
+  { id: 278, category: 'Anxiety & Depression', useCase: 'Behavioural activation', prompt: 'Create a behavioural activation worksheet for patients to schedule meaningful activities' },
+
+  // Crisis & Safety (279-282)
+  { id: 279, category: 'Crisis & Safety', useCase: 'Safety plan template', prompt: 'Create a personalised safety plan template for patients experiencing suicidal thoughts or self-harm urges' },
+  { id: 280, category: 'Crisis & Safety', useCase: 'Crisis contacts card', prompt: 'Create a wallet-sized crisis contacts card with local mental health crisis line, Samaritans, and 111 Option 2' },
+  { id: 281, category: 'Crisis & Safety', useCase: 'Carer crisis guide', prompt: 'Create a guide for carers and family members on supporting someone in mental health crisis' },
+  { id: 282, category: 'Crisis & Safety', useCase: 'Post-crisis follow-up', prompt: 'Create a follow-up care plan template for patients after mental health crisis presentation' },
+
+  // Therapy & Interventions (283-286)
+  { id: 283, category: 'Therapy & Interventions', useCase: 'CBT thought diary', prompt: 'Create a CBT thought diary template for patients to record thoughts, feelings, and alternative perspectives' },
+  { id: 284, category: 'Therapy & Interventions', useCase: 'Sleep hygiene guide', prompt: 'Create a comprehensive sleep hygiene leaflet for patients with insomnia and anxiety-related sleep problems' },
+  { id: 285, category: 'Therapy & Interventions', useCase: 'Mindfulness exercises', prompt: 'Create a patient handout with simple mindfulness exercises suitable for beginners' },
+  { id: 286, category: 'Therapy & Interventions', useCase: 'Worry time technique', prompt: 'Create a patient guide explaining the worry time technique for managing generalised anxiety' },
+
+  // Referral & Pathways (287-290)
+  { id: 287, category: 'MH Referral & Pathways', useCase: 'Talking therapies referral', prompt: 'Create a patient leaflet explaining NHS Talking Therapies (IAPT) services and what to expect' },
+  { id: 288, category: 'MH Referral & Pathways', useCase: 'CMHT referral criteria', prompt: 'Create a quick-reference guide for primary care showing Community Mental Health Team referral criteria' },
+  { id: 289, category: 'MH Referral & Pathways', useCase: 'Medication review pathway', prompt: 'Create a mental health medication review pathway flowchart for primary care' },
+  { id: 290, category: 'MH Referral & Pathways', useCase: 'Discharge planning', prompt: 'Create a mental health practitioner discharge summary template for handover to GP' },
+];
+
 // Advanced Nurse Practitioner / ACP prompts (186-210)
 const anpPromptExamples: PromptExample[] = [
   // Minor Illness Management (186-190)
@@ -719,6 +752,34 @@ const fcpCategoryConfig: Record<string, { icon: React.ReactNode; description: st
   }
 };
 
+const mhpCategoryConfig: Record<string, { icon: React.ReactNode; description: string; colour: string }> = {
+  'MH Assessment': {
+    icon: <Brain className="h-5 w-5" />,
+    description: 'Initial assessments, risk screening, and mental state examination',
+    colour: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+  },
+  'Anxiety & Depression': {
+    icon: <HeartHandshake className="h-5 w-5" />,
+    description: 'Psychoeducation, self-help guides, and medication counselling',
+    colour: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+  },
+  'Crisis & Safety': {
+    icon: <ShieldAlert className="h-5 w-5" />,
+    description: 'Safety planning, crisis contacts, and carer support',
+    colour: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+  },
+  'Therapy & Interventions': {
+    icon: <Lightbulb className="h-5 w-5" />,
+    description: 'CBT tools, sleep hygiene, mindfulness, and therapeutic techniques',
+    colour: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+  },
+  'MH Referral & Pathways': {
+    icon: <ArrowRightCircle className="h-5 w-5" />,
+    description: 'Talking therapies, CMHT referrals, and discharge planning',
+    colour: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200'
+  }
+};
+
 const categories = Object.keys(categoryConfig);
 const gpCategories = Object.keys(gpCategoryConfig);
 const splwCategories = Object.keys(splwCategoryConfig);
@@ -729,7 +790,8 @@ const pcnCategories = Object.keys(pcnCategoryConfig);
 const receptionCategories = Object.keys(receptionCategoryConfig);
 const anpCategories = Object.keys(anpCategoryConfig);
 const fcpCategories = Object.keys(fcpCategoryConfig);
-const allPrompts = [...promptExamples, ...gpPromptExamples, ...splwPromptExamples, ...pharmacistPromptExamples, ...practiceManagerPromptExamples, ...hcaPromptExamples, ...pcnPromptExamples, ...receptionPromptExamples, ...anpPromptExamples, ...fcpPromptExamples];
+const mhpCategories = Object.keys(mhpCategoryConfig);
+const allPrompts = [...promptExamples, ...gpPromptExamples, ...splwPromptExamples, ...pharmacistPromptExamples, ...practiceManagerPromptExamples, ...hcaPromptExamples, ...pcnPromptExamples, ...receptionPromptExamples, ...anpPromptExamples, ...fcpPromptExamples, ...mhpPromptExamples];
 
 const AI4GPPromptGuide = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -835,9 +897,19 @@ const AI4GPPromptGuide = () => {
     );
   }, [searchTerm]);
 
+  const filteredMhpPrompts = useMemo(() => {
+    if (!searchTerm.trim()) return mhpPromptExamples;
+    const term = searchTerm.toLowerCase();
+    return mhpPromptExamples.filter(
+      p => p.useCase.toLowerCase().includes(term) || 
+           p.prompt.toLowerCase().includes(term) ||
+           p.category.toLowerCase().includes(term)
+    );
+  }, [searchTerm]);
+
   const filteredAllPrompts = useMemo(() => {
-    return [...filteredStaffPrompts, ...filteredGpPrompts, ...filteredSplwPrompts, ...filteredPharmacistPrompts, ...filteredPracticeManagerPrompts, ...filteredHcaPrompts, ...filteredPcnPrompts, ...filteredReceptionPrompts, ...filteredAnpPrompts, ...filteredFcpPrompts];
-  }, [filteredStaffPrompts, filteredGpPrompts, filteredSplwPrompts, filteredPharmacistPrompts, filteredPracticeManagerPrompts, filteredHcaPrompts, filteredPcnPrompts, filteredReceptionPrompts, filteredAnpPrompts, filteredFcpPrompts]);
+    return [...filteredStaffPrompts, ...filteredGpPrompts, ...filteredSplwPrompts, ...filteredPharmacistPrompts, ...filteredPracticeManagerPrompts, ...filteredHcaPrompts, ...filteredPcnPrompts, ...filteredReceptionPrompts, ...filteredAnpPrompts, ...filteredFcpPrompts, ...filteredMhpPrompts];
+  }, [filteredStaffPrompts, filteredGpPrompts, filteredSplwPrompts, filteredPharmacistPrompts, filteredPracticeManagerPrompts, filteredHcaPrompts, filteredPcnPrompts, filteredReceptionPrompts, filteredAnpPrompts, filteredFcpPrompts, filteredMhpPrompts]);
 
   const promptsByCategory = useMemo(() => {
     return categories.reduce((acc, category) => {
@@ -909,6 +981,13 @@ const AI4GPPromptGuide = () => {
     }, {} as Record<string, PromptExample[]>);
   }, [filteredFcpPrompts]);
 
+  const mhpPromptsByCategory = useMemo(() => {
+    return mhpCategories.reduce((acc, category) => {
+      acc[category] = filteredMhpPrompts.filter(p => p.category === category);
+      return acc;
+    }, {} as Record<string, PromptExample[]>);
+  }, [filteredMhpPrompts]);
+
   const handleCopy = async (prompt: string, id: number) => {
     try {
       await navigator.clipboard.writeText(prompt);
@@ -923,10 +1002,10 @@ const AI4GPPromptGuide = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO 
-        title="AI4GP Prompt Guide | 270 Example Prompts for GP Practices | NoteWell AI"
-        description="Comprehensive guide with 270 example prompts for practice staff, practice managers, PCN managers, reception teams, GPs, HCAs, clinical pharmacists, physiotherapists, nurse practitioners, and social prescribers - clinical protocols, patient education, and more using AI4GP."
+        title="AI4GP Prompt Guide | 290 Example Prompts for GP Practices | NoteWell AI"
+        description="Comprehensive guide with 290 example prompts for practice staff, practice managers, PCN managers, reception teams, GPs, HCAs, clinical pharmacists, physiotherapists, mental health practitioners, nurse practitioners, and social prescribers - clinical protocols, patient education, and more using AI4GP."
         canonical="https://www.gpnotewell.co.uk/ai4gp-prompts"
-        keywords="AI4GP prompts, GP practice prompts, practice manager prompts, PCN prompts, reception team prompts, HCA prompts, clinical pharmacist prompts, FCP prompts, first contact physiotherapist, ANP prompts, nurse practitioner, social prescribing, SPLW prompts, clinical protocols, patient education, CQC compliance"
+        keywords="AI4GP prompts, GP practice prompts, practice manager prompts, PCN prompts, reception team prompts, HCA prompts, clinical pharmacist prompts, FCP prompts, first contact physiotherapist, mental health practitioner, MHP prompts, ANP prompts, nurse practitioner, social prescribing, SPLW prompts, clinical protocols, patient education, CQC compliance"
       />
       
       <header className="border-b bg-card">
@@ -938,7 +1017,7 @@ const AI4GPPromptGuide = () => {
             </Link>
             <div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">AI4GP Prompt Guide</h1>
-              <p className="text-sm sm:text-base text-muted-foreground mt-1">270 example prompts for GP practice and PCN teams</p>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1">290 example prompts for GP practice and PCN teams</p>
             </div>
           </div>
         </div>
@@ -951,7 +1030,7 @@ const AI4GPPromptGuide = () => {
             <CardHeader className="pb-3 sm:pb-6">
               <CardTitle id="intro-heading" className="text-lg sm:text-xl">How to Use This Guide</CardTitle>
               <CardDescription className="text-sm">
-                This page contains 270 example prompts organised by role and category - 50 for practice staff, 20 for reception teams, 20 for practice managers, 20 for PCN/Neighbourhood, 25 for GPs, 25 for social prescribers, 20 for clinical pharmacists, 20 for HCAs, 20 for physiotherapists (FCP), and 25 for nurse practitioners (ANP/ACP). Copy them directly into AI4GP or customise for your needs.
+                This page contains 290 example prompts organised by role and category - 50 for practice staff, 20 for reception teams, 20 for practice managers, 20 for PCN/Neighbourhood, 25 for GPs, 25 for social prescribers, 20 for clinical pharmacists, 20 for HCAs, 20 for physiotherapists (FCP), 20 for mental health practitioners (MHP), and 25 for nurse practitioners (ANP/ACP). Copy them directly into AI4GP or customise for your needs.
               </CardDescription>
             </CardHeader>
             <CardContent className="prose prose-sm dark:prose-invert max-w-none pt-0">
@@ -2095,13 +2174,124 @@ const AI4GPPromptGuide = () => {
           </Accordion>
         </section>
 
+        {/* Mental Health Practitioner (MHP) Categories */}
+        <section aria-labelledby="mhp-categories-heading" className="mb-8 sm:mb-12">
+          <h2 id="mhp-categories-heading" className="text-lg sm:text-xl font-semibold text-foreground mb-2 sm:mb-4">Mental Health Practitioner (MHP) Use Cases</h2>
+          <p className="text-sm text-muted-foreground mb-4 sm:mb-6">20 prompts for mental health assessment, anxiety and depression support, crisis management, and therapy interventions</p>
+          
+          <Accordion type="multiple" defaultValue={mhpCategories} className="space-y-3 sm:space-y-4">
+            {mhpCategories.map((category) => {
+              const config = mhpCategoryConfig[category];
+              const categoryPrompts = mhpPromptsByCategory[category];
+              
+              if (categoryPrompts.length === 0) return null;
+              
+              return (
+                <AccordionItem 
+                  key={category} 
+                  value={category}
+                  className="border rounded-lg bg-card"
+                >
+                  <AccordionTrigger className="px-3 sm:px-4 py-2 sm:py-3 hover:no-underline">
+                    <div className="flex items-center gap-2 sm:gap-3 text-left w-full">
+                      <div className={`p-1.5 sm:p-2 rounded-lg shrink-0 ${config.colour}`}>
+                        {config.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground text-sm sm:text-base">{category}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground font-normal line-clamp-1">{config.description}</p>
+                      </div>
+                      <Badge variant="secondary" className="ml-auto mr-2 sm:mr-4 shrink-0 text-xs">
+                        {categoryPrompts.length}
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-2 sm:px-4 pb-3 sm:pb-4">
+                    {/* Mobile card layout */}
+                    <div className="space-y-3 sm:hidden">
+                      {categoryPrompts.map((example) => (
+                        <div 
+                          key={example.id}
+                          className="bg-muted/30 rounded-lg p-3 space-y-2"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs text-muted-foreground">#{example.id}</span>
+                              <h4 className="font-medium text-foreground text-sm">{example.useCase}</h4>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopy(example.prompt, example.id)}
+                              aria-label={`Copy prompt: ${example.useCase}`}
+                              className="h-8 w-8 p-0 shrink-0"
+                            >
+                              {copiedId === example.id ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                          <p className="text-sm text-foreground/80">{example.prompt}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Desktop table layout */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full text-sm" role="table">
+                        <caption className="sr-only">{category} prompts</caption>
+                        <thead>
+                          <tr className="border-b">
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-8">#</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground w-48">Use Case</th>
+                            <th scope="col" className="text-left py-2 pr-4 font-medium text-muted-foreground">Example Prompt</th>
+                            <th scope="col" className="text-right py-2 font-medium text-muted-foreground w-20">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {categoryPrompts.map((example) => (
+                            <tr 
+                              key={example.id} 
+                              className="border-b last:border-0 hover:bg-muted/50 transition-colors"
+                            >
+                              <td className="py-3 pr-4 text-muted-foreground">{example.id}</td>
+                              <td className="py-3 pr-4 font-medium text-foreground">{example.useCase}</td>
+                              <td className="py-3 pr-4 text-foreground">{example.prompt}</td>
+                              <td className="py-3 text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopy(example.prompt, example.id)}
+                                  aria-label={`Copy prompt: ${example.useCase}`}
+                                  className="h-8 w-8 p-0"
+                                >
+                                  {copiedId === example.id ? (
+                                    <Check className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </section>
+
         {/* Quick Reference Table - for LLM consumption - hidden on mobile */}
         <section aria-labelledby="full-list-heading" className="mt-8 sm:mt-12 hidden sm:block">
           <Card>
             <CardHeader className="pb-3 sm:pb-6">
               <CardTitle id="full-list-heading" className="text-lg sm:text-xl">Complete Prompt Reference</CardTitle>
               <CardDescription className="text-sm">
-                All 270 prompts in a single searchable table for quick reference
+                All 290 prompts in a single searchable table for quick reference
               </CardDescription>
             </CardHeader>
             <CardContent>
