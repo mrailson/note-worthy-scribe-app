@@ -347,12 +347,7 @@ const AI4GPService = () => {
     localStorage.setItem('ai4gp-selected-role', selectedRole);
   }, [selectedRole]);
 
-  // Force Practice Manager role when GP/Clinical is hidden or user is ICB member
-  React.useEffect(() => {
-    if (shouldHideGPClinical && selectedRole === 'gp') {
-      setSelectedRole('practice-manager');
-    }
-  }, [shouldHideGPClinical, selectedRole]);
+  // Role toggle now always works - no forced override
 
   const handleDisclaimerAccept = () => {
     setShowDisclaimerModal(false);
