@@ -592,6 +592,22 @@ Content guidelines:
 
       console.log('🎨 Using OpenAI gpt-image-1 API...');
       
+      // Determine optimal size based on request type
+      // Portrait (1024x1536): leaflets, posters, newsletters, form-headers - tall content
+      // Landscape (1536x1024): social media, waiting-room displays, calendars - wide content
+      // Square (1024x1024): logos, charts, diagrams, infographics, general
+      const portraitTypes = ['leaflet', 'poster', 'newsletter', 'form-header'];
+      const landscapeTypes = ['social', 'waiting-room', 'calendar', 'campaign'];
+      
+      let imageSize = '1024x1024'; // Default square
+      if (portraitTypes.includes(requestType)) {
+        imageSize = '1024x1536'; // Portrait for documents/leaflets
+      } else if (landscapeTypes.includes(requestType)) {
+        imageSize = '1536x1024'; // Landscape for displays/social
+      }
+      
+      console.log(`📐 Using size ${imageSize} for request type: ${requestType}`);
+      
       const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: {
@@ -602,7 +618,7 @@ Content guidelines:
           model: 'gpt-image-1',
           prompt: imagePrompt,
           n: 1,
-          size: '1024x1024',
+          size: imageSize,
           quality: 'high'
         }),
       });
