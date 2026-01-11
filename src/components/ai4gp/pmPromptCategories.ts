@@ -314,6 +314,21 @@ export const mainCategories: MainCategory[] = [
           { id: 'email-patient', shortTitle: 'Patient Comms', title: 'Patient Email', description: 'Draft patient email', prompt: 'Draft a patient communication email about:' },
           { id: 'email-external', shortTitle: 'External', title: 'External Email', description: 'Draft external email', prompt: 'Draft a professional email to an external organisation about:' },
           { id: 'email-followup', shortTitle: 'Follow-up', title: 'Follow-up Email', description: 'Draft follow-up email', prompt: 'Draft a follow-up email regarding:' },
+          { id: 'email-polish', shortTitle: 'Polish Draft', title: 'Polish My Email', description: 'Review and improve your draft email', prompt: `Please review and polish my draft email below. Check for:
+
+1. **Accuracy** - Ensure all facts, dates, and details are consistent and clear
+2. **Professional Tone** - Make it appropriately formal for NHS/healthcare communication
+3. **NHS Best Practice** - Follow NHS communication guidelines (clear, concise, patient-centred)
+4. **Grammar & Spelling** - Correct any errors
+5. **Structure** - Ensure logical flow with clear opening, body, and closing
+6. **Clarity** - Remove jargon and ensure the message is easily understood
+
+Please provide:
+- The polished version of my email
+- A brief summary of changes made
+- Any suggestions for improvement
+
+My draft email:` },
         ]
       },
       {
