@@ -534,7 +534,13 @@ export const useActionItems = (meetingId: string) => {
     }
   };
 
-  const openItemsCount = actionItems.filter(i => i.status !== 'Completed').length;
+  // Count only open items that need attention (missing due date or assignee)
+  const openItemsCount = actionItems.filter(i => {
+    if (i.status === 'Completed') return false;
+    const hasDueDate = i.due_date && i.due_date !== 'TBC' && i.due_date.trim() !== '';
+    const hasAssignee = i.assignee_name && i.assignee_name !== 'TBC' && i.assignee_name.trim() !== '';
+    return !hasDueDate || !hasAssignee;
+  }).length;
 
   return {
     actionItems,
