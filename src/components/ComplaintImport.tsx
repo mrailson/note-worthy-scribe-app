@@ -30,6 +30,7 @@ interface ComplaintData {
   priority?: string;
   consent_given?: boolean;
   complaint_on_behalf?: boolean;
+  complaint_source?: string;
 }
 
 interface ComplaintImportProps {
