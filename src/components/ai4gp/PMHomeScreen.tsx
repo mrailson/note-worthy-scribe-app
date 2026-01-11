@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  FileText, 
-  ImageIcon, 
-  Volume2, 
-  Mic, 
-  MessageSquare, 
-  Presentation, 
-  Search, 
-  Sparkles,
-  LayoutPanelTop,
   Lightbulb,
   ExternalLink,
   ArrowLeft
@@ -22,115 +13,17 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
-import { imageSubCategories, customImagePrompt, type ImageSubCategory, type ImageDetailPrompt } from './pmImagePrompts';
+import { mainCategories, type MainCategory, type SubCategory, type PromptItem } from './pmPromptCategories';
 
 interface PMHomeScreenProps {
   setInput: (text: string) => void;
   focusInput?: () => void;
 }
 
-interface UseCase {
-  id: string;
-  title: string;
-  shortTitle: string;
-  description: string;
-  icon: React.ElementType;
-  gradient: string;
-  prompt: string;
-  focusOnly?: boolean;
-  hasSubMenu?: boolean;
-}
-
 type ActiveView = 
   | { type: 'main' }
-  | { type: 'image-categories' }
-  | { type: 'image-details'; category: ImageSubCategory };
-
-const useCases: UseCase[] = [
-  {
-    id: 'summarise',
-    title: 'Summarise a Document',
-    shortTitle: 'Summarise',
-    description: 'Upload any wordy NHS document and get a concise summary',
-    icon: FileText,
-    gradient: 'from-blue-500 to-blue-600',
-    prompt: 'Please summarise this document concisely, highlighting key points, decisions, and any actions required. Focus on what matters most for a GP practice.',
-  },
-  {
-    id: 'image',
-    title: 'Create an image',
-    shortTitle: 'Image',
-    description: 'Generate images just by asking... I am quite the artist!',
-    icon: ImageIcon,
-    gradient: 'from-purple-500 to-purple-600',
-    prompt: 'Create a professional NHS-style image for my practice. I want:',
-    hasSubMenu: true,
-  },
-  {
-    id: 'voice',
-    title: 'Generate Voice Audio',
-    shortTitle: 'Voice',
-    description: 'Turn any script into a downloadable MP3',
-    icon: Volume2,
-    gradient: 'from-green-500 to-green-600',
-    prompt: 'Create an audio file from the following script. Use a clear, professional British voice:\n\n',
-  },
-  {
-    id: 'meeting',
-    title: 'Meeting Notes from Audio',
-    shortTitle: 'Meeting',
-    description: 'Transcribe recordings into structured meeting notes',
-    icon: Mic,
-    gradient: 'from-orange-500 to-orange-600',
-    prompt: 'Please transcribe and summarise this meeting audio into structured notes with key decisions, actions, and attendees clearly identified.',
-  },
-  {
-    id: 'response',
-    title: 'Draft a Response',
-    shortTitle: 'Draft',
-    description: 'Create complaint responses, letters, and emails',
-    icon: MessageSquare,
-    gradient: 'from-red-500 to-red-600',
-    prompt: 'Help me draft a professional NHS response. Include appropriate letterhead using my practice details. The situation is:',
-  },
-  {
-    id: 'presentation',
-    title: 'Create a Presentation',
-    shortTitle: 'Slides',
-    description: 'Build PowerPoint slides for meetings (just add your files and let AI do all the work!)',
-    icon: Presentation,
-    gradient: 'from-amber-500 to-amber-600',
-    prompt: 'Create a PowerPoint presentation on the following topic for my practice:',
-  },
-  {
-    id: 'infographic',
-    title: 'Create an Infographic',
-    shortTitle: 'Infographic',
-    description: 'Transform source material into a visual single-page summary',
-    icon: LayoutPanelTop,
-    gradient: 'from-teal-500 to-teal-600',
-    prompt: 'Create a single-page infographic from the following source material. Include key statistics, main points, and visual hierarchy. Make it clear, engaging, and easy to scan at a glance:\n\n',
-  },
-  {
-    id: 'search',
-    title: 'Search NHS Guidance',
-    shortTitle: 'Search',
-    description: 'Find PCN DES specs, contracts, CQC requirements',
-    icon: Search,
-    gradient: 'from-cyan-500 to-cyan-600',
-    prompt: 'Find the latest NHS guidance on:',
-  },
-  {
-    id: 'anything',
-    title: 'Ask Anything',
-    shortTitle: 'Ask AI',
-    description: 'Get AI assistance with any practice question',
-    icon: Sparkles,
-    gradient: 'from-primary to-primary/80',
-    prompt: '',
-    focusOnly: true,
-  },
-];
+  | { type: 'subcategories'; category: MainCategory }
+  | { type: 'prompts'; category: MainCategory; subCategory: SubCategory };
 
 export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -146,7 +39,8 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
       prompt.toLowerCase().includes('infographic') ||
       prompt.toLowerCase().includes('presentation') ||
       prompt.toLowerCase().includes('powerpoint') ||
-      prompt.toLowerCase().includes('slides');
+      prompt.toLowerCase().includes('slides') ||
+      prompt.toLowerCase().includes('poster');
     
     if (isVisualPrompt) return prompt;
     
@@ -179,36 +73,29 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
     });
   };
 
-  const handleCardClick = (useCase: UseCase) => {
-    if (useCase.hasSubMenu && useCase.id === 'image') {
-      setActiveView({ type: 'image-categories' });
-    } else if (useCase.focusOnly) {
+  const handleCategoryClick = (category: MainCategory) => {
+    if (category.focusOnly) {
       focusInput?.();
-    } else {
-      setInput(enhancePrompt(useCase.prompt));
-      showPromptInsertedToast();
+    } else if (category.subCategories.length > 0) {
+      setActiveView({ type: 'subcategories', category });
     }
   };
 
-  const handleImageCategoryClick = (category: ImageSubCategory) => {
-    if (category.prompts.length === 0) {
-      setInput(customImagePrompt);
-      setActiveView({ type: 'main' });
-      showPromptInsertedToast();
-    } else {
-      setActiveView({ type: 'image-details', category });
+  const handleSubCategoryClick = (category: MainCategory, subCategory: SubCategory) => {
+    if (subCategory.prompts.length > 0) {
+      setActiveView({ type: 'prompts', category, subCategory });
     }
   };
 
-  const handleDetailPromptClick = (detailPrompt: ImageDetailPrompt) => {
-    setInput(detailPrompt.prompt);
+  const handlePromptClick = (prompt: PromptItem) => {
+    setInput(enhancePrompt(prompt.prompt));
     setActiveView({ type: 'main' });
     showPromptInsertedToast();
   };
 
   const handleBack = () => {
-    if (activeView.type === 'image-details') {
-      setActiveView({ type: 'image-categories' });
+    if (activeView.type === 'prompts') {
+      setActiveView({ type: 'subcategories', category: activeView.category });
     } else {
       setActiveView({ type: 'main' });
     }
@@ -291,16 +178,16 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
         {activeView.type === 'main' ? (
           <>
             <TooltipProvider delayDuration={200}>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-2xl mx-auto">
-                {useCases.map((useCase) => 
+              <div className="grid grid-cols-3 gap-2 max-w-2xl mx-auto">
+                {mainCategories.map((category) => 
                   renderCard(
-                    useCase.id,
-                    useCase.shortTitle,
-                    useCase.title,
-                    useCase.description,
-                    useCase.icon,
-                    useCase.gradient,
-                    () => handleCardClick(useCase)
+                    category.id,
+                    category.shortTitle,
+                    category.title,
+                    category.description,
+                    category.icon,
+                    category.gradient,
+                    () => handleCategoryClick(category)
                   )
                 )}
               </div>
@@ -319,12 +206,12 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
                 )}
               >
                 <Lightbulb className="w-4 h-4" />
-                <span>290 Prompt Ideas</span>
+                <span>150+ Prompt Ideas</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
           </>
-        ) : activeView.type === 'image-categories' ? (
+        ) : activeView.type === 'subcategories' ? (
           <div className="space-y-3 max-w-2xl mx-auto">
             <button
               onClick={handleBack}
@@ -335,23 +222,27 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
             </button>
             
             <div className="flex items-center gap-2 justify-center">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                <ImageIcon className="w-4 h-4 text-white" />
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center",
+                "bg-gradient-to-br",
+                activeView.category.gradient
+              )}>
+                <activeView.category.icon className="w-4 h-4 text-white" />
               </div>
-              <h3 className="font-medium text-foreground">What type of image?</h3>
+              <h3 className="font-medium text-foreground">{activeView.category.title}</h3>
             </div>
             
             <TooltipProvider delayDuration={200}>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {imageSubCategories.map((category) => 
+                {activeView.category.subCategories.map((subCategory) => 
                   renderCard(
-                    category.id,
-                    category.shortTitle,
-                    category.shortTitle,
-                    category.description,
-                    category.icon,
-                    category.gradient,
-                    () => handleImageCategoryClick(category)
+                    subCategory.id,
+                    subCategory.shortTitle,
+                    subCategory.title,
+                    subCategory.description,
+                    subCategory.icon,
+                    subCategory.gradient,
+                    () => handleSubCategoryClick(activeView.category, subCategory)
                   )
                 )}
               </div>
@@ -364,28 +255,28 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to image types</span>
+              <span>Back to {activeView.category.shortTitle}</span>
             </button>
             
             <div className="flex items-center gap-2 justify-center">
               <div className={cn(
                 "w-8 h-8 rounded-lg flex items-center justify-center",
                 "bg-gradient-to-br",
-                activeView.category.gradient
+                activeView.subCategory.gradient
               )}>
-                <activeView.category.icon className="w-4 h-4 text-white" />
+                <activeView.subCategory.icon className="w-4 h-4 text-white" />
               </div>
-              <h3 className="font-medium text-foreground">{activeView.category.shortTitle}</h3>
+              <h3 className="font-medium text-foreground">{activeView.subCategory.title}</h3>
             </div>
             
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {activeView.category.prompts.map((detailPrompt) => 
+              {activeView.subCategory.prompts.map((prompt) => 
                 renderSimpleCard(
-                  detailPrompt.id,
-                  detailPrompt.shortTitle,
-                  activeView.category.icon,
-                  activeView.category.gradient,
-                  () => handleDetailPromptClick(detailPrompt)
+                  prompt.id,
+                  prompt.shortTitle,
+                  activeView.subCategory.icon,
+                  activeView.subCategory.gradient,
+                  () => handlePromptClick(prompt)
                 )
               )}
             </div>
