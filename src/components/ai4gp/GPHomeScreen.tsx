@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { gpCategories, type MainCategory, type SubCategory, type PromptItem } from './gpPromptCategories';
-import { QuickTipsHover } from './QuickTipsHover';
 import { ContextBanner } from './ContextBanner';
 
 interface GPHomeScreenProps {
@@ -194,8 +193,7 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
               </div>
             </TooltipProvider>
 
-            <div className="flex items-center justify-center gap-2 pt-2">
-              <QuickTipsHover />
+            <div className="flex items-center justify-center pt-2">
               <a
                 href="/ai4gp-prompts"
                 target="_blank"
