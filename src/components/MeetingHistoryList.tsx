@@ -205,10 +205,7 @@ export const MeetingHistoryList = ({
   const { folders, assignMeetingToFolder } = useMeetingFolders();
   const userFullNameLower = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase();
   const isIOS = detectDevice().isIOS;
-  console.log('🚨 MeetingHistoryList render - meetings:', meetings.length);
-  console.log('🚨 MeetingHistoryList meetings data:', meetings.slice(0, 3).map(m => ({ id: m.id, title: m.title })));
-  console.log('🚨 Loading state:', loading);
-  console.log('🚨 About to render:', meetings.length === 0 ? 'NO MEETINGS MESSAGE' : 'MEETINGS LIST');
+
   
   // Local state for meetings - initialize with prop value, sync on changes
   const [localMeetings, setLocalMeetings] = useState<Meeting[]>(meetings);
@@ -226,12 +223,6 @@ export const MeetingHistoryList = ({
   
   // Sync localMeetings with meetings prop - database is source of truth
   useEffect(() => {
-    // EXPLICIT STRING TRACE - won't get collapsed by console
-    const folderTrace = meetings.slice(0, 10).map(m => 
-      `${m.id.slice(0,8)}:${m.folder_id ?? 'NULL'}`
-    ).join(', ');
-    console.log('🔴🔴🔴 CHILD RECEIVED folder_ids:', folderTrace);
-    
     // Always sync from database - don't skip
     setLocalMeetings(meetings);
   }, [meetings]);
@@ -3036,15 +3027,17 @@ export const MeetingHistoryList = ({
       </Dialog>
 
       {/* Mobile Notes Sheet */}
-      <MobileNotesSheet
-        isOpen={mobileNotesOpen}
-        onOpenChange={setMobileNotesOpen}
-        meeting={selectedMeetingForNotes}
-        notes={meetingNotes}
-      />
+      {mobileNotesOpen && (
+        <MobileNotesSheet
+          isOpen={mobileNotesOpen}
+          onOpenChange={setMobileNotesOpen}
+          meeting={selectedMeetingForNotes}
+          notes={meetingNotes}
+        />
+      )}
 
       {/* Desktop Notes Modal (fallback) */}
-      {!isMobile && (
+      {!isMobile && desktopNotesOpen && (
         <FullPageNotesModal
           isOpen={desktopNotesOpen}
           onClose={() => setDesktopNotesOpen(false)}

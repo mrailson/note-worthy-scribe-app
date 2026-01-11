@@ -6079,17 +6079,40 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
 
           {/* Full Page Notes Modal - now available on all devices including iPhone */}
           {fullPageModalOpen && modalMeeting && (
-           <FullPageNotesModal
-             isOpen={fullPageModalOpen}
-             onClose={() => {
-               setFullPageModalOpen(false);
-               setModalMeeting(null);
-               setModalNotes('');
-             }}
-             meeting={modalMeeting}
-             notes={modalNotes}
-             onNotesChange={setModalNotes}
-           />
+            modalMeeting._isLoading ? (
+              <Dialog
+                open={fullPageModalOpen}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setFullPageModalOpen(false);
+                    setModalMeeting(null);
+                    setModalNotes('');
+                  }
+                }}
+              >
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Loading meeting notes</DialogTitle>
+                    <DialogDescription>Fetching your latest notes…</DialogDescription>
+                  </DialogHeader>
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            ) : (
+              <FullPageNotesModal
+                isOpen={fullPageModalOpen}
+                onClose={() => {
+                  setFullPageModalOpen(false);
+                  setModalMeeting(null);
+                  setModalNotes('');
+                }}
+                meeting={modalMeeting}
+                notes={modalNotes}
+                onNotesChange={setModalNotes}
+              />
+            )
           )}
 
       {/* Transcript Modal */}
