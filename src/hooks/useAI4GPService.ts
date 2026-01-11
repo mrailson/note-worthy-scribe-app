@@ -488,9 +488,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       const previousMessagesForDetection = messages.map(m => ({ role: m.role, content: m.content }));
       const imageDetection = detectImageRequest(messageToUse, previousMessagesForDetection);
       
-      // Allow image generation for visual types (infographic, chart, diagram, poster) even with document files
+      // Allow image generation for visual types even with document files
       // These types explicitly want to CREATE visuals FROM the document content
-      const visualTypesAllowedWithDocs = ['infographic', 'chart', 'diagram', 'poster'];
+      const visualTypesAllowedWithDocs = [
+        'infographic', 'chart', 'diagram', 'poster', 'calendar',
+        'leaflet', 'newsletter', 'social', 'waiting-room', 'form-header', 'campaign'
+      ];
       const isVisualFromDocRequest = hasDocumentFiles && visualTypesAllowedWithDocs.includes(imageDetection.requestType);
       const shouldGenerateImage = imageDetection.isImageRequest && 
                                    imageDetection.confidence !== 'low' && 
