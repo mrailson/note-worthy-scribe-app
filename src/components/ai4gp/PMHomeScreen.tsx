@@ -11,13 +11,7 @@ import {
   LayoutPanelTop,
   Lightbulb,
   ExternalLink,
-  ArrowLeft,
-  Share2,
-  Heart,
-  BarChart3,
-  Newspaper,
-  Monitor,
-  ClipboardList
+  ArrowLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
@@ -27,6 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { imageSubCategories, customImagePrompt, type ImageSubCategory, type ImageDetailPrompt } from './pmImagePrompts';
 
 interface PMHomeScreenProps {
   setInput: (text: string) => void;
@@ -45,89 +40,10 @@ interface UseCase {
   hasSubMenu?: boolean;
 }
 
-interface ImageSubPrompt {
-  id: string;
-  shortTitle: string;
-  description: string;
-  icon: React.ElementType;
-  gradient: string;
-  prompt: string;
-}
-
-const imageSubPrompts: ImageSubPrompt[] = [
-  {
-    id: 'social-media',
-    shortTitle: 'Social Media',
-    description: 'Facebook, Instagram posts promoting services',
-    icon: Share2,
-    gradient: 'from-purple-500 to-purple-600',
-    prompt: 'Create a social media image for my practice promoting:',
-  },
-  {
-    id: 'patient-leaflet',
-    shortTitle: 'Leaflet',
-    description: 'A4/A5 patient information leaflets',
-    icon: FileText,
-    gradient: 'from-blue-500 to-blue-600',
-    prompt: 'Create a patient information leaflet about:',
-  },
-  {
-    id: 'poster',
-    shortTitle: 'Poster',
-    description: 'Waiting room and staff area posters',
-    icon: ImageIcon,
-    gradient: 'from-orange-500 to-orange-600',
-    prompt: 'Create a practice poster for:',
-  },
-  {
-    id: 'health-campaign',
-    shortTitle: 'Campaign',
-    description: 'NHS awareness campaigns and screening',
-    icon: Heart,
-    gradient: 'from-red-500 to-red-600',
-    prompt: 'Create a health campaign image for:',
-  },
-  {
-    id: 'infographic',
-    shortTitle: 'Infographic',
-    description: 'Data visualisation and statistics',
-    icon: BarChart3,
-    gradient: 'from-cyan-500 to-cyan-600',
-    prompt: 'Create an infographic showing:',
-  },
-  {
-    id: 'newsletter',
-    shortTitle: 'Newsletter',
-    description: 'Newsletter headers and banners',
-    icon: Newspaper,
-    gradient: 'from-pink-500 to-pink-600',
-    prompt: 'Create a newsletter header image for:',
-  },
-  {
-    id: 'waiting-room',
-    shortTitle: 'Display',
-    description: 'Waiting room digital displays',
-    icon: Monitor,
-    gradient: 'from-green-500 to-green-600',
-    prompt: 'Create a waiting room display about:',
-  },
-  {
-    id: 'staff-notice',
-    shortTitle: 'Staff Notice',
-    description: 'Internal staff communications',
-    icon: ClipboardList,
-    gradient: 'from-amber-500 to-amber-600',
-    prompt: 'Create a staff notice about:',
-  },
-  {
-    id: 'custom',
-    shortTitle: 'Custom',
-    description: 'Describe any image you need',
-    icon: Sparkles,
-    gradient: 'from-primary to-primary/80',
-    prompt: 'Create a professional NHS-style image for my practice. I want:',
-  },
-];
+type ActiveView = 
+  | { type: 'main' }
+  | { type: 'image-categories' }
+  | { type: 'image-details'; category: ImageSubCategory };
 
 const useCases: UseCase[] = [
   {
@@ -217,13 +133,11 @@ const useCases: UseCase[] = [
 
 export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
-  const [activeView, setActiveView] = useState<'main' | 'image'>('main');
+  const [activeView, setActiveView] = useState<ActiveView>({ type: 'main' });
 
-  // Enhance prompt with practice context where relevant (but not for image/visual-based prompts)
   const enhancePrompt = (prompt: string) => {
     if (!prompt) return prompt;
     
-    // Skip practice details for image-based and presentation prompts
     const isVisualPrompt = 
       prompt.toLowerCase().includes('create a professional nhs-style image') ||
       prompt.toLowerCase().includes('create an image') ||
@@ -237,7 +151,6 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
     
     let enhanced = prompt;
     
-    // Add practice details for prompts that need them
     if (practiceContext.practiceName && (
       prompt.toLowerCase().includes('practice') ||
       prompt.toLowerCase().includes('response') ||
@@ -260,7 +173,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
 
   const handleCardClick = (useCase: UseCase) => {
     if (useCase.hasSubMenu && useCase.id === 'image') {
-      setActiveView('image');
+      setActiveView({ type: 'image-categories' });
     } else if (useCase.focusOnly) {
       focusInput?.();
     } else {
@@ -268,9 +181,26 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
     }
   };
 
-  const handleImageSubPromptClick = (subPrompt: ImageSubPrompt) => {
-    setInput(subPrompt.prompt);
-    setActiveView('main');
+  const handleImageCategoryClick = (category: ImageSubCategory) => {
+    if (category.prompts.length === 0) {
+      setInput(customImagePrompt);
+      setActiveView({ type: 'main' });
+    } else {
+      setActiveView({ type: 'image-details', category });
+    }
+  };
+
+  const handleDetailPromptClick = (detailPrompt: ImageDetailPrompt) => {
+    setInput(detailPrompt.prompt);
+    setActiveView({ type: 'main' });
+  };
+
+  const handleBack = () => {
+    if (activeView.type === 'image-details') {
+      setActiveView({ type: 'image-categories' });
+    } else {
+      setActiveView({ type: 'main' });
+    }
   };
 
   const renderCard = (
@@ -313,12 +243,42 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
     </Tooltip>
   );
 
+  const renderSimpleCard = (
+    id: string,
+    shortTitle: string,
+    Icon: React.ElementType,
+    gradient: string,
+    onClick: () => void
+  ) => (
+    <button
+      key={id}
+      onClick={onClick}
+      className={cn(
+        "group flex items-center gap-2 p-2.5",
+        "bg-card border border-border rounded-lg",
+        "hover:border-primary/50 hover:bg-accent/50",
+        "transition-all duration-150",
+        "text-left min-w-0 overflow-hidden"
+      )}
+    >
+      <div className={cn(
+        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+        "bg-gradient-to-br",
+        gradient
+      )}>
+        <Icon className="w-4 h-4 text-white" />
+      </div>
+      <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate">
+        {shortTitle}
+      </span>
+    </button>
+  );
+
   return (
     <div className="p-3 sm:p-4">
       <div className="space-y-3">
-        {activeView === 'main' ? (
+        {activeView.type === 'main' ? (
           <>
-            {/* Main Cards Grid */}
             <TooltipProvider delayDuration={200}>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-2xl mx-auto">
                 {useCases.map((useCase) => 
@@ -335,7 +295,6 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
               </div>
             </TooltipProvider>
 
-            {/* Prompt Guide Link */}
             <div className="flex justify-center pt-2">
               <a
                 href="/ai4gp-prompts"
@@ -354,19 +313,16 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
               </a>
             </div>
           </>
-        ) : (
-          /* Image Sub-Menu View */
+        ) : activeView.type === 'image-categories' ? (
           <div className="space-y-3 max-w-2xl mx-auto">
-            {/* Back button */}
             <button
-              onClick={() => setActiveView('main')}
+              onClick={handleBack}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Back to main menu</span>
             </button>
             
-            {/* Header */}
             <div className="flex items-center gap-2 justify-center">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
                 <ImageIcon className="w-4 h-4 text-white" />
@@ -374,22 +330,54 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
               <h3 className="font-medium text-foreground">What type of image?</h3>
             </div>
             
-            {/* Sub-prompts grid */}
             <TooltipProvider delayDuration={200}>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {imageSubPrompts.map((subPrompt) => 
+                {imageSubCategories.map((category) => 
                   renderCard(
-                    subPrompt.id,
-                    subPrompt.shortTitle,
-                    subPrompt.shortTitle,
-                    subPrompt.description,
-                    subPrompt.icon,
-                    subPrompt.gradient,
-                    () => handleImageSubPromptClick(subPrompt)
+                    category.id,
+                    category.shortTitle,
+                    category.shortTitle,
+                    category.description,
+                    category.icon,
+                    category.gradient,
+                    () => handleImageCategoryClick(category)
                   )
                 )}
               </div>
             </TooltipProvider>
+          </div>
+        ) : (
+          <div className="space-y-3 max-w-2xl mx-auto">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to image types</span>
+            </button>
+            
+            <div className="flex items-center gap-2 justify-center">
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center",
+                "bg-gradient-to-br",
+                activeView.category.gradient
+              )}>
+                <activeView.category.icon className="w-4 h-4 text-white" />
+              </div>
+              <h3 className="font-medium text-foreground">{activeView.category.shortTitle}</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {activeView.category.prompts.map((detailPrompt) => 
+                renderSimpleCard(
+                  detailPrompt.id,
+                  detailPrompt.shortTitle,
+                  activeView.category.icon,
+                  activeView.category.gradient,
+                  () => handleDetailPromptClick(detailPrompt)
+                )
+              )}
+            </div>
           </div>
         )}
       </div>
