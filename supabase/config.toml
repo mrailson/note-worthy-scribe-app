@@ -386,3 +386,6 @@ verify_jwt = true
 
 [functions.rewrite-referral-tone]
 verify_jwt = true
+
+[functions.sync-meeting-action-items]
+verify_jwt = true

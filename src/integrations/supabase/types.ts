@@ -4390,6 +4390,62 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_action_items: {
+        Row: {
+          action_text: string
+          assignee_name: string | null
+          assignee_type: string | null
+          created_at: string
+          due_date: string | null
+          due_date_actual: string | null
+          id: string
+          meeting_id: string
+          priority: string | null
+          sort_order: number | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_text: string
+          assignee_name?: string | null
+          assignee_type?: string | null
+          created_at?: string
+          due_date?: string | null
+          due_date_actual?: string | null
+          id?: string
+          meeting_id: string
+          priority?: string | null
+          sort_order?: number | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_text?: string
+          assignee_name?: string | null
+          assignee_type?: string | null
+          created_at?: string
+          due_date?: string | null
+          due_date_actual?: string | null
+          id?: string
+          meeting_id?: string
+          priority?: string | null
+          sort_order?: number | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_action_items_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_attendee_templates: {
         Row: {
           created_at: string

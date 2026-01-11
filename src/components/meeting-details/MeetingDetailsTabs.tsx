@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Headphones, FileDown, MessageCircle } from "lucide-react";
+import { FileText, Headphones, FileDown, MessageCircle, CheckSquare } from "lucide-react";
 import { TextOverviewEditor } from "./TextOverviewEditor";
 import { MeetingAudioStudio } from "./MeetingAudioStudio";
 import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { MeetingQAPanel } from "./MeetingQAPanel";
+import { MeetingActionItemsTab } from "./MeetingActionItemsTab";
 import { supabase } from "@/integrations/supabase/client";
+import { useActionItems } from "@/hooks/useActionItems";
 
 interface MeetingDetailsTabsProps {
   meetingId: string;
@@ -19,6 +21,8 @@ interface MeetingDetailsTabsProps {
   onOverviewChange: (overview: string) => void;
   onRegenerateAudio?: () => void;
   onDocumentRemoved?: () => void;
+  meetingAttendees?: string[];
+  chairName?: string;
   className?: string;
 }
 
@@ -33,9 +37,12 @@ export const MeetingDetailsTabs = ({
   onOverviewChange,
   onRegenerateAudio,
   onDocumentRemoved,
+  meetingAttendees = [],
+  chairName,
   className = ""
 }: MeetingDetailsTabsProps) => {
   const [documentCount, setDocumentCount] = useState<number>(0);
+  const { openItemsCount } = useActionItems(meetingId);
 
   // Fetch document count
   useEffect(() => {
@@ -63,7 +70,7 @@ export const MeetingDetailsTabs = ({
   return (
     <div className={`bg-card border border-border rounded-lg ${className}`}>
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="w-full grid grid-cols-4 h-auto p-1">
+        <TabsList className="w-full grid grid-cols-5 h-auto p-1">
           <TabsTrigger value="overview" className="flex items-center gap-2 py-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Meeting Overview</span>
@@ -73,6 +80,16 @@ export const MeetingDetailsTabs = ({
             <Headphones className="h-4 w-4" />
             <span className="hidden sm:inline">Audio Summary</span>
             <span className="sm:hidden">Audio</span>
+          </TabsTrigger>
+          <TabsTrigger value="actions" className="flex items-center gap-2 py-2">
+            <CheckSquare className="h-4 w-4" />
+            <span className="hidden sm:inline">Action Items</span>
+            <span className="sm:hidden">Actions</span>
+            {openItemsCount > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
+                {openItemsCount}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="ask-ai" className="flex items-center gap-2 py-2">
             <MessageCircle className="h-4 w-4" />
@@ -108,6 +125,14 @@ export const MeetingDetailsTabs = ({
             audioOverviewDuration={audioOverviewDuration}
             meetingDurationMinutes={meetingDurationMinutes}
             onAudioGenerated={onRegenerateAudio}
+          />
+        </TabsContent>
+
+        <TabsContent value="actions" className="p-4">
+          <MeetingActionItemsTab
+            meetingId={meetingId}
+            meetingAttendees={meetingAttendees}
+            chairName={chairName}
           />
         </TabsContent>
 
