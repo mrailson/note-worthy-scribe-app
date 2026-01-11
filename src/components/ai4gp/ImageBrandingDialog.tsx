@@ -196,10 +196,10 @@ export const ImageBrandingDialog: React.FC<ImageBrandingDialogProps> = ({
                   isLogoAvailable ? "text-primary" : "text-muted-foreground"
                 )} />
                 <div>
-                  <p className="font-medium">Include Practice Logo</p>
+                  <p className="font-medium">Reserve Logo Space</p>
                   <p className="text-sm text-muted-foreground">
                     {isLogoAvailable 
-                      ? "Add your logo to the generated image" 
+                      ? "Leave space for your logo to be added after download" 
                       : "No logo uploaded in My Profile settings"
                     }
                   </p>
@@ -215,7 +215,7 @@ export const ImageBrandingDialog: React.FC<ImageBrandingDialogProps> = ({
             {/* Logo Preview when enabled and available */}
             {includePracticeLogo && isLogoAvailable && practiceContext?.logoUrl && (
               <div className="flex items-center gap-3 pt-3 border-t border-primary/20">
-                <span className="text-sm text-muted-foreground">Logo preview:</span>
+                <span className="text-sm text-muted-foreground">Your logo:</span>
                 <div className="relative">
                   <img 
                     src={practiceContext.logoUrl} 
@@ -224,6 +224,7 @@ export const ImageBrandingDialog: React.FC<ImageBrandingDialogProps> = ({
                     onError={() => setLogoImageError(true)}
                   />
                 </div>
+                <span className="text-xs text-muted-foreground italic">(add to image after download)</span>
               </div>
             )}
           </div>
