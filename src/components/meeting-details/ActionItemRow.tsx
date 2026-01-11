@@ -358,25 +358,22 @@ export const ActionItemRow = ({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-2" align="start" side="top" collisionPadding={16} avoidCollisions>
-              <div className="space-y-1">
-                {DUE_DATE_OPTIONS.map((option) => (
-                  <Button
-                    key={option.value}
-                    variant={item.due_date === option.value ? 'secondary' : 'ghost'}
-                    size="sm"
-                    className="w-full justify-start h-8 text-sm"
-                    onClick={() => handleDueDateSelect(option.value)}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
+            <PopoverContent className="w-auto p-3" align="start" side="top" collisionPadding={16} avoidCollisions>
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-1.5">
+                  {DUE_DATE_OPTIONS.map((option) => (
+                    <Button
+                      key={option.value}
+                      variant={item.due_date === option.value ? 'secondary' : 'outline'}
+                      size="sm"
+                      className="h-7 text-xs px-2 whitespace-nowrap"
+                      onClick={() => handleDueDateSelect(option.value)}
+                    >
+                      {option.label}
+                    </Button>
+                  ))}
+                </div>
                 
-                <div className="border-t my-2" />
-                <p className="text-xs font-medium text-muted-foreground px-2 py-1 flex items-center gap-1">
-                  <CalendarDays className="h-3 w-3" />
-                  Pick a date
-                </p>
                 <CalendarPicker
                   mode="single"
                   selected={item.due_date_actual ? new Date(item.due_date_actual) : undefined}
@@ -387,7 +384,7 @@ export const ActionItemRow = ({
                     }
                   }}
                   disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  className="pointer-events-auto"
+                  className="pointer-events-auto border-t pt-3"
                 />
               </div>
             </PopoverContent>
