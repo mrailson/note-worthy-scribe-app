@@ -424,10 +424,28 @@ serve(async (req) => {
       if (!uniqueMap.has(key)) uniqueMap.set(key, a);
     }
 
-    // Sort by published_at desc and keep latest 40
-    const validArticles = Array.from(uniqueMap.values())
+    // Group by source and take top articles from each to ensure variety
+    const bySource = new Map<string, ProcessedNewsItem[]>();
+    for (const a of uniqueMap.values()) {
+      if (!bySource.has(a.source)) bySource.set(a.source, []);
+      bySource.get(a.source)!.push(a);
+    }
+    
+    // Sort each source's articles by date and take up to 10 per source
+    const maxPerSource = 10;
+    const balancedArticles: ProcessedNewsItem[] = [];
+    for (const [source, articles] of bySource) {
+      const sorted = articles
+        .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
+        .slice(0, maxPerSource);
+      balancedArticles.push(...sorted);
+      console.log(`Source ${source}: keeping ${sorted.length} of ${articles.length} articles`);
+    }
+    
+    // Final sort by date and limit to 80 total
+    const validArticles = balancedArticles
       .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
-      .slice(0, 40);
+      .slice(0, 80);
     
     console.log(`Final articles by source:`, validArticles.reduce((acc, a) => {
       acc[a.source] = (acc[a.source] || 0) + 1;
