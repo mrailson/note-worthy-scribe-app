@@ -876,8 +876,8 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
       {/* Alerts Banner - shown when there are alerts and not in alerts category */}
       {!cleanView && <AlertsBanner />}
 
-      {/* Source Toggle Bar - hidden in cleanView */}
-      {!cleanView && <SourceToggleBar />}
+      {/* Source Toggle Bar - always shown for filtering */}
+      <SourceToggleBar />
 
       {/* Desktop filters - collapsible - hidden in cleanView */}
       {showFilters && !cleanView && (
