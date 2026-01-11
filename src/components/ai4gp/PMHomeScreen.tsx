@@ -124,18 +124,21 @@ const useCases: UseCase[] = [
 export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
 
-  // Enhance prompt with practice context where relevant (but not for image-based prompts)
+  // Enhance prompt with practice context where relevant (but not for image/visual-based prompts)
   const enhancePrompt = (prompt: string) => {
     if (!prompt) return prompt;
     
-    // Skip practice details for image-based prompts
-    const isImagePrompt = 
+    // Skip practice details for image-based and presentation prompts
+    const isVisualPrompt = 
       prompt.toLowerCase().includes('create a professional nhs-style image') ||
       prompt.toLowerCase().includes('create an image') ||
       prompt.toLowerCase().includes('generate an image') ||
-      prompt.toLowerCase().includes('infographic');
+      prompt.toLowerCase().includes('infographic') ||
+      prompt.toLowerCase().includes('presentation') ||
+      prompt.toLowerCase().includes('powerpoint') ||
+      prompt.toLowerCase().includes('slides');
     
-    if (isImagePrompt) return prompt;
+    if (isVisualPrompt) return prompt;
     
     let enhanced = prompt;
     
