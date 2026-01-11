@@ -113,6 +113,8 @@ export const useActionItems = (meetingId: string) => {
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [hasExtractedFromNotes, setHasExtractedFromNotes] = useState(false);
   const { toast } = useToast();
 
@@ -468,17 +470,38 @@ export const useActionItems = (meetingId: string) => {
     }
   };
 
-  // Silent background sync to meeting notes
-  const syncToMeetingNotes = async () => {
+  // Background sync to meeting notes
+  const syncToMeetingNotes = async (showToast = false) => {
     try {
+      setIsSyncing(true);
       // Call edge function to sync action items to meeting notes
       await supabase.functions.invoke('sync-meeting-action-items', {
         body: { meetingId },
       });
+      setLastSyncedAt(new Date());
+      if (showToast) {
+        toast({
+          title: 'Synced to notes',
+          description: 'Action items have been updated in the meeting notes.',
+        });
+      }
     } catch (error) {
-      // Silent failure - don't show error to user
       console.error('Background sync failed:', error);
+      if (showToast) {
+        toast({
+          title: 'Sync failed',
+          description: 'Could not update meeting notes. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setIsSyncing(false);
     }
+  };
+
+  // Manual sync trigger for user
+  const manualSync = async () => {
+    await syncToMeetingNotes(true);
   };
 
   // Clear all action items and re-extract from notes
@@ -517,6 +540,8 @@ export const useActionItems = (meetingId: string) => {
     actionItems,
     isLoading,
     isSaving,
+    isSyncing,
+    lastSyncedAt,
     openItemsCount,
     addActionItem,
     updateActionItem,
@@ -524,6 +549,7 @@ export const useActionItems = (meetingId: string) => {
     toggleStatus,
     reorderActionItems,
     clearAndReExtract,
+    manualSync,
     refetch: fetchActionItems,
   };
 };
