@@ -78,6 +78,7 @@ serve(async (req) => {
     // Update the summary with new action items section (or create it if missing)
     const updatedSummary = updateActionItemsInSummary(baseSummary, actionItemsMarkdown);
 
+    // Upsert meeting_summaries table
     const { error: upsertError } = await supabase
       .from('meeting_summaries')
       .upsert(
@@ -97,6 +98,17 @@ serve(async (req) => {
     if (upsertError) {
       console.error('Error upserting summary:', upsertError);
       throw upsertError;
+    }
+
+    // ALSO update meetings.notes_style_3 so the main Notes modal shows the synced action items immediately
+    const { error: meetingUpdateError } = await supabase
+      .from('meetings')
+      .update({ notes_style_3: updatedSummary })
+      .eq('id', meetingId);
+
+    if (meetingUpdateError) {
+      console.warn('Warning: Could not update meetings.notes_style_3:', meetingUpdateError);
+      // Don't throw - the main upsert succeeded
     }
 
     console.log(`Successfully synced ${actionItems?.length || 0} action items`);
