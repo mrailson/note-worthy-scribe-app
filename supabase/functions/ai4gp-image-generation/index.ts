@@ -10,7 +10,7 @@ interface ImageGenerationRequest {
   prompt: string;
   conversationContext: string;
   documentContent?: string;  // Content from attached files for visual generation
-  imageModel?: 'google/gemini-2.5-flash-image-preview' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1';
+  imageModel?: 'google/gemini-2.5-flash-image' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1';
   practiceContext?: {
     practiceName?: string;
     pcnName?: string;
@@ -216,7 +216,7 @@ serve(async (req) => {
     const { prompt, conversationContext, documentContent, practiceContext, requestType, imageModel } = await req.json() as ImageGenerationRequest;
 
     // Use selected model or default to Nano Banana
-    const selectedImageModel = imageModel || 'google/gemini-2.5-flash-image-preview';
+    const selectedImageModel = imageModel || 'google/gemini-2.5-flash-image';
 
     console.log('🎨 AI4GP Image Generation request:', { 
       prompt: prompt.substring(0, 100), 

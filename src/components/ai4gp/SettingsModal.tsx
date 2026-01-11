@@ -10,11 +10,11 @@ import { toast } from 'sonner';
 import { showToast } from '@/utils/toastWrapper';
 import { VoicePreviewDemo } from './VoicePreviewDemo';
 
-export type ImageGenerationModel = 'google/gemini-2.5-flash-image-preview' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1';
+export type ImageGenerationModel = 'google/gemini-2.5-flash-image' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1';
 
 export const IMAGE_MODEL_OPTIONS: { value: ImageGenerationModel; label: string; description: string }[] = [
   { 
-    value: 'google/gemini-2.5-flash-image-preview', 
+    value: 'google/gemini-2.5-flash-image', 
     label: 'Nano Banana (Recommended)', 
     description: 'Fast with good quality - best for most images' 
   },
