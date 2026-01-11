@@ -5,10 +5,30 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Clock, Save, Loader2, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2, Settings, Volume2 } from 'lucide-react';
+import { Brain, Clock, Save, Loader2, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2, Settings, Volume2, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { showToast } from '@/utils/toastWrapper';
 import { VoicePreviewDemo } from './VoicePreviewDemo';
+
+export type ImageGenerationModel = 'google/gemini-2.5-flash-image-preview' | 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-pro';
+
+export const IMAGE_MODEL_OPTIONS: { value: ImageGenerationModel; label: string; description: string }[] = [
+  { 
+    value: 'google/gemini-2.5-flash-image-preview', 
+    label: 'Nano Banana (Recommended)', 
+    description: 'Best balanced - fast with good image quality' 
+  },
+  { 
+    value: 'google/gemini-3-pro-image-preview', 
+    label: 'Gemini 3 Pro Image', 
+    description: 'Next-gen - highest quality, slower' 
+  },
+  { 
+    value: 'google/gemini-2.5-pro', 
+    label: 'Gemini 2.5 Pro', 
+    description: 'Best for text-heavy images' 
+  }
+];
 
 interface SettingsModalProps {
   open: boolean;
@@ -47,6 +67,8 @@ interface SettingsModalProps {
   onAutoCollapseUserPromptsChange: (enabled: boolean) => void;
   hideGPClinical: boolean;
   onHideGPClinicalChange: (enabled: boolean) => void;
+  imageGenerationModel: ImageGenerationModel;
+  onImageGenerationModelChange: (model: ImageGenerationModel) => void;
 }
 
 
@@ -86,6 +108,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onAutoCollapseUserPromptsChange,
   hideGPClinical,
   onHideGPClinicalChange,
+  imageGenerationModel,
+  onImageGenerationModelChange,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
 
