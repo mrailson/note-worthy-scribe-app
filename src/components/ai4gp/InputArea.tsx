@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState, us
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, X, Upload } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { UploadedFile } from '@/types/ai4gp';
@@ -374,7 +374,7 @@ ${pastedText.trim()}
               onClick={handleClearInput}
               title="Clear input (Esc)"
             >
-              <X className="w-4 h-4" />
+              <Eraser className="w-4 h-4" />
             </Button>
           )}
           
