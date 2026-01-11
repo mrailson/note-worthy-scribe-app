@@ -151,17 +151,23 @@ serve(async (req) => {
     const xmlParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_', trimValues: true });
 
     const feeds = [
-      { source: 'NHS England', url: 'https://www.england.nhs.uk/news/feed/', type: 'rss' },
-      { source: 'MHRA', url: 'https://www.gov.uk/government/organisations/medicines-and-healthcare-products-regulatory-agency.atom', type: 'atom' },
-      { source: 'DHSC', url: 'https://www.gov.uk/government/organisations/department-of-health-and-social-care.atom', type: 'atom' },
-      { source: 'NICE', url: 'https://www.nice.org.uk/news/rss', type: 'rss' },
-      { source: 'BBC Health', url: 'https://feeds.bbci.co.uk/news/health/rss.xml', type: 'rss' },
-      { source: 'Pulse Today', url: 'https://www.pulsetoday.co.uk/feed/', type: 'rss' },
+      // National NHS/Healthcare sources
+      { source: 'NHS England', url: 'https://www.england.nhs.uk/feed/', type: 'rss', isAlert: false },
+      { source: 'NHS England News', url: 'https://www.england.nhs.uk/news/feed/', type: 'rss', isAlert: false },
+      { source: 'MHRA Alerts', url: 'https://www.gov.uk/government/organisations/medicines-and-healthcare-products-regulatory-agency.atom', type: 'atom', isAlert: true },
+      { source: 'DHSC', url: 'https://www.gov.uk/government/organisations/department-of-health-and-social-care.atom', type: 'atom', isAlert: false },
+      { source: 'NICE Guidance', url: 'https://www.nice.org.uk/guidance/published?ajax=ajax&type=cg,ng,sg,sc,mpg,ph&ps=15&format=rss', type: 'rss', isAlert: false },
+      { source: 'NICE News', url: 'https://www.nice.org.uk/about/nice-communities/public-involvement/news/rss', type: 'rss', isAlert: false },
+      { source: 'BBC Health', url: 'https://feeds.bbci.co.uk/news/health/rss.xml', type: 'rss', isAlert: false },
+      { source: 'Pulse Today', url: 'https://www.pulsetoday.co.uk/feed/', type: 'rss', isAlert: false },
+      { source: 'The Guardian Health', url: 'https://www.theguardian.com/society/health/rss', type: 'rss', isAlert: false },
       // Local Northamptonshire sources
-      { source: 'BBC Northamptonshire', url: 'https://feeds.bbci.co.uk/news/england/northamptonshire/rss.xml', type: 'rss' },
-      { source: 'Northants Live', url: 'https://northantslive.news/news/?service=rss', type: 'rss' },
-      { source: 'Revolution Radio Northampton', url: 'https://www.revolutionradio.com/news/local-news/feed.xml', type: 'rss' }
+      { source: 'BBC Northamptonshire', url: 'https://feeds.bbci.co.uk/news/england/northamptonshire/rss.xml', type: 'rss', isAlert: false },
+      { source: 'Northants Live', url: 'https://www.northantslive.news/news/?service=rss', type: 'rss', isAlert: false },
     ] as const;
+
+    // Track feed fetch results for logging
+    const feedResults: { source: string; status: 'success' | 'failed'; count: number; error?: string }[] = [];
 
     const sanitizeText = (html: string) =>
       (html || '')
@@ -339,31 +345,52 @@ serve(async (req) => {
     const allArticles: ProcessedNewsItem[] = [];
 
     await Promise.all(feeds.map(async (f) => {
+      const startTime = Date.now();
       try {
         const res = await fetch(f.url, { 
           headers: { 
-            'Accept': 'application/xml, text/xml, application/atom+xml',
-            'User-Agent': 'Mozilla/5.0 (compatible; SupabaseEdgeFunction/1.0; +https://supabase.com)',
+            'Accept': 'application/xml, text/xml, application/atom+xml, application/rss+xml',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept-Language': 'en-GB,en;q=0.9'
           }
         });
         if (!res.ok) {
-          console.warn(`Feed fetch failed for ${f.source}: ${res.status}`);
+          console.error(`❌ Feed fetch FAILED for ${f.source}: HTTP ${res.status} ${res.statusText}`);
+          feedResults.push({ source: f.source, status: 'failed', count: 0, error: `HTTP ${res.status}` });
           return;
         }
         const xml = await res.text();
-        const parsed = f.type === 'rss' ? parseRss(xml, f.source) : parseAtom(xml, f.source);
+        let parsed = f.type === 'rss' ? parseRss(xml, f.source) : parseAtom(xml, f.source);
+        
+        // Mark alert articles
+        if (f.isAlert) {
+          parsed = parsed.map(a => ({ ...a, tags: [...a.tags, 'ALERT'] }));
+        }
+        
+        const elapsed = Date.now() - startTime;
+        console.log(`✅ ${f.source}: ${parsed.length} articles fetched in ${elapsed}ms`);
+        feedResults.push({ source: f.source, status: 'success', count: parsed.length });
         allArticles.push(...parsed);
       } catch (e) {
-        console.error(`Error fetching ${f.source} feed:`, e);
+        console.error(`❌ Error fetching ${f.source} feed:`, e);
+        feedResults.push({ source: f.source, status: 'failed', count: 0, error: String(e) });
       }
     }));
+
+    // Log feed fetch summary
+    console.log('=== Feed Fetch Summary ===');
+    feedResults.forEach(r => {
+      const icon = r.status === 'success' ? '✅' : '❌';
+      console.log(`${icon} ${r.source}: ${r.count} articles${r.error ? ` (${r.error})` : ''}`);
+    });
+    const successCount = feedResults.filter(r => r.status === 'success').length;
+    const failedCount = feedResults.filter(r => r.status === 'failed').length;
+    console.log(`Total: ${successCount} succeeded, ${failedCount} failed out of ${feeds.length} feeds`);
 
     // Restrict local sources to only NHS/GP/health-related items
     const localSources = new Set([
       'BBC Northamptonshire',
-      'Northants Live',
-      'Revolution Radio Northampton'
+      'Northants Live'
     ]);
     const excludedSources = new Set(['Northants Telegraph']);
     const healthKeywords = [
