@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, CheckSquare, Loader2 } from 'lucide-react';
+import { Plus, CheckSquare, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useActionItems } from '@/hooks/useActionItems';
@@ -25,11 +25,13 @@ export const MeetingActionItemsTab = ({
     updateActionItem,
     deleteActionItem,
     toggleStatus,
+    clearAndReExtract,
   } = useActionItems(meetingId);
 
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newActionText, setNewActionText] = useState('');
   const [currentUserName, setCurrentUserName] = useState('');
+  const [isReExtracting, setIsReExtracting] = useState(false);
 
   // Get current user's name
   useEffect(() => {
@@ -66,6 +68,12 @@ export const MeetingActionItemsTab = ({
     }
   };
 
+  const handleReExtract = async () => {
+    setIsReExtracting(true);
+    await clearAndReExtract();
+    setIsReExtracting(false);
+  };
+
   const openItems = actionItems.filter(i => i.status !== 'Completed');
   const completedItems = actionItems.filter(i => i.status === 'Completed');
 
@@ -90,12 +98,28 @@ export const MeetingActionItemsTab = ({
             </span>
           )}
         </div>
-        {isSaving && (
-          <span className="text-xs text-muted-foreground flex items-center gap-1">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Saving...
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {isSaving && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Saving...
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReExtract}
+            disabled={isReExtracting}
+            className="h-7 text-xs text-muted-foreground"
+          >
+            {isReExtracting ? (
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+            ) : (
+              <RefreshCw className="h-3 w-3 mr-1" />
+            )}
+            Re-extract from notes
+          </Button>
+        </div>
       </div>
 
       {/* Action items list */}
