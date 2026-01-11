@@ -629,35 +629,16 @@ export const MeetingHistoryList = ({
   };
 
   // Handle viewing notes - mobile vs desktop
-  const handleViewNotes = async (meeting: Meeting) => {
+  // OPTIMISED: Open modal immediately, fetch fresh notes in background
+  const handleViewNotes = (meeting: Meeting) => {
     console.log('🔍 HandleViewNotes called for:', meeting.title, 'id:', meeting.id, 'isMobile:', isMobile);
-    console.log('🔍 Meeting object keys:', Object.keys(meeting));
-    console.log('🔍 Meeting start_time:', meeting.start_time, 'created_at:', meeting.created_at);
     
-    // Always fetch fresh notes from database to get the latest tone-audited version
-    try {
-      const { data: summaryData, error } = await supabase
-        .from('meeting_summaries')
-        .select('summary')
-        .eq('meeting_id', meeting.id)
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error fetching fresh notes:', error);
-      }
-      
-      // Use fresh notes from DB, fallback to cached meeting_summary
-      const notes = summaryData?.summary || meeting.meeting_summary || '';
-      console.log('📝 Using fresh notes from database for:', meeting.title, 'length:', notes.length);
-      setMeetingNotes(notes);
-    } catch (err) {
-      console.error('Error fetching notes:', err);
-      setMeetingNotes(meeting.meeting_summary || '');
-    }
-    
-    console.log('🔍 Setting selectedMeetingForNotes and opening modal');
+    // Use cached notes immediately (no blocking)
+    const cachedNotes = meeting.meeting_summary || '';
+    setMeetingNotes(cachedNotes);
     setSelectedMeetingForNotes(meeting);
     
+    // Open modal immediately - don't wait for DB fetch
     if (isMobile) {
       console.log('📱 Opening mobile notes sheet');
       setMobileNotesOpen(true);
@@ -665,6 +646,25 @@ export const MeetingHistoryList = ({
       console.log('🖥️ Opening desktop notes modal');
       setDesktopNotesOpen(true);
     }
+    
+    // Fetch fresh notes in background (non-blocking) - only if we need to update
+    supabase
+      .from('meeting_summaries')
+      .select('summary')
+      .eq('meeting_id', meeting.id)
+      .maybeSingle()
+      .then(({ data: summaryData, error }) => {
+        if (error) {
+          console.error('Background notes fetch error:', error);
+          return;
+        }
+        // Only update if we got fresh data different from cached
+        const freshNotes = summaryData?.summary || '';
+        if (freshNotes && freshNotes !== cachedNotes) {
+          console.log('📝 Updated notes from background fetch');
+          setMeetingNotes(freshNotes);
+        }
+      });
   };
 
   // Deduplicated version to prevent both touch and click events from triggering
