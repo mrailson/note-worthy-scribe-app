@@ -1696,6 +1696,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           prompt: message,
           conversationContext,
           documentContent,
+          imageModel: imageGenerationModel,
           practiceContext: {
             practiceName: practiceContext?.practiceName,
             pcnName: practiceContext?.pcnName,
