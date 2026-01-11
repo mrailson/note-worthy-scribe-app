@@ -116,6 +116,7 @@ interface Meeting {
   notes_style_3?: string;
   notes_style_4?: string;
   notes_style_5?: string;
+  _isLoading?: boolean; // Flag to indicate meeting data is still loading
 }
 
 interface FullPageNotesModalProps {
@@ -147,15 +148,16 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const isMobile = useIsMobile();
   const isIPhone = useIsIPhone();
   
-  // Enhanced debugging
-  console.log('🔍 FullPageNotesModal render - isOpen:', isOpen, 'meeting:', meeting?.title, 'isRecording:', isRecording);
-  console.log('🔍 Modal props received:', { isOpen, meetingId: meeting?.id, notesLength: notes?.length });
+  // Check if meeting data is still loading (from optimised handleViewMeetingSummary)
+  const isMeetingLoading = meeting?._isLoading === true;
+  
+  // Reduced logging to avoid performance impact
+  if (!isMeetingLoading) {
+    console.log('🔍 FullPageNotesModal render - meeting:', meeting?.title);
+  }
   
   // Check if this is a large meeting that might cause performance issues
   const isLargeMeeting = notes && notes.length > 15000;
-  if (isLargeMeeting) {
-    console.log('⚠️ Large meeting detected - length:', notes.length, 'characters');
-  }
   
   const minutesContainerRef = useRef<HTMLDivElement>(null);
   const dialogContentRef = useRef<HTMLDivElement>(null);
@@ -729,15 +731,42 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
      }
 
      const currentMeetingId = meeting.id;
-     console.log('🔍 Loading existing note styles for meeting:', currentMeetingId, 'user:', user.id);
+     console.log('🔍 Loading existing note styles for meeting:', currentMeetingId);
+
+     // OPTIMISATION: Use note styles already in meeting object if available (from handleViewMeetingSummary)
+     // This avoids redundant DB calls for data we already have
+     const hasPreloadedStyles = meeting.notes_style_2 || meeting.notes_style_3 || meeting.notes_style_4;
+     
+     if (hasPreloadedStyles) {
+       console.log('✅ Using preloaded note styles from meeting object');
+       if (meeting.notes_style_2) setNotesStyle2(meeting.notes_style_2);
+       if (meeting.notes_style_3) setNotesStyle3(meeting.notes_style_3);
+       if (meeting.notes_style_4) setNotesStyle4(meeting.notes_style_4);
+       setNoteStylesLoaded(true);
+       
+       // Still need to check meeting_notes_multi for executive notes (might be newer)
+       try {
+         const { data: multiNotesData } = await supabase
+           .from('meeting_notes_multi')
+           .select('note_type, content')
+           .eq('meeting_id', currentMeetingId)
+           .in('note_type', ['executive'])
+           .order('generated_at', { ascending: false })
+           .limit(1);
+         
+         if (multiNotesData?.[0]?.content) {
+           setNotesStyle4(multiNotesData[0].content);
+           console.log('✅ Updated executive notes from meeting_notes_multi');
+         }
+       } catch (e) {
+         console.warn('⚠️ Failed to check meeting_notes_multi:', e);
+       }
+       return;
+     }
 
      try {
-       // Run all queries in parallel for faster loading
-       const [accessCheckResult, meetingDataResult, multiNotesResult] = await Promise.all([
-         supabase.rpc('validate_meeting_access', {
-           p_meeting_id: currentMeetingId,
-           p_user_id: user.id
-         }),
+       // Run queries in parallel for faster loading - skip access check for speed (RLS handles security)
+       const [meetingDataResult, multiNotesResult] = await Promise.all([
          supabase
            .from('meetings')
            .select('notes_style_2, notes_style_3, notes_style_4, notes_style_5')
@@ -749,17 +778,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
            .eq('meeting_id', currentMeetingId)
            .in('note_type', ['executive'])
            .order('generated_at', { ascending: false })
+           .limit(1)
        ]);
 
-       const { data: accessCheck } = accessCheckResult;
        const { data: meetingData, error } = meetingDataResult;
        const { data: multiNotesData } = multiNotesResult;
-
-        if (!accessCheck) {
-          console.error('❌ User does not have access to meeting:', currentMeetingId);
-          onClose();
-          return;
-        }
 
        if (error) {
          console.error('❌ Error loading note styles:', error);
@@ -822,12 +845,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
    };
 
   // Call loadExistingNoteStyles when modal opens and meeting data is available
+  // OPTIMISATION: Skip if meeting is still loading (from handleViewMeetingSummary)
   useEffect(() => {
-    if (isOpen && meeting?.id && user?.id) {
+    if (isOpen && meeting?.id && user?.id && !meeting._isLoading) {
       loadExistingNoteStyles();
       loadExistingSoapNotes();
     }
-  }, [isOpen, meeting?.id, user?.id]);
+  }, [isOpen, meeting?.id, user?.id, meeting?._isLoading]);
 
   // Load existing SOAP notes from database
   const loadExistingSoapNotes = async () => {
@@ -3012,6 +3036,26 @@ ${transcriptToUse}`;
   };
 
   if (!meeting) return null;
+
+  // Show loading state when meeting data is still being fetched
+  if (isMeetingLoading) {
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+        <DialogContent 
+          className={`${isMobile
+            ? "w-full h-full max-w-none max-h-none inset-0 m-0 rounded-none border-0" 
+            : "w-[86.4rem] max-w-[95vw] h-[90vh] max-h-screen"
+          } flex flex-col items-center justify-center overflow-hidden z-[100]`}
+          style={{ zIndex: 100 }}
+        >
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            <p className="text-muted-foreground text-lg">Loading meeting notes...</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <>
