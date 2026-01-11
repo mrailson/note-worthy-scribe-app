@@ -116,11 +116,23 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <span>Click <strong>Prompts</strong> button to browse pre-built clinical and management prompts</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                 <span>Upload documents, images, or audio files for analysis</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Use <kbd className="px-1 py-0.5 bg-gray-200 rounded">Ctrl+Enter</kbd> to send messages quickly</span>
+                <span>Use <kbd className="px-1 py-0.5 bg-gray-200 rounded">Ctrl+Enter</kbd> to send, <kbd className="px-1 py-0.5 bg-gray-200 rounded">Esc</kbd> to clear input</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <span>Use the <strong>Insert Details</strong> button (clipboard icon) to add practice or personal details</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <span>Hover over the <strong>info icon</strong> near the input for helpful tips and shortcuts</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
@@ -139,6 +151,161 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
                 <span><strong>Download</strong> generated audio files as MP3s for offline use</span>
               </li>
             </ul>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'input-tools',
+      title: 'Input Tools & Shortcuts',
+      icon: <Zap className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-4 rounded-lg border border-cyan-200">
+            <h4 className="font-semibold text-cyan-900 mb-2 flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              Input Area Features
+            </h4>
+            <p className="text-cyan-800 text-sm">
+              The input area includes several productivity tools to help you work faster and provide better context to the AI.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Keyboard Shortcuts</h4>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                <kbd className="px-2 py-1 bg-gray-200 rounded text-sm font-mono">Ctrl+Enter</kbd>
+                <div>
+                  <strong className="text-sm">Send Message</strong>
+                  <p className="text-xs text-gray-600">Quickly send your message</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                <kbd className="px-2 py-1 bg-gray-200 rounded text-sm font-mono">Esc</kbd>
+                <div>
+                  <strong className="text-sm">Clear Input</strong>
+                  <p className="text-xs text-gray-600">Clear the input field instantly</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                <kbd className="px-2 py-1 bg-gray-200 rounded text-sm font-mono">Ctrl+V</kbd>
+                <div>
+                  <strong className="text-sm">Paste Content</strong>
+                  <p className="text-xs text-gray-600">Paste text or images directly</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                <kbd className="px-2 py-1 bg-gray-200 rounded text-sm font-mono">Drag & Drop</kbd>
+                <div>
+                  <strong className="text-sm">Upload Files</strong>
+                  <p className="text-xs text-gray-600">Drop files onto the input area</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Insert Details Button</h4>
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+              <p className="text-sm text-indigo-800 mb-3">
+                When you start typing, a clipboard icon appears on the left of the input area. Click it to quickly insert:
+              </p>
+              <div className="grid md:grid-cols-2 gap-2">
+                <div className="flex items-start gap-2 p-2 bg-white rounded border border-indigo-200">
+                  <Building2 className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong className="text-xs text-indigo-900">My Practice Name</strong>
+                    <p className="text-xs text-indigo-700">Just the practice name</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 p-2 bg-white rounded border border-indigo-200">
+                  <Building2 className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong className="text-xs text-indigo-900">Practice Name, Email & Phone</strong>
+                    <p className="text-xs text-indigo-700">Key contact details</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 p-2 bg-white rounded border border-indigo-200">
+                  <Building2 className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong className="text-xs text-indigo-900">Full Practice Details</strong>
+                    <p className="text-xs text-indigo-700">Name, address, phone, email</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 p-2 bg-white rounded border border-indigo-200">
+                  <UserCheck className="w-4 h-4 text-indigo-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong className="text-xs text-indigo-900">My Personal Details</strong>
+                    <p className="text-xs text-indigo-700">Your name and email</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Prompts Button</h4>
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <p className="text-sm text-purple-800 mb-3">
+                Click the <strong>Prompts</strong> button above the input area to access pre-built prompts organised by category:
+              </p>
+              <ul className="text-xs space-y-1 text-purple-700">
+                <li>• <strong>GP Clinical</strong> - NICE guidance, BNF lookup, prescribing, tricky cases</li>
+                <li>• <strong>Practice Manager</strong> - Meetings, complaints, HR, CQC, communications</li>
+                <li>• Search to quickly find specific prompts</li>
+                <li>• Click any prompt to insert it into the input area</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Input Tips Hover</h4>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <p className="text-sm text-amber-800 mb-3">
+                Hover over the info icon (ⓘ) near the input area to see helpful tips:
+              </p>
+              <ul className="text-xs space-y-1 text-amber-700">
+                <li>• Be specific with your requests for better results</li>
+                <li>• Provide context about your situation</li>
+                <li>• Upload supporting documents when relevant</li>
+                <li>• Use follow-up questions to refine responses</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Input Area Icons</h4>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                <Mic className="w-5 h-5 text-blue-600" />
+                <div>
+                  <strong className="text-sm">Microphone</strong>
+                  <p className="text-xs text-gray-600">Voice input for hands-free typing</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                <Upload className="w-5 h-5 text-green-600" />
+                <div>
+                  <strong className="text-sm">Attachment (+)</strong>
+                  <p className="text-xs text-gray-600">Upload files, images, or audio</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                <FileText className="w-5 h-5 text-purple-600" />
+                <div>
+                  <strong className="text-sm">Insert Details</strong>
+                  <p className="text-xs text-gray-600">Add practice/personal details</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                <RotateCcw className="w-5 h-5 text-gray-600" />
+                <div>
+                  <strong className="text-sm">Clear (Eraser)</strong>
+                  <p className="text-xs text-gray-600">Clear the input field</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )
