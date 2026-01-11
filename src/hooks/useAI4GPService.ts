@@ -30,7 +30,7 @@ export const useAI4GPService = () => {
   const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
   const [chatHistoryRetentionDays, setChatHistoryRetentionDays] = useState(30);
   const [hideGPClinical, setHideGPClinical] = useState(false);
-  const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-2.5-flash-image-preview' | 'google/gemini-3-pro-image-preview'>('google/gemini-2.5-flash-image-preview');
+  const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-2.5-flash-image-preview' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1'>('google/gemini-2.5-flash-image-preview');
   
   // Image branding dialog state
   const [showBrandingDialog, setShowBrandingDialog] = useState(false);
@@ -1734,7 +1734,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         timestamp: userMessage.timestamp,
         isStreaming: false,
         responseTime,
-        model: imageGenerationModel === 'google/gemini-2.5-flash-image-preview' ? 'Nano Banana' : 'Gemini 3 Pro',
+        model: imageGenerationModel === 'google/gemini-2.5-flash-image-preview' ? 'Nano Banana' : 
+               imageGenerationModel === 'google/gemini-3-pro-image-preview' ? 'Gemini 3 Pro' : 'GPT Image',
         generatedImages: [data.image as GeneratedImage]
       };
 
