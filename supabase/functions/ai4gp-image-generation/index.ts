@@ -158,19 +158,21 @@ function buildBrandingSection(practiceContext: ImageGenerationRequest['practiceC
   if (brandingLevel === 'none' && includeLogo) {
     return `
 
-🖼️ LOGO ONLY - NO TEXT BRANDING:
-A practice logo has been provided and MUST be integrated into this image.
-Logo reference: The user's organisation logo should be included.
+🖼️ LOGO SPACE - NO TEXT BRANDING:
+The user wants to add their practice logo to this image after generation.
 
-Logo Placement Guidelines:
-- Position the logo professionally (typically top-left for leaflets/letterheads, centred for posters)
-- Ensure the logo is clearly visible but doesn't dominate the design
-- Maintain the logo's aspect ratio - DO NOT stretch or distort
-- The logo should blend harmoniously with the overall design aesthetic
-- Use appropriate sizing based on the content type
+CRITICAL INSTRUCTIONS:
+- Leave a clean, empty rectangular space in the TOP-RIGHT corner of the image for logo placement
+- This space should be approximately 80-120 pixels in height, with appropriate width
+- The space should have a neutral/white/light background that will work well with any logo
+- DO NOT write "LOGO", "LOGO HERE", or any placeholder text - leave it COMPLETELY BLANK
+- DO NOT include any text-based practice details (no name, phone, email, address, or website)
 
-DO NOT include any text-based practice details (no name, phone, email, address, or website).
-Focus only on integrating the logo visually.
+The empty space should be:
+- Clean and professional
+- Positioned in the top-right corner
+- Sized appropriately for a typical business logo
+- Ready for the user to overlay their actual logo after downloading
 `;
   }
   
@@ -197,20 +199,20 @@ The following are the ONLY practice details available. Copy them EXACTLY as show
     branding += `• ${detail}\n`;
   }
   
-  // Add logo integration instructions if enabled
+  // Add logo space instructions if enabled
   if (includeLogo) {
     branding += `
-🖼️ LOGO INTEGRATION:
-A practice logo has been provided and MUST be integrated into this image.
-Logo reference: The user's organisation logo should be included.
 
-Logo Placement Guidelines:
-- Position the logo professionally (typically top-left for leaflets/letterheads, top-right for posters, centred for social media)
-- Ensure the logo is clearly visible but proportionate to the overall design
-- Maintain the logo's aspect ratio - DO NOT stretch or distort
-- The logo should blend harmoniously with the overall design aesthetic and colour scheme
-- Use appropriate sizing based on the content type (larger for posters, smaller for leaflets)
-- Leave appropriate whitespace around the logo
+🖼️ LOGO SPACE:
+The user wants to add their practice logo after generation.
+
+CRITICAL - LOGO SPACE INSTRUCTIONS:
+- Reserve a clean, empty rectangular space in the TOP-RIGHT corner for logo placement
+- This space should be approximately 80-120 pixels in height
+- The space MUST have a neutral/white/light background compatible with any logo
+- DO NOT write "LOGO", "LOGO HERE", "YOUR LOGO", or ANY placeholder text
+- Leave the logo space COMPLETELY BLANK - no text, no icons, no placeholder graphics
+- The logo will be added by the user after downloading the image
 
 `;
   }
