@@ -197,7 +197,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
             {/* Context Banner - full width, positioned below buttons */}
             {showBanner && (
               <div className="w-full pt-4">
-                <ContextBanner onDismiss={() => setShowBanner(false)} />
+                <ContextBanner onDismiss={() => setShowBanner(false)} role="practice-manager" />
               </div>
             )}
           </>
