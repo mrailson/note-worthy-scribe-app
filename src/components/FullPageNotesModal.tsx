@@ -151,10 +151,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // Check if meeting data is still loading (from optimised handleViewMeetingSummary)
   const isMeetingLoading = meeting?._isLoading === true;
   
-  // Reduced logging to avoid performance impact
-  if (!isMeetingLoading) {
-    console.log('🔍 FullPageNotesModal render - meeting:', meeting?.title);
-  }
+  // Debug logging for troubleshooting
+  console.log('🔍 FullPageNotesModal render:', {
+    isOpen,
+    meetingId: meeting?.id,
+    meetingTitle: meeting?.title,
+    isMeetingLoading,
+    hasStartTime: !!meeting?.start_time,
+    hasCreatedAt: !!meeting?.created_at,
+    notesLength: notes?.length || 0,
+    userId: user?.id ? 'present' : 'missing'
+  });
   
   // Check if this is a large meeting that might cause performance issues
   const isLargeMeeting = notes && notes.length > 15000;

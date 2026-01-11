@@ -639,7 +639,9 @@ export const MeetingHistoryList = ({
 
   // Handle viewing notes - mobile vs desktop
   const handleViewNotes = async (meeting: Meeting) => {
-    console.log('🔍 HandleViewNotes called for:', meeting.title, 'isMobile:', isMobile);
+    console.log('🔍 HandleViewNotes called for:', meeting.title, 'id:', meeting.id, 'isMobile:', isMobile);
+    console.log('🔍 Meeting object keys:', Object.keys(meeting));
+    console.log('🔍 Meeting start_time:', meeting.start_time, 'created_at:', meeting.created_at);
     
     // Always fetch fresh notes from database to get the latest tone-audited version
     try {
@@ -655,18 +657,21 @@ export const MeetingHistoryList = ({
       
       // Use fresh notes from DB, fallback to cached meeting_summary
       const notes = summaryData?.summary || meeting.meeting_summary || '';
-      console.log('📝 Using fresh notes from database for:', meeting.title);
+      console.log('📝 Using fresh notes from database for:', meeting.title, 'length:', notes.length);
       setMeetingNotes(notes);
     } catch (err) {
       console.error('Error fetching notes:', err);
       setMeetingNotes(meeting.meeting_summary || '');
     }
     
+    console.log('🔍 Setting selectedMeetingForNotes and opening modal');
     setSelectedMeetingForNotes(meeting);
     
     if (isMobile) {
+      console.log('📱 Opening mobile notes sheet');
       setMobileNotesOpen(true);
     } else {
+      console.log('🖥️ Opening desktop notes modal');
       setDesktopNotesOpen(true);
     }
   };
