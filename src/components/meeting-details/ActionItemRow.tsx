@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, Trash2, GripVertical, User, Calendar, Flag, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { Check, Trash2, GripVertical, User, Calendar, Flag, Clock, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 import {
   Popover,
   PopoverContent,
@@ -61,6 +63,7 @@ const DUE_DATE_OPTIONS = [
   { value: 'ASAP', label: 'ASAP' },
   { value: 'End of Week', label: 'End of Week' },
   { value: 'End of Month', label: 'End of Month' },
+  { value: 'End of Next Month', label: 'End of Next Month' },
   { value: 'By Next Meeting', label: 'By Next Meeting' },
 ];
 
@@ -355,7 +358,7 @@ export const ActionItemRow = ({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-48 p-2" align="start" side="top" collisionPadding={16} avoidCollisions>
+            <PopoverContent className="w-auto p-2" align="start" side="top" collisionPadding={16} avoidCollisions>
               <div className="space-y-1">
                 {DUE_DATE_OPTIONS.map((option) => (
                   <Button
@@ -368,6 +371,24 @@ export const ActionItemRow = ({
                     {option.label}
                   </Button>
                 ))}
+                
+                <div className="border-t my-2" />
+                <p className="text-xs font-medium text-muted-foreground px-2 py-1 flex items-center gap-1">
+                  <CalendarDays className="h-3 w-3" />
+                  Pick a date
+                </p>
+                <CalendarPicker
+                  mode="single"
+                  selected={item.due_date_actual ? new Date(item.due_date_actual) : undefined}
+                  onSelect={(date) => {
+                    if (date) {
+                      const formatted = format(date, 'd MMM yyyy');
+                      handleDueDateSelect(formatted);
+                    }
+                  }}
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                  className="pointer-events-auto"
+                />
               </div>
             </PopoverContent>
           </Popover>

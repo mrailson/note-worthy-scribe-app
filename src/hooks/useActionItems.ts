@@ -37,6 +37,10 @@ export const calculateActualDueDate = (quickPick: string): string | null => {
       const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       return lastDay.toISOString().split('T')[0];
     }
+    case 'End of Next Month': {
+      const lastDayNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+      return lastDayNextMonth.toISOString().split('T')[0];
+    }
     case 'ASAP': {
       const tomorrow = new Date(today);
       tomorrow.setDate(today.getDate() + 1);
@@ -44,8 +48,15 @@ export const calculateActualDueDate = (quickPick: string): string | null => {
     }
     case 'By Next Meeting':
     case 'TBC':
-    default:
       return null;
+    default: {
+      // Try to parse as a date string (e.g., "15 Jan 2026")
+      const parsed = Date.parse(quickPick);
+      if (!Number.isNaN(parsed)) {
+        return new Date(parsed).toISOString().split('T')[0];
+      }
+      return null;
+    }
   }
 };
 
