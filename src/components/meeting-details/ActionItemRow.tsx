@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Check, Trash2, GripVertical, User, Calendar, Flag } from 'lucide-react';
+import { Check, Trash2, GripVertical, User, Calendar, Flag, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,33 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ActionItem } from '@/hooks/useActionItems';
+
+const RECENT_ASSIGNEES_KEY = 'action-item-recent-assignees';
+const MAX_RECENT_ASSIGNEES = 10;
+
+const getRecentAssignees = (): string[] => {
+  try {
+    const stored = localStorage.getItem(RECENT_ASSIGNEES_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const addRecentAssignee = (name: string) => {
+  if (!name || name === 'TBC') return;
+  
+  const recent = getRecentAssignees();
+  // Remove if already exists, then add to front
+  const filtered = recent.filter(n => n.toLowerCase() !== name.toLowerCase());
+  const updated = [name, ...filtered].slice(0, MAX_RECENT_ASSIGNEES);
+  
+  try {
+    localStorage.setItem(RECENT_ASSIGNEES_KEY, JSON.stringify(updated));
+  } catch {
+    // Ignore storage errors
+  }
+};
 
 interface ActionItemRowProps {
   item: ActionItem;
@@ -57,7 +84,10 @@ export const ActionItemRow = ({
   const [isAssigneeOpen, setIsAssigneeOpen] = useState(false);
   const [isDueDateOpen, setIsDueDateOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [customAssigneeName, setCustomAssigneeName] = useState('');
+  const [recentAssignees, setRecentAssignees] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const customNameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isEditingText && inputRef.current) {
@@ -65,6 +95,13 @@ export const ActionItemRow = ({
       inputRef.current.select();
     }
   }, [isEditingText]);
+
+  // Load recent assignees when popover opens
+  useEffect(() => {
+    if (isAssigneeOpen) {
+      setRecentAssignees(getRecentAssignees());
+    }
+  }, [isAssigneeOpen]);
 
   const handleTextSave = async () => {
     if (editText.trim() && editText !== item.action_text) {
@@ -83,8 +120,26 @@ export const ActionItemRow = ({
   };
 
   const handleAssigneeSelect = async (name: string, type: ActionItem['assignee_type']) => {
+    addRecentAssignee(name);
     await onUpdate(item.id, { assignee_name: name, assignee_type: type });
     setIsAssigneeOpen(false);
+    setCustomAssigneeName('');
+  };
+
+  const handleCustomNameSubmit = async () => {
+    const name = customAssigneeName.trim();
+    if (name) {
+      await handleAssigneeSelect(name, 'custom');
+    }
+  };
+
+  const handleCustomNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleCustomNameSubmit();
+    } else if (e.key === 'Escape') {
+      setCustomAssigneeName('');
+    }
   };
 
   const handleDueDateSelect = async (value: string) => {
@@ -112,6 +167,17 @@ export const ActionItemRow = ({
   if (chairName) {
     quickPickAssignees.push({ name: chairName, type: 'chair', display: `Chair - ${chairName}` });
   }
+  
+  // Filter recent assignees to exclude current user, chair, and attendees (to avoid duplicates)
+  const excludeNames = new Set([
+    currentUserName?.toLowerCase(),
+    chairName?.toLowerCase(),
+    ...attendees.map(a => a.toLowerCase()),
+  ].filter(Boolean));
+  
+  const filteredRecentAssignees = recentAssignees.filter(
+    name => !excludeNames.has(name.toLowerCase())
+  );
 
   return (
     <div
@@ -176,8 +242,32 @@ export const ActionItemRow = ({
                 {item.assignee_name}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-56 p-2" align="start">
+            <PopoverContent className="w-64 p-2" align="start">
               <div className="space-y-1">
+                {/* Custom name input */}
+                <div className="px-1 pb-2">
+                  <div className="flex gap-1">
+                    <Input
+                      ref={customNameInputRef}
+                      value={customAssigneeName}
+                      onChange={(e) => setCustomAssigneeName(e.target.value)}
+                      onKeyDown={handleCustomNameKeyDown}
+                      placeholder="Enter name..."
+                      className="h-8 text-sm flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      className="h-8 px-2"
+                      disabled={!customAssigneeName.trim()}
+                      onClick={handleCustomNameSubmit}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="border-t my-2" />
+                
                 <p className="text-xs font-medium text-muted-foreground px-2 py-1">Quick picks</p>
                 {quickPickAssignees.map((assignee) => (
                   <Button
@@ -190,6 +280,28 @@ export const ActionItemRow = ({
                     {assignee.display}
                   </Button>
                 ))}
+                
+                {/* Recent assignees */}
+                {filteredRecentAssignees.length > 0 && (
+                  <>
+                    <div className="border-t my-2" />
+                    <p className="text-xs font-medium text-muted-foreground px-2 py-1 flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Recent
+                    </p>
+                    {filteredRecentAssignees.slice(0, 5).map((name) => (
+                      <Button
+                        key={`recent-${name}`}
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start h-8 text-sm"
+                        onClick={() => handleAssigneeSelect(name, 'custom')}
+                      >
+                        {name}
+                      </Button>
+                    ))}
+                  </>
+                )}
                 
                 {attendees.length > 0 && (
                   <>
