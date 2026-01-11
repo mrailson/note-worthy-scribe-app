@@ -10,23 +10,18 @@ import { toast } from 'sonner';
 import { showToast } from '@/utils/toastWrapper';
 import { VoicePreviewDemo } from './VoicePreviewDemo';
 
-export type ImageGenerationModel = 'google/gemini-2.5-flash-image-preview' | 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-pro';
+export type ImageGenerationModel = 'google/gemini-2.5-flash-image-preview' | 'google/gemini-3-pro-image-preview';
 
 export const IMAGE_MODEL_OPTIONS: { value: ImageGenerationModel; label: string; description: string }[] = [
   { 
     value: 'google/gemini-2.5-flash-image-preview', 
     label: 'Nano Banana (Recommended)', 
-    description: 'Best balanced - fast with good image quality' 
+    description: 'Fast with good quality - best for most images' 
   },
   { 
     value: 'google/gemini-3-pro-image-preview', 
     label: 'Gemini 3 Pro Image', 
     description: 'Next-gen - highest quality, slower' 
-  },
-  { 
-    value: 'google/gemini-2.5-pro', 
-    label: 'Gemini 2.5 Pro', 
-    description: 'Best for text-heavy images' 
   }
 ];
 

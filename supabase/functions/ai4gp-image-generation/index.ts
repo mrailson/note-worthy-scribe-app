@@ -10,7 +10,7 @@ interface ImageGenerationRequest {
   prompt: string;
   conversationContext: string;
   documentContent?: string;  // Content from attached files for visual generation
-  imageModel?: 'google/gemini-2.5-flash-image-preview' | 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-pro';
+  imageModel?: 'google/gemini-2.5-flash-image-preview' | 'google/gemini-3-pro-image-preview';
   practiceContext?: {
     practiceName?: string;
     pcnName?: string;
