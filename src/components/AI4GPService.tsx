@@ -746,15 +746,13 @@ const AI4GPService = () => {
                         ) : (
                           <>
                             
-                            {/* Role Selection Toggle */}
-                            {!shouldHideGPClinical && (
-                              <div className="flex justify-center mb-2">
-                                <RoleToggle
-                                  selectedRole={selectedRole}
-                                  onRoleChange={setSelectedRole}
-                                />
-                              </div>
-                            )}
+                            {/* Role Selection Toggle - Always visible */}
+                            <div className="flex justify-center mb-2">
+                              <RoleToggle
+                                selectedRole={selectedRole}
+                                onRoleChange={setSelectedRole}
+                              />
+                            </div>
                             
                             {/* Show PMHomeScreen for Practice Managers, GPHomeScreen for GP */}
                             {selectedRole === 'practice-manager' ? (
