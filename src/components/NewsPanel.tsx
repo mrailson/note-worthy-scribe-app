@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw, Activity, Radio, AlertTriangle, Building2, Globe, Newspaper, CheckCircle2, XCircle } from "lucide-react";
+import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw, Activity, Radio, AlertTriangle, Building2, Globe, Newspaper, CheckCircle2, XCircle, Stethoscope, FileText, ShieldAlert, Heart, Pill } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface NewsArticle {
   id: string;
@@ -97,6 +99,26 @@ const isNhsPolicyArticle = (article: NewsArticle) => {
   return nhsPolicySources.has(article.source) && !isAlertArticle(article);
 };
 
+// Source definitions with icons and colors
+type SourceConfig = {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+  sources: string[];
+};
+
+const sourceConfigs: SourceConfig[] = [
+  { key: 'nhs', label: 'NHS England', icon: <Building2 className="w-4 h-4" />, color: 'text-blue-600', sources: ['NHS England', 'NHS England News'] },
+  { key: 'nice', label: 'NICE', icon: <FileText className="w-4 h-4" />, color: 'text-purple-600', sources: ['NICE Guidance', 'NICE News', 'NICE'] },
+  { key: 'mhra', label: 'MHRA', icon: <ShieldAlert className="w-4 h-4" />, color: 'text-amber-600', sources: ['MHRA Alerts', 'MHRA'] },
+  { key: 'dhsc', label: 'DHSC', icon: <Stethoscope className="w-4 h-4" />, color: 'text-green-600', sources: ['DHSC'] },
+  { key: 'bbc', label: 'BBC', icon: <Globe className="w-4 h-4" />, color: 'text-red-600', sources: ['BBC Health', 'BBC Northamptonshire'] },
+  { key: 'pulse', label: 'Pulse Today', icon: <Heart className="w-4 h-4" />, color: 'text-pink-600', sources: ['Pulse Today'] },
+  { key: 'guardian', label: 'Guardian', icon: <Newspaper className="w-4 h-4" />, color: 'text-slate-600', sources: ['The Guardian Health'] },
+  { key: 'local', label: 'Local News', icon: <MapPin className="w-4 h-4" />, color: 'text-teal-600', sources: ['Northants Live'] },
+];
+
 const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFiltersInHeader?: boolean; cleanView?: boolean }) => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +146,25 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
   });
   const [pulseEnabled, setPulseEnabled] = useState(() => {
     const saved = localStorage.getItem('newsPanel-pulseEnabled');
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+  
+  // Source toggles - all enabled by default
+  const [enabledSources, setEnabledSources] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('newsPanel-enabledSources');
+    if (saved) {
+      try {
+        return new Set(JSON.parse(saved));
+      } catch {
+        return new Set(sourceConfigs.map(s => s.key));
+      }
+    }
+    return new Set(sourceConfigs.map(s => s.key));
+  });
+  
+  // Show images only toggle
+  const [showImagesOnly, setShowImagesOnly] = useState(() => {
+    const saved = localStorage.getItem('newsPanel-showImagesOnly');
     return saved !== null ? JSON.parse(saved) : false;
   });
   
@@ -231,8 +272,46 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
   }, [pulseEnabled, startAutoRefresh]);
 
   useEffect(() => {
+    localStorage.setItem('newsPanel-enabledSources', JSON.stringify([...enabledSources]));
+  }, [enabledSources]);
+
+  useEffect(() => {
+    localStorage.setItem('newsPanel-showImagesOnly', JSON.stringify(showImagesOnly));
+  }, [showImagesOnly]);
+
+  useEffect(() => {
     fetchNews();
   }, []);
+
+  // Helper to check if article source is enabled
+  const isSourceEnabled = (source: string) => {
+    for (const config of sourceConfigs) {
+      if (config.sources.includes(source)) {
+        return enabledSources.has(config.key);
+      }
+    }
+    return true; // Unknown sources are always shown
+  };
+
+  const toggleSource = (key: string) => {
+    setEnabledSources(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllSources = (enable: boolean) => {
+    if (enable) {
+      setEnabledSources(new Set(sourceConfigs.map(s => s.key)));
+    } else {
+      setEnabledSources(new Set());
+    }
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -265,6 +344,9 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
     const isAlert = isAlertArticle(article);
     const isNhsPolicy = isNhsPolicyArticle(article);
     
+    // Source toggle filter - check if the article's source is enabled
+    if (!isSourceEnabled(article.source)) return false;
+    
     // Category filter
     if (activeCategory === 'alerts' && !isAlert) return false;
     if (activeCategory === 'local' && !isLocal) return false;
@@ -273,8 +355,8 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
     // Local toggle: if showLocal is false, exclude all local articles (unless in local category)
     if (!showLocal && isLocal && activeCategory !== 'local') return false;
     
-    // Front view should only show articles with images, except allow local Northamptonshire items and alerts without images
-    if ((!article.image_url || !article.image_url.trim()) && !isLocal && !isAlert) return false;
+    // Images only filter - only apply if toggle is on
+    if (showImagesOnly && (!article.image_url || !article.image_url.trim())) return false;
     
     if (filterTag !== 'all' && !article.tags.includes(filterTag)) return false;
     if (filterSource !== 'all' && article.source !== filterSource) return false;
@@ -306,20 +388,8 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
   // Use strictly filtered list to avoid leaking unrelated local items
   const displayedArticles = filteredArticles;
   
-  // Prioritize Northamptonshire-related articles to the top, then alerts, then by date desc
+  // Sort articles chronologically (newest first) - source toggles handle what's shown
   const prioritizedArticles = [...displayedArticles].sort((a, b) => {
-    // Alerts first when not in alerts category
-    if (activeCategory !== 'alerts') {
-      const aAlert = isAlertArticle(a) ? 1 : 0;
-      const bAlert = isAlertArticle(b) ? 1 : 0;
-      if (aAlert !== bAlert) return bAlert - aAlert;
-    }
-    
-    // Then local articles
-    const al = isLocalArticle(a) ? 1 : 0;
-    const bl = isLocalArticle(b) ? 1 : 0;
-    if (al !== bl) return bl - al;
-    
     return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
   });
   
@@ -561,58 +631,117 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
     </div>
   );
 
-  const QuickToggleBar = () => (
-    <div className="flex flex-col sm:flex-row gap-4 p-4 bg-muted/30 rounded-lg mb-4">
-      <div className="flex flex-wrap gap-2">
-        <ToggleGroup type="multiple" value={[
-          ...(showLocal ? ['local'] : []),
-          ...(healthcareLocalOnly ? ['healthcare'] : []),
-          ...(pulseEnabled ? ['pulse'] : [])
-        ]} onValueChange={(values) => {
-          setShowLocal(values.includes('local'));
-          setHealthcareLocalOnly(values.includes('healthcare'));
-          setPulseEnabled(values.includes('pulse'));
-        }} className="justify-start">
-          <ToggleGroupItem
-            value="local"
-            className="text-xs gap-1"
-          >
-            <MapPin className="w-3 h-3" />
-            Local
-          </ToggleGroupItem>
+  // Source Toggle Bar with icons
+  const SourceToggleBar = () => {
+    // Count articles per source config
+    const sourceCounts = sourceConfigs.map(config => ({
+      ...config,
+      count: articles.filter(a => config.sources.includes(a.source)).length
+    }));
+
+    return (
+      <div className="p-4 bg-muted/30 rounded-lg mb-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">News Sources</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Images only</span>
+              <Switch 
+                checked={showImagesOnly} 
+                onCheckedChange={setShowImagesOnly}
+                className="scale-75"
+              />
+            </div>
+            <div className="flex gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs h-6 px-2"
+                onClick={() => toggleAllSources(true)}
+              >
+                All
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs h-6 px-2"
+                onClick={() => toggleAllSources(false)}
+              >
+                None
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        <TooltipProvider>
+          <div className="flex flex-wrap gap-2">
+            {sourceCounts.map(config => (
+              <Tooltip key={config.key}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={enabledSources.has(config.key) ? 'default' : 'outline'}
+                    size="sm"
+                    className={`gap-1.5 transition-all ${
+                      enabledSources.has(config.key) 
+                        ? '' 
+                        : 'opacity-50 grayscale'
+                    }`}
+                    onClick={() => toggleSource(config.key)}
+                  >
+                    <span className={enabledSources.has(config.key) ? config.color : 'text-muted-foreground'}>
+                      {config.icon}
+                    </span>
+                    <span className="hidden sm:inline">{config.label}</span>
+                    {config.count > 0 && (
+                      <Badge 
+                        variant={enabledSources.has(config.key) ? 'secondary' : 'outline'} 
+                        className="text-xs ml-1"
+                      >
+                        {config.count}
+                      </Badge>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{config.label}: {config.count} articles</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </TooltipProvider>
+        
+        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+          <div className="flex flex-wrap gap-2">
+            <ToggleGroup type="multiple" value={[
+              ...(pulseEnabled ? ['pulse'] : [])
+            ]} onValueChange={(values) => {
+              setPulseEnabled(values.includes('pulse'));
+            }} className="justify-start">
+              <ToggleGroupItem
+                value="pulse"
+                className="text-xs gap-1"
+              >
+                {pulseEnabled ? <Radio className="w-3 h-3 animate-pulse" /> : <Activity className="w-3 h-3" />}
+                Auto-Refresh
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
           
-          <ToggleGroupItem
-            value="healthcare"
-            disabled={!showLocal}
-            className="text-xs gap-1"
-          >
-            <Tag className="w-3 h-3" />
-            Healthcare Local
-          </ToggleGroupItem>
-          
-          <ToggleGroupItem
-            value="pulse"
-            className="text-xs gap-1"
-          >
-            {pulseEnabled ? <Radio className="w-3 h-3 animate-pulse" /> : <Activity className="w-3 h-3" />}
-            Auto-Refresh
-          </ToggleGroupItem>
-        </ToggleGroup>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Badge variant="outline" className="text-xs">
+              {prioritizedArticles.length} articles
+            </Badge>
+            {pulseEnabled && (
+              <Badge variant="secondary" className="text-xs animate-pulse">
+                Live
+              </Badge>
+            )}
+            <LastUpdatedIndicator />
+          </div>
+        </div>
       </div>
-      
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Badge variant="outline" className="text-xs">
-          {prioritizedArticles.length} articles
-        </Badge>
-        {pulseEnabled && (
-          <Badge variant="secondary" className="text-xs animate-pulse">
-            Live
-          </Badge>
-        )}
-        <LastUpdatedIndicator />
-      </div>
-    </div>
-  );
+    );
+  };
 
   if (showFiltersInHeader) {
     // Return just the filter controls for header rendering
@@ -646,8 +775,8 @@ const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFil
       {/* Alerts Banner - shown when there are alerts and not in alerts category */}
       {!cleanView && <AlertsBanner />}
 
-      {/* Quick Toggle Bar - hidden in cleanView */}
-      {!cleanView && <QuickToggleBar />}
+      {/* Source Toggle Bar - hidden in cleanView */}
+      {!cleanView && <SourceToggleBar />}
 
       {/* Desktop filters - collapsible - hidden in cleanView */}
       {showFilters && !cleanView && (
