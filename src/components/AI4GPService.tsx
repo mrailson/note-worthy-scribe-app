@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic, BookOpen, Languages, PanelLeft, Lightbulb, ExternalLink } from 'lucide-react';
+import { Sparkles, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic, BookOpen, Languages, PanelLeft, Lightbulb } from 'lucide-react';
 
 // Component imports
 import { LoginForm } from '@/components/LoginForm';
@@ -25,6 +25,7 @@ import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { MicroBanner, ShortCard, CollapsibleShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
 import { AI4GPSidebar } from '@/components/ai4gp/AI4GPSidebar';
 import { RoleToggle } from '@/components/ai4gp/RoleToggle';
+import { PromptsModal } from '@/components/ai4gp/PromptsModal';
 
 import NewsPanel from '@/components/NewsPanel';
 import { BPCalculatorPanel } from '@/components/ai4gp/BPCalculatorPanel';
@@ -122,6 +123,7 @@ const AI4GPService = () => {
   const [showDocumentTranslate, setShowDocumentTranslate] = useState(false);
   const [previewMeetingId, setPreviewMeetingId] = useState<string | null>(null);
   const [showMeetingPreview, setShowMeetingPreview] = useState(false);
+  const [showPromptsModal, setShowPromptsModal] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>(() => {
     const saved = localStorage.getItem('ai4gp-selected-role');
@@ -731,10 +733,8 @@ const AI4GPService = () => {
                                 selectedRole={selectedRole}
                                 onRoleChange={setSelectedRole}
                               />
-                              <a
-                                href="/ai4gp-prompts"
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                onClick={() => setShowPromptsModal(true)}
                                 className={cn(
                                   "inline-flex items-center gap-1.5 px-2.5 py-1.5",
                                   "text-xs text-muted-foreground hover:text-primary",
@@ -744,8 +744,7 @@ const AI4GPService = () => {
                               >
                                 <Lightbulb className="w-3.5 h-3.5" />
                                 <span>{selectedRole === 'practice-manager' ? '150+' : '110+'} Prompts</span>
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
+                              </button>
                             </div>
                             
                             {/* Show PMHomeScreen for Practice Managers, GPHomeScreen for GP */}
@@ -1021,6 +1020,14 @@ const AI4GPService = () => {
         requestType={pendingImageRequest?.imageDetection?.requestType || 'general'}
         includePracticeLogo={includePracticeLogo}
         onLogoToggleChange={setIncludePracticeLogo}
+      />
+
+      {/* Prompts Modal */}
+      <PromptsModal
+        open={showPromptsModal}
+        onOpenChange={setShowPromptsModal}
+        setInput={setInput}
+        defaultTab={selectedRole === 'practice-manager' ? 'pm' : 'gp'}
       />
 
     </>
