@@ -12,6 +12,8 @@ interface UseMinutesFormatterOptions {
   content: string;
   baseFontSize: number;
   enabled: boolean; // Only format when enabled (e.g., user clicks "Switch to formatted view")
+  previewEnabled?: boolean; // Compute plain-text preview (can be expensive for huge notes)
+  previewMaxChars?: number; // Optional cap for preview processing
 }
 
 interface UseMinutesFormatterResult {
@@ -36,19 +38,71 @@ export function useMinutesFormatter({
   meetingId,
   content,
   baseFontSize,
-  enabled
+  enabled,
+  previewEnabled = true,
+  previewMaxChars
 }: UseMinutesFormatterOptions): UseMinutesFormatterResult {
   const [formattedHtml, setFormattedHtml] = useState<string>('');
   const [isFormatting, setIsFormatting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [plainTextPreview, setPlainTextPreview] = useState<string>('');
   
   const workerRef = useRef<Worker | null>(null);
   const requestIdRef = useRef<string>('');
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Generate plain text preview (fast, synchronous)
-  const plainTextPreview = content ? stripTranscriptMarkers(content) : '';
+  // Build plain text preview asynchronously to avoid blocking modal open / scrolling
+  useEffect(() => {
+    if (!previewEnabled) {
+      setPlainTextPreview('');
+      return;
+    }
 
+    if (!content) {
+      setPlainTextPreview('');
+      return;
+    }
+
+    const input = typeof previewMaxChars === 'number' && previewMaxChars > 0
+      ? content.slice(0, previewMaxChars)
+      : content;
+
+    // Hard guard: do not attempt expensive preview processing for huge notes
+    if (input.length > 20000) {
+      setPlainTextPreview('');
+      return;
+    }
+
+    let cancelled = false;
+
+    const run = () => {
+      if (cancelled) return;
+      try {
+        const res = stripTranscriptMarkers(input);
+        if (!cancelled) setPlainTextPreview(res);
+      } catch (e) {
+        console.warn('[useMinutesFormatter] Failed to build plain text preview:', e);
+        if (!cancelled) setPlainTextPreview('');
+      }
+    };
+
+    const ric = (globalThis as any).requestIdleCallback as undefined | ((cb: () => void, opts?: any) => number);
+    const cic = (globalThis as any).cancelIdleCallback as undefined | ((id: number) => void);
+
+    if (typeof ric === 'function') {
+      const id = ric(run, { timeout: 250 });
+      return () => {
+        cancelled = true;
+        if (typeof cic === 'function') cic(id);
+      };
+    }
+
+    const t = setTimeout(run, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [content, previewEnabled, previewMaxChars]);
   // Cleanup worker on unmount
   useEffect(() => {
     return () => {

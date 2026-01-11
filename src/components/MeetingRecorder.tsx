@@ -4879,7 +4879,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       
       // Update modal with actual data
       setModalMeeting(meetingResult.data);
-      setModalNotes(summaryResult.data?.summary || '');
+      setModalNotes(meetingResult.data.notes_style_3 || summaryResult.data?.summary || '');
       
     } catch (error: any) {
       console.error("❌ Error Loading Meeting:", error.message, error);
