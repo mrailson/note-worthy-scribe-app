@@ -864,6 +864,43 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [isOpen, meeting?.id, user?.id, meeting?._isLoading]);
 
+  // Real-time subscription to refresh notes when action items are synced
+  useEffect(() => {
+    if (!isOpen || !meeting?.id) return;
+
+    const currentMeetingId = meeting.id;
+    console.log('🔔 Setting up real-time notes subscription for meeting:', currentMeetingId);
+
+    const channel = supabase
+      .channel(`notes-sync-${currentMeetingId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'meetings',
+          filter: `id=eq.${currentMeetingId}`,
+        },
+        (payload) => {
+          console.log('🔔 Meeting notes updated via realtime:', payload);
+          const newRecord = payload.new as any;
+          // Update notesStyle3 if it changed (e.g., action items synced)
+          if (newRecord?.notes_style_3 && newRecord.notes_style_3 !== notesStyle3) {
+            console.log('📝 Refreshing Standard notes from realtime update');
+            setNotesStyle3(newRecord.notes_style_3);
+            // Clear cached HTML to force re-render
+            setMinutesHtml('');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('🔌 Cleaning up notes real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen, meeting?.id]);
+
   // Load existing SOAP notes from database
   const loadExistingSoapNotes = async () => {
     if (!meeting?.id || !user?.id) return;
