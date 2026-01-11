@@ -53,14 +53,126 @@ export const useActionItems = (meetingId: string) => {
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasExtractedFromNotes, setHasExtractedFromNotes] = useState(false);
   const { toast } = useToast();
 
-  // Fetch action items
+  // Parse action item text to extract assignee and due date
+  const parseActionItemText = (text: string): { 
+    actionText: string; 
+    assignee: string; 
+    dueDate: string;
+    priority: 'High' | 'Medium' | 'Low';
+  } => {
+    let actionText = text;
+    let assignee = 'TBC';
+    let dueDate = 'TBC';
+    let priority: 'High' | 'Medium' | 'Low' = 'Medium';
+
+    // Extract assignee patterns like "— @Name" or "- @Name" or "(Assigned to: Name)"
+    const assigneeMatch = text.match(/(?:—|–|-)\s*@?([A-Za-z\s.]+?)(?:\s*[\[(]|$)/i) ||
+                          text.match(/\((?:Assigned to|Owner|Lead):\s*([^)]+)\)/i) ||
+                          text.match(/@([A-Za-z\s.]+?)(?:\s|$)/);
+    if (assigneeMatch) {
+      assignee = assigneeMatch[1].trim();
+      actionText = actionText.replace(assigneeMatch[0], '').trim();
+    }
+
+    // Extract due date patterns like "(End of Week)" or "(by 15th Jan)" or "[ASAP]"
+    const dueDateMatch = text.match(/\((End of Week|End of Month|By Next Meeting|ASAP|TBC)\)/i) ||
+                         text.match(/\[(End of Week|End of Month|By Next Meeting|ASAP|TBC)\]/i) ||
+                         text.match(/\((?:by|due|deadline):\s*([^)]+)\)/i);
+    if (dueDateMatch) {
+      dueDate = dueDateMatch[1].trim();
+      actionText = actionText.replace(dueDateMatch[0], '').trim();
+    }
+
+    // Extract priority patterns like "[High]" or "(High Priority)"
+    const priorityMatch = text.match(/\[(High|Medium|Low)\]/i) ||
+                          text.match(/\((High|Medium|Low)\s*Priority\)/i);
+    if (priorityMatch) {
+      priority = priorityMatch[1] as 'High' | 'Medium' | 'Low';
+      actionText = actionText.replace(priorityMatch[0], '').trim();
+    }
+
+    // Clean up trailing punctuation and whitespace
+    actionText = actionText.replace(/[—–-]\s*$/, '').trim();
+
+    return { actionText, assignee, dueDate, priority };
+  };
+
+  // Extract action items from meeting notes
+  const extractActionItemsFromNotes = async (notes: string): Promise<void> => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+
+    // Find action items section - look for various heading formats
+    const actionItemsMatch = notes.match(/(?:#{1,3}\s*)?(?:Action Items|Actions|Action Points|Tasks)[\s\S]*?(?=(?:#{1,3}\s+[A-Z])|$)/i);
+    if (!actionItemsMatch) return;
+
+    const section = actionItemsMatch[0];
+    const lines = section.split('\n');
+    const extractedItems: Array<{ text: string; assignee: string; dueDate: string; priority: 'High' | 'Medium' | 'Low' }> = [];
+
+    for (const line of lines) {
+      // Match bullet points: -, *, •, numbered lists
+      const bulletMatch = line.match(/^\s*(?:[-*•]|\d+\.)\s+(.+)/);
+      if (bulletMatch && bulletMatch[1].trim()) {
+        const rawText = bulletMatch[1].trim();
+        
+        // Skip header-like lines
+        if (rawText.match(/^(?:Action Items|Actions|Completed|Open)/i)) continue;
+        
+        const parsed = parseActionItemText(rawText);
+        if (parsed.actionText.length > 5) { // Avoid very short/empty items
+          extractedItems.push({
+            text: parsed.actionText,
+            assignee: parsed.assignee,
+            dueDate: parsed.dueDate,
+            priority: parsed.priority,
+          });
+        }
+      }
+    }
+
+    // Insert all extracted items
+    for (let i = 0; i < extractedItems.length; i++) {
+      const item = extractedItems[i];
+      const newItem = {
+        meeting_id: meetingId,
+        user_id: userData.user.id,
+        action_text: item.text,
+        assignee_name: item.assignee,
+        assignee_type: item.assignee === 'TBC' ? 'tbc' : 'custom' as const,
+        due_date: item.dueDate,
+        due_date_actual: calculateActualDueDate(item.dueDate),
+        priority: item.priority,
+        status: 'Open' as const,
+        sort_order: i,
+      };
+
+      await supabase.from('meeting_action_items').insert(newItem);
+    }
+
+    if (extractedItems.length > 0) {
+      // Refetch to get the newly created items
+      const { data } = await supabase
+        .from('meeting_action_items')
+        .select('*')
+        .eq('meeting_id', meetingId)
+        .order('sort_order', { ascending: true });
+      
+      setActionItems((data as ActionItem[]) || []);
+    }
+  };
+
+  // Fetch action items and extract from notes if needed
   const fetchActionItems = useCallback(async () => {
     if (!meetingId) return;
     
     try {
       setIsLoading(true);
+      
+      // First, fetch existing action items from the table
       const { data, error } = await supabase
         .from('meeting_action_items')
         .select('*')
@@ -68,13 +180,31 @@ export const useActionItems = (meetingId: string) => {
         .order('sort_order', { ascending: true });
 
       if (error) throw error;
-      setActionItems((data as ActionItem[]) || []);
+      
+      const existingItems = (data as ActionItem[]) || [];
+      setActionItems(existingItems);
+
+      // If no items exist and we haven't tried extraction yet, extract from notes
+      if (existingItems.length === 0 && !hasExtractedFromNotes) {
+        setHasExtractedFromNotes(true);
+        
+        // Fetch the meeting summary to extract action items
+        const { data: summaryData } = await supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+
+        if (summaryData?.summary) {
+          await extractActionItemsFromNotes(summaryData.summary);
+        }
+      }
     } catch (error) {
       console.error('Error fetching action items:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [meetingId]);
+  }, [meetingId, hasExtractedFromNotes]);
 
   useEffect(() => {
     fetchActionItems();
@@ -236,29 +366,6 @@ export const useActionItems = (meetingId: string) => {
     }
   };
 
-  // Extract action items from existing notes (for initial migration)
-  const extractFromNotes = async (notes: string): Promise<void> => {
-    if (actionItems.length > 0) return; // Already have items
-    
-    // Parse action items from markdown notes
-    const actionItemsSection = notes.match(/## Action Items[\s\S]*?(?=##|$)/i);
-    if (!actionItemsSection) return;
-
-    const lines = actionItemsSection[0].split('\n');
-    const items: string[] = [];
-
-    for (const line of lines) {
-      const match = line.match(/^[-*•]\s*(.+)/);
-      if (match && match[1].trim()) {
-        items.push(match[1].trim());
-      }
-    }
-
-    for (const itemText of items) {
-      await addActionItem(itemText);
-    }
-  };
-
   const openItemsCount = actionItems.filter(i => i.status !== 'Completed').length;
 
   return {
@@ -271,7 +378,6 @@ export const useActionItems = (meetingId: string) => {
     deleteActionItem,
     toggleStatus,
     reorderActionItems,
-    extractFromNotes,
     refetch: fetchActionItems,
   };
 };
