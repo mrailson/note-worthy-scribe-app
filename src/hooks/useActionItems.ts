@@ -49,6 +49,55 @@ export const calculateActualDueDate = (quickPick: string): string | null => {
   }
 };
 
+const normaliseKeyPart = (value: string | null | undefined) =>
+  (value ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+const actionItemDedupeKey = (item: Pick<ActionItem, 'action_text' | 'assignee_name' | 'due_date' | 'priority' | 'status' | 'sort_order'>) =>
+  [
+    normaliseKeyPart(item.action_text),
+    normaliseKeyPart(item.assignee_name),
+    normaliseKeyPart(item.due_date),
+    item.priority,
+    item.status,
+    String(item.sort_order),
+  ].join('|');
+
+const planActionItemsDedupe = (items: ActionItem[]) => {
+  const seen = new Map<string, ActionItem>();
+  const idsToDelete: string[] = [];
+
+  for (const item of items) {
+    const key = actionItemDedupeKey(item);
+    const existing = seen.get(key);
+
+    if (!existing) {
+      seen.set(key, item);
+      continue;
+    }
+
+    // Keep the earliest row (by created_at) and delete the rest.
+    const existingTime = Date.parse(existing.created_at);
+    const itemTime = Date.parse(item.created_at);
+
+    const keepExisting =
+      !Number.isNaN(existingTime) && !Number.isNaN(itemTime) ? existingTime <= itemTime : true;
+
+    if (keepExisting) {
+      idsToDelete.push(item.id);
+    } else {
+      idsToDelete.push(existing.id);
+      seen.set(key, item);
+    }
+  }
+
+  const uniqueItems = Array.from(seen.values()).sort((a, b) => {
+    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+    return a.created_at.localeCompare(b.created_at);
+  });
+
+  return { uniqueItems, idsToDelete };
+};
+
 export const useActionItems = (meetingId: string) => {
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
