@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, CheckSquare, Loader2, RefreshCw, LayoutGrid, Table2, Filter, Flag, Calendar } from 'lucide-react';
+import { Plus, CheckSquare, Loader2, RefreshCw, LayoutGrid, Table2, Filter, Flag, Calendar, Save, Check } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -36,12 +37,26 @@ export const MeetingActionItemsTab = ({
     actionItems,
     isLoading,
     isSaving,
+    isSyncing,
+    lastSyncedAt,
     addActionItem,
     updateActionItem,
     deleteActionItem,
     toggleStatus,
     clearAndReExtract,
+    manualSync,
   } = useActionItems(meetingId);
+
+  const [showSaved, setShowSaved] = useState(false);
+
+  // Show "Saved" feedback when saving completes
+  useEffect(() => {
+    if (!isSaving && actionItems.length > 0) {
+      setShowSaved(true);
+      const timeout = setTimeout(() => setShowSaved(false), 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [isSaving, actionItems.length]);
 
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newActionText, setNewActionText] = useState('');
@@ -166,12 +181,35 @@ export const MeetingActionItemsTab = ({
         </div>
         
         <div className="flex items-center gap-2">
-          {isSaving && (
+          {/* Saving/Saved indicator */}
+          {isSaving ? (
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Loader2 className="h-3 w-3 animate-spin" />
               Saving...
             </span>
-          )}
+          ) : showSaved ? (
+            <span className="text-xs text-green-600 flex items-center gap-1 animate-in fade-in">
+              <Check className="h-3 w-3" />
+              Saved
+            </span>
+          ) : null}
+
+          {/* Sync to Notes button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={manualSync}
+            disabled={isSyncing}
+            className="h-7 px-2 gap-1.5"
+            title={lastSyncedAt ? `Last synced ${formatDistanceToNow(lastSyncedAt, { addSuffix: true })}` : 'Sync changes to meeting notes'}
+          >
+            {isSyncing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Save className="h-3.5 w-3.5" />
+            )}
+            <span className="text-xs">Sync to Notes</span>
+          </Button>
 
           {/* View toggle */}
           <div className="flex items-center border rounded-lg p-0.5 bg-muted/30">
