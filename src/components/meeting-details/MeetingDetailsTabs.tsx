@@ -86,7 +86,7 @@ export const MeetingDetailsTabs = ({
             <span className="hidden sm:inline">Action Items</span>
             <span className="sm:hidden">Actions</span>
             {openItemsCount > 0 && (
-              <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
+              <Badge variant="secondary" className="ml-1 h-6 min-w-6 px-2 text-xs font-medium flex items-center justify-center rounded-full">
                 {openItemsCount}
               </Badge>
             )}
