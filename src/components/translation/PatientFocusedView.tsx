@@ -131,9 +131,10 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
     setResumeCountdown(3);
   }, []);
 
-  // Get the latest English text for the bottom bar
+  // Get the latest English text and speaker for the bottom bar
   const latestEntry = conversation[conversation.length - 1];
   const latestEnglishText = latestEntry?.englishText || '';
+  const latestSpeaker = latestEntry?.speaker || null;
 
   return (
     <div
@@ -188,6 +189,7 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
         onTextSizeChange={setTextSize}
         onReplayLast={handleReplayLast}
         latestEnglishText={latestEnglishText}
+        latestSpeaker={latestSpeaker}
         onExport={onExport}
         onEndSession={onEndSession}
       />

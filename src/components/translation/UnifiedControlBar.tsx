@@ -12,7 +12,9 @@ import {
   FileText,
   Square,
   Minus,
-  Plus
+  Plus,
+  Stethoscope,
+  MessageCircle
 } from 'lucide-react';
 import { LanguageSelector } from './LanguageSelector';
 import { TextSize } from './TeleprompterDisplay';
@@ -54,6 +56,7 @@ interface UnifiedControlBarProps {
   
   // English text display
   latestEnglishText: string;
+  latestSpeaker: 'gp' | 'patient' | null;
   
   // Session actions
   onExport: () => void;
@@ -80,6 +83,7 @@ export const UnifiedControlBar: React.FC<UnifiedControlBarProps> = ({
   onTextSizeChange,
   onReplayLast,
   latestEnglishText,
+  latestSpeaker,
   onExport,
   onEndSession,
 }) => {
@@ -283,9 +287,24 @@ export const UnifiedControlBar: React.FC<UnifiedControlBarProps> = ({
 
       {/* Row 2: English Text & Session Actions */}
       <div className="flex items-center gap-3 px-4 py-2">
-        {/* English Text Display */}
-        <div className="flex-1 flex items-center gap-2 min-w-0">
-          <span className="text-xl flex-shrink-0">🇬🇧</span>
+        {/* English Text Display with contextual label */}
+        <div className="flex-1 flex items-center gap-3 min-w-0">
+          {latestSpeaker === 'gp' ? (
+            <div className="flex items-center gap-2 flex-shrink-0 text-primary">
+              <Stethoscope className="h-5 w-5" />
+              <span className="text-sm font-semibold whitespace-nowrap">I am Translating:</span>
+            </div>
+          ) : latestSpeaker === 'patient' ? (
+            <div className="flex items-center gap-2 flex-shrink-0 text-amber-600">
+              <MessageCircle className="h-5 w-5" />
+              <span className="text-sm font-semibold whitespace-nowrap">The Patient Says:</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 flex-shrink-0 text-muted-foreground">
+              <MessageCircle className="h-5 w-5" />
+              <span className="text-sm font-semibold whitespace-nowrap">Waiting:</span>
+            </div>
+          )}
           <p className="text-lg font-medium text-foreground truncate">
             {latestEnglishText || 'Waiting for conversation...'}
           </p>
