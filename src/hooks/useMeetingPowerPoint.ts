@@ -123,11 +123,12 @@ export const useMeetingPowerPoint = () => {
       
       setCurrentPhase('generating');
 
-      // Call Gamma API with extended timeout (120 seconds for long generation)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000);
-      
-      const { data: response, error: fnError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
+      // Use Promise.race for timeout since Supabase client doesn't support AbortController
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('PowerPoint generation timed out after 120 seconds. Please try again.')), 120000);
+      });
+
+      const invokePromise = supabase.functions.invoke('generate-powerpoint-gamma', {
         body: {
           topic: `Executive Summary: ${data.meetingTitle}`,
           presentationType: 'Executive Overview',
@@ -137,8 +138,8 @@ export const useMeetingPowerPoint = () => {
           audience: 'healthcare professionals and NHS executives',
         },
       });
-      
-      clearTimeout(timeoutId);
+
+      const { data: response, error: fnError } = await Promise.race([invokePromise, timeoutPromise]);
 
       if (fnError) {
         throw new Error(fnError.message || 'Failed to generate presentation');
