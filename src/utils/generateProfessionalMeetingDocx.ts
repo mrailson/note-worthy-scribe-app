@@ -1231,10 +1231,171 @@ const removeActionItemsSection = (content: string): string => {
   return result.join('\n').replace(/\n{3,}/g, '\n\n');
 };
 
-// Simple wrapper for SafeModeNotesModal
-export const generateProfessionalWordFromContent = async (content: string, title: string): Promise<void> => {
-  await generateProfessionalMeetingDocx({
-    metadata: { title },
-    content,
+// Pre-parsed action item for Word export
+export interface ParsedActionItemInput {
+  action: string;
+  owner: string;
+  deadline: string;
+  priority: 'High' | 'Medium' | 'Low';
+  status: 'Open' | 'In Progress' | 'Completed';
+  isCompleted: boolean;
+}
+
+// Pre-parsed meeting details for Word export
+export interface ParsedMeetingDetailsInput {
+  title?: string;
+  date?: string;
+  time?: string;
+  location?: string;
+  attendees?: string;
+}
+
+// Wrapper for SafeModeNotesModal - accepts pre-parsed data to match modal view
+export const generateProfessionalWordFromContent = async (
+  content: string, 
+  title: string,
+  parsedDetails?: ParsedMeetingDetailsInput,
+  parsedActionItems?: ParsedActionItemInput[]
+): Promise<void> => {
+  // If pre-parsed data is provided, use it directly
+  if (parsedDetails || parsedActionItems) {
+    await generateProfessionalMeetingDocxWithParsedData({
+      metadata: { 
+        title,
+        date: parsedDetails?.date,
+        time: parsedDetails?.time,
+        location: parsedDetails?.location,
+        attendees: parsedDetails?.attendees,
+      },
+      content,
+      actionItems: parsedActionItems || [],
+    });
+  } else {
+    // Fallback to auto-parsing
+    await generateProfessionalMeetingDocx({
+      metadata: { title },
+      content,
+    });
+  }
+};
+
+// New function that accepts pre-parsed action items and details
+interface GenerateWithParsedDataOptions {
+  metadata: MeetingMetadata;
+  content: string;
+  actionItems: ParsedActionItemInput[];
+  filename?: string;
+}
+
+export const generateProfessionalMeetingDocxWithParsedData = async (options: GenerateWithParsedDataOptions): Promise<void> => {
+  const { Document, Packer, Paragraph, TextRun } = await import("docx");
+  
+  // Clean content
+  let cleanedContent = stripTranscriptAndDetails(options.content);
+  cleanedContent = deduplicateActionItems(cleanedContent);
+  cleanedContent = replaceFacilitatorWithUserName(cleanedContent, options.metadata.loggedUserName);
+  
+  // Use provided metadata directly
+  const metadata: MeetingMetadata = options.metadata;
+  
+  // Extract executive summary from content
+  const executiveSummary = extractExecutiveSummary(options.content);
+  
+  // Convert provided action items to internal format
+  const actionItems: ParsedActionItem[] = options.actionItems.map(item => ({
+    action: item.action,
+    owner: item.owner.replace(/^@/, ''), // Remove leading @ if present
+    deadline: item.deadline,
+    priority: item.priority,
+    status: item.status === 'Completed' ? 'Done' : item.status === 'In Progress' ? 'In Progress' : 'Open',
+    isCompleted: item.isCompleted,
+  }));
+  
+  // Remove action items section from content (we'll render it as a table)
+  const contentWithoutActionItems = removeActionItemsSection(cleanedContent);
+  
+  // Build document
+  const now = new Date();
+  const generatedDate = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + 
+    ' at ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  
+  const children: any[] = [];
+  
+  // Header block
+  const headerElements = await createHeaderBlock(metadata.title, generatedDate);
+  children.push(...headerElements);
+  
+  // Meeting details box - only if we have valid details
+  if (metadata.date || metadata.time || metadata.location || metadata.attendees) {
+    const detailsElements = await createMeetingDetailsBox(metadata);
+    children.push(...detailsElements);
+  }
+  
+  // Executive summary box
+  if (executiveSummary) {
+    const summaryElements = await createExecutiveSummaryBox(executiveSummary);
+    children.push(...summaryElements);
+  }
+  
+  // Main content (without action items)
+  const contentElements = await parseContentToDocxElements(contentWithoutActionItems);
+  children.push(...contentElements);
+  
+  // Action Items section as professional table (ACTION LOG)
+  if (actionItems.length > 0) {
+    // Add section divider and heading
+    const divider = await createSectionDivider();
+    children.push(divider);
+    
+    children.push(new Paragraph({
+      children: [new TextRun({
+        text: "ACTION LOG",
+        bold: true,
+        size: FONTS.size.heading2,
+        color: NHS_COLORS.headingBlue,
+        font: FONTS.default,
+      })],
+      spacing: { before: 0, after: 180 },
+    }));
+    
+    const actionTableElements = await createActionItemsTable(actionItems);
+    children.push(...actionTableElements);
+  }
+  
+  // Create footer
+  const footer = await createFooter(metadata.classification);
+  
+  // Build and save document
+  const doc = new Document({
+    styles: buildNHSStyles(),
+    numbering: buildNumbering(),
+    sections: [{
+      properties: {
+        page: {
+          margin: {
+            top: 1440,
+            right: 1440,
+            bottom: 1440,
+            left: 1440,
+          },
+        },
+      },
+      footers: {
+        default: footer,
+      },
+      children,
+    }],
   });
+  
+  const blob = await Packer.toBlob(doc);
+  
+  // Generate filename
+  const safeTitle = metadata.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+  const dateStamp = now.toISOString().split('T')[0];
+  const filename = options.filename || `${safeTitle}_${dateStamp}.docx`;
+  
+  saveAs(blob, filename);
 };
