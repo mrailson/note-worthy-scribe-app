@@ -168,8 +168,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { meetingId, forceRegenerate = false } = await req.json();
-    console.log('🤖 Auto-generating notes for meeting:', meetingId);
+    const { meetingId, forceRegenerate = false, detailLevel = 'standard' } = await req.json();
+    console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel);
 
     if (!meetingId) {
       throw new Error('Meeting ID is required');
@@ -474,6 +474,52 @@ serve(async (req) => {
 
     console.log('📄 Using', transcriptUsed, 'transcript for notes generation');
 
+    // Detail level instructions for note generation
+    const detailInstructions: Record<string, string> = {
+      'brief': `
+DETAIL LEVEL: BRIEF
+- Focus ONLY on key decisions and action items
+- Executive summary: 1-2 sentences maximum
+- Discussion summary: Maximum 3 bullet points
+- Skip the Background section
+- Keep total notes to approximately 300 words`,
+      
+      'summary': `
+DETAIL LEVEL: SUMMARY
+- Concise coverage of main discussion points
+- Executive summary: 2-3 sentences
+- Discussion summary: 4-5 key points only
+- Brief background context
+- Keep total notes to approximately 500 words`,
+      
+      'standard': `
+DETAIL LEVEL: STANDARD
+- Complete meeting notes with all relevant details
+- Follow the full format as specified
+- Include all sections with appropriate detail
+- Keep total notes to approximately 800 words`,
+      
+      'detailed': `
+DETAIL LEVEL: DETAILED
+- Comprehensive notes with full context
+- Expanded executive summary with key quotes
+- Thorough discussion of all points raised
+- Include nuances and alternative viewpoints mentioned
+- Keep total notes to approximately 1200 words`,
+      
+      'full': `
+DETAIL LEVEL: FULL
+- Exhaustive documentation of the meeting
+- Include relevant quotes from participants
+- Document all discussion threads completely
+- Include timestamps for major discussion shifts
+- Capture all context, concerns, and considerations
+- No word limit - be comprehensive`
+    };
+
+    const selectedDetailInstruction = detailInstructions[detailLevel] || detailInstructions['standard'];
+    console.log('📊 Using detail level:', detailLevel);
+
     // Generate notes using Lovable AI
     let systemPrompt = `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from ANY provided transcript content.
 
@@ -616,7 +662,9 @@ Do NOT remove: decisions, actions, dates, financial figures, estates/legal/contr
 🔹 9. Final output must be suitable for:
 NHS Board Packs, ICB circulation, sharing with NHFT or PML, FOI response, CQC review
 
-═══════════════════════════════════════════════════════════════════════════════`;
+═══════════════════════════════════════════════════════════════════════════════
+
+${selectedDetailInstruction}`;
 
     // Format date in British format with day of week
     const meetingDate = new Date(meeting.created_at);
@@ -907,7 +955,8 @@ ${cleanedTranscript}`;
       JSON.stringify({ 
         success: true, 
         message: 'Meeting notes generated successfully',
-        notesLength: generatedNotes.length
+        notesLength: generatedNotes.length,
+        content: generatedNotes
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -49,8 +49,10 @@ import {
   Trash2,
   CalendarDays,
   ChevronRight,
-  User
+  User,
+  Settings2
 } from "lucide-react";
+import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -146,6 +148,62 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [editingActionItem, setEditingActionItem] = useState<{ original: string; text: string } | null>(null);
   const [showCustomOwnerInput, setShowCustomOwnerInput] = useState(false);
   const [customOwner, setCustomOwner] = useState('');
+  
+  // Control mode toggle state (fontSize vs detailLevel)
+  const [controlMode, setControlMode] = useState<'fontSize' | 'detailLevel'>('fontSize');
+  const [detailLevel, setDetailLevel] = useState<number>(3); // Default: Standard
+  const [isRegeneratingNotes, setIsRegeneratingNotes] = useState(false);
+
+  // Regenerate notes at a new detail level
+  const triggerRegeneration = useCallback(async (newLevel: number) => {
+    if (!meeting?.id) {
+      toast.error('No meeting available to regenerate notes');
+      return;
+    }
+    
+    setIsRegeneratingNotes(true);
+    
+    try {
+      const levelConfig = MEETING_DETAIL_LEVELS.find(l => l.value === newLevel);
+      const levelLabel = levelConfig?.label || 'Standard';
+      toast.info(`Regenerating notes at ${levelLabel} detail level...`);
+      
+      const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+        body: { 
+          meetingId: meeting.id,
+          forceRegenerate: true,
+          detailLevel: levelLabel.toLowerCase()
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Update local notes content with regenerated notes
+      if (data?.content) {
+        setNotesContent(data.content);
+        toast.success(`Notes regenerated at ${levelLabel} detail level`);
+      } else {
+        // Fetch the updated notes from the database
+        const { data: updatedMeeting } = await supabase
+          .from('meetings')
+          .select('notes_style_3')
+          .eq('id', meeting.id)
+          .single();
+          
+        if (updatedMeeting?.notes_style_3) {
+          setNotesContent(sanitiseMeetingNotes(updatedMeeting.notes_style_3));
+          toast.success(`Notes regenerated at ${levelLabel} detail level`);
+        } else {
+          toast.success('Notes regenerated - refresh to see updates');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to regenerate notes:', error);
+      toast.error('Failed to regenerate notes');
+    } finally {
+      setIsRegeneratingNotes(false);
+    }
+  }, [meeting?.id]);
 
   // Convert DB meeting_format to local meetingType
   const mapFormatToType = (format: string | null): 'teams' | 'f2f' | 'hybrid' => {
@@ -1456,35 +1514,81 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         {/* Toolbar */}
         <div className="px-6 py-2.5 border-b flex items-center justify-between gap-4 flex-shrink-0 bg-muted/30">
           <div className="flex items-center gap-1">
-            {/* Font size controls */}
+            {/* Minus Button - Font size or Detail level */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setFontSize(prev => Math.max(10, prev - 2))}
-                  disabled={fontSize <= 10}
+                  onClick={() => {
+                    if (controlMode === 'fontSize') {
+                      setFontSize(prev => Math.max(10, prev - 2));
+                    } else {
+                      const newLevel = Math.max(1, detailLevel - 1);
+                      setDetailLevel(newLevel);
+                      triggerRegeneration(newLevel);
+                    }
+                  }}
+                  disabled={controlMode === 'fontSize' ? fontSize <= 10 : detailLevel <= 1 || isRegeneratingNotes}
                 >
                   <ZoomOut className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Decrease font size</TooltipContent>
+              <TooltipContent>
+                {controlMode === 'fontSize' ? 'Decrease font size' : 'Less detail'}
+              </TooltipContent>
             </Tooltip>
-            <span className="text-xs text-muted-foreground w-10 text-center font-medium">{fontSize}px</span>
+            
+            {/* Clickable Toggle Label */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="text-xs text-muted-foreground w-20 text-center font-medium cursor-pointer hover:text-primary transition-colors flex items-center justify-center gap-1"
+                  onClick={() => setControlMode(prev => prev === 'fontSize' ? 'detailLevel' : 'fontSize')}
+                >
+                  {controlMode === 'fontSize' ? (
+                    <span>{fontSize}px</span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      {isRegeneratingNotes && <Loader2 className="h-3 w-3 animate-spin" />}
+                      {MEETING_DETAIL_LEVELS.find(l => l.value === detailLevel)?.label || 'Standard'}
+                    </span>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="flex items-center gap-1">
+                  <Settings2 className="h-3 w-3" />
+                  <span>Click to switch to {controlMode === 'fontSize' ? 'detail level' : 'font size'} mode</span>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+            
+            {/* Plus Button - Font size or Detail level */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => setFontSize(prev => Math.min(24, prev + 2))}
-                  disabled={fontSize >= 24}
+                  onClick={() => {
+                    if (controlMode === 'fontSize') {
+                      setFontSize(prev => Math.min(24, prev + 2));
+                    } else {
+                      const newLevel = Math.min(5, detailLevel + 1);
+                      setDetailLevel(newLevel);
+                      triggerRegeneration(newLevel);
+                    }
+                  }}
+                  disabled={controlMode === 'fontSize' ? fontSize >= 24 : detailLevel >= 5 || isRegeneratingNotes}
                 >
                   <ZoomIn className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Increase font size</TooltipContent>
+              <TooltipContent>
+                {controlMode === 'fontSize' ? 'Increase font size' : 'More detail'}
+              </TooltipContent>
             </Tooltip>
 
             {/* Divider */}
