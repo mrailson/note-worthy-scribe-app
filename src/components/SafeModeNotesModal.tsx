@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateWordDocument } from "@/utils/documentGenerators";
+import { generateProfessionalWordFromContent } from "@/utils/generateProfessionalMeetingDocx";
 
 interface Meeting {
   id: string;
@@ -185,7 +185,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
     try {
       // Use the professional document generator with NHS-style formatting
-      await generateWordDocument(content, title, true);
+      await generateProfessionalWordFromContent(content, title);
       toast.success('Downloaded successfully');
     } catch (error) {
       console.error('Download error:', error);
