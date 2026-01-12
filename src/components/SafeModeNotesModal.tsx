@@ -2001,24 +2001,37 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       {/* Edit Action Item Dialog */}
       {editingActionItem && (
         <Dialog open={!!editingActionItem} onOpenChange={() => setEditingActionItem(null)}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Edit Action Item</DialogTitle>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader className="pb-4">
+              <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+                <Pencil className="h-5 w-5 text-primary" />
+                Edit Action Item
+              </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Input
-                value={editingActionItem.text}
-                onChange={(e) => setEditingActionItem({ ...editingActionItem, text: e.target.value })}
-                placeholder="Action item text..."
-                className="w-full"
-                autoFocus
-              />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setEditingActionItem(null)}>
+            <div className="space-y-6 py-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">Action Description</label>
+                <Input
+                  value={editingActionItem.text}
+                  onChange={(e) => setEditingActionItem({ ...editingActionItem, text: e.target.value })}
+                  placeholder="Enter action item description..."
+                  className="w-full h-12 text-base px-4"
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setEditingActionItem(null)}
+                  className="px-6"
+                >
                   Cancel
                 </Button>
-                <Button onClick={() => handleSaveEditedAction(editingActionItem.original, editingActionItem.text)}>
-                  Save
+                <Button 
+                  onClick={() => handleSaveEditedAction(editingActionItem.original, editingActionItem.text)}
+                  className="px-6"
+                >
+                  Save Changes
                 </Button>
               </div>
             </div>
