@@ -561,7 +561,50 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     fetchAttendees();
   }, [isOpen, meeting?.id]);
 
-  // Load transcript only when tab is clicked
+  // Auto-sync action items to notes if action items exist but notes don't have an ACTION ITEMS section
+  useEffect(() => {
+    if (!isOpen || !meeting?.id || isLoadingNotes) return;
+    
+    // Check if notes already have an action items section
+    const hasActionItemsSection = notesContent && 
+      /##?\s*action\s+items?/i.test(notesContent);
+    
+    if (hasActionItemsSection) return; // Already has action items, no need to sync
+    
+    // Check if there are action items in the database
+    const checkAndSyncActionItems = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('meeting_action_items')
+          .select('id', { count: 'exact', head: true })
+          .eq('meeting_id', meeting.id);
+        
+        if (error || !count || count === 0) return; // No action items to sync
+        
+        console.log(`[SafeMode] Found ${count} action items but notes missing ACTION ITEMS section - triggering sync`);
+        
+        // Call the sync edge function
+        const { data, error: syncError } = await supabase.functions.invoke('sync-meeting-action-items', {
+          body: { meetingId: meeting.id },
+        });
+        
+        if (syncError) {
+          console.error('[SafeMode] Auto-sync failed:', syncError);
+          return;
+        }
+        
+        // Update notes content with synced action items
+        if (data?.updatedSummary) {
+          setNotesContent(sanitiseMeetingNotes(data.updatedSummary));
+          console.log('[SafeMode] Action items synced to notes successfully');
+        }
+      } catch (error) {
+        console.error('[SafeMode] Error checking/syncing action items:', error);
+      }
+    };
+    
+    checkAndSyncActionItems();
+  }, [isOpen, meeting?.id, notesContent, isLoadingNotes]);
   const loadTranscript = useCallback(async () => {
     if (!meeting?.id || transcript || isLoadingTranscript) return;
     
