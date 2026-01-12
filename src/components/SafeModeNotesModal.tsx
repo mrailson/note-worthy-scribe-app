@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -37,7 +38,9 @@ import {
   Circle,
   Timer,
   Users,
-  Search
+  Search,
+  Video,
+  UserCheck
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -84,6 +87,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showTranscriptFindReplace, setShowTranscriptFindReplace] = useState(false);
   const [showNotesFindReplace, setShowNotesFindReplace] = useState(false);
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
+  const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
 
   // Parse notes content into sections
   const parseNotesIntoSections = useCallback((content: string): Section[] => {
@@ -1084,25 +1088,59 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 <div className="p-6 space-y-6">
                   {/* Action buttons for notes */}
                   {notesContent && !isLoading && (
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant={showAttendeeModal ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setShowAttendeeModal(true)}
-                        className="gap-2"
-                      >
-                        <Users className="h-4 w-4" />
-                        Manage Attendees
-                      </Button>
-                      <Button
-                        variant={showNotesFindReplace ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setShowNotesFindReplace(!showNotesFindReplace)}
-                        className="gap-2"
-                      >
-                        <Search className="h-4 w-4" />
-                        Find & Replace
-                      </Button>
+                    <div className="flex items-center justify-between gap-4">
+                      {/* Meeting Type Selector */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Meeting Type:</span>
+                        <Select value={meetingType} onValueChange={(value: 'teams' | 'f2f' | 'hybrid') => setMeetingType(value)}>
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="teams">
+                              <div className="flex items-center gap-2">
+                                <Video className="h-4 w-4" />
+                                MS Teams
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="f2f">
+                              <div className="flex items-center gap-2">
+                                <UserCheck className="h-4 w-4" />
+                                Face to Face
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="hybrid">
+                              <div className="flex items-center gap-2">
+                                <Video className="h-4 w-4" />
+                                <UserCheck className="h-4 w-4 -ml-1" />
+                                Hybrid
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant={showAttendeeModal ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setShowAttendeeModal(true)}
+                          className="gap-2"
+                        >
+                          <Users className="h-4 w-4" />
+                          Manage Attendees
+                        </Button>
+                        <Button
+                          variant={showNotesFindReplace ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setShowNotesFindReplace(!showNotesFindReplace)}
+                          className="gap-2"
+                        >
+                          <Search className="h-4 w-4" />
+                          Find & Replace
+                        </Button>
+                      </div>
                     </div>
                   )}
 
