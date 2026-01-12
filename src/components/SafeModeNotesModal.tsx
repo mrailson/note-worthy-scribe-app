@@ -45,6 +45,7 @@ import { generateProfessionalWordFromContent, ParsedMeetingDetailsInput, ParsedA
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
 import EditableSection, { Section } from "@/components/scribe/EditableSection";
 import FindReplacePanel from "@/components/FindReplacePanel";
+import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 
 interface Meeting {
   id: string;
@@ -82,6 +83,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [isSavingSections, setIsSavingSections] = useState(false);
   const [showTranscriptFindReplace, setShowTranscriptFindReplace] = useState(false);
   const [showNotesFindReplace, setShowNotesFindReplace] = useState(false);
+  const [showAttendeeModal, setShowAttendeeModal] = useState(false);
 
   // Parse notes content into sections
   const parseNotesIntoSections = useCallback((content: string): Section[] => {
@@ -1080,9 +1082,18 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <TabsContent value="notes" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card">
                 <div className="p-6 space-y-6">
-                  {/* Find & Replace toggle for notes */}
+                  {/* Action buttons for notes */}
                   {notesContent && !isLoading && (
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant={showAttendeeModal ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setShowAttendeeModal(true)}
+                        className="gap-2"
+                      >
+                        <Users className="h-4 w-4" />
+                        Manage Attendees
+                      </Button>
                       <Button
                         variant={showNotesFindReplace ? 'default' : 'outline'}
                         size="sm"
@@ -1354,6 +1365,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           </div>
         </Tabs>
       </DialogContent>
+
+      {/* Attendee Modal */}
+      {meeting && (
+        <MeetingAttendeeModal
+          isOpen={showAttendeeModal}
+          onClose={() => setShowAttendeeModal(false)}
+          meetingId={meeting.id}
+          meetingTitle={meeting.title}
+        />
+      )}
     </Dialog>
   );
 };
