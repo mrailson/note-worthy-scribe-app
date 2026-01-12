@@ -84,7 +84,7 @@ const parseDate = (dateStr: string): Date => {
 
 export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
   const [sort, setSort] = useState<SortState>({ field: null, direction: null });
-  const [showOpenOnly, setShowOpenOnly] = useState(false);
+  const [showOpenOnly, setShowOpenOnly] = useState(true);
 
   const handleSort = (field: SortField) => {
     setSort((prev) => {
