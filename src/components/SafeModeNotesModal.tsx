@@ -1120,7 +1120,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const isLoading = activeTab === 'notes' ? isLoadingNotes : isLoadingTranscript;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen}>
       <DialogContent
         className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 bg-background"
         // Prevent the parent dialog from dismissing when interacting with portalled children
@@ -1128,6 +1128,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         onInteractOutside={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
         onFocusOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => {
+          e.preventDefault();
+          handleClose();
+        }}
       >
         <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
