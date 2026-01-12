@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateProfessionalWordFromContent } from "@/utils/generateProfessionalMeetingDocx";
+import { generateProfessionalWordFromContent, ParsedMeetingDetailsInput, ParsedActionItemInput } from "@/utils/generateProfessionalMeetingDocx";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
 import EditableSection, { Section } from "@/components/scribe/EditableSection";
 
@@ -393,8 +393,34 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const title = meeting?.title || 'Meeting Notes';
 
     try {
-      // Use the professional document generator with NHS-style formatting
-      await generateProfessionalWordFromContent(content, title);
+      // Build parsed details to match modal view exactly
+      const parsedDetails: ParsedMeetingDetailsInput = {
+        title: meetingDetails?.title,
+        date: meetingDetails?.date,
+        time: meetingDetails?.time,
+        location: meetingDetails?.location,
+        attendees: attendees.length > 0 
+          ? attendees.map(a => a.name).join(', ')
+          : undefined,
+      };
+      
+      // Convert action items to the format expected by Word generator
+      const parsedActionItemsForWord: ParsedActionItemInput[] = actionItems.map(item => ({
+        action: item.action,
+        owner: item.owner,
+        deadline: item.deadline,
+        priority: item.priority,
+        status: item.status,
+        isCompleted: item.isCompleted,
+      }));
+      
+      // Use the professional document generator with pre-parsed data
+      await generateProfessionalWordFromContent(
+        content, 
+        title, 
+        activeTab === 'notes' ? parsedDetails : undefined,
+        activeTab === 'notes' ? parsedActionItemsForWord : undefined
+      );
       toast.success('Downloaded successfully');
     } catch (error) {
       console.error('Download error:', error);
