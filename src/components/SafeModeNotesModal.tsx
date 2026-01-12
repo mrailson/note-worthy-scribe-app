@@ -193,7 +193,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       // Seed notes immediately from props
       const initialNotes = notes || meeting.meeting_summary || '';
       setNotesContent(initialNotes);
-      setSections(parseNotesIntoSections(initialNotes));
       setActiveTab('notes');
       setTranscript('');
       setTranscriptError(null);
@@ -203,7 +202,17 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       setMeetingFormat(null);
       setIsSavingSections(false);
     }
-  }, [isOpen, meeting?.id, notes, parseNotesIntoSections]);
+  }, [isOpen, meeting?.id, notes]);
+
+  // Parse sections whenever notesContent changes
+  useEffect(() => {
+    if (notesContent) {
+      const parsed = parseNotesIntoSections(notesContent);
+      setSections(parsed);
+    } else {
+      setSections([]);
+    }
+  }, [notesContent, parseNotesIntoSections]);
 
   // Store meeting format from database
   const [meetingFormat, setMeetingFormat] = useState<string | null>(null);
