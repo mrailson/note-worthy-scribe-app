@@ -141,7 +141,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   // Convert local meetingType to DB format
   const mapTypeToFormat = (type: 'teams' | 'f2f' | 'hybrid'): string => {
     switch (type) {
-      case 'f2f': return 'f2f';
+      case 'f2f': return 'face-to-face';
       case 'hybrid': return 'hybrid';
       default: return 'virtual';
     }

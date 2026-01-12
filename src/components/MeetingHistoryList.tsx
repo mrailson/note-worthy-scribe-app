@@ -2065,41 +2065,60 @@ export const MeetingHistoryList = ({
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader>
-              <div className="h-4 bg-muted rounded w-3/4"></div>
-              <div className="h-3 bg-muted rounded w-1/2"></div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="h-3 bg-muted rounded"></div>
-                <div className="h-3 bg-muted rounded w-2/3"></div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <>
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-4 bg-muted rounded w-3/4"></div>
+                <div className="h-3 bg-muted rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-3 bg-muted rounded"></div>
+                  <div className="h-3 bg-muted rounded w-2/3"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Safe Mode Notes Modal - keep mounted even during loading to prevent flicker */}
+        <SafeModeNotesModal
+          isOpen={safeModeModalOpen}
+          onClose={() => setSafeModeModalOpen(false)}
+          meeting={safeModeSelectedMeeting}
+          notes={safeModeNotes}
+        />
+      </>
     );
   }
 
   if (localMeetings.length === 0) {
     return (
-      <Card className="text-center py-12">
-        <CardContent>
-          <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No meetings found</h3>
-          <p className="text-muted-foreground mb-4">
-            Start by creating your first meeting or adjust your search criteria.
-          </p>
-          <Button onClick={() => navigate('/')}>
-            Create First Meeting
-          </Button>
-        </CardContent>
-      </Card>
+      <>
+        <Card className="text-center py-12">
+          <CardContent>
+            <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No meetings found</h3>
+            <p className="text-muted-foreground mb-4">
+              Start by creating your first meeting or adjust your search criteria.
+            </p>
+            <Button onClick={() => navigate('/')}>Create First Meeting</Button>
+          </CardContent>
+        </Card>
+
+        {/* Safe Mode Notes Modal - keep mounted even when list is empty to prevent flicker */}
+        <SafeModeNotesModal
+          isOpen={safeModeModalOpen}
+          onClose={() => setSafeModeModalOpen(false)}
+          meeting={safeModeSelectedMeeting}
+          notes={safeModeNotes}
+        />
+      </>
     );
   }
+
 
   return (
     <TooltipProvider>
