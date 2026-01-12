@@ -258,7 +258,7 @@ export const ActionItemRow = ({
                 {item.assignee_name}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-2 bg-popover z-[100]" align="start" side="bottom" sideOffset={4} collisionPadding={16} avoidCollisions>
+            <PopoverContent className="w-64 p-2 bg-popover z-[100]" align="start" side="right" sideOffset={4} collisionPadding={20} avoidCollisions>
               <ScrollArea className="max-h-[300px]">
                 <div className="space-y-1">
                   {/* Custom name input */}
