@@ -56,6 +56,8 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
   const [hasStarted, setHasStarted] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [gammaUrl, setGammaUrl] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const tipTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -71,12 +73,10 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
       // Start the generation
       generatePowerPoint(meetingData).then((result) => {
         if (result.success) {
+          setDownloadUrl(result.downloadUrl ?? null);
+          setGammaUrl(result.gammaUrl ?? null);
           setIsComplete(true);
-          toast.success('PowerPoint presentation downloaded successfully!');
-          // Auto-close after short delay
-          setTimeout(() => {
-            onClose();
-          }, 2000);
+          toast.success('PowerPoint ready to download');
         } else {
           setHasFailed(true);
           toast.error(result.error || 'Failed to generate presentation');
@@ -126,6 +126,8 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
       setHasStarted(false);
       setIsComplete(false);
       setHasFailed(false);
+      setDownloadUrl(null);
+      setGammaUrl(null);
       setTimeRemaining(TOTAL_DURATION);
       setCurrentTipIndex(0);
       if (timerRef.current) clearInterval(timerRef.current);
@@ -147,6 +149,29 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
     if (timerRef.current) clearInterval(timerRef.current);
     if (tipTimerRef.current) clearInterval(tipTimerRef.current);
     onClose();
+  };
+
+  const handleDownload = () => {
+    if (!downloadUrl) return;
+
+    const safeTitle = meetingData.meetingTitle
+      .replace(/[^a-zA-Z0-9\s-]/g, '')
+      .replace(/\s+/g, '_')
+      .substring(0, 50);
+
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.download = `${safeTitle}_Executive_Summary.pptx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleOpenGamma = () => {
+    if (!gammaUrl) return;
+    window.open(gammaUrl, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -223,9 +248,27 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
           {/* Status text */}
           <div className="text-center space-y-2">
             {isComplete ? (
-              <p className="text-sm text-green-600 font-medium">
-                Your PowerPoint has been downloaded!
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-green-600 font-medium">
+                  Your PowerPoint is ready to download.
+                </p>
+
+                <div className="flex flex-col gap-2">
+                  <Button onClick={handleDownload} disabled={!downloadUrl}>
+                    Download PowerPoint
+                  </Button>
+
+                  {gammaUrl && (
+                    <Button variant="outline" onClick={handleOpenGamma}>
+                      Open in Gamma
+                    </Button>
+                  )}
+
+                  <Button variant="ghost" size="sm" onClick={handleClose}>
+                    Close
+                  </Button>
+                </div>
+              </div>
             ) : hasFailed ? (
               <div className="space-y-2">
                 <p className="text-sm text-destructive font-medium">
