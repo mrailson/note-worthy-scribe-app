@@ -430,6 +430,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     cleaned = cleaned.replace(/^[-•*]?\s*\*{0,2}Time\*{0,2}[:\s]+.+$/gim, '');
     cleaned = cleaned.replace(/^[-•*]?\s*\*{0,2}Location\*{0,2}[:\s]+.+$/gim, '');
 
+    // Remove Attendees section (now displayed in table)
+    cleaned = cleaned.replace(/##?\s*ATTENDEES\s*\n[\s\S]*?(?=\n##[^#]|\n#[^#]|$)/gi, '');
+    cleaned = cleaned.replace(/##?\s*Attendees\s*\n[\s\S]*?(?=\n##[^#]|\n#[^#]|$)/gi, '');
+    // Remove standalone TBC bullet
+    cleaned = cleaned.replace(/^[-•*]\s*TBC\s*$/gim, '');
+
     // Remove "Next Section" heading if present (no longer needed)
     cleaned = cleaned.replace(/##?\s*Next\s+Section\s*\n?/gi, '');
     
