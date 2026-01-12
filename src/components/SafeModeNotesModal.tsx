@@ -520,6 +520,40 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     const seenActions = new Set<string>();
     
+    // Helper to extract all owners from a line (handles @CC/@MR or @CC/MR patterns)
+    const extractOwners = (line: string): string => {
+      // Match patterns like @CC/@MR, @CC/MR, @CC, — @MR, etc.
+      const ownerMatches = line.match(/@([A-Za-z]+(?:\/(?:@)?[A-Za-z]+)*)/g);
+      if (ownerMatches && ownerMatches.length > 0) {
+        // Combine all owners, normalize format
+        const allOwners = ownerMatches
+          .map(m => m.replace(/@/g, ''))
+          .join('/')
+          .split('/')
+          .filter(Boolean)
+          .map(o => `@${o}`)
+          .join('/');
+        return allOwners || 'TBC';
+      }
+      return 'TBC';
+    };
+    
+    // Helper to clean action text by removing owner references
+    const cleanActionText = (text: string): string => {
+      return text
+        // Remove "— @Owner" or "- @Owner" patterns at end
+        .replace(/\s*[—–-]\s*@[A-Za-z]+(?:\/(?:@)?[A-Za-z]+)*\s*$/g, '')
+        // Remove standalone @Owner patterns
+        .replace(/\s*@[A-Za-z]+(?:\/(?:@)?[A-Za-z]+)*\s*/g, ' ')
+        // Remove status markers
+        .replace(/\{[^}]+\}/g, '')
+        // Remove strikethrough markers
+        .replace(/~~/g, '')
+        // Clean up whitespace
+        .replace(/\s+/g, ' ')
+        .trim();
+    };
+    
     // Extract Action Items section
     const actionSectionMatch = notesContent.match(/##?\s*Action\s+Items?\s*\n([\s\S]*?)(?=\n##[^#]|\n#[^#]|$)/i);
     
@@ -531,6 +565,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         // Skip empty lines
         if (!line.trim()) continue;
         
+        // Check if it's a bullet point
+        if (!/^[-•*]\s+/.test(line.trim())) continue;
+        
         // Check for strikethrough (~~text~~) which indicates completed
         const hasStrikethrough = /~~.+~~/.test(line);
         
@@ -538,74 +575,44 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         const statusMatch = line.match(/\{(Done|Completed|Open|In Progress|Active)\}/i);
         const explicitStatus = statusMatch?.[1]?.toLowerCase();
         
-        // Match bullet points with various formats
-        const bulletMatch = line.match(/^[-•*]\s*(?:~~)?(.+?)(?:~~)?(?:\s*—\s*|\s+-\s+|\s*–\s*)?(?:@?([A-Za-z]+(?:\s+[A-Za-z]+)?))?\s*(?:\(([^)]+)\))?\s*(?:\[(\w+)\])?\s*(?:\{[^}]+\})?$/);
+        // Extract owners from the line
+        const owner = extractOwners(line);
         
-        if (bulletMatch) {
-          let actionText = bulletMatch[1]?.trim().replace(/~~/g, '').replace(/\{[^}]+\}/g, '').trim();
-          
-          // Skip if action text is too short or just "TBC"
-          if (!actionText || actionText.length < 3 || actionText.toLowerCase() === 'tbc') continue;
-          
-          const owner = bulletMatch[2]?.trim() || 'TBC';
-          const deadline = bulletMatch[3]?.trim() || 'TBC';
-          const priority = (bulletMatch[4]?.trim() as 'High' | 'Medium' | 'Low') || 'Medium';
-          
-          // Determine status
-          let status: 'Open' | 'In Progress' | 'Completed' = 'Open';
-          if (explicitStatus === 'done' || explicitStatus === 'completed' || hasStrikethrough) {
-            status = 'Completed';
-          } else if (explicitStatus === 'in progress' || explicitStatus === 'active') {
-            status = 'In Progress';
-          }
-          
-          const key = actionText.toLowerCase();
-          if (!seenActions.has(key)) {
-            seenActions.add(key);
-            items.push({
-              action: actionText,
-              owner,
-              deadline,
-              priority: ['High', 'Medium', 'Low'].includes(priority) ? priority : 'Medium',
-              status,
-              isCompleted: status === 'Completed',
-            });
-          }
+        // Extract deadline (text in parentheses)
+        const deadlineMatch = line.match(/\(([^)]+)\)/);
+        const deadline = deadlineMatch?.[1]?.trim() || 'TBC';
+        
+        // Extract priority [High], [Medium], [Low]
+        const priorityMatch = line.match(/\[(High|Medium|Low)\]/i);
+        const priority = (priorityMatch?.[1] as 'High' | 'Medium' | 'Low') || 'Medium';
+        
+        // Clean the action text
+        const rawText = line.replace(/^[-•*]\s+/, '').replace(/\([^)]+\)/g, '').replace(/\[(High|Medium|Low)\]/gi, '');
+        const actionText = cleanActionText(rawText);
+        
+        // Skip if action text is too short or just "TBC"
+        if (!actionText || actionText.length < 3 || actionText.toLowerCase() === 'tbc') continue;
+        
+        // Determine status
+        let status: 'Open' | 'In Progress' | 'Completed' = 'Open';
+        if (explicitStatus === 'done' || explicitStatus === 'completed' || hasStrikethrough) {
+          status = 'Completed';
+        } else if (explicitStatus === 'in progress' || explicitStatus === 'active') {
+          status = 'In Progress';
         }
-      }
-    }
-    
-    // Also look for any action items with explicit format anywhere in content
-    const actionPattern = /^[-•*]\s*(?:(~~))?(.+?)(?:\1)?\s*(?:—|–|-)\s*@?(\w+(?:\s+\w+)?)\s*(?:\(([^)]+)\))?\s*(?:\[(\w+)\])?\s*(?:\{(\w+)\})?$/gm;
-    
-    let match;
-    while ((match = actionPattern.exec(notesContent)) !== null) {
-      const isStrikethrough = !!match[1];
-      const actionText = match[2]?.trim().replace(/~~/g, '');
-      const owner = match[3]?.trim() || 'TBC';
-      const deadline = match[4]?.trim() || 'TBC';
-      const priority = (match[5]?.trim() as 'High' | 'Medium' | 'Low') || 'Medium';
-      const statusText = match[6]?.trim() || (isStrikethrough ? 'Done' : 'Open');
-      
-      // Normalise status
-      let status: 'Open' | 'In Progress' | 'Completed' = 'Open';
-      if (statusText.toLowerCase() === 'done' || statusText.toLowerCase() === 'completed' || isStrikethrough) {
-        status = 'Completed';
-      } else if (statusText.toLowerCase() === 'in progress' || statusText.toLowerCase() === 'active') {
-        status = 'In Progress';
-      }
-      
-      const key = actionText.toLowerCase();
-      if (!seenActions.has(key) && actionText && actionText.length > 3) {
-        seenActions.add(key);
-        items.push({
-          action: actionText,
-          owner,
-          deadline,
-          priority: ['High', 'Medium', 'Low'].includes(priority) ? priority : 'Medium',
-          status,
-          isCompleted: status === 'Completed',
-        });
+        
+        const key = actionText.toLowerCase().substring(0, 50);
+        if (!seenActions.has(key)) {
+          seenActions.add(key);
+          items.push({
+            action: actionText,
+            owner,
+            deadline,
+            priority: ['High', 'Medium', 'Low'].includes(priority) ? priority : 'Medium',
+            status,
+            isCompleted: status === 'Completed',
+          });
+        }
       }
     }
     
