@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import wordIcon from '@/assets/word-icon.png';
+import powerpointIcon from '@/assets/powerpoint-icon.png';
+import { MeetingPowerPointModal } from '@/components/meeting-details/MeetingPowerPointModal';
 import {
   Dialog,
   DialogContent,
@@ -142,6 +144,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showTranscriptFindReplace, setShowTranscriptFindReplace] = useState(false);
   const [showNotesFindReplace, setShowNotesFindReplace] = useState(false);
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
+  const [showPptModal, setShowPptModal] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
   const [isSavingMeetingType, setIsSavingMeetingType] = useState(false);
   
@@ -1845,6 +1848,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </TooltipTrigger>
               <TooltipContent>Download as Word</TooltipContent>
             </Tooltip>
+
+            {/* Generate PowerPoint button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowPptModal(true)}>
+                  <img src={powerpointIcon} alt="Generate PowerPoint" className="h-7 w-7" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Generate Executive PowerPoint</TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
@@ -2280,6 +2293,27 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           meetingTitle={meeting.title}
         />
       )}
+
+      {/* PowerPoint Generation Modal */}
+      <MeetingPowerPointModal
+        isOpen={showPptModal}
+        onClose={() => setShowPptModal(false)}
+        meetingData={{
+          meetingTitle: meetingDetails?.title || meeting?.title || 'Meeting Notes',
+          meetingDate: meetingDetails?.date,
+          meetingTime: meetingDetails?.time,
+          location: meetingDetails?.location,
+          attendees: attendees.map(a => a.name),
+          notesContent: notesContent || '',
+          actionItems: actionItems.map(item => ({
+            description: item.action,
+            owner: item.owner,
+            deadline: item.deadline,
+            status: item.status,
+            priority: item.priority,
+          })),
+        }}
+      />
     </Dialog>
   );
 };
