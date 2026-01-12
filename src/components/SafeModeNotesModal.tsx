@@ -36,15 +36,13 @@ import {
   CheckCircle2,
   Circle,
   Timer,
-  Users,
-  Pencil,
-  Save
+  Users
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateProfessionalWordFromContent } from "@/utils/generateProfessionalMeetingDocx";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
-import RichTextEditor from "@/components/RichTextEditor";
+import EditableSection, { Section } from "@/components/scribe/EditableSection";
 
 interface Meeting {
   id: string;
@@ -77,16 +75,125 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
   
-  // Edit mode state
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingContent, setEditingContent] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+  // Section-based editing state
+  const [sections, setSections] = useState<Section[]>([]);
+  const [isSavingSections, setIsSavingSections] = useState(false);
+
+  // Parse notes content into sections
+  const parseNotesIntoSections = useCallback((content: string): Section[] => {
+    if (!content) return [];
+    
+    const sectionHeadings = [
+      'EXECUTIVE SUMMARY',
+      'DISCUSSION SUMMARY',
+      'KEY DECISIONS',
+      'KEY POINTS',
+      'NEXT STEPS',
+      'NOTES',
+      'ADDITIONAL NOTES',
+    ];
+    
+    const result: Section[] = [];
+    const lines = content.split('\n');
+    let currentSection: { heading: string; lines: string[] } | null = null;
+    
+    for (const line of lines) {
+      // Check for ## heading
+      const headingMatch = line.match(/^##\s+(.+)$/);
+      if (headingMatch) {
+        const heading = headingMatch[1].trim().toUpperCase();
+        // Check if this is a known section heading (skip Meeting Details, Attendees, Action Items)
+        if (sectionHeadings.some(h => heading.includes(h))) {
+          if (currentSection) {
+            result.push({
+              id: crypto.randomUUID(),
+              heading: currentSection.heading,
+              content: currentSection.lines.join('\n').trim(),
+              originalIndex: result.length
+            });
+          }
+          currentSection = { heading: headingMatch[1].trim(), lines: [] };
+          continue;
+        }
+      }
+      
+      if (currentSection) {
+        currentSection.lines.push(line);
+      }
+    }
+    
+    // Push last section
+    if (currentSection) {
+      result.push({
+        id: crypto.randomUUID(),
+        heading: currentSection.heading,
+        content: currentSection.lines.join('\n').trim(),
+        originalIndex: result.length
+      });
+    }
+    
+    return result;
+  }, []);
+
+  // Rebuild notes content from sections
+  const rebuildNotesFromSections = useCallback((updatedSections: Section[], originalContent: string): string => {
+    // Keep everything before the first editable section and after the last one
+    const sectionHeadings = [
+      'EXECUTIVE SUMMARY',
+      'DISCUSSION SUMMARY',
+      'KEY DECISIONS',
+      'KEY POINTS',
+      'NEXT STEPS',
+      'NOTES',
+      'ADDITIONAL NOTES',
+    ];
+    
+    const lines = originalContent.split('\n');
+    const result: string[] = [];
+    let inEditableSection = false;
+    let skipUntilNextSection = false;
+    
+    for (const line of lines) {
+      const headingMatch = line.match(/^##\s+(.+)$/);
+      if (headingMatch) {
+        const heading = headingMatch[1].trim().toUpperCase();
+        const isEditable = sectionHeadings.some(h => heading.includes(h));
+        
+        if (isEditable) {
+          inEditableSection = true;
+          skipUntilNextSection = true;
+          continue;
+        } else {
+          inEditableSection = false;
+          skipUntilNextSection = false;
+        }
+      }
+      
+      if (!skipUntilNextSection) {
+        result.push(line);
+      }
+    }
+    
+    // Find where to insert sections (after meeting details, before action items)
+    const actionItemsIndex = result.findIndex(l => /##\s*Action\s+Items?/i.test(l));
+    const insertIndex = actionItemsIndex > 0 ? actionItemsIndex : result.length;
+    
+    // Build section content
+    const sectionContent = updatedSections.map(s => `## ${s.heading}\n\n${s.content}`).join('\n\n');
+    
+    // Insert sections
+    result.splice(insertIndex, 0, sectionContent);
+    
+    return result.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }, []);
 
   // Reset state when modal opens with new meeting
   useEffect(() => {
     if (isOpen && meeting) {
       // Seed notes immediately from props
-      setNotesContent(notes || meeting.meeting_summary || '');
+      const initialNotes = notes || meeting.meeting_summary || '';
+      setNotesContent(initialNotes);
+      setSections(parseNotesIntoSections(initialNotes));
       setActiveTab('notes');
       setTranscript('');
       setTranscriptError(null);
@@ -94,12 +201,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       setCopied(false);
       setAttendees([]);
       setMeetingFormat(null);
-      // Reset edit mode
-      setIsEditing(false);
-      setEditingContent('');
-      setIsSaving(false);
+      setIsSavingSections(false);
     }
-  }, [isOpen, meeting?.id, notes]);
+  }, [isOpen, meeting?.id, notes, parseNotesIntoSections]);
 
   // Store meeting format from database
   const [meetingFormat, setMeetingFormat] = useState<string | null>(null);
@@ -261,79 +365,78 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   };
 
-  // Edit mode handlers
-  const handleStartEdit = () => {
-    // Convert plain text to basic HTML for the editor
-    const htmlContent = notesContent
-      .split('\n')
-      .map(line => line.trim() ? `<p>${line}</p>` : '<p><br></p>')
-      .join('');
-    setEditingContent(htmlContent);
-    setIsEditing(true);
-  };
+  // Section editing handlers
+  const handleSectionContentChange = useCallback((sectionId: string, newContent: string) => {
+    setSections(prev => prev.map(s => 
+      s.id === sectionId ? { ...s, content: newContent } : s
+    ));
+  }, []);
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditingContent('');
-  };
+  const handleSectionDelete = useCallback((sectionId: string) => {
+    setSections(prev => {
+      const updated = prev.filter(s => s.id !== sectionId);
+      // Persist after delete
+      persistSectionsToDb(updated);
+      return updated;
+    });
+  }, []);
 
-  const handleSaveEdit = async () => {
-    if (!meeting?.id) {
-      toast.error('No meeting ID available');
-      return;
-    }
+  const handleSectionMoveUp = useCallback((sectionId: string) => {
+    setSections(prev => {
+      const idx = prev.findIndex(s => s.id === sectionId);
+      if (idx <= 0) return prev;
+      const updated = [...prev];
+      [updated[idx - 1], updated[idx]] = [updated[idx], updated[idx - 1]];
+      return updated;
+    });
+  }, []);
 
-    setIsSaving(true);
+  const handleSectionMoveDown = useCallback((sectionId: string) => {
+    setSections(prev => {
+      const idx = prev.findIndex(s => s.id === sectionId);
+      if (idx < 0 || idx >= prev.length - 1) return prev;
+      const updated = [...prev];
+      [updated[idx], updated[idx + 1]] = [updated[idx + 1], updated[idx]];
+      return updated;
+    });
+  }, []);
 
+  const persistSectionsToDb = useCallback(async (sectionsToSave?: Section[]) => {
+    if (!meeting?.id) return;
+    
+    setIsSavingSections(true);
     try {
+      const currentSections = sectionsToSave || sections;
+      const updatedContent = rebuildNotesFromSections(currentSections, notesContent);
+      
       const response = await supabase.functions.invoke('persist-standard-minutes', {
-        body: { meetingId: meeting.id, content: editingContent }
+        body: { meetingId: meeting.id, content: updatedContent }
       });
 
       if (response.error) {
         throw new Error(response.error.message || 'Failed to save');
       }
 
-      // Update local state with saved content
-      // Convert HTML back to plain text for display
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = editingContent;
-      const plainText = tempDiv.innerText || tempDiv.textContent || '';
-      
-      setNotesContent(plainText);
-      setIsEditing(false);
-      setEditingContent('');
-      toast.success('Notes saved successfully');
+      setNotesContent(updatedContent);
+      toast.success('Notes saved');
     } catch (error) {
       console.error('Save error:', error);
-      toast.error('Failed to save notes. Please try again.');
+      toast.error('Failed to save notes');
     } finally {
-      setIsSaving(false);
+      setIsSavingSections(false);
     }
-  };
+  }, [meeting?.id, sections, notesContent, rebuildNotesFromSections]);
 
-  // Handle tab change - warn about unsaved edits
+  // Handle tab change
   const handleTabChange = (value: string) => {
-    if (isEditing) {
-      const confirmed = window.confirm('You have unsaved changes. Discard them?');
-      if (!confirmed) return;
-      setIsEditing(false);
-      setEditingContent('');
-    }
     setActiveTab(value as 'notes' | 'transcript');
     if (value === 'transcript' && !transcript && !isLoadingTranscript) {
       loadTranscript();
     }
   };
 
-  // Handle modal close - warn about unsaved edits
+  // Handle modal close
   const handleClose = () => {
-    if (isEditing) {
-      const confirmed = window.confirm('You have unsaved changes. Discard them?');
-      if (!confirmed) return;
-    }
-    setIsEditing(false);
-    setEditingContent('');
     onClose();
   };
   const meetingDetails = useMemo(() => {
@@ -723,110 +826,70 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
         {/* Toolbar */}
         <div className="px-6 py-3 border-b flex items-center justify-between gap-4 flex-shrink-0 bg-muted/30">
-          {isEditing ? (
-            // Edit mode toolbar
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Pencil className="h-4 w-4" />
-              <span>Editing notes...</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              {/* Font size controls */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFontSize(prev => Math.max(10, prev - 2))}
-                disabled={fontSize <= 10}
-              >
-                <ZoomOut className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-muted-foreground w-12 text-center">{fontSize}px</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFontSize(prev => Math.min(24, prev + 2))}
-                disabled={fontSize >= 24}
-              >
-                <ZoomIn className="h-4 w-4" />
-              </Button>
+          <div className="flex items-center gap-2">
+            {/* Font size controls */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFontSize(prev => Math.max(10, prev - 2))}
+              disabled={fontSize <= 10}
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-muted-foreground w-12 text-center">{fontSize}px</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFontSize(prev => Math.min(24, prev + 2))}
+              disabled={fontSize >= 24}
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
 
-              {/* Divider */}
-              <div className="w-px h-6 bg-border mx-2" />
+            {/* Divider */}
+            <div className="w-px h-6 bg-border mx-2" />
 
-              {/* View mode toggle */}
-              <Button
-                variant={viewMode === 'plain' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode(viewMode === 'plain' ? 'formatted' : 'plain')}
-                className="gap-2"
-              >
-                {viewMode === 'plain' ? (
-                  <>
-                    <ToggleLeft className="h-4 w-4" />
-                    Plain Text
-                  </>
-                ) : (
-                  <>
-                    <ToggleRight className="h-4 w-4" />
-                    Formatted
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
+            {/* View mode toggle */}
+            <Button
+              variant={viewMode === 'plain' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode(viewMode === 'plain' ? 'formatted' : 'plain')}
+              className="gap-2"
+            >
+              {viewMode === 'plain' ? (
+                <>
+                  <ToggleLeft className="h-4 w-4" />
+                  Plain Text
+                </>
+              ) : (
+                <>
+                  <ToggleRight className="h-4 w-4" />
+                  Formatted
+                </>
+              )}
+            </Button>
+
+            {/* Saving indicator */}
+            {isSavingSections && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground ml-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Saving...
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
-            {isEditing ? (
-              // Edit mode buttons
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleCancelEdit}
-                  disabled={isSaving}
-                  className="gap-2"
-                >
-                  <X className="h-4 w-4" />
-                  Cancel
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={handleSaveEdit}
-                  disabled={isSaving}
-                  className="gap-2"
-                >
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4" />
-                  )}
-                  {isSaving ? 'Saving...' : 'Save'}
-                </Button>
-              </>
-            ) : (
-              // View mode buttons
-              <>
-                {/* Copy button */}
-                <Button variant="outline" size="sm" onClick={handleCopy} className="gap-2">
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  {copied ? 'Copied' : 'Copy'}
-                </Button>
+            {/* Copy button */}
+            <Button variant="outline" size="sm" onClick={handleCopy} className="gap-2">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
 
-                {/* Download button */}
-                <Button variant="outline" size="sm" onClick={handleDownloadWord} className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Word
-                </Button>
-
-                {/* Edit button - only show on notes tab */}
-                {activeTab === 'notes' && notesContent && (
-                  <Button variant="outline" size="sm" onClick={handleStartEdit} className="gap-2">
-                    <Pencil className="h-4 w-4" />
-                    Edit
-                  </Button>
-                )}
-              </>
-            )}
+            {/* Download button */}
+            <Button variant="outline" size="sm" onClick={handleDownloadWord} className="gap-2">
+              <Download className="h-4 w-4" />
+              Word
+            </Button>
           </div>
         </div>
 
@@ -846,178 +909,186 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           {/* Content Area */}
           <div className="flex-1 min-h-0 px-6 pb-6 pt-4">
             <TabsContent value="notes" className="h-full m-0">
-              {isEditing ? (
-                // Edit mode - show WYSIWYG editor
-                <div className="h-full rounded-lg border bg-card overflow-hidden flex flex-col">
-                  <RichTextEditor
-                    content={editingContent}
-                    onChange={setEditingContent}
-                    placeholder="Edit your meeting notes..."
-                  />
-                </div>
-              ) : (
-                // View mode - show formatted content
-                <ScrollArea className="h-full rounded-lg border bg-card">
-                  <div className="p-6 space-y-6">
-                    {isLoading ? (
-                      <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                        <span className="ml-2 text-muted-foreground">Loading notes...</span>
-                      </div>
-                    ) : notesContent ? (
-                      <>
-                        {/* Meeting Details Table */}
-                        {viewMode === 'formatted' && meetingDetails && (
-                          <div className="rounded-lg border overflow-hidden">
-                            <div className="bg-primary px-4 py-2">
-                              <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
-                                <FileText className="h-4 w-4" />
-                                Meeting Details
-                              </h3>
-                            </div>
-                            <Table>
-                              <TableBody>
-                                {meetingDetails.title && (
-                                  <TableRow>
-                                    <TableCell className="font-medium w-32 bg-muted/50">
-                                      <div className="flex items-center gap-2">
-                                        <FileText className="h-4 w-4 text-muted-foreground" />
-                                        Title
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>{meetingDetails.title}</TableCell>
-                                  </TableRow>
-                                )}
-                                {meetingDetails.date && (
-                                  <TableRow>
-                                    <TableCell className="font-medium bg-muted/50">
-                                      <div className="flex items-center gap-2">
-                                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                                        Date
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>{meetingDetails.date}</TableCell>
-                                  </TableRow>
-                                )}
-                                {meetingDetails.time && (
-                                  <TableRow>
-                                    <TableCell className="font-medium bg-muted/50">
-                                      <div className="flex items-center gap-2">
-                                        <Clock className="h-4 w-4 text-muted-foreground" />
-                                        Time
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>{meetingDetails.time}</TableCell>
-                                  </TableRow>
-                                )}
-                                {meetingDetails.location && (
-                                  <TableRow>
-                                    <TableCell className="font-medium bg-muted/50">
-                                      <div className="flex items-center gap-2">
-                                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                                        Location
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>{meetingDetails.location}</TableCell>
-                                  </TableRow>
-                                )}
-                                {attendees.length > 0 && (
-                                  <TableRow>
-                                    <TableCell className="font-medium bg-muted/50 align-top">
-                                      <div className="flex items-center gap-2">
-                                        <Users className="h-4 w-4 text-muted-foreground" />
-                                        Attendees
-                                      </div>
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex flex-wrap gap-1.5">
-                                        {attendees.map((attendee, idx) => (
-                                          <Badge 
-                                            key={idx} 
-                                            variant="secondary" 
-                                            className="text-xs font-normal"
-                                          >
-                                            {attendee.name}
-                                            {attendee.role && (
-                                              <span className="ml-1 text-muted-foreground">
-                                                ({attendee.role})
-                                              </span>
-                                            )}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </TableCell>
-                                  </TableRow>
-                                )}
-                              </TableBody>
-                            </Table>
+              <ScrollArea className="h-full rounded-lg border bg-card">
+                <div className="p-6 space-y-6">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-muted-foreground">Loading notes...</span>
+                    </div>
+                  ) : notesContent ? (
+                    <>
+                      {/* Meeting Details Table */}
+                      {viewMode === 'formatted' && meetingDetails && (
+                        <div className="rounded-lg border overflow-hidden">
+                          <div className="bg-primary px-4 py-2">
+                            <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              Meeting Details
+                            </h3>
                           </div>
-                        )}
-
-                        {/* Main Content */}
-                        {viewMode === 'plain' ? (
-                          <pre 
-                            className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
-                            style={{ fontSize: `${fontSize}px` }}
-                          >
-                            {notesContent}
-                          </pre>
-                        ) : (
-                          <div 
-                            className="prose prose-sm dark:prose-invert max-w-none"
-                            style={{ fontSize: `${fontSize}px` }}
-                            dangerouslySetInnerHTML={{ __html: basicFormat(contentWithoutActionItems) }}
-                          />
-                        )}
-
-                        {/* Action Items Table */}
-                        {viewMode === 'formatted' && actionItems.length > 0 && (
-                          <div className="rounded-lg border overflow-hidden">
-                            <div className="bg-primary px-4 py-2">
-                              <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
-                                <CheckCircle2 className="h-4 w-4" />
-                                Action Items ({actionItems.filter(i => !i.isCompleted).length} open, {actionItems.filter(i => i.isCompleted).length} completed)
-                              </h3>
-                            </div>
-                            <Table>
-                              <TableHeader>
-                                <TableRow className="bg-muted/50">
-                                  <TableHead className="w-[40%]">Action</TableHead>
-                                  <TableHead className="w-[15%]">Owner</TableHead>
-                                  <TableHead className="w-[15%]">Deadline</TableHead>
-                                  <TableHead className="w-[15%]">Priority</TableHead>
-                                  <TableHead className="w-[15%]">Status</TableHead>
+                          <Table>
+                            <TableBody>
+                              {meetingDetails.title && (
+                                <TableRow>
+                                  <TableCell className="font-medium w-32 bg-muted/50">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4 text-muted-foreground" />
+                                      Title
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{meetingDetails.title}</TableCell>
                                 </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {actionItems.map((item, index) => (
-                                  <TableRow 
-                                    key={index} 
-                                    className={item.isCompleted ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}
-                                  >
-                                    <TableCell className={item.isCompleted ? 'line-through text-muted-foreground' : ''}>
-                                      {item.action}
-                                    </TableCell>
-                                    <TableCell className="font-medium">@{item.owner}</TableCell>
-                                    <TableCell>{item.deadline}</TableCell>
-                                    <TableCell>{getPriorityBadge(item.priority)}</TableCell>
-                                    <TableCell>{getStatusBadge(item.status)}</TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
+                              )}
+                              {meetingDetails.date && (
+                                <TableRow>
+                                  <TableCell className="font-medium bg-muted/50">
+                                    <div className="flex items-center gap-2">
+                                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                                      Date
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{meetingDetails.date}</TableCell>
+                                </TableRow>
+                              )}
+                              {meetingDetails.time && (
+                                <TableRow>
+                                  <TableCell className="font-medium bg-muted/50">
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="h-4 w-4 text-muted-foreground" />
+                                      Time
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{meetingDetails.time}</TableCell>
+                                </TableRow>
+                              )}
+                              {meetingDetails.location && (
+                                <TableRow>
+                                  <TableCell className="font-medium bg-muted/50">
+                                    <div className="flex items-center gap-2">
+                                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                                      Location
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{meetingDetails.location}</TableCell>
+                                </TableRow>
+                              )}
+                              {attendees.length > 0 && (
+                                <TableRow>
+                                  <TableCell className="font-medium bg-muted/50 align-top">
+                                    <div className="flex items-center gap-2">
+                                      <Users className="h-4 w-4 text-muted-foreground" />
+                                      Attendees
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {attendees.map((attendee, idx) => (
+                                        <Badge 
+                                          key={idx} 
+                                          variant="secondary" 
+                                          className="text-xs font-normal"
+                                        >
+                                          {attendee.name}
+                                          {attendee.role && (
+                                            <span className="ml-1 text-muted-foreground">
+                                              ({attendee.role})
+                                            </span>
+                                          )}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+
+                      {/* Main Content - Plain or Editable Sections */}
+                      {viewMode === 'plain' ? (
+                        <pre 
+                          className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                          style={{ fontSize: `${fontSize}px` }}
+                        >
+                          {notesContent}
+                        </pre>
+                      ) : sections.length > 0 ? (
+                        <div className="space-y-4">
+                          {sections.map((section, index) => (
+                            <EditableSection
+                              key={section.id}
+                              section={section}
+                              isFirst={index === 0}
+                              isLast={index === sections.length - 1}
+                              viewMode={viewMode}
+                              fontSize={fontSize}
+                              formatContent={basicFormat}
+                              onContentChange={handleSectionContentChange}
+                              onDelete={handleSectionDelete}
+                              onMoveUp={handleSectionMoveUp}
+                              onMoveDown={handleSectionMoveDown}
+                              isSaving={isSavingSections}
+                              onSave={persistSectionsToDb}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div 
+                          className="prose prose-sm dark:prose-invert max-w-none"
+                          style={{ fontSize: `${fontSize}px` }}
+                          dangerouslySetInnerHTML={{ __html: basicFormat(contentWithoutActionItems) }}
+                        />
+                      )}
+
+                      {/* Action Items Table */}
+                      {viewMode === 'formatted' && actionItems.length > 0 && (
+                        <div className="rounded-lg border overflow-hidden">
+                          <div className="bg-primary px-4 py-2">
+                            <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4" />
+                              Action Items ({actionItems.filter(i => !i.isCompleted).length} open, {actionItems.filter(i => i.isCompleted).length} completed)
+                            </h3>
                           </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No notes available for this meeting.</p>
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              )}
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-muted/50">
+                                <TableHead className="w-[40%]">Action</TableHead>
+                                <TableHead className="w-[15%]">Owner</TableHead>
+                                <TableHead className="w-[15%]">Deadline</TableHead>
+                                <TableHead className="w-[15%]">Priority</TableHead>
+                                <TableHead className="w-[15%]">Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {actionItems.map((item, index) => (
+                                <TableRow 
+                                  key={index} 
+                                  className={item.isCompleted ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}
+                                >
+                                  <TableCell className={item.isCompleted ? 'line-through text-muted-foreground' : ''}>
+                                    {item.action}
+                                  </TableCell>
+                                  <TableCell className="font-medium">@{item.owner}</TableCell>
+                                  <TableCell>{item.deadline}</TableCell>
+                                  <TableCell>{getPriorityBadge(item.priority)}</TableCell>
+                                  <TableCell>{getStatusBadge(item.status)}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No notes available for this meeting.</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
             </TabsContent>
 
             <TabsContent value="transcript" className="h-full m-0">
