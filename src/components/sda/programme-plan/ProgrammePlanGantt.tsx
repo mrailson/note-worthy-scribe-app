@@ -4,11 +4,11 @@ import { sdaProgrammePlan } from "@/data/sdaProgrammePlanData";
 import { ProgrammePlanRow } from "./ProgrammePlanRow";
 import { ProgrammePlanLegend } from "./ProgrammePlanLegend";
 import { cn } from "@/lib/utils";
-import { format, eachDayOfInterval, isWeekend, startOfWeek, addDays, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, eachMonthOfInterval, eachQuarterOfInterval } from "date-fns";
+import { format, eachDayOfInterval, isWeekend, startOfWeek, addDays, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, eachMonthOfInterval, eachQuarterOfInterval, subDays } from "date-fns";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CalendarDays, CalendarRange, Calendar, FileSpreadsheet } from "lucide-react";
+import { CalendarDays, CalendarRange, Calendar, FileSpreadsheet, Mail, Phone } from "lucide-react";
 
 type TimeView = "weeks" | "months" | "quarters";
 
@@ -261,6 +261,18 @@ export const ProgrammePlanGantt: React.FC = () => {
     return dayIndex * unitWidth + unitWidth / 2;
   }, [today, startDate, days.length, unitWidth]);
   
+  // Auto-scroll to show today with 1 week prior
+  React.useEffect(() => {
+    if (timelineRef.current && todayPosition !== null) {
+      const oneWeekPrior = 7 * unitWidth;
+      const scrollTo = Math.max(0, todayPosition - oneWeekPrior);
+      timelineRef.current.scrollLeft = scrollTo;
+      if (headerRef.current) {
+        headerRef.current.scrollLeft = scrollTo;
+      }
+    }
+  }, [todayPosition, unitWidth]);
+  
   const totalTimelineWidth = days.length * unitWidth;
 
   return (
@@ -330,7 +342,23 @@ export const ProgrammePlanGantt: React.FC = () => {
             </span>
           </div>
         </CardTitle>
-        <ProgrammePlanLegend />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <ProgrammePlanLegend />
+          <div className="text-xs text-muted-foreground border-l pl-3 ml-2">
+            <span className="font-medium text-foreground">Maintained by:</span>{" "}
+            <span>Anshal Pratyush, Principal Medical Limited (PML)</span>
+            <span className="mx-2">•</span>
+            <a href="mailto:a.pratyush@nhs.net" className="inline-flex items-center gap-1 hover:text-primary">
+              <Mail className="h-3 w-3" />
+              a.pratyush@nhs.net
+            </a>
+            <span className="mx-2">•</span>
+            <a href="tel:07780719767" className="inline-flex items-center gap-1 hover:text-primary">
+              <Phone className="h-3 w-3" />
+              07780 719767
+            </a>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <div className="flex border-t">
