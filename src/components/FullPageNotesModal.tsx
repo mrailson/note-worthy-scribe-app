@@ -318,14 +318,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // State to allow user override of long meeting plain text view
   const [forceFancyView, setForceFancyView] = useState(false);
   
-  // Notes view mode: ALWAYS default to 'plain' for instant responsiveness
-  // User can opt into 'formatted' view by clicking the toggle
-  const [notesViewMode, setNotesViewMode] = useState<'plain' | 'formatted'>('plain');
+  // Notes view mode: Default to 'formatted' for rich presentation
+  // User can opt into 'plain' view by clicking the toggle if needed
+  const [notesViewMode, setNotesViewMode] = useState<'plain' | 'formatted'>('formatted');
 
-  // Reset overrides when meeting changes - ALWAYS start with plain view for responsiveness
+  // Reset overrides when meeting changes - start with formatted view by default
   useEffect(() => {
     setForceFancyView(false);
-    setNotesViewMode('plain'); // Always start plain for instant load
+    setNotesViewMode('formatted'); // Start with formatted view by default
   }, [meeting?.id]);
 
   // Determine if this is a long meeting (75+ minutes) to skip expensive rendering
