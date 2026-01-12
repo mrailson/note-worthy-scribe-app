@@ -386,8 +386,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   };
 
   // Download as Word - use professional NHS-style formatting
+  // Uses the cleaned content (without duplicates) that matches the formatted view
   const handleDownloadWord = async () => {
-    const content = activeTab === 'notes' ? notesContent : transcript;
+    // Use cleaned content for notes (matches formatted view), raw for transcript
+    const content = activeTab === 'notes' ? contentWithoutActionItems : transcript;
     const title = meeting?.title || 'Meeting Notes';
 
     try {
@@ -492,11 +494,14 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       meetingFormat.charAt(0).toUpperCase() + meetingFormat.slice(1).replace(/-/g, ' ') : 
       null;
     
+    // For location: prefer DB meeting format (Hybrid, F2F, Virtual), fallback to parsed content
+    const locationValue = formatFromDb || locationMatch?.[1]?.trim();
+    
     return {
       title: cleanTitle,
       date: dateMatch?.[1]?.trim(),
       time: timeMatch?.[1]?.trim(),
-      location: locationMatch?.[1]?.trim(),
+      location: locationValue,
     };
   }, [notesContent, meetingFormat]);
 
