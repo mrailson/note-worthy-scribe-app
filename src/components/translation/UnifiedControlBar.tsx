@@ -285,8 +285,8 @@ export const UnifiedControlBar: React.FC<UnifiedControlBarProps> = ({
       <div className="flex items-center gap-3 px-4 py-2">
         {/* English Text Display */}
         <div className="flex-1 flex items-center gap-2 min-w-0">
-          <span className="text-lg flex-shrink-0">🇬🇧</span>
-          <p className="text-sm text-muted-foreground truncate">
+          <span className="text-xl flex-shrink-0">🇬🇧</span>
+          <p className="text-lg font-medium text-foreground truncate">
             {latestEnglishText || 'Waiting for conversation...'}
           </p>
         </div>
