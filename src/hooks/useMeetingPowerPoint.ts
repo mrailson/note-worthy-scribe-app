@@ -152,28 +152,28 @@ export const useMeetingPowerPoint = () => {
       setCurrentPhase('downloading');
 
       // Download the file
+      // Note: Gamma export URLs often do not allow CORS fetch() from the browser.
+      // Trigger a direct navigation download instead.
       if (response.downloadUrl) {
-        const downloadResponse = await fetch(response.downloadUrl);
-        if (!downloadResponse.ok) {
-          throw new Error('Failed to download presentation');
-        }
-        
-        const blob = await downloadResponse.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        
         // Clean filename
         const safeTitle = data.meetingTitle
           .replace(/[^a-zA-Z0-9\s-]/g, '')
           .replace(/\s+/g, '_')
           .substring(0, 50);
+
+        const link = document.createElement('a');
+        link.href = response.downloadUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
         link.download = `${safeTitle}_Executive_Summary.pptx`;
-        
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+
+        toast.success('PowerPoint ready', {
+          description: 'If the download does not start automatically, your browser may have blocked it—try again or use the Gamma link.',
+        });
       }
 
       setCurrentPhase('complete');
