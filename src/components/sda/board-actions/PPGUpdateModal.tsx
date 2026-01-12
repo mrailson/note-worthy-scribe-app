@@ -16,10 +16,18 @@ interface PPGUpdateModalProps {
 export const PPGUpdateModal = ({ open, onOpenChange }: PPGUpdateModalProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0 bg-white border-0 shadow-2xl">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden p-0 gap-0 bg-white border-0 shadow-2xl [&>button]:hidden">
         {/* Header */}
-        <DialogHeader className="px-6 py-5 bg-gradient-to-r from-[#005EB8] to-[#003d75] text-white">
-          <div className="flex items-start justify-between">
+        <DialogHeader className="px-6 py-5 bg-gradient-to-r from-[#005EB8] to-[#003d75] text-white relative">
+          {/* Custom close button in white circle */}
+          <button
+            onClick={() => onOpenChange(false)}
+            className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white flex items-center justify-center shadow-md hover:bg-slate-100 transition-colors"
+          >
+            <X className="h-4 w-4 text-[#005EB8]" />
+          </button>
+          
+          <div className="flex items-start justify-between pr-10">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
