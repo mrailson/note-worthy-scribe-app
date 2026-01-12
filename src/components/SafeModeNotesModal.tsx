@@ -54,6 +54,7 @@ import {
 
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { format, addDays, nextFriday, nextMonday } from "date-fns";
 import { MeetingQAPanel } from "@/components/meeting-details/MeetingQAPanel";
 import { MeetingActionItemsTab } from "@/components/meeting-details/MeetingActionItemsTab";
@@ -2011,11 +2012,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <div className="space-y-6 py-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Action Description</label>
-                <Input
+                <Textarea
                   value={editingActionItem.text}
                   onChange={(e) => setEditingActionItem({ ...editingActionItem, text: e.target.value })}
                   placeholder="Enter action item description..."
-                  className="w-full h-12 text-base px-4"
+                  className="w-full min-h-[100px] text-base p-4 bg-white dark:bg-white dark:text-gray-900 resize-none"
                   autoFocus
                 />
               </div>
