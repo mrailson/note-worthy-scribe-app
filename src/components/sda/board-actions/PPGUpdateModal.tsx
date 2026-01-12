@@ -38,7 +38,7 @@ export const PPGUpdateModal = ({ open, onOpenChange }: PPGUpdateModalProps) => {
                 </Badge>
               </div>
               <DialogTitle className="text-xl font-semibold text-white">
-                Programme Board – Quick Update
+                Programme Board – Latest Update
               </DialogTitle>
               <div className="flex items-center gap-2 text-sm text-blue-100">
                 <Calendar className="h-4 w-4" />
