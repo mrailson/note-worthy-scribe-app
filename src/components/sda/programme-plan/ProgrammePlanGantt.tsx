@@ -8,7 +8,7 @@ import { format, eachDayOfInterval, isWeekend, startOfWeek, addDays, startOfMont
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CalendarDays, CalendarRange, Calendar, FileSpreadsheet, Mail, Phone } from "lucide-react";
+import { CalendarDays, CalendarRange, Calendar, FileSpreadsheet, Mail } from "lucide-react";
 
 type TimeView = "weeks" | "months" | "quarters";
 
@@ -351,11 +351,6 @@ export const ProgrammePlanGantt: React.FC = () => {
             <a href="mailto:a.pratyush@nhs.net" className="inline-flex items-center gap-1 hover:text-primary">
               <Mail className="h-3 w-3" />
               a.pratyush@nhs.net
-            </a>
-            <span className="mx-2">•</span>
-            <a href="tel:07780719767" className="inline-flex items-center gap-1 hover:text-primary">
-              <Phone className="h-3 w-3" />
-              07780 719767
             </a>
           </div>
         </div>
