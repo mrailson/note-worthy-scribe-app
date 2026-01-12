@@ -1,9 +1,10 @@
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
-import { useState, useMemo } from "react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { TravelTimesThumbnail, TravelTimesSlideshow } from "./TravelTimesSlideshow";
 
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
 type SortDirection = "asc" | "desc";
@@ -81,6 +82,7 @@ export const SDAEstatesCapacity = () => {
   const [practiceSortField, setPracticeSortField] = useState<PracticeSortField>("listSize");
   const [practiceSortDirection, setPracticeSortDirection] = useState<SortDirection>("desc");
   const [badgeDisplayMode, setBadgeDisplayMode] = useState<BadgeDisplayMode>("total");
+  const [travelTimesModalOpen, setTravelTimesModalOpen] = useState(false);
   
   // Top banner display modes
   const [sitesDisplayMode, setSitesDisplayMode] = useState<SitesDisplayMode>("total");
@@ -858,21 +860,42 @@ export const SDAEstatesCapacity = () => {
         title="Important Notes"
         icon={<MapPin className="w-5 h-5" />}
       >
-        <ul className="space-y-2">
-          <li className="flex items-start gap-2 text-sm text-slate-600">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></span>
-            <strong>Brackley Medical Centre & Brook Health Centre:</strong> Non-GMS space requires rent
-          </li>
-          <li className="flex items-start gap-2 text-sm text-slate-600">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></span>
-            <strong>Denton Village:</strong> Available Tuesday or Friday full day and afternoon on Thursday
-          </li>
-          <li className="flex items-start gap-2 text-sm text-slate-600">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></span>
-            <strong>The Parks:</strong> Combined availability from Roade, Blisworth, Grange Park and Hanslope
-          </li>
-        </ul>
+        <div className="space-y-6">
+          <ul className="space-y-2">
+            <li className="flex items-start gap-2 text-sm text-slate-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></span>
+              <strong>Brackley Medical Centre & Brook Health Centre:</strong> Non-GMS space requires rent
+            </li>
+            <li className="flex items-start gap-2 text-sm text-slate-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></span>
+              <strong>Denton Village:</strong> Available Tuesday or Friday full day and afternoon on Thursday
+            </li>
+            <li className="flex items-start gap-2 text-sm text-slate-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></span>
+              <strong>The Parks:</strong> Combined availability from Roade, Blisworth, Grange Park and Hanslope
+            </li>
+          </ul>
+
+          {/* Travel Times Analysis Section */}
+          <div className="pt-4 border-t border-slate-200">
+            <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+              Travel Times Analysis
+            </h4>
+            <p className="text-sm text-slate-600 mb-3">
+              Comprehensive drive time mapping supporting strategic planning for the SDA Pilot Programme.
+            </p>
+            <div className="max-w-xs">
+              <TravelTimesThumbnail onClick={() => setTravelTimesModalOpen(true)} />
+            </div>
+          </div>
+        </div>
       </CollapsibleCard>
+
+      <TravelTimesSlideshow 
+        isOpen={travelTimesModalOpen} 
+        onClose={() => setTravelTimesModalOpen(false)} 
+      />
     </div>
   );
 };
