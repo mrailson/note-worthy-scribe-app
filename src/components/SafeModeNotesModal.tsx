@@ -35,7 +35,8 @@ import {
   MapPin,
   CheckCircle2,
   Circle,
-  Timer
+  Timer,
+  Users
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -83,19 +84,24 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       setTranscriptError(null);
       setViewMode('plain');
       setCopied(false);
+      setAttendees([]);
+      setMeetingFormat(null);
     }
   }, [isOpen, meeting?.id, notes]);
 
   // Store meeting format from database
   const [meetingFormat, setMeetingFormat] = useState<string | null>(null);
+  
+  // Store attendees from database
+  const [attendees, setAttendees] = useState<Array<{ name: string; role?: string | null }>>([]);
 
-  // Fetch fresh notes in background (non-blocking)
+  // Fetch fresh notes and attendees in background (non-blocking)
   useEffect(() => {
     if (!isOpen || !meeting?.id) return;
 
     setIsLoadingNotes(true);
     
-    // Simple sequential fetch - try notes_style_3 first, then meeting_summaries
+    // Fetch notes and meeting format
     const fetchNotes = async () => {
       try {
         // First try meetings table for notes_style_3 and meeting_format
@@ -132,7 +138,42 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       }
     };
 
+    // Fetch attendees from database
+    const fetchAttendees = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('meeting_attendees')
+          .select(`
+            meeting_role,
+            attendees:attendee_id (
+              name,
+              role
+            )
+          `)
+          .eq('meeting_id', meeting.id);
+
+        if (error) {
+          console.error('SafeMode: Error fetching attendees:', error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const parsedAttendees = data
+            .filter(item => item.attendees)
+            .map(item => ({
+              name: (item.attendees as any).name,
+              role: item.meeting_role || (item.attendees as any).role
+            }));
+          setAttendees(parsedAttendees);
+        }
+      } catch (error) {
+        console.error('SafeMode: Error fetching attendees:', error);
+      }
+    };
+
+    // Fetch both in parallel
     fetchNotes();
+    fetchAttendees();
   }, [isOpen, meeting?.id]);
 
   // Load transcript only when tab is clicked
@@ -673,6 +714,34 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                     </div>
                                   </TableCell>
                                   <TableCell>{meetingDetails.location}</TableCell>
+                                </TableRow>
+                              )}
+                              {attendees.length > 0 && (
+                                <TableRow>
+                                  <TableCell className="font-medium bg-muted/50 align-top">
+                                    <div className="flex items-center gap-2">
+                                      <Users className="h-4 w-4 text-muted-foreground" />
+                                      Attendees
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {attendees.map((attendee, idx) => (
+                                        <Badge 
+                                          key={idx} 
+                                          variant="secondary" 
+                                          className="text-xs font-normal"
+                                        >
+                                          {attendee.name}
+                                          {attendee.role && (
+                                            <span className="ml-1 text-muted-foreground">
+                                              ({attendee.role})
+                                            </span>
+                                          )}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </TableCell>
                                 </TableRow>
                               )}
                             </TableBody>
