@@ -9,12 +9,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet } from "lucide-react";
+import { ChevronUp, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet, MessageSquare } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import * as XLSX from "xlsx-js-style";
 import { ActionLogItem } from "@/data/nresBoardActionsData";
+import { PPGUpdateModal } from "./board-actions/PPGUpdateModal";
 import {
   Tooltip,
   TooltipContent,
@@ -85,6 +86,7 @@ const parseDate = (dateStr: string): Date => {
 export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
   const [sort, setSort] = useState<SortState>({ field: null, direction: null });
   const [showOpenOnly, setShowOpenOnly] = useState(true);
+  const [ppgModalOpen, setPpgModalOpen] = useState(false);
 
   const handleSort = (field: SortField) => {
     setSort((prev) => {
@@ -436,13 +438,29 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
               <TableCell className="text-sm text-slate-600 whitespace-nowrap">{action.dueDate}</TableCell>
               <TableCell>{getPriorityBadge(action.priority)}</TableCell>
               <TableCell>{getStatusBadge(action.status)}</TableCell>
-              <TableCell className="text-sm text-slate-500">{action.notes}</TableCell>
+              <TableCell className="text-sm text-slate-500">
+                <div className="flex items-center gap-2">
+                  <span>{action.notes}</span>
+                  {action.actionId === "007" && (
+                    <button
+                      onClick={() => setPpgModalOpen(true)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-[#005EB8] bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors whitespace-nowrap"
+                    >
+                      <MessageSquare className="h-3 w-3" />
+                      Update
+                    </button>
+                  )}
+                </div>
+              </TableCell>
               </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+
+      {/* PPG Update Modal */}
+      <PPGUpdateModal open={ppgModalOpen} onOpenChange={setPpgModalOpen} />
     </div>
     </TooltipProvider>
   );

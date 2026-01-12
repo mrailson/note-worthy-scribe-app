@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, X, Filter, FileSpreadsheet, GanttChart, Table as TableIcon } from "lucide-react";
 import { ActionInfoTooltip } from "./ActionInfoTooltip";
+import { PPGUpdateModal, PPGUpdateTrigger } from "./PPGUpdateModal";
 import * as XLSX from "xlsx-js-style";
 import type { NRESBoardAction, BoardActionStatus, BoardActionPriority } from "@/types/nresBoardActions";
 import { GanttChartView } from "./GanttChartView";
@@ -83,6 +84,7 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
   const [sort, setSort] = useState<SortState>({ field: null, direction: null });
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'gantt'>('table');
+  const [ppgModalOpen, setPpgModalOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     reference: "",
     title: "",
@@ -686,7 +688,11 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
+                      <div className="flex justify-end items-center gap-1">
+                        {/* Show PPG Update trigger for action 007 */}
+                        {action.reference_number === "NMP-007" && (
+                          <PPGUpdateTrigger onClick={() => setPpgModalOpen(true)} />
+                        )}
                         <ActionInfoTooltip action={action} />
                         <Button
                           variant="ghost"
@@ -713,6 +719,9 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
           </Table>
         </div>
       )}
+
+      {/* PPG Update Modal for Action 007 */}
+      <PPGUpdateModal open={ppgModalOpen} onOpenChange={setPpgModalOpen} />
     </div>
   );
 };
