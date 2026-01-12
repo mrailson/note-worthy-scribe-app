@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { 
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { mergeLive } from "@/utils/TranscriptMerge";
@@ -500,7 +501,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 
   // Send email for specific tab - now opens modal instead of sending directly
   const openEmailModal = (tabType: 'executive' | 'comprehensive' | 'creative' | 'transcript' | 'standard') => {
-    const content = getCurrentTabContent();
+    const content = sanitiseMeetingNotes(getCurrentTabContent());
     if (!content || content.trim().length === 0) {
       toast.error('No content available to send');
       return;
@@ -663,9 +664,9 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
                     </div>
                     <div className="bg-card rounded-lg border p-4">
                       {notes ? (
-                        <div 
+                        <div
                           className="text-sm leading-relaxed space-y-2"
-                          dangerouslySetInnerHTML={{ __html: formatContent(notes) }}
+                          dangerouslySetInnerHTML={{ __html: formatContent(sanitiseMeetingNotes(notes)) }}
                         />
                       ) : (
                         <div className="text-center py-8">
