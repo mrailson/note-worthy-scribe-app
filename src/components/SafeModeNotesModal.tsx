@@ -127,6 +127,114 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showNotesFindReplace, setShowNotesFindReplace] = useState(false);
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
+  const [isSavingMeetingType, setIsSavingMeetingType] = useState(false);
+
+  // Convert DB meeting_format to local meetingType
+  const mapFormatToType = (format: string | null): 'teams' | 'f2f' | 'hybrid' => {
+    if (!format) return 'teams';
+    const lower = format.toLowerCase();
+    if (lower === 'f2f' || lower === 'face-to-face' || lower === 'in-person') return 'f2f';
+    if (lower === 'hybrid') return 'hybrid';
+    return 'teams';
+  };
+
+  // Convert local meetingType to DB format
+  const mapTypeToFormat = (type: 'teams' | 'f2f' | 'hybrid'): string => {
+    switch (type) {
+      case 'f2f': return 'f2f';
+      case 'hybrid': return 'hybrid';
+      default: return 'virtual';
+    }
+  };
+
+  // Save meeting type to database
+  const handleMeetingTypeChange = async (value: 'teams' | 'f2f' | 'hybrid') => {
+    if (!meeting?.id) return;
+    
+    setMeetingType(value);
+    setIsSavingMeetingType(true);
+    
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .update({ meeting_format: mapTypeToFormat(value) })
+        .eq('id', meeting.id);
+
+      if (error) throw error;
+      
+      setMeetingFormat(mapTypeToFormat(value));
+      toast.success('Meeting type updated');
+    } catch (error) {
+      console.error('Error saving meeting type:', error);
+      toast.error('Failed to save meeting type');
+    } finally {
+      setIsSavingMeetingType(false);
+    }
+  };
+
+  // Refresh attendees from database
+  const refreshAttendees = useCallback(async () => {
+    if (!meeting?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('meeting_attendees')
+        .select(`
+          meeting_role,
+          attendees:attendee_id (
+            name,
+            role
+          )
+        `)
+        .eq('meeting_id', meeting.id);
+
+      if (error) {
+        console.error('Error refreshing attendees:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const parsedAttendees = data
+          .filter(item => item.attendees)
+          .map(item => ({
+            name: (item.attendees as any).name,
+            role: item.meeting_role || (item.attendees as any).role
+          }));
+        setAttendees(parsedAttendees);
+      } else {
+        setAttendees([]);
+      }
+    } catch (error) {
+      console.error('Error refreshing attendees:', error);
+    }
+  }, [meeting?.id]);
+
+  // Handle attendee modal close - refresh attendees
+  const handleAttendeeModalClose = () => {
+    setShowAttendeeModal(false);
+    refreshAttendees();
+  };
+
+  // Save notes content to database (for Find & Replace)
+  const persistNotesContent = useCallback(async (updatedContent: string) => {
+    if (!meeting?.id) return;
+    
+    try {
+      const response = await supabase.functions.invoke('persist-standard-minutes', {
+        body: { meetingId: meeting.id, content: updatedContent }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to save');
+      }
+
+      setNotesContent(updatedContent);
+      toast.success('Notes updated');
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Failed to save notes');
+    }
+  }, [meeting?.id]);
 
   // Parse notes content into sections
   const parseNotesIntoSections = useCallback((content: string): Section[] => {
@@ -313,6 +421,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
         if (meetingData?.meeting_format) {
           setMeetingFormat(meetingData.meeting_format);
+          setMeetingType(mapFormatToType(meetingData.meeting_format));
         }
 
         if (meetingData?.notes_style_3) {
@@ -1157,9 +1266,20 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                       {/* Meeting Type Selector */}
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-muted-foreground">Meeting Type:</span>
-                        <Select value={meetingType} onValueChange={(value: 'teams' | 'f2f' | 'hybrid') => setMeetingType(value)}>
+                        <Select 
+                          value={meetingType} 
+                          onValueChange={handleMeetingTypeChange}
+                          disabled={isSavingMeetingType}
+                        >
                           <SelectTrigger className="w-[180px]">
-                            <SelectValue />
+                            {isSavingMeetingType ? (
+                              <div className="flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Saving...</span>
+                              </div>
+                            ) : (
+                              <SelectValue />
+                            )}
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="teams">
@@ -1213,7 +1333,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                   {showNotesFindReplace && notesContent && (
                     <FindReplacePanel
                       getCurrentText={() => notesContent}
-                      onApply={(updatedText) => setNotesContent(updatedText)}
+                      onApply={(updatedText) => {
+                        setNotesContent(updatedText);
+                        persistNotesContent(updatedText);
+                      }}
                     />
                   )}
 
@@ -1536,7 +1659,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       {meeting && (
         <MeetingAttendeeModal
           isOpen={showAttendeeModal}
-          onClose={() => setShowAttendeeModal(false)}
+          onClose={handleAttendeeModalClose}
           meetingId={meeting.id}
           meetingTitle={meeting.title}
         />
