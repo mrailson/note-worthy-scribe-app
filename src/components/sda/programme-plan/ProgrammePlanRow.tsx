@@ -2,6 +2,19 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
+// Excel-matched section colours
+const sectionColorMap: Record<string, string> = {
+  "discovery-setup": "bg-[#4472C4]",
+  "estates-digital": "bg-[#4472C4]",
+  "appointments": "bg-[#4472C4]",
+  "recruitment": "bg-[#4472C4]",
+  "financial-governance": "bg-[#ED7D31]",
+  "contract-variation": "bg-[#C9A86C]",
+  "risk-governance": "bg-[#A9D18E]",
+  "communication": "bg-[#70AD47]",
+  "innovation": "bg-[#548235]",
+};
+
 interface ProgrammePlanRowProps {
   name: string;
   assignedTo?: string;
@@ -10,6 +23,7 @@ interface ProgrammePlanRowProps {
   isExpanded?: boolean;
   onToggle?: () => void;
   hasChildren?: boolean;
+  rowId?: string;
 }
 
 export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
@@ -20,6 +34,7 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
   isExpanded,
   onToggle,
   hasChildren = false,
+  rowId,
 }) => {
   const indentClass = {
     phase: "pl-2",
@@ -39,12 +54,17 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
     task: "h-9",
   }[level];
 
-  // Excel-matched colours: navy for phases, slightly lighter for sections
-  const bgClass = {
-    phase: "bg-[#4472C4] text-white",
-    section: "bg-[#5B9BD5] text-white",
-    task: "bg-background",
-  }[level];
+  // Get section-specific colour or default
+  const getSectionBg = () => {
+    if (level === "task") return "bg-background";
+    if (rowId && sectionColorMap[rowId]) {
+      return `${sectionColorMap[rowId]} text-white`;
+    }
+    // Default blue for phases
+    return "bg-[#4472C4] text-white";
+  };
+
+  const bgClass = getSectionBg();
 
   return (
     <div
