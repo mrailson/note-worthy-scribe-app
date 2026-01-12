@@ -823,26 +823,42 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     const seenActions = new Set<string>();
     
-    // Helper to extract all owners from a line (handles @CC/@MR or @CC/MR patterns)
+    // Helper to extract the primary owner from a line (handles @name.surname or @INITIALS patterns)
     const extractOwners = (line: string): string => {
-      // Match patterns like @CC/@MR, @CC/MR, @CC, — @MR, etc.
-      const ownerMatches = line.match(/@([A-Za-z]+)/g);
-      if (ownerMatches && ownerMatches.length > 0) {
-        // Extract unique owner initials (without @), then add single @ prefix to each
-        const uniqueOwners = [...new Set(ownerMatches.map(m => m.replace(/@/g, '').toUpperCase()))];
-        return uniqueOwners.map(o => `@${o}`).join('/');
+      // First try to match a full name pattern like @malcolm.railson or @john.smith
+      const fullNameMatch = line.match(/@([a-zA-Z]+\.[a-zA-Z]+)/);
+      if (fullNameMatch) {
+        // Format as "Name Surname" (capitalised)
+        const parts = fullNameMatch[1].split('.');
+        return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
       }
+      
+      // Fall back to initials pattern like @M, @CC, @MR (skip single @ followed by initials like @M at start)
+      // Look for the owner at the end after — or similar
+      const endOwnerMatch = line.match(/[—–-]\s*@([A-Za-z]+(?:\.[A-Za-z]+)?)\s*(?:\([^)]*\)|\[[^\]]*\]|\{[^}]*\})*\s*$/);
+      if (endOwnerMatch) {
+        const owner = endOwnerMatch[1];
+        // If it contains a dot, it's a full name
+        if (owner.includes('.')) {
+          const parts = owner.split('.');
+          return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+        }
+        return owner.toUpperCase();
+      }
+      
       return 'TBC';
     };
     
     // Helper to clean action text by removing owner references
     const cleanActionText = (text: string): string => {
       return text
-        // Remove "— @Owner" or "- @Owner" patterns at end
-        .replace(/\s*[—–-]\s*@[A-Za-z]+(?:\/(?:@)?[A-Za-z]+)*\s*$/g, '')
-        // Remove standalone @Owner patterns
-        .replace(/\s*@[A-Za-z]+(?:\/(?:@)?[A-Za-z]+)*\s*/g, ' ')
-        // Remove status markers
+        // Remove "— @owner.name" or "— @Owner" patterns at end (with or without following metadata)
+        .replace(/\s*[—–-]\s*@[A-Za-z]+(?:\.[A-Za-z]+)?(?:\s*\([^)]*\))?(?:\s*\[[^\]]*\])?(?:\s*\{[^}]*\})?\s*$/g, '')
+        // Remove " — .railson" or similar patterns (owner without @ prefix)
+        .replace(/\s*[—–-]\s*\.?[a-zA-Z]+\.[a-zA-Z]+\s*$/g, '')
+        // Remove starting @INITIALS patterns like "@M " at beginning of action
+        .replace(/^@[A-Z]+\s+/g, '')
+        // Remove status markers {Done}, {Open}, etc.
         .replace(/\{[^}]+\}/g, '')
         // Remove strikethrough markers
         .replace(/~~/g, '')
@@ -1994,7 +2010,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                   <TableCell className={item.isCompleted ? 'line-through text-muted-foreground' : ''}>
                                     {item.action}
                                   </TableCell>
-                                  <TableCell className="font-medium">@{item.owner}</TableCell>
+                                  <TableCell className="font-medium">{item.owner}</TableCell>
                                   <TableCell>{item.deadline}</TableCell>
                                   <TableCell>{getPriorityBadge(item.priority)}</TableCell>
                                   <TableCell>{getStatusBadge(item.status, { action: item.action, owner: item.owner, deadline: item.deadline, priority: item.priority })}</TableCell>
