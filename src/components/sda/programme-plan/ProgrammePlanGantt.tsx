@@ -1,13 +1,15 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { sdaProgrammePlan } from "@/data/sdaProgrammePlanData";
 import { ProgrammePlanRow } from "./ProgrammePlanRow";
 import { ProgrammePlanLegend } from "./ProgrammePlanLegend";
 import { cn } from "@/lib/utils";
-import { format, parse, eachDayOfInterval, isWeekend, isSameDay, startOfWeek, addDays } from "date-fns";
+import { format, eachDayOfInterval, isWeekend, startOfWeek, addDays, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, eachMonthOfInterval, eachQuarterOfInterval } from "date-fns";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { CalendarDays, CalendarRange, Calendar } from "lucide-react";
 
-const DAY_WIDTH = 20;
+type TimeView = "weeks" | "months" | "quarters";
+
 const ROW_HEIGHT_PHASE = 48;
 const ROW_HEIGHT_SECTION = 40;
 const ROW_HEIGHT_TASK = 36;
@@ -55,6 +57,7 @@ export const ProgrammePlanGantt: React.FC = () => {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(
     sdaProgrammePlan.phases[0]?.sections?.map(s => s.id) || []
   ));
+  const [timeView, setTimeView] = useState<TimeView>("weeks");
   
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -63,21 +66,59 @@ export const ProgrammePlanGantt: React.FC = () => {
   const days = useMemo(() => eachDayOfInterval({ start: startDate, end: endDate }), [startDate, endDate]);
   const today = new Date();
   
-  // Generate week headers
-  const weeks = useMemo(() => {
-    const result: { date: Date; label: string }[] = [];
-    let currentWeekStart = startOfWeek(startDate, { weekStartsOn: 1 });
-    
-    while (currentWeekStart <= endDate) {
-      result.push({
-        date: currentWeekStart,
-        label: format(currentWeekStart, "d MMM"),
-      });
-      currentWeekStart = addDays(currentWeekStart, 7);
+  // Calculate unit width based on view
+  const unitWidth = useMemo(() => {
+    switch (timeView) {
+      case "weeks": return 20; // per day
+      case "months": return 8; // per day (more compact)
+      case "quarters": return 4; // per day (most compact)
     }
-    
-    return result;
-  }, [startDate, endDate]);
+  }, [timeView]);
+  
+  // Generate time period headers based on view
+  const timePeriods = useMemo(() => {
+    switch (timeView) {
+      case "weeks": {
+        const result: { date: Date; label: string; width: number }[] = [];
+        let currentWeekStart = startOfWeek(startDate, { weekStartsOn: 1 });
+        
+        while (currentWeekStart <= endDate) {
+          result.push({
+            date: currentWeekStart,
+            label: format(currentWeekStart, "d MMM"),
+            width: 7 * unitWidth,
+          });
+          currentWeekStart = addDays(currentWeekStart, 7);
+        }
+        return result;
+      }
+      case "months": {
+        const months = eachMonthOfInterval({ start: startDate, end: endDate });
+        return months.map(month => {
+          const monthEnd = endOfMonth(month);
+          const daysInMonth = monthEnd.getDate();
+          return {
+            date: month,
+            label: format(month, "MMM yyyy"),
+            width: daysInMonth * unitWidth,
+          };
+        });
+      }
+      case "quarters": {
+        const quarters = eachQuarterOfInterval({ start: startDate, end: endDate });
+        return quarters.map(quarter => {
+          const qStart = startOfQuarter(quarter);
+          const qEnd = endOfQuarter(quarter);
+          const daysInQuarter = Math.ceil((qEnd.getTime() - qStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          return {
+            date: quarter,
+            label: `Q${Math.ceil((quarter.getMonth() + 1) / 3)} ${format(quarter, "yyyy")}`,
+            width: daysInQuarter * unitWidth,
+          };
+        });
+      }
+    }
+  }, [startDate, endDate, timeView, unitWidth]);
   
   // Flatten the hierarchy for rendering
   const flatRows = useMemo(() => {
@@ -201,8 +242,8 @@ export const ProgrammePlanGantt: React.FC = () => {
     const startDayIndex = Math.max(0, Math.floor((row.startDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
     const endDayIndex = Math.floor((row.endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    const left = startDayIndex * DAY_WIDTH;
-    const width = Math.max(DAY_WIDTH, (endDayIndex - startDayIndex + 1) * DAY_WIDTH);
+    const left = startDayIndex * unitWidth;
+    const width = Math.max(unitWidth, (endDayIndex - startDayIndex + 1) * unitWidth);
     
     return { left, width };
   };
@@ -210,17 +251,52 @@ export const ProgrammePlanGantt: React.FC = () => {
   const todayPosition = useMemo(() => {
     const dayIndex = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     if (dayIndex < 0 || dayIndex > days.length) return null;
-    return dayIndex * DAY_WIDTH + DAY_WIDTH / 2;
-  }, [today, startDate, days.length]);
+    return dayIndex * unitWidth + unitWidth / 2;
+  }, [today, startDate, days.length, unitWidth]);
+  
+  const totalTimelineWidth = days.length * unitWidth;
 
   return (
     <Card className="w-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center justify-between">
           <span>{sdaProgrammePlan.title}</span>
-          <span className="text-sm font-normal text-muted-foreground">
-            {sdaProgrammePlan.company}
-          </span>
+          <div className="flex items-center gap-3">
+            <ToggleGroup 
+              type="single" 
+              value={timeView} 
+              onValueChange={(value) => value && setTimeView(value as TimeView)}
+              className="bg-muted/50 rounded-lg p-0.5"
+            >
+              <ToggleGroupItem 
+                value="weeks" 
+                aria-label="View by weeks"
+                className="data-[state=on]:bg-background data-[state=on]:shadow-sm px-2.5 py-1.5 text-xs gap-1.5"
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Weeks</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="months" 
+                aria-label="View by months"
+                className="data-[state=on]:bg-background data-[state=on]:shadow-sm px-2.5 py-1.5 text-xs gap-1.5"
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Months</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="quarters" 
+                aria-label="View by quarters"
+                className="data-[state=on]:bg-background data-[state=on]:shadow-sm px-2.5 py-1.5 text-xs gap-1.5"
+              >
+                <CalendarRange className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Quarters</span>
+              </ToggleGroupItem>
+            </ToggleGroup>
+            <span className="text-sm font-normal text-muted-foreground">
+              {sdaProgrammePlan.company}
+            </span>
+          </div>
         </CardTitle>
         <ProgrammePlanLegend />
       </CardHeader>
@@ -269,19 +345,19 @@ export const ProgrammePlanGantt: React.FC = () => {
           
           {/* Right Panel - Timeline */}
           <div className="flex-1 overflow-hidden">
-            {/* Week Headers */}
+            {/* Time Period Headers */}
             <div className="h-12 border-b bg-muted/50 overflow-x-auto">
               <div
                 className="flex h-full"
-                style={{ width: days.length * DAY_WIDTH }}
+                style={{ width: totalTimelineWidth }}
               >
-                {weeks.map((week, idx) => (
+                {timePeriods.map((period, idx) => (
                   <div
                     key={idx}
                     className="flex-shrink-0 border-r border-border/50 flex items-center justify-center text-xs font-medium"
-                    style={{ width: 7 * DAY_WIDTH }}
+                    style={{ width: period.width }}
                   >
-                    {week.label}
+                    {period.label}
                   </div>
                 ))}
               </div>
@@ -295,7 +371,7 @@ export const ProgrammePlanGantt: React.FC = () => {
             >
               <div
                 className="relative"
-                style={{ width: days.length * DAY_WIDTH }}
+                style={{ width: totalTimelineWidth }}
               >
                 {/* Day columns */}
                 <div className="absolute inset-0 flex">
@@ -304,9 +380,9 @@ export const ProgrammePlanGantt: React.FC = () => {
                       key={idx}
                       className={cn(
                         "flex-shrink-0 border-r border-border/20",
-                        isWeekend(day) && "bg-muted/30"
+                        isWeekend(day) && timeView === "weeks" && "bg-muted/30"
                       )}
-                      style={{ width: DAY_WIDTH }}
+                      style={{ width: unitWidth }}
                     />
                   ))}
                 </div>
