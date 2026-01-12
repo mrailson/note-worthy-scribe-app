@@ -707,17 +707,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Helper to extract all owners from a line (handles @CC/@MR or @CC/MR patterns)
     const extractOwners = (line: string): string => {
       // Match patterns like @CC/@MR, @CC/MR, @CC, — @MR, etc.
-      const ownerMatches = line.match(/@([A-Za-z]+(?:\/(?:@)?[A-Za-z]+)*)/g);
+      const ownerMatches = line.match(/@([A-Za-z]+)/g);
       if (ownerMatches && ownerMatches.length > 0) {
-        // Combine all owners, normalize format
-        const allOwners = ownerMatches
-          .map(m => m.replace(/@/g, ''))
-          .join('/')
-          .split('/')
-          .filter(Boolean)
-          .map(o => `@${o}`)
-          .join('/');
-        return allOwners || 'TBC';
+        // Extract unique owner initials (without @), then add single @ prefix to each
+        const uniqueOwners = [...new Set(ownerMatches.map(m => m.replace(/@/g, '').toUpperCase()))];
+        return uniqueOwners.map(o => `@${o}`).join('/');
       }
       return 'TBC';
     };
@@ -733,6 +727,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         .replace(/\{[^}]+\}/g, '')
         // Remove strikethrough markers
         .replace(/~~/g, '')
+        // Remove trailing dashes (em dash, en dash, or hyphen)
+        .replace(/\s*[—–-]+\s*$/g, '')
         // Clean up whitespace
         .replace(/\s+/g, ' ')
         .trim();
