@@ -1205,6 +1205,71 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 Saving...
               </div>
             )}
+
+            {/* Divider */}
+            <div className="w-px h-6 bg-border mx-2" />
+
+            {/* Meeting Type Selector */}
+            <span className="text-sm text-muted-foreground">Meeting Type:</span>
+            <Select 
+              value={meetingType} 
+              onValueChange={handleMeetingTypeChange}
+              disabled={isSavingMeetingType}
+            >
+              <SelectTrigger className="w-[140px] h-8">
+                {isSavingMeetingType ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Saving...</span>
+                  </div>
+                ) : (
+                  <SelectValue />
+                )}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="teams">
+                  <div className="flex items-center gap-2">
+                    <Video className="h-4 w-4" />
+                    MS Teams
+                  </div>
+                </SelectItem>
+                <SelectItem value="f2f">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4" />
+                    Face to Face
+                  </div>
+                </SelectItem>
+                <SelectItem value="hybrid">
+                  <div className="flex items-center gap-2">
+                    <Video className="h-4 w-4" />
+                    <UserCheck className="h-4 w-4 -ml-1" />
+                    Hybrid
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Manage Attendees */}
+            <Button
+              variant={showAttendeeModal ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowAttendeeModal(true)}
+              className="gap-2"
+            >
+              <Users className="h-4 w-4" />
+              Manage Attendees
+            </Button>
+
+            {/* Find & Replace */}
+            <Button
+              variant={showNotesFindReplace ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowNotesFindReplace(!showNotesFindReplace)}
+              className="gap-2"
+            >
+              <Search className="h-4 w-4" />
+              Find & Replace
+            </Button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1266,75 +1331,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <TabsContent value="notes" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card">
                 <div className="p-6 space-y-6">
-                  {/* Action buttons for notes */}
-                  {notesContent && !isLoading && (
-                    <div className="flex items-center justify-between gap-4">
-                      {/* Meeting Type Selector */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">Meeting Type:</span>
-                        <Select 
-                          value={meetingType} 
-                          onValueChange={handleMeetingTypeChange}
-                          disabled={isSavingMeetingType}
-                        >
-                          <SelectTrigger className="w-[180px]">
-                            {isSavingMeetingType ? (
-                              <div className="flex items-center gap-2">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Saving...</span>
-                              </div>
-                            ) : (
-                              <SelectValue />
-                            )}
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="teams">
-                              <div className="flex items-center gap-2">
-                                <Video className="h-4 w-4" />
-                                MS Teams
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="f2f">
-                              <div className="flex items-center gap-2">
-                                <UserCheck className="h-4 w-4" />
-                                Face to Face
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="hybrid">
-                              <div className="flex items-center gap-2">
-                                <Video className="h-4 w-4" />
-                                <UserCheck className="h-4 w-4 -ml-1" />
-                                Hybrid
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant={showAttendeeModal ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setShowAttendeeModal(true)}
-                          className="gap-2"
-                        >
-                          <Users className="h-4 w-4" />
-                          Manage Attendees
-                        </Button>
-                        <Button
-                          variant={showNotesFindReplace ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setShowNotesFindReplace(!showNotesFindReplace)}
-                          className="gap-2"
-                        >
-                          <Search className="h-4 w-4" />
-                          Find & Replace
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Find & Replace Panel */}
                   {showNotesFindReplace && notesContent && (
                     <EnhancedFindReplacePanel
