@@ -453,6 +453,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const result: string[] = [];
     let inOrderedList = false;
     let inUnorderedList = false;
+    let pendingListItem: { content: string; subItems: string[] } | null = null;
     
     const applyInlineFormatting = (content: string): string => {
       // Escape HTML first
@@ -466,12 +467,45 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       escaped = escaped.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
       return escaped;
     };
+
+    // Helper to flush pending numbered list item
+    const flushPendingListItem = () => {
+      if (pendingListItem) {
+        let itemHtml = `<li class="pl-2 leading-relaxed text-muted-foreground">${pendingListItem.content}`;
+        if (pendingListItem.subItems.length > 0) {
+          itemHtml += `<ul class="list-disc pl-6 mt-2 space-y-1 marker:text-muted-foreground">`;
+          for (const sub of pendingListItem.subItems) {
+            itemHtml += `<li class="leading-relaxed text-muted-foreground">${sub}</li>`;
+          }
+          itemHtml += `</ul>`;
+        }
+        itemHtml += `</li>`;
+        result.push(itemHtml);
+        pendingListItem = null;
+      }
+    };
+
+    // Helper to check if next non-empty line continues the ordered list
+    const hasMoreNumberedItems = (fromIndex: number): boolean => {
+      for (let j = fromIndex; j < lines.length; j++) {
+        const nextLine = lines[j].trim();
+        if (nextLine === '') continue;
+        if (/^\d+\.\s+/.test(nextLine)) return true;
+        if (/^#{1,3}\s/.test(nextLine)) return false; // Header breaks list
+        if (/^[-*•]\s+/.test(lines[j]) && !/^(\s{2,}|\t+)/.test(lines[j])) return false; // Top-level bullet breaks list
+        // Sub-bullets or indented content don't break the list
+        if (/^(\s{2,}|\t+)[-*•]\s+/.test(lines[j])) continue;
+        return false;
+      }
+      return false;
+    };
     
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       
       // Check for headers first
       if (/^### (.*)$/.test(line)) {
+        flushPendingListItem();
         if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
         if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
         const content = line.replace(/^### (.*)$/, '$1');
@@ -479,6 +513,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         continue;
       }
       if (/^## (.*)$/.test(line)) {
+        flushPendingListItem();
         if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
         if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
         const content = line.replace(/^## (.*)$/, '$1');
@@ -486,6 +521,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         continue;
       }
       if (/^# (.*)$/.test(line)) {
+        flushPendingListItem();
         if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
         if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
         const content = line.replace(/^# (.*)$/, '$1');
@@ -496,19 +532,42 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       // Check for numbered list items (1. Item, 2. Item, etc.)
       const numberedMatch = line.match(/^(\d+)\.\s+(.*)$/);
       if (numberedMatch) {
+        // Flush previous numbered item first
+        flushPendingListItem();
         if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
         if (!inOrderedList) {
           result.push('<ol class="list-decimal pl-6 space-y-3 my-4 marker:font-semibold marker:text-foreground">');
           inOrderedList = true;
         }
-        const content = applyInlineFormatting(numberedMatch[2]);
-        result.push(`<li class="pl-2 leading-relaxed text-muted-foreground">${content}</li>`);
+        // Start collecting this item and its potential sub-bullets
+        pendingListItem = {
+          content: applyInlineFormatting(numberedMatch[2]),
+          subItems: []
+        };
         continue;
       }
       
-      // Check for bullet list items (-, *, •) - not indented
+      // Check for indented sub-bullets (2+ spaces/tabs followed by -, *, •)
+      const subBulletMatch = line.match(/^(\s{2,}|\t+)[-*•]\s+(.*)$/);
+      if (subBulletMatch) {
+        const content = applyInlineFormatting(subBulletMatch[2]);
+        if (pendingListItem) {
+          // Add to current numbered item's sub-bullets
+          pendingListItem.subItems.push(content);
+        } else if (inOrderedList) {
+          // Orphan sub-bullet in ordered list context - render inline
+          result.push(`<ul class="list-disc pl-6 mt-1 mb-1 space-y-1 marker:text-muted-foreground"><li class="leading-relaxed text-muted-foreground">${content}</li></ul>`);
+        } else {
+          // Not in any list context
+          result.push(`<ul class="list-disc pl-6 mt-1 mb-1 space-y-1 marker:text-muted-foreground"><li class="leading-relaxed text-muted-foreground">${content}</li></ul>`);
+        }
+        continue;
+      }
+      
+      // Check for bullet list items (-, *, •) - not indented (top-level bullets)
       const bulletMatch = line.match(/^[-*•]\s+(.*)$/);
       if (bulletMatch) {
+        flushPendingListItem();
         if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
         if (!inUnorderedList) {
           result.push('<ul class="list-disc pl-6 space-y-2 my-3 marker:text-muted-foreground">');
@@ -519,23 +578,25 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         continue;
       }
       
-      // Check for indented sub-bullets (2+ spaces/tabs followed by -, *, •)
-      const subBulletMatch = line.match(/^(\s{2,}|\t+)[-*•]\s+(.*)$/);
-      if (subBulletMatch) {
-        const content = applyInlineFormatting(subBulletMatch[2]);
-        result.push(`<ul class="list-disc pl-6 mt-1 mb-1 space-y-1"><li class="leading-relaxed text-muted-foreground">${content}</li></ul>`);
-        continue;
-      }
-      
-      // Empty line - close lists and add spacing
+      // Empty line handling - only close ordered list if no more numbered items follow
       if (line.trim() === '') {
-        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
-        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        if (inOrderedList) {
+          // Check if more numbered items follow
+          if (!hasMoreNumberedItems(i + 1)) {
+            flushPendingListItem();
+            result.push('</ol>');
+            inOrderedList = false;
+          }
+          // If more numbered items follow, keep the list open
+        } else {
+          if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        }
         result.push('<div class="h-2"></div>');
         continue;
       }
       
       // Regular paragraph text
+      flushPendingListItem();
       if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
       if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
       
@@ -544,6 +605,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
     
     // Close any open lists
+    flushPendingListItem();
     if (inOrderedList) result.push('</ol>');
     if (inUnorderedList) result.push('</ul>');
     
