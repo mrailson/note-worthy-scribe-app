@@ -123,7 +123,10 @@ export const useMeetingPowerPoint = () => {
       
       setCurrentPhase('generating');
 
-      // Call Gamma API
+      // Call Gamma API with extended timeout (120 seconds for long generation)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
+      
       const { data: response, error: fnError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
         body: {
           topic: `Executive Summary: ${data.meetingTitle}`,
@@ -132,8 +135,10 @@ export const useMeetingPowerPoint = () => {
           supportingContent,
           customInstructions: 'Focus on key decisions, action items with owners, and next steps. Create a professional executive summary suitable for board presentation. Include metrics and outcomes where available. Keep slides concise and impactful.',
           audience: 'healthcare professionals and NHS executives',
-        }
+        },
       });
+      
+      clearTimeout(timeoutId);
 
       if (fnError) {
         throw new Error(fnError.message || 'Failed to generate presentation');

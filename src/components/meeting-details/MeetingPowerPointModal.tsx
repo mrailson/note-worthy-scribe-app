@@ -151,7 +151,7 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-md p-0 gap-0 overflow-hidden [&>button]:hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/10 to-accent/10">
           <div className="flex items-center gap-2">
