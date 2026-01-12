@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import wordIcon from '@/assets/word-icon.png';
 import powerpointIcon from '@/assets/powerpoint-icon.png';
+import infographicIcon from '@/assets/infographic-icon.png';
 import { MeetingPowerPointModal } from '@/components/meeting-details/MeetingPowerPointModal';
+import { MeetingInfographicModal } from '@/components/meeting-details/MeetingInfographicModal';
 import {
   Dialog,
   DialogContent,
@@ -145,6 +147,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showNotesFindReplace, setShowNotesFindReplace] = useState(false);
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
   const [showPptModal, setShowPptModal] = useState(false);
+  const [showInfographicModal, setShowInfographicModal] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
   const [isSavingMeetingType, setIsSavingMeetingType] = useState(false);
   
@@ -1858,6 +1861,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </TooltipTrigger>
               <TooltipContent>Generate Executive PowerPoint</TooltipContent>
             </Tooltip>
+
+            {/* Generate Infographic button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowInfographicModal(true)}>
+                  <img src={infographicIcon} alt="Generate Infographic" className="h-7 w-7" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Generate Summary Infographic</TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
@@ -2298,6 +2311,27 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       <MeetingPowerPointModal
         isOpen={showPptModal}
         onClose={() => setShowPptModal(false)}
+        meetingData={{
+          meetingTitle: meetingDetails?.title || meeting?.title || 'Meeting Notes',
+          meetingDate: meetingDetails?.date,
+          meetingTime: meetingDetails?.time,
+          location: meetingDetails?.location,
+          attendees: attendees.map(a => a.name),
+          notesContent: notesContent || '',
+          actionItems: actionItems.map(item => ({
+            description: item.action,
+            owner: item.owner,
+            deadline: item.deadline,
+            status: item.status,
+            priority: item.priority,
+          })),
+        }}
+      />
+
+      {/* Infographic Generation Modal */}
+      <MeetingInfographicModal
+        isOpen={showInfographicModal}
+        onClose={() => setShowInfographicModal(false)}
         meetingData={{
           meetingTitle: meetingDetails?.title || meeting?.title || 'Meeting Notes',
           meetingDate: meetingDetails?.date,
