@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Check, Trash2, GripVertical, User, Calendar, Flag, Clock, CalendarDays, Circle, CheckCircle2 } from 'lucide-react';
+import { Check, Trash2, GripVertical, User, Calendar, Flag, Clock, CalendarDays, Circle, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Popover,
   PopoverContent,
@@ -86,6 +87,7 @@ export const ActionItemRow = ({
   const [editText, setEditText] = useState(item.action_text);
   const [isAssigneeOpen, setIsAssigneeOpen] = useState(false);
   const [isDueDateOpen, setIsDueDateOpen] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [customAssigneeName, setCustomAssigneeName] = useState('');
   const [recentAssignees, setRecentAssignees] = useState<string[]>([]);
@@ -256,100 +258,105 @@ export const ActionItemRow = ({
                 {item.assignee_name}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-2" align="start" side="top" collisionPadding={16} avoidCollisions>
-              <div className="space-y-1">
-                {/* Custom name input */}
-                <div className="px-1 pb-2">
-                  <div className="flex gap-1">
-                    <Input
-                      ref={customNameInputRef}
-                      value={customAssigneeName}
-                      onChange={(e) => setCustomAssigneeName(e.target.value)}
-                      onKeyDown={handleCustomNameKeyDown}
-                      placeholder="Enter name..."
-                      className="h-8 text-sm flex-1"
-                    />
-                    <Button
-                      size="sm"
-                      className="h-8 px-2"
-                      disabled={!customAssigneeName.trim()}
-                      onClick={handleCustomNameSubmit}
-                    >
-                      Add
-                    </Button>
+            <PopoverContent className="w-64 p-2 bg-popover z-[100]" align="start" side="bottom" sideOffset={4} collisionPadding={16} avoidCollisions>
+              <ScrollArea className="max-h-[300px]">
+                <div className="space-y-1">
+                  {/* Custom name input */}
+                  <div className="px-1 pb-2">
+                    <div className="flex gap-1">
+                      <Input
+                        ref={customNameInputRef}
+                        value={customAssigneeName}
+                        onChange={(e) => setCustomAssigneeName(e.target.value)}
+                        onKeyDown={handleCustomNameKeyDown}
+                        placeholder="Enter name..."
+                        className="h-8 text-sm flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        className="h-8 px-2"
+                        disabled={!customAssigneeName.trim()}
+                        onClick={handleCustomNameSubmit}
+                      >
+                        Add
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="border-t my-2" />
-                
-                <p className="text-xs font-medium text-muted-foreground px-2 py-1">Quick picks</p>
-                {quickPickAssignees.map((assignee) => (
+                  
+                  <div className="border-t my-2" />
+                  
+                  <p className="text-xs font-medium text-muted-foreground px-2 py-1">Quick picks</p>
+                  {quickPickAssignees.map((assignee) => (
+                    <Button
+                      key={assignee.type}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start h-8 text-sm"
+                      onClick={() => handleAssigneeSelect(assignee.name.replace(/^ME - /, ''), assignee.type)}
+                    >
+                      {assignee.display}
+                    </Button>
+                  ))}
+                  
+                  {/* Recent assignees */}
+                  {filteredRecentAssignees.length > 0 && (
+                    <>
+                      <div className="border-t my-2" />
+                      <p className="text-xs font-medium text-muted-foreground px-2 py-1 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Recent
+                      </p>
+                      {filteredRecentAssignees.slice(0, 5).map((name) => (
+                        <Button
+                          key={`recent-${name}`}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start h-8 text-sm"
+                          onClick={() => handleAssigneeSelect(name, 'custom')}
+                        >
+                          {name}
+                        </Button>
+                      ))}
+                    </>
+                  )}
+                  
+                  {attendees.length > 0 && (
+                    <>
+                      <div className="border-t my-2" />
+                      <p className="text-xs font-medium text-muted-foreground px-2 py-1">From this meeting</p>
+                      {attendees.slice(0, 5).map((name) => (
+                        <Button
+                          key={name}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start h-8 text-sm"
+                          onClick={() => handleAssigneeSelect(name, 'attendee')}
+                        >
+                          {name}
+                        </Button>
+                      ))}
+                    </>
+                  )}
+                  
+                  <div className="border-t my-2" />
                   <Button
-                    key={assignee.type}
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-start h-8 text-sm"
-                    onClick={() => handleAssigneeSelect(assignee.name.replace(/^ME - /, ''), assignee.type)}
+                    className="w-full justify-start h-8 text-sm text-muted-foreground"
+                    onClick={() => handleAssigneeSelect('TBC', 'tbc')}
                   >
-                    {assignee.display}
+                    Clear assignee
                   </Button>
-                ))}
-                
-                {/* Recent assignees */}
-                {filteredRecentAssignees.length > 0 && (
-                  <>
-                    <div className="border-t my-2" />
-                    <p className="text-xs font-medium text-muted-foreground px-2 py-1 flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Recent
-                    </p>
-                    {filteredRecentAssignees.slice(0, 5).map((name) => (
-                      <Button
-                        key={`recent-${name}`}
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start h-8 text-sm"
-                        onClick={() => handleAssigneeSelect(name, 'custom')}
-                      >
-                        {name}
-                      </Button>
-                    ))}
-                  </>
-                )}
-                
-                {attendees.length > 0 && (
-                  <>
-                    <div className="border-t my-2" />
-                    <p className="text-xs font-medium text-muted-foreground px-2 py-1">From this meeting</p>
-                    {attendees.slice(0, 5).map((name) => (
-                      <Button
-                        key={name}
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start h-8 text-sm"
-                        onClick={() => handleAssigneeSelect(name, 'attendee')}
-                      >
-                        {name}
-                      </Button>
-                    ))}
-                  </>
-                )}
-                
-                <div className="border-t my-2" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start h-8 text-sm text-muted-foreground"
-                  onClick={() => handleAssigneeSelect('TBC', 'tbc')}
-                >
-                  Clear assignee
-                </Button>
-              </div>
+                </div>
+              </ScrollArea>
             </PopoverContent>
           </Popover>
 
           {/* Due date */}
-          <Popover open={isDueDateOpen} onOpenChange={setIsDueDateOpen}>
+          <Popover open={isDueDateOpen} onOpenChange={(open) => {
+            setIsDueDateOpen(open);
+            if (!open) setShowCalendar(false);
+          }}>
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
@@ -369,8 +376,8 @@ export const ActionItemRow = ({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-3" align="start" side="bottom" collisionPadding={16} avoidCollisions onOpenAutoFocus={(e) => e.preventDefault()}>
-              <div className="space-y-3">
+            <PopoverContent className="w-auto p-3 bg-popover z-[100]" align="start" side="bottom" sideOffset={4} collisionPadding={16} avoidCollisions onOpenAutoFocus={(e) => e.preventDefault()}>
+              <div className="space-y-2">
                 <div className="grid grid-cols-3 gap-1.5">
                   {DUE_DATE_OPTIONS.map((option) => (
                     <Button
@@ -385,18 +392,34 @@ export const ActionItemRow = ({
                   ))}
                 </div>
                 
-                <CalendarPicker
-                  mode="single"
-                  selected={item.due_date_actual ? new Date(item.due_date_actual) : undefined}
-                  onSelect={(date) => {
-                    if (date) {
-                      const formatted = format(date, 'd MMM yyyy');
-                      handleDueDateSelect(formatted);
-                    }
-                  }}
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  className="pointer-events-auto border-t pt-3"
-                />
+                {/* Collapsible calendar toggle */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-between h-7 text-xs text-muted-foreground"
+                  onClick={() => setShowCalendar(!showCalendar)}
+                >
+                  <span className="flex items-center gap-1">
+                    <CalendarDays className="h-3 w-3" />
+                    Pick specific date
+                  </span>
+                  {showCalendar ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </Button>
+                
+                {showCalendar && (
+                  <CalendarPicker
+                    mode="single"
+                    selected={item.due_date_actual ? new Date(item.due_date_actual) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        const formatted = format(date, 'd MMM yyyy');
+                        handleDueDateSelect(formatted);
+                      }
+                    }}
+                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    className="pointer-events-auto border-t pt-2"
+                  />
+                )}
               </div>
             </PopoverContent>
           </Popover>
