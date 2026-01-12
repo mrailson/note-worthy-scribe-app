@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import wordIcon from '@/assets/word-icon.png';
 import {
   Dialog,
   DialogContent,
@@ -1835,11 +1836,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <TooltipContent>{copied ? 'Copied!' : 'Copy to clipboard'}</TooltipContent>
             </Tooltip>
 
-            {/* Download button */}
+            {/* Download Word button */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleDownloadWord}>
-                  <Download className="h-4 w-4" />
+                  <img src={wordIcon} alt="Download as Word" className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Download as Word</TooltipContent>
