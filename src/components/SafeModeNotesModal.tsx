@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -814,8 +815,32 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   };
 
-  // Get status badge styling
-  const getStatusBadge = (status: string) => {
+  // Mark action item as closed
+  const handleCloseActionItem = useCallback((actionText: string) => {
+    if (!notesContent) return;
+    
+    // Find and mark the action as completed in the notes content
+    const lines = notesContent.split('\n');
+    const updatedLines = lines.map(line => {
+      // Check if this line contains the action text
+      if (line.includes(actionText.substring(0, 30))) {
+        // Add ~~strikethrough~~ or [Completed] marker
+        if (!line.includes('~~') && !line.includes('[Completed]') && !line.includes('[Done]')) {
+          // Add completed marker at the end
+          return line.replace(/(\s*[-•*]?\s*)(.+)/, '$1~~$2~~ [Completed]');
+        }
+      }
+      return line;
+    });
+    
+    const updatedContent = updatedLines.join('\n');
+    setNotesContent(updatedContent);
+    persistNotesContent(updatedContent);
+    toast.success('Action item marked as completed');
+  }, [notesContent, persistNotesContent]);
+
+  // Get status badge styling - with popover for Open status
+  const getStatusBadge = (status: string, actionText?: string) => {
     switch (status) {
       case 'Completed':
         return (
@@ -834,10 +859,27 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       case 'Open':
       default:
         return (
-          <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 text-xs gap-1">
-            <Circle className="h-3 w-3" />
-            Open
-          </Badge>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Badge 
+                className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 text-xs gap-1 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Circle className="h-3 w-3" />
+                Open
+              </Badge>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2" align="end">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                onClick={() => actionText && handleCloseActionItem(actionText)}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Mark as Completed
+              </Button>
+            </PopoverContent>
+          </Popover>
         );
     }
   };
@@ -1545,7 +1587,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                   <TableCell className="font-medium">@{item.owner}</TableCell>
                                   <TableCell>{item.deadline}</TableCell>
                                   <TableCell>{getPriorityBadge(item.priority)}</TableCell>
-                                  <TableCell>{getStatusBadge(item.status)}</TableCell>
+                                  <TableCell>{getStatusBadge(item.status, item.action)}</TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
