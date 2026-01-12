@@ -1121,8 +1121,14 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 bg-background">
-        {/* Header */}
+      <DialogContent
+        className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 bg-background"
+        // Prevent the parent dialog from dismissing when interacting with portalled children
+        // (e.g. Select popovers, nested modals like attendee manager)
+        onInteractOutside={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
