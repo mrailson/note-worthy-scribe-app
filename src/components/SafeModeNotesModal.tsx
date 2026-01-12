@@ -93,18 +93,43 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       'ADDITIONAL NOTES',
     ];
     
+    // Sections to explicitly exclude from formatted view
+    const excludedHeadings = [
+      'NEXT MEETING',
+      'ACTION ITEMS',
+      'MEETING DETAILS',
+      'ATTENDEES',
+    ];
+    
     const result: Section[] = [];
     const lines = content.split('\n');
     let currentSection: { heading: string; lines: string[] } | null = null;
+    let skipCurrentSection = false;
     
     for (const line of lines) {
       // Check for ## heading
       const headingMatch = line.match(/^##\s+(.+)$/);
       if (headingMatch) {
         const heading = headingMatch[1].trim().toUpperCase();
-        // Check if this is a known section heading (skip Meeting Details, Attendees, Action Items)
+        
+        // Check if this heading should be excluded
+        if (excludedHeadings.some(h => heading.includes(h))) {
+          if (currentSection && !skipCurrentSection) {
+            result.push({
+              id: crypto.randomUUID(),
+              heading: currentSection.heading,
+              content: currentSection.lines.join('\n').trim(),
+              originalIndex: result.length
+            });
+          }
+          currentSection = null;
+          skipCurrentSection = true;
+          continue;
+        }
+        
+        // Check if this is a known section heading
         if (sectionHeadings.some(h => heading.includes(h))) {
-          if (currentSection) {
+          if (currentSection && !skipCurrentSection) {
             result.push({
               id: crypto.randomUUID(),
               heading: currentSection.heading,
@@ -113,17 +138,18 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             });
           }
           currentSection = { heading: headingMatch[1].trim(), lines: [] };
+          skipCurrentSection = false;
           continue;
         }
       }
       
-      if (currentSection) {
+      if (currentSection && !skipCurrentSection) {
         currentSection.lines.push(line);
       }
     }
     
-    // Push last section
-    if (currentSection) {
+    // Push last section if it wasn't excluded
+    if (currentSection && !skipCurrentSection) {
       result.push({
         id: crypto.randomUUID(),
         heading: currentSection.heading,
