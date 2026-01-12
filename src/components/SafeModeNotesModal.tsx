@@ -378,12 +378,17 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Remove Completed section too
     cleaned = cleaned.replace(/##?\s*Completed\s*(Items?)?\s*\n[\s\S]*?(?=\n##[^#]|\n#[^#]|$)/gi, '');
     
+    // Remove meeting details section heading/label
+    cleaned = cleaned.replace(/^#{1,6}\s*Meeting\s+Details\s*$/gim, '');
+    cleaned = cleaned.replace(/^Meeting\s+Details\s*$/gim, '');
+    cleaned = cleaned.replace(/^MEETING\s+DETAILS\s*$/gim, '');
+
     // Remove meeting details lines (we display as a table)
-    cleaned = cleaned.replace(/^[-•*]?\s*Meeting Title[:\s]+.+$/gim, '');
-    cleaned = cleaned.replace(/^[-•*]?\s*Date[:\s]+.+$/gim, '');
-    cleaned = cleaned.replace(/^[-•*]?\s*Time[:\s]+.+$/gim, '');
-    cleaned = cleaned.replace(/^[-•*]?\s*Location[:\s]+.+$/gim, '');
-    
+    cleaned = cleaned.replace(/^[-•*]?\s*\*{0,2}Meeting Title\*{0,2}[:\s]+.+$/gim, '');
+    cleaned = cleaned.replace(/^[-•*]?\s*\*{0,2}Date\*{0,2}[:\s]+.+$/gim, '');
+    cleaned = cleaned.replace(/^[-•*]?\s*\*{0,2}Time\*{0,2}[:\s]+.+$/gim, '');
+    cleaned = cleaned.replace(/^[-•*]?\s*\*{0,2}Location\*{0,2}[:\s]+.+$/gim, '');
+
     // Remove "Next Section" heading if present (no longer needed)
     cleaned = cleaned.replace(/##?\s*Next\s+Section\s*\n?/gi, '');
     
