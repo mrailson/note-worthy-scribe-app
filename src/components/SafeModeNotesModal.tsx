@@ -33,7 +33,7 @@ import {
   ToggleRight,
   Loader2,
   AlertCircle,
-  Calendar,
+  Calendar as CalendarIcon,
   Clock,
   MapPin,
   CheckCircle2,
@@ -44,8 +44,17 @@ import {
   Video,
   UserCheck,
   Headphones,
-  FileDown
+  FileDown,
+  Pencil,
+  Trash2,
+  CalendarDays,
+  ChevronRight,
+  User
 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { format, addDays, nextFriday, nextMonday } from "date-fns";
 import { MeetingQAPanel } from "@/components/meeting-details/MeetingQAPanel";
 import { MeetingActionItemsTab } from "@/components/meeting-details/MeetingActionItemsTab";
 import { MeetingAudioStudio } from "@/components/meeting-details/MeetingAudioStudio";
@@ -130,6 +139,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
   const [isSavingMeetingType, setIsSavingMeetingType] = useState(false);
+  
+  // Action item management state
+  const [editingActionItem, setEditingActionItem] = useState<{ original: string; text: string } | null>(null);
+  const [showCustomOwnerInput, setShowCustomOwnerInput] = useState(false);
+  const [customOwner, setCustomOwner] = useState('');
+  const [showCustomDeadlinePicker, setShowCustomDeadlinePicker] = useState(false);
 
   // Convert DB meeting_format to local meetingType
   const mapFormatToType = (format: string | null): 'teams' | 'f2f' | 'hybrid' => {
@@ -819,14 +834,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const handleCloseActionItem = useCallback((actionText: string) => {
     if (!notesContent) return;
     
-    // Find and mark the action as completed in the notes content
     const lines = notesContent.split('\n');
     const updatedLines = lines.map(line => {
-      // Check if this line contains the action text
       if (line.includes(actionText.substring(0, 30))) {
-        // Add ~~strikethrough~~ or [Completed] marker
         if (!line.includes('~~') && !line.includes('[Completed]') && !line.includes('[Done]')) {
-          // Add completed marker at the end
           return line.replace(/(\s*[-•*]?\s*)(.+)/, '$1~~$2~~ [Completed]');
         }
       }
@@ -839,8 +850,129 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     toast.success('Action item marked as completed');
   }, [notesContent, persistNotesContent]);
 
-  // Get status badge styling - with popover for Open status
-  const getStatusBadge = (status: string, actionText?: string) => {
+  // Delete action item from notes
+  const handleDeleteActionItem = useCallback((actionText: string) => {
+    if (!notesContent) return;
+    
+    const lines = notesContent.split('\n');
+    const updatedLines = lines.filter(line => !line.includes(actionText.substring(0, 30)));
+    
+    const updatedContent = updatedLines.join('\n');
+    setNotesContent(updatedContent);
+    persistNotesContent(updatedContent);
+    toast.success('Action item deleted');
+  }, [notesContent, persistNotesContent]);
+
+  // Edit action item text
+  const handleSaveEditedAction = useCallback((originalText: string, newText: string) => {
+    if (!notesContent || !newText.trim()) return;
+    
+    const lines = notesContent.split('\n');
+    const updatedLines = lines.map(line => {
+      if (line.includes(originalText.substring(0, 30))) {
+        return line.replace(originalText, newText.trim());
+      }
+      return line;
+    });
+    
+    const updatedContent = updatedLines.join('\n');
+    setNotesContent(updatedContent);
+    persistNotesContent(updatedContent);
+    setEditingActionItem(null);
+    toast.success('Action item updated');
+  }, [notesContent, persistNotesContent]);
+
+  // Change action item priority
+  const handleChangePriority = useCallback((actionText: string, newPriority: 'High' | 'Medium' | 'Low') => {
+    if (!notesContent) return;
+    
+    const lines = notesContent.split('\n');
+    const updatedLines = lines.map(line => {
+      if (line.includes(actionText.substring(0, 30))) {
+        // Remove existing priority markers
+        let updatedLine = line.replace(/\[(High|Medium|Low)\]/gi, '');
+        // Add new priority marker before the closing part
+        const insertPoint = updatedLine.lastIndexOf(')') > -1 ? updatedLine.lastIndexOf(')') + 1 : updatedLine.length;
+        updatedLine = updatedLine.slice(0, insertPoint) + ` [${newPriority}]` + updatedLine.slice(insertPoint);
+        return updatedLine.replace(/\s+/g, ' ').trim();
+      }
+      return line;
+    });
+    
+    const updatedContent = updatedLines.join('\n');
+    setNotesContent(updatedContent);
+    persistNotesContent(updatedContent);
+    toast.success(`Priority changed to ${newPriority}`);
+  }, [notesContent, persistNotesContent]);
+
+  // Change action item owner
+  const handleChangeOwner = useCallback((actionText: string, newOwner: string) => {
+    if (!notesContent) return;
+    
+    const lines = notesContent.split('\n');
+    const updatedLines = lines.map(line => {
+      if (line.includes(actionText.substring(0, 30))) {
+        // Remove existing @XX owner markers
+        let updatedLine = line.replace(/@[A-Z]{2,4}\b/g, '');
+        // Get initials from the new owner name
+        const initials = newOwner.split(' ').map(n => n[0]?.toUpperCase() || '').join('').substring(0, 3);
+        // Add new owner after the bullet point
+        updatedLine = updatedLine.replace(/^(\s*[-•*]\s*)/, `$1@${initials} `);
+        return updatedLine.replace(/\s+/g, ' ').trim();
+      }
+      return line;
+    });
+    
+    const updatedContent = updatedLines.join('\n');
+    setNotesContent(updatedContent);
+    persistNotesContent(updatedContent);
+    setShowCustomOwnerInput(false);
+    setCustomOwner('');
+    toast.success(`Owner changed to ${newOwner}`);
+  }, [notesContent, persistNotesContent]);
+
+  // Change action item deadline
+  const handleChangeDeadline = useCallback((actionText: string, newDeadline: string) => {
+    if (!notesContent) return;
+    
+    const lines = notesContent.split('\n');
+    const updatedLines = lines.map(line => {
+      if (line.includes(actionText.substring(0, 30))) {
+        // Remove existing deadline in parentheses
+        let updatedLine = line.replace(/\([^)]+\)/g, '');
+        // Add new deadline at the end, before any priority marker
+        const priorityMatch = updatedLine.match(/\[(High|Medium|Low)\]/i);
+        if (priorityMatch) {
+          updatedLine = updatedLine.replace(priorityMatch[0], `(${newDeadline}) ${priorityMatch[0]}`);
+        } else {
+          updatedLine = updatedLine.trim() + ` (${newDeadline})`;
+        }
+        return updatedLine.replace(/\s+/g, ' ').trim();
+      }
+      return line;
+    });
+    
+    const updatedContent = updatedLines.join('\n');
+    setNotesContent(updatedContent);
+    persistNotesContent(updatedContent);
+    setShowCustomDeadlinePicker(false);
+    toast.success(`Deadline changed to ${newDeadline}`);
+  }, [notesContent, persistNotesContent]);
+
+  // Get deadline quick options
+  const getDeadlineOptions = () => {
+    const today = new Date();
+    return [
+      { label: 'Today', value: format(today, 'd MMM yyyy') },
+      { label: 'End of Week', value: format(nextFriday(today), 'd MMM yyyy') },
+      { label: 'ASAP', value: 'ASAP' },
+      { label: 'Next Week', value: format(nextMonday(addDays(today, 1)), 'd MMM yyyy') },
+      { label: 'By Next Meeting', value: 'By next meeting' },
+    ];
+  };
+
+  // Get status badge styling - with comprehensive popover for Open status
+  const getStatusBadge = (status: string, actionItem?: { action: string; owner: string; deadline: string; priority: string }) => {
     switch (status) {
       case 'Completed':
         return (
@@ -868,16 +1000,176 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 Open
               </Badge>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-2" align="end">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start gap-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                onClick={() => actionText && handleCloseActionItem(actionText)}
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Mark as Completed
-              </Button>
+            <PopoverContent className="w-72 p-0" align="end">
+              <div className="p-3 space-y-3">
+                {/* Edit & Delete */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 justify-start gap-2"
+                    onClick={() => actionItem && setEditingActionItem({ original: actionItem.action, text: actionItem.action })}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 justify-start gap-2 text-destructive hover:text-destructive"
+                    onClick={() => actionItem && handleDeleteActionItem(actionItem.action)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </Button>
+                </div>
+
+                <Separator />
+
+                {/* Priority */}
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-2 block">Priority</label>
+                  <div className="flex gap-1">
+                    {(['High', 'Medium', 'Low'] as const).map((p) => (
+                      <Button
+                        key={p}
+                        variant={actionItem?.priority === p ? 'default' : 'outline'}
+                        size="sm"
+                        className={`flex-1 text-xs ${
+                          p === 'High' ? 'hover:bg-red-100 hover:text-red-700' :
+                          p === 'Medium' ? 'hover:bg-amber-100 hover:text-amber-700' :
+                          'hover:bg-green-100 hover:text-green-700'
+                        } ${actionItem?.priority === p ? (
+                          p === 'High' ? 'bg-red-500 hover:bg-red-600' :
+                          p === 'Medium' ? 'bg-amber-500 hover:bg-amber-600' :
+                          'bg-green-500 hover:bg-green-600'
+                        ) : ''}`}
+                        onClick={() => actionItem && handleChangePriority(actionItem.action, p)}
+                      >
+                        {p}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Owner */}
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-2 block">Owner</label>
+                  {!showCustomOwnerInput ? (
+                    <div className="space-y-1">
+                      <div className="max-h-24 overflow-y-auto space-y-1">
+                        {attendees.slice(0, 5).map((attendee, idx) => (
+                          <Button
+                            key={idx}
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start gap-2 text-xs h-7"
+                            onClick={() => actionItem && handleChangeOwner(actionItem.action, attendee.name)}
+                          >
+                            <User className="h-3 w-3" />
+                            {attendee.name}
+                            {attendee.role && <span className="text-muted-foreground">({attendee.role})</span>}
+                          </Button>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start gap-2 text-xs"
+                        onClick={() => setShowCustomOwnerInput(true)}
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Custom...
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        value={customOwner}
+                        onChange={(e) => setCustomOwner(e.target.value)}
+                        placeholder="Enter name..."
+                        className="h-8 text-xs"
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        className="h-8"
+                        onClick={() => actionItem && customOwner && handleChangeOwner(actionItem.action, customOwner)}
+                      >
+                        Set
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Deadline */}
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-2 block">Deadline</label>
+                  {!showCustomDeadlinePicker ? (
+                    <div className="space-y-1">
+                      {getDeadlineOptions().map((option) => (
+                        <Button
+                          key={option.label}
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-between text-xs h-7"
+                          onClick={() => actionItem && handleChangeDeadline(actionItem.action, option.value)}
+                        >
+                          <span>{option.label}</span>
+                          <span className="text-muted-foreground">{option.value}</span>
+                        </Button>
+                      ))}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start gap-2 text-xs"
+                        onClick={() => setShowCustomDeadlinePicker(true)}
+                      >
+                        <CalendarDays className="h-3 w-3" />
+                        Pick a date...
+                      </Button>
+                    </div>
+                  ) : (
+                    <div>
+                      <Calendar
+                        mode="single"
+                        selected={undefined}
+                        onSelect={(date) => {
+                          if (date && actionItem) {
+                            handleChangeDeadline(actionItem.action, format(date, 'd MMM yyyy'));
+                          }
+                        }}
+                        className="rounded-md border"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full mt-2 text-xs"
+                        onClick={() => setShowCustomDeadlinePicker(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Mark as Completed */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start gap-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                  onClick={() => actionItem && handleCloseActionItem(actionItem.action)}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Mark as Completed
+                </Button>
+              </div>
             </PopoverContent>
           </Popover>
         );
@@ -1587,7 +1879,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                   <TableCell className="font-medium">@{item.owner}</TableCell>
                                   <TableCell>{item.deadline}</TableCell>
                                   <TableCell>{getPriorityBadge(item.priority)}</TableCell>
-                                  <TableCell>{getStatusBadge(item.status, item.action)}</TableCell>
+                                  <TableCell>{getStatusBadge(item.status, { action: item.action, owner: item.owner, deadline: item.deadline, priority: item.priority })}</TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -1739,6 +2031,34 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           </div>
         </Tabs>
       </DialogContent>
+
+      {/* Edit Action Item Dialog */}
+      {editingActionItem && (
+        <Dialog open={!!editingActionItem} onOpenChange={() => setEditingActionItem(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Action Item</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <Input
+                value={editingActionItem.text}
+                onChange={(e) => setEditingActionItem({ ...editingActionItem, text: e.target.value })}
+                placeholder="Action item text..."
+                className="w-full"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditingActionItem(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => handleSaveEditedAction(editingActionItem.original, editingActionItem.text)}>
+                  Save
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Attendee Modal */}
       {meeting && (
