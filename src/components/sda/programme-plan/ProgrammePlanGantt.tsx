@@ -63,6 +63,7 @@ export const ProgrammePlanGantt: React.FC = () => {
   
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   
   const { startDate, endDate } = useMemo(() => calculateDateRange(), []);
   const days = useMemo(() => eachDayOfInterval({ start: startDate, end: endDate }), [startDate, endDate]);
@@ -197,6 +198,10 @@ export const ProgrammePlanGantt: React.FC = () => {
       timelineRef.current.scrollTop = leftPanelRef.current.scrollTop;
     } else if (source === "timeline" && timelineRef.current && leftPanelRef.current) {
       leftPanelRef.current.scrollTop = timelineRef.current.scrollTop;
+      // Sync horizontal scroll with header
+      if (headerRef.current) {
+        headerRef.current.scrollLeft = timelineRef.current.scrollLeft;
+      }
     }
   };
   
@@ -373,7 +378,7 @@ export const ProgrammePlanGantt: React.FC = () => {
           {/* Right Panel - Timeline */}
           <div className="flex-1 overflow-hidden">
             {/* Time Period Headers */}
-            <div className="h-12 border-b bg-muted/50 overflow-x-auto">
+            <div ref={headerRef} className="h-12 border-b bg-muted/50 overflow-x-hidden">
               <div
                 className="flex h-full"
                 style={{ width: totalTimelineWidth }}
