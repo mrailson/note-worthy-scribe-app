@@ -57,7 +57,6 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
   const [isComplete, setIsComplete] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const [gammaUrl, setGammaUrl] = useState<string | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const tipTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -74,7 +73,6 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
       generatePowerPoint(meetingData).then((result) => {
         if (result.success) {
           setDownloadUrl(result.downloadUrl ?? null);
-          setGammaUrl(result.gammaUrl ?? null);
           setIsComplete(true);
           toast.success('PowerPoint ready to download');
         } else {
@@ -127,7 +125,6 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
       setIsComplete(false);
       setHasFailed(false);
       setDownloadUrl(null);
-      setGammaUrl(null);
       setTimeRemaining(TOTAL_DURATION);
       setCurrentTipIndex(0);
       if (timerRef.current) clearInterval(timerRef.current);
@@ -169,10 +166,6 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
     document.body.removeChild(link);
   };
 
-  const handleOpenGamma = () => {
-    if (!gammaUrl) return;
-    window.open(gammaUrl, '_blank', 'noopener,noreferrer');
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -258,11 +251,6 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
                     Download PowerPoint
                   </Button>
 
-                  {gammaUrl && (
-                    <Button variant="outline" onClick={handleOpenGamma}>
-                      Open in Gamma
-                    </Button>
-                  )}
 
                   <Button variant="ghost" size="sm" onClick={handleClose}>
                     Close
