@@ -86,6 +86,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   }, [isOpen, meeting?.id, notes]);
 
+  // Store meeting format from database
+  const [meetingFormat, setMeetingFormat] = useState<string | null>(null);
+
   // Fetch fresh notes in background (non-blocking)
   useEffect(() => {
     if (!isOpen || !meeting?.id) return;
@@ -95,12 +98,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Simple sequential fetch - try notes_style_3 first, then meeting_summaries
     const fetchNotes = async () => {
       try {
-        // First try meetings table for notes_style_3
+        // First try meetings table for notes_style_3 and meeting_format
         const { data: meetingData } = await supabase
           .from('meetings')
-          .select('notes_style_3')
+          .select('notes_style_3, meeting_format')
           .eq('id', meeting.id)
           .maybeSingle();
+
+        if (meetingData?.meeting_format) {
+          setMeetingFormat(meetingData.meeting_format);
+        }
 
         if (meetingData?.notes_style_3) {
           setNotesContent(sanitiseMeetingNotes(meetingData.notes_style_3));
@@ -220,13 +227,21 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     if (!titleMatch && !dateMatch && !timeMatch && !locationMatch) return null;
     
+    // Strip markdown formatting (** bold markers) from title
+    const cleanTitle = titleMatch?.[1]?.trim().replace(/\*\*/g, '');
+    
+    // Use meetingFormat from DB if available, otherwise fall back to content parsing
+    const formatFromDb = meetingFormat ? 
+      meetingFormat.charAt(0).toUpperCase() + meetingFormat.slice(1).replace(/-/g, ' ') : 
+      null;
+    
     return {
-      title: titleMatch?.[1]?.trim(),
+      title: cleanTitle,
       date: dateMatch?.[1]?.trim(),
       time: timeMatch?.[1]?.trim(),
-      location: locationMatch?.[1]?.trim(),
+      location: formatFromDb || locationMatch?.[1]?.trim(),
     };
-  }, [notesContent]);
+  }, [notesContent, meetingFormat]);
 
   // Parse action items from content
   const actionItems = useMemo(() => {
@@ -368,6 +383,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     cleaned = cleaned.replace(/^[-•*]?\s*Date[:\s]+.+$/gim, '');
     cleaned = cleaned.replace(/^[-•*]?\s*Time[:\s]+.+$/gim, '');
     cleaned = cleaned.replace(/^[-•*]?\s*Location[:\s]+.+$/gim, '');
+    
+    // Remove "Next Section" heading if present (no longer needed)
+    cleaned = cleaned.replace(/##?\s*Next\s+Section\s*\n?/gi, '');
     
     // Clean up excessive newlines
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
