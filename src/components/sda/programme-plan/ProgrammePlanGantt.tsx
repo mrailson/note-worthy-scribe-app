@@ -233,9 +233,9 @@ export const ProgrammePlanGantt: React.FC = () => {
   };
   
   const getBarColor = (progress: number) => {
-    if (progress === 100) return "bg-green-500";
-    if (progress > 0) return "bg-[#005EB8]";
-    return "bg-slate-300";
+    if (progress === 100) return "bg-[#4EA72E]"; // Vertex green - completed
+    if (progress > 0) return "bg-[#5B9BD5]";     // Soft blue - in progress
+    return "bg-[#BDD7EE]";                        // Light blue - not started
   };
   
   const calculateBarPosition = (row: FlatRow) => {
@@ -417,7 +417,7 @@ export const ProgrammePlanGantt: React.FC = () => {
                 {/* Today marker */}
                 {todayPosition !== null && (
                   <div
-                    className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-20"
+                    className="absolute top-0 bottom-0 w-0.5 bg-[#AD3815] z-20"
                     style={{ left: todayPosition }}
                   />
                 )}
@@ -447,7 +447,7 @@ export const ProgrammePlanGantt: React.FC = () => {
                           {/* Progress fill for partial completion */}
                           {row.progress > 0 && row.progress < 100 && (
                             <div
-                              className="absolute inset-y-0 left-0 bg-green-500/50 rounded-l-sm"
+                              className="absolute inset-y-0 left-0 bg-[#4EA72E]/60 rounded-l-sm"
                               style={{ width: `${row.progress}%` }}
                             />
                           )}
