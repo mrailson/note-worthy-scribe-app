@@ -187,19 +187,8 @@ export const SDAExecutiveSummary = () => {
               )}
             </Button>
           </CollapsibleTrigger>
-          <CollapsibleContent>
-            <Tabs defaultValue="programme-plan" className="w-full">
-              <TabsList className="mx-4 mt-2">
-                <TabsTrigger value="programme-plan">Programme Plan</TabsTrigger>
-                <TabsTrigger value="action-tracker">Action Tracker</TabsTrigger>
-              </TabsList>
-              <TabsContent value="programme-plan" className="p-4 pt-2">
-                <ProgrammePlanGantt />
-              </TabsContent>
-              <TabsContent value="action-tracker" className="p-0">
-                <BoardActionTracker />
-              </TabsContent>
-            </Tabs>
+          <CollapsibleContent className="p-4 pt-2">
+            <ProgrammePlanGantt />
           </CollapsibleContent>
         </Card>
       </Collapsible>
