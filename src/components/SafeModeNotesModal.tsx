@@ -1840,7 +1840,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleDownloadWord}>
-                  <img src={wordIcon} alt="Download as Word" className="h-5 w-5" />
+                  <img src={wordIcon} alt="Download as Word" className="h-7 w-7" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Download as Word</TooltipContent>
