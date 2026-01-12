@@ -222,7 +222,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       setActiveTab('notes');
       setTranscript('');
       setTranscriptError(null);
-      setViewMode('plain');
+      setViewMode('formatted');
       setCopied(false);
       setAttendees([]);
       setMeetingFormat(null);
