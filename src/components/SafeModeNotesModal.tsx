@@ -823,29 +823,46 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     const seenActions = new Set<string>();
     
-    // Helper to extract the primary owner from a line (handles @name.surname or @INITIALS patterns)
+    // Helper to extract the primary owner from a line (handles @name.surname, plain names, or @INITIALS patterns)
     const extractOwners = (line: string): string => {
-      // First try to match a full name pattern like @malcolm.railson or @john.smith
-      const fullNameMatch = line.match(/@([a-zA-Z]+\.[a-zA-Z]+)/);
-      if (fullNameMatch) {
-        // Format as "Name Surname" (capitalised)
-        const parts = fullNameMatch[1].split('.');
-        return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
-      }
-      
-      // Fall back to initials pattern like @M, @CC, @MR (skip single @ followed by initials like @M at start)
-      // Look for the owner at the end after — or similar
-      const endOwnerMatch = line.match(/[—–-]\s*@([A-Za-z]+(?:\.[A-Za-z]+)?)\s*(?:\([^)]*\)|\[[^\]]*\]|\{[^}]*\})*\s*$/);
-      if (endOwnerMatch) {
-        const owner = endOwnerMatch[1];
-        // If it contains a dot, it's a full name
-        if (owner.includes('.')) {
-          const parts = owner.split('.');
-          return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+      const formatOwner = (raw: string): string => {
+        const cleaned = raw.replace(/^@+/, '').trim();
+        if (!cleaned) return 'TBC';
+
+        // Dot-separated usernames (e.g. malcolm.railson)
+        if (cleaned.includes('.')) {
+          const parts = cleaned.split('.').filter(Boolean);
+          if (parts.length >= 2) {
+            return parts
+              .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+              .join(' ');
+          }
         }
-        return owner.toUpperCase();
-      }
-      
+
+        // Initials (e.g. M, MG, MR)
+        if (/^[A-Za-z]{1,4}$/.test(cleaned)) {
+          return cleaned.toUpperCase();
+        }
+
+        // Plain name
+        return cleaned
+          .replace(/\s+/g, ' ')
+          .split(' ')
+          .filter(Boolean)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(' ');
+      };
+
+      // Prefer the owner at the end of the line after a dash (our canonical format)
+      const endOwnerMatch = line.match(
+        /[—–-]\s*@?([A-Za-z][A-Za-z.'-]*(?:\.[A-Za-z][A-Za-z.'-]*)?(?:\s+[A-Za-z][A-Za-z.'-]*){0,4})\s*(?:\([^)]*\))?(?:\s*\[[^\]]*\])?(?:\s*\{[^}]*\})?\s*$/
+      );
+      if (endOwnerMatch) return formatOwner(endOwnerMatch[1]);
+
+      // Fallback: any @first.last in the line
+      const fullNameMatch = line.match(/@([a-zA-Z]+\.[a-zA-Z]+)/);
+      if (fullNameMatch) return formatOwner(fullNameMatch[1]);
+
       return 'TBC';
     };
     
@@ -1024,23 +1041,63 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   }, [notesContent, persistNotesContent]);
 
   // Change action item owner
-  const handleChangeOwner = useCallback((actionText: string, newOwner: string) => {
+  const handleChangeOwner = useCallback((actionText: string, newOwnerRaw: string) => {
     if (!notesContent) return;
-    
-    const lines = notesContent.split('\n');
-    const updatedLines = lines.map(line => {
-      if (line.includes(actionText.substring(0, 30))) {
-        // Remove existing @XX owner markers
-        let updatedLine = line.replace(/@[A-Z]{2,4}\b/g, '');
-        // Get initials from the new owner name
-        const initials = newOwner.split(' ').map(n => n[0]?.toUpperCase() || '').join('').substring(0, 3);
-        // Add new owner after the bullet point
-        updatedLine = updatedLine.replace(/^(\s*[-•*]\s*)/, `$1@${initials} `);
-        return updatedLine.replace(/\s+/g, ' ').trim();
+
+    const cleaned = newOwnerRaw.replace(/^@+/, '').trim();
+    if (!cleaned) return;
+
+    // Normalise dot-separated usernames (e.g. "malcolm.railson" -> "Malcolm Railson")
+    const newOwner = cleaned.includes('.')
+      ? cleaned
+          .split('.')
+          .filter(Boolean)
+          .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+          .join(' ')
+      : cleaned.replace(/\s+/g, ' ').trim();
+
+    const separators = [' — ', ' – ', ' - '];
+
+    const updatedLines = notesContent.split('\n').map((line) => {
+      if (!line.includes(actionText.substring(0, 30))) return line;
+      if (!/^[-•*]\s+/.test(line.trim())) return line;
+
+      // If the line already has an owner segment (" — Owner"), replace just that segment.
+      let bestIndex = -1;
+      let bestSep = ' — ';
+      for (const sep of separators) {
+        const idx = line.lastIndexOf(sep);
+        if (idx > bestIndex) {
+          bestIndex = idx;
+          bestSep = sep;
+        }
       }
-      return line;
+
+      const ownerSeparator = ' — ';
+      const insertOwner = (left: string, meta: string) =>
+        `${left.trimEnd()}${ownerSeparator}${newOwner}${meta ? ` ${meta.trimStart()}` : ''}`;
+
+      if (bestIndex >= 0) {
+        const left = line.slice(0, bestIndex);
+        const right = line.slice(bestIndex + bestSep.length);
+
+        // Preserve everything after the owner (deadline/priority/status) by finding first metadata token.
+        const metaIdx = right.search(/\s*(\(|\[|\{)/);
+        const meta = metaIdx >= 0 ? right.slice(metaIdx) : '';
+        return insertOwner(left, meta);
+      }
+
+      // If no explicit owner separator exists yet, insert owner before existing metadata (or append).
+      const metaIdx = line.search(/\s*(\(|\[|\{)/);
+      if (metaIdx >= 0) {
+        const left = line.slice(0, metaIdx);
+        const meta = line.slice(metaIdx);
+        return insertOwner(left, meta);
+      }
+
+      return insertOwner(line, '');
     });
-    
+
     const updatedContent = updatedLines.join('\n');
     setNotesContent(updatedContent);
     persistNotesContent(updatedContent);
