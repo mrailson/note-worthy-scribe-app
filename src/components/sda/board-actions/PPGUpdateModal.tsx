@@ -68,7 +68,7 @@ export const PPGUpdateModal = ({ open, onOpenChange }: PPGUpdateModalProps) => {
                   Meeting: Monday 19 January 2026
                 </p>
                 <p className="text-blue-800">
-                  <span className="font-medium">Attendees:</span> Malcolm Railson, Mark [Surname], and Amanda Taylor 
+                  <span className="font-medium">Attendees:</span> Malcolm Railson, Dr Mark Gray, and Amanda Taylor 
                   are meeting with Helen to:
                 </p>
                 <ul className="list-disc ml-5 space-y-1 text-blue-800">
