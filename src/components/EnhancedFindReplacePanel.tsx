@@ -307,7 +307,7 @@ export default function EnhancedFindReplacePanel({
       {/* Results */}
       {potentialChanges.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="text-sm font-medium">
               Found {potentialChanges.length} potential {potentialChanges.length === 1 ? 'change' : 'changes'}
             </h3>
@@ -331,10 +331,18 @@ export default function EnhancedFindReplacePanel({
                 <X className="h-3 w-3" />
                 None
               </Button>
+              <Button
+                onClick={applySelectedChanges}
+                disabled={selectedChanges.size === 0}
+                className="gap-2"
+              >
+                <Replace className="h-4 w-4" />
+                Apply {selectedChanges.size > 0 ? `${selectedChanges.size} ` : ''}Changes
+              </Button>
             </div>
           </div>
 
-          <ScrollArea className="h-[400px] border rounded-lg">
+          <ScrollArea className="h-[300px] border rounded-lg">
             <div className="p-2 space-y-2">
               {potentialChanges.map((change) => (
                 <ChangePreviewItem
@@ -346,14 +354,8 @@ export default function EnhancedFindReplacePanel({
               ))}
             </div>
           </ScrollArea>
-          {potentialChanges.length > 3 && (
-            <p className="text-xs text-muted-foreground text-center">
-              Scroll to see all {potentialChanges.length} matches
-            </p>
-          )}
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-start pt-2">
             <Button
               onClick={() => setShowCorrectionManager(true)}
               variant="outline"
@@ -362,15 +364,6 @@ export default function EnhancedFindReplacePanel({
             >
               <BookOpen className="h-3 w-3" />
               Manage Corrections
-            </Button>
-
-            <Button
-              onClick={applySelectedChanges}
-              disabled={selectedChanges.size === 0}
-              className="gap-2"
-            >
-              <Replace className="h-4 w-4" />
-              Apply {selectedChanges.size > 0 ? `${selectedChanges.size} ` : ''}Changes
             </Button>
           </div>
         </div>
