@@ -9,6 +9,8 @@ import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 import { ActionLogTable } from "./ActionLogTable";
 import { actionLogData, actionLogMetadata } from "@/data/nresBoardActionsData";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProgrammePlanGantt } from "./programme-plan";
 
 const populationData = [
   { name: "The Parks MC", value: 22689, color: "#005EB8" },
@@ -186,7 +188,18 @@ export const SDAExecutiveSummary = () => {
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <BoardActionTracker />
+            <Tabs defaultValue="programme-plan" className="w-full">
+              <TabsList className="mx-4 mt-2">
+                <TabsTrigger value="programme-plan">Programme Plan</TabsTrigger>
+                <TabsTrigger value="action-tracker">Action Tracker</TabsTrigger>
+              </TabsList>
+              <TabsContent value="programme-plan" className="p-4 pt-2">
+                <ProgrammePlanGantt />
+              </TabsContent>
+              <TabsContent value="action-tracker" className="p-0">
+                <BoardActionTracker />
+              </TabsContent>
+            </Tabs>
           </CollapsibleContent>
         </Card>
       </Collapsible>
