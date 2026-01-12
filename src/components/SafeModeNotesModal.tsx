@@ -1450,9 +1450,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 </p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleClose}>
-              <X className="h-5 w-5" />
-            </Button>
           </div>
         </DialogHeader>
 
