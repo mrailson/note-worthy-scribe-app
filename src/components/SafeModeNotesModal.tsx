@@ -40,8 +40,15 @@ import {
   Users,
   Search,
   Video,
-  UserCheck
+  UserCheck,
+  Headphones,
+  FileDown
 } from "lucide-react";
+import { MeetingQAPanel } from "@/components/meeting-details/MeetingQAPanel";
+import { MeetingActionItemsTab } from "@/components/meeting-details/MeetingActionItemsTab";
+import { MeetingAudioStudio } from "@/components/meeting-details/MeetingAudioStudio";
+import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
+import { useActionItemsCount } from "@/hooks/useActionItemsCount";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateProfessionalWordFromContent, ParsedMeetingDetailsInput, ParsedActionItemInput } from "@/utils/generateProfessionalMeetingDocx";
@@ -71,7 +78,39 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   notes
 }) => {
   // State
-  const [activeTab, setActiveTab] = useState<'notes' | 'transcript'>('notes');
+  const [activeTab, setActiveTab] = useState<'notes' | 'transcript' | 'actions' | 'ask-ai' | 'audio' | 'documents'>('notes');
+  
+  // Get action items count for badge
+  const { openItemsCount } = useActionItemsCount(meeting?.id || '');
+  
+  // Document count for badge
+  const [documentCount, setDocumentCount] = useState<number>(0);
+  
+  // Fetch document count
+  useEffect(() => {
+    const fetchDocumentCount = async () => {
+      if (!meeting?.id) return;
+      try {
+        const { count, error } = await supabase
+          .from('meeting_documents')
+          .select('*', { count: 'exact', head: true })
+          .eq('meeting_id', meeting.id);
+
+        if (error) {
+          console.error('Error fetching document count:', error);
+          return;
+        }
+
+        setDocumentCount(count || 0);
+      } catch (error) {
+        console.error('Error fetching document count:', error);
+      }
+    };
+
+    if (isOpen && meeting?.id) {
+      fetchDocumentCount();
+    }
+  }, [isOpen, meeting?.id]);
   const [notesContent, setNotesContent] = useState(notes);
   const [transcript, setTranscript] = useState('');
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
@@ -502,7 +541,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
   // Handle tab change
   const handleTabChange = (value: string) => {
-    setActiveTab(value as 'notes' | 'transcript');
+    setActiveTab(value as 'notes' | 'transcript' | 'actions' | 'ask-ai' | 'audio' | 'documents');
     if (value === 'transcript' && !transcript && !isLoadingTranscript) {
       loadTranscript();
     }
@@ -1070,14 +1109,40 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="mx-6 mt-4 w-fit flex-shrink-0">
+          <TabsList className="mx-6 mt-4 w-fit flex-shrink-0 grid grid-cols-6">
             <TabsTrigger value="notes" className="gap-2">
               <FileText className="h-4 w-4" />
-              Notes
+              <span className="hidden sm:inline">Notes</span>
             </TabsTrigger>
             <TabsTrigger value="transcript" className="gap-2">
               <MessageSquare className="h-4 w-4" />
-              Transcript
+              <span className="hidden sm:inline">Transcript</span>
+            </TabsTrigger>
+            <TabsTrigger value="actions" className="gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Action Items</span>
+              {openItemsCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-6 min-w-6 px-2 text-xs font-medium flex items-center justify-center rounded-full">
+                  {openItemsCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="ask-ai" className="gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Ask AI</span>
+            </TabsTrigger>
+            <TabsTrigger value="audio" className="gap-2">
+              <Headphones className="h-4 w-4" />
+              <span className="hidden sm:inline">Audio Summary</span>
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="gap-2">
+              <FileDown className="h-4 w-4" />
+              <span className="hidden sm:inline">Documents</span>
+              {documentCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
+                  {documentCount}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -1396,6 +1461,69 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                       <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>No transcript available for this meeting.</p>
                     </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Action Items Tab */}
+            <TabsContent value="actions" className="h-full m-0">
+              <ScrollArea className="h-full rounded-lg border bg-card">
+                <div className="p-6">
+                  {meeting && (
+                    <MeetingActionItemsTab
+                      meetingId={meeting.id}
+                      meetingAttendees={attendees.map(a => a.name)}
+                    />
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Ask AI Tab */}
+            <TabsContent value="ask-ai" className="h-full m-0">
+              <ScrollArea className="h-full rounded-lg border bg-card">
+                <div className="p-6">
+                  {meeting && (
+                    <MeetingQAPanel
+                      meetingId={meeting.id}
+                      meetingTitle={meeting.title}
+                    />
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Audio Summary Tab */}
+            <TabsContent value="audio" className="h-full m-0">
+              <ScrollArea className="h-full rounded-lg border bg-card">
+                <div className="p-6">
+                  {meeting && (
+                    <MeetingAudioStudio
+                      meetingId={meeting.id}
+                      meetingTitle={meeting.title}
+                    />
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Documents Tab */}
+            <TabsContent value="documents" className="h-full m-0">
+              <ScrollArea className="h-full rounded-lg border bg-card">
+                <div className="p-6">
+                  {meeting && (
+                    <MeetingDocumentsList
+                      meetingId={meeting.id}
+                      onDocumentRemoved={() => {
+                        // Refresh document count
+                        supabase
+                          .from('meeting_documents')
+                          .select('*', { count: 'exact', head: true })
+                          .eq('meeting_id', meeting.id)
+                          .then(({ count }) => setDocumentCount(count || 0));
+                      }}
+                    />
                   )}
                 </div>
               </ScrollArea>
