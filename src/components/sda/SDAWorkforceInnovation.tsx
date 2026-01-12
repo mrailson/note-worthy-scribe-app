@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, FileText, AlertCircle, Briefcase, Download, ExternalLink, ClipboardCheck, UserCheck } from "lucide-react";
+import { Users, FileText, AlertCircle, Briefcase, Download, ExternalLink, ClipboardCheck, UserCheck, Calendar, Presentation } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
 import { ACPRecruitmentPanel } from "./recruitment/ACPRecruitmentPanel";
 import { GPRecruitmentPanel } from "./recruitment/GPRecruitmentPanel";
+import { LantumOptionsSlideshow, LantumOptionsThumbnail } from "./LantumOptionsSlideshow";
 
 // Proposed job adverts for Programme Board approval
 const proposedJobAdverts = [
@@ -88,8 +90,43 @@ const getTypeColor = (type: string) => {
 };
 
 export const SDAWorkforceInnovation = () => {
+  const [isLantumSlideshowOpen, setIsLantumSlideshowOpen] = useState(false);
+
   return (
     <div className="space-y-6">
+      {/* Lantum Meeting Section - 12th January 2026 */}
+      <CollapsibleCard
+        title="Lantum Meeting - 12th January 2026"
+        icon={<Calendar className="w-5 h-5" />}
+        badge={<Badge className="bg-purple-500">Options Analysis</Badge>}
+        defaultOpen={true}
+      >
+        <div className="space-y-4">
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Presentation className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-purple-800">Workforce Contingency Planning Presentation</p>
+                <p className="text-sm text-purple-700 mt-1">
+                  Board presentation exploring Lantum as a potential contingency option for workforce resilience during the SDA Pilot mobilisation phase.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="max-w-2xl mx-auto">
+            <LantumOptionsThumbnail onClick={() => setIsLantumSlideshowOpen(true)} />
+            <p className="text-center text-sm text-muted-foreground mt-2">
+              Click to view the full options analysis presentation
+            </p>
+          </div>
+        </div>
+      </CollapsibleCard>
+
+      <LantumOptionsSlideshow 
+        isOpen={isLantumSlideshowOpen} 
+        onClose={() => setIsLantumSlideshowOpen(false)} 
+      />
       {/* PRIORITY SECTION: Candidate Assessments */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-2">
