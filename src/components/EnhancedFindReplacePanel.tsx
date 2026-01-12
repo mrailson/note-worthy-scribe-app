@@ -32,11 +32,17 @@ export interface PotentialChange {
 interface EnhancedFindReplacePanelProps {
   getCurrentText: () => string;
   onApply: (updatedText: string) => void;
+  /** Optional: Meeting ID for syncing corrections to backend transcripts */
+  meetingId?: string;
+  /** Optional: Callback to sync corrections to backend transcription tables */
+  onTranscriptSync?: (finds: string[], replaceWith: string) => Promise<void>;
 }
 
 export default function EnhancedFindReplacePanel({ 
   getCurrentText, 
-  onApply 
+  onApply,
+  meetingId,
+  onTranscriptSync
 }: EnhancedFindReplacePanelProps) {
   const { toast } = useToast();
   const [findInput, setFindInput] = useState("");
@@ -159,6 +165,17 @@ export default function EnhancedFindReplacePanel({
     }
 
     onApply(updatedText);
+    
+    // Silently sync corrections to backend transcription tables (non-blocking)
+    if (meetingId && onTranscriptSync && findInput.trim() && replaceWith.trim()) {
+      // Collect unique original texts from selected changes
+      const findTerms = [...new Set(selectedChangesList.map(c => c.originalText))];
+      
+      // Run in background - don't await, don't block UI
+      onTranscriptSync(findTerms, replaceWith.trim())
+        .then(() => console.log('[FindReplace] Backend transcript sync completed'))
+        .catch(err => console.error('[FindReplace] Backend transcript sync failed:', err));
+    }
     
     // Save correction for future if checkbox is ticked
     let savedCorrection = false;

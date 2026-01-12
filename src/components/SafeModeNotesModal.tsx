@@ -68,6 +68,7 @@ import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
 import EditableSection, { Section } from "@/components/scribe/EditableSection";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
+import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
 
 interface Meeting {
   id: string;
@@ -1681,6 +1682,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         setNotesContent(updatedText);
                         persistNotesContent(updatedText);
                       }}
+                      meetingId={meeting?.id}
+                      onTranscriptSync={async (finds, replaceWith) => {
+                        if (meeting?.id) {
+                          await syncTranscriptCorrections(meeting.id, finds, replaceWith);
+                        }
+                      }}
                     />
                   )}
 
@@ -1887,6 +1894,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     <EnhancedFindReplacePanel
                       getCurrentText={() => transcript}
                       onApply={(updatedText) => setTranscript(updatedText)}
+                      meetingId={meeting?.id}
+                      onTranscriptSync={async (finds, replaceWith) => {
+                        if (meeting?.id) {
+                          await syncTranscriptCorrections(meeting.id, finds, replaceWith);
+                        }
+                      }}
                     />
                   )}
 
