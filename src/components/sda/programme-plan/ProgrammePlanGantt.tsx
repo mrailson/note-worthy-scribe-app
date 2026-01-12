@@ -239,7 +239,7 @@ export const ProgrammePlanGantt: React.FC = () => {
   
   const getBarColor = (progress: number) => {
     if (progress === 100) return "bg-[#4EA72E]"; // Vertex green - completed
-    if (progress > 0) return "bg-[#5B9BD5]";     // Soft blue - in progress
+    if (progress > 0) return "bg-[#7B7BC7]";     // Purple - in progress (matches Excel)
     return "bg-[#BDD7EE]";                        // Light blue - not started
   };
   

@@ -8,7 +8,7 @@ export const ProgrammePlanLegend: React.FC = () => {
         <span className="text-muted-foreground">Completed (100%)</span>
       </div>
       <div className="flex items-center gap-2">
-        <div className="w-4 h-3 rounded-sm bg-[#5B9BD5]" />
+        <div className="w-4 h-3 rounded-sm bg-[#7B7BC7]" />
         <span className="text-muted-foreground">In Progress</span>
       </div>
       <div className="flex items-center gap-2">
