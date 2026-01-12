@@ -53,7 +53,7 @@ export const PPGUpdateModal = ({ open, onOpenChange }: PPGUpdateModalProps) => {
             
             <div className="pl-10 space-y-3 text-sm text-slate-700">
               <p>
-                Practice Managers have agreed that <span className="font-medium text-slate-900">Helen Barrett</span> will 
+                Practice Managers have suggested that <span className="font-medium text-slate-900">Helen Barrett</span> will 
                 be asked to facilitate a joint PPG meeting involving PPG representatives from all participating practices.
               </p>
               
@@ -72,7 +72,7 @@ export const PPGUpdateModal = ({ open, onOpenChange }: PPGUpdateModalProps) => {
                   are meeting with Helen to:
                 </p>
                 <ul className="list-disc ml-5 space-y-1 text-blue-800">
-                  <li>Confirm whether she is happy to undertake this facilitation as part of her role within the MRes SDA Pilot</li>
+                  <li>Confirm whether she is happy to undertake this facilitation as part of her role within the NRES SDA Pilot</li>
                   <li>Agree scope, expectations, and practical arrangements for the PPG meeting</li>
                 </ul>
               </div>
