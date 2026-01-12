@@ -402,6 +402,11 @@ export const MeetingHistoryList = ({
         },
         (payload) => {
           console.log('🔔 Meeting updated via realtime:', payload);
+          // Skip refresh if modal is open to prevent closing
+          if (safeModeModalOpenRef.current) {
+            console.log('⏸️ Skipping refresh - SafeModeNotesModal is open');
+            return;
+          }
           // Trigger refresh after a short delay to allow database to settle
           setTimeout(() => {
             onRefresh();
@@ -417,6 +422,7 @@ export const MeetingHistoryList = ({
         },
         (payload) => {
           console.log('🔔 Meeting notes updated via realtime:', payload);
+          if (safeModeModalOpenRef.current) return;
           setTimeout(() => {
             onRefresh();
           }, 500);
@@ -431,6 +437,7 @@ export const MeetingHistoryList = ({
         },
         (payload) => {
           console.log('🔔 Meeting overview updated via realtime:', payload);
+          if (safeModeModalOpenRef.current) return;
           setTimeout(() => {
             onRefresh();
           }, 500);
@@ -464,6 +471,14 @@ export const MeetingHistoryList = ({
   const [safeModeSelectedMeeting, setSafeModeSelectedMeeting] = useState<Meeting | null>(null);
   const [safeModeNotes, setSafeModeNotes] = useState("");
   const isMobile = useIsMobile();
+  
+  // Ref to track modal open state for real-time subscription (must be declared after state)
+  const safeModeModalOpenRef = useRef(false);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    safeModeModalOpenRef.current = safeModeModalOpen;
+  }, [safeModeModalOpen]);
   
   // Add state for signed URLs
   const [audioUrls, setAudioUrls] = useState<Record<string, AudioUrls>>({});
