@@ -53,7 +53,7 @@ export const PPGUpdateModal = ({ open, onOpenChange }: PPGUpdateModalProps) => {
             
             <div className="pl-10 space-y-3 text-sm text-slate-700">
               <p>
-                Practice Managers have agreed that <span className="font-medium text-slate-900">Helen Garrett</span> will 
+                Practice Managers have agreed that <span className="font-medium text-slate-900">Helen Barrett</span> will 
                 be asked to facilitate a joint PPG meeting involving PPG representatives from all participating practices.
               </p>
               
@@ -136,7 +136,7 @@ export const PPGUpdateModal = ({ open, onOpenChange }: PPGUpdateModalProps) => {
                   <Calendar className="h-5 w-5 text-green-700" />
                 </div>
                 <div>
-                  <p className="font-medium text-green-900">Meeting with Helen Garrett</p>
+                  <p className="font-medium text-green-900">Meeting with Helen Barrett</p>
                   <p className="text-green-700">19 January 2026</p>
                 </div>
               </div>
