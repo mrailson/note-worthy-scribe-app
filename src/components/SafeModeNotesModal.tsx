@@ -51,7 +51,7 @@ import {
   ChevronRight,
   User
 } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
+
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { format, addDays, nextFriday, nextMonday } from "date-fns";
@@ -144,7 +144,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [editingActionItem, setEditingActionItem] = useState<{ original: string; text: string } | null>(null);
   const [showCustomOwnerInput, setShowCustomOwnerInput] = useState(false);
   const [customOwner, setCustomOwner] = useState('');
-  const [showCustomDeadlinePicker, setShowCustomDeadlinePicker] = useState(false);
 
   // Convert DB meeting_format to local meetingType
   const mapFormatToType = (format: string | null): 'teams' | 'f2f' | 'hybrid' => {
@@ -955,7 +954,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const updatedContent = updatedLines.join('\n');
     setNotesContent(updatedContent);
     persistNotesContent(updatedContent);
-    setShowCustomDeadlinePicker(false);
     toast.success(`Deadline changed to ${newDeadline}`);
   }, [notesContent, persistNotesContent]);
 
@@ -1109,52 +1107,20 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 {/* Deadline */}
                 <div>
                   <label className="text-xs font-medium text-muted-foreground mb-2 block">Deadline</label>
-                  {!showCustomDeadlinePicker ? (
-                    <div className="space-y-1">
-                      {getDeadlineOptions().map((option) => (
-                        <Button
-                          key={option.label}
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-between text-xs h-7"
-                          onClick={() => actionItem && handleChangeDeadline(actionItem.action, option.value)}
-                        >
-                          <span>{option.label}</span>
-                          <span className="text-muted-foreground">{option.value}</span>
-                        </Button>
-                      ))}
+                  <div className="space-y-1">
+                    {getDeadlineOptions().map((option) => (
                       <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start gap-2 text-xs"
-                        onClick={() => setShowCustomDeadlinePicker(true)}
-                      >
-                        <CalendarDays className="h-3 w-3" />
-                        Pick a date...
-                      </Button>
-                    </div>
-                  ) : (
-                    <div>
-                      <Calendar
-                        mode="single"
-                        selected={undefined}
-                        onSelect={(date) => {
-                          if (date && actionItem) {
-                            handleChangeDeadline(actionItem.action, format(date, 'd MMM yyyy'));
-                          }
-                        }}
-                        className="rounded-md border"
-                      />
-                      <Button
+                        key={option.label}
                         variant="ghost"
                         size="sm"
-                        className="w-full mt-2 text-xs"
-                        onClick={() => setShowCustomDeadlinePicker(false)}
+                        className="w-full justify-between text-xs h-7"
+                        onClick={() => actionItem && handleChangeDeadline(actionItem.action, option.value)}
                       >
-                        Cancel
+                        <span>{option.label}</span>
+                        <span className="text-muted-foreground">{option.value}</span>
                       </Button>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
 
                 <Separator />
@@ -1750,7 +1716,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                 <TableRow>
                                   <TableCell className="font-medium bg-muted/50">
                                     <div className="flex items-center gap-2">
-                                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                                       Date
                                     </div>
                                   </TableCell>
