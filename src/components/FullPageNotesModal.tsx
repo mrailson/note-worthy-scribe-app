@@ -8,7 +8,7 @@ import { useMinutesFormatter } from "@/hooks/useMinutesFormatter";
 import { StyleGalleryContainer } from "@/components/meeting/StyleGallery/StyleGalleryContainer";
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
-import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
+import React, { useState, useEffect, useRef, Suspense, lazy, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -1440,6 +1440,37 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       saveTranscriptToDatabase(content);
     }
   };
+
+  // Apply Find & Replace with immediate visual update for Standard view
+  const applyFindReplaceUpdate = useCallback((updatedText: string) => {
+    if (activeTab === "notes" && activeNotesStyleTab === 'style1' && notesViewMode === 'formatted') {
+      // For Standard view in formatted mode, update content and render HTML synchronously
+      setNotesStyle3(updatedText);
+      saveNoteStyleToDatabase(3, updatedText);
+      
+      // Synchronously render the new HTML to avoid flicker
+      try {
+        const html = renderMinutesMarkdown(updatedText, fontSizeStyle1);
+        setMinutesHtml(html);
+        
+        // Update localStorage cache
+        if (meeting?.id) {
+          const key = `minutes_html_${meeting.id}_${minutesHash(updatedText)}_fs${fontSizeStyle1}`;
+          localStorage.setItem(key, html);
+        }
+      } catch (e) {
+        console.error('Error rendering updated minutes:', e);
+        // Fallback: the useEffect will handle re-rendering
+      }
+    } else {
+      // For other views, use the standard async update
+      setCurrentContent(updatedText);
+    }
+    
+    if (activeTab === "notes") {
+      saveSummaryToDatabase(updatedText);
+    }
+  }, [activeTab, activeNotesStyleTab, notesViewMode, fontSizeStyle1, meeting?.id]);
 
   // Version history management functions
   const saveCurrentVersion = (actionType: string, contentType: 'notes' | 'transcript' = activeTab as 'notes' | 'transcript') => {
@@ -3225,12 +3256,7 @@ ${transcriptToUse}`;
               </div>
               <EnhancedFindReplacePanel
                 getCurrentText={() => getCurrentContent()}
-                onApply={(updatedText) => {
-                  setCurrentContent(updatedText);
-                  if (activeTab === "notes") {
-                    saveSummaryToDatabase(updatedText);
-                  }
-                }}
+                onApply={applyFindReplaceUpdate}
               />
             </div>
           )}
