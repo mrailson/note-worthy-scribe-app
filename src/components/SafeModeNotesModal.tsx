@@ -54,7 +54,7 @@ import { toast } from "sonner";
 import { generateProfessionalWordFromContent, ParsedMeetingDetailsInput, ParsedActionItemInput } from "@/utils/generateProfessionalMeetingDocx";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
 import EditableSection, { Section } from "@/components/scribe/EditableSection";
-import FindReplacePanel from "@/components/FindReplacePanel";
+import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 
 interface Meeting {
@@ -1341,7 +1341,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
                   {/* Find & Replace Panel */}
                   {showNotesFindReplace && notesContent && (
-                    <FindReplacePanel
+                    <EnhancedFindReplacePanel
                       getCurrentText={() => notesContent}
                       onApply={(updatedText) => {
                         setNotesContent(updatedText);
@@ -1550,7 +1550,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
                   {/* Find & Replace Panel */}
                   {showTranscriptFindReplace && transcript && (
-                    <FindReplacePanel
+                    <EnhancedFindReplacePanel
                       getCurrentText={() => transcript}
                       onApply={(updatedText) => setTranscript(updatedText)}
                     />
