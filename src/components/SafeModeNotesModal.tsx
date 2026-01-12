@@ -36,13 +36,15 @@ import {
   CheckCircle2,
   Circle,
   Timer,
-  Users
+  Users,
+  Search
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateProfessionalWordFromContent, ParsedMeetingDetailsInput, ParsedActionItemInput } from "@/utils/generateProfessionalMeetingDocx";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
 import EditableSection, { Section } from "@/components/scribe/EditableSection";
+import FindReplacePanel from "@/components/FindReplacePanel";
 
 interface Meeting {
   id: string;
@@ -78,6 +80,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   // Section-based editing state
   const [sections, setSections] = useState<Section[]>([]);
   const [isSavingSections, setIsSavingSections] = useState(false);
+  const [showTranscriptFindReplace, setShowTranscriptFindReplace] = useState(false);
 
   // Parse notes content into sections
   const parseNotesIntoSections = useCallback((content: string): Section[] => {
@@ -1258,7 +1261,30 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
             <TabsContent value="transcript" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card">
-                <div className="p-6">
+                <div className="p-6 space-y-4">
+                  {/* Find & Replace toggle for transcript */}
+                  {transcript && !isLoadingTranscript && !transcriptError && (
+                    <div className="flex justify-end">
+                      <Button
+                        variant={showTranscriptFindReplace ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setShowTranscriptFindReplace(!showTranscriptFindReplace)}
+                        className="gap-2"
+                      >
+                        <Search className="h-4 w-4" />
+                        Find & Replace
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Find & Replace Panel */}
+                  {showTranscriptFindReplace && transcript && (
+                    <FindReplacePanel
+                      getCurrentText={() => transcript}
+                      onApply={(updatedText) => setTranscript(updatedText)}
+                    />
+                  )}
+
                   {isLoadingTranscript ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
