@@ -123,7 +123,7 @@ export const useMeetingInfographic = () => {
       
       setCurrentPhase('generating');
 
-      // Call the AI image generation edge function
+      // Call the AI image generation edge function with Gemini Pro 3
       const { data: response, error: fnError } = await supabase.functions.invoke('ai4gp-image-generation', {
         body: {
           prompt: `Create a professional, visually appealing meeting summary infographic for: "${data.meetingTitle}". 
@@ -140,6 +140,7 @@ Design requirements:
           conversationContext: '',
           documentContent: documentContent,
           requestType: 'infographic',
+          imageModel: 'google/gemini-3-pro-image-preview',
           practiceContext: {
             brandingLevel: 'none'
           }
@@ -150,14 +151,15 @@ Design requirements:
         throw new Error(fnError.message || 'Failed to generate infographic');
       }
 
-      if (!response?.imageUrl) {
-        throw new Error(response?.error || 'No image generated');
+      // The edge function returns { success, image: { url }, textResponse }
+      const imageUrl = response?.image?.url;
+      if (!imageUrl) {
+        throw new Error(response?.error || response?.textResponse || 'No image generated');
       }
 
       setCurrentPhase('downloading');
 
       // Download the image
-      const imageUrl = response.imageUrl;
       
       // Handle both base64 and URL responses
       let blob: Blob;
