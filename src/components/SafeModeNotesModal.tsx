@@ -893,6 +893,71 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     return result.join('\n');
   };
 
+  // Format transcript into clean paragraphs with proper grammar
+  const formatTranscript = (text: string): string => {
+    if (!text) return '';
+    
+    // Clean up the raw transcript
+    let cleaned = text
+      // Normalize whitespace
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Split into sentences (handle common abbreviations)
+    const sentenceEnders = /([.!?]+)\s+/g;
+    const sentences = cleaned.split(sentenceEnders).filter(s => s.trim());
+    
+    // Rebuild with proper sentence structure
+    const processedSentences: string[] = [];
+    for (let i = 0; i < sentences.length; i++) {
+      let sentence = sentences[i].trim();
+      if (!sentence) continue;
+      
+      // Skip if it's just punctuation
+      if (/^[.!?]+$/.test(sentence)) {
+        if (processedSentences.length > 0) {
+          processedSentences[processedSentences.length - 1] += sentence;
+        }
+        continue;
+      }
+      
+      // Capitalize first letter
+      sentence = sentence.charAt(0).toUpperCase() + sentence.slice(1);
+      
+      // Ensure sentence ends with punctuation
+      if (!/[.!?]$/.test(sentence)) {
+        sentence += '.';
+      }
+      
+      processedSentences.push(sentence);
+    }
+    
+    // Group sentences into paragraphs (roughly 3-5 sentences each)
+    const paragraphs: string[] = [];
+    let currentParagraph: string[] = [];
+    
+    for (const sentence of processedSentences) {
+      currentParagraph.push(sentence);
+      
+      // Create new paragraph after 4-5 sentences or at natural breaks
+      if (currentParagraph.length >= 4 || 
+          (currentParagraph.length >= 3 && /[.!?]$/.test(sentence) && Math.random() > 0.5)) {
+        paragraphs.push(currentParagraph.join(' '));
+        currentParagraph = [];
+      }
+    }
+    
+    // Add remaining sentences as final paragraph
+    if (currentParagraph.length > 0) {
+      paragraphs.push(currentParagraph.join(' '));
+    }
+    
+    // Convert to HTML with proper styling
+    return paragraphs
+      .map(p => `<p class="mb-4 leading-relaxed text-foreground">${p}</p>`)
+      .join('\n');
+  };
+
   const currentContent = activeTab === 'notes' ? notesContent : transcript;
   const isLoading = activeTab === 'notes' ? isLoadingNotes : isLoadingTranscript;
 
@@ -1222,9 +1287,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                       </pre>
                     ) : (
                       <div 
-                        className="prose prose-sm dark:prose-invert max-w-none"
+                        className="prose prose-sm dark:prose-invert max-w-none text-justify"
                         style={{ fontSize: `${fontSize}px` }}
-                        dangerouslySetInnerHTML={{ __html: basicFormat(transcript) }}
+                        dangerouslySetInnerHTML={{ __html: formatTranscript(transcript) }}
                       />
                     )
                   ) : (
