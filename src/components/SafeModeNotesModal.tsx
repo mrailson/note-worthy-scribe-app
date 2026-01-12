@@ -398,17 +398,109 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     return cleaned;
   }, [notesContent]);
 
-  // Simple markdown to HTML converter (basic, fast)
+  // Enhanced markdown to HTML converter with proper list handling
   const basicFormat = (text: string): string => {
     if (!text) return '';
-    return text
-      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
-      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold mt-6 mb-3 text-primary">$1</h2>')
-      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-8 mb-4 text-primary">$1</h1>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/^- (.*$)/gm, '<li class="ml-4">$1</li>')
-      .replace(/\n/g, '<br />');
+    
+    const lines = text.split('\n');
+    const result: string[] = [];
+    let inOrderedList = false;
+    let inUnorderedList = false;
+    
+    const applyInlineFormatting = (content: string): string => {
+      // Escape HTML first
+      let escaped = content
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+      // Apply bold
+      escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
+      // Apply italic (single asterisks not followed by another asterisk)
+      escaped = escaped.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+      return escaped;
+    };
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Check for headers first
+      if (/^### (.*)$/.test(line)) {
+        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        const content = line.replace(/^### (.*)$/, '$1');
+        result.push(`<h3 class="text-base font-semibold mt-5 mb-2 text-foreground">${applyInlineFormatting(content)}</h3>`);
+        continue;
+      }
+      if (/^## (.*)$/.test(line)) {
+        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        const content = line.replace(/^## (.*)$/, '$1');
+        result.push(`<h2 class="text-lg font-semibold mt-6 mb-3 text-primary">${applyInlineFormatting(content)}</h2>`);
+        continue;
+      }
+      if (/^# (.*)$/.test(line)) {
+        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        const content = line.replace(/^# (.*)$/, '$1');
+        result.push(`<h1 class="text-xl font-bold mt-6 mb-4 text-primary">${applyInlineFormatting(content)}</h1>`);
+        continue;
+      }
+      
+      // Check for numbered list items (1. Item, 2. Item, etc.)
+      const numberedMatch = line.match(/^(\d+)\.\s+(.*)$/);
+      if (numberedMatch) {
+        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        if (!inOrderedList) {
+          result.push('<ol class="list-decimal pl-6 space-y-3 my-4 marker:font-semibold marker:text-foreground">');
+          inOrderedList = true;
+        }
+        const content = applyInlineFormatting(numberedMatch[2]);
+        result.push(`<li class="pl-2 leading-relaxed text-muted-foreground">${content}</li>`);
+        continue;
+      }
+      
+      // Check for bullet list items (-, *, •) - not indented
+      const bulletMatch = line.match(/^[-*•]\s+(.*)$/);
+      if (bulletMatch) {
+        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+        if (!inUnorderedList) {
+          result.push('<ul class="list-disc pl-6 space-y-2 my-3 marker:text-muted-foreground">');
+          inUnorderedList = true;
+        }
+        const content = applyInlineFormatting(bulletMatch[1]);
+        result.push(`<li class="leading-relaxed text-muted-foreground">${content}</li>`);
+        continue;
+      }
+      
+      // Check for indented sub-bullets (2+ spaces/tabs followed by -, *, •)
+      const subBulletMatch = line.match(/^(\s{2,}|\t+)[-*•]\s+(.*)$/);
+      if (subBulletMatch) {
+        const content = applyInlineFormatting(subBulletMatch[2]);
+        result.push(`<ul class="list-disc pl-6 mt-1 mb-1 space-y-1"><li class="leading-relaxed text-muted-foreground">${content}</li></ul>`);
+        continue;
+      }
+      
+      // Empty line - close lists and add spacing
+      if (line.trim() === '') {
+        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        result.push('<div class="h-2"></div>');
+        continue;
+      }
+      
+      // Regular paragraph text
+      if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+      if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+      
+      const formatted = applyInlineFormatting(line);
+      result.push(`<p class="my-2 leading-relaxed text-muted-foreground">${formatted}</p>`);
+    }
+    
+    // Close any open lists
+    if (inOrderedList) result.push('</ol>');
+    if (inUnorderedList) result.push('</ul>');
+    
+    return result.join('\n');
   };
 
   const currentContent = activeTab === 'notes' ? notesContent : transcript;
