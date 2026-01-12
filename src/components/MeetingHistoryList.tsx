@@ -88,6 +88,7 @@ import { useRecording } from "@/contexts/RecordingContext";
 import { RecordingWarningBanner } from "@/components/RecordingWarningBanner";
 import { MobileNotesSheet } from "@/components/MobileNotesSheet";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
+import { SafeModeNotesModal } from "@/components/SafeModeNotesModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useMultiTypeNotes } from "@/hooks/useMultiTypeNotes";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
@@ -457,6 +458,11 @@ export const MeetingHistoryList = ({
   const [desktopNotesOpen, setDesktopNotesOpen] = useState(false);
   const [meetingNotes, setMeetingNotes] = useState("");
   const [initialTabForModal, setInitialTabForModal] = useState<'notes' | 'transcript'>('notes');
+  
+  // Safe Mode modal state
+  const [safeModeModalOpen, setSafeModeModalOpen] = useState(false);
+  const [safeModeSelectedMeeting, setSafeModeSelectedMeeting] = useState<Meeting | null>(null);
+  const [safeModeNotes, setSafeModeNotes] = useState("");
   const isMobile = useIsMobile();
   
   // Add state for signed URLs
@@ -684,6 +690,14 @@ export const MeetingHistoryList = ({
     
     // Call the actual handler
     handleViewNotes(meeting);
+  };
+
+  // Handle Safe Mode notes viewing - lightweight modal
+  const handleSafeModeNotesClick = (meeting: Meeting) => {
+    console.log('🛡️ Opening Safe Mode notes for:', meeting.title);
+    setSafeModeNotes(meeting.meeting_summary || '');
+    setSafeModeSelectedMeeting(meeting);
+    setSafeModeModalOpen(true);
   };
 
   // Handle inline title editing
@@ -2666,6 +2680,18 @@ export const MeetingHistoryList = ({
                           Email Meeting Notes
                         </DropdownMenuItem>
 
+                      {/* Safe Mode Notes - Lightweight modal for debugging */}
+                      <DropdownMenuItem 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          handleSafeModeNotesClick(meeting);
+                        }}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Notes (Safe Mode)
+                      </DropdownMenuItem>
+
                       {isMobile ? (
                         <DropdownMenuItem 
                           onSelect={(e) => {
@@ -3046,6 +3072,14 @@ export const MeetingHistoryList = ({
           onNotesChange={setMeetingNotes}
         />
       )}
+
+      {/* Safe Mode Notes Modal - Lightweight alternative */}
+      <SafeModeNotesModal
+        isOpen={safeModeModalOpen}
+        onClose={() => setSafeModeModalOpen(false)}
+        meeting={safeModeSelectedMeeting}
+        notes={safeModeNotes}
+      />
 
       {/* Email Meeting Minutes Modal */}
       <EmailMeetingMinutesModal
