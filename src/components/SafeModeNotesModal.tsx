@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Table,
   TableBody,
@@ -1154,78 +1155,99 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         </DialogHeader>
 
         {/* Toolbar */}
-        <div className="px-6 py-3 border-b flex items-center justify-between gap-4 flex-shrink-0 bg-muted/30">
-          <div className="flex items-center gap-2">
+        <div className="px-6 py-2.5 border-b flex items-center justify-between gap-4 flex-shrink-0 bg-muted/30">
+          <div className="flex items-center gap-1">
             {/* Font size controls */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFontSize(prev => Math.max(10, prev - 2))}
-              disabled={fontSize <= 10}
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <span className="text-sm text-muted-foreground w-12 text-center">{fontSize}px</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFontSize(prev => Math.min(24, prev + 2))}
-              disabled={fontSize >= 24}
-            >
-              <ZoomIn className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setFontSize(prev => Math.max(10, prev - 2))}
+                  disabled={fontSize <= 10}
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Decrease font size</TooltipContent>
+            </Tooltip>
+            <span className="text-xs text-muted-foreground w-10 text-center font-medium">{fontSize}px</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setFontSize(prev => Math.min(24, prev + 2))}
+                  disabled={fontSize >= 24}
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Increase font size</TooltipContent>
+            </Tooltip>
 
             {/* Divider */}
-            <div className="w-px h-6 bg-border mx-2" />
+            <div className="w-px h-5 bg-border mx-1.5" />
 
             {/* View mode toggle */}
-            <Button
-              variant={viewMode === 'plain' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode(viewMode === 'plain' ? 'formatted' : 'plain')}
-              className="gap-2"
-            >
-              {viewMode === 'plain' ? (
-                <>
-                  <ToggleLeft className="h-4 w-4" />
-                  Plain Text
-                </>
-              ) : (
-                <>
-                  <ToggleRight className="h-4 w-4" />
-                  Formatted
-                </>
-              )}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={viewMode === 'formatted' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setViewMode(viewMode === 'plain' ? 'formatted' : 'plain')}
+                >
+                  {viewMode === 'plain' ? (
+                    <ToggleLeft className="h-4 w-4" />
+                  ) : (
+                    <ToggleRight className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{viewMode === 'plain' ? 'Plain Text' : 'Formatted'}</TooltipContent>
+            </Tooltip>
 
             {/* Saving indicator */}
             {isSavingSections && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground ml-2">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground ml-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Saving...
               </div>
             )}
 
             {/* Divider */}
-            <div className="w-px h-6 bg-border mx-2" />
+            <div className="w-px h-5 bg-border mx-1.5" />
 
             {/* Meeting Type Selector */}
-            <span className="text-sm text-muted-foreground">Meeting Type:</span>
             <Select 
               value={meetingType} 
               onValueChange={handleMeetingTypeChange}
               disabled={isSavingMeetingType}
             >
-              <SelectTrigger className="w-[140px] h-8">
-                {isSavingMeetingType ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Saving...</span>
-                  </div>
-                ) : (
-                  <SelectValue />
-                )}
-              </SelectTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SelectTrigger className="w-auto h-8 gap-2 border-0 bg-transparent hover:bg-accent px-2">
+                    {isSavingMeetingType ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : meetingType === 'teams' ? (
+                      <Video className="h-4 w-4" />
+                    ) : meetingType === 'f2f' ? (
+                      <UserCheck className="h-4 w-4" />
+                    ) : (
+                      <div className="flex items-center">
+                        <Video className="h-4 w-4" />
+                        <UserCheck className="h-3.5 w-3.5 -ml-1" />
+                      </div>
+                    )}
+                    <span className="text-sm hidden sm:inline">
+                      {meetingType === 'teams' ? 'Teams' : meetingType === 'f2f' ? 'Face to Face' : 'Hybrid'}
+                    </span>
+                  </SelectTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Meeting Type</TooltipContent>
+              </Tooltip>
               <SelectContent>
                 <SelectItem value="teams">
                   <div className="flex items-center gap-2">
@@ -1249,41 +1271,60 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </SelectContent>
             </Select>
 
+            {/* Divider */}
+            <div className="w-px h-5 bg-border mx-1.5" />
+
             {/* Manage Attendees */}
-            <Button
-              variant={showAttendeeModal ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowAttendeeModal(true)}
-              className="gap-2"
-            >
-              <Users className="h-4 w-4" />
-              Manage Attendees
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={showAttendeeModal ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setShowAttendeeModal(true)}
+                >
+                  <Users className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Manage Attendees</TooltipContent>
+            </Tooltip>
 
             {/* Find & Replace */}
-            <Button
-              variant={showNotesFindReplace ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowNotesFindReplace(!showNotesFindReplace)}
-              className="gap-2"
-            >
-              <Search className="h-4 w-4" />
-              Find & Replace
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={showNotesFindReplace ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setShowNotesFindReplace(!showNotesFindReplace)}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Find & Replace</TooltipContent>
+            </Tooltip>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {/* Copy button */}
-            <Button variant="outline" size="sm" onClick={handleCopy} className="gap-2">
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? 'Copied' : 'Copy'}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleCopy}>
+                  {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{copied ? 'Copied!' : 'Copy to clipboard'}</TooltipContent>
+            </Tooltip>
 
             {/* Download button */}
-            <Button variant="outline" size="sm" onClick={handleDownloadWord} className="gap-2">
-              <Download className="h-4 w-4" />
-              Word
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleDownloadWord}>
+                  <Download className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Download as Word</TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
