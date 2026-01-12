@@ -1117,8 +1117,13 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   // Parse action items from original content (before any stripping)
   const actionItems = parseActionItems(options.content);
   
-  // Remove action items section from content (we'll render it as a table)
-  const contentWithoutActionItems = removeActionItemsSection(cleanedContent);
+// Remove action items section from content (we'll render it as a table)
+  let contentWithoutActionItems = removeActionItemsSection(cleanedContent);
+  
+  // Remove executive summary section from content (we're rendering it separately in the box)
+  if (executiveSummary) {
+    contentWithoutActionItems = removeExecutiveSummarySection(contentWithoutActionItems);
+  }
   
   // Build document
   const now = new Date();
@@ -1198,6 +1203,49 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   const dateStr = now.toLocaleDateString('en-GB').replace(/\//g, '-');
   const filename = options.filename || `${metadata.title.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${dateStr}.docx`;
   saveAs(blob, filename);
+};
+
+// Helper to remove executive summary section from content (since we render it in a separate box)
+const removeExecutiveSummarySection = (content: string): string => {
+  const lines = content.split('\n');
+  const result: string[] = [];
+  let inSummarySection = false;
+  let summaryParagraphFound = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Detect Executive Summary / Overview heading
+    if (/^#{1,3}\s*(executive\s*summary|overview|summary)\s*$/i.test(trimmed)) {
+      inSummarySection = true;
+      summaryParagraphFound = false;
+      continue; // Skip the heading
+    }
+    
+    // If we're in summary section, skip the first paragraph (the summary text)
+    if (inSummarySection && !summaryParagraphFound) {
+      if (trimmed.length > 0 && !trimmed.startsWith('#')) {
+        // This is the summary paragraph - skip it
+        summaryParagraphFound = true;
+        continue;
+      } else if (trimmed.startsWith('#')) {
+        // Hit another heading without finding paragraph
+        inSummarySection = false;
+        result.push(line);
+        continue;
+      }
+    }
+    
+    // Once we've skipped the summary paragraph, exit summary section
+    if (inSummarySection && summaryParagraphFound) {
+      inSummarySection = false;
+    }
+    
+    result.push(line);
+  }
+  
+  return result.join('\n').replace(/\n{3,}/g, '\n\n');
 };
 
 // Helper to remove action items section from content
@@ -1311,8 +1359,13 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
     isCompleted: item.isCompleted,
   }));
   
-  // Remove action items section from content (we'll render it as a table)
-  const contentWithoutActionItems = removeActionItemsSection(cleanedContent);
+// Remove action items section from content (we'll render it as a table)
+  let contentWithoutActionItems = removeActionItemsSection(cleanedContent);
+  
+  // Remove executive summary section from content (we're rendering it separately in the box)
+  if (executiveSummary) {
+    contentWithoutActionItems = removeExecutiveSummarySection(contentWithoutActionItems);
+  }
   
   // Build document
   const now = new Date();
