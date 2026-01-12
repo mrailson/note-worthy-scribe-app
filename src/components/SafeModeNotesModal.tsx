@@ -98,8 +98,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     let currentSection: { heading: string; lines: string[] } | null = null;
     
     for (const line of lines) {
-      // Check for ## heading
-      const headingMatch = line.match(/^##\s+(.+)$/);
+      // Check for # or ## heading (some templates use single #)
+      const headingMatch = line.match(/^#{1,2}\s+(.+)$/);
       if (headingMatch) {
         const heading = headingMatch[1].trim().toUpperCase();
         // Check if this is a known section heading (skip Meeting Details, Attendees, Action Items)
@@ -154,7 +154,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     let skipUntilNextSection = false;
     
     for (const line of lines) {
-      const headingMatch = line.match(/^##\s+(.+)$/);
+      const headingMatch = line.match(/^#{1,2}\s+(.+)$/);
       if (headingMatch) {
         const heading = headingMatch[1].trim().toUpperCase();
         const isEditable = sectionHeadings.some(h => heading.includes(h));
@@ -175,7 +175,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
     
     // Find where to insert sections (after meeting details, before action items)
-    const actionItemsIndex = result.findIndex(l => /##\s*Action\s+Items?/i.test(l));
+    const actionItemsIndex = result.findIndex(l => /^#{1,6}\s*Action\s+Items?/i.test(l));
     const insertIndex = actionItemsIndex > 0 ? actionItemsIndex : result.length;
     
     // Build section content
