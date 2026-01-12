@@ -378,6 +378,7 @@ export const ProgrammePlanGantt: React.FC = () => {
               {flatRows.map((row) => (
                 <ProgrammePlanRow
                   key={row.id}
+                  rowId={row.id}
                   name={row.name}
                   assignedTo={row.assignedTo}
                   progress={row.progress}
