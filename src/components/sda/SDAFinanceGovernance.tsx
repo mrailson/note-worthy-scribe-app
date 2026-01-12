@@ -88,6 +88,7 @@ const practiceInsuranceChecklist = [
   ]},
   { practice: "Springfield Surgery", insurances: [
     { confirmed: true, amount: "£10m", type: "Public" },
+    { confirmed: true, amount: "£10m", type: "Employers" },
     { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
     { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
   ]},
