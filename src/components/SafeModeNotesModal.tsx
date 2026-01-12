@@ -358,7 +358,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       title: cleanTitle,
       date: dateMatch?.[1]?.trim(),
       time: timeMatch?.[1]?.trim(),
-      location: formatFromDb || locationMatch?.[1]?.trim(),
+      location: locationMatch?.[1]?.trim(),
     };
   }, [notesContent, meetingFormat]);
 
