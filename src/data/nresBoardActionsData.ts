@@ -68,7 +68,7 @@ export const actionLogData: ActionLogItem[] = [
     dueDate: "15/01/2026",
     priority: "High",
     status: "Open",
-    notes: "Pending Brook Health Centre confirmation before 15/01/2026 (Pending existing tenant discussion - TBC)"
+    notes: "Pending Brook Health Centre confirmation before 15/01/2026"
   },
   {
     actionId: "007",
