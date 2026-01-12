@@ -87,8 +87,8 @@ export const actionLogData: ActionLogItem[] = [
     owner: "AT",
     dueDate: "31/01/2026",
     priority: "Medium",
-    status: "Open",
-    notes: "Pending final confirmation from 2 member practices (as at 07/01/2026)"
+    status: "Closed",
+    notes: "Completed - All member practices confirmed (12/01/2026)"
   }
 ];
 
