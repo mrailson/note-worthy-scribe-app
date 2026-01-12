@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { 
   X, 
   Copy, 
@@ -20,11 +29,18 @@ import {
   ToggleLeft,
   ToggleRight,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Calendar,
+  Clock,
+  MapPin,
+  CheckCircle2,
+  Circle,
+  Timer
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateProfessionalWordFromContent } from "@/utils/generateProfessionalMeetingDocx";
+import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
 
 interface Meeting {
   id: string;
@@ -87,7 +103,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           .maybeSingle();
 
         if (meetingData?.notes_style_3) {
-          setNotesContent(meetingData.notes_style_3);
+          setNotesContent(sanitiseMeetingNotes(meetingData.notes_style_3));
           setIsLoadingNotes(false);
           return;
         }
@@ -100,7 +116,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           .maybeSingle();
 
         if (summaryData?.summary) {
-          setNotesContent(summaryData.summary);
+          setNotesContent(sanitiseMeetingNotes(summaryData.summary));
         }
       } catch (error) {
         console.error('SafeMode: Error fetching notes:', error);
@@ -193,13 +209,179 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   };
 
+  // Parse meeting details from content
+  const meetingDetails = useMemo(() => {
+    if (!notesContent) return null;
+    
+    const titleMatch = notesContent.match(/Meeting Title[:\s]+(.+?)(?:\n|$)/i);
+    const dateMatch = notesContent.match(/Date[:\s]+(.+?)(?:\n|$)/i);
+    const timeMatch = notesContent.match(/Time[:\s]+(.+?)(?:\n|$)/i);
+    const locationMatch = notesContent.match(/Location[:\s]+(.+?)(?:\n|$)/i);
+    
+    if (!titleMatch && !dateMatch && !timeMatch && !locationMatch) return null;
+    
+    return {
+      title: titleMatch?.[1]?.trim(),
+      date: dateMatch?.[1]?.trim(),
+      time: timeMatch?.[1]?.trim(),
+      location: locationMatch?.[1]?.trim(),
+    };
+  }, [notesContent]);
+
+  // Parse action items from content
+  const actionItems = useMemo(() => {
+    if (!notesContent) return [];
+    
+    const items: Array<{
+      action: string;
+      owner: string;
+      deadline: string;
+      priority: 'High' | 'Medium' | 'Low';
+      status: 'Open' | 'In Progress' | 'Completed';
+      isCompleted: boolean;
+    }> = [];
+    
+    // Match action item patterns
+    const actionPattern = /^[-•*]\s*(?:(~~))?(.+?)(?:\1)?\s*(?:—|–|-)\s*@?(\w+(?:\s+\w+)?)\s*(?:\(([^)]+)\))?\s*(?:\[(\w+)\])?\s*(?:\{(\w+)\})?$/gm;
+    
+    let match;
+    const seenActions = new Set<string>();
+    
+    while ((match = actionPattern.exec(notesContent)) !== null) {
+      const isStrikethrough = !!match[1];
+      const actionText = match[2]?.trim().replace(/~~/g, '');
+      const owner = match[3]?.trim() || 'TBC';
+      const deadline = match[4]?.trim() || 'TBC';
+      const priority = (match[5]?.trim() as 'High' | 'Medium' | 'Low') || 'Medium';
+      const statusText = match[6]?.trim() || (isStrikethrough ? 'Done' : 'Open');
+      
+      // Normalise status
+      let status: 'Open' | 'In Progress' | 'Completed' = 'Open';
+      if (statusText.toLowerCase() === 'done' || statusText.toLowerCase() === 'completed' || isStrikethrough) {
+        status = 'Completed';
+      } else if (statusText.toLowerCase() === 'in progress' || statusText.toLowerCase() === 'active') {
+        status = 'In Progress';
+      }
+      
+      const key = actionText.toLowerCase();
+      if (!seenActions.has(key) && actionText) {
+        seenActions.add(key);
+        items.push({
+          action: actionText,
+          owner,
+          deadline,
+          priority: ['High', 'Medium', 'Low'].includes(priority) ? priority : 'Medium',
+          status,
+          isCompleted: status === 'Completed',
+        });
+      }
+    }
+    
+    // Also check for simpler bullet patterns in action items section
+    const actionSectionMatch = notesContent.match(/##?\s*Action\s+Items?\s*\n([\s\S]*?)(?=\n##|\n#|$)/i);
+    if (actionSectionMatch) {
+      const simplePattern = /^[-•*]\s*(?:(~~))?([^—–\-@\n]+?)(?:\1)?(?:\s*—\s*@?(\w+))?(?:\s*\(([^)]+)\))?(?:\s*\[(\w+)\])?$/gm;
+      
+      let simpleMatch;
+      while ((simpleMatch = simplePattern.exec(actionSectionMatch[1])) !== null) {
+        const isStrikethrough = !!simpleMatch[1];
+        const actionText = simpleMatch[2]?.trim().replace(/~~/g, '');
+        const owner = simpleMatch[3]?.trim() || 'TBC';
+        const deadline = simpleMatch[4]?.trim() || 'TBC';
+        const priority = (simpleMatch[5]?.trim() as 'High' | 'Medium' | 'Low') || 'Medium';
+        
+        const key = actionText.toLowerCase();
+        if (!seenActions.has(key) && actionText && actionText.length > 5) {
+          seenActions.add(key);
+          items.push({
+            action: actionText,
+            owner,
+            deadline,
+            priority: ['High', 'Medium', 'Low'].includes(priority) ? priority : 'Medium',
+            status: isStrikethrough ? 'Completed' : 'Open',
+            isCompleted: isStrikethrough,
+          });
+        }
+      }
+    }
+    
+    return items;
+  }, [notesContent]);
+
+  // Get priority badge styling
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'High':
+        return <Badge className="bg-red-500 hover:bg-red-600 text-white text-xs">High</Badge>;
+      case 'Medium':
+        return <Badge className="bg-amber-500 hover:bg-amber-600 text-white text-xs">Medium</Badge>;
+      case 'Low':
+        return <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">Low</Badge>;
+      default:
+        return <Badge variant="secondary" className="text-xs">{priority}</Badge>;
+    }
+  };
+
+  // Get status badge styling
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Completed':
+        return (
+          <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs gap-1">
+            <CheckCircle2 className="h-3 w-3" />
+            Done
+          </Badge>
+        );
+      case 'In Progress':
+        return (
+          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs gap-1">
+            <Timer className="h-3 w-3" />
+            In Progress
+          </Badge>
+        );
+      case 'Open':
+      default:
+        return (
+          <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 text-xs gap-1">
+            <Circle className="h-3 w-3" />
+            Open
+          </Badge>
+        );
+    }
+  };
+
+  // Remove action items section from formatted content (we'll show it as a table)
+  const contentWithoutActionItems = useMemo(() => {
+    if (!notesContent) return '';
+    
+    // Remove Action Items section and everything after it until next ## heading
+    let cleaned = notesContent;
+    
+    // Remove the action items section (since we display as table)
+    cleaned = cleaned.replace(/##?\s*Action\s+Items?\s*\n[\s\S]*?(?=\n##[^#]|\n#[^#]|$)/gi, '');
+    
+    // Remove Completed section too
+    cleaned = cleaned.replace(/##?\s*Completed\s*(Items?)?\s*\n[\s\S]*?(?=\n##[^#]|\n#[^#]|$)/gi, '');
+    
+    // Remove meeting details lines (we display as a table)
+    cleaned = cleaned.replace(/^[-•*]?\s*Meeting Title[:\s]+.+$/gim, '');
+    cleaned = cleaned.replace(/^[-•*]?\s*Date[:\s]+.+$/gim, '');
+    cleaned = cleaned.replace(/^[-•*]?\s*Time[:\s]+.+$/gim, '');
+    cleaned = cleaned.replace(/^[-•*]?\s*Location[:\s]+.+$/gim, '');
+    
+    // Clean up excessive newlines
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+    
+    return cleaned;
+  }, [notesContent]);
+
   // Simple markdown to HTML converter (basic, fast)
   const basicFormat = (text: string): string => {
     if (!text) return '';
     return text
       .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
-      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold mt-6 mb-3">$1</h2>')
-      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-8 mb-4">$1</h1>')
+      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold mt-6 mb-3 text-primary">$1</h2>')
+      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-8 mb-4 text-primary">$1</h1>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/^- (.*$)/gm, '<li class="ml-4">$1</li>')
@@ -315,27 +497,129 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           <div className="flex-1 min-h-0 px-6 pb-6 pt-4">
             <TabsContent value="notes" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card">
-                <div className="p-6">
+                <div className="p-6 space-y-6">
                   {isLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                       <span className="ml-2 text-muted-foreground">Loading notes...</span>
                     </div>
                   ) : notesContent ? (
-                    viewMode === 'plain' ? (
-                      <pre 
-                        className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
-                        style={{ fontSize: `${fontSize}px` }}
-                      >
-                        {notesContent}
-                      </pre>
-                    ) : (
-                      <div 
-                        className="prose prose-sm dark:prose-invert max-w-none"
-                        style={{ fontSize: `${fontSize}px` }}
-                        dangerouslySetInnerHTML={{ __html: basicFormat(notesContent) }}
-                      />
-                    )
+                    <>
+                      {/* Meeting Details Table */}
+                      {viewMode === 'formatted' && meetingDetails && (
+                        <div className="rounded-lg border overflow-hidden">
+                          <div className="bg-primary px-4 py-2">
+                            <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              Meeting Details
+                            </h3>
+                          </div>
+                          <Table>
+                            <TableBody>
+                              {meetingDetails.title && (
+                                <TableRow>
+                                  <TableCell className="font-medium w-32 bg-muted/50">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="h-4 w-4 text-muted-foreground" />
+                                      Title
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{meetingDetails.title}</TableCell>
+                                </TableRow>
+                              )}
+                              {meetingDetails.date && (
+                                <TableRow>
+                                  <TableCell className="font-medium bg-muted/50">
+                                    <div className="flex items-center gap-2">
+                                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                                      Date
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{meetingDetails.date}</TableCell>
+                                </TableRow>
+                              )}
+                              {meetingDetails.time && (
+                                <TableRow>
+                                  <TableCell className="font-medium bg-muted/50">
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="h-4 w-4 text-muted-foreground" />
+                                      Time
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{meetingDetails.time}</TableCell>
+                                </TableRow>
+                              )}
+                              {meetingDetails.location && (
+                                <TableRow>
+                                  <TableCell className="font-medium bg-muted/50">
+                                    <div className="flex items-center gap-2">
+                                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                                      Location
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{meetingDetails.location}</TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+
+                      {/* Main Content */}
+                      {viewMode === 'plain' ? (
+                        <pre 
+                          className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                          style={{ fontSize: `${fontSize}px` }}
+                        >
+                          {notesContent}
+                        </pre>
+                      ) : (
+                        <div 
+                          className="prose prose-sm dark:prose-invert max-w-none"
+                          style={{ fontSize: `${fontSize}px` }}
+                          dangerouslySetInnerHTML={{ __html: basicFormat(contentWithoutActionItems) }}
+                        />
+                      )}
+
+                      {/* Action Items Table */}
+                      {viewMode === 'formatted' && actionItems.length > 0 && (
+                        <div className="rounded-lg border overflow-hidden">
+                          <div className="bg-primary px-4 py-2">
+                            <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4" />
+                              Action Items ({actionItems.filter(i => !i.isCompleted).length} open, {actionItems.filter(i => i.isCompleted).length} completed)
+                            </h3>
+                          </div>
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-muted/50">
+                                <TableHead className="w-[40%]">Action</TableHead>
+                                <TableHead className="w-[15%]">Owner</TableHead>
+                                <TableHead className="w-[15%]">Deadline</TableHead>
+                                <TableHead className="w-[15%]">Priority</TableHead>
+                                <TableHead className="w-[15%]">Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {actionItems.map((item, index) => (
+                                <TableRow 
+                                  key={index} 
+                                  className={item.isCompleted ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}
+                                >
+                                  <TableCell className={item.isCompleted ? 'line-through text-muted-foreground' : ''}>
+                                    {item.action}
+                                  </TableCell>
+                                  <TableCell className="font-medium">@{item.owner}</TableCell>
+                                  <TableCell>{item.deadline}</TableCell>
+                                  <TableCell>{getPriorityBadge(item.priority)}</TableCell>
+                                  <TableCell>{getStatusBadge(item.status)}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
                       <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
