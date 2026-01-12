@@ -6,7 +6,9 @@ import { ProgrammePlanLegend } from "./ProgrammePlanLegend";
 import { cn } from "@/lib/utils";
 import { format, eachDayOfInterval, isWeekend, startOfWeek, addDays, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, eachMonthOfInterval, eachQuarterOfInterval } from "date-fns";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { CalendarDays, CalendarRange, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CalendarDays, CalendarRange, Calendar, FileSpreadsheet } from "lucide-react";
 
 type TimeView = "weeks" | "months" | "quarters";
 
@@ -293,6 +295,31 @@ export const ProgrammePlanGantt: React.FC = () => {
                 <span className="hidden sm:inline">Quarters</span>
               </ToggleGroupItem>
             </ToggleGroup>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2.5 gap-1.5"
+                    asChild
+                  >
+                    <a 
+                      href="/downloads/Same_Day_Access_Innovator_-_Project_Plan.xlsx" 
+                      download="Same_Day_Access_Innovator_-_Project_Plan.xlsx"
+                    >
+                      <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                      <span className="hidden sm:inline text-xs">Excel</span>
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Download Programme Plan (Excel)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
             <span className="text-sm font-normal text-muted-foreground">
               {sdaProgrammePlan.company}
             </span>
