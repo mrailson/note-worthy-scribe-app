@@ -147,18 +147,31 @@ function generateActionItemsMarkdown(actionItems: ActionItem[]): string {
   const openItems = actionItems.filter(i => i.status !== 'Completed');
   const completedItems = actionItems.filter(i => i.status === 'Completed');
 
+  // Track unique actions to prevent duplicates
+  const seenActions = new Set<string>();
+
   for (const item of openItems) {
+    const actionKey = item.action_text.toLowerCase().trim();
+    if (seenActions.has(actionKey)) continue;
+    seenActions.add(actionKey);
+
     const assignee = item.assignee_name !== 'TBC' ? ` — @${item.assignee_name}` : '';
     const dueDate = item.due_date !== 'TBC' ? ` (${item.due_date})` : '';
-    const priority = item.priority !== 'Medium' ? ` [${item.priority}]` : '';
+    const priority = ` [${item.priority || 'Medium'}]`;
+    const status = ` {Open}`;
     
-    markdown += `- ${item.action_text}${assignee}${dueDate}${priority}\n`;
+    markdown += `- ${item.action_text}${assignee}${dueDate}${priority}${status}\n`;
   }
 
   if (completedItems.length > 0) {
-    markdown += '\n### Completed\n\n';
+    markdown += '\n**Completed Items:**\n\n';
     for (const item of completedItems) {
-      markdown += `- ~~${item.action_text}~~\n`;
+      const actionKey = item.action_text.toLowerCase().trim();
+      if (seenActions.has(actionKey)) continue;
+      seenActions.add(actionKey);
+
+      const assignee = item.assignee_name !== 'TBC' ? ` — @${item.assignee_name}` : '';
+      markdown += `- ~~${item.action_text}~~${assignee} [Completed] {Done}\n`;
     }
   }
 
@@ -171,39 +184,69 @@ function updateActionItemsInSummary(summary: string, newActionItemsSection: stri
   const original = (summary ?? '').toString();
   const lines = original.split(/\r?\n/);
 
+  // Matches "## Action Items" or "# Action Items" (case-insensitive)
   const isActionItemsHeading = (line: string) =>
-    /^#{1,3}\s*action\s+items\s*:?\s*$/i.test(line.trim());
+    /^#{1,3}\s*action\s+items?\s*:?\s*$/i.test(line.trim());
 
-  // Main section headings (## Something) or (# Something) mark the end of the Action Items section.
-  // We intentionally do NOT stop at ### headings, because we generate "### Completed" inside Action Items.
-  const isMainHeading = (line: string) => /^#{1,2}\s+\S/.test(line.trim());
+  // Matches action-related sub-headings that should be skipped during cleanup
+  const isActionRelatedContent = (line: string) => {
+    const trimmed = line.trim().toLowerCase();
+    return (
+      /^#{1,4}\s*(completed|open|pending|in\s*progress)\s*(items?)?\s*:?\s*$/i.test(trimmed) ||
+      /^\*\*completed\s*items?\*\*\s*:?\s*$/i.test(trimmed) ||
+      /^-\s*(~~)?.*?(~~)?\s*(?:—|–|-)\s*@/.test(line) || // Action item bullet
+      /^-\s*\[.*?\]/.test(line) // Checkbox-style action item
+    );
+  };
+
+  // Main section headings that signal END of action items section
+  // Must be ## or # AND not be action-related
+  const isNewMainSection = (line: string) => {
+    const trimmed = line.trim();
+    if (!/^#{1,2}\s+\S/.test(trimmed)) return false;
+    // Exclude action-related headings
+    if (/action\s+items?|completed|open|pending/i.test(trimmed)) return false;
+    return true;
+  };
 
   const out: string[] = [];
   let inserted = false;
+  let skipping = false;
 
   for (let i = 0; i < lines.length; i++) {
-    if (isActionItemsHeading(lines[i])) {
-      // Insert the new section once at the first occurrence and remove ALL existing Action Items sections.
+    const line = lines[i];
+
+    // Start skipping when we hit an Action Items heading
+    if (isActionItemsHeading(line)) {
       if (!inserted) {
+        // Insert the new section once
         if (out.length && out[out.length - 1].trim() !== '') out.push('');
         out.push(...sectionLines);
         out.push('');
         inserted = true;
       }
-
-      // Skip old section body until next main heading (or end).
-      i++;
-      while (i < lines.length && !isMainHeading(lines[i])) {
-        i++;
-      }
-      i--; // compensate for loop increment
+      skipping = true;
       continue;
     }
 
-    out.push(lines[i]);
+    // Stop skipping when we hit a new main section (not action-related)
+    if (skipping && isNewMainSection(line)) {
+      skipping = false;
+    }
+
+    // Skip lines while in skipping mode
+    if (skipping) {
+      continue;
+    }
+
+    out.push(line);
   }
 
-  const cleaned = out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd();
+  // Remove excessive blank lines and clean up
+  let cleaned = out.join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/(\*\*Completed Items:\*\*\s*\n\s*)+/gi, '**Completed Items:**\n') // Dedupe completed headers
+    .trimEnd();
 
   if (!inserted) {
     return cleaned ? `${cleaned}\n\n${newActionItemsSection.trimEnd()}\n` : `${newActionItemsSection.trimEnd()}\n`;

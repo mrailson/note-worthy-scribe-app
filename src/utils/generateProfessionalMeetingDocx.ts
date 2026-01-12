@@ -88,6 +88,96 @@ const stripTranscriptAndDetails = (content: string): string => {
   return cleaned.trim();
 };
 
+// Deduplicate action items in content - critical to prevent repeated sections
+const deduplicateActionItems = (content: string): string => {
+  const lines = content.split('\n');
+  const result: string[] = [];
+  
+  // Track unique action items by normalised text
+  const seenActionItems = new Set<string>();
+  // Track if we've seen "Completed" section header
+  let seenCompletedHeader = false;
+  // Track if we're in an action items section
+  let inActionSection = false;
+  
+  // Helper to normalise action text for deduplication
+  const normaliseAction = (text: string): string => {
+    return text
+      .replace(/^[-•*]\s*/, '')
+      .replace(/~~(.+?)~~/g, '$1')
+      .replace(/\s*—\s*@\w+/g, '')
+      .replace(/\s*\([^)]+\)/g, '')
+      .replace(/\s*\[\w+\]/g, '')
+      .replace(/\s*\{[^}]+\}/g, '')
+      .toLowerCase()
+      .trim();
+  };
+  
+  // Helper to check if line is an action item
+  const isActionItem = (line: string): boolean => {
+    const trimmed = line.trim();
+    return (
+      (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) &&
+      (trimmed.includes('@') || trimmed.includes('[') || trimmed.includes('~~'))
+    );
+  };
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Detect Action Items section
+    if (/^#{1,3}\s*action\s+items?\s*:?\s*$/i.test(trimmed)) {
+      inActionSection = true;
+      result.push(line);
+      continue;
+    }
+    
+    // Detect end of action section (new main heading)
+    if (inActionSection && /^#{1,2}\s+\S/.test(trimmed) && !/action|completed/i.test(trimmed)) {
+      inActionSection = false;
+    }
+    
+    // Handle "Completed" or "Completed Items" headers - only keep first
+    if (/^\*\*completed\s*items?\*\*\s*:?\s*$/i.test(trimmed) || 
+        /^#{1,3}\s*completed\s*(items?)?\s*:?\s*$/i.test(trimmed)) {
+      if (seenCompletedHeader) {
+        // Skip duplicate completed headers and all following action items until next section
+        while (i + 1 < lines.length) {
+          const nextLine = lines[i + 1].trim();
+          if (!nextLine || isActionItem(nextLine)) {
+            i++;
+          } else if (/^\*\*completed/i.test(nextLine) || /^#{1,3}\s*completed/i.test(nextLine)) {
+            i++;
+          } else {
+            break;
+          }
+        }
+        continue;
+      }
+      seenCompletedHeader = true;
+      result.push(line);
+      continue;
+    }
+    
+    // Deduplicate action items
+    if (isActionItem(line)) {
+      const normalised = normaliseAction(line);
+      if (normalised && seenActionItems.has(normalised)) {
+        continue; // Skip duplicate
+      }
+      if (normalised) {
+        seenActionItems.add(normalised);
+      }
+    }
+    
+    result.push(line);
+  }
+  
+  // Clean up excessive blank lines
+  return result.join('\n').replace(/\n{3,}/g, '\n\n');
+};
+
 // Replace Facilitator/Unidentified with user name
 const replaceFacilitatorWithUserName = (content: string, userName?: string): string => {
   if (!userName) return content;
@@ -377,6 +467,282 @@ const createSectionDivider = async () => {
     },
     spacing: { before: 240, after: 240 },
   });
+};
+
+// Parse action items from content and create professional table
+interface ParsedActionItem {
+  action: string;
+  owner: string;
+  deadline: string;
+  priority: string;
+  status: string;
+  isCompleted: boolean;
+}
+
+const parseActionItems = (content: string): ParsedActionItem[] => {
+  const items: ParsedActionItem[] = [];
+  const seenActions = new Set<string>();
+  
+  // Find all action item lines in the content
+  const lines = content.split('\n');
+  let inActionSection = false;
+  let inCompletedSection = false;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Detect sections
+    if (/^#{1,3}\s*action\s+items?\s*:?\s*$/i.test(trimmed)) {
+      inActionSection = true;
+      inCompletedSection = false;
+      continue;
+    }
+    if (/^\*\*completed\s*items?\*\*\s*:?\s*$/i.test(trimmed) || 
+        /^#{1,3}\s*completed\s*(items?)?\s*:?\s*$/i.test(trimmed)) {
+      inCompletedSection = true;
+      continue;
+    }
+    if (/^#{1,2}\s+\S/.test(trimmed) && !/action|completed/i.test(trimmed)) {
+      inActionSection = false;
+      inCompletedSection = false;
+      continue;
+    }
+    
+    if (!inActionSection && !inCompletedSection) continue;
+    if (!trimmed.startsWith('-') && !trimmed.startsWith('•') && !trimmed.startsWith('*')) continue;
+    
+    // Parse action item line
+    let actionText = trimmed.replace(/^[-•*]\s*/, '');
+    const isCompleted = actionText.startsWith('~~') || inCompletedSection;
+    
+    // Remove strikethrough markers
+    actionText = actionText.replace(/~~(.+?)~~/g, '$1');
+    
+    // Extract components using regex
+    // Pattern: Action text — @Owner (Deadline) [Priority] {Status}
+    let owner = 'TBC';
+    let deadline = 'TBC';
+    let priority = 'Medium';
+    let status = isCompleted ? 'Done' : 'Open';
+    
+    // Extract owner (@Name)
+    const ownerMatch = actionText.match(/\s*(?:—|–|-)\s*@(\w+)/);
+    if (ownerMatch) {
+      owner = ownerMatch[1];
+      actionText = actionText.replace(ownerMatch[0], '');
+    }
+    
+    // Extract deadline (date in parentheses)
+    const deadlineMatch = actionText.match(/\s*\(([^)]+)\)/);
+    if (deadlineMatch) {
+      deadline = deadlineMatch[1];
+      actionText = actionText.replace(deadlineMatch[0], '');
+    }
+    
+    // Extract priority [High/Medium/Low]
+    const priorityMatch = actionText.match(/\s*\[(High|Medium|Low|Urgent)\]/i);
+    if (priorityMatch) {
+      priority = priorityMatch[1];
+      actionText = actionText.replace(priorityMatch[0], '');
+    }
+    
+    // Extract status {Open/Done/In Progress}
+    const statusMatch = actionText.match(/\s*\{([^}]+)\}/);
+    if (statusMatch) {
+      status = statusMatch[1];
+      actionText = actionText.replace(statusMatch[0], '');
+    }
+    
+    // Normalise for deduplication
+    const normalised = actionText.toLowerCase().trim();
+    if (seenActions.has(normalised)) continue;
+    seenActions.add(normalised);
+    
+    items.push({
+      action: actionText.trim(),
+      owner,
+      deadline,
+      priority: priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase(),
+      status,
+      isCompleted,
+    });
+  }
+  
+  // Sort: open items first, then completed
+  return items.sort((a, b) => {
+    if (a.isCompleted && !b.isCompleted) return 1;
+    if (!a.isCompleted && b.isCompleted) return -1;
+    return 0;
+  });
+};
+
+// Create action items table
+const createActionItemsTable = async (items: ParsedActionItem[]) => {
+  const { Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } = await import("docx");
+  
+  if (items.length === 0) {
+    return [new Paragraph({
+      children: [new TextRun({
+        text: "No action items recorded for this meeting.",
+        size: FONTS.size.body,
+        color: NHS_COLORS.textGrey,
+        font: FONTS.default,
+        italics: true,
+      })],
+      spacing: { after: 240 },
+    })];
+  }
+  
+  // Priority colour helper
+  const getPriorityStyle = (priority: string) => {
+    const p = priority.toLowerCase();
+    if (p === 'high' || p === 'urgent') return { color: NHS_COLORS.priorityHigh, bg: NHS_COLORS.priorityHighBg };
+    if (p === 'low') return { color: NHS_COLORS.priorityLow, bg: NHS_COLORS.priorityLowBg };
+    return { color: NHS_COLORS.priorityMedium, bg: NHS_COLORS.priorityMediumBg }; // Default medium
+  };
+  
+  // Status symbol helper
+  const getStatusDisplay = (status: string, isCompleted: boolean) => {
+    const lower = status.toLowerCase();
+    if (isCompleted || lower.includes('done') || lower.includes('complete')) {
+      return { text: '✓ Done', color: NHS_COLORS.priorityLow };
+    }
+    if (lower.includes('progress') || lower.includes('ongoing') || lower.includes('active')) {
+      return { text: '◐ In Progress', color: NHS_COLORS.priorityMedium };
+    }
+    return { text: '○ Open', color: NHS_COLORS.textGrey };
+  };
+  
+  // Column widths
+  const columnWidths = [38, 14, 16, 12, 20]; // Action, Owner, Deadline, Priority, Status
+  
+  const headerCells = ['Action', 'Owner', 'Deadline', 'Priority', 'Status'];
+  
+  const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    columnWidths: columnWidths.map(w => Math.round((w / 100) * 9638)),
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 8, color: NHS_COLORS.headingBlue },
+      bottom: { style: BorderStyle.SINGLE, size: 8, color: NHS_COLORS.headingBlue },
+      left: { style: BorderStyle.SINGLE, size: 8, color: NHS_COLORS.headingBlue },
+      right: { style: BorderStyle.SINGLE, size: 8, color: NHS_COLORS.headingBlue },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: "E2E8F0" },
+      insideVertical: { style: BorderStyle.SINGLE, size: 4, color: "E2E8F0" },
+    },
+    rows: [
+      // Header row
+      new TableRow({
+        tableHeader: true,
+        children: headerCells.map((cell, colIndex) => 
+          new TableCell({
+            children: [new Paragraph({
+              children: [new TextRun({ 
+                text: cell, 
+                bold: true, 
+                size: FONTS.size.body,
+                color: NHS_COLORS.tableHeaderText,
+                font: FONTS.default,
+              })],
+              spacing: { before: 80, after: 80 },
+            })],
+            shading: { fill: NHS_COLORS.tableHeaderBg },
+            width: { size: columnWidths[colIndex], type: WidthType.PERCENTAGE },
+            margins: { top: 100, bottom: 100, left: 120, right: 120 },
+          })
+        ),
+      }),
+      // Data rows
+      ...items.map((item, rowIndex) => {
+        const priorityStyle = getPriorityStyle(item.priority);
+        const statusDisplay = getStatusDisplay(item.status, item.isCompleted);
+        const rowBg = rowIndex % 2 === 0 ? undefined : "F8FAFC";
+        
+        return new TableRow({
+          children: [
+            // Action column
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ 
+                  text: item.action,
+                  size: FONTS.size.body,
+                  color: item.isCompleted ? NHS_COLORS.textLightGrey : NHS_COLORS.textGrey,
+                  font: FONTS.default,
+                  strike: item.isCompleted,
+                })],
+                spacing: { before: 60, after: 60 },
+              })],
+              shading: rowBg ? { fill: rowBg } : undefined,
+              margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            }),
+            // Owner column
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ 
+                  text: `@${item.owner}`,
+                  size: FONTS.size.body,
+                  color: NHS_COLORS.headingBlue,
+                  font: FONTS.default,
+                  bold: true,
+                })],
+                spacing: { before: 60, after: 60 },
+              })],
+              shading: rowBg ? { fill: rowBg } : undefined,
+              margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            }),
+            // Deadline column
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ 
+                  text: item.deadline,
+                  size: FONTS.size.body,
+                  color: NHS_COLORS.textGrey,
+                  font: FONTS.default,
+                })],
+                spacing: { before: 60, after: 60 },
+              })],
+              shading: rowBg ? { fill: rowBg } : undefined,
+              margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            }),
+            // Priority column
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ 
+                  text: item.priority.toUpperCase(),
+                  size: FONTS.size.small,
+                  color: priorityStyle.color,
+                  font: FONTS.default,
+                  bold: true,
+                })],
+                spacing: { before: 60, after: 60 },
+              })],
+              shading: { fill: priorityStyle.bg },
+              margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            }),
+            // Status column
+            new TableCell({
+              children: [new Paragraph({
+                children: [new TextRun({ 
+                  text: statusDisplay.text,
+                  size: FONTS.size.body,
+                  color: statusDisplay.color,
+                  font: FONTS.default,
+                  bold: item.isCompleted,
+                })],
+                spacing: { before: 60, after: 60 },
+              })],
+              shading: rowBg ? { fill: rowBg } : undefined,
+              margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            }),
+          ],
+        });
+      }),
+    ],
+  });
+  
+  return [
+    table,
+    new Paragraph({ children: [], spacing: { after: 240 } }),
+  ];
 };
 
 // Parse content and convert to docx elements
@@ -730,10 +1096,11 @@ const createFooter = async (classification?: string) => {
 
 // Main export function
 export const generateProfessionalMeetingDocx = async (options: GenerateProfessionalMeetingOptions): Promise<void> => {
-  const { Document, Packer } = await import("docx");
+  const { Document, Packer, Paragraph, TextRun } = await import("docx");
   
-  // Clean content
+  // Clean and deduplicate content
   let cleanedContent = stripTranscriptAndDetails(options.content);
+  cleanedContent = deduplicateActionItems(cleanedContent);
   cleanedContent = replaceFacilitatorWithUserName(cleanedContent, options.metadata.loggedUserName);
   
   // Extract details from content if not provided
@@ -746,6 +1113,12 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   
   // Extract executive summary
   const executiveSummary = extractExecutiveSummary(options.content);
+  
+  // Parse action items from original content (before any stripping)
+  const actionItems = parseActionItems(options.content);
+  
+  // Remove action items section from content (we'll render it as a table)
+  const contentWithoutActionItems = removeActionItemsSection(cleanedContent);
   
   // Build document
   const now = new Date();
@@ -768,9 +1141,29 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
     children.push(...summaryElements);
   }
   
-  // Main content
-  const contentElements = await parseContentToDocxElements(cleanedContent);
+  // Main content (without action items)
+  const contentElements = await parseContentToDocxElements(contentWithoutActionItems);
   children.push(...contentElements);
+  
+  // Action Items section as professional table
+  if (actionItems.length > 0) {
+    // Add section divider and heading
+    children.push(await createSectionDivider());
+    children.push(new Paragraph({
+      children: [new TextRun({ 
+        text: "ACTION ITEMS",
+        bold: true,
+        size: FONTS.size.heading2,
+        color: NHS_COLORS.headingBlue,
+        font: FONTS.default,
+      })],
+      spacing: { before: 0, after: 180 },
+    }));
+    
+    // Add the action items table
+    const actionTableElements = await createActionItemsTable(actionItems);
+    children.push(...actionTableElements);
+  }
   
   // Create footer
   const footer = await createFooter(metadata.classification);
@@ -805,6 +1198,37 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
   const dateStr = now.toLocaleDateString('en-GB').replace(/\//g, '-');
   const filename = options.filename || `${metadata.title.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_${dateStr}.docx`;
   saveAs(blob, filename);
+};
+
+// Helper to remove action items section from content
+const removeActionItemsSection = (content: string): string => {
+  const lines = content.split('\n');
+  const result: string[] = [];
+  let inActionSection = false;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Detect Action Items section
+    if (/^#{1,3}\s*action\s+items?\s*:?\s*$/i.test(trimmed)) {
+      inActionSection = true;
+      continue;
+    }
+    
+    // Detect end of action section (new main heading that's not action-related)
+    if (inActionSection && /^#{1,2}\s+\S/.test(trimmed) && !/action|completed/i.test(trimmed)) {
+      inActionSection = false;
+    }
+    
+    // Skip lines in action section
+    if (inActionSection) {
+      continue;
+    }
+    
+    result.push(line);
+  }
+  
+  return result.join('\n').replace(/\n{3,}/g, '\n\n');
 };
 
 // Simple wrapper for SafeModeNotesModal
