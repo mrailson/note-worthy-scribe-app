@@ -42,6 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateProfessionalWordFromContent } from "@/utils/generateProfessionalMeetingDocx";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
+import EditableSection, { Section } from "@/components/scribe/EditableSection";
 
 interface Meeting {
   id: string;
@@ -73,6 +74,118 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [fontSize, setFontSize] = useState(14);
   const [copied, setCopied] = useState(false);
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+  
+  // Section-based editing state
+  const [sections, setSections] = useState<Section[]>([]);
+  const [isSavingSections, setIsSavingSections] = useState(false);
+
+  // Parse notes content into sections
+  const parseNotesIntoSections = useCallback((content: string): Section[] => {
+    if (!content) return [];
+    
+    const sectionHeadings = [
+      'EXECUTIVE SUMMARY',
+      'DISCUSSION SUMMARY',
+      'KEY DECISIONS',
+      'KEY POINTS',
+      'NEXT STEPS',
+      'NOTES',
+      'ADDITIONAL NOTES',
+    ];
+    
+    const result: Section[] = [];
+    const lines = content.split('\n');
+    let currentSection: { heading: string; lines: string[] } | null = null;
+    
+    for (const line of lines) {
+      // Check for ## heading
+      const headingMatch = line.match(/^##\s+(.+)$/);
+      if (headingMatch) {
+        const heading = headingMatch[1].trim().toUpperCase();
+        // Check if this is a known section heading (skip Meeting Details, Attendees, Action Items)
+        if (sectionHeadings.some(h => heading.includes(h))) {
+          if (currentSection) {
+            result.push({
+              id: crypto.randomUUID(),
+              heading: currentSection.heading,
+              content: currentSection.lines.join('\n').trim(),
+              originalIndex: result.length
+            });
+          }
+          currentSection = { heading: headingMatch[1].trim(), lines: [] };
+          continue;
+        }
+      }
+      
+      if (currentSection) {
+        currentSection.lines.push(line);
+      }
+    }
+    
+    // Push last section
+    if (currentSection) {
+      result.push({
+        id: crypto.randomUUID(),
+        heading: currentSection.heading,
+        content: currentSection.lines.join('\n').trim(),
+        originalIndex: result.length
+      });
+    }
+    
+    return result;
+  }, []);
+
+  // Rebuild notes content from sections
+  const rebuildNotesFromSections = useCallback((updatedSections: Section[], originalContent: string): string => {
+    // Keep everything before the first editable section and after the last one
+    const sectionHeadings = [
+      'EXECUTIVE SUMMARY',
+      'DISCUSSION SUMMARY',
+      'KEY DECISIONS',
+      'KEY POINTS',
+      'NEXT STEPS',
+      'NOTES',
+      'ADDITIONAL NOTES',
+    ];
+    
+    const lines = originalContent.split('\n');
+    const result: string[] = [];
+    let inEditableSection = false;
+    let skipUntilNextSection = false;
+    
+    for (const line of lines) {
+      const headingMatch = line.match(/^##\s+(.+)$/);
+      if (headingMatch) {
+        const heading = headingMatch[1].trim().toUpperCase();
+        const isEditable = sectionHeadings.some(h => heading.includes(h));
+        
+        if (isEditable) {
+          inEditableSection = true;
+          skipUntilNextSection = true;
+          continue;
+        } else {
+          inEditableSection = false;
+          skipUntilNextSection = false;
+        }
+      }
+      
+      if (!skipUntilNextSection) {
+        result.push(line);
+      }
+    }
+    
+    // Find where to insert sections (after meeting details, before action items)
+    const actionItemsIndex = result.findIndex(l => /##\s*Action\s+Items?/i.test(l));
+    const insertIndex = actionItemsIndex > 0 ? actionItemsIndex : result.length;
+    
+    // Build section content
+    const sectionContent = updatedSections.map(s => `## ${s.heading}\n\n${s.content}`).join('\n\n');
+    
+    // Insert sections
+    result.splice(insertIndex, 0, sectionContent);
+    
+    return result.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }, []);
 
   // Reset state when modal opens with new meeting
   useEffect(() => {
@@ -87,8 +200,19 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       setCopied(false);
       setAttendees([]);
       setMeetingFormat(null);
+      setIsSavingSections(false);
     }
   }, [isOpen, meeting?.id, notes]);
+
+  // Parse sections whenever notesContent changes
+  useEffect(() => {
+    if (notesContent) {
+      const parsed = parseNotesIntoSections(notesContent);
+      setSections(parsed);
+    } else {
+      setSections([]);
+    }
+  }, [notesContent, parseNotesIntoSections]);
 
   // Store meeting format from database
   const [meetingFormat, setMeetingFormat] = useState<string | null>(null);
@@ -249,6 +373,68 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       toast.error('Failed to download');
     }
   };
+
+  // Section editing handlers
+  const handleSectionContentChange = useCallback((sectionId: string, newContent: string) => {
+    setSections(prev => prev.map(s => 
+      s.id === sectionId ? { ...s, content: newContent } : s
+    ));
+  }, []);
+
+  const handleSectionDelete = useCallback((sectionId: string) => {
+    setSections(prev => {
+      const updated = prev.filter(s => s.id !== sectionId);
+      // Persist after delete
+      persistSectionsToDb(updated);
+      return updated;
+    });
+  }, []);
+
+  const handleSectionMoveUp = useCallback((sectionId: string) => {
+    setSections(prev => {
+      const idx = prev.findIndex(s => s.id === sectionId);
+      if (idx <= 0) return prev;
+      const updated = [...prev];
+      [updated[idx - 1], updated[idx]] = [updated[idx], updated[idx - 1]];
+      return updated;
+    });
+  }, []);
+
+  const handleSectionMoveDown = useCallback((sectionId: string) => {
+    setSections(prev => {
+      const idx = prev.findIndex(s => s.id === sectionId);
+      if (idx < 0 || idx >= prev.length - 1) return prev;
+      const updated = [...prev];
+      [updated[idx], updated[idx + 1]] = [updated[idx + 1], updated[idx]];
+      return updated;
+    });
+  }, []);
+
+  const persistSectionsToDb = useCallback(async (sectionsToSave?: Section[]) => {
+    if (!meeting?.id) return;
+    
+    setIsSavingSections(true);
+    try {
+      const currentSections = sectionsToSave || sections;
+      const updatedContent = rebuildNotesFromSections(currentSections, notesContent);
+      
+      const response = await supabase.functions.invoke('persist-standard-minutes', {
+        body: { meetingId: meeting.id, content: updatedContent }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to save');
+      }
+
+      setNotesContent(updatedContent);
+      toast.success('Notes saved');
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Failed to save notes');
+    } finally {
+      setIsSavingSections(false);
+    }
+  }, [meeting?.id, sections, notesContent, rebuildNotesFromSections]);
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -691,6 +877,14 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 </>
               )}
             </Button>
+
+            {/* Saving indicator */}
+            {isSavingSections && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground ml-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Saving...
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -829,6 +1023,26 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         >
                           {notesContent}
                         </pre>
+                      ) : sections.length > 0 ? (
+                        <div className="space-y-4">
+                          {sections.map((section, index) => (
+                            <EditableSection
+                              key={section.id}
+                              section={section}
+                              isFirst={index === 0}
+                              isLast={index === sections.length - 1}
+                              viewMode={viewMode}
+                              fontSize={fontSize}
+                              formatContent={basicFormat}
+                              onContentChange={handleSectionContentChange}
+                              onDelete={handleSectionDelete}
+                              onMoveUp={handleSectionMoveUp}
+                              onMoveDown={handleSectionMoveDown}
+                              isSaving={isSavingSections}
+                              onSave={persistSectionsToDb}
+                            />
+                          ))}
+                        </div>
                       ) : (
                         <div 
                           className="prose prose-sm dark:prose-invert max-w-none"
