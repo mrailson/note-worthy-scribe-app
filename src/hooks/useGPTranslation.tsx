@@ -501,6 +501,17 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
       return;
     }
 
+    // Stop any currently playing audio before starting new playback
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    if (audioObjectUrlRef.current) {
+      URL.revokeObjectURL(audioObjectUrlRef.current);
+      audioObjectUrlRef.current = null;
+    }
+    audioQueueRef.current = [];
+
     try {
       setIsSpeaking(true);
       const audioContent = await generateSpeech(text, languageCode);
