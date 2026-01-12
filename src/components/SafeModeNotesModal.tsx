@@ -81,6 +81,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [sections, setSections] = useState<Section[]>([]);
   const [isSavingSections, setIsSavingSections] = useState(false);
   const [showTranscriptFindReplace, setShowTranscriptFindReplace] = useState(false);
+  const [showNotesFindReplace, setShowNotesFindReplace] = useState(false);
 
   // Parse notes content into sections
   const parseNotesIntoSections = useCallback((content: string): Section[] => {
@@ -1079,6 +1080,29 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <TabsContent value="notes" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card">
                 <div className="p-6 space-y-6">
+                  {/* Find & Replace toggle for notes */}
+                  {notesContent && !isLoading && (
+                    <div className="flex justify-end">
+                      <Button
+                        variant={showNotesFindReplace ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setShowNotesFindReplace(!showNotesFindReplace)}
+                        className="gap-2"
+                      >
+                        <Search className="h-4 w-4" />
+                        Find & Replace
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Find & Replace Panel */}
+                  {showNotesFindReplace && notesContent && (
+                    <FindReplacePanel
+                      getCurrentText={() => notesContent}
+                      onApply={(updatedText) => setNotesContent(updatedText)}
+                    />
+                  )}
+
                   {isLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
