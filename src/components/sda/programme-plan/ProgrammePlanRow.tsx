@@ -3,16 +3,17 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 // Excel-matched section colours
-const sectionColorMap: Record<string, string> = {
-  "discovery-setup": "bg-[#4472C4]",
-  "estates-digital": "bg-[#4472C4]",
-  "appointments": "bg-[#4472C4]",
-  "recruitment": "bg-[#4472C4]",
-  "financial-governance": "bg-[#ED7D31]",
-  "contract-variation": "bg-[#C9A86C]",
-  "risk-governance": "bg-[#A9D18E]",
-  "communication": "bg-[#70AD47]",
-  "innovation": "bg-[#548235]",
+const sectionColorMap: Record<string, { bg: string; text: string }> = {
+  "discovery-setup": { bg: "bg-[#BDD7EE]", text: "text-foreground" },
+  "key-components": { bg: "bg-[#FFE699]", text: "text-foreground" },
+  "estates-digital": { bg: "bg-[#F8CBAD]", text: "text-foreground" },
+  "appointments": { bg: "bg-[#F8CBAD]", text: "text-foreground" },
+  "recruitment": { bg: "bg-[#F8CBAD]", text: "text-foreground" },
+  "financial-governance": { bg: "bg-[#ED7D31]", text: "text-white" },
+  "contract-variation": { bg: "bg-[#C9A86C]", text: "text-white" },
+  "risk-governance": { bg: "bg-[#A9D18E]", text: "text-foreground" },
+  "communication": { bg: "bg-[#70AD47]", text: "text-white" },
+  "innovation": { bg: "bg-[#548235]", text: "text-white" },
 };
 
 interface ProgrammePlanRowProps {
@@ -56,22 +57,23 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
 
   // Get section-specific colour or default
   const getSectionBg = () => {
-    if (level === "task") return "bg-background";
+    if (level === "task") return { bg: "bg-background", text: "text-foreground" };
     if (rowId && sectionColorMap[rowId]) {
-      return `${sectionColorMap[rowId]} text-white`;
+      return sectionColorMap[rowId];
     }
-    // Default blue for phases
-    return "bg-[#4472C4] text-white";
+    // Default light blue for phases
+    return { bg: "bg-[#BDD7EE]", text: "text-foreground" };
   };
 
-  const bgClass = getSectionBg();
+  const sectionStyle = getSectionBg();
 
   return (
     <div
       className={cn(
         "flex items-center border-b border-border/50",
         heightClass,
-        bgClass,
+        sectionStyle.bg,
+        sectionStyle.text,
         indentClass
       )}
     >
@@ -80,13 +82,13 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
           onClick={onToggle}
           className={cn(
             "mr-1 p-0.5 rounded",
-            level === "task" ? "hover:bg-muted" : "hover:bg-white/20"
+            level === "task" ? "hover:bg-muted" : "hover:bg-black/10"
           )}
         >
           {isExpanded ? (
-            <ChevronDown className={cn("h-3.5 w-3.5", level === "task" ? "text-muted-foreground" : "text-white/80")} />
+            <ChevronDown className="h-3.5 w-3.5 opacity-80" />
           ) : (
-            <ChevronRight className={cn("h-3.5 w-3.5", level === "task" ? "text-muted-foreground" : "text-white/80")} />
+            <ChevronRight className="h-3.5 w-3.5 opacity-80" />
           )}
         </button>
       ) : (
@@ -103,8 +105,7 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
       </div>
       
       <div className={cn(
-        "w-12 text-right pr-2 text-xs",
-        level === "task" ? "text-muted-foreground" : "text-white/80"
+        "w-12 text-right pr-2 text-xs opacity-80"
       )}>
         {progress}%
       </div>
