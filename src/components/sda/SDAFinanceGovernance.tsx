@@ -87,7 +87,7 @@ const practiceInsuranceChecklist = [
     { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
   ]},
   { practice: "Springfield Surgery", insurances: [
-    { confirmed: true, amount: "£5m", type: "Public" },
+    { confirmed: true, amount: "£10m", type: "Public" },
     { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
     { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
   ]},
@@ -97,7 +97,12 @@ const practiceInsuranceChecklist = [
     { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
     { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
   ]},
-  { practice: "The Parks Medical Practice", insurances: [{ confirmed: false, amount: "Pending", type: "Public" }] },
+  { practice: "The Parks Medical Practice", insurances: [
+    { confirmed: true, amount: "£10m", type: "Public" },
+    { confirmed: true, amount: "£10m", type: "Employers" },
+    { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+    { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+  ]},
   { practice: "Bugbrooke Medical Practice", insurances: [
     { confirmed: true, amount: "£5m", type: "Public" },
     { confirmed: true, amount: "£5m", type: "Employers" },
