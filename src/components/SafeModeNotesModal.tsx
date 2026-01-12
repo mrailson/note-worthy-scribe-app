@@ -36,12 +36,15 @@ import {
   CheckCircle2,
   Circle,
   Timer,
-  Users
+  Users,
+  Pencil,
+  Save
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateProfessionalWordFromContent } from "@/utils/generateProfessionalMeetingDocx";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
+import RichTextEditor from "@/components/RichTextEditor";
 
 interface Meeting {
   id: string;
@@ -73,6 +76,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [fontSize, setFontSize] = useState(14);
   const [copied, setCopied] = useState(false);
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+  
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingContent, setEditingContent] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Reset state when modal opens with new meeting
   useEffect(() => {
@@ -86,6 +94,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       setCopied(false);
       setAttendees([]);
       setMeetingFormat(null);
+      // Reset edit mode
+      setIsEditing(false);
+      setEditingContent('');
+      setIsSaving(false);
     }
   }, [isOpen, meeting?.id, notes]);
 
@@ -221,14 +233,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   }, [meeting?.id, transcript, isLoadingTranscript]);
 
-  // Handle tab change - load transcript on demand
-  const handleTabChange = (value: string) => {
-    setActiveTab(value as 'notes' | 'transcript');
-    if (value === 'transcript' && !transcript && !isLoadingTranscript) {
-      loadTranscript();
-    }
-  };
-
   // Copy to clipboard
   const handleCopy = async () => {
     const content = activeTab === 'notes' ? notesContent : transcript;
@@ -257,7 +261,81 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   };
 
-  // Parse meeting details from content
+  // Edit mode handlers
+  const handleStartEdit = () => {
+    // Convert plain text to basic HTML for the editor
+    const htmlContent = notesContent
+      .split('\n')
+      .map(line => line.trim() ? `<p>${line}</p>` : '<p><br></p>')
+      .join('');
+    setEditingContent(htmlContent);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditingContent('');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!meeting?.id) {
+      toast.error('No meeting ID available');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const response = await supabase.functions.invoke('persist-standard-minutes', {
+        body: { meetingId: meeting.id, content: editingContent }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to save');
+      }
+
+      // Update local state with saved content
+      // Convert HTML back to plain text for display
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = editingContent;
+      const plainText = tempDiv.innerText || tempDiv.textContent || '';
+      
+      setNotesContent(plainText);
+      setIsEditing(false);
+      setEditingContent('');
+      toast.success('Notes saved successfully');
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Failed to save notes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle tab change - warn about unsaved edits
+  const handleTabChange = (value: string) => {
+    if (isEditing) {
+      const confirmed = window.confirm('You have unsaved changes. Discard them?');
+      if (!confirmed) return;
+      setIsEditing(false);
+      setEditingContent('');
+    }
+    setActiveTab(value as 'notes' | 'transcript');
+    if (value === 'transcript' && !transcript && !isLoadingTranscript) {
+      loadTranscript();
+    }
+  };
+
+  // Handle modal close - warn about unsaved edits
+  const handleClose = () => {
+    if (isEditing) {
+      const confirmed = window.confirm('You have unsaved changes. Discard them?');
+      if (!confirmed) return;
+    }
+    setIsEditing(false);
+    setEditingContent('');
+    onClose();
+  };
   const meetingDetails = useMemo(() => {
     if (!notesContent) return null;
     
@@ -637,7 +715,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 </p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={handleClose}>
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -645,62 +723,110 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
         {/* Toolbar */}
         <div className="px-6 py-3 border-b flex items-center justify-between gap-4 flex-shrink-0 bg-muted/30">
+          {isEditing ? (
+            // Edit mode toolbar
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Pencil className="h-4 w-4" />
+              <span>Editing notes...</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {/* Font size controls */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFontSize(prev => Math.max(10, prev - 2))}
+                disabled={fontSize <= 10}
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground w-12 text-center">{fontSize}px</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFontSize(prev => Math.min(24, prev + 2))}
+                disabled={fontSize >= 24}
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+
+              {/* Divider */}
+              <div className="w-px h-6 bg-border mx-2" />
+
+              {/* View mode toggle */}
+              <Button
+                variant={viewMode === 'plain' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode(viewMode === 'plain' ? 'formatted' : 'plain')}
+                className="gap-2"
+              >
+                {viewMode === 'plain' ? (
+                  <>
+                    <ToggleLeft className="h-4 w-4" />
+                    Plain Text
+                  </>
+                ) : (
+                  <>
+                    <ToggleRight className="h-4 w-4" />
+                    Formatted
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
-            {/* Font size controls */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFontSize(prev => Math.max(10, prev - 2))}
-              disabled={fontSize <= 10}
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <span className="text-sm text-muted-foreground w-12 text-center">{fontSize}px</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFontSize(prev => Math.min(24, prev + 2))}
-              disabled={fontSize >= 24}
-            >
-              <ZoomIn className="h-4 w-4" />
-            </Button>
+            {isEditing ? (
+              // Edit mode buttons
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleCancelEdit}
+                  disabled={isSaving}
+                  className="gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={handleSaveEdit}
+                  disabled={isSaving}
+                  className="gap-2"
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {isSaving ? 'Saving...' : 'Save'}
+                </Button>
+              </>
+            ) : (
+              // View mode buttons
+              <>
+                {/* Copy button */}
+                <Button variant="outline" size="sm" onClick={handleCopy} className="gap-2">
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copied ? 'Copied' : 'Copy'}
+                </Button>
 
-            {/* Divider */}
-            <div className="w-px h-6 bg-border mx-2" />
+                {/* Download button */}
+                <Button variant="outline" size="sm" onClick={handleDownloadWord} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Word
+                </Button>
 
-            {/* View mode toggle */}
-            <Button
-              variant={viewMode === 'plain' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode(viewMode === 'plain' ? 'formatted' : 'plain')}
-              className="gap-2"
-            >
-              {viewMode === 'plain' ? (
-                <>
-                  <ToggleLeft className="h-4 w-4" />
-                  Plain Text
-                </>
-              ) : (
-                <>
-                  <ToggleRight className="h-4 w-4" />
-                  Formatted
-                </>
-              )}
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Copy button */}
-            <Button variant="outline" size="sm" onClick={handleCopy} className="gap-2">
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? 'Copied' : 'Copy'}
-            </Button>
-
-            {/* Download button */}
-            <Button variant="outline" size="sm" onClick={handleDownloadWord} className="gap-2">
-              <Download className="h-4 w-4" />
-              Word
-            </Button>
+                {/* Edit button - only show on notes tab */}
+                {activeTab === 'notes' && notesContent && (
+                  <Button variant="outline" size="sm" onClick={handleStartEdit} className="gap-2">
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         </div>
 
@@ -720,166 +846,178 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           {/* Content Area */}
           <div className="flex-1 min-h-0 px-6 pb-6 pt-4">
             <TabsContent value="notes" className="h-full m-0">
-              <ScrollArea className="h-full rounded-lg border bg-card">
-                <div className="p-6 space-y-6">
-                  {isLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      <span className="ml-2 text-muted-foreground">Loading notes...</span>
-                    </div>
-                  ) : notesContent ? (
-                    <>
-                      {/* Meeting Details Table */}
-                      {viewMode === 'formatted' && meetingDetails && (
-                        <div className="rounded-lg border overflow-hidden">
-                          <div className="bg-primary px-4 py-2">
-                            <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
-                              <FileText className="h-4 w-4" />
-                              Meeting Details
-                            </h3>
-                          </div>
-                          <Table>
-                            <TableBody>
-                              {meetingDetails.title && (
-                                <TableRow>
-                                  <TableCell className="font-medium w-32 bg-muted/50">
-                                    <div className="flex items-center gap-2">
-                                      <FileText className="h-4 w-4 text-muted-foreground" />
-                                      Title
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>{meetingDetails.title}</TableCell>
-                                </TableRow>
-                              )}
-                              {meetingDetails.date && (
-                                <TableRow>
-                                  <TableCell className="font-medium bg-muted/50">
-                                    <div className="flex items-center gap-2">
-                                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                                      Date
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>{meetingDetails.date}</TableCell>
-                                </TableRow>
-                              )}
-                              {meetingDetails.time && (
-                                <TableRow>
-                                  <TableCell className="font-medium bg-muted/50">
-                                    <div className="flex items-center gap-2">
-                                      <Clock className="h-4 w-4 text-muted-foreground" />
-                                      Time
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>{meetingDetails.time}</TableCell>
-                                </TableRow>
-                              )}
-                              {meetingDetails.location && (
-                                <TableRow>
-                                  <TableCell className="font-medium bg-muted/50">
-                                    <div className="flex items-center gap-2">
-                                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                                      Location
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>{meetingDetails.location}</TableCell>
-                                </TableRow>
-                              )}
-                              {attendees.length > 0 && (
-                                <TableRow>
-                                  <TableCell className="font-medium bg-muted/50 align-top">
-                                    <div className="flex items-center gap-2">
-                                      <Users className="h-4 w-4 text-muted-foreground" />
-                                      Attendees
-                                    </div>
-                                  </TableCell>
-                                  <TableCell>
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {attendees.map((attendee, idx) => (
-                                        <Badge 
-                                          key={idx} 
-                                          variant="secondary" 
-                                          className="text-xs font-normal"
-                                        >
-                                          {attendee.name}
-                                          {attendee.role && (
-                                            <span className="ml-1 text-muted-foreground">
-                                              ({attendee.role})
-                                            </span>
-                                          )}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-
-                      {/* Main Content */}
-                      {viewMode === 'plain' ? (
-                        <pre 
-                          className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
-                          style={{ fontSize: `${fontSize}px` }}
-                        >
-                          {notesContent}
-                        </pre>
-                      ) : (
-                        <div 
-                          className="prose prose-sm dark:prose-invert max-w-none"
-                          style={{ fontSize: `${fontSize}px` }}
-                          dangerouslySetInnerHTML={{ __html: basicFormat(contentWithoutActionItems) }}
-                        />
-                      )}
-
-                      {/* Action Items Table */}
-                      {viewMode === 'formatted' && actionItems.length > 0 && (
-                        <div className="rounded-lg border overflow-hidden">
-                          <div className="bg-primary px-4 py-2">
-                            <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
-                              <CheckCircle2 className="h-4 w-4" />
-                              Action Items ({actionItems.filter(i => !i.isCompleted).length} open, {actionItems.filter(i => i.isCompleted).length} completed)
-                            </h3>
-                          </div>
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-muted/50">
-                                <TableHead className="w-[40%]">Action</TableHead>
-                                <TableHead className="w-[15%]">Owner</TableHead>
-                                <TableHead className="w-[15%]">Deadline</TableHead>
-                                <TableHead className="w-[15%]">Priority</TableHead>
-                                <TableHead className="w-[15%]">Status</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {actionItems.map((item, index) => (
-                                <TableRow 
-                                  key={index} 
-                                  className={item.isCompleted ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}
-                                >
-                                  <TableCell className={item.isCompleted ? 'line-through text-muted-foreground' : ''}>
-                                    {item.action}
-                                  </TableCell>
-                                  <TableCell className="font-medium">@{item.owner}</TableCell>
-                                  <TableCell>{item.deadline}</TableCell>
-                                  <TableCell>{getPriorityBadge(item.priority)}</TableCell>
-                                  <TableCell>{getStatusBadge(item.status)}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No notes available for this meeting.</p>
-                    </div>
-                  )}
+              {isEditing ? (
+                // Edit mode - show WYSIWYG editor
+                <div className="h-full rounded-lg border bg-card overflow-hidden flex flex-col">
+                  <RichTextEditor
+                    content={editingContent}
+                    onChange={setEditingContent}
+                    placeholder="Edit your meeting notes..."
+                  />
                 </div>
-              </ScrollArea>
+              ) : (
+                // View mode - show formatted content
+                <ScrollArea className="h-full rounded-lg border bg-card">
+                  <div className="p-6 space-y-6">
+                    {isLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        <span className="ml-2 text-muted-foreground">Loading notes...</span>
+                      </div>
+                    ) : notesContent ? (
+                      <>
+                        {/* Meeting Details Table */}
+                        {viewMode === 'formatted' && meetingDetails && (
+                          <div className="rounded-lg border overflow-hidden">
+                            <div className="bg-primary px-4 py-2">
+                              <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
+                                <FileText className="h-4 w-4" />
+                                Meeting Details
+                              </h3>
+                            </div>
+                            <Table>
+                              <TableBody>
+                                {meetingDetails.title && (
+                                  <TableRow>
+                                    <TableCell className="font-medium w-32 bg-muted/50">
+                                      <div className="flex items-center gap-2">
+                                        <FileText className="h-4 w-4 text-muted-foreground" />
+                                        Title
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>{meetingDetails.title}</TableCell>
+                                  </TableRow>
+                                )}
+                                {meetingDetails.date && (
+                                  <TableRow>
+                                    <TableCell className="font-medium bg-muted/50">
+                                      <div className="flex items-center gap-2">
+                                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                                        Date
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>{meetingDetails.date}</TableCell>
+                                  </TableRow>
+                                )}
+                                {meetingDetails.time && (
+                                  <TableRow>
+                                    <TableCell className="font-medium bg-muted/50">
+                                      <div className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4 text-muted-foreground" />
+                                        Time
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>{meetingDetails.time}</TableCell>
+                                  </TableRow>
+                                )}
+                                {meetingDetails.location && (
+                                  <TableRow>
+                                    <TableCell className="font-medium bg-muted/50">
+                                      <div className="flex items-center gap-2">
+                                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                                        Location
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>{meetingDetails.location}</TableCell>
+                                  </TableRow>
+                                )}
+                                {attendees.length > 0 && (
+                                  <TableRow>
+                                    <TableCell className="font-medium bg-muted/50 align-top">
+                                      <div className="flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-muted-foreground" />
+                                        Attendees
+                                      </div>
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {attendees.map((attendee, idx) => (
+                                          <Badge 
+                                            key={idx} 
+                                            variant="secondary" 
+                                            className="text-xs font-normal"
+                                          >
+                                            {attendee.name}
+                                            {attendee.role && (
+                                              <span className="ml-1 text-muted-foreground">
+                                                ({attendee.role})
+                                              </span>
+                                            )}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        )}
+
+                        {/* Main Content */}
+                        {viewMode === 'plain' ? (
+                          <pre 
+                            className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                            style={{ fontSize: `${fontSize}px` }}
+                          >
+                            {notesContent}
+                          </pre>
+                        ) : (
+                          <div 
+                            className="prose prose-sm dark:prose-invert max-w-none"
+                            style={{ fontSize: `${fontSize}px` }}
+                            dangerouslySetInnerHTML={{ __html: basicFormat(contentWithoutActionItems) }}
+                          />
+                        )}
+
+                        {/* Action Items Table */}
+                        {viewMode === 'formatted' && actionItems.length > 0 && (
+                          <div className="rounded-lg border overflow-hidden">
+                            <div className="bg-primary px-4 py-2">
+                              <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
+                                <CheckCircle2 className="h-4 w-4" />
+                                Action Items ({actionItems.filter(i => !i.isCompleted).length} open, {actionItems.filter(i => i.isCompleted).length} completed)
+                              </h3>
+                            </div>
+                            <Table>
+                              <TableHeader>
+                                <TableRow className="bg-muted/50">
+                                  <TableHead className="w-[40%]">Action</TableHead>
+                                  <TableHead className="w-[15%]">Owner</TableHead>
+                                  <TableHead className="w-[15%]">Deadline</TableHead>
+                                  <TableHead className="w-[15%]">Priority</TableHead>
+                                  <TableHead className="w-[15%]">Status</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {actionItems.map((item, index) => (
+                                  <TableRow 
+                                    key={index} 
+                                    className={item.isCompleted ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}
+                                  >
+                                    <TableCell className={item.isCompleted ? 'line-through text-muted-foreground' : ''}>
+                                      {item.action}
+                                    </TableCell>
+                                    <TableCell className="font-medium">@{item.owner}</TableCell>
+                                    <TableCell>{item.deadline}</TableCell>
+                                    <TableCell>{getPriorityBadge(item.priority)}</TableCell>
+                                    <TableCell>{getStatusBadge(item.status)}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No notes available for this meeting.</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              )}
             </TabsContent>
 
             <TabsContent value="transcript" className="h-full m-0">
