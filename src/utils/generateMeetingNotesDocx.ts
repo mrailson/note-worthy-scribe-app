@@ -1,5 +1,6 @@
 import { saveAs } from "file-saver";
 import { NHS_COLORS, FONTS, buildNHSStyles, buildNumbering } from "./wordTheme";
+import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
 
 // Decode HTML entities to plain characters for Word output
 const decodeHtmlEntities = (text: string): string => {
@@ -552,6 +553,7 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
   // Strip transcript sections and replace Facilitator/Unidentified with logged user's name
   let cleanedContent = stripTranscriptSection(options.content);
   cleanedContent = replaceFacilitatorWithUserName(cleanedContent, options.metadata.loggedUserName);
+  cleanedContent = sanitiseMeetingNotes(cleanedContent);
   
   // Also clean the attendees field
   const cleanedAttendees = options.metadata.attendees 

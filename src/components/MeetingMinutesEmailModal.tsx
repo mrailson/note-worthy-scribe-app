@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Send, X, Users, List, ChevronDown } from "lucide-react";
 import { showToast } from "@/utils/toastWrapper";
+import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
 import { supabase } from "@/integrations/supabase/client";
 import { useDistributionLists } from "@/hooks/useDistributionLists";
 import {
@@ -86,22 +87,22 @@ export const MeetingMinutesEmailModal: React.FC<MeetingMinutesEmailModalProps> =
           .select('summary')
           .eq('meeting_id', meetingId)
           .maybeSingle();
-        
+
         if (error) {
           console.error('Error fetching fresh notes:', error);
-          setFreshNotes(defaultBody);
+          setFreshNotes(sanitiseMeetingNotes(defaultBody));
           return;
         }
-        
+
         if (data?.summary) {
           console.log('📝 MeetingMinutesEmailModal: Using fresh notes from database');
-          setFreshNotes(data.summary);
+          setFreshNotes(sanitiseMeetingNotes(data.summary));
         } else {
-          setFreshNotes(defaultBody);
+          setFreshNotes(sanitiseMeetingNotes(defaultBody));
         }
       } catch (error) {
         console.error('Error fetching fresh notes:', error);
-        setFreshNotes(defaultBody);
+        setFreshNotes(sanitiseMeetingNotes(defaultBody));
       }
     };
 
