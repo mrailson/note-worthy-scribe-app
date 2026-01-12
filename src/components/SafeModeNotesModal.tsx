@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { generateWordDocument } from "@/utils/documentGenerators";
 
 interface Meeting {
   id: string;
@@ -178,32 +178,14 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   };
 
-  // Download as Word
+  // Download as Word - use professional NHS-style formatting
   const handleDownloadWord = async () => {
     const content = activeTab === 'notes' ? notesContent : transcript;
     const title = meeting?.title || 'Meeting Notes';
 
     try {
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: content.split('\n').map(line => 
-            new Paragraph({
-              children: [new TextRun({ text: line, size: 24 })]
-            })
-          )
-        }]
-      });
-
-      const blob = await Packer.toBlob(doc);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${activeTab}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Use the professional document generator with NHS-style formatting
+      await generateWordDocument(content, title, true);
       toast.success('Downloaded successfully');
     } catch (error) {
       console.error('Download error:', error);
