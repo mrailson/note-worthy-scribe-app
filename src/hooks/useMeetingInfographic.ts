@@ -124,11 +124,12 @@ export const useMeetingInfographic = () => {
       setCurrentPhase('generating');
 
       // Call the AI image generation edge function with Gemini Pro 3
-      // Extended timeout for image generation (90 seconds)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 90000);
-      
-      const { data: response, error: fnError } = await supabase.functions.invoke('ai4gp-image-generation', {
+      // Use Promise.race for timeout since Supabase client doesn't support AbortController
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Image generation timed out after 120 seconds. Please try again.')), 120000);
+      });
+
+      const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
           prompt: `Create a professional, visually appealing meeting summary infographic for: "${data.meetingTitle}". 
           
@@ -150,8 +151,8 @@ Design requirements:
           }
         },
       });
-      
-      clearTimeout(timeoutId);
+
+      const { data: response, error: fnError } = await Promise.race([invokePromise, timeoutPromise]);
 
       if (fnError) {
         throw new Error(fnError.message || 'Failed to generate infographic');
