@@ -16,6 +16,14 @@ export const NHS_COLORS = {
   priorityHighBg: "FEE2E2", // Red-100
   priorityMediumBg: "FEF3C7", // Amber-100
   priorityLowBg: "DCFCE7",   // Green-100
+  // Professional document colours
+  infoBoxBg: "EFF6FF",       // Blue-50 - light blue background
+  infoBoxBorder: "2563EB",   // Blue-600 - border accent
+  executiveSummaryBg: "F0F9FF", // Sky-50 - very light blue
+  sectionDivider: "CBD5E1",  // Slate-300 - subtle divider
+  footerBg: "F8FAFC",        // Slate-50 - footer background
+  footerText: "64748B",      // Slate-500 - footer text
+  accentGold: "D97706",      // Amber-600 - accent for classification
 };
 
 // Font configuration
@@ -23,6 +31,7 @@ export const FONTS = {
   default: "Calibri",
   fallback: "Arial",
   size: {
+    documentTitle: 40,
     title: 32,
     heading1: 28,
     heading2: 24,
@@ -30,6 +39,7 @@ export const FONTS = {
     body: 22,
     small: 20,
     footer: 18,
+    classification: 16,
   },
 };
 
@@ -121,6 +131,39 @@ export const buildNHSStyles = () => {
           },
           indent: {
             left: convertInchesToTwip(0.25),
+          },
+        },
+      },
+      {
+        id: "ExecutiveSummary",
+        name: "Executive Summary",
+        basedOn: "Normal",
+        run: {
+          font: FONTS.default,
+          size: FONTS.size.body,
+          italics: true,
+          color: NHS_COLORS.textGrey,
+        },
+        paragraph: {
+          spacing: {
+            before: 120,
+            after: 120,
+          },
+        },
+      },
+      {
+        id: "Footer",
+        name: "Footer",
+        basedOn: "Normal",
+        run: {
+          font: FONTS.default,
+          size: FONTS.size.footer,
+          color: NHS_COLORS.footerText,
+        },
+        paragraph: {
+          spacing: {
+            before: 60,
+            after: 60,
           },
         },
       },
