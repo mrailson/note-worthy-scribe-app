@@ -39,9 +39,10 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
     task: "h-9",
   }[level];
 
+  // Excel-matched colours: navy for phases, slightly lighter for sections
   const bgClass = {
-    phase: "bg-muted/50",
-    section: "bg-muted/30",
+    phase: "bg-[#4472C4] text-white",
+    section: "bg-[#5B9BD5] text-white",
     task: "bg-background",
   }[level];
 
@@ -57,12 +58,15 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
       {hasChildren && onToggle ? (
         <button
           onClick={onToggle}
-          className="mr-1 p-0.5 hover:bg-muted rounded"
+          className={cn(
+            "mr-1 p-0.5 rounded",
+            level === "task" ? "hover:bg-muted" : "hover:bg-white/20"
+          )}
         >
           {isExpanded ? (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            <ChevronDown className={cn("h-3.5 w-3.5", level === "task" ? "text-muted-foreground" : "text-white/80")} />
           ) : (
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <ChevronRight className={cn("h-3.5 w-3.5", level === "task" ? "text-muted-foreground" : "text-white/80")} />
           )}
         </button>
       ) : (
@@ -78,7 +82,10 @@ export const ProgrammePlanRow: React.FC<ProgrammePlanRowProps> = ({
         )}
       </div>
       
-      <div className="w-12 text-right pr-2 text-xs text-muted-foreground">
+      <div className={cn(
+        "w-12 text-right pr-2 text-xs",
+        level === "task" ? "text-muted-foreground" : "text-white/80"
+      )}>
         {progress}%
       </div>
     </div>
