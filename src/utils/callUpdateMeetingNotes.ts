@@ -219,9 +219,6 @@ This strategic planning meeting focused on major operational restructuring of di
 
     console.log('✅ Meeting notes updated successfully:', data);
     
-    // Refresh the page to show updated data
-    window.location.reload();
-    
     return { success: true, data };
   } catch (error) {
     console.error('❌ Failed to update meeting notes:', error);
@@ -229,5 +226,5 @@ This strategic planning meeting focused on major operational restructuring of di
   }
 }
 
-// Call the function immediately
-callUpdateMeetingNotesFunction();
+// REMOVED auto-execute - this was causing unwanted page reloads
+// To use this function, import and call it explicitly where needed
