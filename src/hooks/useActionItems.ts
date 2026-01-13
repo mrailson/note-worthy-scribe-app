@@ -392,6 +392,8 @@ export const useActionItems = (meetingId: string) => {
   // Update action item
   const updateActionItem = async (id: string, updates: Partial<ActionItem>): Promise<boolean> => {
     try {
+      setIsSaving(true);
+      
       // Optimistic update
       setActionItems(prev => 
         prev.map(item => item.id === id ? { ...item, ...updates } : item)
@@ -403,10 +405,12 @@ export const useActionItems = (meetingId: string) => {
         actualDueDate = calculateActualDueDate(updates.due_date);
       }
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('meeting_action_items')
         .update({ ...updates, due_date_actual: actualDueDate, updated_at: new Date().toISOString() })
-        .eq('id', id);
+        .eq('id', id)
+        .select()
+        .single();
 
       if (error) {
         // Revert on error
@@ -414,13 +418,32 @@ export const useActionItems = (meetingId: string) => {
         throw error;
       }
       
+      // Verify a row was actually updated
+      if (!data) {
+        console.warn('Update returned no data - possible RLS issue');
+        await fetchActionItems();
+        return false;
+      }
+      
+      // Update local state with confirmed data from database
+      setActionItems(prev => 
+        prev.map(item => item.id === id ? (data as ActionItem) : item)
+      );
+      
       // Trigger background sync (silently)
       syncToMeetingNotes();
       
       return true;
     } catch (error) {
       console.error('Error updating action item:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update action item',
+        variant: 'destructive',
+      });
       return false;
+    } finally {
+      setIsSaving(false);
     }
   };
 
