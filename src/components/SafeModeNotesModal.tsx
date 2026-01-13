@@ -327,7 +327,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     const sectionHeadings = [
       'EXECUTIVE SUMMARY',
-      'DISCUSSION SUMMARY',
       'KEY DECISIONS',
       'KEY POINTS',
       'NEXT STEPS',
@@ -337,6 +336,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     // Sections to explicitly exclude from formatted view
     const excludedHeadings = [
+      'DISCUSSION SUMMARY',
       'NEXT MEETING',
       'ACTION ITEMS',
       'MEETING DETAILS',
