@@ -295,6 +295,47 @@ export function EmailMeetingMinutesModal({
 
     setIsSending(true);
     try {
+      // Fetch meeting details and action items for the professional Word document
+      let meetingLocation: string | undefined;
+      let meetingTime: string | undefined;
+      let attendeeNames: string | undefined;
+      let actionItems: any[] = [];
+      
+      try {
+        // Fetch meeting details
+        const { data: meetingData } = await supabase
+          .from('meetings')
+          .select('start_time, meeting_location')
+          .eq('id', meetingId)
+          .maybeSingle();
+        
+        if (meetingData) {
+          meetingLocation = meetingData.meeting_location || undefined;
+          if (meetingData.start_time) {
+            const startTime = new Date(meetingData.start_time);
+            meetingTime = startTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' GMT';
+          }
+        }
+        
+        // Fetch action items
+        const { data: actionItemsData } = await supabase
+          .from('meeting_action_items')
+          .select('*')
+          .eq('meeting_id', meetingId)
+          .order('sort_order', { ascending: true });
+        
+        if (actionItemsData) {
+          actionItems = actionItemsData;
+        }
+        
+        // Get attendee names from already fetched meetingAttendees
+        if (meetingAttendees.length > 0) {
+          attendeeNames = meetingAttendees.map(a => a.name).join(', ');
+        }
+      } catch (fetchError) {
+        console.warn('Error fetching meeting details for Word doc:', fetchError);
+      }
+      
       // Generate professional Word document attachment (same format as SafeModeNotesModal download)
       let wordAttachment = null;
       try {
@@ -303,17 +344,27 @@ export function EmailMeetingMinutesModal({
         // Clean the title
         const cleanTitle = meetingTitle.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
         
-        // Build parsed details
+        // Build parsed details with fetched data
         const parsedDetails = {
           title: cleanTitle,
           date: meetingDate || undefined,
-          time: undefined,
-          location: undefined,
-          attendees: undefined,
+          time: meetingTime,
+          location: meetingLocation,
+          attendees: attendeeNames,
         };
         
+        // Convert action items to expected format
+        const parsedActionItems = actionItems.map((item: any) => ({
+          action: item.action_text,
+          owner: item.assignee_name || 'Unassigned',
+          deadline: item.due_date || undefined,
+          priority: item.priority || 'medium',
+          status: item.status || 'Open',
+          isCompleted: item.status === 'completed',
+        }));
+        
         // Generate the professional Word blob
-        const blob = await generateProfessionalWordBlob(notesToSend, cleanTitle, parsedDetails);
+        const blob = await generateProfessionalWordBlob(notesToSend, cleanTitle, parsedDetails, parsedActionItems);
         
         // Convert blob to base64
         const reader = new FileReader();
