@@ -319,12 +319,25 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
         if (error) throw error;
         showToast.success('Attendee updated', { section: 'meeting_manager' });
       } else {
-        // Insert new
+        // Insert new - verify practice_id exists in practice_details before using
+        let validPracticeId = null;
+        if (userPracticeIds[0]) {
+          const { data: practiceCheck } = await supabase
+            .from('practice_details')
+            .select('id')
+            .eq('id', userPracticeIds[0])
+            .single();
+          
+          if (practiceCheck) {
+            validPracticeId = userPracticeIds[0];
+          }
+        }
+
         const { error } = await supabase
           .from('attendees')
           .insert({
             user_id: user.id,
-            practice_id: userPracticeIds[0] || null,
+            practice_id: validPracticeId,
             name: formData.name,
             email: formData.email || null,
             title: formData.title || null,
