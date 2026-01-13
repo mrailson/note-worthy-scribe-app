@@ -354,14 +354,23 @@ export function EmailMeetingMinutesModal({
         };
         
         // Convert action items to expected format
-        const parsedActionItems = actionItems.map((item: any) => ({
-          action: item.action_text,
-          owner: item.assignee_name || 'Unassigned',
-          deadline: item.due_date || undefined,
-          priority: item.priority || 'medium',
-          status: item.status || 'Open',
-          isCompleted: item.status === 'completed',
-        }));
+        const parsedActionItems = actionItems.map((item: any) => {
+          const statusLabel: 'Completed' | 'In Progress' | 'Open' =
+            item.status === 'Completed' || item.status === 'completed'
+              ? 'Completed'
+              : item.status === 'In Progress' || item.status === 'in_progress'
+                ? 'In Progress'
+                : 'Open';
+
+          return {
+            action: item.action_text,
+            owner: item.assignee_name || 'Unassigned',
+            deadline: item.due_date || undefined,
+            priority: item.priority || 'medium',
+            status: statusLabel,
+            isCompleted: statusLabel === 'Completed',
+          };
+        });
         
         // Generate the professional Word blob
         const blob = await generateProfessionalWordBlob(notesToSend, cleanTitle, parsedDetails, parsedActionItems);
@@ -410,6 +419,14 @@ export function EmailMeetingMinutesModal({
         
         // Remove "Location:" lines
         cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Location:\*?\*?.*$/gim, '');
+
+        // Remove ATTENDEES section when it only contains TBC (attendees are already shown elsewhere)
+        // Matches:
+        //   ATTENDEES\n- TBC
+        //   # ATTENDEES\nTBC
+        cleaned = cleaned.replace(/(?:^|\n)\s*#{0,6}\s*ATTENDEES\s*\n+\s*(?:[-•*]\s*)?(?:TBC|To be confirmed)\s*(?=\n|$)/gim, '\n');
+        // Also remove inline "Attendees: TBC" lines
+        cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Attendees?:\*?\*?\s*(?:TBC|To be confirmed)\s*$/gim, '');
         
         // Clean up excessive blank lines
         cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
