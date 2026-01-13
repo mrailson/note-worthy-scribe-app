@@ -101,6 +101,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { format, addDays, nextFriday, nextMonday } from "date-fns";
 import { MeetingQAPanel } from "@/components/meeting-details/MeetingQAPanel";
 import { MeetingActionItemsTab } from "@/components/meeting-details/MeetingActionItemsTab";
+import { InlineActionItemsTable } from "@/components/meeting-details/InlineActionItemsTable";
 import { MeetingAudioStudio } from "@/components/meeting-details/MeetingAudioStudio";
 import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { useActionItemsCount } from "@/hooks/useActionItemsCount";
@@ -2837,43 +2838,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         )}
                       </div>
 
-                      {/* Action Items Table */}
-                      {viewMode === 'formatted' && actionItems.length > 0 && (
-                        <div className="rounded-lg border overflow-hidden">
-                          <div className="bg-primary px-4 py-2">
-                            <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
-                              <CheckCircle2 className="h-4 w-4" />
-                              Action Items ({actionItems.filter(i => !i.isCompleted).length} open, {actionItems.filter(i => i.isCompleted).length} completed)
-                            </h3>
-                          </div>
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-muted/50">
-                                <TableHead className="w-[40%]">Action</TableHead>
-                                <TableHead className="w-[15%]">Owner</TableHead>
-                                <TableHead className="w-[15%]">Deadline</TableHead>
-                                <TableHead className="w-[15%]">Priority</TableHead>
-                                <TableHead className="w-[15%]">Status</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {actionItems.map((item, index) => (
-                                <TableRow 
-                                  key={index} 
-                                  className={item.isCompleted ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}
-                                >
-                                  <TableCell className={item.isCompleted ? 'line-through text-muted-foreground' : ''}>
-                                    {item.action}
-                                  </TableCell>
-                                  <TableCell className="font-medium">{item.owner}</TableCell>
-                                  <TableCell>{item.deadline}</TableCell>
-                                  <TableCell>{getPriorityBadge(item.priority)}</TableCell>
-                                  <TableCell>{getStatusBadge(item.status, { action: item.action, owner: item.owner, deadline: item.deadline, priority: item.priority })}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
+                      {/* Action Items Table - Database-backed with inline editing */}
+                      {viewMode === 'formatted' && meeting?.id && (
+                        <InlineActionItemsTable meetingId={meeting.id} />
                       )}
                     </>
                   ) : (
