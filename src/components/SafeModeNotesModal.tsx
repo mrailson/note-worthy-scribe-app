@@ -1911,6 +1911,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </TooltipTrigger>
               <TooltipContent>Find & Replace</TooltipContent>
             </Tooltip>
+
+            {/* Email button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowEmailModal(true)}>
+                  <Mail className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Email Meeting Notes</TooltipContent>
+            </Tooltip>
           </div>
 
           <div className="flex items-center gap-1">
@@ -1952,16 +1962,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Generate Summary Infographic</TooltipContent>
-            </Tooltip>
-
-            {/* Email button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowEmailModal(true)}>
-                  <Mail className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Email Meeting Notes</TooltipContent>
             </Tooltip>
           </div>
         </div>
