@@ -208,11 +208,11 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
           throw new Error("User ID is required");
         }
         
-        // Verify practice_id exists in practice_details before using
+        // Verify practice_id exists in gp_practices before using
         let validPracticeId = null;
         if (userPracticeIds[0]) {
           const { data: practiceCheck } = await supabase
-            .from('practice_details')
+            .from('gp_practices')
             .select('id')
             .eq('id', userPracticeIds[0])
             .single();
