@@ -344,13 +344,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     ];
     
     const result: Section[] = [];
-    const lines = content.split('\n');
+    const cleanedContent = content.replace(/##?\s*Discussion\s+Summary\s*\n[\s\S]*?(?=\n##[^#]|\n#[^#]|$)/gi, '');
+    const lines = cleanedContent.split('\n');
     let currentSection: { heading: string; lines: string[] } | null = null;
     let skipCurrentSection = false;
-    
     for (const line of lines) {
       // Check for ## heading
-      const headingMatch = line.match(/^##\s+(.+)$/);
+      const headingMatch = line.match(/^\s*##\s+(.+)$/);
       if (headingMatch) {
         const heading = headingMatch[1].trim().toUpperCase();
         
@@ -1352,6 +1352,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     // Remove Completed section too
     cleaned = cleaned.replace(/##?\s*Completed\s*(Items?)?\s*\n[\s\S]*?(?=\n##[^#]|\n#[^#]|$)/gi, '');
+
+    // Remove Discussion Summary section (covered by Executive Summary)
+    cleaned = cleaned.replace(/##?\s*Discussion\s+Summary\s*\n[\s\S]*?(?=\n##[^#]|\n#[^#]|$)/gi, '');
     
     // Remove meeting details section heading/label
     cleaned = cleaned.replace(/^#{1,6}\s*Meeting\s+Details\s*$/gim, '');
