@@ -791,14 +791,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const meetingDetails = useMemo(() => {
     if (!notesContent) return null;
     
-    // Match patterns only at start of line or after bullet points/hyphens
-    // to avoid matching "Date" in the middle of sentences
-    const titleMatch = notesContent.match(/^[-•*]?\s*\*{0,2}Meeting Title\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
-    const dateMatch = notesContent.match(/^[-•*]?\s*\*{0,2}Date\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
-    const timeMatch = notesContent.match(/^[-•*]?\s*\*{0,2}Time\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
-    const locationMatch = notesContent.match(/^[-•*]?\s*\*{0,2}Location\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
-    
-    if (!titleMatch && !dateMatch && !timeMatch && !locationMatch) return null;
+    // Match patterns only at start of line (with optional leading whitespace, bullet points, or hyphens)
+    // The 'm' flag makes ^ match start of each line, not just start of string
+    // Allow optional whitespace at the beginning of the line
+    const titleMatch = notesContent.match(/^\s*[-•*]?\s*\*{0,2}Meeting Title\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
+    const dateMatch = notesContent.match(/^\s*[-•*]?\s*\*{0,2}Date\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
+    const timeMatch = notesContent.match(/^\s*[-•*]?\s*\*{0,2}Time\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
+    const locationMatch = notesContent.match(/^\s*[-•*]?\s*\*{0,2}Location\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
     
     // Strip markdown formatting (** bold markers) from extracted values
     const cleanValue = (val?: string) => val?.trim().replace(/\*\*/g, '');
@@ -810,6 +809,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     // For location: prefer DB meeting format (Hybrid, F2F, Virtual), fallback to parsed content
     const locationValue = formatFromDb || cleanValue(locationMatch?.[1]);
+    
+    // Return object even if we only have location from DB (for the table to show)
+    const hasAnyValue = titleMatch || dateMatch || timeMatch || locationValue;
+    if (!hasAnyValue) return null;
     
     return {
       title: cleanValue(titleMatch?.[1]),
@@ -1966,8 +1969,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     </div>
                   ) : notesContent ? (
                     <>
-                      {/* Meeting Details Table */}
-                      {viewMode === 'formatted' && meetingDetails && (
+                      {/* Meeting Details Table - show if we have details or attendees */}
+                      {viewMode === 'formatted' && (meetingDetails || attendees.length > 0) && (
                         <div className="rounded-lg border overflow-hidden">
                           <div className="bg-primary px-4 py-2">
                             <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
