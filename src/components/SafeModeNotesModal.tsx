@@ -728,10 +728,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   };
 
   // Download as Word - use professional NHS-style formatting
-  // Uses the cleaned content (without duplicates) that matches the formatted view
+  // Uses the raw notes content so the Word generator can handle section parsing
   const handleDownloadWord = async () => {
-    // Use cleaned content for notes (matches formatted view), raw for transcript
-    const content = activeTab === 'notes' ? contentWithoutActionItems : transcript;
+    // Use raw notesContent for Word export - the Word generator handles section parsing properly
+    // This ensures Key Points and other sections are preserved correctly
+    const content = activeTab === 'notes' ? notesContent : transcript;
     const title = meeting?.title || 'Meeting Notes';
 
     try {
