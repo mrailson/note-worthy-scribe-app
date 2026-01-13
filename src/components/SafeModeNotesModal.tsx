@@ -791,13 +791,20 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const meetingDetails = useMemo(() => {
     if (!notesContent) return null;
     
-    // Match patterns only at start of line (with optional leading whitespace, bullet points, or hyphens)
-    // The 'm' flag makes ^ match start of each line, not just start of string
-    // Allow optional whitespace at the beginning of the line
-    const titleMatch = notesContent.match(/^\s*[-•*]?\s*\*{0,2}Meeting Title\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
-    const dateMatch = notesContent.match(/^\s*[-•*]?\s*\*{0,2}Date\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
-    const timeMatch = notesContent.match(/^\s*[-•*]?\s*\*{0,2}Time\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
-    const locationMatch = notesContent.match(/^\s*[-•*]?\s*\*{0,2}Location\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
+    // Match patterns only at start of line (with optional leading whitespace, bullets, and markdown bold)
+    // to avoid matching words like "date" in the middle of sentences.
+    const titleMatch = notesContent.match(
+      /^\s*[-•*]?\s*\*{0,2}(?:Meeting\s*)?(?:Title|Subject)\*{0,2}(?:\s*[:\-–—]\s*|\s+)(.+?)(?:\n|$)/im
+    );
+    const dateMatch = notesContent.match(
+      /^\s*[-•*]?\s*\*{0,2}(?:Meeting\s*)?Date\*{0,2}(?:\s*[:\-–—]\s*|\s+)(.+?)(?:\n|$)/im
+    );
+    const timeMatch = notesContent.match(
+      /^\s*[-•*]?\s*\*{0,2}(?:Meeting\s*)?(?:Time|Start\s*Time)\*{0,2}(?:\s*[:\-–—]\s*|\s+)(.+?)(?:\n|$)/im
+    );
+    const locationMatch = notesContent.match(
+      /^\s*[-•*]?\s*\*{0,2}(?:Location|Meeting\s*Type|Format)\*{0,2}(?:\s*[:\-–—]\s*|\s+)(.+?)(?:\n|$)/im
+    );
     
     // Strip markdown formatting (** bold markers) from extracted values
     const cleanValue = (val?: string) => val?.trim().replace(/\*\*/g, '');
@@ -1980,7 +1987,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           </div>
                           <Table>
                             <TableBody>
-                              {meetingDetails.title && (
+                              {(meetingDetails?.title || meeting?.title) && (
                                 <TableRow>
                                   <TableCell className="font-medium w-32 bg-muted/50">
                                     <div className="flex items-center gap-2">
@@ -1988,7 +1995,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                       Title
                                     </div>
                                   </TableCell>
-                                  <TableCell>{meetingDetails.title}</TableCell>
+                                  <TableCell>{meetingDetails?.title || meeting?.title}</TableCell>
                                 </TableRow>
                               )}
                               {meetingDetails.date && (
@@ -2093,11 +2100,34 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           fontSize={fontSize}
                           meetingId={meeting?.id}
                           onContentChange={(newContent) => {
-                            // Rebuild full content with action items section
+                            // Rebuild full content while preserving Meeting Details (we hide it in the UI, but must not delete it)
                             const actionItemsMatch = notesContent.match(/##?\s*Action\s+Items?\s*\n[\s\S]*$/i);
-                            const updatedContent = actionItemsMatch 
-                              ? newContent + '\n\n' + actionItemsMatch[0]
-                              : newContent;
+
+                            const meetingDetailsBlock = notesContent
+                              .split('\n')
+                              .filter((l) => {
+                                const t = l.trim();
+                                if (!t) return false;
+                                if (/^#{1,6}\s*Meeting\s+Details\s*$/i.test(t)) return true;
+                                if (/^[-•*]?\s*\*{0,2}(?:Meeting\s*)?(?:Title|Subject)\*{0,2}\s*[:\-–—]/i.test(t)) return true;
+                                if (/^[-•*]?\s*\*{0,2}(?:Meeting\s*)?Date\*{0,2}\s*[:\-–—]/i.test(t)) return true;
+                                if (/^[-•*]?\s*\*{0,2}(?:Meeting\s*)?(?:Time|Start\s*Time)\*{0,2}\s*[:\-–—]/i.test(t)) return true;
+                                if (/^[-•*]?\s*\*{0,2}(?:Location|Meeting\s*Type|Format)\*{0,2}\s*[:\-–—]/i.test(t)) return true;
+                                return false;
+                              })
+                              .join('\n')
+                              .trim();
+
+                            let updatedContent = newContent.trim();
+
+                            if (meetingDetailsBlock) {
+                              updatedContent = `${meetingDetailsBlock}\n\n${updatedContent}`.trim();
+                            }
+
+                            if (actionItemsMatch?.[0]) {
+                              updatedContent = `${updatedContent}\n\n${actionItemsMatch[0].trim()}`.trim();
+                            }
+
                             setNotesContent(updatedContent);
                             persistNotesContent(updatedContent);
                           }}
