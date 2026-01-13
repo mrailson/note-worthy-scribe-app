@@ -48,7 +48,7 @@ export const replaceFacilitatorWithUserName = (content: string, userName?: strin
   return cleaned;
 };
 
-// Strip transcript sections and duplicate meeting title from content
+// Strip transcript sections, duplicate meeting title, and standalone ATTENDEES section from content
 export const stripTranscriptSection = (content: string): string => {
   let cleaned = content;
   
@@ -65,6 +65,11 @@ export const stripTranscriptSection = (content: string): string => {
   // Remove "Background" heading (with or without markdown formatting)
   cleaned = cleaned.replace(/^#+?\s*Background\s*$/gim, '');
   cleaned = cleaned.replace(/^\s*Background\s*$/gim, '');
+  
+  // Remove standalone ATTENDEES section with TBC (since attendees are already in the Meeting Details table)
+  // This matches "# ATTENDEES" or "## ATTENDEES" followed by "- TBC" or just "TBC" on the next line(s)
+  cleaned = cleaned.replace(/\n*#+ ATTENDEES\s*\n+[-•*]?\s*TBC\s*\n*/gi, '\n\n');
+  cleaned = cleaned.replace(/\n*#+ ATTENDEES\s*\n+TBC\s*\n*/gi, '\n\n');
   
   return cleaned.trim();
 };
