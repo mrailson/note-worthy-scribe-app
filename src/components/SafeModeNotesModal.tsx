@@ -2458,7 +2458,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="mx-6 mt-4 w-fit flex-shrink-0 grid grid-cols-6">
+          <TabsList className="mx-6 mt-4 w-fit flex-shrink-0 grid grid-cols-5">
             <TabsTrigger value="notes" className="gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Notes</span>
