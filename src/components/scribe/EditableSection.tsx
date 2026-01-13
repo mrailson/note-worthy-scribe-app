@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import SectionRichTextEditor from './SectionRichTextEditor';
+import InteractiveNotesContent from '@/components/meeting-notes/InteractiveNotesContent';
 
 export interface Section {
   id: string;
@@ -40,6 +41,7 @@ interface EditableSectionProps {
   onMoveDown: (sectionId: string) => void;
   isSaving: boolean;
   onSave: () => void;
+  meetingId?: string;
 }
 
 const EditableSection: React.FC<EditableSectionProps> = ({
@@ -55,6 +57,7 @@ const EditableSection: React.FC<EditableSectionProps> = ({
   onMoveDown,
   isSaving,
   onSave,
+  meetingId,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -74,6 +77,14 @@ const EditableSection: React.FC<EditableSectionProps> = ({
   const handleDelete = () => {
     setShowDeleteDialog(false);
     onDelete(section.id);
+  };
+
+  // Handle inline content change from InteractiveNotesContent
+  const handleInlineContentChange = (newContent: string) => {
+    onContentChange(section.id, newContent);
+    onSave();
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 2000);
   };
 
   // Format the section content for display
@@ -139,13 +150,13 @@ const EditableSection: React.FC<EditableSectionProps> = ({
               <ChevronDown className="h-4 w-4" />
             </Button>
             
-            {/* Edit */}
+            {/* Edit (full section) */}
             <Button
               variant="ghost"
               size="sm"
               className="h-7 w-7 p-0"
               onClick={() => setIsEditing(!isEditing)}
-              title={isEditing ? "Cancel edit" : "Edit section"}
+              title={isEditing ? "Cancel edit" : "Edit full section"}
             >
               <Pencil className={`h-4 w-4 ${isEditing ? 'text-primary' : ''}`} />
             </Button>
@@ -180,10 +191,12 @@ const EditableSection: React.FC<EditableSectionProps> = ({
               {section.content}
             </pre>
           ) : (
-            <div 
-              className="prose prose-sm dark:prose-invert max-w-none"
-              style={{ fontSize: `${fontSize}px` }}
-              dangerouslySetInnerHTML={{ __html: formattedContent }}
+            <InteractiveNotesContent
+              content={section.content}
+              sectionId={section.id}
+              fontSize={fontSize}
+              meetingId={meetingId}
+              onContentChange={handleInlineContentChange}
             />
           )}
         </div>
