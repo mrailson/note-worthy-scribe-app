@@ -2681,11 +2681,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                           className="text-xs font-normal"
                                         >
                                           {attendee.name}
-                                          {attendee.organization && (
+                                          {attendee.organization ? (
                                             <span className="ml-1 text-muted-foreground">
                                               ({attendee.organization})
                                             </span>
-                                          )}
+                                          ) : attendee.role && attendee.role !== 'attendee' && attendee.role !== 'chair' && attendee.role !== 'key_participant' ? (
+                                            <span className="ml-1 text-muted-foreground">
+                                              ({attendee.role})
+                                            </span>
+                                          ) : null}
                                         </Badge>
                                       ))}
                                     </div>
