@@ -115,6 +115,8 @@ import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
+import { useNotesViewSettings } from "@/hooks/useNotesViewSettings";
+import { NotesViewSettingsPopover } from "@/components/meeting-details/NotesViewSettingsPopover";
 
 interface Meeting {
   id: string;
@@ -141,6 +143,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   
   // Get action items count for badge
   const { openItemsCount } = useActionItemsCount(meeting?.id || '');
+  
+  // Notes view settings (section visibility)
+  const notesViewSettings = useNotesViewSettings();
   
   // Document count for badge
   const [documentCount, setDocumentCount] = useState<number>(0);
@@ -2558,38 +2563,46 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="mx-6 mt-4 w-fit flex-shrink-0 grid grid-cols-5">
-            <TabsTrigger value="notes" className="gap-2">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Notes</span>
-            </TabsTrigger>
-            <TabsTrigger value="transcript" className="gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Transcript</span>
-            </TabsTrigger>
-            <TabsTrigger value="actions" className="gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Action Items</span>
-              {openItemsCount > 0 && (
-                <Badge variant="secondary" className="ml-1 h-6 min-w-6 px-2 text-xs font-medium flex items-center justify-center rounded-full">
-                  {openItemsCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="ask-ai" className="gap-2">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">Ask AI</span>
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="gap-2">
-              <FileDown className="h-4 w-4" />
-              <span className="hidden sm:inline">Documents</span>
-              {documentCount > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
-                  {documentCount}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
+          <div className="mx-6 mt-4 flex items-center gap-2">
+            <TabsList className="w-fit flex-shrink-0 grid grid-cols-5">
+              <TabsTrigger value="notes" className="gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Notes</span>
+              </TabsTrigger>
+              <TabsTrigger value="transcript" className="gap-2">
+                <MessageSquare className="h-4 w-4" />
+                <span className="hidden sm:inline">Transcript</span>
+              </TabsTrigger>
+              <TabsTrigger value="actions" className="gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Action Items</span>
+                {openItemsCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-6 min-w-6 px-2 text-xs font-medium flex items-center justify-center rounded-full">
+                    {openItemsCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="ask-ai" className="gap-2">
+                <MessageSquare className="h-4 w-4" />
+                <span className="hidden sm:inline">Ask AI</span>
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="gap-2">
+                <FileDown className="h-4 w-4" />
+                <span className="hidden sm:inline">Documents</span>
+                {documentCount > 0 && (
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
+                    {documentCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* Section Visibility Settings */}
+            <NotesViewSettingsPopover
+              settings={notesViewSettings.settings}
+              onToggleSection={notesViewSettings.toggleSection}
+            />
+          </div>
 
           {/* Content Area */}
           <div className="flex-1 min-h-0 px-6 pb-6 pt-4">
@@ -2791,12 +2804,14 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           </pre>
                         ) : sections.length > 0 ? (
                           <div className="space-y-4">
-                            {sections.map((section, index) => (
+                            {sections
+                              .filter(section => notesViewSettings.isSectionVisible(section.heading))
+                              .map((section, index, filteredSections) => (
                               <EditableSection
                                 key={section.id}
                                 section={section}
                                 isFirst={index === 0}
-                                isLast={index === sections.length - 1}
+                                isLast={index === filteredSections.length - 1}
                                 viewMode={viewMode}
                                 fontSize={fontSize}
                                 formatContent={basicFormat}
@@ -2808,6 +2823,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                 meetingId={meeting?.id}
                               />
                             ))}
+                            {/* Show message when all sections are hidden */}
+                            {sections.length > 0 && sections.filter(s => notesViewSettings.isSectionVisible(s.heading)).length === 0 && (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <p className="text-sm">All sections are hidden. Use the settings icon to show sections.</p>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <InteractiveNotesContent
