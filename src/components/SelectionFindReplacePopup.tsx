@@ -139,14 +139,21 @@ export function SelectionFindReplacePopup({
       const regex = new RegExp(escapeRegex(selectedText), 'gi');
       const updatedText = currentText.replace(regex, replaceWith);
 
-      // Save correction for future if checkbox is checked
-      if (saveForFuture && selectedText !== replaceWith) {
-        await userNameCorrections.addCorrection(selectedText, replaceWith);
-        toast.success(`Saved correction: "${selectedText}" → "${replaceWith}"`);
-      }
-
+      // Apply the replacement first (always)
       onApply(updatedText);
       toast.success(`Replaced ${occurrenceCount} occurrence${occurrenceCount !== 1 ? 's' : ''}`);
+
+      // Save correction for future if checkbox is checked (separate try/catch so it doesn't block replacement)
+      if (saveForFuture && selectedText !== replaceWith) {
+        try {
+          await userNameCorrections.addCorrection(selectedText, replaceWith);
+          toast.success(`Saved correction: "${selectedText}" → "${replaceWith}"`);
+        } catch (saveError) {
+          console.error('Error saving correction for future:', saveError);
+          toast.error('Replacement applied, but failed to save for future meetings');
+        }
+      }
+
       onClose();
     } catch (error) {
       console.error('Error applying replacement:', error);
