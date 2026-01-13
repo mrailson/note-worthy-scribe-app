@@ -2480,10 +2480,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <MessageSquare className="h-4 w-4" />
               <span className="hidden sm:inline">Ask AI</span>
             </TabsTrigger>
-            <TabsTrigger value="audio" className="gap-2">
-              <Headphones className="h-4 w-4" />
-              <span className="hidden sm:inline">Audio Summary</span>
-            </TabsTrigger>
             <TabsTrigger value="documents" className="gap-2">
               <FileDown className="h-4 w-4" />
               <span className="hidden sm:inline">Documents</span>
@@ -2894,20 +2890,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 <div className="p-6">
                   {meeting && (
                     <MeetingQAPanel
-                      meetingId={meeting.id}
-                      meetingTitle={meeting.title}
-                    />
-                  )}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-
-            {/* Audio Summary Tab */}
-            <TabsContent value="audio" className="h-full m-0">
-              <ScrollArea className="h-full rounded-lg border bg-card">
-                <div className="p-6">
-                  {meeting && (
-                    <MeetingAudioStudio
                       meetingId={meeting.id}
                       meetingTitle={meeting.title}
                     />
