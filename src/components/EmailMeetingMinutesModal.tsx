@@ -453,9 +453,168 @@ export function EmailMeetingMinutesModal({
         const lines = processedText.split('\n');
         let html = '';
         let i = 0;
+        let inActionItemsSection = false;
+        
+        // Helper to parse action item line: "Action — @Owner (Deadline) [Priority] {Status}"
+        const parseActionItem = (line: string): { action: string; owner: string; deadline: string; priority: string; status: string } | null => {
+          const itemText = line.replace(/^[•\-\*]\s*/, '').trim();
+          
+          // Try to extract components
+          let action = itemText;
+          let owner = '';
+          let deadline = '';
+          let priority = '';
+          let status = '';
+          
+          // Extract status {Open} or {Completed} or {Done} etc.
+          const statusMatch = itemText.match(/\{([^}]+)\}/);
+          if (statusMatch) {
+            status = statusMatch[1];
+            action = action.replace(/\s*\{[^}]+\}/, '');
+          }
+          
+          // Extract priority [High] or [Medium] or [Low]
+          const priorityMatch = action.match(/\[([^\]]+)\]/);
+          if (priorityMatch) {
+            priority = priorityMatch[1];
+            action = action.replace(/\s*\[[^\]]+\]/, '');
+          }
+          
+          // Extract deadline (Early February 2026) or (Prior to next meeting) etc.
+          const deadlineMatch = action.match(/\(([^)]+)\)/);
+          if (deadlineMatch) {
+            deadline = deadlineMatch[1];
+            action = action.replace(/\s*\([^)]+\)/, '');
+          }
+          
+          // Extract owner @Name or — @Name
+          const ownerMatch = action.match(/[—–-]\s*@?([A-Za-z\s]+?)(?:\s*$)/);
+          if (ownerMatch) {
+            owner = ownerMatch[1].trim();
+            action = action.replace(/\s*[—–-]\s*@?[A-Za-z\s]+$/, '').trim();
+          } else {
+            // Try alternate pattern: just @Name
+            const altOwnerMatch = action.match(/@([A-Za-z\s]+?)(?:\s*$)/);
+            if (altOwnerMatch) {
+              owner = altOwnerMatch[1].trim();
+              action = action.replace(/\s*@[A-Za-z\s]+$/, '').trim();
+            }
+          }
+          
+          // Clean up action text
+          action = action.replace(/\s*[—–-]\s*$/, '').trim();
+          
+          if (action) {
+            return { action, owner: owner || 'TBC', deadline: deadline || 'TBC', priority: priority || '-', status: status || 'Open' };
+          }
+          return null;
+        };
         
         while (i < lines.length) {
           const line = lines[i].trim();
+          
+          // Detect ACTION ITEMS section header
+          if (line.match(/^#{0,6}\s*ACTION\s*ITEMS?\s*$/i) || line === 'ACTION ITEMS' || line === 'ACTION ITEM') {
+            inActionItemsSection = true;
+            html += '<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 24px 0 12px 0; font-family: Arial, sans-serif; text-transform: uppercase;">ACTION ITEMS</h2>\n';
+            
+            // Start building action items table
+            html += '<table style="border-collapse: collapse; width: 100%; margin: 12px 0 20px 0; font-family: Arial, sans-serif; font-size: 13px;">\n';
+            html += '  <thead>\n';
+            html += '    <tr style="background: linear-gradient(135deg, #005EB8 0%, #003d7a 100%);">\n';
+            html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 45%;">Action</th>\n';
+            html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 18%;">Owner</th>\n';
+            html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 17%;">Deadline</th>\n';
+            html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: center; font-weight: 600; color: white; width: 10%;">Priority</th>\n';
+            html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: center; font-weight: 600; color: white; width: 10%;">Status</th>\n';
+            html += '    </tr>\n';
+            html += '  </thead>\n';
+            html += '  <tbody>\n';
+            
+            i++;
+            let rowIndex = 0;
+            
+            // Collect action items until we hit a new section or end
+            while (i < lines.length) {
+              const itemLine = lines[i].trim();
+              
+              // Check if we've hit a new section (non-bullet, non-empty line that's a header)
+              if (itemLine.length > 0 && !itemLine.match(/^[•\-\*]\s/) && !itemLine.match(/^~~/) && !itemLine.toLowerCase().includes('completed items')) {
+                // Check if it's another section header
+                if (itemLine.match(/^#{1,6}\s/) || (itemLine === itemLine.toUpperCase() && itemLine.length < 100)) {
+                  break; // Exit action items section
+                }
+              }
+              
+              // Skip "Completed Items:" subheading but keep processing
+              if (itemLine.toLowerCase().includes('completed items')) {
+                i++;
+                continue;
+              }
+              
+              // Skip empty lines
+              if (itemLine.length === 0) {
+                i++;
+                continue;
+              }
+              
+              // Parse action item bullet points
+              if (itemLine.match(/^[•\-\*]\s/) || itemLine.match(/^~~[•\-\*]?\s*/)) {
+                const isCompleted = itemLine.startsWith('~~') || itemLine.includes('Completed') || itemLine.includes('Done');
+                const cleanLine = itemLine.replace(/^~~/, '').replace(/~~$/, '');
+                const parsed = parseActionItem(cleanLine);
+                
+                if (parsed) {
+                  const bgColor = rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc';
+                  const textDecoration = isCompleted ? 'text-decoration: line-through; color: #6b7280;' : '';
+                  
+                  // Priority badge colors
+                  let priorityBg = '#e5e7eb';
+                  let priorityColor = '#374151';
+                  if (parsed.priority.toLowerCase() === 'high') {
+                    priorityBg = '#fee2e2';
+                    priorityColor = '#dc2626';
+                  } else if (parsed.priority.toLowerCase() === 'medium') {
+                    priorityBg = '#fef3c7';
+                    priorityColor = '#d97706';
+                  } else if (parsed.priority.toLowerCase() === 'low') {
+                    priorityBg = '#dcfce7';
+                    priorityColor = '#16a34a';
+                  }
+                  
+                  // Status badge colors
+                  let statusBg = '#dbeafe';
+                  let statusColor = '#1d4ed8';
+                  const statusLower = (parsed.status || 'open').toLowerCase();
+                  if (statusLower === 'completed' || statusLower === 'done') {
+                    statusBg = '#dcfce7';
+                    statusColor = '#16a34a';
+                  } else if (statusLower === 'in progress') {
+                    statusBg = '#fef3c7';
+                    statusColor = '#d97706';
+                  }
+                  
+                  html += `    <tr style="background-color: ${bgColor};">\n`;
+                  html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; ${textDecoration}">${parsed.action}</td>\n`;
+                  html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; ${textDecoration}">${parsed.owner}</td>\n`;
+                  html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; ${textDecoration}">${parsed.deadline}</td>\n`;
+                  html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; text-align: center;"><span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; background-color: ${priorityBg}; color: ${priorityColor};">${parsed.priority}</span></td>\n`;
+                  html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; text-align: center;"><span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; background-color: ${statusBg}; color: ${statusColor};">${parsed.status}</span></td>\n`;
+                  html += '    </tr>\n';
+                  rowIndex++;
+                }
+                i++;
+                continue;
+              }
+              
+              i++;
+            }
+            
+            html += '  </tbody>\n';
+            html += '</table>\n';
+            inActionItemsSection = false;
+            continue;
+          }
           
           // Handle tables
           if (line.includes('|')) {
@@ -512,7 +671,7 @@ export function EmailMeetingMinutesModal({
             continue;
           }
           
-          // Handle bullet points
+          // Handle bullet points (not in action items section)
           if (line.match(/^[•\-\*]\s/)) {
             let listHTML = '<ul style="margin: 8px 0 8px 20px; padding: 0;">\n';
             while (i < lines.length && lines[i].trim().match(/^[•\-\*]\s/)) {
@@ -540,12 +699,12 @@ export function EmailMeetingMinutesModal({
               const bodyText = fullText.substring(colonIndex + 1).trim();
               
               // Heading in blue and bold, body text in regular black
-              html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;">`;
+              html += '<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;">';
               html += `<strong style="color: #2563EB;">${number}. ${heading}</strong>`;
               if (bodyText) {
                 html += ` <span style="color: #1a1a1a; font-weight: normal;">${bodyText}</span>`;
               }
-              html += `</p>\n`;
+              html += '</p>\n';
             } else {
               // No colon, entire line is heading
               html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;"><strong style="color: #2563EB;">${number}. ${fullText}</strong></p>\n`;
