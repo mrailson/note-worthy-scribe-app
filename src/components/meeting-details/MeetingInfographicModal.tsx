@@ -17,6 +17,12 @@ interface ActionItem {
   priority?: string;
 }
 
+interface InfographicOptions {
+  style: string;
+  detailLevel: string;
+  focusArea: string;
+}
+
 interface MeetingInfographicModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -30,6 +36,7 @@ interface MeetingInfographicModalProps {
     actionItems: ActionItem[];
     transcript?: string;
   };
+  options?: InfographicOptions;
 }
 
 const GENERATION_TIPS = [
@@ -49,6 +56,7 @@ export const MeetingInfographicModal: React.FC<MeetingInfographicModalProps> = (
   isOpen,
   onClose,
   meetingData,
+  options,
 }) => {
   const { generateInfographic, isGenerating, currentPhase, error } = useMeetingInfographic();
   const [timeRemaining, setTimeRemaining] = useState(TOTAL_DURATION);
@@ -68,8 +76,8 @@ export const MeetingInfographicModal: React.FC<MeetingInfographicModalProps> = (
       setIsComplete(false);
       setHasFailed(false);
 
-      // Start the generation
-      generateInfographic(meetingData).then((result) => {
+      // Start the generation with options
+      generateInfographic(meetingData, options).then((result) => {
         if (result.success) {
           setIsComplete(true);
           toast.success('Infographic downloaded successfully!');
