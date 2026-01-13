@@ -1,7 +1,15 @@
-import { useState, useMemo } from 'react';
-import { Circle, CheckCircle2, Trash2, User, Calendar, Flag, ChevronDown, X } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Circle, CheckCircle2, Trash2, User, Calendar, Flag, ChevronDown, X, Pencil, Check } from 'lucide-react';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Table,
   TableBody,
@@ -17,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { ActionItem } from '@/hooks/useActionItems';
+import { ActionItem, calculateActualDueDate } from '@/hooks/useActionItems';
 
 interface ActionItemsTableViewProps {
   openItems: ActionItem[];
@@ -29,6 +37,139 @@ interface ActionItemsTableViewProps {
   onDelete: (id: string) => Promise<boolean>;
   onToggleStatus: (id: string) => void;
 }
+
+// Inline editable cell component
+const EditableCell = ({
+  value,
+  onSave,
+  placeholder = '',
+  className = '',
+}: {
+  value: string;
+  onSave: (newValue: string) => void;
+  placeholder?: string;
+  className?: string;
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    setEditValue(value);
+  }, [value]);
+
+  const handleSave = () => {
+    if (editValue.trim() !== value) {
+      onSave(editValue.trim());
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setEditValue(value);
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          ref={inputRef}
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          className="h-7 text-sm py-0"
+          placeholder={placeholder}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        "group flex items-center gap-1.5 cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5",
+        className
+      )}
+      onClick={() => setIsEditing(true)}
+      title="Click to edit"
+    >
+      <span className="text-sm truncate">{value || placeholder}</span>
+      <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-50 shrink-0" />
+    </div>
+  );
+};
+
+// Date picker cell component
+const DatePickerCell = ({
+  dueDate,
+  dueDateActual,
+  onSave,
+}: {
+  dueDate: string;
+  dueDateActual: string | null;
+  onSave: (date: Date | undefined) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedDate = dueDateActual ? new Date(dueDateActual) : undefined;
+
+  const handleSelect = (date: Date | undefined) => {
+    onSave(date);
+    setIsOpen(false);
+  };
+
+  const displayDate = dueDateActual 
+    ? format(new Date(dueDateActual), 'd MMM yyyy')
+    : dueDate || 'TBC';
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <div
+          className="group flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5"
+          title="Click to set date"
+        >
+          <Calendar className="h-3 w-3" />
+          <span>{displayDate}</span>
+          <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-50 shrink-0" />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <CalendarComponent
+          mode="single"
+          selected={selectedDate}
+          onSelect={handleSelect}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+        {dueDateActual && (
+          <div className="px-3 pb-3 pt-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-xs text-muted-foreground"
+              onClick={() => handleSelect(undefined)}
+            >
+              Clear date
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 const priorityConfig: Record<string, { color: string; emoji: string }> = {
   High: { color: 'text-red-600 bg-red-50 border-red-200', emoji: '🔴' },
@@ -366,24 +507,45 @@ export const ActionItemsTableView = ({
                   </button>
                 </TableCell>
                 <TableCell className="py-2">
-                  <span className="text-sm">{item.action_text}</span>
+                  <EditableCell
+                    value={item.action_text}
+                    onSave={(newValue) => onUpdate(item.id, { action_text: newValue })}
+                    placeholder="Enter action..."
+                  />
                 </TableCell>
                 <TableCell className="py-2">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <User className="h-3 w-3" />
-                    <span>{item.assignee_name || 'TBC'}</span>
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <User className="h-3 w-3 shrink-0" />
+                    <EditableCell
+                      value={item.assignee_name || 'TBC'}
+                      onSave={(newValue) => onUpdate(item.id, { 
+                        assignee_name: newValue || 'TBC',
+                        assignee_type: newValue && newValue !== 'TBC' ? 'custom' : 'tbc'
+                      })}
+                      placeholder="TBC"
+                      className="text-xs"
+                    />
                   </div>
                 </TableCell>
                 <TableCell className="py-2">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    <span>{item.due_date}</span>
-                    {item.due_date_actual && (
-                      <span className="text-muted-foreground/70">
-                        ({new Date(item.due_date_actual).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })})
-                      </span>
-                    )}
-                  </div>
+                  <DatePickerCell
+                    dueDate={item.due_date}
+                    dueDateActual={item.due_date_actual}
+                    onSave={(date) => {
+                      if (date) {
+                        const dateStr = format(date, 'd MMM yyyy');
+                        onUpdate(item.id, { 
+                          due_date: dateStr,
+                          due_date_actual: date.toISOString().split('T')[0]
+                        });
+                      } else {
+                        onUpdate(item.id, { 
+                          due_date: 'TBC',
+                          due_date_actual: null
+                        });
+                      }
+                    }}
+                  />
                 </TableCell>
                 <TableCell className="py-2">
                   <Badge 
@@ -429,19 +591,46 @@ export const ActionItemsTableView = ({
                   </button>
                 </TableCell>
                 <TableCell className="py-2">
-                  <span className="text-sm line-through text-muted-foreground">{item.action_text}</span>
+                  <EditableCell
+                    value={item.action_text}
+                    onSave={(newValue) => onUpdate(item.id, { action_text: newValue })}
+                    placeholder="Enter action..."
+                    className="line-through text-muted-foreground"
+                  />
                 </TableCell>
                 <TableCell className="py-2">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <User className="h-3 w-3" />
-                    <span>{item.assignee_name || 'TBC'}</span>
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <User className="h-3 w-3 shrink-0" />
+                    <EditableCell
+                      value={item.assignee_name || 'TBC'}
+                      onSave={(newValue) => onUpdate(item.id, { 
+                        assignee_name: newValue || 'TBC',
+                        assignee_type: newValue && newValue !== 'TBC' ? 'custom' : 'tbc'
+                      })}
+                      placeholder="TBC"
+                      className="text-xs"
+                    />
                   </div>
                 </TableCell>
                 <TableCell className="py-2">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    <span>{item.due_date}</span>
-                  </div>
+                  <DatePickerCell
+                    dueDate={item.due_date}
+                    dueDateActual={item.due_date_actual}
+                    onSave={(date) => {
+                      if (date) {
+                        const dateStr = format(date, 'd MMM yyyy');
+                        onUpdate(item.id, { 
+                          due_date: dateStr,
+                          due_date_actual: date.toISOString().split('T')[0]
+                        });
+                      } else {
+                        onUpdate(item.id, { 
+                          due_date: 'TBC',
+                          due_date_actual: null
+                        });
+                      }
+                    }}
+                  />
                 </TableCell>
                 <TableCell className="py-2">
                   <Badge 
