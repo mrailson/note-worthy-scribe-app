@@ -146,26 +146,35 @@ const DatePickerCell = ({
           <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-50 shrink-0" />
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <CalendarComponent
-          mode="single"
-          selected={selectedDate}
-          onSelect={handleSelect}
-          initialFocus
-          className={cn("p-3 pointer-events-auto")}
-        />
-        {dueDateActual && (
-          <div className="px-3 pb-3 pt-0">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-xs text-muted-foreground"
-              onClick={() => handleSelect(undefined)}
-            >
-              Clear date
-            </Button>
-          </div>
-        )}
+      <PopoverContent 
+        className="w-auto p-0 z-[100]" 
+        align="start"
+        side="bottom"
+        sideOffset={4}
+        avoidCollisions={true}
+        collisionPadding={20}
+      >
+        <div className="p-3">
+          <CalendarComponent
+            mode="single"
+            selected={selectedDate}
+            onSelect={handleSelect}
+            initialFocus
+            defaultMonth={selectedDate || new Date()}
+            className="pointer-events-auto"
+          />
+          {dueDateActual && (
+            <div className="pt-2 border-t mt-2">
+              <button
+                type="button"
+                className="w-full text-xs text-muted-foreground hover:text-foreground py-1.5 hover:bg-muted rounded transition-colors"
+                onClick={() => handleSelect(undefined)}
+              >
+                Clear date
+              </button>
+            </div>
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );
