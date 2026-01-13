@@ -76,6 +76,9 @@ export const MeetingInfographicModal: React.FC<MeetingInfographicModalProps> = (
       setIsComplete(false);
       setHasFailed(false);
 
+      // Log the options being used
+      console.log('[MeetingInfographicModal] Starting generation with options:', options);
+
       // Start the generation with options
       generateInfographic(meetingData, options).then((result) => {
         if (result.success) {
@@ -91,7 +94,7 @@ export const MeetingInfographicModal: React.FC<MeetingInfographicModalProps> = (
         }
       });
     }
-  }, [isOpen, hasStarted, isComplete, generateInfographic, meetingData, onClose]);
+  }, [isOpen, hasStarted, isComplete, generateInfographic, meetingData, options, onClose]);
 
   // Countdown timer
   useEffect(() => {
