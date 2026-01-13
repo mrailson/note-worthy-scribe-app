@@ -110,22 +110,6 @@ export function SelectionFindReplacePopup({
     };
   }, [onClose]);
 
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      } else if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleReplaceAll();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [replaceWith, saveForFuture]);
-
   const handleReplaceAll = useCallback(async () => {
     if (!replaceWith.trim() && replaceWith !== '') {
       toast.error('Please enter replacement text');
@@ -162,6 +146,22 @@ export function SelectionFindReplacePopup({
       setIsApplying(false);
     }
   }, [selectedText, replaceWith, saveForFuture, getCurrentText, onApply, onClose, occurrenceCount]);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      } else if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleReplaceAll();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleReplaceAll, onClose]);
 
   return (
     <div
