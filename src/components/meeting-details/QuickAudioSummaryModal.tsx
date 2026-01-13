@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Download, Clock, Headphones, Check, RotateCcw } from 'lucide-react';
+import { Loader2, Download, Clock, Headphones, Check, RotateCcw, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -28,6 +28,17 @@ const DURATION_OPTIONS: DurationOption[] = [
   { value: 5, label: '5 Minutes', description: 'Comprehensive briefing' },
 ];
 
+interface VoiceOption {
+  id: string;
+  label: string;
+  gender: 'female' | 'male';
+}
+
+const VOICE_OPTIONS: VoiceOption[] = [
+  { id: 'pFZP5JQG7iQjIQuC4Bku', label: 'Lily', gender: 'female' }, // British Female
+  { id: 'onwK4e9ZLuTAKqWW03F9', label: 'Daniel', gender: 'male' }, // British Male
+];
+
 const DEFAULT_VOICE_ID = 'pFZP5JQG7iQjIQuC4Bku'; // Lily - British Female
 
 export const QuickAudioSummaryModal: React.FC<QuickAudioSummaryModalProps> = ({
@@ -37,6 +48,7 @@ export const QuickAudioSummaryModal: React.FC<QuickAudioSummaryModalProps> = ({
   meetingTitle,
 }) => {
   const [selectedDuration, setSelectedDuration] = useState<number>(2);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>(DEFAULT_VOICE_ID);
   const [status, setStatus] = useState<GenerationStatus>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -72,7 +84,7 @@ export const QuickAudioSummaryModal: React.FC<QuickAudioSummaryModalProps> = ({
         body: {
           meetingId,
           voiceProvider: 'elevenlabs',
-          voiceId: DEFAULT_VOICE_ID,
+          voiceId: selectedVoiceId,
           targetDuration: selectedDuration,
         },
       });
@@ -168,6 +180,31 @@ export const QuickAudioSummaryModal: React.FC<QuickAudioSummaryModalProps> = ({
                     </span>
                   </button>
                 ))}
+              </div>
+
+              {/* Voice Selection */}
+              <div className="pt-2">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Select voice:
+                </p>
+                <div className="flex gap-3">
+                  {VOICE_OPTIONS.map((voice) => (
+                    <button
+                      key={voice.id}
+                      onClick={() => setSelectedVoiceId(voice.id)}
+                      className={cn(
+                        'flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all',
+                        'hover:border-primary/50 hover:bg-accent/50',
+                        selectedVoiceId === voice.id
+                          ? 'border-primary bg-accent'
+                          : 'border-border'
+                      )}
+                    >
+                      <User className="h-4 w-4" />
+                      <span className="font-medium capitalize">{voice.gender}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <Button onClick={handleGenerate} className="w-full mt-4">
