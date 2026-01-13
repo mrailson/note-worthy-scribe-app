@@ -35,12 +35,11 @@ interface EditableSectionProps {
   viewMode: 'plain' | 'formatted';
   fontSize: number;
   formatContent: (text: string) => string;
-  onContentChange: (sectionId: string, newContent: string) => void;
+  onContentChangeAndSave: (sectionId: string, newContent: string) => Promise<boolean>;
   onDelete: (sectionId: string) => void;
   onMoveUp: (sectionId: string) => void;
   onMoveDown: (sectionId: string) => void;
   isSaving: boolean;
-  onSave: () => void;
   meetingId?: string;
 }
 
@@ -51,12 +50,11 @@ const EditableSection: React.FC<EditableSectionProps> = ({
   viewMode,
   fontSize,
   formatContent,
-  onContentChange,
+  onContentChangeAndSave,
   onDelete,
   onMoveUp,
   onMoveDown,
   isSaving,
-  onSave,
   meetingId,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -64,14 +62,15 @@ const EditableSection: React.FC<EditableSectionProps> = ({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
 
-  const handleBlur = (newContent: string) => {
-    onContentChange(section.id, newContent);
+  const handleBlur = async (newContent: string) => {
     setIsEditing(false);
-    onSave();
+    const success = await onContentChangeAndSave(section.id, newContent);
     
-    // Show saved indicator briefly
-    setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 2000);
+    // Only show saved indicator if save was successful
+    if (success) {
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2000);
+    }
   };
 
   const handleDelete = () => {
@@ -80,11 +79,12 @@ const EditableSection: React.FC<EditableSectionProps> = ({
   };
 
   // Handle inline content change from InteractiveNotesContent
-  const handleInlineContentChange = (newContent: string) => {
-    onContentChange(section.id, newContent);
-    onSave();
-    setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 2000);
+  const handleInlineContentChange = async (newContent: string) => {
+    const success = await onContentChangeAndSave(section.id, newContent);
+    if (success) {
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2000);
+    }
   };
 
   // Format the section content for display

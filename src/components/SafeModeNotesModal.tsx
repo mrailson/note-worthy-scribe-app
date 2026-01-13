@@ -923,12 +923,41 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   };
 
-  // Section editing handlers
-  const handleSectionContentChange = useCallback((sectionId: string, newContent: string) => {
-    setSections(prev => prev.map(s => 
+  // Section editing handlers - combined change + persist to avoid stale state
+  const handleSectionContentChangeAndSave = useCallback(async (sectionId: string, newContent: string): Promise<boolean> => {
+    if (!meeting?.id) return false;
+    
+    // Compute updated sections synchronously
+    const updatedSections = sections.map(s => 
       s.id === sectionId ? { ...s, content: newContent } : s
-    ));
-  }, []);
+    );
+    
+    // Update local state immediately
+    setSections(updatedSections);
+    
+    // Persist with the computed sections (not stale state)
+    setIsSavingSections(true);
+    try {
+      const updatedContent = rebuildNotesFromSections(updatedSections, notesContent);
+      
+      const response = await supabase.functions.invoke('persist-standard-minutes', {
+        body: { meetingId: meeting.id, content: updatedContent }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to save');
+      }
+
+      setNotesContent(updatedContent);
+      return true;
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Failed to save notes');
+      return false;
+    } finally {
+      setIsSavingSections(false);
+    }
+  }, [meeting?.id, sections, notesContent, rebuildNotesFromSections]);
 
   const handleSectionDelete = useCallback((sectionId: string) => {
     setSections(prev => {
@@ -959,13 +988,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     });
   }, []);
 
-  const persistSectionsToDb = useCallback(async (sectionsToSave?: Section[]) => {
-    if (!meeting?.id) return;
+  // Persist sections - requires explicit sections array to avoid stale state
+  const persistSectionsToDb = useCallback(async (sectionsToSave: Section[]): Promise<boolean> => {
+    if (!meeting?.id) return false;
     
     setIsSavingSections(true);
     try {
-      const currentSections = sectionsToSave || sections;
-      const updatedContent = rebuildNotesFromSections(currentSections, notesContent);
+      const updatedContent = rebuildNotesFromSections(sectionsToSave, notesContent);
       
       const response = await supabase.functions.invoke('persist-standard-minutes', {
         body: { meetingId: meeting.id, content: updatedContent }
@@ -976,14 +1005,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       }
 
       setNotesContent(updatedContent);
-      toast.success('Notes saved');
+      return true;
     } catch (error) {
       console.error('Save error:', error);
       toast.error('Failed to save notes');
+      return false;
     } finally {
       setIsSavingSections(false);
     }
-  }, [meeting?.id, sections, notesContent, rebuildNotesFromSections]);
+  }, [meeting?.id, notesContent, rebuildNotesFromSections]);
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -2770,12 +2800,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                 viewMode={viewMode}
                                 fontSize={fontSize}
                                 formatContent={basicFormat}
-                                onContentChange={handleSectionContentChange}
+                                onContentChangeAndSave={handleSectionContentChangeAndSave}
                                 onDelete={handleSectionDelete}
                                 onMoveUp={handleSectionMoveUp}
                                 onMoveDown={handleSectionMoveDown}
                                 isSaving={isSavingSections}
-                                onSave={persistSectionsToDb}
                                 meetingId={meeting?.id}
                               />
                             ))}

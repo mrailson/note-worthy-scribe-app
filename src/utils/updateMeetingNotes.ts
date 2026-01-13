@@ -224,12 +224,5 @@ This strategic planning meeting focused on major operational restructuring of di
   }
 }
 
-// Call the function immediately for Julia's meeting
-updateMeetingNotesWithDetails('c00b55e9-2b9d-4652-9d2f-0b0f1250860e')
-  .then(result => {
-    if (result.success) {
-      console.log('✅ Meeting notes updated successfully for Julia Railson');
-    } else {
-      console.error('❌ Failed to update meeting notes:', result.error);
-    }
-  });
+// REMOVED auto-execute - this was causing unwanted side effects
+// To use this function, import and call it explicitly where needed
