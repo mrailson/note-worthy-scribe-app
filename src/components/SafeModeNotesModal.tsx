@@ -1287,6 +1287,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       { label: 'ASAP', value: 'ASAP' },
       { label: 'Next Week', value: format(nextMonday(addDays(today, 1)), 'd MMM yyyy') },
       { label: 'By Next Meeting', value: 'By next meeting' },
+      { label: 'Ongoing', value: 'Ongoing' },
+      { label: 'TBC', value: 'TBC' },
     ];
   };
 
