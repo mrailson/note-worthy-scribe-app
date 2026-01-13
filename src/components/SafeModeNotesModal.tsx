@@ -374,7 +374,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           meeting_role,
           attendees:attendee_id (
             name,
-            role
+            role,
+            organization
           )
         `)
         .eq('meeting_id', meeting.id);
@@ -389,7 +390,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           .filter(item => item.attendees)
           .map(item => ({
             name: (item.attendees as any).name,
-            role: item.meeting_role || (item.attendees as any).role
+            role: item.meeting_role || (item.attendees as any).role,
+            organization: (item.attendees as any).organization
           }));
         setAttendees(parsedAttendees);
       } else {
@@ -637,7 +639,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [meetingFormat, setMeetingFormat] = useState<string | null>(null);
   
   // Store attendees from database
-  const [attendees, setAttendees] = useState<Array<{ name: string; role?: string | null }>>([]);
+  const [attendees, setAttendees] = useState<Array<{ name: string; role?: string | null; organization?: string | null }>>([]);
 
   // Fetch fresh notes and attendees in background (non-blocking)
   useEffect(() => {
@@ -696,7 +698,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             meeting_role,
             attendees:attendee_id (
               name,
-              role
+              role,
+              organization
             )
           `)
           .eq('meeting_id', meeting.id);
@@ -711,7 +714,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             .filter(item => item.attendees)
             .map(item => ({
               name: (item.attendees as any).name,
-              role: item.meeting_role || (item.attendees as any).role
+              role: item.meeting_role || (item.attendees as any).role,
+              organization: (item.attendees as any).organization
             }));
           setAttendees(parsedAttendees);
         }
@@ -2677,9 +2681,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                           className="text-xs font-normal"
                                         >
                                           {attendee.name}
-                                          {attendee.role && (
+                                          {attendee.organization && (
                                             <span className="ml-1 text-muted-foreground">
-                                              ({attendee.role})
+                                              ({attendee.organization})
                                             </span>
                                           )}
                                         </Badge>
