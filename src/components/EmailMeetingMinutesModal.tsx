@@ -435,7 +435,7 @@ export function EmailMeetingMinutesModal({
       };
 
       // Helper function to convert markdown and format to HTML with proper structure
-      const convertToStyledHTML = (text: string): string => {
+      const convertToStyledHTML = (text: string, details?: { date?: string; time?: string; location?: string; attendees?: string }): string => {
         // First strip duplicate blocks
         const cleanedText = stripDuplicateBlocks(text);
         // Strip bold markers
@@ -452,6 +452,45 @@ export function EmailMeetingMinutesModal({
         
         const lines = processedText.split('\n');
         let html = '';
+        
+        // Add Meeting Details box at the top if we have details
+        if (details && (details.date || details.time || details.location || details.attendees)) {
+          html += '<div style="background: linear-gradient(135deg, #f0f7ff 0%, #e8f4fd 100%); border-left: 4px solid #2563EB; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; font-family: Arial, sans-serif;">\n';
+          html += '<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px;">MEETING DETAILS</h2>\n';
+          html += '<table style="width: 100%; border: none; border-collapse: collapse;">\n';
+          
+          if (details.date) {
+            html += '<tr>\n';
+            html += '<td style="color: #2563EB; font-weight: 600; font-size: 14px; padding: 6px 0; width: 120px; vertical-align: top;">Date</td>\n';
+            html += `<td style="color: #1a1a1a; font-size: 14px; padding: 6px 0;">${details.date}</td>\n`;
+            html += '</tr>\n';
+          }
+          
+          if (details.time) {
+            html += '<tr>\n';
+            html += '<td style="color: #2563EB; font-weight: 600; font-size: 14px; padding: 6px 0; width: 120px; vertical-align: top;">Time</td>\n';
+            html += `<td style="color: #1a1a1a; font-size: 14px; padding: 6px 0;">${details.time}</td>\n`;
+            html += '</tr>\n';
+          }
+          
+          if (details.location) {
+            html += '<tr>\n';
+            html += '<td style="color: #2563EB; font-weight: 600; font-size: 14px; padding: 6px 0; width: 120px; vertical-align: top;">Location</td>\n';
+            html += `<td style="color: #1a1a1a; font-size: 14px; padding: 6px 0;">${details.location}</td>\n`;
+            html += '</tr>\n';
+          }
+          
+          if (details.attendees) {
+            html += '<tr>\n';
+            html += '<td style="color: #2563EB; font-weight: 600; font-size: 14px; padding: 6px 0; width: 120px; vertical-align: top;">Attendees</td>\n';
+            html += `<td style="color: #1a1a1a; font-size: 14px; padding: 6px 0;">${details.attendees}</td>\n`;
+            html += '</tr>\n';
+          }
+          
+          html += '</table>\n';
+          html += '</div>\n';
+        }
+        
         let i = 0;
         let inActionItemsSection = false;
         
@@ -727,8 +766,13 @@ export function EmailMeetingMinutesModal({
         return html;
       };
 
-      // Format meeting notes as styled HTML - use fresh notes
-      const formattedNotes = convertToStyledHTML(notesToSend);
+      // Format meeting notes as styled HTML - use fresh notes, including meeting details box
+      const formattedNotes = convertToStyledHTML(notesToSend, {
+        date: meetingDate || undefined,
+        time: meetingTime,
+        location: meetingLocation,
+        attendees: attendeeNames,
+      });
 
       // Check for audio overview and prepare attachment if available
       let audioAttachment = null;
