@@ -1894,24 +1894,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </TooltipTrigger>
               <TooltipContent>Find & Replace</TooltipContent>
             </Tooltip>
-
-            {/* Email Summary */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => {
-                    // Will be handled by send meeting email logic
-                    toast.info('Email feature coming soon');
-                  }}
-                >
-                  <Mail className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Email Summary</TooltipContent>
-            </Tooltip>
           </div>
 
           <div className="flex items-center gap-1">
