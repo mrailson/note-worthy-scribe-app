@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import wordIcon from '@/assets/word-icon.png';
+import { useTextSelection } from '@/hooks/useTextSelection';
+import { SelectionFindReplacePopup } from '@/components/SelectionFindReplacePopup';
 import powerpointIcon from '@/assets/powerpoint-icon.png';
 import infographicIcon from '@/assets/infographic-icon.png';
 import { MeetingPowerPointModal } from '@/components/meeting-details/MeetingPowerPointModal';
@@ -197,6 +199,14 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showQuickAudioModal, setShowQuickAudioModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
+  
+  // Refs for selection-based find/replace
+  const notesContentRef = useRef<HTMLDivElement>(null);
+  const transcriptContentRef = useRef<HTMLDivElement>(null);
+  
+  // Text selection hooks for inline find/replace
+  const { selection: notesSelection, clearSelection: clearNotesSelection } = useTextSelection(notesContentRef, { maxWords: 3 });
+  const { selection: transcriptSelection, clearSelection: clearTranscriptSelection } = useTextSelection(transcriptContentRef, { maxWords: 3 });
   const [isSavingMeetingType, setIsSavingMeetingType] = useState(false);
   
   // Location/Venue editing state
@@ -2705,74 +2715,92 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                       )}
 
                       {/* Main Content - Plain or Editable Sections */}
-                      {viewMode === 'plain' ? (
-                        <pre 
-                          className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
-                          style={{ fontSize: `${fontSize}px` }}
-                        >
-                          {notesContent}
-                        </pre>
-                      ) : sections.length > 0 ? (
-                        <div className="space-y-4">
-                          {sections.map((section, index) => (
-                            <EditableSection
-                              key={section.id}
-                              section={section}
-                              isFirst={index === 0}
-                              isLast={index === sections.length - 1}
-                              viewMode={viewMode}
-                              fontSize={fontSize}
-                              formatContent={basicFormat}
-                              onContentChange={handleSectionContentChange}
-                              onDelete={handleSectionDelete}
-                              onMoveUp={handleSectionMoveUp}
-                              onMoveDown={handleSectionMoveDown}
-                              isSaving={isSavingSections}
-                              onSave={persistSectionsToDb}
-                              meetingId={meeting?.id}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <InteractiveNotesContent
-                          content={contentWithoutActionItems}
-                          sectionId="main-content"
-                          fontSize={fontSize}
-                          meetingId={meeting?.id}
-                          onContentChange={(newContent) => {
-                            // Rebuild full content while preserving Meeting Details (we hide it in the UI, but must not delete it)
-                            const actionItemsMatch = notesContent.match(/##?\s*Action\s+Items?\s*\n[\s\S]*$/i);
+                      <div ref={notesContentRef} className="relative">
+                        {viewMode === 'plain' ? (
+                          <pre 
+                            className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                            style={{ fontSize: `${fontSize}px` }}
+                          >
+                            {notesContent}
+                          </pre>
+                        ) : sections.length > 0 ? (
+                          <div className="space-y-4">
+                            {sections.map((section, index) => (
+                              <EditableSection
+                                key={section.id}
+                                section={section}
+                                isFirst={index === 0}
+                                isLast={index === sections.length - 1}
+                                viewMode={viewMode}
+                                fontSize={fontSize}
+                                formatContent={basicFormat}
+                                onContentChange={handleSectionContentChange}
+                                onDelete={handleSectionDelete}
+                                onMoveUp={handleSectionMoveUp}
+                                onMoveDown={handleSectionMoveDown}
+                                isSaving={isSavingSections}
+                                onSave={persistSectionsToDb}
+                                meetingId={meeting?.id}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <InteractiveNotesContent
+                            content={contentWithoutActionItems}
+                            sectionId="main-content"
+                            fontSize={fontSize}
+                            meetingId={meeting?.id}
+                            onContentChange={(newContent) => {
+                              // Rebuild full content while preserving Meeting Details (we hide it in the UI, but must not delete it)
+                              const actionItemsMatch = notesContent.match(/##?\s*Action\s+Items?\s*\n[\s\S]*$/i);
 
-                            const meetingDetailsBlock = notesContent
-                              .split('\n')
-                              .filter((l) => {
-                                const t = l.trim();
-                                if (!t) return false;
-                                if (/^#{1,6}\s*Meeting\s+Details\s*$/i.test(t)) return true;
-                                if (/^[-•*]?\s*\*{0,2}(?:Meeting\s*)?(?:Title|Subject)\*{0,2}\s*[:\-–—]/i.test(t)) return true;
-                                if (/^[-•*]?\s*\*{0,2}(?:Meeting\s*)?Date\*{0,2}\s*[:\-–—]/i.test(t)) return true;
-                                if (/^[-•*]?\s*\*{0,2}(?:Meeting\s*)?(?:Time|Start\s*Time)\*{0,2}\s*[:\-–—]/i.test(t)) return true;
-                                if (/^[-•*]?\s*\*{0,2}(?:Location|Meeting\s*Type|Format)\*{0,2}\s*[:\-–—]/i.test(t)) return true;
-                                return false;
-                              })
-                              .join('\n')
-                              .trim();
+                              const meetingDetailsBlock = notesContent
+                                .split('\n')
+                                .filter((l) => {
+                                  const t = l.trim();
+                                  if (!t) return false;
+                                  if (/^#{1,6}\s*Meeting\s+Details\s*$/i.test(t)) return true;
+                                  if (/^[-•*]?\s*\*{0,2}(?:Meeting\s*)?(?:Title|Subject)\*{0,2}\s*[:\-–—]/i.test(t)) return true;
+                                  if (/^[-•*]?\s*\*{0,2}(?:Meeting\s*)?Date\*{0,2}\s*[:\-–—]/i.test(t)) return true;
+                                  if (/^[-•*]?\s*\*{0,2}(?:Meeting\s*)?(?:Time|Start\s*Time)\*{0,2}\s*[:\-–—]/i.test(t)) return true;
+                                  if (/^[-•*]?\s*\*{0,2}(?:Location|Meeting\s*Type|Format)\*{0,2}\s*[:\-–—]/i.test(t)) return true;
+                                  return false;
+                                })
+                                .join('\n')
+                                .trim();
 
-                            let updatedContent = newContent.trim();
+                              let updatedContent = newContent.trim();
 
-                            if (meetingDetailsBlock) {
-                              updatedContent = `${meetingDetailsBlock}\n\n${updatedContent}`.trim();
-                            }
+                              if (meetingDetailsBlock) {
+                                updatedContent = `${meetingDetailsBlock}\n\n${updatedContent}`.trim();
+                              }
 
-                            if (actionItemsMatch?.[0]) {
-                              updatedContent = `${updatedContent}\n\n${actionItemsMatch[0].trim()}`.trim();
-                            }
+                              if (actionItemsMatch?.[0]) {
+                                updatedContent = `${updatedContent}\n\n${actionItemsMatch[0].trim()}`.trim();
+                              }
 
-                            setNotesContent(updatedContent);
-                            persistNotesContent(updatedContent);
-                          }}
-                        />
-                      )}
+                              setNotesContent(updatedContent);
+                              persistNotesContent(updatedContent);
+                            }}
+                          />
+                        )}
+
+                        {/* Selection-based Find & Replace Popup for Notes */}
+                        {notesSelection.isValid && notesSelection.rect && (
+                          <SelectionFindReplacePopup
+                            selectedText={notesSelection.text}
+                            position={notesSelection.rect}
+                            getCurrentText={() => notesContent}
+                            onApply={(updatedText) => {
+                              setNotesContent(updatedText);
+                              persistNotesContent(updatedText);
+                              clearNotesSelection();
+                            }}
+                            onClose={clearNotesSelection}
+                            meetingId={meeting?.id}
+                          />
+                        )}
+                      </div>
 
                       {/* Action Items Table */}
                       {viewMode === 'formatted' && actionItems.length > 0 && (
@@ -2874,20 +2902,37 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                       </Button>
                     </div>
                   ) : transcript ? (
-                    viewMode === 'plain' ? (
-                      <pre 
-                        className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
-                        style={{ fontSize: `${fontSize}px` }}
-                      >
-                        {transcript}
-                      </pre>
-                    ) : (
-                      <div 
-                        className="prose prose-sm dark:prose-invert max-w-none text-justify"
-                        style={{ fontSize: `${fontSize}px` }}
-                        dangerouslySetInnerHTML={{ __html: formatTranscript(transcript) }}
-                      />
-                    )
+                    <div ref={transcriptContentRef} className="relative">
+                      {viewMode === 'plain' ? (
+                        <pre 
+                          className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                          style={{ fontSize: `${fontSize}px` }}
+                        >
+                          {transcript}
+                        </pre>
+                      ) : (
+                        <div 
+                          className="prose prose-sm dark:prose-invert max-w-none text-justify"
+                          style={{ fontSize: `${fontSize}px` }}
+                          dangerouslySetInnerHTML={{ __html: formatTranscript(transcript) }}
+                        />
+                      )}
+
+                      {/* Selection-based Find & Replace Popup for Transcript */}
+                      {transcriptSelection.isValid && transcriptSelection.rect && (
+                        <SelectionFindReplacePopup
+                          selectedText={transcriptSelection.text}
+                          position={transcriptSelection.rect}
+                          getCurrentText={() => transcript}
+                          onApply={(updatedText) => {
+                            setTranscript(updatedText);
+                            clearTranscriptSelection();
+                          }}
+                          onClose={clearTranscriptSelection}
+                          meetingId={meeting?.id}
+                        />
+                      )}
+                    </div>
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
                       <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
