@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Plus, Edit, Trash2, Check, X, Bookmark, Settings } from "lucide-react";
+import { Users, Plus, Edit, Trash2, Check, X, Bookmark, Settings, Upload, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { BulkAttendeeImporter, ParsedAttendee } from "@/components/attendees/BulkAttendeeImporter";
 
 interface Attendee {
   id: string;
@@ -53,6 +54,9 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
   const [isEditingTemplate, setIsEditingTemplate] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<AttendeeTemplate | null>(null);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [quickAddName, setQuickAddName] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -306,6 +310,115 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
     setIsAdding(false);
   };
 
+  // Bulk import handler
+  const handleBulkImport = useCallback(async (parsedAttendees: ParsedAttendee[]) => {
+    if (!user?.id || userPracticeIds.length === 0) {
+      toast({
+        title: "Error",
+        description: "No practice assigned to your account",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Verify practice_id exists in gp_practices before using
+    let validPracticeId = null;
+    if (userPracticeIds[0]) {
+      const { data: practiceCheck } = await supabase
+        .from('gp_practices')
+        .select('id')
+        .eq('id', userPracticeIds[0])
+        .single();
+      
+      if (practiceCheck) {
+        validPracticeId = userPracticeIds[0];
+      }
+    }
+
+    const attendeesToInsert = parsedAttendees.map(a => ({
+      user_id: user.id,
+      practice_id: validPracticeId,
+      name: a.name,
+      email: a.email || null,
+      title: a.title || null,
+      organization: a.organization || null,
+      organization_type: a.organizationType || 'other',
+      role: a.role || null,
+    }));
+
+    const { error } = await supabase
+      .from('attendees')
+      .insert(attendeesToInsert);
+
+    if (error) throw error;
+
+    setShowBulkImport(false);
+    fetchAttendees();
+  }, [user?.id, userPracticeIds]);
+
+  // Quick add handler
+  const handleQuickAdd = useCallback(async () => {
+    if (!quickAddName.trim()) return;
+    
+    if (!user?.id || userPracticeIds.length === 0) {
+      toast({
+        title: "Error",
+        description: "No practice assigned to your account",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Verify practice_id exists
+    let validPracticeId = null;
+    if (userPracticeIds[0]) {
+      const { data: practiceCheck } = await supabase
+        .from('gp_practices')
+        .select('id')
+        .eq('id', userPracticeIds[0])
+        .single();
+      
+      if (practiceCheck) {
+        validPracticeId = userPracticeIds[0];
+      }
+    }
+
+    const { error } = await supabase
+      .from('attendees')
+      .insert({
+        user_id: user.id,
+        practice_id: validPracticeId,
+        name: quickAddName.trim(),
+        organization_type: 'other',
+      });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add attendee",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setQuickAddName('');
+    fetchAttendees();
+    toast({
+      title: "Success",
+      description: `Added ${quickAddName.trim()}`
+    });
+  }, [quickAddName, user?.id, userPracticeIds]);
+
+  // Filter attendees by search
+  const filteredAttendees = searchQuery
+    ? attendees.filter(a => 
+        a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.organization?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.role?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : attendees;
+
   const saveTemplate = async () => {
     if (!templateFormData.name.trim() || templateFormData.selectedAttendeeIds.length === 0) {
       toast({
@@ -492,22 +605,42 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {showTemplateManagement ? (
-          <Tabs defaultValue="attendees">
-            <TabsList>
-              <TabsTrigger value="attendees">Attendees</TabsTrigger>
-              <TabsTrigger value="templates">Templates</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="attendees" className="space-y-4">
-              {renderAttendeeManagement()}
-            </TabsContent>
-            
-            <TabsContent value="templates" className="space-y-4">
-              {renderTemplateManagement()}
-            </TabsContent>
-          </Tabs>
+          showBulkImport ? (
+            <BulkAttendeeImporter
+              existingAttendees={attendees.map(a => ({ name: a.name, email: a.email }))}
+              onImport={handleBulkImport}
+              onCancel={() => setShowBulkImport(false)}
+            />
+          ) : (
+            <Tabs defaultValue="attendees">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="attendees">Attendees</TabsTrigger>
+                <TabsTrigger value="templates">Templates</TabsTrigger>
+                <TabsTrigger value="bulk-import" onClick={() => setShowBulkImport(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Bulk Import
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="attendees" className="space-y-4">
+                {renderAttendeeManagement()}
+              </TabsContent>
+              
+              <TabsContent value="templates" className="space-y-4">
+                {renderTemplateManagement()}
+              </TabsContent>
+            </Tabs>
+          )
         ) : (
-          renderAttendeeManagement()
+          showBulkImport ? (
+            <BulkAttendeeImporter
+              existingAttendees={attendees.map(a => ({ name: a.name, email: a.email }))}
+              onImport={handleBulkImport}
+              onCancel={() => setShowBulkImport(false)}
+            />
+          ) : (
+            renderAttendeeManagement()
+          )
         )}
       </CardContent>
     </Card>
@@ -624,25 +757,68 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
 
         {/* Add Button */}
         {!isAdding && (
-          <Button onClick={() => setIsAdding(true)} className="w-full md:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Attendee
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setIsAdding(true)} className="flex-1 md:flex-none">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Attendee
+            </Button>
+            <Button variant="outline" onClick={() => setShowBulkImport(true)} className="flex-1 md:flex-none">
+              <Upload className="h-4 w-4 mr-2" />
+              Bulk Import
+            </Button>
+          </div>
+        )}
+
+        {/* Quick Add */}
+        {!isAdding && (
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search attendees..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Input
+              placeholder="Quick add name..."
+              value={quickAddName}
+              onChange={(e) => setQuickAddName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
+              className="w-48"
+            />
+            <Button onClick={handleQuickAdd} disabled={!quickAddName.trim()} size="icon" variant="outline">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
         )}
 
         {/* Attendee List */}
         <Card>
           <CardHeader>
-            <CardTitle>Saved Attendees ({attendees.length})</CardTitle>
+            <CardTitle>Saved Attendees ({filteredAttendees.length}{searchQuery ? ` of ${attendees.length}` : ''})</CardTitle>
           </CardHeader>
           <CardContent>
             {attendees.length === 0 ? (
+              <div className="text-center py-12 space-y-4">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                <div>
+                  <p className="font-medium">No attendees saved yet</p>
+                  <p className="text-sm text-muted-foreground">Get started by importing your team list</p>
+                </div>
+                <Button onClick={() => setShowBulkImport(true)} className="gap-2">
+                  <Upload className="h-4 w-4" />
+                  Bulk Import Attendees
+                </Button>
+              </div>
+            ) : filteredAttendees.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                No attendees saved yet. Add your first attendee above.
+                No attendees match "{searchQuery}"
               </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {attendees.map(attendee => {
+                {filteredAttendees.map(attendee => {
                   const orgInfo = getOrgTypeInfo(attendee.organization_type);
                   return (
                     <Card key={attendee.id} className="relative group hover:shadow-md transition-shadow">
@@ -875,4 +1051,4 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
       </>
     );
   }
-};
+}
