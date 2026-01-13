@@ -36,6 +36,7 @@ import { MeetingContextEnhancer } from "@/components/MeetingContextEnhancer";
 import { CustomAIPromptModal } from "@/components/CustomAIPromptModal";
 import { CustomFindReplaceModal } from "@/components/CustomFindReplaceModal";
 import { supabase } from "@/integrations/supabase/client";
+import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
 import { formatTranscriptContext, extractCleanContent, addMeetingMetadataToTranscript } from "@/utils/meeting/formatTranscriptContext";
@@ -3257,6 +3258,12 @@ ${transcriptToUse}`;
               <EnhancedFindReplacePanel
                 getCurrentText={() => getCurrentContent()}
                 onApply={applyFindReplaceUpdate}
+                meetingId={meeting?.id}
+                onTranscriptSync={async (finds, replaceWith) => {
+                  if (meeting?.id) {
+                    await syncTranscriptCorrections(meeting.id, finds, replaceWith);
+                  }
+                }}
               />
             </div>
           )}
