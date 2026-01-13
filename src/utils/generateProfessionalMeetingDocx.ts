@@ -1017,12 +1017,16 @@ const parseContentToDocxElements = async (content: string) => {
 };
 
 // Create professional footer
-const createFooter = async (classification?: string) => {
+const createFooter = async (classification?: string, meetingDate?: string, meetingTime?: string) => {
   const { Paragraph, TextRun, BorderStyle, AlignmentType, Footer, PageNumber } = await import("docx");
   
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  // Use meeting date/time if provided, otherwise don't show date
+  let dateTimeText = '';
+  if (meetingDate && meetingTime) {
+    dateTimeText = `Meeting: ${meetingDate} at ${meetingTime}`;
+  } else if (meetingDate) {
+    dateTimeText = `Meeting: ${meetingDate}`;
+  }
   
   return new Footer({
     children: [
@@ -1044,17 +1048,19 @@ const createFooter = async (classification?: string) => {
             font: FONTS.default,
             bold: true,
           }),
-          new TextRun({
-            text: "    |    ",
-            size: FONTS.size.classification,
-            color: NHS_COLORS.textLightGrey,
-          }),
-          new TextRun({
-            text: `Generated ${dateStr} at ${timeStr}`,
-            size: FONTS.size.classification,
-            color: NHS_COLORS.footerText,
-            font: FONTS.default,
-          }),
+          ...(dateTimeText ? [
+            new TextRun({
+              text: "    |    ",
+              size: FONTS.size.classification,
+              color: NHS_COLORS.textLightGrey,
+            }),
+            new TextRun({
+              text: dateTimeText,
+              size: FONTS.size.classification,
+              color: NHS_COLORS.footerText,
+              font: FONTS.default,
+            }),
+          ] : []),
           new TextRun({
             text: "    |    Page ",
             size: FONTS.size.classification,
@@ -1158,8 +1164,8 @@ export const generateProfessionalMeetingDocx = async (options: GenerateProfessio
     children.push(...actionTableElements);
   }
   
-  // Create footer
-  const footer = await createFooter(metadata.classification);
+  // Create footer with meeting date/time
+  const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
   
   // Build document with NHS theme
   const styles = buildNHSStyles();
@@ -1403,8 +1409,8 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
     children.push(...actionTableElements);
   }
   
-  // Create footer
-  const footer = await createFooter(metadata.classification);
+  // Create footer with meeting date/time
+  const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
   
   // Build and save document
   const doc = new Document({
