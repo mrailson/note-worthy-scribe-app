@@ -90,6 +90,12 @@ const stripTranscriptAndDetails = (content: string): string => {
   cleaned = cleaned.replace(/^\s*Time\s*:\s*.+$/gim, '');
   cleaned = cleaned.replace(/^\s*Location\s*:\s*.+$/gim, '');
   
+  // Remove standalone ATTENDEES section with TBC (attendees are already in the Meeting Details box)
+  // Matches "# ATTENDEES" or "## ATTENDEES" followed by "- TBC", "TBC", or empty on subsequent lines
+  cleaned = cleaned.replace(/\n*#+ ATTENDEES\s*\n+[-•*]?\s*TBC\s*\n*/gi, '\n\n');
+  cleaned = cleaned.replace(/\n*#+ ATTENDEES\s*\n+TBC\s*\n*/gi, '\n\n');
+  cleaned = cleaned.replace(/\n*#+ ATTENDEES\s*\n+[-•*]?\s*To be confirmed\s*\n*/gi, '\n\n');
+  
   // Clean up any resulting empty lines
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   
