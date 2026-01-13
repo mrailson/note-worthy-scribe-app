@@ -261,8 +261,8 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   return runs;
 };
 
-// Create professional header block with title and accent bar
-const createHeaderBlock = async (title: string, generatedDate: string) => {
+// Create professional header block with title and accent bar (no generated date)
+const createHeaderBlock = async (title: string, _generatedDate?: string) => {
   const { Paragraph, TextRun, BorderStyle, AlignmentType } = await import("docx");
   
   const cleanTitle = title.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim().toUpperCase();
@@ -286,18 +286,6 @@ const createHeaderBlock = async (title: string, generatedDate: string) => {
       border: {
         bottom: { style: BorderStyle.SINGLE, size: 24, color: NHS_COLORS.headingBlue },
       },
-      spacing: { after: 120 },
-    }),
-    // Generated timestamp
-    new Paragraph({
-      children: [new TextRun({
-        text: `Generated: ${generatedDate}`,
-        size: FONTS.size.small,
-        color: NHS_COLORS.textLightGrey,
-        font: FONTS.default,
-        italics: true,
-      })],
-      alignment: AlignmentType.CENTER,
       spacing: { after: 360 },
     }),
   ];

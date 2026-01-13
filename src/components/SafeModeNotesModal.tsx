@@ -55,7 +55,8 @@ import {
   CalendarDays,
   ChevronRight,
   User,
-  Settings2
+  Settings2,
+  Mail
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 
@@ -73,6 +74,7 @@ import { toast } from "sonner";
 import { generateProfessionalWordFromContent, ParsedMeetingDetailsInput, ParsedActionItemInput } from "@/utils/generateProfessionalMeetingDocx";
 import { sanitiseMeetingNotes } from "@/utils/sanitiseMeetingNotes";
 import EditableSection, { Section } from "@/components/scribe/EditableSection";
+import InteractiveNotesContent from "@/components/meeting-notes/InteractiveNotesContent";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
@@ -880,6 +882,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         .replace(/\s*[—–-]\s*@[A-Za-z]+(?:\.[A-Za-z]+)?(?:\s*\([^)]*\))?(?:\s*\[[^\]]*\])?(?:\s*\{[^}]*\})?\s*$/g, '')
         // Remove " — .railson" or similar patterns (owner without @ prefix)
         .replace(/\s*[—–-]\s*\.?[a-zA-Z]+\.[a-zA-Z]+\s*$/g, '')
+        // Remove "— @MR/CC" or "— @MR" patterns (initials with optional slash)
+        .replace(/\s*[—–-]\s*@?[A-Z]{1,4}(?:\/[A-Z]{1,4})?\s*$/gi, '')
         // Remove starting @INITIALS patterns like "@M " at beginning of action
         .replace(/^@[A-Z]+\s+/g, '')
         // Remove status markers {Done}, {Open}, etc.
@@ -1829,6 +1833,24 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </TooltipTrigger>
               <TooltipContent>Find & Replace</TooltipContent>
             </Tooltip>
+
+            {/* Email Summary */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => {
+                    // Will be handled by send meeting email logic
+                    toast.info('Email feature coming soon');
+                  }}
+                >
+                  <Mail className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Email Summary</TooltipContent>
+            </Tooltip>
           </div>
 
           <div className="flex items-center gap-1">
@@ -2060,10 +2082,20 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           ))}
                         </div>
                       ) : (
-                        <div 
-                          className="prose prose-sm dark:prose-invert max-w-none"
-                          style={{ fontSize: `${fontSize}px` }}
-                          dangerouslySetInnerHTML={{ __html: basicFormat(contentWithoutActionItems) }}
+                        <InteractiveNotesContent
+                          content={contentWithoutActionItems}
+                          sectionId="main-content"
+                          fontSize={fontSize}
+                          meetingId={meeting?.id}
+                          onContentChange={(newContent) => {
+                            // Rebuild full content with action items section
+                            const actionItemsMatch = notesContent.match(/##?\s*Action\s+Items?\s*\n[\s\S]*$/i);
+                            const updatedContent = actionItemsMatch 
+                              ? newContent + '\n\n' + actionItemsMatch[0]
+                              : newContent;
+                            setNotesContent(updatedContent);
+                            persistNotesContent(updatedContent);
+                          }}
                         />
                       )}
 
