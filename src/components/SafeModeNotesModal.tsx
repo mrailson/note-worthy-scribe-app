@@ -410,6 +410,31 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Push last section if it wasn't excluded
     pushCurrentSection();
     
+    // Sort sections by preferred display order (Executive Summary first, then Key Points, etc.)
+    const displayOrder = [
+      'EXECUTIVE SUMMARY',
+      'KEY POINTS',
+      'KEY DISCUSSION',
+      'KEY DISCUSSION POINTS',
+      'KEY HIGHLIGHTS',
+      'KEY TAKEAWAYS',
+      'KEY DECISIONS',
+      'NEXT STEPS',
+      'NOTES',
+      'ADDITIONAL NOTES',
+    ];
+    
+    result.sort((a, b) => {
+      const aUpper = a.heading.toUpperCase();
+      const bUpper = b.heading.toUpperCase();
+      const aIndex = displayOrder.findIndex(h => aUpper.includes(h));
+      const bIndex = displayOrder.findIndex(h => bUpper.includes(h));
+      // If both found, sort by order; if one not found, push it to end
+      const aOrder = aIndex >= 0 ? aIndex : displayOrder.length;
+      const bOrder = bIndex >= 0 ? bIndex : displayOrder.length;
+      return aOrder - bOrder;
+    });
+    
     return result;
   }, []);
 
