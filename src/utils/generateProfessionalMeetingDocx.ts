@@ -85,6 +85,14 @@ const stripTranscriptAndDetails = (content: string): string => {
   cleaned = cleaned.replace(/^#+?\s*Background\s*$/gim, '');
   cleaned = cleaned.replace(/^\s*Background\s*$/gim, '');
   
+  // Remove duplicate inline meeting details (Date:, Time:, Location:) - these are shown in the header box
+  cleaned = cleaned.replace(/^\s*Date\s*:\s*.+$/gim, '');
+  cleaned = cleaned.replace(/^\s*Time\s*:\s*.+$/gim, '');
+  cleaned = cleaned.replace(/^\s*Location\s*:\s*.+$/gim, '');
+  
+  // Clean up any resulting empty lines
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  
   return cleaned.trim();
 };
 
