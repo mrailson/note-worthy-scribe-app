@@ -89,7 +89,6 @@ import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
-import { QuickAudioSummaryModal } from "@/components/meeting-details/QuickAudioSummaryModal";
 
 interface Meeting {
   id: string;
@@ -163,7 +162,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showPptModal, setShowPptModal] = useState(false);
   const [showInfographicModal, setShowInfographicModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showQuickAudioModal, setShowQuickAudioModal] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
   const [isSavingMeetingType, setIsSavingMeetingType] = useState(false);
   
@@ -1966,15 +1964,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <TooltipContent>Generate Summary Infographic</TooltipContent>
             </Tooltip>
 
-            {/* Quick Audio Summary button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowQuickAudioModal(true)}>
-                  <Headphones className="h-5 w-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Generate Audio Summary</TooltipContent>
-            </Tooltip>
           </div>
         </div>
 
@@ -2497,12 +2486,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       />
 
       {/* Quick Audio Summary Modal */}
-      <QuickAudioSummaryModal
-        open={showQuickAudioModal}
-        onOpenChange={setShowQuickAudioModal}
-        meetingId={meeting?.id || ''}
-        meetingTitle={meeting?.title || 'Meeting Notes'}
-      />
     </Dialog>
   );
 };
