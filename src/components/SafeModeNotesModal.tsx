@@ -330,7 +330,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const sectionHeadings = [
       'EXECUTIVE SUMMARY',
       'KEY DECISIONS',
+      // Accept common variants produced by AI models
       'KEY POINTS',
+      'KEY DISCUSSION',
+      'KEY DISCUSSION POINTS',
+      'KEY HIGHLIGHTS',
       'NEXT STEPS',
       'NOTES',
       'ADDITIONAL NOTES',
@@ -410,7 +414,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const sectionHeadings = [
       'EXECUTIVE SUMMARY',
       'KEY DECISIONS',
+      // Accept common variants produced by AI models
       'KEY POINTS',
+      'KEY DISCUSSION',
+      'KEY DISCUSSION POINTS',
+      'KEY HIGHLIGHTS',
       'NEXT STEPS',
       'NOTES',
       'ADDITIONAL NOTES',
@@ -422,7 +430,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     let skipUntilNextSection = false;
     
     for (const line of lines) {
-      const headingMatch = line.match(/^##\s+(.+)$/);
+      const headingMatch = line.match(/^\s*#{1,2}\s+(.+)$/);
       if (headingMatch) {
         const heading = headingMatch[1].trim().toUpperCase();
         const isEditable = sectionHeadings.some(h => heading.includes(h));
