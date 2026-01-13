@@ -1335,6 +1335,112 @@ export const generateProfessionalWordFromContent = async (
   }
 };
 
+// Generate professional Word document and return as Blob (for email attachments)
+export const generateProfessionalWordBlob = async (
+  content: string, 
+  title: string,
+  parsedDetails?: ParsedMeetingDetailsInput,
+  parsedActionItems?: ParsedActionItemInput[]
+): Promise<Blob> => {
+  const { Document, Packer, Paragraph, TextRun } = await import("docx");
+  
+  // Use provided metadata
+  const metadata: MeetingMetadata = {
+    title,
+    date: parsedDetails?.date,
+    time: parsedDetails?.time,
+    location: parsedDetails?.location,
+    attendees: parsedDetails?.attendees,
+  };
+  
+  // Clean content
+  let cleanedContent = stripTranscriptAndDetails(content);
+  cleanedContent = deduplicateActionItems(cleanedContent);
+  cleanedContent = replaceFacilitatorWithUserName(cleanedContent, metadata.loggedUserName);
+  
+  // Convert provided action items to internal format
+  const actionItems: ParsedActionItem[] = (parsedActionItems || []).map(item => ({
+    action: item.action,
+    owner: item.owner.replace(/^@/, ''),
+    deadline: item.deadline,
+    priority: item.priority,
+    status: item.status === 'Completed' ? 'Done' : item.status === 'In Progress' ? 'In Progress' : 'Open',
+    isCompleted: item.isCompleted,
+  }));
+  
+  // Remove action items section from content (we'll render it as a table)
+  let contentWithoutActionItems = removeActionItemsSection(cleanedContent);
+  contentWithoutActionItems = removeExecutiveSummarySection(contentWithoutActionItems);
+  
+  // Build document
+  const now = new Date();
+  const generatedDate = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + 
+    ' at ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  
+  const children: any[] = [];
+  
+  // Header block
+  const headerElements = await createHeaderBlock(metadata.title, generatedDate);
+  children.push(...headerElements);
+  
+  // Meeting details box - only if we have valid details
+  if (metadata.date || metadata.time || metadata.location || metadata.attendees) {
+    const detailsElements = await createMeetingDetailsBox(metadata);
+    children.push(...detailsElements);
+  }
+  
+  // Main content (without action items)
+  const contentElements = await parseContentToDocxElements(contentWithoutActionItems);
+  children.push(...contentElements);
+  
+  // Action Items section as professional table (ACTION LOG)
+  if (actionItems.length > 0) {
+    const divider = await createSectionDivider();
+    children.push(divider);
+    
+    children.push(new Paragraph({
+      children: [new TextRun({
+        text: "ACTION LOG",
+        bold: true,
+        size: FONTS.size.heading2,
+        color: NHS_COLORS.headingBlue,
+        font: FONTS.default,
+      })],
+      spacing: { before: 0, after: 180 },
+    }));
+    
+    const actionTableElements = await createActionItemsTable(actionItems);
+    children.push(...actionTableElements);
+  }
+  
+  // Create footer with meeting date/time
+  const footer = await createFooter(metadata.classification, metadata.date, metadata.time);
+  
+  // Build document
+  const doc = new Document({
+    styles: buildNHSStyles(),
+    numbering: buildNumbering(),
+    sections: [{
+      properties: {
+        page: {
+          margin: {
+            top: 1440,
+            right: 1440,
+            bottom: 1440,
+            left: 1440,
+          },
+        },
+      },
+      footers: {
+        default: footer,
+      },
+      children,
+    }],
+  });
+  
+  return await Packer.toBlob(doc);
+};
+
 // New function that accepts pre-parsed action items and details
 interface GenerateWithParsedDataOptions {
   metadata: MeetingMetadata;
