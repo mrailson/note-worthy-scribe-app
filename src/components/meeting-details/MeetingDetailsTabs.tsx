@@ -70,7 +70,7 @@ export const MeetingDetailsTabs = ({
   return (
     <div className={`bg-card border border-border rounded-lg ${className}`}>
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="w-full grid grid-cols-5 h-auto p-1">
+        <TabsList className="w-full grid grid-cols-4 h-auto p-1">
           <TabsTrigger value="overview" className="flex items-center gap-2 py-2">
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Meeting Overview</span>
@@ -90,11 +90,6 @@ export const MeetingDetailsTabs = ({
             <MessageCircle className="h-4 w-4" />
             <span className="hidden sm:inline">Ask AI</span>
             <span className="sm:hidden">AI</span>
-          </TabsTrigger>
-          <TabsTrigger value="audio" className="flex items-center gap-2 py-2">
-            <Headphones className="h-4 w-4" />
-            <span className="hidden sm:inline">Audio Summary</span>
-            <span className="sm:hidden">Audio</span>
           </TabsTrigger>
           <TabsTrigger value="documents" className="flex items-center gap-2 py-2">
             <FileDown className="h-4 w-4" />
@@ -131,17 +126,6 @@ export const MeetingDetailsTabs = ({
           />
         </TabsContent>
 
-        <TabsContent value="audio" className="p-4">
-          <MeetingAudioStudio
-            meetingId={meetingId}
-            meetingTitle={meetingTitle}
-            audioOverviewUrl={audioOverviewUrl}
-            audioOverviewText={audioOverviewText}
-            audioOverviewDuration={audioOverviewDuration}
-            meetingDurationMinutes={meetingDurationMinutes}
-            onAudioGenerated={onRegenerateAudio}
-          />
-        </TabsContent>
 
         <TabsContent value="documents" className="p-4">
           <MeetingDocumentsList

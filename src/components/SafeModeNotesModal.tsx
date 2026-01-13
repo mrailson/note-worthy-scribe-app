@@ -1797,18 +1797,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <FileText className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <DialogTitle className="text-lg font-semibold">
-                  {meeting?.title || 'Meeting Notes'} 
-                  <span className="ml-2 text-sm font-normal text-amber-600 dark:text-amber-400">
-                    (Safe Mode)
-                  </span>
+                  {meeting?.title || 'Meeting Notes'}
                 </DialogTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Lightweight view for faster loading
+                  View and manage meeting notes
                 </p>
               </div>
             </div>

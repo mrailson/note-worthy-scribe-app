@@ -2606,10 +2606,10 @@ export const MeetingHistoryList = ({
                       return;
                     }
                     
-                    console.log('📱 Click event - calling handleViewNotes for meeting:', meeting.id);
+                    console.log('📱 Click event - opening notes modal for meeting:', meeting.id);
                     try {
-                      setInitialTabForModal('notes');
-                      handleViewNotesWithDeduplication(meeting, 'click');
+                      // Open the main notes modal directly
+                      handleSafeModeNotesClick(meeting);
                     } catch (error) {
                       console.error('❌ Error:', error);
                       alert('Error opening notes: ' + error.message);
@@ -2714,16 +2714,17 @@ export const MeetingHistoryList = ({
                           Email Meeting Notes
                         </DropdownMenuItem>
 
-                      {/* Safe Mode Notes - Lightweight modal for debugging */}
+                      {/* Legacy Notes View - Backup option */}
                       <DropdownMenuItem 
                         onSelect={(e) => {
                           e.preventDefault();
                           setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          handleSafeModeNotesClick(meeting);
+                          setInitialTabForModal('notes');
+                          handleViewNotesWithDeduplication(meeting, 'click');
                         }}
                       >
                         <FileText className="h-4 w-4 mr-2" />
-                        View Notes (Safe Mode)
+                        View Notes (Legacy)
                       </DropdownMenuItem>
 
                       {isMobile ? (
