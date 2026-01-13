@@ -204,6 +204,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const notesContentRef = useRef<HTMLDivElement>(null);
   const transcriptContentRef = useRef<HTMLDivElement>(null);
   
+  // Track when a local edit is in progress to prevent auto-sync from overwriting
+  const isLocalEditInProgressRef = useRef(false);
+  
   // Text selection hooks for inline find/replace
   const { selection: notesSelection, clearSelection: clearNotesSelection } = useTextSelection(notesContentRef, { maxWords: 3 });
   const { selection: transcriptSelection, clearSelection: clearTranscriptSelection } = useTextSelection(transcriptContentRef, { maxWords: 3 });
@@ -422,6 +425,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const persistNotesContent = useCallback(async (updatedContent: string) => {
     if (!meeting?.id) return;
     
+    // Mark that a local edit is in progress to prevent auto-sync from overwriting
+    isLocalEditInProgressRef.current = true;
+    
     try {
       const response = await supabase.functions.invoke('persist-standard-minutes', {
         body: { meetingId: meeting.id, content: updatedContent }
@@ -436,6 +442,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     } catch (error) {
       console.error('Save error:', error);
       toast.error('Failed to save notes');
+    } finally {
+      // Clear the flag after a delay to allow any triggered effects to see it
+      setTimeout(() => {
+        isLocalEditInProgressRef.current = false;
+      }, 2000);
     }
   }, [meeting?.id]);
 
@@ -746,6 +757,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   useEffect(() => {
     if (!isOpen || !meeting?.id || isLoadingNotes) return;
     
+    // Skip if a local edit is in progress to prevent overwriting user changes
+    if (isLocalEditInProgressRef.current) {
+      console.log('[SafeMode] Skipping auto-sync - local edit in progress');
+      return;
+    }
+    
     // Check if notes already have an action items section
     const hasActionItemsSection = notesContent && 
       /##?\s*action\s+items?/i.test(notesContent);
@@ -754,6 +771,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     
     // Check if there are action items in the database
     const checkAndSyncActionItems = async () => {
+      // Double-check the flag before making the async call
+      if (isLocalEditInProgressRef.current) {
+        console.log('[SafeMode] Skipping auto-sync - local edit in progress (async check)');
+        return;
+      }
+      
       try {
         const { count, error } = await supabase
           .from('meeting_action_items')
@@ -761,6 +784,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           .eq('meeting_id', meeting.id);
         
         if (error || !count || count === 0) return; // No action items to sync
+        
+        // Check again before applying the result
+        if (isLocalEditInProgressRef.current) {
+          console.log('[SafeMode] Skipping auto-sync result - local edit in progress');
+          return;
+        }
         
         console.log(`[SafeMode] Found ${count} action items but notes missing ACTION ITEMS section - triggering sync`);
         
@@ -771,6 +800,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         
         if (syncError) {
           console.error('[SafeMode] Auto-sync failed:', syncError);
+          return;
+        }
+        
+        // Final check before updating state
+        if (isLocalEditInProgressRef.current) {
+          console.log('[SafeMode] Skipping auto-sync state update - local edit in progress');
           return;
         }
         

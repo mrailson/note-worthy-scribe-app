@@ -130,8 +130,12 @@ export function SelectionFindReplacePopup({
       // Save correction for future if checkbox is checked (separate try/catch so it doesn't block replacement)
       if (saveForFuture && selectedText !== replaceWith) {
         try {
-          await userNameCorrections.addCorrection(selectedText, replaceWith);
-          toast.success(`Saved correction: "${selectedText}" → "${replaceWith}"`);
+          const saved = await userNameCorrections.addCorrection(selectedText, replaceWith);
+          if (saved) {
+            toast.success(`Saved correction: "${selectedText}" → "${replaceWith}"`);
+          } else {
+            toast.error('Replacement applied, but failed to save for future meetings');
+          }
         } catch (saveError) {
           console.error('Error saving correction for future:', saveError);
           toast.error('Replacement applied, but failed to save for future meetings');
