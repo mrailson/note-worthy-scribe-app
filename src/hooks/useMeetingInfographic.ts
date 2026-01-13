@@ -159,10 +159,18 @@ export const useMeetingInfographic = () => {
       // Format meeting content for infographic
       const documentContent = formatMeetingForInfographic(data);
       
+      // Log options received
+      console.log('[useMeetingInfographic] Options received:', options);
+      
       // Build dynamic prompt based on options
       const stylePrompt = options?.style ? STYLE_PROMPTS[options.style] || STYLE_PROMPTS['professional'] : STYLE_PROMPTS['professional'];
       const detailPrompt = options?.detailLevel ? DETAIL_PROMPTS[options.detailLevel] || DETAIL_PROMPTS['standard'] : DETAIL_PROMPTS['standard'];
       const focusPrompt = options?.focusArea ? FOCUS_PROMPTS[options.focusArea] || FOCUS_PROMPTS['balanced'] : FOCUS_PROMPTS['balanced'];
+      
+      // Log the prompts being used
+      console.log('[useMeetingInfographic] Style prompt:', stylePrompt);
+      console.log('[useMeetingInfographic] Detail prompt:', detailPrompt);
+      console.log('[useMeetingInfographic] Focus prompt:', focusPrompt);
       
       setCurrentPhase('generating');
 
