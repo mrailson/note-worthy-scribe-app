@@ -896,6 +896,198 @@ ${cleanedTranscript}`;
       throw summaryError;
     }
 
+    // Extract and store action items immediately after notes are saved
+    try {
+      console.log('📋 Extracting action items from generated notes...');
+      
+      // Check if action items already exist for this meeting (avoid duplicates on regeneration)
+      const { data: existingItems } = await supabase
+        .from('meeting_action_items')
+        .select('id')
+        .eq('meeting_id', meetingId)
+        .limit(1);
+      
+      if (existingItems && existingItems.length > 0) {
+        console.log('⚠️ Action items already exist for this meeting, skipping extraction');
+      } else {
+        // Parse action items from the generated notes
+        const actionItemsToInsert: Array<{
+          meeting_id: string;
+          user_id: string;
+          action_text: string;
+          assignee_name: string;
+          assignee_type: 'tbc' | 'custom';
+          due_date: string;
+          due_date_actual: string | null;
+          priority: 'High' | 'Medium' | 'Low';
+          status: 'Open';
+          sort_order: number;
+        }> = [];
+        
+        const seenTexts = new Set<string>();
+        
+        // Calculate actual due date from quick pick values
+        const calculateActualDueDate = (quickPick: string): string | null => {
+          const today = new Date();
+          switch (quickPick) {
+            case 'End of Week': {
+              const daysUntilFriday = (5 - today.getDay() + 7) % 7 || 7;
+              const friday = new Date(today);
+              friday.setDate(today.getDate() + daysUntilFriday);
+              return friday.toISOString().split('T')[0];
+            }
+            case 'End of Month': {
+              const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+              return lastDay.toISOString().split('T')[0];
+            }
+            case 'End of Next Month': {
+              const lastDayNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+              return lastDayNextMonth.toISOString().split('T')[0];
+            }
+            case 'ASAP': {
+              const tomorrow = new Date(today);
+              tomorrow.setDate(today.getDate() + 1);
+              return tomorrow.toISOString().split('T')[0];
+            }
+            case 'By Next Meeting':
+            case 'TBC':
+              return null;
+            default: {
+              const parsed = Date.parse(quickPick);
+              if (!Number.isNaN(parsed)) {
+                return new Date(parsed).toISOString().split('T')[0];
+              }
+              return null;
+            }
+          }
+        };
+        
+        // Method 1: Parse markdown TABLE format under an "Action Items" heading
+        const tableMatch = generatedNotes.match(
+          /#{1,3}\s*(?:ACTION\s+ITEMS|Action\s+Items)\s*\n\|[^\n]+\|\s*\n\|[-|\s:]+\|\s*\n([\s\S]*?)(?=\n#{1,3}\s+|\n\n#{1,3}\s+|$)/i
+        );
+        
+        if (tableMatch && tableMatch[1]) {
+          const tableRows = tableMatch[1].split('\n').filter((line: string) => line.trim().startsWith('|'));
+          
+          for (const row of tableRows) {
+            const cells = row.split('|').map((cell: string) => cell.trim()).filter((cell: string) => cell);
+            if (cells.length >= 4) {
+              const [actionText, assignee, deadline, priority] = cells;
+              
+              // Skip if action text is too short or is a header
+              if (actionText.length < 10 || actionText.match(/^Action$/i)) continue;
+              
+              // Normalise and dedupe
+              const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
+              if (seenTexts.has(normalizedText)) continue;
+              seenTexts.add(normalizedText);
+              
+              const dueDate = deadline || 'TBC';
+              const priorityValue = (priority?.match(/High|Medium|Low/i)?.[0] as 'High' | 'Medium' | 'Low') || 'Medium';
+              
+              actionItemsToInsert.push({
+                meeting_id: meetingId,
+                user_id: meeting.user_id,
+                action_text: actionText,
+                assignee_name: assignee || 'TBC',
+                assignee_type: (assignee && assignee !== 'TBC') ? 'custom' : 'tbc',
+                due_date: dueDate,
+                due_date_actual: calculateActualDueDate(dueDate),
+                priority: priorityValue,
+                status: 'Open',
+                sort_order: actionItemsToInsert.length,
+              });
+            }
+          }
+        }
+        
+        // Method 2: Parse bullet point format (fallback if no table found)
+        if (actionItemsToInsert.length === 0) {
+          const bulletMatch = generatedNotes.match(/#{1,3}\s*(?:ACTION ITEMS|Action Items)\s*\n([\s\S]*?)(?=\n#{1,3}\s+[A-Z]|$)/i);
+          if (bulletMatch) {
+            const section = bulletMatch[1] || bulletMatch[0];
+            const lines = section.split('\n');
+            
+            for (const line of lines) {
+              const match = line.match(/^\s*(?:[-*•]|\d+\.)\s+(.+)/);
+              if (match && match[1].trim()) {
+                const rawText = match[1].trim();
+                
+                // Skip header-like lines
+                if (rawText.match(/^\*\*[^*]+\*\*:?\s*$/)) continue;
+                if (rawText.match(/^(?:Action Items|Actions|Completed|Open|High Priority|Medium Priority|Low Priority)/i)) continue;
+                if (rawText.length < 10) continue;
+                
+                // Parse out assignee, due date, priority from text
+                let actionText = rawText;
+                let assignee = 'TBC';
+                let dueDate = 'TBC';
+                let priority: 'High' | 'Medium' | 'Low' = 'Medium';
+                
+                const assigneeMatch = rawText.match(/(?:—|–|-)\s*@?([A-Za-z\s.]+?)(?:\s*[\[(]|$)/i) ||
+                                      rawText.match(/\((?:Assigned to|Owner|Lead):\s*([^)]+)\)/i);
+                if (assigneeMatch) {
+                  assignee = assigneeMatch[1].trim();
+                  actionText = actionText.replace(assigneeMatch[0], '').trim();
+                }
+                
+                const dueDateMatch = rawText.match(/\((End of Week|End of Month|By Next Meeting|ASAP|TBC)\)/i) ||
+                                     rawText.match(/\[(End of Week|End of Month|By Next Meeting|ASAP|TBC)\]/i);
+                if (dueDateMatch) {
+                  dueDate = dueDateMatch[1].trim();
+                  actionText = actionText.replace(dueDateMatch[0], '').trim();
+                }
+                
+                const priorityMatch = rawText.match(/\[(High|Medium|Low)\]/i);
+                if (priorityMatch) {
+                  priority = priorityMatch[1] as 'High' | 'Medium' | 'Low';
+                  actionText = actionText.replace(priorityMatch[0], '').trim();
+                }
+                
+                actionText = actionText.replace(/[—–-]\s*$/, '').trim();
+                
+                const normalizedText = actionText.toLowerCase().replace(/[^\w\s]/g, '').trim();
+                if (seenTexts.has(normalizedText) || normalizedText.length < 10) continue;
+                seenTexts.add(normalizedText);
+                
+                actionItemsToInsert.push({
+                  meeting_id: meetingId,
+                  user_id: meeting.user_id,
+                  action_text: actionText,
+                  assignee_name: assignee,
+                  assignee_type: assignee === 'TBC' ? 'tbc' : 'custom',
+                  due_date: dueDate,
+                  due_date_actual: calculateActualDueDate(dueDate),
+                  priority: priority,
+                  status: 'Open',
+                  sort_order: actionItemsToInsert.length,
+                });
+              }
+            }
+          }
+        }
+        
+        // Insert extracted action items
+        if (actionItemsToInsert.length > 0) {
+          console.log(`📋 Inserting ${actionItemsToInsert.length} extracted action items`);
+          const { error: actionError } = await supabase
+            .from('meeting_action_items')
+            .insert(actionItemsToInsert);
+          
+          if (actionError) {
+            console.warn('⚠️ Failed to insert action items:', actionError.message);
+          } else {
+            console.log('✅ Action items extracted and stored successfully');
+          }
+        } else {
+          console.log('📋 No action items found in generated notes');
+        }
+      }
+    } catch (actionError: any) {
+      console.warn('⚠️ Action items extraction failed (non-fatal):', actionError.message);
+    }
+
     // Generate AI overview using the dedicated function
     let aiOverview = overview; // fallback to extracted overview
     try {
