@@ -10,6 +10,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { cleanMeetingContent, removeActionItemsSection } from "@/utils/meeting/cleanMeetingContent";
 
 interface MeetingAttendee {
   id: string;
@@ -396,59 +397,28 @@ export function EmailMeetingMinutesModal({
         // Continue without attachment
       }
 
-      // Strip duplicate meeting details blocks from notes
-      const stripDuplicateBlocks = (text: string): string => {
-        if (!text) return text;
-        
-        let cleaned = text;
-        
-        // Remove standalone "MEETING NOTES" headings (with/without markdown)
-        cleaned = cleaned.replace(/^#*\s*MEETING\s*NOTES\s*$/gim, '');
-        
-        // Remove standalone "MEETING DETAILS" headings (with/without markdown)
-        cleaned = cleaned.replace(/^#{0,2}\s*MEETING\s*DETAILS\s*$/gim, '');
-        
-        // Remove "Meeting Title:" lines (with optional bullets and markdown bold)
-        cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Meeting\s*Title:\*?\*?.*$/gim, '');
-        
-        // Remove "Date:" lines
-        cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Date:\*?\*?.*$/gim, '');
-        
-        // Remove "Time:" lines
-        cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Time:\*?\*?.*$/gim, '');
-        
-        // Remove "Location:" lines
-        cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Location:\*?\*?.*$/gim, '');
-
-        // Remove ATTENDEES section when it only contains TBC (attendees are already shown elsewhere)
-        // Matches:
-        //   ATTENDEES\n- TBC
-        //   # ATTENDEES\nTBC
-        cleaned = cleaned.replace(/(?:^|\n)\s*#{0,6}\s*ATTENDEES\s*\n+\s*(?:[-•*]\s*)?(?:TBC|To be confirmed)\s*(?=\n|$)/gim, '\n');
-        // Also remove inline "Attendees: TBC" lines
-        cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Attendees?:\*?\*?\s*(?:TBC|To be confirmed)\s*$/gim, '');
-        
-        // Clean up excessive blank lines
-        cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
-        
-        return cleaned;
-      };
+      // Action item interface for email rendering
+      interface EmailActionItem {
+        action: string;
+        owner: string;
+        deadline: string;
+        priority: string;
+        status: string;
+        isCompleted: boolean;
+      }
 
       // Helper function to convert markdown and format to HTML with proper structure
-      const convertToStyledHTML = (text: string, details?: { date?: string; time?: string; location?: string; attendees?: string }): string => {
-        // First strip duplicate blocks
-        const cleanedText = stripDuplicateBlocks(text);
-        // Strip bold markers
-        let processedText = cleanedText.replace(/\*\*/g, '');
-        
-        // Remove transcript sections
-        const transcriptIndex = processedText.indexOf('MEETING TRANSCRIPT FOR REFERENCE:');
-        if (transcriptIndex !== -1) {
-          processedText = processedText.substring(0, transcriptIndex).trim();
-        }
-        processedText = processedText.replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '');
-        processedText = processedText.replace(/\n*Transcript:[\s\S]*$/i, '');
-        processedText = processedText.replace(/\n*Full Transcript:[\s\S]*$/i, '');
+      // Now accepts pre-parsed action items from database (same source as Word doc)
+      const convertToStyledHTML = (
+        text: string, 
+        details?: { date?: string; time?: string; location?: string; attendees?: string },
+        parsedActionItems?: EmailActionItem[]
+      ): string => {
+        // Use shared cleaning utilities (same as Word document generation)
+        let processedText = cleanMeetingContent(text, {
+          removeActionItems: !!parsedActionItems?.length, // Remove from text if we have database items
+          removeExecutiveSummary: false // Keep in email for now
+        });
         
         const lines = processedText.split('\n');
         let html = '';
@@ -552,12 +522,25 @@ export function EmailMeetingMinutesModal({
         while (i < lines.length) {
           const line = lines[i].trim();
           
-          // Detect ACTION ITEMS section header
+          // Skip ACTION ITEMS section header if we have pre-parsed items (they'll be rendered at the end)
           if (line.match(/^#{0,6}\s*ACTION\s*ITEMS?\s*$/i) || line === 'ACTION ITEMS' || line === 'ACTION ITEM') {
+            if (parsedActionItems && parsedActionItems.length > 0) {
+              // Skip the section - we'll render from database items at the end
+              i++;
+              // Skip all content until next major section
+              while (i < lines.length) {
+                const skipLine = lines[i].trim();
+                if (skipLine.match(/^#{1,2}\s+\S/) && !/action|completed/i.test(skipLine)) {
+                  break;
+                }
+                i++;
+              }
+              continue;
+            }
+            // Fallback: Parse inline if no database items (legacy behaviour)
             inActionItemsSection = true;
             html += '<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 24px 0 12px 0; font-family: Arial, sans-serif; text-transform: uppercase;">ACTION ITEMS</h2>\n';
             
-            // Start building action items table
             html += '<table style="border-collapse: collapse; width: 100%; margin: 12px 0 20px 0; font-family: Arial, sans-serif; font-size: 13px;">\n';
             html += '  <thead>\n';
             html += '    <tr style="background: linear-gradient(135deg, #005EB8 0%, #003d7a 100%);">\n';
@@ -573,31 +556,25 @@ export function EmailMeetingMinutesModal({
             i++;
             let rowIndex = 0;
             
-            // Collect action items until we hit a new section or end
             while (i < lines.length) {
               const itemLine = lines[i].trim();
               
-              // Check if we've hit a new section (non-bullet, non-empty line that's a header)
               if (itemLine.length > 0 && !itemLine.match(/^[•\-\*]\s/) && !itemLine.match(/^~~/) && !itemLine.toLowerCase().includes('completed items')) {
-                // Check if it's another section header
                 if (itemLine.match(/^#{1,6}\s/) || (itemLine === itemLine.toUpperCase() && itemLine.length < 100)) {
-                  break; // Exit action items section
+                  break;
                 }
               }
               
-              // Skip "Completed Items:" subheading but keep processing
               if (itemLine.toLowerCase().includes('completed items')) {
                 i++;
                 continue;
               }
               
-              // Skip empty lines
               if (itemLine.length === 0) {
                 i++;
                 continue;
               }
               
-              // Parse action item bullet points
               if (itemLine.match(/^[•\-\*]\s/) || itemLine.match(/^~~[•\-\*]?\s*/)) {
                 const isCompleted = itemLine.startsWith('~~') || itemLine.includes('Completed') || itemLine.includes('Done');
                 const cleanLine = itemLine.replace(/^~~/, '').replace(/~~$/, '');
@@ -607,7 +584,6 @@ export function EmailMeetingMinutesModal({
                   const bgColor = rowIndex % 2 === 0 ? '#ffffff' : '#f8fafc';
                   const textDecoration = isCompleted ? 'text-decoration: line-through; color: #6b7280;' : '';
                   
-                  // Priority badge colors
                   let priorityBg = '#e5e7eb';
                   let priorityColor = '#374151';
                   if (parsed.priority.toLowerCase() === 'high') {
@@ -621,7 +597,6 @@ export function EmailMeetingMinutesModal({
                     priorityColor = '#16a34a';
                   }
                   
-                  // Status badge colors
                   let statusBg = '#dbeafe';
                   let statusColor = '#1d4ed8';
                   const statusLower = (parsed.status || 'open').toLowerCase();
@@ -763,8 +738,60 @@ export function EmailMeetingMinutesModal({
           i++;
         }
         
+        // Render action items from database (same source as Word document)
+        if (parsedActionItems && parsedActionItems.length > 0) {
+          html += '<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 24px 0 12px 0; font-family: Arial, sans-serif; text-transform: uppercase;">ACTION LOG</h2>\n';
+          html += '<table style="border-collapse: collapse; width: 100%; margin: 12px 0 20px 0; font-family: Arial, sans-serif; font-size: 13px;">\n';
+          html += '  <thead>\n';
+          html += '    <tr style="background: linear-gradient(135deg, #005EB8 0%, #003d7a 100%);">\n';
+          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 45%;">Action</th>\n';
+          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 18%;">Owner</th>\n';
+          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: left; font-weight: 600; color: white; width: 17%;">Deadline</th>\n';
+          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: center; font-weight: 600; color: white; width: 10%;">Priority</th>\n';
+          html += '      <th style="border: 1px solid #003d7a; padding: 10px 12px; text-align: center; font-weight: 600; color: white; width: 10%;">Status</th>\n';
+          html += '    </tr>\n';
+          html += '  </thead>\n';
+          html += '  <tbody>\n';
+          
+          parsedActionItems.forEach((item, idx) => {
+            const bgColor = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+            const textDecoration = item.isCompleted ? 'text-decoration: line-through; color: #6b7280;' : '';
+            
+            let priorityBg = '#e5e7eb', priorityColor = '#374151';
+            if (item.priority.toLowerCase() === 'high') { priorityBg = '#fee2e2'; priorityColor = '#dc2626'; }
+            else if (item.priority.toLowerCase() === 'medium') { priorityBg = '#fef3c7'; priorityColor = '#d97706'; }
+            else if (item.priority.toLowerCase() === 'low') { priorityBg = '#dcfce7'; priorityColor = '#16a34a'; }
+            
+            let statusBg = '#dbeafe', statusColor = '#1d4ed8';
+            const statusLower = item.status.toLowerCase();
+            if (statusLower === 'completed' || statusLower === 'done') { statusBg = '#dcfce7'; statusColor = '#16a34a'; }
+            else if (statusLower === 'in progress') { statusBg = '#fef3c7'; statusColor = '#d97706'; }
+            
+            html += `    <tr style="background-color: ${bgColor};">\n`;
+            html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; ${textDecoration}">${item.action}</td>\n`;
+            html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; ${textDecoration}">${item.owner}</td>\n`;
+            html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; ${textDecoration}">${item.deadline}</td>\n`;
+            html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; text-align: center;"><span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; background-color: ${priorityBg}; color: ${priorityColor};">${item.priority}</span></td>\n`;
+            html += `      <td style="border: 1px solid #e5e7eb; padding: 10px 12px; text-align: center;"><span style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; background-color: ${statusBg}; color: ${statusColor};">${item.status}</span></td>\n`;
+            html += '    </tr>\n';
+          });
+          
+          html += '  </tbody>\n';
+          html += '</table>\n';
+        }
+        
         return html;
       };
+
+      // Convert action items from database to email format (same source as Word doc)
+      const emailActionItems = actionItems.map((item: any) => ({
+        action: item.action_text,
+        owner: item.assignee_name || 'TBC',
+        deadline: item.due_date || 'TBC',
+        priority: item.priority || 'Medium',
+        status: item.status === 'completed' ? 'Completed' : item.status === 'in_progress' ? 'In Progress' : 'Open',
+        isCompleted: item.status === 'completed',
+      }));
 
       // Format meeting notes as styled HTML - use fresh notes, including meeting details box
       const formattedNotes = convertToStyledHTML(notesToSend, {
@@ -772,7 +799,7 @@ export function EmailMeetingMinutesModal({
         time: meetingTime,
         location: meetingLocation,
         attendees: attendeeNames,
-      });
+      }, emailActionItems);
 
       // Check for audio overview and prepare attachment if available
       let audioAttachment = null;
