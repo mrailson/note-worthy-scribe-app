@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
+import { syncTranscriptCorrections } from "@/utils/transcriptCorrectionSync";
 import { SpeechToText } from "@/components/SpeechToText";
 import { CustomAIPromptModal } from "@/components/CustomAIPromptModal";
 import { CustomFindReplaceModal } from "@/components/CustomFindReplaceModal";
@@ -389,6 +390,12 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
                         onApply={(updatedText) => {
                           setClaudeNotes(updatedText);
                           saveSummaryToDatabase(updatedText);
+                        }}
+                        meetingId={meetingData?.id}
+                        onTranscriptSync={async (finds, replaceWith) => {
+                          if (meetingData?.id) {
+                            await syncTranscriptCorrections(meetingData.id, finds, replaceWith);
+                          }
                         }}
                       />
                     </div>
