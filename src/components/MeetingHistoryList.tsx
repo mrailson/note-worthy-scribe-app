@@ -1206,7 +1206,12 @@ export const MeetingHistoryList = ({
       // Fetch attendees for this meeting
       const { data: meetingAttendees } = await supabase
         .from('meeting_attendees')
-        .select('attendee_id, attendees(name)')
+        .select(`
+          attendee_id,
+          attendees:attendee_id (
+            name
+          )
+        `)
         .eq('meeting_id', meeting.id);
 
       // Priority order: Minutes - Standard (notes_style_3) > other notes > summary
@@ -1267,14 +1272,23 @@ export const MeetingHistoryList = ({
       };
       
       // Convert action items to expected format
-      const parsedActionItems = (actionItemsData || []).map((item: any) => ({
-        action: item.action_text,
-        owner: item.assignee_name || 'Unassigned',
-        deadline: item.due_date || undefined,
-        priority: item.priority || 'medium',
-        status: item.status || 'Open',
-        isCompleted: item.status === 'completed',
-      }));
+      const parsedActionItems = (actionItemsData || []).map((item: any) => {
+        const statusLabel: 'Completed' | 'In Progress' | 'Open' =
+          item.status === 'Completed' || item.status === 'completed'
+            ? 'Completed'
+            : item.status === 'In Progress' || item.status === 'in_progress'
+              ? 'In Progress'
+              : 'Open';
+
+        return {
+          action: item.action_text,
+          owner: item.assignee_name || 'Unassigned',
+          deadline: item.due_date || undefined,
+          priority: item.priority || 'medium',
+          status: statusLabel,
+          isCompleted: statusLabel === 'Completed',
+        };
+      });
 
       await generateProfessionalWordFromContent(notes, meeting.title, parsedDetails, parsedActionItems);
       toast.success('Word document downloaded successfully');

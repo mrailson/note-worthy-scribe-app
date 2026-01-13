@@ -428,6 +428,11 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     
     // Remove "Location:" lines
     cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Location:\*?\*?.*$/gim, '');
+
+    // Remove ATTENDEES section when it only contains TBC
+    cleaned = cleaned.replace(/(?:^|\n)\s*#{0,6}\s*ATTENDEES\s*\n+\s*(?:[-•*]\s*)?(?:TBC|To be confirmed)\s*(?=\n|$)/gim, '\n');
+    // Also remove inline "Attendees: TBC" lines
+    cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Attendees?:\*?\*?\s*(?:TBC|To be confirmed)\s*$/gim, '');
     
     // Clean up excessive blank lines
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
