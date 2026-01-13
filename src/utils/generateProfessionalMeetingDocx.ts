@@ -1340,8 +1340,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
   // Use provided metadata directly
   const metadata: MeetingMetadata = options.metadata;
   
-  // Extract executive summary from content
-  const executiveSummary = extractExecutiveSummary(options.content);
+  // Executive summary removed from Word export per user request
   
   // Convert provided action items to internal format
   const actionItems: ParsedActionItem[] = options.actionItems.map(item => ({
@@ -1356,10 +1355,8 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
 // Remove action items section from content (we'll render it as a table)
   let contentWithoutActionItems = removeActionItemsSection(cleanedContent);
   
-  // Remove executive summary section from content (we're rendering it separately in the box)
-  if (executiveSummary) {
-    contentWithoutActionItems = removeExecutiveSummarySection(contentWithoutActionItems);
-  }
+  // Also remove executive summary section from content (user requested to strip it)
+  contentWithoutActionItems = removeExecutiveSummarySection(contentWithoutActionItems);
   
   // Build document
   const now = new Date();
@@ -1378,11 +1375,7 @@ export const generateProfessionalMeetingDocxWithParsedData = async (options: Gen
     children.push(...detailsElements);
   }
   
-  // Executive summary box
-  if (executiveSummary) {
-    const summaryElements = await createExecutiveSummaryBox(executiveSummary);
-    children.push(...summaryElements);
-  }
+  // Executive summary box removed per user request
   
   // Main content (without action items)
   const contentElements = await parseContentToDocxElements(contentWithoutActionItems);
