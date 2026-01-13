@@ -4,6 +4,7 @@ import powerpointIcon from '@/assets/powerpoint-icon.png';
 import infographicIcon from '@/assets/infographic-icon.png';
 import { MeetingPowerPointModal } from '@/components/meeting-details/MeetingPowerPointModal';
 import { MeetingInfographicModal } from '@/components/meeting-details/MeetingInfographicModal';
+import { QuickAudioSummaryModal } from '@/components/meeting-details/QuickAudioSummaryModal';
 import {
   Dialog,
   DialogContent,
@@ -193,6 +194,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     detailLevel: string;
     focusArea: string;
   } | null>(null);
+  const [showQuickAudioModal, setShowQuickAudioModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
   const [isSavingMeetingType, setIsSavingMeetingType] = useState(false);
@@ -2453,6 +2455,21 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Quick Audio Summary button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={() => setShowQuickAudioModal(true)}
+                >
+                  <Headphones className="h-5 w-5 text-primary" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Generate Audio Summary</TooltipContent>
+            </Tooltip>
+
           </div>
         </div>
 
@@ -3027,6 +3044,14 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       />
 
       {/* Quick Audio Summary Modal */}
+      {meeting && (
+        <QuickAudioSummaryModal
+          open={showQuickAudioModal}
+          onOpenChange={setShowQuickAudioModal}
+          meetingId={meeting.id}
+          meetingTitle={meeting.title}
+        />
+      )}
     </Dialog>
   );
 };
