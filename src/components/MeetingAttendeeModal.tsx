@@ -319,11 +319,11 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
         if (error) throw error;
         showToast.success('Attendee updated', { section: 'meeting_manager' });
       } else {
-        // Insert new - verify practice_id exists in practice_details before using
+        // Insert new - verify practice_id exists in gp_practices before using
         let validPracticeId = null;
         if (userPracticeIds[0]) {
           const { data: practiceCheck } = await supabase
-            .from('practice_details')
+            .from('gp_practices')
             .select('id')
             .eq('id', userPracticeIds[0])
             .single();
