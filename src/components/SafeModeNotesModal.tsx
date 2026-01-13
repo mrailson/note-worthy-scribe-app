@@ -18,6 +18,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -1234,155 +1244,161 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       case 'Open':
       default:
         return (
-          <Popover>
-            <PopoverTrigger asChild>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Badge 
                 className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 text-xs gap-1 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               >
                 <Circle className="h-3 w-3" />
                 Open
               </Badge>
-            </PopoverTrigger>
-            <PopoverContent className="w-72 p-0" align="end">
-              <div className="p-3 space-y-3">
-                {/* Edit & Delete */}
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 justify-start gap-2"
-                    onClick={() => actionItem && setEditingActionItem({ original: actionItem.action, text: actionItem.action })}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 justify-start gap-2 text-destructive hover:text-destructive"
-                    onClick={() => actionItem && handleDeleteActionItem(actionItem.action)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Delete
-                  </Button>
-                </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {/* Edit */}
+              <DropdownMenuItem
+                onClick={() => actionItem && setEditingActionItem({ original: actionItem.action, text: actionItem.action })}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+              
+              {/* Delete */}
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => actionItem && handleDeleteActionItem(actionItem.action)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
 
-                <Separator />
+              <DropdownMenuSeparator />
 
-                {/* Priority */}
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">Priority</label>
-                  <div className="flex gap-1">
-                    {(['High', 'Medium', 'Low'] as const).map((p) => (
-                      <Button
-                        key={p}
-                        variant={actionItem?.priority === p ? 'default' : 'outline'}
-                        size="sm"
-                        className={`flex-1 text-xs ${
-                          p === 'High' ? 'hover:bg-red-100 hover:text-red-700' :
-                          p === 'Medium' ? 'hover:bg-amber-100 hover:text-amber-700' :
-                          'hover:bg-green-100 hover:text-green-700'
-                        } ${actionItem?.priority === p ? (
-                          p === 'High' ? 'bg-red-500 hover:bg-red-600' :
-                          p === 'Medium' ? 'bg-amber-500 hover:bg-amber-600' :
-                          'bg-green-500 hover:bg-green-600'
-                        ) : ''}`}
-                        onClick={() => actionItem && handleChangePriority(actionItem.action, p)}
-                      >
-                        {p}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Owner */}
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">Owner</label>
-                  {!showCustomOwnerInput ? (
-                    <div className="space-y-1">
-                      <div className="max-h-24 overflow-y-auto space-y-1">
-                        {attendees.slice(0, 5).map((attendee, idx) => (
-                          <Button
-                            key={idx}
-                            variant="ghost"
-                            size="sm"
-                            className="w-full justify-start gap-2 text-xs h-7"
-                            onClick={() => actionItem && handleChangeOwner(actionItem.action, attendee.name)}
-                          >
-                            <User className="h-3 w-3" />
-                            {attendee.name}
-                            {attendee.role && <span className="text-muted-foreground">({attendee.role})</span>}
-                          </Button>
-                        ))}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start gap-2 text-xs"
-                        onClick={() => setShowCustomOwnerInput(true)}
-                      >
-                        <Pencil className="h-3 w-3" />
-                        Custom...
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        value={customOwner}
-                        onChange={(e) => setCustomOwner(e.target.value)}
-                        placeholder="Enter name..."
-                        className="h-8 text-xs"
-                        autoFocus
-                      />
-                      <Button
-                        size="sm"
-                        className="h-8"
-                        onClick={() => actionItem && customOwner && handleChangeOwner(actionItem.action, customOwner)}
-                      >
-                        Set
-                      </Button>
-                    </div>
+              {/* Priority Submenu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  Priority
+                  {actionItem?.priority && (
+                    <Badge 
+                      variant="outline" 
+                      className={`ml-auto text-xs py-0 ${
+                        actionItem.priority === 'High' ? 'border-red-500 text-red-600' :
+                        actionItem.priority === 'Medium' ? 'border-amber-500 text-amber-600' :
+                        'border-green-500 text-green-600'
+                      }`}
+                    >
+                      {actionItem.priority}
+                    </Badge>
                   )}
-                </div>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem
+                    onClick={() => actionItem && handleChangePriority(actionItem.action, 'High')}
+                    className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-red-500 mr-2" />
+                    High
+                    {actionItem?.priority === 'High' && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => actionItem && handleChangePriority(actionItem.action, 'Medium')}
+                    className="text-amber-600 focus:text-amber-600 focus:bg-amber-50 dark:focus:bg-amber-900/20"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-amber-500 mr-2" />
+                    Medium
+                    {actionItem?.priority === 'Medium' && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => actionItem && handleChangePriority(actionItem.action, 'Low')}
+                    className="text-green-600 focus:text-green-600 focus:bg-green-50 dark:focus:bg-green-900/20"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-green-500 mr-2" />
+                    Low
+                    {actionItem?.priority === 'Low' && <Check className="h-4 w-4 ml-auto" />}
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
 
-                <Separator />
+              <DropdownMenuSeparator />
 
-                {/* Deadline */}
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-2 block">Deadline</label>
-                  <div className="space-y-1">
-                    {getDeadlineOptions().map((option) => (
-                      <Button
-                        key={option.label}
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-between text-xs h-7"
-                        onClick={() => actionItem && handleChangeDeadline(actionItem.action, option.value)}
-                      >
-                        <span>{option.label}</span>
-                        <span className="text-muted-foreground">{option.value}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+              {/* Owner Submenu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <User className="h-4 w-4 mr-2" />
+                  Owner
+                  {actionItem?.owner && actionItem.owner !== 'TBC' && (
+                    <span className="ml-auto text-xs text-muted-foreground truncate max-w-20">
+                      {actionItem.owner}
+                    </span>
+                  )}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="max-h-64 overflow-y-auto">
+                  {attendees.slice(0, 8).map((attendee, idx) => (
+                    <DropdownMenuItem
+                      key={idx}
+                      onClick={() => actionItem && handleChangeOwner(actionItem.action, attendee.name)}
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      <span className="truncate">{attendee.name}</span>
+                      {attendee.role && (
+                        <span className="ml-auto text-xs text-muted-foreground">({attendee.role})</span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setShowCustomOwnerInput(true);
+                      // Store the action item for later use
+                      if (actionItem) {
+                        setEditingActionItem({ original: actionItem.action, text: actionItem.action });
+                      }
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Custom...
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
 
-                <Separator />
+              <DropdownMenuSeparator />
 
-                {/* Mark as Completed */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start gap-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                  onClick={() => actionItem && handleCloseActionItem(actionItem.action)}
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Mark as Completed
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+              {/* Deadline Submenu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <CalendarDays className="h-4 w-4 mr-2" />
+                  Deadline
+                  {actionItem?.deadline && actionItem.deadline !== 'TBC' && (
+                    <span className="ml-auto text-xs text-muted-foreground truncate max-w-20">
+                      {actionItem.deadline}
+                    </span>
+                  )}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {getDeadlineOptions().map((option) => (
+                    <DropdownMenuItem
+                      key={option.label}
+                      onClick={() => actionItem && handleChangeDeadline(actionItem.action, option.value)}
+                    >
+                      <span>{option.label}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">{option.value}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+
+              <DropdownMenuSeparator />
+
+              {/* Mark as Completed */}
+              <DropdownMenuItem
+                className="text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-900/20"
+                onClick={() => actionItem && handleCloseActionItem(actionItem.action)}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Mark as Completed
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         );
     }
   };
