@@ -335,6 +335,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       'KEY DISCUSSION',
       'KEY DISCUSSION POINTS',
       'KEY HIGHLIGHTS',
+      'KEY TAKEAWAYS',
       'NEXT STEPS',
       'NOTES',
       'ADDITIONAL NOTES',
@@ -349,26 +350,35 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       'ATTENDEES',
     ];
     
+    // Implicit heading patterns (plain text lines that should start a Key Points section)
+    // Matches: "Key Points", "Key Points:", "**Key Points**", "**Key Points:**", etc.
+    const implicitKeyPointsPattern = /^\s*(?:\*\*)?(?:Key\s+(?:Points|Discussion|Discussion\s+Points|Highlights|Takeaways))(?:\*\*)?:?\s*$/i;
+    
     const result: Section[] = [];
     const lines = content.split('\n');
     let currentSection: { heading: string; lines: string[] } | null = null;
     let skipCurrentSection = false;
+    
+    const pushCurrentSection = () => {
+      if (currentSection && !skipCurrentSection && currentSection.lines.join('').trim()) {
+        result.push({
+          id: crypto.randomUUID(),
+          heading: currentSection.heading,
+          content: currentSection.lines.join('\n').trim(),
+          originalIndex: result.length
+        });
+      }
+    };
+    
     for (const line of lines) {
-      // Check for # or ## heading (support both formats)
-      const headingMatch = line.match(/^\s*#{1,2}\s+(.+)$/);
+      // Check for markdown heading (# through ######)
+      const headingMatch = line.match(/^\s*#{1,6}\s+(.+)$/);
       if (headingMatch) {
         const heading = headingMatch[1].trim().toUpperCase();
         
         // Check if this heading should be excluded
         if (excludedHeadings.some(h => heading.includes(h))) {
-          if (currentSection && !skipCurrentSection) {
-            result.push({
-              id: crypto.randomUUID(),
-              heading: currentSection.heading,
-              content: currentSection.lines.join('\n').trim(),
-              originalIndex: result.length
-            });
-          }
+          pushCurrentSection();
           currentSection = null;
           skipCurrentSection = true;
           continue;
@@ -376,18 +386,20 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         
         // Check if this is a known section heading
         if (sectionHeadings.some(h => heading.includes(h))) {
-          if (currentSection && !skipCurrentSection) {
-            result.push({
-              id: crypto.randomUUID(),
-              heading: currentSection.heading,
-              content: currentSection.lines.join('\n').trim(),
-              originalIndex: result.length
-            });
-          }
+          pushCurrentSection();
           currentSection = { heading: headingMatch[1].trim(), lines: [] };
           skipCurrentSection = false;
           continue;
         }
+      }
+      
+      // Check for implicit Key Points heading (plain text without #)
+      if (implicitKeyPointsPattern.test(line)) {
+        pushCurrentSection();
+        // Normalise to "Key Points" for consistency
+        currentSection = { heading: 'Key Points', lines: [] };
+        skipCurrentSection = false;
+        continue;
       }
       
       if (currentSection && !skipCurrentSection) {
@@ -396,14 +408,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
     
     // Push last section if it wasn't excluded
-    if (currentSection && !skipCurrentSection) {
-      result.push({
-        id: crypto.randomUUID(),
-        heading: currentSection.heading,
-        content: currentSection.lines.join('\n').trim(),
-        originalIndex: result.length
-      });
-    }
+    pushCurrentSection();
     
     return result;
   }, []);
@@ -419,30 +424,38 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       'KEY DISCUSSION',
       'KEY DISCUSSION POINTS',
       'KEY HIGHLIGHTS',
+      'KEY TAKEAWAYS',
       'NEXT STEPS',
       'NOTES',
       'ADDITIONAL NOTES',
     ];
     
+    // Implicit heading patterns (plain text lines that should be treated as section boundaries)
+    const implicitKeyPointsPattern = /^\s*(?:\*\*)?(?:Key\s+(?:Points|Discussion|Discussion\s+Points|Highlights|Takeaways))(?:\*\*)?:?\s*$/i;
+    
     const lines = originalContent.split('\n');
     const result: string[] = [];
-    let inEditableSection = false;
     let skipUntilNextSection = false;
     
     for (const line of lines) {
-      const headingMatch = line.match(/^\s*#{1,2}\s+(.+)$/);
+      // Check for markdown heading (# through ######)
+      const headingMatch = line.match(/^\s*#{1,6}\s+(.+)$/);
       if (headingMatch) {
         const heading = headingMatch[1].trim().toUpperCase();
         const isEditable = sectionHeadings.some(h => heading.includes(h));
         
         if (isEditable) {
-          inEditableSection = true;
           skipUntilNextSection = true;
           continue;
         } else {
-          inEditableSection = false;
           skipUntilNextSection = false;
         }
+      }
+      
+      // Check for implicit Key Points heading (plain text without #)
+      if (implicitKeyPointsPattern.test(line)) {
+        skipUntilNextSection = true;
+        continue;
       }
       
       if (!skipUntilNextSection) {
@@ -451,10 +464,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
     
     // Find where to insert sections (after meeting details, before action items)
-    const actionItemsIndex = result.findIndex(l => /##\s*Action\s+Items?/i.test(l));
+    const actionItemsIndex = result.findIndex(l => /##?\s*Action\s+Items?/i.test(l));
     const insertIndex = actionItemsIndex > 0 ? actionItemsIndex : result.length;
     
-    // Build section content
+    // Build section content with canonical ## headings
     const sectionContent = updatedSections.map(s => `## ${s.heading}\n\n${s.content}`).join('\n\n');
     
     // Insert sections
