@@ -165,6 +165,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
   const [isSavingMeetingType, setIsSavingMeetingType] = useState(false);
   
+  // Location/Venue editing state
+  const [meetingLocation, setMeetingLocation] = useState<string | null>(null);
+  const [userPractices, setUserPractices] = useState<Array<{id: string, practice_name: string}>>([]);
+  const [customLocationInput, setCustomLocationInput] = useState('');
+  const [locationDropdownOpen, setLocationDropdownOpen] = useState(false);
+  const [isSavingLocation, setIsSavingLocation] = useState(false);
+  
   // Action item management state
   const [editingActionItem, setEditingActionItem] = useState<{ original: string; text: string } | null>(null);
   const [showCustomOwnerInput, setShowCustomOwnerInput] = useState(false);
@@ -268,6 +275,59 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       setIsSavingMeetingType(false);
     }
   };
+
+  // Save meeting location to database
+  const handleLocationChange = async (location: string) => {
+    if (!meeting?.id) return;
+    
+    setIsSavingLocation(true);
+    setMeetingLocation(location);
+    
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .update({ meeting_location: location })
+        .eq('id', meeting.id);
+
+      if (error) throw error;
+      toast.success('Venue updated');
+    } catch (error) {
+      console.error('Error saving location:', error);
+      toast.error('Failed to save venue');
+    } finally {
+      setIsSavingLocation(false);
+      setLocationDropdownOpen(false);
+      setCustomLocationInput('');
+    }
+  };
+
+  // Fetch user's practices for location dropdown
+  useEffect(() => {
+    const fetchUserPractices = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      // Get user's associated practice IDs using the RPC function
+      const { data: practiceIds } = await supabase.rpc('get_user_practice_ids', {
+        p_user_id: user.id
+      });
+      
+      if (practiceIds && practiceIds.length > 0) {
+        const { data: practices } = await supabase
+          .from('gp_practices')
+          .select('id, name')
+          .in('id', practiceIds);
+        
+        if (practices) {
+          setUserPractices(practices.map(p => ({ id: p.id, practice_name: p.name || '' })));
+        }
+      }
+    };
+    
+    if (isOpen) {
+      fetchUserPractices();
+    }
+  }, [isOpen]);
 
   // Refresh attendees from database
   const refreshAttendees = useCallback(async () => {
@@ -524,6 +584,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       setCopied(false);
       setAttendees([]);
       setMeetingFormat(null);
+      setMeetingLocation(null);
       setIsSavingSections(false);
     }
   }, [isOpen, meeting?.id, notes]);
@@ -553,16 +614,20 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Fetch notes and meeting format
     const fetchNotes = async () => {
       try {
-        // First try meetings table for notes_style_3 and meeting_format
+        // First try meetings table for notes_style_3, meeting_format, and meeting_location
         const { data: meetingData } = await supabase
           .from('meetings')
-          .select('notes_style_3, meeting_format')
+          .select('notes_style_3, meeting_format, meeting_location')
           .eq('id', meeting.id)
           .maybeSingle();
 
         if (meetingData?.meeting_format) {
           setMeetingFormat(meetingData.meeting_format);
           setMeetingType(mapFormatToType(meetingData.meeting_format));
+        }
+        
+        if (meetingData?.meeting_location) {
+          setMeetingLocation(meetingData.meeting_location);
         }
 
         if (meetingData?.notes_style_3) {
@@ -2079,15 +2144,83 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                   <TableCell>{meetingDetails.time}</TableCell>
                                 </TableRow>
                               )}
-                              {meetingDetails.location && (
+                              {/* Location/Venue - Always show for F2F and Hybrid, or when location exists */}
+                              {(meetingType === 'f2f' || meetingType === 'hybrid' || meetingLocation || meetingDetails.location) && (
                                 <TableRow>
                                   <TableCell className="font-medium bg-muted/50">
                                     <div className="flex items-center gap-2">
                                       <MapPin className="h-4 w-4 text-muted-foreground" />
-                                      Location
+                                      {meetingType === 'f2f' || meetingType === 'hybrid' ? 'Venue' : 'Location'}
                                     </div>
                                   </TableCell>
-                                  <TableCell>{meetingDetails.location}</TableCell>
+                                  <TableCell>
+                                    {meetingType === 'teams' ? (
+                                      // Teams meetings - show Virtual as read-only
+                                      <span className="text-muted-foreground">Virtual</span>
+                                    ) : (
+                                      // F2F or Hybrid - editable dropdown
+                                      <DropdownMenu open={locationDropdownOpen} onOpenChange={setLocationDropdownOpen}>
+                                        <DropdownMenuTrigger asChild>
+                                          <button className="flex items-center gap-2 hover:bg-accent/50 rounded px-2 py-1 -mx-2 transition-colors text-sm group min-h-[28px]">
+                                            {isSavingLocation ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <span className={meetingLocation ? '' : 'text-muted-foreground'}>
+                                                {meetingLocation || 'Set venue...'}
+                                              </span>
+                                            )}
+                                            <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-50" />
+                                          </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="bg-background z-50 w-64" align="start">
+                                          <div className="p-2 space-y-2">
+                                            {/* Custom location input */}
+                                            <div className="space-y-1">
+                                              <Input
+                                                placeholder="Type custom venue..."
+                                                value={customLocationInput}
+                                                onChange={(e) => setCustomLocationInput(e.target.value)}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === 'Enter' && customLocationInput.trim()) {
+                                                    handleLocationChange(customLocationInput.trim());
+                                                  }
+                                                }}
+                                                className="h-8 text-xs"
+                                              />
+                                              {customLocationInput.trim() && (
+                                                <Button 
+                                                  size="sm" 
+                                                  className="w-full h-7 text-xs"
+                                                  onClick={() => handleLocationChange(customLocationInput.trim())}
+                                                >
+                                                  Save custom venue
+                                                </Button>
+                                              )}
+                                            </div>
+                                            
+                                            {/* Practice locations */}
+                                            {userPractices.length > 0 && (
+                                              <>
+                                                <DropdownMenuSeparator />
+                                                <div className="text-xs text-muted-foreground px-2 py-1 font-medium">
+                                                  Practice Locations
+                                                </div>
+                                                {userPractices.map((practice) => (
+                                                  <DropdownMenuItem
+                                                    key={practice.id}
+                                                    onClick={() => handleLocationChange(practice.practice_name)}
+                                                    className="text-xs cursor-pointer"
+                                                  >
+                                                    {practice.practice_name}
+                                                  </DropdownMenuItem>
+                                                ))}
+                                              </>
+                                            )}
+                                          </div>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    )}
+                                  </TableCell>
                                 </TableRow>
                               )}
                               {attendees.length > 0 && (
