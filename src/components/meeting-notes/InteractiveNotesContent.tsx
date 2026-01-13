@@ -220,44 +220,42 @@ const InteractiveNotesContent: React.FC<InteractiveNotesContentProps> = ({
     }
   }, [parsedLines, meetingId, content]);
 
-  // Filter out empty lines for rendering but keep track of indices
-  const editableLines = parsedLines
-    .map((line, index) => ({ line, index }))
-    .filter(({ line }) => line.type !== 'empty');
+  const renderLines = parsedLines.map((line, index) => ({ line, index }));
 
-  // Add proper spacing based on line type
-  const getLineSpacing = (line: ParsedLine, prevLine?: ParsedLine): string => {
-    if (!prevLine) return '';
-    
-    // More space before headings
-    if (line.type === 'heading') return 'mt-4';
-    
-    // Space after headings
-    if (prevLine.type === 'heading') return 'mt-2';
-    
-    // Space between numbered items
-    if (line.type === 'numbered' && prevLine.type === 'numbered') return 'mt-3';
-    
-    // Space between bullets
-    if (line.type === 'bullet' && prevLine.type === 'bullet') return 'mt-1.5';
-    
-    // Space after numbered list before new content
-    if (prevLine.type === 'numbered' && line.type !== 'numbered') return 'mt-3';
-    
-    // Default spacing
-    return 'mt-1.5';
+  // Spacing is intentionally handled here (including blank lines) to match the previous
+  // "prose" layout the notes had before we switched to interactive rendering.
+  const getBlockSpacingClass = (line: ParsedLine, prevLine?: ParsedLine): string => {
+    // Blank lines must remain visible as spacing (previous renderer relied on <p>/<ul> margins)
+    if (line.type === 'empty') return 'h-6';
+
+    if (line.type === 'heading') {
+      // Headings need clear separation from surrounding content
+      if (prevLine?.type === 'empty' || !prevLine) return 'pt-6 pb-3';
+      if (prevLine?.type === 'heading') return 'pt-5 pb-3';
+      return 'pt-7 pb-3';
+    }
+
+    if (line.type === 'numbered') return 'py-3';
+    if (line.type === 'bullet') return 'py-2';
+
+    // Paragraph
+    return 'py-3';
   };
 
   return (
     <div className="space-y-0">
-      {editableLines.map(({ line, index }, arrayIndex) => {
-        const prevLine = arrayIndex > 0 ? editableLines[arrayIndex - 1].line : undefined;
-        const spacingClass = getLineSpacing(line, prevLine);
-        
+      {renderLines.map(({ line, index }, arrayIndex) => {
+        const prevLine = arrayIndex > 0 ? renderLines[arrayIndex - 1].line : undefined;
+        const spacingClass = getBlockSpacingClass(line, prevLine);
+
+        if (line.type === 'empty') {
+          return <div key={`${sectionId}-${index}-spacer`} className={spacingClass} aria-hidden="true" />;
+        }
+
         return (
           <div key={`${sectionId}-${index}`} className={spacingClass}>
             <InlineEditableLine
-              type={line.type === 'empty' ? 'paragraph' : line.type}
+              type={line.type}
               content={line.content}
               htmlContent={line.htmlContent}
               level={line.level}
