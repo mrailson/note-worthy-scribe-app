@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import { showToast } from "@/utils/toastWrapper";
 import { copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 import { useAuth } from '@/contexts/AuthContext';
+import { generateProfessionalWordFromContent } from '@/utils/generateProfessionalMeetingDocx';
 
 // Helper function to render tables in PDF
 const renderTable = (
@@ -65,29 +66,22 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
     try {
       setIsExporting(true);
       
-      const { generateMeetingNotesDocx } = await import('@/utils/generateMeetingNotesDocx');
-      
       // Get meeting time if available
       const meetingTime = meetingData?.startTime 
         ? new Date(meetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
         : undefined;
       
-      // Get logged-in user's name to replace Facilitator/Unidentified
-      const loggedUserName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+      // Build parsed details for professional Word document
+      const parsedDetails = {
+        title,
+        date: getMeetingDate(),
+        time: meetingTime,
+        location: meetingSettings?.location || meetingData?.meetingLocation,
+        attendees: meetingSettings?.attendees || meetingData?.attendees?.join(', '),
+      };
       
-      await generateMeetingNotesDocx({
-        metadata: {
-          title,
-          date: getMeetingDate(),
-          time: meetingTime,
-          duration: meetingData?.duration,
-          location: meetingSettings?.location || meetingData?.meetingLocation,
-          attendees: meetingSettings?.attendees || meetingData?.attendees?.join(', '),
-          loggedUserName: loggedUserName,
-        },
-        content,
-        filename: `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${getMeetingDate()}.docx`,
-      });
+      // Use professional Word generator (same as SafeModeNotesModal)
+      await generateProfessionalWordFromContent(content, title, parsedDetails);
       
       showToast.success('Word document generated successfully!', { section: 'meeting_manager' });
     } catch (error) {

@@ -295,73 +295,27 @@ export function EmailMeetingMinutesModal({
 
     setIsSending(true);
     try {
-      // Generate NHS-styled Word document attachment (same as Standard Minutes tab)
+      // Generate professional Word document attachment (same format as SafeModeNotesModal download)
       let wordAttachment = null;
       try {
-        const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
-        const { parseContentToDocxElements, stripTranscriptSection } = await import('@/utils/generateMeetingNotesDocx');
-        const { buildNHSStyles, buildNumbering, NHS_COLORS, FONTS } = await import('@/utils/wordTheme');
-        
-        // Strip transcript sections - use fresh notes
-        const cleanedContent = stripTranscriptSection(notesToSend);
+        const { generateProfessionalWordBlob } = await import('@/utils/generateProfessionalMeetingDocx');
         
         // Clean the title
         const cleanTitle = meetingTitle.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
         
-        // Build document children
-        const children: any[] = [];
+        // Build parsed details
+        const parsedDetails = {
+          title: cleanTitle,
+          date: meetingDate || undefined,
+          time: undefined,
+          location: undefined,
+          attendees: undefined,
+        };
         
-        // Title
-        children.push(
-          new Paragraph({
-            children: [new TextRun({
-              text: cleanTitle,
-              bold: true,
-              size: FONTS.size.title,
-              color: NHS_COLORS.headingBlue,
-              font: FONTS.default,
-            })],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 240 },
-          })
-        );
+        // Generate the professional Word blob
+        const blob = await generateProfessionalWordBlob(notesToSend, cleanTitle, parsedDetails);
         
-        // Parse and add content
-        const contentElements = await parseContentToDocxElements(cleanedContent);
-        children.push(...contentElements);
-        
-        // Footer
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('en-GB');
-        const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-        
-        children.push(
-          new Paragraph({
-            children: [new TextRun({
-              text: `Generated on ${dateStr} ${timeStr}`,
-              italics: true,
-              size: FONTS.size.footer,
-              color: NHS_COLORS.textLightGrey,
-              font: FONTS.default,
-            })],
-            alignment: AlignmentType.CENTER,
-            spacing: { before: 480 },
-          })
-        );
-        
-        // Create document with NHS theme
-        const styles = buildNHSStyles();
-        const numbering = buildNumbering();
-        
-        const doc = new Document({
-          styles: styles,
-          numbering: numbering,
-          sections: [{
-            children,
-          }],
-        });
-        
-        const blob = await Packer.toBlob(doc);
+        // Convert blob to base64
         const reader = new FileReader();
         const base64Promise = new Promise<string>((resolve) => {
           reader.onloadend = () => {
