@@ -1186,7 +1186,7 @@ export const MeetingHistoryList = ({
       // Fetch the latest meeting notes/summary from multiple sources (prioritize Minutes - Standard)
       const { data: notesFields, error: notesFieldsError } = await supabase
         .from('meetings')
-        .select('notes_style_3, notes_style_2, notes_style_4, notes_style_5')
+        .select('notes_style_3, notes_style_2, notes_style_4, notes_style_5, start_time, meeting_location')
         .eq('id', meeting.id)
         .maybeSingle();
 
@@ -1195,6 +1195,19 @@ export const MeetingHistoryList = ({
         .select('summary')
         .eq('meeting_id', meeting.id)
         .maybeSingle();
+      
+      // Fetch action items for this meeting
+      const { data: actionItemsData } = await supabase
+        .from('meeting_action_items')
+        .select('*')
+        .eq('meeting_id', meeting.id)
+        .order('sort_order', { ascending: true });
+      
+      // Fetch attendees for this meeting
+      const { data: meetingAttendees } = await supabase
+        .from('meeting_attendees')
+        .select('attendee_id, attendees(name)')
+        .eq('meeting_id', meeting.id);
 
       // Priority order: Minutes - Standard (notes_style_3) > other notes > summary
       let notes = '';
@@ -1218,7 +1231,53 @@ export const MeetingHistoryList = ({
       notes = notes.replace(/\n*##?\s*TRANSCRIPT[\s\S]*$/i, '');
       notes = notes.replace(/\n*##?\s*Meeting Transcript[\s\S]*$/i, '');
 
-      await generateWordDocument(notes, meeting.title);
+      // Import the professional Word generator
+      const { generateProfessionalWordFromContent } = await import('@/utils/generateProfessionalMeetingDocx');
+      
+      // Get meeting date and time
+      const startTime = (notesFields as any)?.start_time || meeting.start_time || meeting.created_at;
+      const meetingDate = startTime ? new Date(startTime) : new Date();
+      const formattedDate = meetingDate.toLocaleDateString('en-GB', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+      const formattedTime = meetingDate.toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }) + ' GMT';
+      
+      // Get location
+      const location = (notesFields as any)?.meeting_location || meeting.meeting_location || undefined;
+      
+      // Get attendees names
+      const attendeeNames = meetingAttendees
+        ?.map((ma: any) => ma.attendees?.name)
+        .filter(Boolean)
+        .join(', ') || undefined;
+      
+      // Build parsed details
+      const parsedDetails = {
+        title: meeting.title,
+        date: formattedDate,
+        time: formattedTime,
+        location: location,
+        attendees: attendeeNames,
+      };
+      
+      // Convert action items to expected format
+      const parsedActionItems = (actionItemsData || []).map((item: any) => ({
+        action: item.action_text,
+        owner: item.assignee_name || 'Unassigned',
+        deadline: item.due_date || undefined,
+        priority: item.priority || 'medium',
+        status: item.status || 'Open',
+        isCompleted: item.status === 'completed',
+      }));
+
+      await generateProfessionalWordFromContent(notes, meeting.title, parsedDetails, parsedActionItems);
+      toast.success('Word document downloaded successfully');
     } catch (error) {
       console.error('Error downloading Word document:', error);
       toast.error('Failed to download Word document');
