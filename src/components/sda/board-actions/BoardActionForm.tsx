@@ -152,12 +152,34 @@ export const BoardActionForm = ({
 
                 <div className="space-y-2">
                   <Label htmlFor="due_date">Due Date</Label>
-                  <Input
-                    id="due_date"
-                    type="date"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                  />
+                  <Select
+                    value={formData.due_date === 'Ongoing' || formData.due_date === 'TBC' ? formData.due_date : 'specific'}
+                    onValueChange={(value) => {
+                      if (value === 'Ongoing' || value === 'TBC') {
+                        setFormData({ ...formData, due_date: value });
+                      } else {
+                        setFormData({ ...formData, due_date: '' });
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select deadline type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="specific">Specific Date</SelectItem>
+                      <SelectItem value="Ongoing">Ongoing</SelectItem>
+                      <SelectItem value="TBC">TBC</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.due_date !== 'Ongoing' && formData.due_date !== 'TBC' && (
+                    <Input
+                      id="due_date"
+                      type="date"
+                      value={formData.due_date}
+                      onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                      className="mt-2"
+                    />
+                  )}
                 </div>
               </div>
             </div>
