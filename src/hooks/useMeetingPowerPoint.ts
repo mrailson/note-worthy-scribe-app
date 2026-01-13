@@ -29,6 +29,40 @@ interface GenerationResult {
   error?: string;
 }
 
+interface PowerPointOptions {
+  style: string;
+  content: string;
+  slideCount: number;
+}
+
+// Style prompt mappings
+const STYLE_PROMPTS: Record<string, string> = {
+  'executive-board': 'Executive board presentation with formal layout, strategic focus, and C-suite appropriate design. Use muted professional colours and authoritative typography.',
+  'team-update': 'Collaborative team update style with accessible design, clear action items, and inclusive layout. Friendly but professional aesthetic.',
+  'nhs-clinical': 'NHS-branded presentation using official NHS blue (#005EB8), NHS England design guidelines, healthcare iconography, and clinical professional aesthetic.',
+  'modern-minimal': 'Modern minimalist design with ample white space, clean sans-serif typography, subtle accent colours, and contemporary feel.',
+  'training': 'Educational training presentation with step-by-step structure, clear learning objectives, visual aids, and instructional design principles.',
+  'stakeholder': 'External stakeholder report style suitable for sharing outside the organisation. Professional, polished, and comprehensive.',
+  'quick': 'Rapid overview style optimised for brief presentations. High-impact slides with minimal text and strong visual hierarchy.',
+  'comprehensive': 'Comprehensive meeting pack with detailed content, appendices, and thorough documentation of all discussion points.',
+  'data-driven': 'Data-focused presentation emphasising charts, graphs, metrics visualisations, and quantitative outcomes.',
+  'professional': 'Professional business presentation with balanced design, clear structure, and appropriate visual elements.',
+};
+
+// Content focus prompt mappings
+const CONTENT_PROMPTS: Record<string, string> = {
+  'standard': 'Balanced coverage including executive summary, key decisions, action items, and next steps.',
+  'actions': 'Primary focus on action items with clear owner assignments, deadline tracking, priority indicators, and accountability visualisation.',
+  'decisions': 'Emphasis on key decisions made, including context, rationale, implications, and related outcomes.',
+  'metrics': 'Focus on KPIs, progress metrics, trend analysis, outcomes achieved, and quantitative results.',
+  'discussion': 'Comprehensive discussion summary capturing all major topics, viewpoints expressed, and consensus reached.',
+  'next-steps': 'Forward-looking content focusing on upcoming actions, follow-up requirements, future meeting dates, and pending items.',
+  'highlights': 'Key highlights only for quick consumption - most important decisions, critical actions, and essential next steps.',
+  'comprehensive': 'Complete meeting coverage including all sections, detailed notes, and full context for each topic.',
+  'all': 'All available content organised logically including summary, discussions, decisions, actions, and next steps.',
+  'visualisations': 'Content structured for visual presentation with charts, timelines, progress bars, and infographic elements.',
+};
+
 export const useMeetingPowerPoint = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<'preparing' | 'generating' | 'downloading' | 'complete'>('preparing');
@@ -112,7 +146,10 @@ export const useMeetingPowerPoint = () => {
     return sections.join('\n');
   };
 
-  const generatePowerPoint = async (data: MeetingPowerPointData): Promise<GenerationResult> => {
+  const generatePowerPoint = async (
+    data: MeetingPowerPointData,
+    options?: PowerPointOptions
+  ): Promise<GenerationResult> => {
     setIsGenerating(true);
     setError(null);
     setCurrentPhase('preparing');
@@ -121,6 +158,18 @@ export const useMeetingPowerPoint = () => {
       // Format meeting content
       const supportingContent = formatMeetingContent(data);
       
+      // Log options received
+      console.log('[useMeetingPowerPoint] Options received:', options);
+      
+      // Build dynamic prompts based on options
+      const stylePrompt = options?.style ? STYLE_PROMPTS[options.style] || STYLE_PROMPTS['professional'] : STYLE_PROMPTS['professional'];
+      const contentPrompt = options?.content ? CONTENT_PROMPTS[options.content] || CONTENT_PROMPTS['standard'] : CONTENT_PROMPTS['standard'];
+      const slideCount = options?.slideCount || 8;
+      
+      console.log('[useMeetingPowerPoint] Style prompt:', stylePrompt);
+      console.log('[useMeetingPowerPoint] Content prompt:', contentPrompt);
+      console.log('[useMeetingPowerPoint] Slide count:', slideCount);
+      
       setCurrentPhase('generating');
 
       // Use Promise.race for timeout since Supabase client doesn't support AbortController
@@ -128,13 +177,21 @@ export const useMeetingPowerPoint = () => {
         setTimeout(() => reject(new Error('PowerPoint generation timed out after 120 seconds. Please try again.')), 120000);
       });
 
+      const customInstructions = `PRESENTATION STYLE: ${stylePrompt}
+
+CONTENT FOCUS: ${contentPrompt}
+
+Create exactly ${slideCount} slides. Focus on key decisions, action items with owners, and next steps. Create a professional executive summary suitable for board presentation. Include metrics and outcomes where available. Keep slides concise and impactful. Use British English spelling throughout.`;
+
       const invokePromise = supabase.functions.invoke('generate-powerpoint-gamma', {
         body: {
           topic: `Executive Summary: ${data.meetingTitle}`,
-          presentationType: 'Executive Overview',
-          slideCount: 8,
+          presentationType: options?.style === 'training' ? 'Training Session' : 
+                           options?.style === 'stakeholder' ? 'Stakeholder Report' :
+                           options?.style === 'quick' ? 'Quick Overview' : 'Executive Overview',
+          slideCount: slideCount,
           supportingContent,
-          customInstructions: 'Focus on key decisions, action items with owners, and next steps. Create a professional executive summary suitable for board presentation. Include metrics and outcomes where available. Keep slides concise and impactful.',
+          customInstructions,
           audience: 'healthcare professionals and NHS executives',
         },
       });
