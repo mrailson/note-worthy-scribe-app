@@ -2874,6 +2874,8 @@ export const MeetingHistoryList = ({
                 audioOverviewText={meeting.audio_overview_text || undefined}
                 audioOverviewDuration={meeting.audio_overview_duration || undefined}
                 meetingDurationMinutes={meeting.duration_minutes || undefined}
+                meetingAttendees={meetingAttendees[meeting.id]?.map((a: any) => a.name) || []}
+                chairName={meetingAttendees[meeting.id]?.find((a: any) => a.meeting_role === 'chair')?.name}
                 onOverviewChange={(newOverview) => {
                   setLocalMeetings(prev => prev.map(m => 
                     m.id === meeting.id ? { ...m, overview: newOverview } : m
