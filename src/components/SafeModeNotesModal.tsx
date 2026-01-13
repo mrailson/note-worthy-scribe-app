@@ -791,15 +791,17 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const meetingDetails = useMemo(() => {
     if (!notesContent) return null;
     
-    const titleMatch = notesContent.match(/Meeting Title[:\s]+(.+?)(?:\n|$)/i);
-    const dateMatch = notesContent.match(/Date[:\s]+(.+?)(?:\n|$)/i);
-    const timeMatch = notesContent.match(/Time[:\s]+(.+?)(?:\n|$)/i);
-    const locationMatch = notesContent.match(/Location[:\s]+(.+?)(?:\n|$)/i);
+    // Match patterns only at start of line or after bullet points/hyphens
+    // to avoid matching "Date" in the middle of sentences
+    const titleMatch = notesContent.match(/^[-•*]?\s*\*{0,2}Meeting Title\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
+    const dateMatch = notesContent.match(/^[-•*]?\s*\*{0,2}Date\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
+    const timeMatch = notesContent.match(/^[-•*]?\s*\*{0,2}Time\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
+    const locationMatch = notesContent.match(/^[-•*]?\s*\*{0,2}Location\*{0,2}[:\s]+(.+?)(?:\n|$)/im);
     
     if (!titleMatch && !dateMatch && !timeMatch && !locationMatch) return null;
     
-    // Strip markdown formatting (** bold markers) from title
-    const cleanTitle = titleMatch?.[1]?.trim().replace(/\*\*/g, '');
+    // Strip markdown formatting (** bold markers) from extracted values
+    const cleanValue = (val?: string) => val?.trim().replace(/\*\*/g, '');
     
     // Use meetingFormat from DB if available, otherwise fall back to content parsing
     const formatFromDb = meetingFormat ? 
@@ -807,12 +809,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       null;
     
     // For location: prefer DB meeting format (Hybrid, F2F, Virtual), fallback to parsed content
-    const locationValue = formatFromDb || locationMatch?.[1]?.trim();
+    const locationValue = formatFromDb || cleanValue(locationMatch?.[1]);
     
     return {
-      title: cleanTitle,
-      date: dateMatch?.[1]?.trim(),
-      time: timeMatch?.[1]?.trim(),
+      title: cleanValue(titleMatch?.[1]),
+      date: cleanValue(dateMatch?.[1]),
+      time: cleanValue(timeMatch?.[1]),
       location: locationValue,
     };
   }, [notesContent, meetingFormat]);
