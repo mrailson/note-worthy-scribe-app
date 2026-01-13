@@ -225,23 +225,52 @@ const InteractiveNotesContent: React.FC<InteractiveNotesContentProps> = ({
     .map((line, index) => ({ line, index }))
     .filter(({ line }) => line.type !== 'empty');
 
+  // Add proper spacing based on line type
+  const getLineSpacing = (line: ParsedLine, prevLine?: ParsedLine): string => {
+    if (!prevLine) return '';
+    
+    // More space before headings
+    if (line.type === 'heading') return 'mt-4';
+    
+    // Space after headings
+    if (prevLine.type === 'heading') return 'mt-2';
+    
+    // Space between numbered items
+    if (line.type === 'numbered' && prevLine.type === 'numbered') return 'mt-3';
+    
+    // Space between bullets
+    if (line.type === 'bullet' && prevLine.type === 'bullet') return 'mt-1.5';
+    
+    // Space after numbered list before new content
+    if (prevLine.type === 'numbered' && line.type !== 'numbered') return 'mt-3';
+    
+    // Default spacing
+    return 'mt-1.5';
+  };
+
   return (
-    <div className="space-y-1.5">
-      {editableLines.map(({ line, index }) => (
-        <InlineEditableLine
-          key={`${sectionId}-${index}`}
-          type={line.type === 'empty' ? 'paragraph' : line.type}
-          content={line.content}
-          htmlContent={line.htmlContent}
-          level={line.level}
-          index={index}
-          sectionId={sectionId}
-          fontSize={fontSize}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-          onAIAction={handleAIAction}
-        />
-      ))}
+    <div className="space-y-0">
+      {editableLines.map(({ line, index }, arrayIndex) => {
+        const prevLine = arrayIndex > 0 ? editableLines[arrayIndex - 1].line : undefined;
+        const spacingClass = getLineSpacing(line, prevLine);
+        
+        return (
+          <div key={`${sectionId}-${index}`} className={spacingClass}>
+            <InlineEditableLine
+              type={line.type === 'empty' ? 'paragraph' : line.type}
+              content={line.content}
+              htmlContent={line.htmlContent}
+              level={line.level}
+              index={index}
+              sectionId={sectionId}
+              fontSize={fontSize}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+              onAIAction={handleAIAction}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 };
