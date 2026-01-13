@@ -1065,8 +1065,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         .trim();
     };
     
-    // Extract Action Items section
-    const actionSectionMatch = notesContent.match(/##?\s*Action\s+Items?\s*\n([\s\S]*?)(?=\n##[^#]|\n#[^#]|$)/i);
+    // Extract Action Items section - match from heading until next main heading or end
+    const actionSectionMatch = notesContent.match(/##?\s*Action\s+Items?\s*\n([\s\S]*?)(?=\n#{1,2}\s+[A-Z]|$)/i);
     
     if (actionSectionMatch) {
       const sectionContent = actionSectionMatch[1];
