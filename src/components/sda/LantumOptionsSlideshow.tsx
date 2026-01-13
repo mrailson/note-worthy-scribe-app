@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import Slide1 from "@/assets/lantum-options/Slide1.jpg";
 import Slide2 from "@/assets/lantum-options/Slide2.jpg";
@@ -56,7 +56,7 @@ export const LantumOptionsSlideshow = ({ isOpen, onClose }: LantumOptionsSlidesh
         </DialogTitle>
         
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50">
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50 pr-14">
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-slate-600">
               Slide {currentSlide + 1} of {slides.length}
@@ -66,14 +66,6 @@ export const LantumOptionsSlideshow = ({ isOpen, onClose }: LantumOptionsSlidesh
               {slides[currentSlide].title}
             </span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
 
         {/* Slide Content */}
