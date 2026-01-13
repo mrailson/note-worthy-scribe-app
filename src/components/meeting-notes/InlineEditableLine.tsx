@@ -46,10 +46,19 @@ const InlineEditableLine: React.FC<InlineEditableLineProps> = ({
   const [justSaved, setJustSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const adjustTextareaHeight = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  };
+
   useEffect(() => {
     if (isEditing && textareaRef.current) {
       textareaRef.current.focus();
       textareaRef.current.select();
+      // Use setTimeout to ensure the textarea has rendered with content
+      setTimeout(adjustTextareaHeight, 0);
     }
   }, [isEditing]);
 
@@ -127,9 +136,12 @@ const InlineEditableLine: React.FC<InlineEditableLineProps> = ({
             <Textarea
               ref={textareaRef}
               value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
+              onChange={(e) => {
+                setEditValue(e.target.value);
+                adjustTextareaHeight();
+              }}
               onKeyDown={handleKeyDown}
-              className="min-h-[60px] resize-none text-sm"
+              className="min-h-[40px] resize-none text-sm overflow-hidden"
               style={{ fontSize: `${fontSize}px` }}
             />
             <div className="flex items-center gap-2 mt-2">
