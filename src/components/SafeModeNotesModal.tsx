@@ -608,9 +608,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   }, []);
 
   // Reset state when modal opens with new meeting
+  // Note: We intentionally exclude 'notes' prop from dependencies to prevent
+  // resetting content when parent re-renders. The database fetch is the source of truth.
   useEffect(() => {
     if (isOpen && meeting) {
-      // Seed notes immediately from props
+      // Seed notes immediately from props (temporary until database fetch completes)
       const initialNotes = notes || meeting.meeting_summary || '';
       setNotesContent(initialNotes);
       setActiveTab('notes');
@@ -623,7 +625,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       setMeetingLocation(null);
       setIsSavingSections(false);
     }
-  }, [isOpen, meeting?.id, notes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, meeting?.id]);
 
   // Parse sections whenever notesContent changes
   useEffect(() => {
