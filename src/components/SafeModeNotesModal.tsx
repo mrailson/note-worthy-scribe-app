@@ -2055,6 +2055,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                               onMoveDown={handleSectionMoveDown}
                               isSaving={isSavingSections}
                               onSave={persistSectionsToDb}
+                              meetingId={meeting?.id}
                             />
                           ))}
                         </div>
