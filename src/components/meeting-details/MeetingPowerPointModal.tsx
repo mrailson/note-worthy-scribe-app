@@ -17,6 +17,12 @@ interface ActionItem {
   priority?: string;
 }
 
+interface PowerPointOptions {
+  style: string;
+  content: string;
+  slideCount: number;
+}
+
 interface MeetingPowerPointModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -30,6 +36,7 @@ interface MeetingPowerPointModalProps {
     actionItems: ActionItem[];
     transcript?: string;
   };
+  options?: PowerPointOptions;
 }
 
 const GENERATION_TIPS = [
@@ -49,6 +56,7 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
   isOpen,
   onClose,
   meetingData,
+  options,
 }) => {
   const { generatePowerPoint, isGenerating, currentPhase, error } = useMeetingPowerPoint();
   const [timeRemaining, setTimeRemaining] = useState(TOTAL_DURATION);
@@ -69,8 +77,11 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
       setIsComplete(false);
       setHasFailed(false);
 
-      // Start the generation
-      generatePowerPoint(meetingData).then((result) => {
+      // Log options being used
+      console.log('[MeetingPowerPointModal] Starting generation with options:', options);
+
+      // Start the generation with options
+      generatePowerPoint(meetingData, options).then((result) => {
         if (result.success) {
           setDownloadUrl(result.downloadUrl ?? null);
           setIsComplete(true);
@@ -81,7 +92,7 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
         }
       });
     }
-  }, [isOpen, hasStarted, isComplete, generatePowerPoint, meetingData, onClose]);
+  }, [isOpen, hasStarted, isComplete, generatePowerPoint, meetingData, options, onClose]);
 
   // Countdown timer
   useEffect(() => {
