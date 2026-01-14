@@ -30,6 +30,9 @@ interface SystemStats {
   duration_24h: number;
   duration_7d: number;
   duration_30d: number;
+  words_24h: number;
+  words_7d: number;
+  words_30d: number;
 }
 
 const MIN_WORDS_FOR_COUNT = 100;
@@ -70,6 +73,9 @@ export const MeetingUsageReport = () => {
         duration_24h: number;
         duration_7d: number;
         duration_30d: number;
+        words_24h: number;
+        words_7d: number;
+        words_30d: number;
       }>;
 
       const totalMeetings = results.reduce((sum, r) => sum + (r.all_time || 0), 0);
@@ -87,6 +93,9 @@ export const MeetingUsageReport = () => {
         duration_24h: results.reduce((sum, r) => sum + (r.duration_24h || 0), 0),
         duration_7d: results.reduce((sum, r) => sum + (r.duration_7d || 0), 0),
         duration_30d: results.reduce((sum, r) => sum + (r.duration_30d || 0), 0),
+        words_24h: results.reduce((sum, r) => sum + (r.words_24h || 0), 0),
+        words_7d: results.reduce((sum, r) => sum + (r.words_7d || 0), 0),
+        words_30d: results.reduce((sum, r) => sum + (r.words_30d || 0), 0),
       };
 
       setSystemStats(systemStatsCalc);
@@ -159,7 +168,7 @@ export const MeetingUsageReport = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Overview Cards with Meeting Counts and Duration */}
+        {/* Overview Cards with Meeting Counts, Duration and Words */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Last 24 Hours */}
           <div className="border rounded-lg p-4 space-y-2">
@@ -171,8 +180,23 @@ export const MeetingUsageReport = () => {
               <span className="text-3xl font-bold text-green-600">{systemStats?.last_24h || 0}</span>
               <span className="text-sm text-muted-foreground">meetings</span>
             </div>
-            <div className="text-sm text-muted-foreground border-t pt-2">
-              <span className="font-medium text-foreground">{formatDuration(systemStats?.duration_24h || 0)}</span> total
+            <div className="text-xs text-muted-foreground border-t pt-2 space-y-1">
+              <div className="flex justify-between">
+                <span>Total time:</span>
+                <span className="font-medium text-foreground">{formatDuration(systemStats?.duration_24h || 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg time:</span>
+                <span className="font-medium text-foreground">{formatDuration(systemStats && systemStats.last_24h > 0 ? Math.round((systemStats.duration_24h || 0) / systemStats.last_24h) : 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Words:</span>
+                <span className="font-medium text-foreground">{formatNumber(systemStats?.words_24h || 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg words:</span>
+                <span className="font-medium text-foreground">{formatNumber(systemStats && systemStats.last_24h > 0 ? Math.round((systemStats.words_24h || 0) / systemStats.last_24h) : 0)}</span>
+              </div>
             </div>
           </div>
 
@@ -186,8 +210,23 @@ export const MeetingUsageReport = () => {
               <span className="text-3xl font-bold text-blue-600">{systemStats?.last_7d || 0}</span>
               <span className="text-sm text-muted-foreground">meetings</span>
             </div>
-            <div className="text-sm text-muted-foreground border-t pt-2">
-              <span className="font-medium text-foreground">{formatDuration(systemStats?.duration_7d || 0)}</span> total
+            <div className="text-xs text-muted-foreground border-t pt-2 space-y-1">
+              <div className="flex justify-between">
+                <span>Total time:</span>
+                <span className="font-medium text-foreground">{formatDuration(systemStats?.duration_7d || 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg time:</span>
+                <span className="font-medium text-foreground">{formatDuration(systemStats && systemStats.last_7d > 0 ? Math.round((systemStats.duration_7d || 0) / systemStats.last_7d) : 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Words:</span>
+                <span className="font-medium text-foreground">{formatNumber(systemStats?.words_7d || 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg words:</span>
+                <span className="font-medium text-foreground">{formatNumber(systemStats && systemStats.last_7d > 0 ? Math.round((systemStats.words_7d || 0) / systemStats.last_7d) : 0)}</span>
+              </div>
             </div>
           </div>
 
@@ -201,8 +240,23 @@ export const MeetingUsageReport = () => {
               <span className="text-3xl font-bold">{systemStats?.last_30d || 0}</span>
               <span className="text-sm text-muted-foreground">meetings</span>
             </div>
-            <div className="text-sm text-muted-foreground border-t pt-2">
-              <span className="font-medium text-foreground">{formatDuration(systemStats?.duration_30d || 0)}</span> total
+            <div className="text-xs text-muted-foreground border-t pt-2 space-y-1">
+              <div className="flex justify-between">
+                <span>Total time:</span>
+                <span className="font-medium text-foreground">{formatDuration(systemStats?.duration_30d || 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg time:</span>
+                <span className="font-medium text-foreground">{formatDuration(systemStats && systemStats.last_30d > 0 ? Math.round((systemStats.duration_30d || 0) / systemStats.last_30d) : 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Words:</span>
+                <span className="font-medium text-foreground">{formatNumber(systemStats?.words_30d || 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg words:</span>
+                <span className="font-medium text-foreground">{formatNumber(systemStats && systemStats.last_30d > 0 ? Math.round((systemStats.words_30d || 0) / systemStats.last_30d) : 0)}</span>
+              </div>
             </div>
           </div>
 
@@ -216,25 +270,24 @@ export const MeetingUsageReport = () => {
               <span className="text-3xl font-bold">{systemStats?.all_time || 0}</span>
               <span className="text-sm text-muted-foreground">meetings</span>
             </div>
-            <div className="text-sm text-muted-foreground border-t pt-2">
-              <span className="font-medium text-foreground">{formatDuration(systemStats?.total_duration_mins || 0)}</span> total
+            <div className="text-xs text-muted-foreground border-t pt-2 space-y-1">
+              <div className="flex justify-between">
+                <span>Total time:</span>
+                <span className="font-medium text-foreground">{formatDuration(systemStats?.total_duration_mins || 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg time:</span>
+                <span className="font-medium text-foreground">{formatDuration(systemStats?.avg_duration_mins || 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Words:</span>
+                <span className="font-medium text-foreground">{formatNumber(systemStats?.total_words || 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg words:</span>
+                <span className="font-medium text-foreground">{formatNumber(systemStats && systemStats.all_time > 0 ? Math.round((systemStats.total_words || 0) / systemStats.all_time) : 0)}</span>
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* System-wide Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-          <div>
-            <p className="text-sm text-muted-foreground">Total Duration</p>
-            <p className="text-lg font-semibold">{formatDuration(systemStats?.total_duration_mins || 0)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Avg Duration</p>
-            <p className="text-lg font-semibold">{formatDuration(systemStats?.avg_duration_mins || 0)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Words Transcribed</p>
-            <p className="text-lg font-semibold">{formatNumber(systemStats?.total_words || 0)}</p>
           </div>
         </div>
 
