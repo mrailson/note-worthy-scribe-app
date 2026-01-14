@@ -34,6 +34,15 @@ serve(async (req) => {
       );
     }
 
+    // Get today's date formatted for UK
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
     // Build context from consultation data
     const contextParts: string[] = [];
     
@@ -58,28 +67,36 @@ serve(async (req) => {
 
     // Build professional signature block from practice context
     let signatureBlock = '';
-    if (consultationContext?.clinicianName || consultationContext?.letterSignature || consultationContext?.practiceName) {
+    const clinicianName = consultationContext?.clinicianName || '';
+    const letterSignature = consultationContext?.letterSignature || '';
+    const practiceName = consultationContext?.practiceName || '';
+    const practiceAddress = consultationContext?.practiceAddress || '';
+    const practicePhone = consultationContext?.practicePhone || '';
+    const practiceEmail = consultationContext?.practiceEmail || '';
+
+    if (clinicianName || letterSignature || practiceName) {
       const signatureParts: string[] = [];
       
-      if (consultationContext.letterSignature) {
-        // Use the custom letter signature if available
-        signatureParts.push(consultationContext.letterSignature);
-      } else if (consultationContext.clinicianName) {
-        signatureParts.push(consultationContext.clinicianName);
+      // Clinician details
+      if (letterSignature) {
+        signatureParts.push(letterSignature);
+      } else if (clinicianName) {
+        signatureParts.push(`**${clinicianName}**`);
       }
       
-      // Always add practice details if available
-      if (consultationContext.practiceName) {
-        signatureParts.push(consultationContext.practiceName);
+      // Practice details - formatted professionally
+      if (practiceName) {
+        signatureParts.push('');
+        signatureParts.push(`**${practiceName}**`);
       }
-      if (consultationContext.practiceAddress) {
-        signatureParts.push(consultationContext.practiceAddress);
+      if (practiceAddress) {
+        signatureParts.push(practiceAddress);
       }
-      if (consultationContext.practicePhone) {
-        signatureParts.push(`Tel: ${consultationContext.practicePhone}`);
+      if (practicePhone) {
+        signatureParts.push(`Tel: ${practicePhone}`);
       }
-      if (consultationContext.practiceEmail) {
-        signatureParts.push(consultationContext.practiceEmail);
+      if (practiceEmail) {
+        signatureParts.push(`Email: ${practiceEmail}`);
       }
       
       signatureBlock = signatureParts.join('\n');
@@ -88,19 +105,21 @@ serve(async (req) => {
     const signatureInstruction = signatureBlock 
       ? `
 
-**Professional Signature Formatting:**
-When drafting letters or formal correspondence, use this professionally formatted signature block:
+**CRITICAL - Letter Date and Signature:**
+- Today's date is: ${formattedDate}
+- ALWAYS use today's date (${formattedDate}) for any letters or correspondence - never use any other date
+- When drafting letters, end with this exact signature block:
 
----
-
-**Yours sincerely,**
+Yours sincerely,
 
 ${signatureBlock}
 
----
+Ensure proper line spacing between the sign-off and signature details.`
+      : `
 
-Format the signature with proper spacing and professional appearance. Place the clinician name in bold, followed by their credentials (if in the signature), then practice name in bold, then address on separate lines.`
-      : '';
+**CRITICAL - Letter Date:**
+- Today's date is: ${formattedDate}
+- ALWAYS use today's date (${formattedDate}) for any letters or correspondence - never use any other date`;
 
     const systemPrompt = `You are a clinical AI assistant helping UK NHS GPs review their consultations. You have access to the consultation transcript and SOAP notes.
 
