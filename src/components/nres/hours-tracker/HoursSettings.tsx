@@ -34,7 +34,7 @@ export function HoursSettings({ hourlyRate, hasRateSet, saving, onSaveRate }: Ho
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Settings className="w-4 h-4" />
-          Hourly Rate Settings
+          My Hourly Rate Settings
         </CardTitle>
       </CardHeader>
       <CardContent>
