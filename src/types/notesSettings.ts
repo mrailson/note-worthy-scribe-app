@@ -19,7 +19,7 @@ export const DEFAULT_NOTES_VIEW_SETTINGS: NotesViewSettings = {
 export const SECTION_LABELS: Record<keyof NotesViewSettings['visibleSections'], string> = {
   executiveSummary: 'Executive Summary',
   keyPoints: 'Key Points',
-  actionList: 'Action List',
+  actionList: 'Action Items',
   openItems: 'Open Items',
 };
 
