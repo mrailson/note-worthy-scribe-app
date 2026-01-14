@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cleanMeetingContent, removeActionItemsSection } from "@/utils/meeting/cleanMeetingContent";
+import { filterNotesBySections, shouldIncludeActionItems } from "@/utils/filterNotesBySections";
+import { DEFAULT_NOTES_VIEW_SETTINGS } from "@/types/notesSettings";
 
 interface MeetingAttendee {
   id: string;
@@ -27,6 +29,12 @@ interface EmailMeetingMinutesModalProps {
   meetingId: string;
   meetingTitle: string;
   meetingNotes: string;
+  sectionVisibility?: {
+    executiveSummary: boolean;
+    keyPoints: boolean;
+    actionList: boolean;
+    openItems: boolean;
+  };
 }
 
 export function EmailMeetingMinutesModal({
@@ -34,7 +42,8 @@ export function EmailMeetingMinutesModal({
   onOpenChange,
   meetingId = '',
   meetingTitle = '',
-  meetingNotes = ''
+  meetingNotes = '',
+  sectionVisibility
 }: EmailMeetingMinutesModalProps) {
   const { profile } = useUserProfile();
   const [toEmail, setToEmail] = useState(profile?.email || "");
@@ -282,7 +291,12 @@ export function EmailMeetingMinutesModal({
 
   const handleSendEmail = async () => {
     // Use fresh notes from database, fall back to prop
-    const notesToSend = freshNotes || meetingNotes;
+    const rawNotes = freshNotes || meetingNotes;
+    
+    // Apply section visibility filtering if settings provided
+    const visibleSections = sectionVisibility || DEFAULT_NOTES_VIEW_SETTINGS.visibleSections;
+    const notesToSend = filterNotesBySections(rawNotes, visibleSections);
+    const includeActionItems = shouldIncludeActionItems(visibleSections);
     
     if (!toEmail.trim()) {
       toast.error("Please enter an email address");
@@ -354,8 +368,8 @@ export function EmailMeetingMinutesModal({
           attendees: attendeeNames,
         };
         
-        // Convert action items to expected format
-        const parsedActionItems = actionItems.map((item: any) => {
+        // Convert action items to expected format - only if action items are visible
+        const parsedActionItems = includeActionItems ? actionItems.map((item: any) => {
           const statusLabel: 'Completed' | 'In Progress' | 'Open' =
             item.status === 'Completed' || item.status === 'completed'
               ? 'Completed'
@@ -371,7 +385,7 @@ export function EmailMeetingMinutesModal({
             status: statusLabel,
             isCompleted: statusLabel === 'Completed',
           };
-        });
+        }) : [];
         
         // Generate the professional Word blob
         const blob = await generateProfessionalWordBlob(notesToSend, cleanTitle, parsedDetails, parsedActionItems);
@@ -783,15 +797,15 @@ export function EmailMeetingMinutesModal({
         return html;
       };
 
-      // Convert action items from database to email format (same source as Word doc)
-      const emailActionItems = actionItems.map((item: any) => ({
+      // Convert action items from database to email format - only if action items are visible
+      const emailActionItems = includeActionItems ? actionItems.map((item: any) => ({
         action: item.action_text,
         owner: item.assignee_name || 'TBC',
         deadline: item.due_date || 'TBC',
         priority: item.priority || 'Medium',
         status: item.status === 'completed' ? 'Completed' : item.status === 'in_progress' ? 'In Progress' : 'Open',
         isCompleted: item.status === 'completed',
-      }));
+      })) : [];
 
       // Format meeting notes as styled HTML - use fresh notes, including meeting details box
       const formattedNotes = convertToStyledHTML(notesToSend, {
