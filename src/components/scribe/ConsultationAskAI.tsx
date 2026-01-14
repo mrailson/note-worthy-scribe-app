@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles, Building, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles, Building, ChevronDown, ChevronUp, NotebookTabs } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
@@ -105,6 +106,7 @@ const CollapsibleUserRequest = ({ content }: { content: string }) => {
 };
 
 export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps) => {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -310,6 +312,14 @@ Include:
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate('/scribe?tab=settings', { state: { scrollTo: 'referral-destinations' } })}
+                title="Manage referral destinations"
+              >
+                <NotebookTabs className="h-4 w-4" />
+              </Button>
               {messages.length > 0 && (
                 <>
                   <Button 
