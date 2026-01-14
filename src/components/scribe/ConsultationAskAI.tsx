@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles, Building, ChevronDown, ChevronUp, NotebookTabs, Plus, Maximize2 } from 'lucide-react';
+import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles, Building, ChevronDown, ChevronUp, NotebookTabs, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
@@ -14,11 +14,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { EnhancedBrowserMic, EnhancedBrowserMicRef } from '@/components/ai4gp/EnhancedBrowserMic';
 import { generateWordDocument } from '@/utils/documentGenerators';
+import { generateNHSLetterDocument, shouldUseNHSLetterExport } from '@/utils/nhsLetterExport';
 import { format } from 'date-fns';
 import { ScribeSession, SOAPNote } from '@/types/scribe';
 import { ReferralDestination } from '@/types/referral';
 import { EditableAIResponse } from './EditableAIResponse';
 import { AIChatHistoryPanel } from './AIChatHistoryPanel';
+import { LetterPreviewModal } from './LetterPreviewModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,13 +40,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { ScrollArea as DialogScrollArea } from '@/components/ui/scroll-area';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -398,18 +393,33 @@ Include:
     await sendEmailAutomatically(headerParts + content, `Consultation Q&A - ${format(new Date(session.createdAt), 'dd/MM/yyyy')}`);
   };
 
-  // Handle download single message
+  // Handle download single message with NHS letter format detection
   const handleDownloadMessage = useCallback(async (content: string) => {
-    await generateWordDocument(content, `AI Response - ${format(new Date(), 'dd-MM-yyyy HH:mm')}`);
+    const isLetter = shouldUseNHSLetterExport(content);
+    
+    if (isLetter) {
+      await generateNHSLetterDocument({
+        content,
+        filename: `Letter - ${format(new Date(), 'dd-MM-yyyy HH-mm')}`,
+        practiceName: practiceContext.practiceName,
+        practiceAddress: practiceContext.practiceAddress,
+        practicePhone: practiceContext.practicePhone,
+        practiceEmail: practiceContext.practiceEmail,
+        practiceLogoUrl: practiceContext.logoUrl,
+        clinicianName: doctorName || undefined,
+      });
+    } else {
+      await generateWordDocument(content, `AI Response - ${format(new Date(), 'dd-MM-yyyy HH-mm')}`);
+    }
     toast.success('Downloaded to Word');
-  }, []);
+  }, [practiceContext, doctorName]);
 
   // Handle email single message
   const handleEmailMessage = useCallback(async (content: string) => {
     await sendEmailAutomatically(content, `AI Response - ${format(new Date(), 'dd/MM/yyyy')}`);
   }, [sendEmailAutomatically]);
 
-  // Handle expand single message (show in dialog)
+  // Handle expand single message (show in letter preview modal)
   const [expandedContent, setExpandedContent] = useState<string | null>(null);
   
   const handleExpandMessage = useCallback((content: string) => {
@@ -720,46 +730,22 @@ Include:
         </CardContent>
       </Card>
 
-      {/* Expanded content dialog */}
-      <Dialog open={!!expandedContent} onOpenChange={() => setExpandedContent(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bot className="h-5 w-5" />
-              AI Response
-            </DialogTitle>
-          </DialogHeader>
-          <DialogScrollArea className="max-h-[70vh] pr-4">
-            <div className="prose prose-sm max-w-none dark:prose-invert prose-p:mb-3 prose-p:leading-relaxed">
-              {expandedContent?.split('\n').map((line, i) => (
-                <p key={i} className="mb-2">{line || '\u00A0'}</p>
-              ))}
-            </div>
-          </DialogScrollArea>
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (expandedContent) handleDownloadMessage(expandedContent);
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (expandedContent) handleEmailMessage(expandedContent);
-              }}
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Email
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Letter Preview Modal */}
+      <LetterPreviewModal
+        open={!!expandedContent}
+        onOpenChange={() => setExpandedContent(null)}
+        content={expandedContent || ''}
+        onDownload={handleDownloadMessage}
+        onEmail={handleEmailMessage}
+        practiceContext={{
+          practiceName: practiceContext.practiceName,
+          practiceAddress: practiceContext.practiceAddress,
+          practicePhone: practiceContext.practicePhone,
+          practiceEmail: practiceContext.practiceEmail,
+          logoUrl: practiceContext.logoUrl,
+          userFullName: practiceContext.userFullName,
+        }}
+      />
     </div>
   );
 };
