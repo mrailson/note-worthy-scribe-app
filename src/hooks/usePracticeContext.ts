@@ -57,15 +57,31 @@ export const usePracticeContext = () => {
         console.log('🏥 GP Practice from user_roles:', gpPractice);
 
         // Then look for practice_details that match this organisation
-        // Priority: practice_details with matching practice name (case-insensitive)
+        // Priority: practice_details with matching practice name (flexible matching)
         if (gpPractice?.name) {
-          const { data: matchedDetails } = await supabase
+          // Clean the name for flexible matching (remove common prefixes like "The")
+          const cleanedName = gpPractice.name.replace(/^the\s+/i, '').trim();
+          
+          // Try exact match first, then flexible match
+          let { data: matchedDetails } = await supabase
             .from('practice_details')
             .select('*')
             .ilike('practice_name', gpPractice.name)
             .order('updated_at', { ascending: false })
             .limit(1)
             .maybeSingle();
+          
+          // If no exact match, try flexible match (contains the cleaned name)
+          if (!matchedDetails && cleanedName.length > 5) {
+            const { data: flexibleMatch } = await supabase
+              .from('practice_details')
+              .select('*')
+              .ilike('practice_name', `%${cleanedName}%`)
+              .order('updated_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            matchedDetails = flexibleMatch;
+          }
           
           if (matchedDetails) {
             console.log('✅ Found shared practice_details for organisation:', matchedDetails.practice_name);
