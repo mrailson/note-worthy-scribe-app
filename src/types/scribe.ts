@@ -77,7 +77,7 @@ export interface ScribeSession {
   patientContextConfidence?: number;
 }
 
-export type ConsultationViewMode = 'soap' | 'narrative' | 'summary' | 'patient' | 'referral';
+export type ConsultationViewMode = 'soap' | 'narrativeClinical' | 'narrative' | 'summary' | 'patient' | 'referral';
 
 export type NoteStyle = 'shorthand' | 'standard';
 
