@@ -123,9 +123,34 @@ export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps)
   const letterSignature = practiceContext.letterSignature || null;
 
   const handleCreateReferral = (destination?: ReferralDestination) => {
-    const destinationInfo = destination 
-      ? `\n\nReferral to: ${destination.hospital_name} - ${destination.department}${destination.contact_name ? ` (${destination.contact_name})` : ''}`
-      : '';
+    let destinationInfo = '';
+    
+    if (destination) {
+      const destParts = [
+        `\n\n**Referral Destination Details:**`,
+        `- **Department:** ${destination.department}`,
+        `- **Hospital:** ${destination.hospital_name}`,
+      ];
+      
+      if (destination.address) {
+        destParts.push(`- **Address:** ${destination.address}`);
+      }
+      if (destination.contact_name) {
+        destParts.push(`- **Contact Name:** ${destination.contact_name}`);
+      }
+      if (destination.email) {
+        destParts.push(`- **Email:** ${destination.email}`);
+      }
+      if (destination.phone) {
+        destParts.push(`- **Phone:** ${destination.phone}`);
+      }
+      if (destination.fax) {
+        destParts.push(`- **Fax:** ${destination.fax}`);
+      }
+      
+      destParts.push(`\nUse these EXACT details for the recipient section of the letter. Do NOT use placeholder text like [Hospital Name] or [Hospital Address].`);
+      destinationInfo = destParts.join('\n');
+    }
     
     const signatureInfo = letterSignature 
       ? `\n\nPlease end the letter with this signature:\n${letterSignature}`
