@@ -100,7 +100,7 @@ serve(async (req) => {
       throw new Error('GAMMA_API_KEY not configured');
     }
 
-    const requestBody: GammaGenerationRequest = await req.json();
+    const requestBody = await req.json();
     const { 
       topic, 
       presentationType = 'Professional Presentation',
@@ -108,11 +108,30 @@ serve(async (req) => {
       supportingContent,
       customInstructions,
       audience = 'healthcare professionals',
-      themeId,
-      themeSource,
-      localThemeStyle,
-      branding
+      branding,
+      fontStyle,
     } = requestBody;
+
+    // Accept both naming conventions for theme/template
+    const themeId = requestBody.themeId || requestBody.templateId;
+    
+    // Auto-detect theme source based on themeId format
+    // Gamma themes would typically have specific IDs, local themes are our custom ones
+    const themeSource = requestBody.themeSource || 
+      (themeId?.startsWith('gamma-') ? 'gamma' : 'local');
+    
+    // Accept colour palette in either format (localThemeStyle or colourPalette)
+    let localThemeStyle: LocalThemeStyle | null = requestBody.localThemeStyle || null;
+    if (!localThemeStyle && requestBody.colourPalette) {
+      localThemeStyle = {
+        primaryColor: requestBody.colourPalette.primary,
+        secondaryColor: requestBody.colourPalette.secondary,
+        accentColor: requestBody.colourPalette.accent,
+        themeName: themeId || 'Custom Theme',
+      };
+    }
+    
+    console.log(`[Gamma] Theme settings - ID: ${themeId}, Source: ${themeSource}, LocalStyle: ${!!localThemeStyle}`);
 
     console.log(`[Gamma] Starting generation for topic: "${topic}"`);
     console.log(`[Gamma] Type: ${presentationType}, Slides: ${slideCount}`);
@@ -157,10 +176,22 @@ serve(async (req) => {
       additionalInstructions += ` Follow NHS branding guidelines where appropriate. Use healthcare-appropriate terminology. Ensure accessibility compliance.`;
     }
 
-    // Add local theme styling instructions if using a local theme
-    if (themeSource === 'local' && localThemeStyle) {
+    // Always apply colour scheme if we have local theme style (regardless of themeSource)
+    if (localThemeStyle) {
       additionalInstructions += ` IMPORTANT COLOUR SCHEME: Use these exact colours throughout the presentation - Primary: ${localThemeStyle.primaryColor}, Secondary: ${localThemeStyle.secondaryColor}, Accent: ${localThemeStyle.accentColor}. Theme style: ${localThemeStyle.themeName}. Apply consistent branding with these colours on headings, backgrounds, and key visual elements.`;
-      console.log(`[Gamma] Applying local theme styling: ${localThemeStyle.themeName}`);
+      console.log(`[Gamma] Applying colour scheme: Primary=${localThemeStyle.primaryColor}, Secondary=${localThemeStyle.secondaryColor}, Theme=${localThemeStyle.themeName}`);
+    }
+
+    // Add font style instructions
+    if (fontStyle) {
+      const fontDescriptions: Record<string, string> = {
+        'professional': 'Use professional, clean fonts like Calibri or Arial',
+        'modern': 'Use modern, contemporary fonts with clean lines',
+        'elegant': 'Use elegant, serif fonts for a sophisticated look',
+        'clean': 'Use clean, sans-serif fonts for maximum readability',
+      };
+      additionalInstructions += ` ${fontDescriptions[fontStyle] || 'Use professional fonts'}.`;
+      console.log(`[Gamma] Applying font style: ${fontStyle}`);
     }
 
     // Add branding instructions if provided
