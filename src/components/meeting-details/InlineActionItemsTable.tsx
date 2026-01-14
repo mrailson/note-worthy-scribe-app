@@ -206,6 +206,58 @@ const priorityConfig: Record<string, { color: string }> = {
   Low: { color: 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20' },
 };
 
+const STATUS_OPTIONS = ['Open', 'In Progress', 'Completed'] as const;
+
+// Status dropdown component
+const StatusDropdown = ({
+  status,
+  onStatusChange,
+}: {
+  status: string;
+  onStatusChange: (newStatus: string) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleSelect = (newStatus: string) => {
+    if (newStatus !== status) {
+      onStatusChange(newStatus);
+    }
+    setIsOpen(false);
+  };
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="group flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5"
+          title="Click to change status"
+        >
+          <Badge variant={status === 'Completed' ? 'default' : 'outline'} className="text-xs">
+            {status === 'Completed' ? '✓ ' : '○ '}{status}
+          </Badge>
+          <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-50 shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-36 p-1" align="start">
+        <div className="space-y-0.5">
+          {STATUS_OPTIONS.map((option) => (
+            <button
+              key={option}
+              onClick={() => handleSelect(option)}
+              className={cn(
+                "w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted transition-colors",
+                status === option && "bg-muted font-medium"
+              )}
+            >
+              {option === 'Completed' ? '✓ ' : '○ '}{option}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProps) => {
   const { actionItems, isLoading, updateActionItem } = useActionItems(meetingId);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -303,9 +355,10 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
                 </Badge>
               </TableCell>
               <TableCell>
-                <Badge variant={item.status === 'Completed' ? 'default' : 'outline'} className="text-xs">
-                  {item.status === 'Completed' ? '✓ ' : '○ '}{item.status}
-                </Badge>
+                <StatusDropdown
+                  status={item.status}
+                  onStatusChange={(newStatus) => updateActionItem(item.id, { status: newStatus as 'Open' | 'In Progress' | 'Completed' })}
+                />
               </TableCell>
             </TableRow>
           ))}
