@@ -65,8 +65,8 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="p-4 pb-2 border-b">
+      <DialogContent className="max-w-3xl h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
+        <DialogHeader className="p-4 pb-2 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
@@ -86,9 +86,9 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
         <Tabs 
           value={activeTab} 
           onValueChange={(v) => setActiveTab(v as typeof activeTab)}
-          className="flex-1 flex flex-col min-h-0"
+          className="flex-1 flex flex-col min-h-0 overflow-hidden"
         >
-          <TabsList className="grid grid-cols-5 mx-4 mt-2">
+          <TabsList className="grid grid-cols-5 mx-4 mt-2 flex-shrink-0">
             {tabs.map(({ id, label, icon: Icon }) => (
               <TabsTrigger key={id} value={id} className="gap-1.5 text-xs sm:text-sm">
                 <Icon className="h-4 w-4" />
@@ -97,46 +97,44 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
             ))}
           </TabsList>
 
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="p-4">
-              <TabsContent value="context" className="mt-0">
-                <ContextTab settings={settings} onUpdate={updateSettings} />
-              </TabsContent>
+          <div className="flex-1 overflow-y-auto min-h-0 p-4">
+            <TabsContent value="context" className="mt-0 data-[state=inactive]:hidden">
+              <ContextTab settings={settings} onUpdate={updateSettings} />
+            </TabsContent>
 
-              <TabsContent value="style" className="mt-0">
-                <StyleTab settings={settings} onUpdate={updateSettings} />
-              </TabsContent>
+            <TabsContent value="style" className="mt-0 data-[state=inactive]:hidden">
+              <StyleTab settings={settings} onUpdate={updateSettings} />
+            </TabsContent>
 
-              <TabsContent value="branding" className="mt-0">
-                <BrandingTab settings={settings} onUpdate={updateSettings} />
-              </TabsContent>
+            <TabsContent value="branding" className="mt-0 data-[state=inactive]:hidden">
+              <BrandingTab settings={settings} onUpdate={updateSettings} />
+            </TabsContent>
 
-              <TabsContent value="reference" className="mt-0">
-                <ReferenceTab 
-                  settings={settings} 
-                  onUpdate={updateSettings}
-                  onAddReference={addReferenceImage}
-                  onRemoveReference={removeReferenceImage}
-                  onLoadPrevious={loadPreviousResult}
-                  hasPreviousResult={generationHistory.length > 0}
-                />
-              </TabsContent>
+            <TabsContent value="reference" className="mt-0 data-[state=inactive]:hidden">
+              <ReferenceTab 
+                settings={settings} 
+                onUpdate={updateSettings}
+                onAddReference={addReferenceImage}
+                onRemoveReference={removeReferenceImage}
+                onLoadPrevious={loadPreviousResult}
+                hasPreviousResult={generationHistory.length > 0}
+              />
+            </TabsContent>
 
-              <TabsContent value="generate" className="mt-0">
-                <GenerateTab
-                  isGenerating={isGenerating}
-                  progress={generationProgress}
-                  currentResult={currentResult}
-                  history={generationHistory}
-                  error={error}
-                  onGenerate={handleGenerate}
-                  onCancel={cancelGeneration}
-                  onEditResult={editCurrentResult}
-                  descriptionProvided={!!settings.description.trim()}
-                />
-              </TabsContent>
-            </div>
-          </ScrollArea>
+            <TabsContent value="generate" className="mt-0 data-[state=inactive]:hidden">
+              <GenerateTab
+                isGenerating={isGenerating}
+                progress={generationProgress}
+                currentResult={currentResult}
+                history={generationHistory}
+                error={error}
+                onGenerate={handleGenerate}
+                onCancel={cancelGeneration}
+                onEditResult={editCurrentResult}
+                descriptionProvided={!!settings.description.trim()}
+              />
+            </TabsContent>
+          </div>
         </Tabs>
 
         {/* Quick navigation footer */}
