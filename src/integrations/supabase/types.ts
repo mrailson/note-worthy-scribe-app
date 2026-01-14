@@ -8599,6 +8599,9 @@ export type Database = {
           total_duration_mins: number
           total_words: number
           user_id: string
+          words_24h: number
+          words_30d: number
+          words_7d: number
         }[]
       }
       get_monitoring_dashboard: {
