@@ -77,7 +77,7 @@ export interface ScribeSession {
   patientContextConfidence?: number;
 }
 
-export type ConsultationViewMode = 'soap' | 'narrativeClinical' | 'narrative' | 'summary' | 'patient' | 'referral';
+export type ConsultationViewMode = 'soap' | 'narrativeClinical' | 'summary' | 'patient' | 'referral';
 
 export type NoteStyle = 'shorthand' | 'standard';
 
@@ -211,7 +211,7 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   tickerEnabled: false,
   defaultConsultationType: 'f2f',
   showConsentReminder: true,
-  consultationViewMode: 'soap',
+  consultationViewMode: 'narrativeClinical',
   consultationDetailLevel: 3,
   showNotMentioned: false, // Default to hiding "None mentioned" lines
   showPatientBannerDuringRecording: true, // Default to showing patient banner
