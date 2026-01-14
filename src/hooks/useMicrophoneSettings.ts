@@ -11,12 +11,14 @@ export interface MicrophoneSettingsState {
   selectedDeviceId: string | null;
   isTestingMic: boolean;
   testVolume: number;
+  waveformData: number[];
   testStatus: 'idle' | 'connecting' | 'testing' | 'success' | 'error';
   errorMessage: string | null;
   permissionStatus: 'unknown' | 'granted' | 'denied' | 'prompt';
 }
 
 const STORAGE_KEY = 'gpscribe_microphone_device_id';
+const WAVEFORM_BARS = 32;
 
 export const useMicrophoneSettings = () => {
   const [state, setState] = useState<MicrophoneSettingsState>({
@@ -24,6 +26,7 @@ export const useMicrophoneSettings = () => {
     selectedDeviceId: null,
     isTestingMic: false,
     testVolume: 0,
+    waveformData: new Array(WAVEFORM_BARS).fill(0),
     testStatus: 'idle',
     errorMessage: null,
     permissionStatus: 'unknown',
@@ -34,6 +37,8 @@ export const useMicrophoneSettings = () => {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const testTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTestingRef = useRef<boolean>(false);
+  const maxVolumeRef = useRef<number>(0);
 
   // Load saved device ID from localStorage
   useEffect(() => {
@@ -129,6 +134,8 @@ export const useMicrophoneSettings = () => {
 
   // Clean up test resources
   const cleanupTest = useCallback(() => {
+    isTestingRef.current = false;
+    
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -141,8 +148,8 @@ export const useMicrophoneSettings = () => {
       testStreamRef.current.getTracks().forEach(track => track.stop());
       testStreamRef.current = null;
     }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
     }
     analyserRef.current = null;
@@ -151,60 +158,92 @@ export const useMicrophoneSettings = () => {
   // Start microphone test
   const startMicTest = useCallback(async () => {
     cleanupTest();
+    maxVolumeRef.current = 0;
+    isTestingRef.current = true;
     
     setState(prev => ({
       ...prev,
       isTestingMic: true,
       testStatus: 'connecting',
       testVolume: 0,
+      waveformData: new Array(WAVEFORM_BARS).fill(0),
       errorMessage: null,
     }));
 
     try {
+      // Get selected device ID from current state
+      const deviceId = state.selectedDeviceId;
+      
       const constraints: MediaStreamConstraints = {
-        audio: state.selectedDeviceId
-          ? { deviceId: { exact: state.selectedDeviceId } }
+        audio: deviceId
+          ? { deviceId: { exact: deviceId } }
           : true,
       };
 
+      console.log('Starting mic test with constraints:', constraints);
       testStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log('Got media stream:', testStreamRef.current.getAudioTracks());
       
       // Create audio context and analyser
       audioContextRef.current = new AudioContext();
+      
+      // Resume audio context if suspended (required by some browsers)
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+      
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 256;
+      analyserRef.current.smoothingTimeConstant = 0.3;
       
       const source = audioContextRef.current.createMediaStreamSource(testStreamRef.current);
       source.connect(analyserRef.current);
 
+      console.log('Audio context state:', audioContextRef.current.state);
       setState(prev => ({ ...prev, testStatus: 'testing' }));
 
-      // Monitor volume levels
-      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-      let maxVolumeDetected = 0;
+      // Monitor volume levels using frequency data for waveform
+      const frequencyData = new Uint8Array(analyserRef.current.frequencyBinCount);
+      const timeDomainData = new Uint8Array(analyserRef.current.frequencyBinCount);
 
       const updateVolume = () => {
-        if (!analyserRef.current || !state.isTestingMic) return;
+        if (!isTestingRef.current || !analyserRef.current) {
+          console.log('Stopping volume update - not testing anymore');
+          return;
+        }
 
-        analyserRef.current.getByteTimeDomainData(dataArray);
+        // Get frequency data for waveform visualisation
+        analyserRef.current.getByteFrequencyData(frequencyData);
+        analyserRef.current.getByteTimeDomainData(timeDomainData);
         
-        // Calculate RMS volume
+        // Calculate RMS volume from time domain data
         let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          const normalized = (dataArray[i] - 128) / 128;
+        for (let i = 0; i < timeDomainData.length; i++) {
+          const normalized = (timeDomainData[i] - 128) / 128;
           sum += normalized * normalized;
         }
-        const rms = Math.sqrt(sum / dataArray.length);
-        const volumePercent = Math.min(100, Math.round(rms * 500)); // Scale for visibility
+        const rms = Math.sqrt(sum / timeDomainData.length);
+        const volumePercent = Math.min(100, Math.round(rms * 400)); // Scale for visibility
         
-        maxVolumeDetected = Math.max(maxVolumeDetected, volumePercent);
+        maxVolumeRef.current = Math.max(maxVolumeRef.current, volumePercent);
 
-        setState(prev => {
-          if (prev.testStatus === 'testing') {
-            return { ...prev, testVolume: volumePercent };
+        // Create waveform data from frequency bins
+        const waveform: number[] = [];
+        const binsPerBar = Math.floor(frequencyData.length / WAVEFORM_BARS);
+        for (let i = 0; i < WAVEFORM_BARS; i++) {
+          let barSum = 0;
+          for (let j = 0; j < binsPerBar; j++) {
+            barSum += frequencyData[i * binsPerBar + j];
           }
-          return prev;
-        });
+          const barAvg = barSum / binsPerBar;
+          waveform.push(Math.round((barAvg / 255) * 100));
+        }
+
+        setState(prev => ({
+          ...prev,
+          testVolume: volumePercent,
+          waveformData: waveform,
+        }));
 
         animationFrameRef.current = requestAnimationFrame(updateVolume);
       };
@@ -213,13 +252,16 @@ export const useMicrophoneSettings = () => {
 
       // Auto-stop after 5 seconds
       testTimeoutRef.current = setTimeout(() => {
+        const maxVolume = maxVolumeRef.current;
+        console.log('Test complete, max volume detected:', maxVolume);
         cleanupTest();
         setState(prev => ({
           ...prev,
           isTestingMic: false,
-          testStatus: maxVolumeDetected > 5 ? 'success' : 'error',
+          testStatus: maxVolume > 3 ? 'success' : 'error',
           testVolume: 0,
-          errorMessage: maxVolumeDetected <= 5 
+          waveformData: new Array(WAVEFORM_BARS).fill(0),
+          errorMessage: maxVolume <= 3 
             ? 'No audio detected. Please check your microphone connection and try speaking.'
             : null,
         }));
@@ -255,6 +297,7 @@ export const useMicrophoneSettings = () => {
       isTestingMic: false,
       testStatus: 'idle',
       testVolume: 0,
+      waveformData: new Array(WAVEFORM_BARS).fill(0),
     }));
   }, [cleanupTest]);
 

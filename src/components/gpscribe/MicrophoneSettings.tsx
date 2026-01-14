@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import { Mic, MicOff, RefreshCw, CheckCircle, XCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { useMicrophoneSettings } from "@/hooks/useMicrophoneSettings";
 import { cn } from "@/lib/utils";
@@ -17,6 +16,7 @@ export const MicrophoneSettings = ({ onDeviceChange }: MicrophoneSettingsProps) 
     selectedDeviceId,
     isTestingMic,
     testVolume,
+    waveformData,
     testStatus,
     errorMessage,
     permissionStatus,
@@ -142,7 +142,44 @@ export const MicrophoneSettings = ({ onDeviceChange }: MicrophoneSettingsProps) 
           )}
         </div>
 
-        {/* Volume meter */}
+        {/* Animated Waveform Visualiser */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Audio Waveform</label>
+          <div className="relative h-16 bg-muted/50 rounded-lg overflow-hidden border border-border">
+            <div className="absolute inset-0 flex items-center justify-center gap-[2px] px-2">
+              {waveformData.map((value, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "w-full rounded-full transition-all duration-75",
+                    isTestingMic 
+                      ? value > 50 
+                        ? "bg-green-500" 
+                        : value > 20 
+                          ? "bg-primary" 
+                          : "bg-primary/50"
+                      : "bg-muted-foreground/20"
+                  )}
+                  style={{
+                    height: isTestingMic 
+                      ? `${Math.max(4, value * 0.6)}%` 
+                      : '4%',
+                    minHeight: '2px',
+                  }}
+                />
+              ))}
+            </div>
+            {!isTestingMic && testStatus === 'idle' && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs text-muted-foreground">
+                  Click "Test Microphone" to see waveform
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Volume meter (simple bar) */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Input Level</label>
           <div className="space-y-1">
