@@ -12,6 +12,7 @@ import { QRCodeGeneratorModal } from '@/components/QRCodeGeneratorModal';
 import { AudioUploadModal } from '@/components/AudioUploadModal';
 import { TeamsTranscriptImportModal } from '@/components/meeting/TeamsTranscriptImportModal';
 import { QuickImageModal } from '@/components/QuickImageModal';
+import { ImageStudioModal } from '@/components/ai4gp/ImageStudioModal';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +48,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const [isAudioUploadOpen, setIsAudioUploadOpen] = useState(false);
   const [isTeamsImportOpen, setIsTeamsImportOpen] = useState(false);
   const [isQuickImageOpen, setIsQuickImageOpen] = useState(false);
+  const [isImageStudioOpen, setIsImageStudioOpen] = useState(false);
   
   // Force cache refresh - removed ConsultationCheckerModal completely
   console.log('QuickActionsPanel rendered - cache refresh');
@@ -225,6 +227,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 setIsTeamsImportOpen(true);
               } else if (action.action === 'open-quick-image-modal') {
                 setIsQuickImageOpen(true);
+              } else if (action.action === 'open-image-studio') {
+                setIsImageStudioOpen(true);
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt, action.label));
               }
@@ -396,6 +400,12 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       <QuickImageModal
         open={isQuickImageOpen}
         onOpenChange={setIsQuickImageOpen}
+      />
+      
+      {/* Image Studio Modal */}
+      <ImageStudioModal
+        open={isImageStudioOpen}
+        onOpenChange={setIsImageStudioOpen}
       />
     </>
   );

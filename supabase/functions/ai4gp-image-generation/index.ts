@@ -14,7 +14,7 @@ interface ImageAttachment {
 
 interface ImageGenerationRequest {
   prompt: string;
-  conversationContext: string;
+  conversationContext?: string;
   documentContent?: string;  // Content from attached files for visual generation
   imageAttachments?: ImageAttachment[];  // Image files for reference-based generation
   imageModel?: 'google/gemini-2.5-flash-image' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1';
@@ -39,8 +39,31 @@ interface ImageGenerationRequest {
     };
     includeLogo?: boolean;  // Whether to include practice logo
   };
-  requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'leaflet' | 'newsletter' | 'social' | 'waiting-room' | 'form-header' | 'campaign' | 'general';
+  requestType?: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'leaflet' | 'newsletter' | 'social' | 'waiting-room' | 'form-header' | 'campaign' | 'general';
   includeBranding?: boolean;  // Option to include practice branding
+  
+  // Image Studio specific fields
+  isStudioRequest?: boolean;
+  supportingContent?: string;
+  keyMessages?: string[];
+  targetAudience?: 'patients' | 'staff' | 'public' | 'clinical' | 'elderly' | 'parents' | 'young-adults';
+  purpose?: 'poster' | 'social' | 'leaflet' | 'newsletter' | 'banner' | 'waiting-room' | 'infographic' | 'campaign' | 'form-header' | 'general';
+  stylePreset?: 'nhs-professional' | 'modern-minimal' | 'friendly-welcoming' | 'bold-impactful' | 'clinical-medical' | 'custom';
+  colourPalette?: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+    text: string;
+  };
+  layoutPreference?: 'portrait' | 'landscape' | 'square';
+  logoPlacement?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'reserve-space';
+  referenceImages?: {
+    content: string;
+    type: string;
+    mode: 'style-reference' | 'edit-source' | 'update-previous';
+    instructions?: string;
+  }[];
 }
 
 // Extract URL or text content from QR code request
@@ -261,22 +284,51 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { prompt, conversationContext, documentContent, imageAttachments, practiceContext, requestType, imageModel } = await req.json() as ImageGenerationRequest;
+    const requestBody = await req.json() as ImageGenerationRequest;
+    const { 
+      prompt, 
+      conversationContext, 
+      documentContent, 
+      imageAttachments, 
+      practiceContext, 
+      requestType,
+      imageModel,
+      // Studio-specific fields
+      isStudioRequest,
+      supportingContent,
+      keyMessages,
+      targetAudience,
+      purpose,
+      stylePreset,
+      colourPalette,
+      layoutPreference,
+      logoPlacement,
+      referenceImages
+    } = requestBody;
 
     // Use selected model or default to Nano Banana
     const selectedImageModel = imageModel || 'google/gemini-2.5-flash-image';
 
+    // Determine effective request type (studio uses 'purpose', regular uses 'requestType')
+    const effectiveRequestType = isStudioRequest ? (purpose || 'general') : (requestType || 'general');
+
     console.log('🎨 AI4GP Image Generation request:', { 
       prompt: prompt.substring(0, 100), 
-      requestType,
+      requestType: effectiveRequestType,
+      isStudioRequest: !!isStudioRequest,
       imageModel: selectedImageModel,
       contextLength: conversationContext?.length || 0,
       hasDocumentContent: !!documentContent,
+      hasSupportingContent: !!supportingContent,
       hasImageAttachments: !!(imageAttachments && imageAttachments.length > 0),
+      hasReferenceImages: !!(referenceImages && referenceImages.length > 0),
       imageAttachmentsCount: imageAttachments?.length || 0,
+      referenceImagesCount: referenceImages?.length || 0,
       hasPracticeContext: !!practiceContext,
       practiceName: practiceContext?.practiceName || 'NOT PROVIDED',
-      practicePhone: practiceContext?.practicePhone || 'NOT PROVIDED'
+      practicePhone: practiceContext?.practicePhone || 'NOT PROVIDED',
+      stylePreset: stylePreset || 'default',
+      targetAudience: targetAudience || 'general'
     });
 
     // Handle QR code generation separately using the qrcode library
@@ -338,13 +390,134 @@ serve(async (req) => {
       'waiting-room': 'waiting room display poster with large, clear text readable from distance',
       'form-header': 'professional document header or letterhead with clean, formal design',
       campaign: 'health campaign promotional material with clear call-to-action',
+      banner: 'website or email banner with professional design',
       general: 'image or visual'
     };
 
     // Build image prompt based on request type
     let imagePrompt: string;
     
-    if (requestType === 'logo') {
+    // Handle Image Studio requests with enhanced prompt building
+    if (isStudioRequest) {
+      console.log('🎨 Building Image Studio prompt with custom settings');
+      
+      // Build style instructions from preset
+      const styleInstructions: Record<string, string> = {
+        'nhs-professional': 'NHS professional style: clean, authoritative, trust-inspiring with NHS blues and whites. Clinical yet approachable.',
+        'modern-minimal': 'Modern minimalist style: clean lines, generous white space, subtle colours, contemporary typography.',
+        'friendly-welcoming': 'Friendly and welcoming style: warm colours, approachable imagery, inviting design that puts patients at ease.',
+        'bold-impactful': 'Bold and impactful style: high contrast, eye-catching colours, strong typography for maximum attention.',
+        'clinical-medical': 'Clinical medical style: professional, trustworthy, uses medical imagery appropriately, conveys expertise.',
+        'custom': 'Custom style as specified by the user.'
+      };
+      
+      // Build audience-specific guidance
+      const audienceGuidance: Record<string, string> = {
+        'patients': 'Target audience: General patients. Use clear, simple language. Avoid medical jargon.',
+        'staff': 'Target audience: Healthcare staff. Professional tone, can use clinical terminology.',
+        'public': 'Target audience: General public. Accessible, engaging, community-focused.',
+        'clinical': 'Target audience: Clinical professionals. Technical accuracy important.',
+        'elderly': 'Target audience: Elderly patients (65+). Large text, high contrast, simple layout.',
+        'parents': 'Target audience: Parents and carers. Reassuring, practical, family-focused.',
+        'young-adults': 'Target audience: Young adults (18-35). Modern, engaging, digital-native design.'
+      };
+      
+      // Build layout guidance
+      const layoutGuidance: Record<string, string> = {
+        'portrait': 'Layout: Portrait orientation (3:4 aspect ratio). Suitable for A4 posters, leaflets.',
+        'landscape': 'Layout: Landscape orientation (16:9 aspect ratio). Suitable for banners, screens.',
+        'square': 'Layout: Square format (1:1 aspect ratio). Optimised for social media.'
+      };
+      
+      // Build colour palette instructions
+      let colourInstructions = '';
+      if (colourPalette) {
+        colourInstructions = `
+COLOUR PALETTE (use these exact colours):
+- Primary colour: ${colourPalette.primary}
+- Secondary colour: ${colourPalette.secondary}
+- Accent colour: ${colourPalette.accent}
+- Background: ${colourPalette.background}
+- Text colour: ${colourPalette.text}`;
+      }
+      
+      // Build key messages section
+      let keyMessagesSection = '';
+      if (keyMessages && keyMessages.length > 0) {
+        keyMessagesSection = `
+KEY MESSAGES TO INCLUDE:
+${keyMessages.map((msg, i) => `${i + 1}. ${msg}`).join('\n')}`;
+      }
+      
+      // Build supporting content section
+      let supportingSection = '';
+      if (supportingContent) {
+        supportingSection = `
+SUPPORTING CONTENT TO INCORPORATE:
+${supportingContent.substring(0, 3000)}`;
+      }
+      
+      // Build reference image instructions
+      let referenceSection = '';
+      if (referenceImages && referenceImages.length > 0) {
+        const refMode = referenceImages[0].mode;
+        const refInstructions = referenceImages[0].instructions || '';
+        
+        if (refMode === 'style-reference') {
+          referenceSection = `\nREFERENCE IMAGE: Use the provided image(s) as STYLE REFERENCE. Create a new image inspired by the style, layout, and feel of the reference.`;
+        } else if (refMode === 'edit-source') {
+          referenceSection = `\nEDIT REQUEST: Modify the provided image according to these instructions: ${refInstructions || 'Apply the style and content requirements to edit this image.'}`;
+        } else if (refMode === 'update-previous') {
+          referenceSection = `\nUPDATE REQUEST: This is a previously generated image. Apply these changes: ${refInstructions || 'Refine and improve the image based on the new settings.'}`;
+        }
+        
+        if (refInstructions && refMode !== 'style-reference') {
+          referenceSection += `\nSpecific changes requested: ${refInstructions}`;
+        }
+      }
+      
+      // Build logo placement instructions
+      let logoSection = '';
+      if (practiceContext?.includeLogo && logoPlacement) {
+        const placements: Record<string, string> = {
+          'top-left': 'Reserve space in the TOP LEFT corner for a logo to be added later.',
+          'top-right': 'Reserve space in the TOP RIGHT corner for a logo to be added later.',
+          'bottom-left': 'Reserve space in the BOTTOM LEFT corner for a logo to be added later.',
+          'bottom-right': 'Reserve space in the BOTTOM RIGHT corner for a logo to be added later.',
+          'reserve-space': 'Reserve appropriate space for a logo to be added manually after generation.'
+        };
+        logoSection = `\nLOGO PLACEMENT: ${placements[logoPlacement] || placements['reserve-space']}`;
+      }
+      
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      
+      imagePrompt = `Create a professional ${typeDescriptions[effectiveRequestType] || 'image'}.
+
+USER REQUEST:
+${prompt}
+${keyMessagesSection}
+${supportingSection}
+
+STYLE REQUIREMENTS:
+${styleInstructions[stylePreset || 'nhs-professional']}
+${layoutGuidance[layoutPreference || 'portrait']}
+${audienceGuidance[targetAudience || 'patients']}
+${colourInstructions}
+${brandingSection}
+${logoSection}
+${referenceSection}
+
+DESIGN GUIDELINES:
+- Create a polished, professional image ready for immediate use
+- Text should be clear, readable, and properly spelled
+- Use high contrast for accessibility
+- Ensure visual hierarchy guides the viewer's eye
+- Keep all content professional and workplace-appropriate
+- No explicit, offensive, or inappropriate imagery
+
+${SPELLING_REFERENCE}`;
+
+    } else if (effectiveRequestType === 'logo') {
       // Logo-specific prompt
       imagePrompt = `${prompt}
 
@@ -363,14 +536,14 @@ Logo Design Requirements:
 Content guidelines:
 - Keep all content professional and workplace-appropriate
 - No explicit, offensive, or inappropriate imagery`;
-    } else if (requestType === 'infographic' && documentContent) {
+    } else if (effectiveRequestType === 'infographic' && documentContent) {
       // Infographic with document content - generate visual FROM the document
       // Extract keywords for accurate spelling reference
       const extractedKeywords = extractCleanKeywords(documentContent);
       const keywordReference = extractedKeywords.length > 0 
         ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
         : '';
-      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
       
       imagePrompt = `Create a professional single-page infographic that visualises the following content.
 
@@ -394,9 +567,9 @@ INFOGRAPHIC DESIGN REQUIREMENTS:
 Content guidelines:
 - Keep all content professional and workplace-appropriate
 - No explicit, offensive, or inappropriate imagery`;
-    } else if (requestType === 'infographic') {
+    } else if (effectiveRequestType === 'infographic') {
       // Infographic without document content - use prompt directly
-      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
       
       imagePrompt = `Create a professional single-page infographic.
 
@@ -417,13 +590,13 @@ INFOGRAPHIC DESIGN REQUIREMENTS:
 Content guidelines:
 - Keep all content professional and workplace-appropriate
 - No explicit, offensive, or inappropriate imagery`;
-    } else if (['chart', 'diagram', 'poster'].includes(requestType) && documentContent) {
+    } else if (['chart', 'diagram', 'poster'].includes(effectiveRequestType) && documentContent) {
       // Visual types WITH document content - generate visual FROM the document
       const extractedKeywords = extractCleanKeywords(documentContent);
       const keywordReference = extractedKeywords.length > 0 
         ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
         : '';
-      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
 
       imagePrompt = `Create a professional ${typeDescriptions[requestType]} that visualises the following content.
 
@@ -449,9 +622,9 @@ DESIGN REQUIREMENTS:
 Content guidelines:
 - Keep all content professional and workplace-appropriate
 - No explicit, offensive, or inappropriate imagery`;
-    } else if (requestType === 'leaflet') {
+    } else if (effectiveRequestType === 'leaflet') {
       // Patient information leaflet
-      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
       const extractedKeywords = documentContent ? extractCleanKeywords(documentContent) : [];
       const keywordReference = extractedKeywords.length > 0 
         ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
@@ -480,9 +653,9 @@ Content guidelines:
 - Keep all content professional and patient-appropriate
 - Use plain English, avoid medical jargon
 - Include clear action points or next steps if relevant`;
-    } else if (requestType === 'newsletter') {
+    } else if (effectiveRequestType === 'newsletter') {
       // Practice newsletter header/section
-      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
       
       imagePrompt = `Create a professional practice newsletter header or section.
 
@@ -503,9 +676,9 @@ ${SPELLING_REFERENCE}
 Content guidelines:
 - Keep all content professional and welcoming
 - Suitable for patients and staff alike`;
-    } else if (requestType === 'social') {
+    } else if (effectiveRequestType === 'social') {
       // Social media post image
-      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
       
       imagePrompt = `Create a social media post image.
 
@@ -537,9 +710,9 @@ Content guidelines:
 - Keep all content professional and social media appropriate
 - Suitable for Facebook, Instagram, LinkedIn, or Twitter/X
 - NO placeholder text - use the real practice details provided above`;
-    } else if (requestType === 'waiting-room') {
+    } else if (effectiveRequestType === 'waiting-room') {
       // Waiting room display poster
-      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
       
       imagePrompt = `Create a waiting room display poster.
 
@@ -560,9 +733,9 @@ ${SPELLING_REFERENCE}
 Content guidelines:
 - Keep all content professional and patient-appropriate
 - Clear, actionable information`;
-    } else if (requestType === 'form-header') {
+    } else if (effectiveRequestType === 'form-header') {
       // Document header/letterhead
-      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
       
       imagePrompt = `Create a professional document header or letterhead.
 
@@ -583,9 +756,9 @@ ${SPELLING_REFERENCE}
 Content guidelines:
 - Keep all content professional and formal
 - Suitable for official correspondence and documents`;
-    } else if (requestType === 'campaign') {
+    } else if (effectiveRequestType === 'campaign') {
       // Health campaign promotional material
-      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
       const extractedKeywords = documentContent ? extractCleanKeywords(documentContent) : [];
       const keywordReference = extractedKeywords.length > 0 
         ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
@@ -615,12 +788,12 @@ Content guidelines:
 - Include relevant booking or contact information`;
     } else {
       // Standard prompt for other request types without document content
-      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
       
       imagePrompt = `${prompt}
 ${brandingSection}
 
-Style: ${typeDescriptions[requestType] || 'visual'}
+Style: ${typeDescriptions[effectiveRequestType] || 'visual'}
 
 Requirements:
 - Follow the user's request exactly as specified
@@ -655,16 +828,18 @@ Content guidelines:
       // Landscape (1536x1024): social media, waiting-room displays, calendars - wide content
       // Square (1024x1024): logos, charts, diagrams, infographics, general
       const portraitTypes = ['leaflet', 'poster', 'newsletter', 'form-header'];
-      const landscapeTypes = ['social', 'waiting-room', 'calendar', 'campaign'];
+      const landscapeTypes = ['social', 'waiting-room', 'calendar', 'campaign', 'banner'];
       
       let imageSize = '1024x1024'; // Default square
-      if (portraitTypes.includes(requestType)) {
+      if (layoutPreference === 'portrait' || portraitTypes.includes(effectiveRequestType)) {
         imageSize = '1024x1536'; // Portrait for documents/leaflets
-      } else if (landscapeTypes.includes(requestType)) {
+      } else if (layoutPreference === 'landscape' || landscapeTypes.includes(effectiveRequestType)) {
         imageSize = '1536x1024'; // Landscape for displays/social
+      } else if (layoutPreference === 'square') {
+        imageSize = '1024x1024';
       }
       
-      console.log(`📐 Using size ${imageSize} for request type: ${requestType}`);
+      console.log(`📐 Using size ${imageSize} for request type: ${effectiveRequestType}`);
       
       const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
@@ -719,21 +894,36 @@ Content guidelines:
       
     } else {
       // Use Lovable AI Gateway for Gemini models
-      // Build message content - include image attachments if provided
+      // Build message content - include image attachments and reference images if provided
       const messageContent: any[] = [];
       
-      // Add reference images first if provided
+      // Add reference images from Image Studio first if provided
+      if (referenceImages && referenceImages.length > 0) {
+        console.log(`📎 Including ${referenceImages.length} studio reference image(s)`);
+        for (const refImg of referenceImages) {
+          const imageDataUrl = refImg.content.startsWith('data:') 
+            ? refImg.content 
+            : `data:${refImg.type};base64,${refImg.content}`;
+          
+          messageContent.push({
+            type: 'image_url',
+            image_url: { url: imageDataUrl }
+          });
+        }
+      }
+      
+      // Add regular image attachments if provided
       if (imageAttachments && imageAttachments.length > 0) {
         console.log(`📎 Including ${imageAttachments.length} image attachment(s) for reference`);
         for (const attachment of imageAttachments) {
           // Check if content is already a data URL or needs conversion
-          const imageUrl = attachment.content.startsWith('data:') 
+          const imageDataUrl = attachment.content.startsWith('data:') 
             ? attachment.content 
             : `data:${attachment.type};base64,${attachment.content}`;
           
           messageContent.push({
             type: 'image_url',
-            image_url: { url: imageUrl }
+            image_url: { url: imageDataUrl }
           });
         }
       }

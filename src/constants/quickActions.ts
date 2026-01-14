@@ -1,4 +1,4 @@
-import { BookOpen, Shield, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Download, Search, FileText, Stethoscope, Presentation, Languages, Video, Image } from 'lucide-react';
+import { BookOpen, Shield, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Download, Search, FileText, Stethoscope, Presentation, Languages, Video, Image, Sparkles } from 'lucide-react';
 
 const nhsSafetyPreamble = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.";
 
@@ -273,5 +273,12 @@ export const practiceManagerQuickActions: QuickAction[] = [
     icon: Megaphone,
     prompt: pmSafetyPreamble + '\n\nCreate professional practice communications for patients, staff, or external stakeholders.',
     requiresFile: false
+  },
+  {
+    label: 'Image Studio',
+    icon: Sparkles,
+    prompt: '',
+    requiresFile: false,
+    action: 'open-image-studio'
   },
 ];
