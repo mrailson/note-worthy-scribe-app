@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { PatientContext } from "@/types/scribe";
 import { validateNHSNumber, formatNHSNumber } from "@/utils/nhsNumberValidator";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,10 +14,19 @@ import {
   AlertCircle, 
   X,
   User,
-  RefreshCw
+  RefreshCw,
+  Camera,
+  ChevronDown,
+  ChevronRight,
+  Keyboard
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { showToast } from "@/utils/toastWrapper";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface PatientContextCaptureProps {
   patientContext: PatientContext | null;
@@ -36,6 +47,10 @@ export const PatientContextCapture = ({
   const [error, setError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualNhsNumber, setManualNhsNumber] = useState('');
+  const [manualDob, setManualDob] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pasteTargetRef = useRef<HTMLDivElement>(null);
@@ -192,12 +207,43 @@ export const PatientContextCapture = ({
     onPatientContextChange(null);
     setCaptureState('idle');
     setError(null);
+    setManualName('');
+    setManualNhsNumber('');
+    setManualDob('');
   };
 
   // Retry extraction
   const handleRetry = () => {
     setCaptureState('idle');
     setError(null);
+  };
+
+  // Handle manual entry save
+  const handleManualSave = () => {
+    if (!manualName.trim() && !manualNhsNumber.trim() && !manualDob.trim()) {
+      showToast.error('Please enter at least one detail', { section: 'gpscribe' });
+      return;
+    }
+
+    // Format NHS number if provided
+    let formattedNhs = '';
+    if (manualNhsNumber.trim()) {
+      const cleaned = manualNhsNumber.replace(/\s/g, '');
+      formattedNhs = formatNHSNumber(cleaned);
+    }
+
+    const context: PatientContext = {
+      name: manualName.trim() || 'Patient',
+      nhsNumber: formattedNhs,
+      dateOfBirth: manualDob.trim() || '',
+      extractedAt: new Date().toISOString(),
+      confidence: 1.0, // Manual = full confidence
+    };
+
+    onPatientContextChange(context);
+    setCaptureState('success');
+    setShowManualEntry(false);
+    showToast.success('Patient details saved', { section: 'gpscribe' });
   };
 
   // Render confirmed patient details
@@ -215,9 +261,11 @@ export const PatientContextCapture = ({
                 <span className="font-medium text-foreground">{patientContext.name}</span>
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                <span>
-                  <span className="font-medium">NHS:</span> {patientContext.nhsNumber}
-                </span>
+                {patientContext.nhsNumber && (
+                  <span>
+                    <span className="font-medium">NHS:</span> {patientContext.nhsNumber}
+                  </span>
+                )}
                 {patientContext.dateOfBirth && (
                   <span>
                     <span className="font-medium">DOB:</span> {patientContext.dateOfBirth}
@@ -285,8 +333,8 @@ export const PatientContextCapture = ({
               className="space-y-3"
             >
               <div className="flex items-center gap-2 text-muted-foreground">
-                <ClipboardPaste className="h-4 w-4" />
-                <span className="text-sm font-medium">Patient Details (optional)</span>
+                <Camera className="h-4 w-4" />
+                <span className="text-sm font-medium">Screenshot Patient Details</span>
               </div>
               
               {/* Visible paste area - textarea that accepts right-click paste */}
@@ -307,7 +355,7 @@ export const PatientContextCapture = ({
                   pasteTargetRef.current?.focus();
                 }}
                 className={cn(
-                  "w-full min-h-[60px] p-3 rounded-md border border-dashed text-center text-sm text-muted-foreground",
+                  "w-full min-h-[80px] p-4 rounded-md border border-dashed text-center text-sm text-muted-foreground",
                   "bg-muted/30 cursor-text transition-all outline-none",
                   "hover:border-primary/50 hover:bg-muted/50",
                   "focus:ring-2 focus:ring-primary/50 focus:border-primary focus:bg-primary/5",
@@ -315,19 +363,24 @@ export const PatientContextCapture = ({
                   isFocused && "ring-2 ring-primary/50 border-primary bg-primary/5"
                 )}
                 tabIndex={0}
-                aria-label="Click here then right-click to paste, or use Ctrl+V"
+                aria-label="Take a screenshot and paste here"
                 suppressContentEditableWarning
                 style={{ caretColor: 'transparent' }}
               >
-                <span className="pointer-events-none select-none">
-                  Click here, then paste (Ctrl+V or right-click &gt; Paste)
-                </span>
+                <div className="pointer-events-none select-none space-y-1">
+                  <p className="font-medium">
+                    Take a screenshot of the patient banner in SystmOne
+                  </p>
+                  <p className="text-xs opacity-75">
+                    Press <kbd className="px-1.5 py-0.5 rounded bg-muted border text-xs font-mono">Win</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-muted border text-xs font-mono">Shift</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-muted border text-xs font-mono">S</kbd> then paste here — I'll extract the name and NHS number
+                  </p>
+                </div>
               </div>
               
-              <p className="text-xs text-muted-foreground">
-                Or drag &amp; drop an image, or use the upload button below.
-              </p>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground flex-1">
+                  Or drag &amp; drop an image
+                </p>
                 <Button
                   variant="outline"
                   size="sm"
@@ -335,9 +388,10 @@ export const PatientContextCapture = ({
                   className="gap-2"
                 >
                   <Upload className="h-4 w-4" />
-                  Upload image
+                  Upload
                 </Button>
               </div>
+              
               <input
                 ref={fileInputRef}
                 type="file"
@@ -345,6 +399,79 @@ export const PatientContextCapture = ({
                 onChange={handleFileChange}
                 className="hidden"
               />
+
+              {/* Manual entry collapsible */}
+              <Collapsible open={showManualEntry} onOpenChange={setShowManualEntry}>
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground -ml-2"
+                  >
+                    {showManualEntry ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                    <Keyboard className="h-4 w-4" />
+                    <span>Or enter details manually</span>
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3 space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Use as a memory jogger — all fields are optional
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="manual-name" className="text-xs">
+                        Name
+                      </Label>
+                      <Input
+                        id="manual-name"
+                        placeholder="e.g. James Smith, J.S., or initials"
+                        value={manualName}
+                        onChange={(e) => setManualName(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                      <Label htmlFor="manual-nhs" className="text-xs">
+                        NHS Number
+                      </Label>
+                      <Input
+                        id="manual-nhs"
+                        placeholder="e.g. 123 456 7890 or just last 4 digits"
+                        value={manualNhsNumber}
+                        onChange={(e) => setManualNhsNumber(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                      <Label htmlFor="manual-dob" className="text-xs">
+                        Date of Birth
+                      </Label>
+                      <Input
+                        id="manual-dob"
+                        placeholder="e.g. 1975 or 15/03/1975"
+                        value={manualDob}
+                        onChange={(e) => setManualDob(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    
+                    <Button 
+                      onClick={handleManualSave}
+                      size="sm"
+                      className="w-full"
+                    >
+                      Save Details
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           )}
         </CardContent>
