@@ -3405,6 +3405,10 @@ export type Database = {
           duration_seconds: number | null
           id: string
           patient_consent: boolean | null
+          patient_context_confidence: number | null
+          patient_dob: string | null
+          patient_name: string | null
+          patient_nhs_number: string | null
           status: string
           title: string
           updated_at: string
@@ -3419,6 +3423,10 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           patient_consent?: boolean | null
+          patient_context_confidence?: number | null
+          patient_dob?: string | null
+          patient_name?: string | null
+          patient_nhs_number?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -3433,6 +3441,10 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           patient_consent?: boolean | null
+          patient_context_confidence?: number | null
+          patient_dob?: string | null
+          patient_name?: string | null
+          patient_nhs_number?: string | null
           status?: string
           title?: string
           updated_at?: string

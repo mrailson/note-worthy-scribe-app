@@ -141,6 +141,11 @@ export const useScribeHistory = () => {
             P: soapNotes.P || ''
           } : undefined,
           heidiNote: heidiNotes ? heidiNotes : undefined,
+          // Patient context for memory jogger
+          patientName: item.patient_name || undefined,
+          patientNhsNumber: item.patient_nhs_number || undefined,
+          patientDob: item.patient_dob || undefined,
+          patientContextConfidence: item.patient_context_confidence || undefined,
         };
       });
 
@@ -203,6 +208,11 @@ export const useScribeHistory = () => {
     heidiNote?: any;
     consultationType?: string;
     consultationCategory?: string;
+    // Patient context for memory jogger
+    patientName?: string;
+    patientNhsNumber?: string;
+    patientDob?: string;
+    patientContextConfidence?: number;
   }) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -211,7 +221,7 @@ export const useScribeHistory = () => {
         return null;
       }
 
-      // 1. Insert into gp_consultations
+      // 1. Insert into gp_consultations with patient context
       const { data: consultationData, error: consultationError } = await supabase
         .from('gp_consultations')
         .insert([{
@@ -221,7 +231,12 @@ export const useScribeHistory = () => {
           consultation_category: sessionData.consultationCategory || 'general',
           status: 'completed',
           duration_seconds: (sessionData.duration || 0) * 60,
-          word_count: sessionData.wordCount || 0
+          word_count: sessionData.wordCount || 0,
+          // Patient context
+          patient_name: sessionData.patientName || null,
+          patient_nhs_number: sessionData.patientNhsNumber || null,
+          patient_dob: sessionData.patientDob || null,
+          patient_context_confidence: sessionData.patientContextConfidence || null,
         }])
         .select()
         .single();
@@ -329,6 +344,11 @@ export const useScribeHistory = () => {
         sessionType: 'consultation',
         consultationType: (data.consultation_type || 'f2f') as ConsultationType,
         consultationCategory: (data.consultation_category || 'general') as ConsultationCategory,
+        // Patient context
+        patientName: data.patient_name || undefined,
+        patientNhsNumber: data.patient_nhs_number || undefined,
+        patientDob: data.patient_dob || undefined,
+        patientContextConfidence: data.patient_context_confidence || undefined,
       };
 
       setCurrentSession(session);

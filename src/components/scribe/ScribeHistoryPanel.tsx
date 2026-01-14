@@ -23,6 +23,7 @@ import { SessionHistorySearch, DateFilter, CategoryFilter } from "./SessionHisto
 import { ReferralWorkspace } from "./ReferralWorkspace";
 import { ConsultationAskAI } from "./ConsultationAskAI";
 import { supabase } from "@/integrations/supabase/client";
+import { maskPatientName, maskDateOfBirth, maskPatientData } from "@/utils/patientDataMasking";
 
 interface ScribeHistoryPanelProps {
   sessions: ScribeSession[];
@@ -375,6 +376,29 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
             <div className={`flex ${isMobile ? 'flex-col gap-2' : 'items-start justify-between'}`}>
               <div>
                 <CardTitle className={isMobile ? "text-base" : "text-lg"}>{currentSession.title}</CardTitle>
+                {/* Patient Context Banner - Full Display in Detail View */}
+                {currentSession.patientName && (
+                  <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-md bg-primary/5 border border-primary/20">
+                    <User className="h-4 w-4 text-primary" />
+                    <span className="font-medium text-primary">{currentSession.patientName}</span>
+                    {currentSession.patientNhsNumber && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-sm text-muted-foreground">
+                          NHS: {currentSession.patientNhsNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')}
+                        </span>
+                      </>
+                    )}
+                    {currentSession.patientDob && (
+                      <>
+                        <span className="text-muted-foreground">•</span>
+                        <span className="text-sm text-muted-foreground">
+                          DOB: {currentSession.patientDob}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
                 <p className="text-sm text-muted-foreground mt-1">
                   {format(new Date(currentSession.createdAt), isMobile ? 'd MMM yyyy, HH:mm' : 'EEEE, d MMMM yyyy \'at\' HH:mm')}
                 </p>
@@ -931,24 +955,43 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                           />
                         </div>
                       )}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <CategoryIcon className="h-4 w-4 text-muted-foreground" />
-                          <CardTitle className="text-base line-clamp-1">
-                            {session.title}
-                          </CardTitle>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <CategoryIcon className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-base line-clamp-1">
+                              {session.title}
+                            </CardTitle>
+                          </div>
+                          {/* Patient Memory Jogger - Masked Display */}
+                          {session.patientName && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <User className="h-3 w-3 text-primary/70" />
+                              <span className="text-sm font-medium text-primary/80">
+                                {maskPatientName(session.patientName)}
+                              </span>
+                              {session.patientDob && (
+                                <Badge variant="outline" className="text-xs py-0 h-5">
+                                  {maskDateOfBirth(session.patientDob)}
+                                </Badge>
+                              )}
+                              {session.patientNhsNumber && (
+                                <span className="text-xs text-muted-foreground">
+                                  NHS: ***{session.patientNhsNumber.slice(-3)}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {session.duration ? `${Math.floor(session.duration)}m` : '0m'}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <FileText className="h-3 w-3" />
+                              {session.wordCount || 0} words
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {session.duration ? `${Math.floor(session.duration)}m` : '0m'}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <FileText className="h-3 w-3" />
-                            {session.wordCount || 0} words
-                          </span>
-                        </div>
-                      </div>
                       <div className="flex items-center gap-2">
                         <Badge variant={session.status === 'completed' ? 'secondary' : 'outline'}>
                           {session.status}

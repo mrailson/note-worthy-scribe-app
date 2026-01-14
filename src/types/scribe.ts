@@ -70,6 +70,11 @@ export interface ScribeSession {
   sessionType?: string;
   consultationType?: ConsultationType;
   consultationCategory?: ConsultationCategory;
+  // Patient context for memory jogger (masked in list views)
+  patientName?: string;
+  patientNhsNumber?: string;
+  patientDob?: string;
+  patientContextConfidence?: number;
 }
 
 export type ConsultationViewMode = 'soap' | 'narrative' | 'summary' | 'patient' | 'referral';
