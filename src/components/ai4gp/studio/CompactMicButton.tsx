@@ -131,7 +131,7 @@ export const CompactMicButton: React.FC<CompactMicButtonProps> = ({
       className={cn(
         "shrink-0 transition-all duration-200",
         isRecording 
-          ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
+          ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse-gentle' 
           : status === 'connecting...' 
             ? 'bg-amber-500 hover:bg-amber-600 text-white' 
             : status === 'error'
