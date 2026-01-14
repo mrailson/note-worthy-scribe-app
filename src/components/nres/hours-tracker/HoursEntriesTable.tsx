@@ -10,7 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Trash2, Clock, Loader2, ArrowUp, ArrowDown, ArrowUpDown, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { NRESHoursEntry } from '@/types/nresHoursTypes';
-import { ACTIVITY_TYPES } from '@/types/nresHoursTypes';
+import { ACTIVITY_TYPES, CLAIMANT_TYPES, getClaimantRate } from '@/types/nresHoursTypes';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +38,7 @@ interface HoursEntriesTableProps {
   onUpdate: (id: string, updates: Partial<NRESHoursEntry>) => Promise<NRESHoursEntry | null>;
 }
 
-type SortField = 'date' | 'duration' | 'amount';
+type SortField = 'date' | 'duration' | 'amount' | 'claimant';
 type SortDirection = 'asc' | 'desc' | null;
 
 export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUpdate }: HoursEntriesTableProps) {
@@ -54,6 +54,8 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
   const [editEndTime, setEditEndTime] = useState('');
   const [editActivityType, setEditActivityType] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editClaimantType, setEditClaimantType] = useState<string>('personal');
+  const [editClaimantName, setEditClaimantName] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleSort = (field: SortField) => {
@@ -72,6 +74,11 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
     }
   };
 
+  const getEntryRate = (entry: NRESHoursEntry): number | null => {
+    const claimantRate = getClaimantRate(entry.claimant_type);
+    return claimantRate ?? hourlyRate;
+  };
+
   const sortedEntries = useMemo(() => {
     if (!sortField || !sortDirection) {
       return entries;
@@ -88,9 +95,16 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
           comparison = Number(a.duration_hours) - Number(b.duration_hours);
           break;
         case 'amount':
-          const amountA = hourlyRate ? Number(a.duration_hours) * hourlyRate : 0;
-          const amountB = hourlyRate ? Number(b.duration_hours) * hourlyRate : 0;
+          const rateA = getEntryRate(a) ?? 0;
+          const rateB = getEntryRate(b) ?? 0;
+          const amountA = Number(a.duration_hours) * rateA;
+          const amountB = Number(b.duration_hours) * rateB;
           comparison = amountA - amountB;
+          break;
+        case 'claimant':
+          const nameA = a.claimant_name || '';
+          const nameB = b.claimant_name || '';
+          comparison = nameA.localeCompare(nameB);
           break;
       }
 
@@ -111,6 +125,8 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
     setEditEndTime(entry.end_time.substring(0, 5));
     setEditActivityType(entry.activity_type);
     setEditDescription(entry.description || '');
+    setEditClaimantType(entry.claimant_type || 'personal');
+    setEditClaimantName(entry.claimant_name || '');
   };
 
   const closeEditDialog = () => {
@@ -120,6 +136,8 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
     setEditEndTime('');
     setEditActivityType('');
     setEditDescription('');
+    setEditClaimantType('personal');
+    setEditClaimantName('');
   };
 
   const calculateDuration = (start: string, end: string): number => {
@@ -136,6 +154,8 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
     const duration = calculateDuration(editStartTime, editEndTime);
     if (duration <= 0) return;
 
+    const claimantType = editClaimantType === 'personal' ? null : editClaimantType as 'gp' | 'pm';
+
     setSaving(true);
     await onUpdate(editingEntry.id, {
       work_date: editWorkDate,
@@ -143,7 +163,9 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
       end_time: editEndTime,
       duration_hours: duration,
       activity_type: editActivityType,
-      description: editDescription || null
+      description: editDescription || null,
+      claimant_type: claimantType,
+      claimant_name: editClaimantName || null
     });
     setSaving(false);
     closeEditDialog();
@@ -153,6 +175,18 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
 
   const formatTime = (time: string) => {
     return time.substring(0, 5);
+  };
+
+  const getClaimantLabel = (entry: NRESHoursEntry): string => {
+    if (entry.claimant_type === 'gp') return 'GP';
+    if (entry.claimant_type === 'pm') return 'PM';
+    return 'Personal';
+  };
+
+  const getClaimantBadgeVariant = (entry: NRESHoursEntry): 'default' | 'secondary' | 'outline' => {
+    if (entry.claimant_type === 'gp') return 'default';
+    if (entry.claimant_type === 'pm') return 'secondary';
+    return 'outline';
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -218,6 +252,17 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
                           <SortIcon field="date" />
                         </Button>
                       </TableHead>
+                      <TableHead>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 -ml-2 font-medium hover:bg-transparent"
+                          onClick={() => handleSort('claimant')}
+                        >
+                          Claimant
+                          <SortIcon field="claimant" />
+                        </Button>
+                      </TableHead>
                       <TableHead>Time</TableHead>
                       <TableHead>
                         <Button
@@ -232,89 +277,100 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
                       </TableHead>
                       <TableHead>Activity</TableHead>
                       <TableHead>Notes</TableHead>
-                      {hourlyRate && (
-                        <TableHead className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 -mr-2 font-medium hover:bg-transparent"
-                            onClick={() => handleSort('amount')}
-                          >
-                            Amount
-                            <SortIcon field="amount" />
-                          </Button>
-                        </TableHead>
-                      )}
+                      <TableHead className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 -mr-2 font-medium hover:bg-transparent"
+                          onClick={() => handleSort('amount')}
+                        >
+                          Amount
+                          <SortIcon field="amount" />
+                        </Button>
+                      </TableHead>
                       <TableHead className="w-[80px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sortedEntries.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell className="font-medium">
-                          {format(new Date(entry.work_date), 'dd/MM/yyyy')}
-                        </TableCell>
-                        <TableCell>
-                          {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {Number(entry.duration_hours).toFixed(2)} hrs
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{entry.activity_type}</TableCell>
-                        <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                          {entry.description || '-'}
-                        </TableCell>
-                        {hourlyRate && (
-                          <TableCell className="text-right font-medium">
-                            £{(Number(entry.duration_hours) * hourlyRate).toFixed(2)}
+                    {sortedEntries.map((entry) => {
+                      const rate = getEntryRate(entry);
+                      const amount = rate ? Number(entry.duration_hours) * rate : null;
+                      
+                      return (
+                        <TableRow key={entry.id}>
+                          <TableCell className="font-medium">
+                            {format(new Date(entry.work_date), 'dd/MM/yyyy')}
                           </TableCell>
-                        )}
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => openEditDialog(entry)}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive"
-                                  disabled={deletingId === entry.id}
-                                >
-                                  {deletingId === entry.id ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="w-4 h-4" />
-                                  )}
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Entry</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this hours entry? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(entry.id)}>
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              <Badge variant={getClaimantBadgeVariant(entry)} className="w-fit text-xs">
+                                {getClaimantLabel(entry)}
+                              </Badge>
+                              {entry.claimant_name && (
+                                <span className="text-xs text-muted-foreground">{entry.claimant_name}</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {Number(entry.duration_hours).toFixed(2)} hrs
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{entry.activity_type}</TableCell>
+                          <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                            {entry.description || '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            {amount ? `£${amount.toFixed(2)}` : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => openEditDialog(entry)}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive"
+                                    disabled={deletingId === entry.id}
+                                  >
+                                    {deletingId === entry.id ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Entry</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this hours entry? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(entry.id)}>
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -330,6 +386,35 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
             <DialogTitle>Edit Hours Entry</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Claimant Section */}
+            <div className="grid grid-cols-2 gap-4 p-3 bg-muted/50 rounded-lg border">
+              <div>
+                <Label htmlFor="edit-claimant-type" className="text-xs font-medium">Claim Type</Label>
+                <Select value={editClaimantType} onValueChange={setEditClaimantType}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select claim type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLAIMANT_TYPES.map(type => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-claimant-name" className="text-xs font-medium">Claimant Name</Label>
+                <Input
+                  id="edit-claimant-name"
+                  placeholder="Enter name..."
+                  value={editClaimantName}
+                  onChange={(e) => setEditClaimantName(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-date" className="text-xs">Date</Label>

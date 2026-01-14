@@ -16,8 +16,24 @@ export interface NRESHoursEntry {
   duration_hours: number;
   activity_type: string;
   description: string | null;
+  claimant_type: 'gp' | 'pm' | null;
+  claimant_name: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export const CLAIMANT_TYPES = [
+  { value: 'personal', label: 'Personal Rate', rate: null },
+  { value: 'gp', label: 'GP (£100/hr)', rate: 100 },
+  { value: 'pm', label: 'Practice Manager (£50/hr)', rate: 50 }
+] as const;
+
+export type ClaimantType = 'gp' | 'pm' | null;
+
+export function getClaimantRate(claimantType: ClaimantType): number | null {
+  if (claimantType === 'gp') return 100;
+  if (claimantType === 'pm') return 50;
+  return null;
 }
 
 export interface NRESExpense {
