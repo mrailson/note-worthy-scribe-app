@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles, Building, ChevronDown } from 'lucide-react';
+import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles, Building, ChevronDown, ChevronUp } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useReferralDestinations } from '@/hooks/useReferralDestinations';
@@ -61,6 +62,37 @@ const QUICK_PROMPTS = [
     prompt: 'Generate appropriate supporting text for a fit note (Med3) based on this consultation, including functional effects and work capability.'
   }
 ];
+
+// Collapsible message component for long AI responses
+const CollapsibleMessage = ({ content }: { content: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div className="space-y-2">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="w-full justify-between h-auto py-2 text-left">
+            <span className="text-sm font-medium">
+              {isOpen ? 'Hide response' : 'View AI response'}
+            </span>
+            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div 
+            className="text-sm prose prose-sm max-w-none dark:prose-invert 
+                       prose-p:mb-3 prose-p:leading-relaxed
+                       prose-ul:my-2 prose-li:my-1
+                       prose-headings:mb-3 prose-headings:mt-4"
+            dangerouslySetInnerHTML={{ 
+              __html: renderNHSMarkdown(content, { enableNHSStyling: true }) 
+            }}
+          />
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+};
 
 export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -388,6 +420,8 @@ Include:
                       >
                         {msg.role === 'user' ? (
                           <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        ) : msg.content.length > 500 ? (
+                          <CollapsibleMessage content={msg.content} />
                         ) : (
                           <div 
                             className="text-sm prose prose-sm max-w-none dark:prose-invert 
