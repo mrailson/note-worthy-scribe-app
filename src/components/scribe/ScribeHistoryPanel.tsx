@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle, CONSULTATION_CATEGORY_LABELS, ConsultationCategory } from "@/types/scribe";
-import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft, Send, Sparkles } from "lucide-react";
+import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft, Send, Sparkles, Pencil } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,8 @@ import { ReferralWorkspace } from "./ReferralWorkspace";
 import { ConsultationAskAI } from "./ConsultationAskAI";
 import { supabase } from "@/integrations/supabase/client";
 import { maskPatientName, maskDateOfBirth, maskPatientData } from "@/utils/patientDataMasking";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { QuickPatientEntryForm } from "./QuickPatientEntryForm";
 
 interface ScribeHistoryPanelProps {
   sessions: ScribeSession[];
@@ -377,7 +379,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
               <div>
                 <CardTitle className={isMobile ? "text-base" : "text-lg"}>{currentSession.title}</CardTitle>
                 {/* Patient Context Banner - Full Display in Detail View */}
-                {currentSession.patientName && (
+                {currentSession.patientName ? (
                   <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-md bg-primary/5 border border-primary/20">
                     <User className="h-4 w-4 text-primary" />
                     <span className="font-medium text-primary">{currentSession.patientName}</span>
@@ -397,7 +399,41 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         </span>
                       </>
                     )}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="sm" className="ml-auto h-6 px-2">
+                          <Pencil className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72" align="end">
+                        <QuickPatientEntryForm
+                          sessionId={currentSession.id}
+                          existingName={currentSession.patientName}
+                          existingNhsNumber={currentSession.patientNhsNumber || ""}
+                          existingDob={currentSession.patientDob || ""}
+                          onSave={() => onRefresh()}
+                          onCancel={() => {}}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
+                ) : (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="mt-2 h-7 text-xs">
+                        <User className="h-3.5 w-3.5 mr-1.5" />
+                        Add Patient Identifier
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72" align="start">
+                      <QuickPatientEntryForm
+                        sessionId={currentSession.id}
+                        onSave={() => onRefresh()}
+                        onCancel={() => {}}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 )}
                 <p className="text-sm text-muted-foreground mt-1">
                   {format(new Date(currentSession.createdAt), isMobile ? 'd MMM yyyy, HH:mm' : 'EEEE, d MMMM yyyy \'at\' HH:mm')}
@@ -979,35 +1015,50 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                                   NHS: ***{session.patientNhsNumber.slice(-3)}
                                 </span>
                               )}
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 ml-1 opacity-60 hover:opacity-100"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-72" align="start" onClick={(e) => e.stopPropagation()}>
+                                  <QuickPatientEntryForm
+                                    sessionId={session.id}
+                                    existingName={session.patientName}
+                                    existingNhsNumber={session.patientNhsNumber || ""}
+                                    existingDob={session.patientDob || ""}
+                                    onSave={() => onRefresh()}
+                                    onCancel={() => {}}
+                                  />
+                                </PopoverContent>
+                              </Popover>
                             </div>
                           ) : (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 text-xs text-muted-foreground hover:text-primary mt-1 px-1"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                // Add sample patient data for testing
-                                const { error } = await supabase
-                                  .from('gp_consultations')
-                                  .update({
-                                    patient_name: 'James Smith',
-                                    patient_nhs_number: '1234567384',
-                                    patient_dob: '1975-03-15',
-                                    patient_context_confidence: 0.85
-                                  })
-                                  .eq('id', session.id);
-                                if (!error) {
-                                  toast.success('Sample patient data added');
-                                  onRefresh();
-                                } else {
-                                  toast.error('Failed to add patient data');
-                                }
-                              }}
-                            >
-                              <User className="h-3 w-3 mr-1" />
-                              + Add patient context (demo)
-                            </Button>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-xs text-muted-foreground hover:text-primary mt-1 px-1"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <User className="h-3 w-3 mr-1" />
+                                  + Add patient
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-72" align="start" onClick={(e) => e.stopPropagation()}>
+                                <QuickPatientEntryForm
+                                  sessionId={session.id}
+                                  onSave={() => onRefresh()}
+                                  onCancel={() => {}}
+                                />
+                              </PopoverContent>
+                            </Popover>
                           )}
                           <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
