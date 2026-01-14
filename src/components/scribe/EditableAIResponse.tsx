@@ -19,7 +19,10 @@ import {
   Save,
   Edit3,
   X,
-  ImagePlus
+  ImagePlus,
+  Download,
+  Mail,
+  Maximize2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -31,6 +34,9 @@ interface EditableAIResponseProps {
   content: string;
   editedContent?: string;
   onContentChange: (content: string) => void;
+  onDownload?: (content: string) => void;
+  onEmail?: (content: string) => void;
+  onExpand?: (content: string) => void;
   isSaving?: boolean;
   className?: string;
   messageId: string;
@@ -152,6 +158,9 @@ export function EditableAIResponse({
   content,
   editedContent,
   onContentChange,
+  onDownload,
+  onEmail,
+  onExpand,
   isSaving = false,
   className,
   messageId
@@ -411,39 +420,88 @@ export function EditableAIResponse({
         <EditorContent editor={editor} />
       </div>
 
-      {/* Action buttons - visible on hover when not editing */}
+      {/* Bottom action bar - always visible */}
       {!isEditing && (
-        <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsEditing(true);
-            }}
-            title="Edit"
-          >
-            <Edit3 className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCopy();
-            }}
-            title="Copy"
-          >
-            {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-          </Button>
+        <div className="flex items-center justify-between px-4 py-2 border-t border-border/30 bg-muted/20 rounded-b-lg">
+          <div className="flex items-center gap-1">
+            {onDownload && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownload(displayContent);
+                }}
+                title="Download as Word"
+              >
+                <Download className="h-3.5 w-3.5 mr-1" />
+                Download
+              </Button>
+            )}
+            {onEmail && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEmail(displayContent);
+                }}
+                title="Email to me"
+              >
+                <Mail className="h-3.5 w-3.5 mr-1" />
+                Email
+              </Button>
+            )}
+            {onExpand && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExpand(displayContent);
+                }}
+                title="View full screen"
+              >
+                <Maximize2 className="h-3.5 w-3.5 mr-1" />
+                Expand
+              </Button>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCopy();
+              }}
+              title="Copy"
+            >
+              {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditing(true);
+              }}
+              title="Edit"
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       )}
 
       {/* Saving indicator */}
       {(isSaving || showSaved) && (
-        <div className="absolute bottom-2 right-2 flex items-center gap-1.5 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+        <div className="absolute bottom-10 right-2 flex items-center gap-1.5 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
           {isSaving ? (
             <>
               <Save className="h-3 w-3 animate-pulse" />
