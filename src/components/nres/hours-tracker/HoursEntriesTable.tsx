@@ -11,6 +11,7 @@ import { Trash2, Clock, Loader2, ArrowUp, ArrowDown, ArrowUpDown, Pencil, Chevro
 import { format, parseISO } from 'date-fns';
 import type { NRESHoursEntry } from '@/types/nresHoursTypes';
 import { ACTIVITY_TYPES, CLAIMANT_TYPES, getClaimantRate } from '@/types/nresHoursTypes';
+import { NRESClaimant } from '@/hooks/useNRESClaimants';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,7 @@ interface HoursEntriesTableProps {
   entries: NRESHoursEntry[];
   hourlyRate: number | null;
   loading: boolean;
+  claimants?: NRESClaimant[];
   onDelete: (id: string) => Promise<void>;
   onUpdate: (id: string, updates: Partial<NRESHoursEntry>) => Promise<NRESHoursEntry | null>;
 }
@@ -41,7 +43,7 @@ interface HoursEntriesTableProps {
 type SortField = 'date' | 'duration' | 'amount' | 'claimant';
 type SortDirection = 'asc' | 'desc' | null;
 
-export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUpdate }: HoursEntriesTableProps) {
+export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = [], onDelete, onUpdate }: HoursEntriesTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);

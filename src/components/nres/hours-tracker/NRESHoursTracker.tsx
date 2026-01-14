@@ -9,13 +9,17 @@ import { ExpensesTable } from './ExpensesTable';
 import { TrackerSummary } from './TrackerSummary';
 import { TrackerReportModal } from './TrackerReportModal';
 import { AdminClaimsReport } from './AdminClaimsReport';
+import { ClaimantsManager } from './ClaimantsManager';
 import { useNRESUserSettings } from '@/hooks/useNRESUserSettings';
 import { useNRESHoursTracker } from '@/hooks/useNRESHoursTracker';
 import { useNRESExpenses } from '@/hooks/useNRESExpenses';
-import { Loader2, ChevronDown, ChevronRight, Receipt } from 'lucide-react';
+import { useNRESClaimants } from '@/hooks/useNRESClaimants';
+import { Loader2, ChevronDown, ChevronRight, Receipt, Users } from 'lucide-react';
 
 export function NRESHoursTracker() {
   const [expensesOpen, setExpensesOpen] = useState(false);
+  const [claimantsOpen, setClaimantsOpen] = useState(false);
+  
   const { 
     hourlyRate, 
     hasRateSet, 
@@ -42,6 +46,11 @@ export function NRESHoursTracker() {
     deleteExpense,
     totalExpenses
   } = useNRESExpenses();
+
+  const {
+    activeClaimants,
+    loading: loadingClaimants
+  } = useNRESClaimants();
 
   if (loadingSettings) {
     return (
@@ -77,17 +86,34 @@ export function NRESHoursTracker() {
 
       <Separator />
 
+      {/* Claimants Management Section */}
+      <Collapsible open={claimantsOpen} onOpenChange={setClaimantsOpen}>
+        <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+          {claimantsOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+          <Users className="w-5 h-5 text-blue-600" />
+          <h3 className="text-lg font-semibold">Manage Claimants</h3>
+          <span className="text-sm text-muted-foreground">({activeClaimants.length} active)</span>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <ClaimantsManager />
+        </CollapsibleContent>
+      </Collapsible>
+
+      <Separator />
+
       {/* Time Tracking Section */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Time Tracking</h3>
         <HoursEntryForm 
           saving={savingEntry}
+          claimants={activeClaimants}
           onSubmit={addEntry}
         />
         <HoursEntriesTable
           entries={entries}
           hourlyRate={hourlyRate}
           loading={loadingEntries}
+          claimants={activeClaimants}
           onDelete={deleteEntry}
           onUpdate={updateEntry}
         />
