@@ -2134,72 +2134,50 @@ export const MeetingHistoryList = ({
     return `${getMeetingTypeLabel(meeting.meeting_type)} scheduled for ${format(new Date(meeting.start_time), 'MMM d, yyyy')}${meeting.duration_minutes ? ` (${formatDuration(meeting.duration_minutes)})` : ''}`;
   };
 
-  if (loading) {
-    return (
-      <>
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-4 bg-muted rounded w-3/4"></div>
-                <div className="h-3 bg-muted rounded w-1/2"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="h-3 bg-muted rounded"></div>
-                  <div className="h-3 bg-muted rounded w-2/3"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Safe Mode Notes Modal - single instance shared across all states */}
-        <SafeModeNotesModal
-          isOpen={safeModeModalOpen}
-          onClose={() => {
-            safeModeModalOpenRef.current = false;
-            setSafeModeModalOpen(false);
-          }}
-          meeting={safeModeSelectedMeeting}
-          notes={safeModeNotes}
-        />
-      </>
-    );
-  }
-
-  if (localMeetings.length === 0) {
-    return (
-      <>
-        <Card className="text-center py-12">
+  // Render loading skeleton
+  const renderLoadingSkeleton = () => (
+    <div className="space-y-4">
+      {[...Array(3)].map((_, i) => (
+        <Card key={i} className="animate-pulse">
+          <CardHeader>
+            <div className="h-4 bg-muted rounded w-3/4"></div>
+            <div className="h-3 bg-muted rounded w-1/2"></div>
+          </CardHeader>
           <CardContent>
-            <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No meetings found</h3>
-            <p className="text-muted-foreground mb-4">
-              Start by creating your first meeting or adjust your search criteria.
-            </p>
-            <Button onClick={() => navigate('/')}>Create First Meeting</Button>
+            <div className="space-y-2">
+              <div className="h-3 bg-muted rounded"></div>
+              <div className="h-3 bg-muted rounded w-2/3"></div>
+            </div>
           </CardContent>
         </Card>
+      ))}
+    </div>
+  );
 
-        {/* Safe Mode Notes Modal - single instance shared across all states */}
-        <SafeModeNotesModal
-          isOpen={safeModeModalOpen}
-          onClose={() => {
-            safeModeModalOpenRef.current = false;
-            setSafeModeModalOpen(false);
-          }}
-          meeting={safeModeSelectedMeeting}
-          notes={safeModeNotes}
-        />
-      </>
-    );
-  }
-
+  // Render empty state
+  const renderEmptyState = () => (
+    <Card className="text-center py-12">
+      <CardContent>
+        <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+        <h3 className="text-lg font-semibold mb-2">No meetings found</h3>
+        <p className="text-muted-foreground mb-4">
+          Start by creating your first meeting or adjust your search criteria.
+        </p>
+        <Button onClick={() => navigate('/')}>Create First Meeting</Button>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <TooltipProvider>
       <div className="space-y-4">
+      {/* Conditional content based on loading/empty state */}
+      {loading ? (
+        renderLoadingSkeleton()
+      ) : localMeetings.length === 0 ? (
+        renderEmptyState()
+      ) : (
+        <>
       {localMeetings.map((meeting) => (
         <Card key={meeting.id} className="hover:shadow-medium transition-shadow">
           <CardHeader className="pb-3">
@@ -3112,6 +3090,8 @@ export const MeetingHistoryList = ({
           </CardContent>
         </Card>
       ))}
+        </>
+      )}
 
       {/* Upload Dialog */}
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
