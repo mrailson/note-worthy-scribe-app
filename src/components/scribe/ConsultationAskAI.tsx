@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles } from 'lucide-react';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
+import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -60,61 +61,15 @@ export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps)
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [practiceName, setPracticeName] = useState<string | null>(null);
-  const [doctorName, setDoctorName] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const micRef = useRef<EnhancedBrowserMicRef>(null);
   const { sendEmailAutomatically, isSending: isEmailSending } = useAutoEmail();
+  const { practiceContext } = usePracticeContext();
 
-  // Fetch practice and doctor details on mount
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        // Fetch practice details
-        const { data: practiceData } = await supabase
-          .from('practice_details')
-          .select('practice_name')
-          .eq('user_id', user.id)
-          .eq('is_default', true)
-          .maybeSingle();
-
-        if (practiceData?.practice_name) {
-          setPracticeName(practiceData.practice_name);
-        } else {
-          // Fallback to most recent
-          const { data: practices } = await supabase
-            .from('practice_details')
-            .select('practice_name')
-            .eq('user_id', user.id)
-            .order('updated_at', { ascending: false })
-            .limit(1);
-          
-          if (practices && practices.length > 0) {
-            setPracticeName(practices[0].practice_name);
-          }
-        }
-
-        // Fetch doctor name from profiles
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        
-        if (profile?.full_name) {
-          setDoctorName(profile.full_name);
-        }
-      } catch (error) {
-        console.error('Error fetching user details:', error);
-      }
-    };
-
-    fetchUserDetails();
-  }, []);
+  // Get practice name and doctor name from practice context
+  const practiceName = practiceContext.practiceName || null;
+  const doctorName = practiceContext.userFullName || null;
 
   useEffect(() => {
     if (scrollRef.current) {
