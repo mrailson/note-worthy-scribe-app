@@ -39,8 +39,10 @@ import {
   Search,
   FileType,
   Type,
-  Hash
+  Hash,
+  ImageIcon
 } from 'lucide-react';
+import { ContentInfographicModal } from '@/components/ContentInfographicModal';
 import PolicyBadge from '@/components/PolicyBadge';
 import PolicyBanner from '@/components/PolicyBanner';
 import { toast } from 'sonner';
@@ -103,6 +105,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [showClinicalVerificationModal, setShowClinicalVerificationModal] = useState(false);
   const [showCustomAIModal, setShowCustomAIModal] = useState(false);
   const [showFindReplaceModal, setShowFindReplaceModal] = useState(false);
+  const [showInfographicModal, setShowInfographicModal] = useState(false);
   const [verificationData, setVerificationData] = useState(null);
   const [policyEnforcement, setPolicyEnforcement] = useState(true);
   const [isUserMessageCollapsed, setIsUserMessageCollapsed] = useState(
@@ -1164,6 +1167,11 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                             <Presentation className="h-4 w-4 mr-2" />
                             Download as PowerPoint Presentation
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setShowInfographicModal(true)}>
+                            <ImageIcon className="h-4 w-4 mr-2" />
+                            Create as Infographic
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
@@ -1384,6 +1392,14 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         onOpenChange={setShowFindReplaceModal}
         onSubmit={handleFindReplaceSubmit}
         currentText={message.content}
+      />
+
+      {/* Infographic Modal */}
+      <ContentInfographicModal
+        isOpen={showInfographicModal}
+        onClose={() => setShowInfographicModal(false)}
+        content={message.content}
+        title="AI Generated Content"
       />
     </div>
   );
