@@ -1028,10 +1028,26 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   };
 
-  // Handle modal close
-  const handleClose = () => {
+  // Ref to gate spurious close events - only allow close when user explicitly requests it
+  const closeRequestedRef = useRef(false);
+
+  // Handle modal close - sets the flag and calls onClose
+  const handleClose = useCallback(() => {
+    closeRequestedRef.current = true;
     onClose();
-  };
+  }, [onClose]);
+
+  // Handle onOpenChange from Radix Dialog - only close if explicitly requested
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      // Only close if the user explicitly requested it (via handleClose or Escape)
+      if (closeRequestedRef.current) {
+        closeRequestedRef.current = false; // Reset for next time
+        onClose();
+      }
+      // Otherwise ignore the close request (spurious Radix event)
+    }
+  }, [onClose]);
   const meetingDetails = useMemo(() => {
     if (!notesContent) return null;
     
@@ -1871,7 +1887,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const isLoading = activeTab === 'notes' ? isLoadingNotes : isLoadingTranscript;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
         className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 bg-background"
         // Prevent the parent dialog from dismissing when interacting with portalled children
@@ -1881,7 +1897,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         onFocusOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => {
           e.preventDefault();
-          handleClose();
+          // Mark as intentional close, then trigger close
+          closeRequestedRef.current = true;
+          onClose();
         }}
       >
         <DialogHeader className="px-6 py-4 border-b flex-shrink-0">

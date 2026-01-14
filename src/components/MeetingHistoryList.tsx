@@ -473,12 +473,8 @@ export const MeetingHistoryList = ({
   const isMobile = useIsMobile();
   
   // Ref to track modal open state for real-time subscription (must be declared after state)
+  // Ref to track modal open state for real-time subscription - updated synchronously
   const safeModeModalOpenRef = useRef(false);
-  
-  // Keep ref in sync with state
-  useEffect(() => {
-    safeModeModalOpenRef.current = safeModeModalOpen;
-  }, [safeModeModalOpen]);
   
   // Add state for signed URLs
   const [audioUrls, setAudioUrls] = useState<Record<string, AudioUrls>>({});
@@ -712,6 +708,8 @@ export const MeetingHistoryList = ({
     console.log('🛡️ Opening Safe Mode notes for:', meeting.title);
     setSafeModeNotes(meeting.meeting_summary || '');
     setSafeModeSelectedMeeting(meeting);
+    // Set ref synchronously BEFORE state update to ensure real-time subscription sees it immediately
+    safeModeModalOpenRef.current = true;
     setSafeModeModalOpen(true);
   };
 
@@ -2156,10 +2154,13 @@ export const MeetingHistoryList = ({
           ))}
         </div>
 
-        {/* Safe Mode Notes Modal - keep mounted even during loading to prevent flicker */}
+        {/* Safe Mode Notes Modal - single instance shared across all states */}
         <SafeModeNotesModal
           isOpen={safeModeModalOpen}
-          onClose={() => setSafeModeModalOpen(false)}
+          onClose={() => {
+            safeModeModalOpenRef.current = false;
+            setSafeModeModalOpen(false);
+          }}
           meeting={safeModeSelectedMeeting}
           notes={safeModeNotes}
         />
@@ -2181,10 +2182,13 @@ export const MeetingHistoryList = ({
           </CardContent>
         </Card>
 
-        {/* Safe Mode Notes Modal - keep mounted even when list is empty to prevent flicker */}
+        {/* Safe Mode Notes Modal - single instance shared across all states */}
         <SafeModeNotesModal
           isOpen={safeModeModalOpen}
-          onClose={() => setSafeModeModalOpen(false)}
+          onClose={() => {
+            safeModeModalOpenRef.current = false;
+            setSafeModeModalOpen(false);
+          }}
           meeting={safeModeSelectedMeeting}
           notes={safeModeNotes}
         />
@@ -3186,7 +3190,10 @@ export const MeetingHistoryList = ({
       {/* Safe Mode Notes Modal - Lightweight alternative */}
       <SafeModeNotesModal
         isOpen={safeModeModalOpen}
-        onClose={() => setSafeModeModalOpen(false)}
+        onClose={() => {
+          safeModeModalOpenRef.current = false;
+          setSafeModeModalOpen(false);
+        }}
         meeting={safeModeSelectedMeeting}
         notes={safeModeNotes}
       />
