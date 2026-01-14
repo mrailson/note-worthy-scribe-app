@@ -27,10 +27,11 @@ export function useAIChatHistory(consultationId: string | null) {
   const [currentSession, setCurrentSession] = useState<AIChatSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isNewChatMode, setIsNewChatMode] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load all sessions for this consultation
-  const loadSessions = useCallback(async () => {
+  const loadSessions = useCallback(async (autoLoad: boolean = true) => {
     if (!consultationId || !user) return;
     
     setIsLoading(true);
@@ -51,8 +52,8 @@ export function useAIChatHistory(consultationId: string | null) {
       
       setSessions(typedData);
       
-      // Auto-load the most recent session
-      if (typedData.length > 0 && !currentSession) {
+      // Auto-load the most recent session only if autoLoad is true and not in new chat mode
+      if (autoLoad && typedData.length > 0 && !currentSession && !isNewChatMode) {
         setCurrentSession(typedData[0]);
       }
     } catch (error) {
@@ -60,7 +61,7 @@ export function useAIChatHistory(consultationId: string | null) {
     } finally {
       setIsLoading(false);
     }
-  }, [consultationId, user, currentSession]);
+  }, [consultationId, user, currentSession, isNewChatMode]);
 
   useEffect(() => {
     loadSessions();
@@ -192,7 +193,19 @@ export function useAIChatHistory(consultationId: string | null) {
   // Start a new chat
   const startNewChat = useCallback(() => {
     setCurrentSession(null);
+    setIsNewChatMode(true);
   }, []);
+
+  // Reset new chat mode when a session is created or loaded
+  const handleCreateSession = useCallback(async (initialMessages: AIChatMessage[] = []) => {
+    setIsNewChatMode(false);
+    return createSession(initialMessages);
+  }, [createSession]);
+
+  const handleLoadSession = useCallback((session: AIChatSession) => {
+    setIsNewChatMode(false);
+    loadSession(session);
+  }, [loadSession]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -208,10 +221,10 @@ export function useAIChatHistory(consultationId: string | null) {
     currentSession,
     isLoading,
     isSaving,
-    createSession,
+    createSession: handleCreateSession,
     saveMessages,
     updateMessageContent,
-    loadSession,
+    loadSession: handleLoadSession,
     deleteSession,
     startNewChat,
     loadSessions

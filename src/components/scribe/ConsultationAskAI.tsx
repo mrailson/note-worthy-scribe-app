@@ -27,6 +27,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -380,7 +391,11 @@ Include:
     await sendEmailAutomatically(headerParts + content, `Consultation Q&A - ${format(new Date(session.createdAt), 'dd/MM/yyyy')}`);
   };
 
-  const handleClearChat = () => {
+  const handleClearChat = async () => {
+    // If there's a current session, delete it from the database
+    if (currentSession?.id) {
+      await deleteSession(currentSession.id);
+    }
     setMessages([]);
     setInput('');
     micRef.current?.clearTranscript();
@@ -454,14 +469,38 @@ Include:
                   >
                     <Download className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleClearChat}
-                    title="Clear chat"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title={currentSession ? "Delete chat" : "Clear chat"}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {currentSession ? "Delete this chat?" : "Clear chat?"}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {currentSession 
+                            ? "This will permanently delete this conversation from your history and cannot be undone."
+                            : "This will clear all messages from the current chat."}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleClearChat}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {currentSession ? "Delete" : "Clear"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </>
               )}
             </div>
