@@ -127,12 +127,32 @@ export default {
 					'100%': {
 						transform: 'scaleY(1)'
 					}
+				},
+				'pulse-slow': {
+					'0%, 100%': {
+						opacity: '1'
+					},
+					'50%': {
+						opacity: '0.7'
+					}
+				},
+				'pulse-gentle': {
+					'0%, 100%': {
+						opacity: '1',
+						transform: 'scale(1)'
+					},
+					'50%': {
+						opacity: '0.85',
+						transform: 'scale(0.98)'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'wave': 'wave 1s ease-in-out infinite'
+				'wave': 'wave 1s ease-in-out infinite',
+				'pulse-slow': 'pulse-slow 3s ease-in-out infinite',
+				'pulse-gentle': 'pulse-gentle 2.5s ease-in-out infinite'
 			},
 			animationDelay: {
 				'200': '200ms',

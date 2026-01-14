@@ -366,7 +366,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
                             setRecordingState(false);
                           }}
                           disabled={processingActions[`${meeting.id}-complete`]}
-                          className="w-3 h-3 bg-red-500 rounded-full animate-pulse hover:bg-red-600 transition-colors cursor-pointer"
+                          className="w-3 h-3 bg-red-500 rounded-full animate-pulse-slow hover:bg-red-600 transition-colors cursor-pointer"
                           title="Click to stop recording and mark as complete"
                         />
                         <span className="text-amber-600 text-xs">Recording</span>

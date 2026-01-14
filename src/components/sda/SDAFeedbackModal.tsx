@@ -269,7 +269,7 @@ export const SDAFeedbackModal = ({ open, onOpenChange, currentSection }: SDAFeed
                   variant="ghost"
                   size="icon"
                   onClick={stopRecording}
-                  className="h-9 w-9 rounded-full bg-red-500 hover:bg-red-600 text-white animate-pulse"
+                  className="h-9 w-9 rounded-full bg-red-500 hover:bg-red-600 text-white animate-pulse-gentle"
                 >
                   <Square className="h-4 w-4" />
                 </Button>

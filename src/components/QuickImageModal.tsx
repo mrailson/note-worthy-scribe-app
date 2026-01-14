@@ -712,8 +712,8 @@ export const QuickImageModal = ({ open, onOpenChange }: QuickImageModalProps) =>
                     className="min-h-[80px]"
                   />
                   {isRecording && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse mt-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse-slow"></div>
                       Recording... Click the mic to stop
                     </div>
                   )}
