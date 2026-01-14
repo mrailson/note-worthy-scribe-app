@@ -14,8 +14,8 @@ interface UserMeetingStats {
   meeting_count: number;
   completed_meetings: number;
   recording_meetings: number;
-  first_meeting_date: string;
-  latest_meeting_date: string;
+  first_meeting_date: string | null;
+  latest_meeting_date: string | null;
 }
 
 export const MeetingStatsByUser = () => {
@@ -134,16 +134,24 @@ export const MeetingStatsByUser = () => {
                       )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {format(new Date(stat.first_meeting_date), 'dd/MM/yyyy')}
-                      </div>
+                      {stat.first_meeting_date ? (
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {format(new Date(stat.first_meeting_date), 'dd/MM/yyyy')}
+                        </div>
+                      ) : (
+                        <span>-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {format(new Date(stat.latest_meeting_date), 'dd/MM/yyyy HH:mm')}
-                      </div>
+                      {stat.latest_meeting_date ? (
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(stat.latest_meeting_date), 'dd/MM/yyyy HH:mm')}
+                        </div>
+                      ) : (
+                        <span>-</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
