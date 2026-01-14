@@ -18,7 +18,8 @@ import {
   PanelLeftClose,
   PanelLeft,
   Activity,
-  Camera
+  Camera,
+  Presentation
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
