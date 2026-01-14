@@ -916,11 +916,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       }));
       
       // Use the professional document generator with pre-parsed data
+      // Pass visibility settings so hidden sections are excluded from Word export
       await generateProfessionalWordFromContent(
         content, 
         title, 
         activeTab === 'notes' ? parsedDetails : undefined,
-        activeTab === 'notes' ? parsedActionItemsForWord : undefined
+        activeTab === 'notes' ? parsedActionItemsForWord : undefined,
+        activeTab === 'notes' ? notesViewSettings.settings.visibleSections : undefined
       );
       toast.success('Downloaded successfully');
     } catch (error) {

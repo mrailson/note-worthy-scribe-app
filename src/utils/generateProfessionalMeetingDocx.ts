@@ -1296,6 +1296,101 @@ const removeActionItemsSection = (content: string): string => {
   return result.join('\n').replace(/\n{3,}/g, '\n\n');
 };
 
+// Section visibility settings for Word export (matches NotesViewSettings from notesSettings.ts)
+export interface VisibleSectionsInput {
+  executiveSummary?: boolean;
+  keyPoints?: boolean;
+  actionList?: boolean;
+  openItems?: boolean;
+}
+
+// Helper to remove Key Points section from content
+const removeKeyPointsSection = (content: string): string => {
+  const lines = content.split('\n');
+  const result: string[] = [];
+  let inKeyPointsSection = false;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Detect Key Points section heading
+    if (/^#{1,3}\s*key\s*points?\s*:?\s*$/i.test(trimmed)) {
+      inKeyPointsSection = true;
+      continue;
+    }
+    
+    // Detect end of key points section (new main heading)
+    if (inKeyPointsSection && /^#{1,2}\s+\S/.test(trimmed)) {
+      inKeyPointsSection = false;
+    }
+    
+    // Skip lines in key points section
+    if (inKeyPointsSection) {
+      continue;
+    }
+    
+    result.push(line);
+  }
+  
+  return result.join('\n').replace(/\n{3,}/g, '\n\n');
+};
+
+// Helper to remove Open Items section from content
+const removeOpenItemsSection = (content: string): string => {
+  const lines = content.split('\n');
+  const result: string[] = [];
+  let inOpenItemsSection = false;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Detect Open Items/Issues section heading
+    if (/^#{1,3}\s*open\s*(items?|issues?)\s*:?\s*$/i.test(trimmed)) {
+      inOpenItemsSection = true;
+      continue;
+    }
+    
+    // Detect end of open items section (new main heading)
+    if (inOpenItemsSection && /^#{1,2}\s+\S/.test(trimmed)) {
+      inOpenItemsSection = false;
+    }
+    
+    // Skip lines in open items section
+    if (inOpenItemsSection) {
+      continue;
+    }
+    
+    result.push(line);
+  }
+  
+  return result.join('\n').replace(/\n{3,}/g, '\n\n');
+};
+
+// Filter content based on section visibility settings
+const filterContentByVisibility = (content: string, visibleSections?: VisibleSectionsInput): string => {
+  if (!visibleSections) return content;
+  
+  let filtered = content;
+  
+  // Remove hidden sections
+  if (visibleSections.executiveSummary === false) {
+    filtered = removeExecutiveSummarySection(filtered);
+  }
+  if (visibleSections.keyPoints === false) {
+    filtered = removeKeyPointsSection(filtered);
+  }
+  if (visibleSections.openItems === false) {
+    filtered = removeOpenItemsSection(filtered);
+  }
+  // Note: actionList is handled separately via the parsedActionItems parameter
+  // but we also remove it from inline content if hidden
+  if (visibleSections.actionList === false) {
+    filtered = removeActionItemsSection(filtered);
+  }
+  
+  return filtered;
+};
+
 // Pre-parsed action item for Word export
 export interface ParsedActionItemInput {
   action: string;
@@ -1323,8 +1418,15 @@ export const generateProfessionalWordFromContent = async (
   content: string, 
   title: string,
   parsedDetails?: ParsedMeetingDetailsInput,
-  parsedActionItems?: ParsedActionItemInput[]
+  parsedActionItems?: ParsedActionItemInput[],
+  visibleSections?: VisibleSectionsInput
 ): Promise<void> => {
+  // Filter content based on visibility settings before processing
+  const filteredContent = filterContentByVisibility(content, visibleSections);
+  
+  // If action list is hidden, don't pass action items
+  const actionItemsToUse = visibleSections?.actionList === false ? [] : (parsedActionItems || []);
+  
   // If pre-parsed data is provided, use it directly
   if (parsedDetails || parsedActionItems) {
     await generateProfessionalMeetingDocxWithParsedData({
@@ -1336,14 +1438,14 @@ export const generateProfessionalWordFromContent = async (
         venue: parsedDetails?.venue,
         attendees: parsedDetails?.attendees,
       },
-      content,
-      actionItems: parsedActionItems || [],
+      content: filteredContent,
+      actionItems: actionItemsToUse,
     });
   } else {
     // Fallback to auto-parsing
     await generateProfessionalMeetingDocx({
       metadata: { title },
-      content,
+      content: filteredContent,
     });
   }
 };
