@@ -3203,6 +3203,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         meetingId={meeting?.id || ''}
         meetingTitle={meeting?.title || 'Meeting Notes'}
         meetingNotes={notesContent || ''}
+        sectionVisibility={notesViewSettings.settings.visibleSections}
       />
 
       {/* Quick Audio Summary Modal */}
