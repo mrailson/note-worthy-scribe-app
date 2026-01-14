@@ -192,15 +192,15 @@ export function useImageStudio() {
         throw error;
       }
 
-      if (!data?.imageUrl) {
+      if (!data?.image?.url) {
         throw new Error('No image was generated');
       }
 
       const result: GeneratedImage = {
-        url: data.imageUrl,
-        alt: data.alt || settings.description.substring(0, 100),
+        url: data.image.url,
+        alt: data.image.alt || settings.description.substring(0, 100),
         prompt: settings.description,
-        requestType: settings.purpose === 'banner' ? 'general' : settings.purpose as GeneratedImage['requestType'],
+        requestType: data.image.requestType || (settings.purpose === 'banner' ? 'general' : settings.purpose as GeneratedImage['requestType']),
       };
 
       // Add to history
