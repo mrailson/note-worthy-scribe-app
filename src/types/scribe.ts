@@ -75,6 +75,13 @@ export interface ScribeSession {
   patientNhsNumber?: string;
   patientDob?: string;
   patientContextConfidence?: number;
+  // Clinical headline & workflow state
+  customHeadline?: string;        // GP-edited headline override
+  clinicalSignals?: string[];     // ['medication', 'mentalHealth', 'safetyNet', 'followUp', 'letter']
+  reviewStatus?: 'reviewed' | 'followUpDue' | 'actionPending' | 'draft';
+  followUpDate?: string;          // ISO date for follow-up
+  isReviewed?: boolean;           // GP marked as reviewed
+  isCopied?: boolean;             // Note has been copied to clinical system
 }
 
 export type ConsultationViewMode = 'soap' | 'narrativeClinical' | 'summary' | 'patient' | 'referral';

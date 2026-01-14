@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { maskPatientName, maskDateOfBirth, maskPatientData } from "@/utils/patientDataMasking";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { QuickPatientEntryForm } from "./QuickPatientEntryForm";
+import { SessionHistoryRow } from "./SessionHistoryRow";
 
 interface ScribeHistoryPanelProps {
   sessions: ScribeSession[];
@@ -935,186 +936,21 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
         </Card>
       ) : (
         <div className="space-y-4">
-          <div className={`space-y-3`}>
+          <div className="space-y-2">
             {paginatedSessions.map((session) => {
-              const CategoryIcon = categoryIcons[session.consultationCategory || 'general'];
               const isSelected = selectedIds.has(session.id);
               return (
-                <Card 
-                  key={session.id} 
-                  className={cn(
-                    "hover:bg-muted/50 transition-colors cursor-pointer touch-manipulation",
-                    isSelectMode && isSelected && "ring-2 ring-primary bg-primary/5"
-                  )}
-                  onClick={() => {
-                    if (isSelectMode) {
-                      toggleSelection(session.id);
-                    } else {
-                      onLoadSession(session.id);
-                    }
-                  }}
-                >
-                  <CardHeader className={`pb-2 ${isMobile ? 'px-3 py-3' : ''}`}>
-                    <div className="flex items-start justify-between">
-                      {isSelectMode && (
-                        <div className="mr-3 mt-0.5" onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleSelection(session.id)}
-                          />
-                        </div>
-                      )}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <CategoryIcon className="h-4 w-4 text-muted-foreground" />
-                            <CardTitle className="text-base line-clamp-1">
-                              {session.title}
-                            </CardTitle>
-                          </div>
-                        {/* Patient Memory Jogger - Masked Display */}
-                          {session.patientName ? (
-                            <div className="flex items-center gap-2 mt-1">
-                              <User className="h-3 w-3 text-primary/70" />
-                              <span className="text-sm font-medium text-primary/80">
-                                {maskPatientName(session.patientName)}
-                              </span>
-                              {session.patientDob && (
-                                <Badge variant="outline" className="text-xs py-0 h-5">
-                                  {maskDateOfBirth(session.patientDob)}
-                                </Badge>
-                              )}
-                              {session.patientNhsNumber && (
-                                <span className="text-xs text-muted-foreground">
-                                  NHS: ***{session.patientNhsNumber.slice(-3)}
-                                </span>
-                              )}
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-5 w-5 p-0 ml-1 opacity-60 hover:opacity-100"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <Pencil className="h-3 w-3" />
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-72" align="start" onClick={(e) => e.stopPropagation()}>
-                                  <QuickPatientEntryForm
-                                    sessionId={session.id}
-                                    existingName={session.patientName}
-                                    existingNhsNumber={session.patientNhsNumber || ""}
-                                    existingDob={session.patientDob || ""}
-                                    onSave={() => onRefresh()}
-                                    onCancel={() => {}}
-                                  />
-                                </PopoverContent>
-                              </Popover>
-                            </div>
-                          ) : (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 text-xs text-muted-foreground hover:text-primary mt-1 px-1"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <User className="h-3 w-3 mr-1" />
-                                  + Add patient
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-72" align="start" onClick={(e) => e.stopPropagation()}>
-                                <QuickPatientEntryForm
-                                  sessionId={session.id}
-                                  onSave={() => onRefresh()}
-                                  onCancel={() => {}}
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {session.duration ? `${Math.floor(session.duration)}m` : '0m'}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <FileText className="h-3 w-3" />
-                              {session.wordCount || 0} words
-                            </span>
-                          </div>
-                        </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={session.status === 'completed' ? 'secondary' : 'outline'}>
-                          {session.status}
-                        </Badge>
-                        {!isSelectMode && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className={`pt-0 ${isMobile ? 'px-3 pb-3' : ''}`}>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {format(new Date(session.createdAt), 'dd MMM yyyy, HH:mm')}
-                    </p>
-                    
-                    {/* Quick Summary - Key clinical one-liner */}
-                    {session.quickSummary && (
-                      <div className={`flex items-start gap-2 p-2 rounded-md bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-800/30 mb-3 ${isMobile ? 'p-2' : ''}`}>
-                        <Lightbulb className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-                        <p className={`text-amber-800 dark:text-amber-200 line-clamp-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                          {session.quickSummary}
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Fallback to transcript preview if no quick summary */}
-                    {!session.quickSummary && session.transcript && (
-                      <p className={`text-foreground/70 line-clamp-2 mb-3 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                        {session.transcript.substring(0, isMobile ? 100 : 150)}...
-                      </p>
-                    )}
-                    
-                    {!isSelectMode && (
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                        <Button 
-                          variant="outline" 
-                          size={isMobile ? "default" : "sm"}
-                          className="flex-1 touch-manipulation"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onLoadSession(session.id);
-                          }}
-                        >
-                          {isMobile ? "View" : "View Session"}
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Session?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete this session and all its data. This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => onDeleteSession(session.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                <SessionHistoryRow
+                  key={session.id}
+                  session={session}
+                  isSelectMode={isSelectMode}
+                  isSelected={isSelected}
+                  onToggleSelect={() => toggleSelection(session.id)}
+                  onView={() => onLoadSession(session.id)}
+                  onDelete={() => onDeleteSession(session.id)}
+                  onRefresh={onRefresh}
+                  isMobile={isMobile}
+                />
               );
             })}
           </div>
