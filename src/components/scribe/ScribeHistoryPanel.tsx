@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle, CONSULTATION_CATEGORY_LABELS, ConsultationCategory } from "@/types/scribe";
-import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft, Send, Sparkles, Pencil } from "lucide-react";
+import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft, Send, Sparkles, Pencil, ClipboardList } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,8 @@ import { PatientLetterView } from "./PatientLetterView";
 import { SessionHistorySearch, DateFilter, CategoryFilter } from "./SessionHistorySearch";
 import { ReferralWorkspace } from "./ReferralWorkspace";
 import { ConsultationAskAI } from "./ConsultationAskAI";
+import { NarrativeClinicalNoteView } from "./NarrativeClinicalNoteView";
+import { getNarrativeClinicalText, transformToNarrativeClinical } from "@/utils/narrativeClinicalFormatter";
 import { supabase } from "@/integrations/supabase/client";
 import { maskPatientName, maskDateOfBirth, maskPatientData } from "@/utils/patientDataMasking";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -478,6 +480,23 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
+                        onClick={() => handleViewModeChange('narrativeClinical')}
+                        className={cn(
+                          "p-1.5 rounded-md transition-colors",
+                          settings.consultationViewMode === 'narrativeClinical' 
+                            ? "text-primary bg-primary/10" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        aria-label="Narrative Clinical"
+                      >
+                        <ClipboardList className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Narrative Clinical (H/E/A/I/P)</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
                         onClick={() => handleViewModeChange('narrative')}
                         className={cn(
                           "p-1.5 rounded-md transition-colors",
@@ -659,6 +678,15 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                           </AccordionContent>
                         </AccordionItem>
                       </Accordion>
+                    )}
+
+                    {/* Narrative Clinical View Mode (H/E/A/I/P) */}
+                    {settings.consultationViewMode === 'narrativeClinical' && (
+                      <NarrativeClinicalNoteView
+                        soapNote={currentSoapNote}
+                        heidiNote={currentSession.heidiNote}
+                        showNotMentioned={settings.showNotMentioned}
+                      />
                     )}
 
                     {/* Narrative View Mode */}

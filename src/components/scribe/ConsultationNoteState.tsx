@@ -2,9 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConsultationNote, ConsultationType, ConsultationViewMode, CONSULTATION_TYPE_LABELS, SOAPNote, HeidiNote, ScribeEditStates, HeidiEditStates, ScribeSettings, PatientContext } from "@/types/scribe";
 import { SOAPNoteEditor } from "./SOAPNoteEditor";
 import { HeidiNoteEditor } from "./HeidiNoteEditor";
+import { NarrativeClinicalNoteView } from "./NarrativeClinicalNoteView";
 import { ReferralWorkspace } from "./ReferralWorkspace";
 import { QuickActionsBar } from "./QuickActionsBar";
-import { Clock, FileCheck, Stethoscope, Shield, List, FileText, Zap, Send } from "lucide-react";
+import { Clock, FileCheck, Stethoscope, Shield, List, FileText, Zap, Send, ClipboardList } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
@@ -150,29 +151,46 @@ export const ConsultationNoteState = ({
                                 ? "text-primary bg-primary/10" 
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
                             )}
-                            aria-label="Structured (SOAP)"
-                          >
-                            <List className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">Structured (SOAP)</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => onViewModeChange('narrative')}
-                            className={cn(
-                              "p-1.5 rounded-md transition-colors",
-                              viewMode === 'narrative' 
-                                ? "text-primary bg-primary/10" 
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                            )}
-                            aria-label="Narrative"
-                          >
-                            <FileText className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">Narrative</TooltipContent>
+                                            aria-label="Structured (SOAP)"
+                                          >
+                                            <List className="h-3.5 w-3.5" />
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom">Structured (SOAP)</TooltipContent>
+                                      </Tooltip>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <button
+                                            onClick={() => onViewModeChange('narrativeClinical')}
+                                            className={cn(
+                                              "p-1.5 rounded-md transition-colors",
+                                              viewMode === 'narrativeClinical' 
+                                                ? "text-primary bg-primary/10" 
+                                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                            )}
+                                            aria-label="Narrative Clinical (H/E/A/I/P)"
+                                          >
+                                            <ClipboardList className="h-3.5 w-3.5" />
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom">Narrative Clinical (H/E/A/I/P)</TooltipContent>
+                                      </Tooltip>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <button
+                                            onClick={() => onViewModeChange('narrative')}
+                                            className={cn(
+                                              "p-1.5 rounded-md transition-colors",
+                                              viewMode === 'narrative' 
+                                                ? "text-primary bg-primary/10" 
+                                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                            )}
+                                            aria-label="Narrative"
+                                          >
+                                            <FileText className="h-3.5 w-3.5" />
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom">Narrative</TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -248,7 +266,13 @@ export const ConsultationNoteState = ({
         </div>
       ) : (
         <ScrollArea className={isMobile ? 'h-[calc(100vh-320px)]' : ''}>
-          {useHeidiFormat ? (
+          {viewMode === 'narrativeClinical' ? (
+            <NarrativeClinicalNoteView
+              soapNote={consultationNote.soapNote}
+              heidiNote={consultationNote.heidiNote}
+              showNotMentioned={settings.showNotMentioned}
+            />
+          ) : useHeidiFormat ? (
             <HeidiNoteEditor
               heidiNote={consultationNote.heidiNote!}
               editStates={heidiEditStates}
