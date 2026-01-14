@@ -5,7 +5,7 @@ import { HeidiNoteEditor } from "./HeidiNoteEditor";
 import { NarrativeClinicalNoteView } from "./NarrativeClinicalNoteView";
 import { ReferralWorkspace } from "./ReferralWorkspace";
 import { QuickActionsBar } from "./QuickActionsBar";
-import { Clock, FileCheck, Stethoscope, Shield, List, FileText, Zap, Send, ClipboardList } from "lucide-react";
+import { Clock, FileCheck, Stethoscope, Shield, List, Zap, Send, ClipboardList } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
@@ -178,36 +178,19 @@ export const ConsultationNoteState = ({
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <button
-                                            onClick={() => onViewModeChange('narrative')}
+                                            onClick={() => onViewModeChange('summary')}
                                             className={cn(
                                               "p-1.5 rounded-md transition-colors",
-                                              viewMode === 'narrative' 
+                                              viewMode === 'summary' 
                                                 ? "text-primary bg-primary/10" 
                                                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
                                             )}
-                                            aria-label="Narrative"
+                                            aria-label="Quick Summary"
                                           >
-                                            <FileText className="h-3.5 w-3.5" />
+                                            <Zap className="h-3.5 w-3.5" />
                                           </button>
                                         </TooltipTrigger>
-                                        <TooltipContent side="bottom">Narrative</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => onViewModeChange('summary')}
-                            className={cn(
-                              "p-1.5 rounded-md transition-colors",
-                              viewMode === 'summary' 
-                                ? "text-primary bg-primary/10" 
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                            )}
-                            aria-label="Quick Summary"
-                          >
-                            <Zap className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">Quick Summary</TooltipContent>
+                                        <TooltipContent side="bottom">Quick Summary</TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
