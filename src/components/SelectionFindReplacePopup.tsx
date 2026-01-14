@@ -15,6 +15,10 @@ interface SelectionFindReplacePopupProps {
   onApply: (updatedText: string) => void;
   onClose: () => void;
   meetingId?: string;
+  /** Optional: Current meeting title (for find/replace in title) */
+  meetingTitle?: string;
+  /** Optional: Callback when meeting title is updated */
+  onTitleUpdate?: (updatedTitle: string) => void;
 }
 
 function escapeRegex(text: string): string {
@@ -32,6 +36,8 @@ export function SelectionFindReplacePopup({
   onApply,
   onClose,
   meetingId,
+  meetingTitle,
+  onTitleUpdate,
 }: SelectionFindReplacePopupProps) {
   const [replaceWith, setReplaceWith] = useState('');
   const [saveForFuture, setSaveForFuture] = useState(false);
@@ -39,19 +45,34 @@ export function SelectionFindReplacePopup({
   const popupRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Count occurrences of selected text
-  const occurrenceCount = React.useMemo(() => {
+  // Count occurrences of selected text (including in title)
+  const { occurrenceCount, titleHasMatch } = React.useMemo(() => {
     const text = getCurrentText();
-    if (!text || !selectedText) return 0;
+    let count = 0;
+    let titleMatch = false;
+    
+    if (!selectedText) return { occurrenceCount: 0, titleHasMatch: false };
     
     try {
       const regex = new RegExp(escapeRegex(selectedText), 'gi');
-      const matches = text.match(regex);
-      return matches?.length || 0;
+      
+      // Count in content
+      if (text) {
+        const matches = text.match(regex);
+        count = matches?.length || 0;
+      }
+      
+      // Check if title contains match
+      if (meetingTitle) {
+        titleMatch = regex.test(meetingTitle);
+        if (titleMatch) count += 1;
+      }
+      
+      return { occurrenceCount: count, titleHasMatch: titleMatch };
     } catch {
-      return 0;
+      return { occurrenceCount: 0, titleHasMatch: false };
     }
-  }, [getCurrentText, selectedText]);
+  }, [getCurrentText, selectedText, meetingTitle]);
 
   // Calculate popup position (below selection, within viewport)
   const popupStyle = React.useMemo(() => {
@@ -123,9 +144,16 @@ export function SelectionFindReplacePopup({
       const regex = new RegExp(escapeRegex(selectedText), 'gi');
       const updatedText = currentText.replace(regex, replaceWith);
 
-      // Apply the replacement first (always)
+      // Apply the replacement to content
       onApply(updatedText);
-      toast.success(`Replaced ${occurrenceCount} occurrence${occurrenceCount !== 1 ? 's' : ''}`);
+      
+      // Also update meeting title if it contains the search term
+      if (titleHasMatch && onTitleUpdate && meetingTitle) {
+        const updatedTitle = meetingTitle.replace(regex, replaceWith);
+        onTitleUpdate(updatedTitle);
+      }
+      
+      toast.success(`Replaced ${occurrenceCount} occurrence${occurrenceCount !== 1 ? 's' : ''}${titleHasMatch ? ' (including title)' : ''}`);
 
       // Save correction for future if checkbox is checked (separate try/catch so it doesn't block replacement)
       if (saveForFuture && selectedText !== replaceWith) {
@@ -149,7 +177,7 @@ export function SelectionFindReplacePopup({
     } finally {
       setIsApplying(false);
     }
-  }, [selectedText, replaceWith, saveForFuture, getCurrentText, onApply, onClose, occurrenceCount]);
+  }, [selectedText, replaceWith, saveForFuture, getCurrentText, onApply, onClose, occurrenceCount, titleHasMatch, meetingTitle, onTitleUpdate]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
