@@ -56,6 +56,52 @@ serve(async (req) => {
 
     const context = contextParts.join('\n');
 
+    // Build professional signature block from practice context
+    let signatureBlock = '';
+    if (consultationContext?.clinicianName || consultationContext?.letterSignature || consultationContext?.practiceName) {
+      const signatureParts: string[] = [];
+      
+      if (consultationContext.letterSignature) {
+        // Use the custom letter signature if available
+        signatureParts.push(consultationContext.letterSignature);
+      } else if (consultationContext.clinicianName) {
+        signatureParts.push(consultationContext.clinicianName);
+      }
+      
+      // Always add practice details if available
+      if (consultationContext.practiceName) {
+        signatureParts.push(consultationContext.practiceName);
+      }
+      if (consultationContext.practiceAddress) {
+        signatureParts.push(consultationContext.practiceAddress);
+      }
+      if (consultationContext.practicePhone) {
+        signatureParts.push(`Tel: ${consultationContext.practicePhone}`);
+      }
+      if (consultationContext.practiceEmail) {
+        signatureParts.push(consultationContext.practiceEmail);
+      }
+      
+      signatureBlock = signatureParts.join('\n');
+    }
+
+    const signatureInstruction = signatureBlock 
+      ? `
+
+**Professional Signature Formatting:**
+When drafting letters or formal correspondence, use this professionally formatted signature block:
+
+---
+
+**Yours sincerely,**
+
+${signatureBlock}
+
+---
+
+Format the signature with proper spacing and professional appearance. Place the clinician name in bold, followed by their credentials (if in the signature), then practice name in bold, then address on separate lines.`
+      : '';
+
     const systemPrompt = `You are a clinical AI assistant helping UK NHS GPs review their consultations. You have access to the consultation transcript and SOAP notes.
 
 **Guidelines:**
@@ -67,6 +113,7 @@ serve(async (req) => {
 - Include relevant clinical reasoning
 - If asked about investigations, consider cost-effectiveness and availability in primary care
 - For safety netting, include specific red flag symptoms and timeframes
+${signatureInstruction}
 
 **Consultation Context:**
 ${context}
