@@ -315,7 +315,7 @@ Include:
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => navigate('/scribe?tab=settings', { state: { scrollTo: 'referral-destinations' } })}
+                onClick={() => navigate('/settings')}
                 title="Manage referral destinations"
               >
                 <NotebookTabs className="h-4 w-4" />
