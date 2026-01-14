@@ -41,37 +41,79 @@ const COLORS = [
   '#16A34A', '#0891B2', '#2563EB', '#7C3AED', '#DB2777'
 ];
 
+// Check if content appears to be HTML
+const isHtmlContent = (text: string): boolean => {
+  if (!text) return false;
+  // Check for common HTML patterns - opening tags with attributes or standard tags
+  return /<[a-z][a-z0-9]*(\s+[^>]*)?>/i.test(text) && /<\/[a-z][a-z0-9]*>/i.test(text);
+};
+
+// Strip HTML tags and convert to plain text, then convert to proper markdown
+const stripHtmlToText = (html: string): string => {
+  if (!html) return '';
+  
+  return html
+    // Remove style attributes and spans with just styling
+    .replace(/<span[^>]*style[^>]*>([^<]*)<\/span>/gi, '$1')
+    // Convert bold tags
+    .replace(/<(strong|b)[^>]*>([^<]*)<\/(strong|b)>/gi, '**$2**')
+    // Convert italic tags
+    .replace(/<(em|i)[^>]*>([^<]*)<\/(em|i)>/gi, '*$2*')
+    // Convert line breaks and paragraph breaks
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+    // Remove remaining HTML tags
+    .replace(/<[^>]+>/g, '')
+    // Decode HTML entities
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    // Clean up extra whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
 // Convert markdown to HTML for display
 const convertMarkdownToHtml = (text: string): string => {
   if (!text) return '';
   
-  let html = text
-    // Escape HTML first
+  // If content appears to be HTML, strip it first to get clean text
+  let processedText = text;
+  if (isHtmlContent(text)) {
+    processedText = stripHtmlToText(text);
+  }
+  
+  let html = processedText
+    // Escape HTML entities
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     // Bold
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Italic (but not list items)
+    .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
     // Headers
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-4 mb-2">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-4 mb-2">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-4 mb-2">$1</h1>')
     // Bullet lists
-    .replace(/^[-•] (.+)$/gm, '<li>$1</li>')
+    .replace(/^[-•] (.+)$/gm, '<li class="ml-4">$1</li>')
     // Numbered lists
-    .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-    // Line breaks
-    .replace(/\n\n/g, '</p><p>')
+    .replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>')
+    // Double line breaks to paragraphs with spacing
+    .replace(/\n\n/g, '</p><p class="mb-3">')
+    // Single line breaks
     .replace(/\n/g, '<br/>');
 
-  // Wrap consecutive <li> elements in <ul>
-  html = html.replace(/(<li>.*?<\/li>)+/gs, (match) => `<ul>${match}</ul>`);
+  // Wrap consecutive <li> elements in <ul> with spacing
+  html = html.replace(/(<li[^>]*>.*?<\/li>)+/gs, (match) => `<ul class="my-2 space-y-1">${match}</ul>`);
   
   // Wrap in paragraph if not already wrapped
   if (!html.startsWith('<')) {
-    html = `<p>${html}</p>`;
+    html = `<p class="mb-3">${html}</p>`;
   }
 
   return html;
@@ -356,7 +398,11 @@ export function EditableAIResponse({
       {/* Editor content */}
       <div 
         className={cn(
-          'prose prose-sm max-w-none dark:prose-invert p-3',
+          'prose prose-sm max-w-none dark:prose-invert p-4',
+          'prose-p:mb-3 prose-p:leading-relaxed',
+          'prose-headings:mt-4 prose-headings:mb-2',
+          'prose-ul:my-2 prose-ul:space-y-1 prose-li:my-0.5',
+          'prose-strong:font-semibold',
           !isEditing && 'cursor-pointer hover:bg-muted/30 rounded-lg transition-colors',
           isEditing && 'min-h-[100px]'
         )}
