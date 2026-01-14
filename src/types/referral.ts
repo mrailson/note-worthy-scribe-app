@@ -74,6 +74,25 @@ export interface ToneRewriteResponse {
   warning?: string;
 }
 
+// Referral destination for practice-level hospital/department contacts
+export interface ReferralDestination {
+  id: string;
+  practice_id?: string | null;
+  created_by?: string | null;
+  hospital_name: string;
+  department: string;
+  contact_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  fax?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  specialty_keywords?: string[] | null;
+  is_active: boolean;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 // Referral type mappings for UK NHS pathways
 export const REFERRAL_SPECIALTIES: Record<string, string[]> = {
   'Cardiology': ['RACPC', 'Heart Failure Clinic', 'Arrhythmia Clinic', 'General Cardiology'],

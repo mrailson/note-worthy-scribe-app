@@ -6584,6 +6584,68 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_destinations: {
+        Row: {
+          address: string | null
+          contact_name: string | null
+          created_at: string | null
+          created_by: string | null
+          department: string
+          email: string | null
+          fax: string | null
+          hospital_name: string
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          phone: string | null
+          practice_id: string | null
+          specialty_keywords: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department: string
+          email?: string | null
+          fax?: string | null
+          hospital_name: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          phone?: string | null
+          practice_id?: string | null
+          specialty_keywords?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department?: string
+          email?: string | null
+          fax?: string | null
+          hospital_name?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          phone?: string | null
+          practice_id?: string | null
+          specialty_keywords?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_destinations_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       replacement_shifts: {
         Row: {
           assigned_at: string | null

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles } from 'lucide-react';
+import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles, Building, ChevronDown } from 'lucide-react';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useReferralDestinations } from '@/hooks/useReferralDestinations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,6 +14,15 @@ import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { generateWordDocument } from '@/utils/documentGenerators';
 import { format } from 'date-fns';
 import { ScribeSession, SOAPNote } from '@/types/scribe';
+import { ReferralDestination } from '@/types/referral';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -25,11 +35,6 @@ interface ConsultationAskAIProps {
 }
 
 const QUICK_PROMPTS = [
-  {
-    label: 'Create referral',
-    icon: FileText,
-    prompt: 'Based on this consultation, draft a professional NHS referral letter to the appropriate specialist. Include relevant clinical history, examination findings, and reason for referral.'
-  },
   {
     label: 'Suggest investigations',
     icon: Stethoscope,
@@ -66,10 +71,34 @@ export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps)
   const micRef = useRef<EnhancedBrowserMicRef>(null);
   const { sendEmailAutomatically, isSending: isEmailSending } = useAutoEmail();
   const { practiceContext } = usePracticeContext();
+  const { destinations, findMatchingDestinations } = useReferralDestinations();
 
   // Get practice name and doctor name from practice context
   const practiceName = practiceContext.practiceName || null;
   const doctorName = practiceContext.userFullName || null;
+  const letterSignature = practiceContext.letterSignature || null;
+
+  const handleCreateReferral = (destination?: ReferralDestination) => {
+    const destinationInfo = destination 
+      ? `\n\nReferral to: ${destination.hospital_name} - ${destination.department}${destination.contact_name ? ` (${destination.contact_name})` : ''}`
+      : '';
+    
+    const signatureInfo = letterSignature 
+      ? `\n\nPlease end the letter with this signature:\n${letterSignature}`
+      : doctorName 
+        ? `\n\nSign the letter as: ${doctorName}${practiceName ? `, ${practiceName}` : ''}`
+        : '';
+
+    const prompt = `Based on this consultation, draft a professional NHS referral letter.${destinationInfo}
+
+Include:
+- Patient details and reason for referral
+- Relevant clinical history and examination findings
+- Current medications and allergies
+- Specific questions or investigations requested${signatureInfo}`;
+
+    handleSend(prompt);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -281,6 +310,44 @@ export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps)
                   <div className="w-full max-w-lg space-y-3">
                     <p className="text-sm font-medium text-muted-foreground">Quick actions:</p>
                     <div className="grid grid-cols-2 gap-2">
+                      {/* Create Referral with destination selection */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-auto py-2 px-3 justify-start text-left"
+                            disabled={isLoading}
+                          >
+                            <FileText className="h-4 w-4 mr-2 shrink-0 text-primary" />
+                            <span className="text-xs">Create referral</span>
+                            <ChevronDown className="h-3 w-3 ml-auto" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-64">
+                          <DropdownMenuItem onClick={() => handleCreateReferral()}>
+                            <FileText className="h-4 w-4 mr-2" />
+                            General referral (AI suggests specialty)
+                          </DropdownMenuItem>
+                          {destinations.length > 0 && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                Saved destinations
+                              </DropdownMenuLabel>
+                              {destinations.slice(0, 5).map((dest) => (
+                                <DropdownMenuItem key={dest.id} onClick={() => handleCreateReferral(dest)}>
+                                  <Building className="h-4 w-4 mr-2" />
+                                  <div className="flex flex-col">
+                                    <span className="text-sm">{dest.department}</span>
+                                    <span className="text-xs text-muted-foreground">{dest.hospital_name}</span>
+                                  </div>
+                                </DropdownMenuItem>
+                              ))}
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       {QUICK_PROMPTS.map((prompt, idx) => (
                         <Button
                           key={idx}
@@ -295,7 +362,6 @@ export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps)
                         </Button>
                       ))}
                     </div>
-                  </div>
                 </div>
               ) : (
                 <div className="space-y-4">
