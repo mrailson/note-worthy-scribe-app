@@ -899,6 +899,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         date: meetingDetails?.date,
         time: meetingDetails?.time,
         location: meetingDetails?.location,
+        venue: meetingType === 'teams' ? undefined : (meetingLocation || undefined),
         attendees: attendees.length > 0 
           ? attendees.map(a => a.name).join(', ')
           : undefined,

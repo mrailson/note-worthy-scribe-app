@@ -1184,7 +1184,7 @@ export const MeetingHistoryList = ({
       // Fetch the latest meeting notes/summary from multiple sources (prioritize Minutes - Standard)
       const { data: notesFields, error: notesFieldsError } = await supabase
         .from('meetings')
-        .select('notes_style_3, notes_style_2, notes_style_4, notes_style_5, start_time, meeting_location')
+        .select('notes_style_3, notes_style_2, notes_style_4, notes_style_5, start_time, meeting_location, meeting_format')
         .eq('id', meeting.id)
         .maybeSingle();
 
@@ -1251,21 +1251,34 @@ export const MeetingHistoryList = ({
         minute: '2-digit' 
       }) + ' GMT';
       
-      // Get location
-      const location = (notesFields as any)?.meeting_location || meeting.meeting_location || undefined;
-      
-      // Get attendees names
-      const attendeeNames = meetingAttendees
-        ?.map((ma: any) => ma.attendees?.name)
-        .filter(Boolean)
-        .join(', ') || undefined;
-      
+      // Get venue (physical location)
+      const venue = (notesFields as any)?.meeting_location || (meeting as any).meeting_location || undefined;
+
+      // Get meeting format (Teams/Hybrid/Face to face)
+      const meetingFormatRaw = (notesFields as any)?.meeting_format || (meeting as any).meeting_format || undefined;
+      const formatLabel = (() => {
+        if (!meetingFormatRaw) return undefined;
+        const raw = String(meetingFormatRaw).toLowerCase();
+        if (raw.includes('hybrid')) return 'Hybrid';
+        if (raw.includes('face') || raw.includes('f2f')) return 'Face to face';
+        if (raw.includes('teams') || raw.includes('online') || raw.includes('virtual')) return 'Teams';
+        if (raw.includes('phone')) return 'Phone';
+        return String(meetingFormatRaw)
+          .split(/[-_]/g)
+          .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+          .join(' ');
+      })();
+
+      const location = formatLabel || (venue ? 'Face to face' : undefined);
+      const includeVenue = !!venue && (location === 'Face to face' || location === 'Hybrid');
+
       // Build parsed details
       const parsedDetails = {
         title: meeting.title,
         date: formattedDate,
         time: formattedTime,
-        location: location,
+        location,
+        venue: includeVenue ? venue : undefined,
         attendees: attendeeNames,
       };
       

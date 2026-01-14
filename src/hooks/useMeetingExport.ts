@@ -70,13 +70,33 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
       const meetingTime = meetingData?.startTime 
         ? new Date(meetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
         : undefined;
-      
+
+      const venue = meetingSettings?.location || meetingData?.meetingLocation || undefined;
+      const formatLabel = (() => {
+        const raw = meetingSettings?.format || meetingData?.meetingFormat;
+        if (!raw) return undefined;
+        if (raw === 'face-to-face') return 'Face to face';
+        if (raw === 'online') return 'Teams';
+        if (raw === 'hybrid') return 'Hybrid';
+        if (raw === 'phone') return 'Phone';
+        const s = String(raw).toLowerCase();
+        if (s.includes('hybrid')) return 'Hybrid';
+        if (s.includes('face') || s.includes('f2f')) return 'Face to face';
+        if (s.includes('teams') || s.includes('online') || s.includes('virtual')) return 'Teams';
+        if (s.includes('phone')) return 'Phone';
+        return String(raw);
+      })();
+
+      const location = formatLabel || (venue ? 'Face to face' : undefined);
+      const includeVenue = !!venue && (location === 'Face to face' || location === 'Hybrid');
+
       // Build parsed details for professional Word document
       const parsedDetails = {
         title,
         date: getMeetingDate(),
         time: meetingTime,
-        location: meetingSettings?.location || meetingData?.meetingLocation,
+        location,
+        venue: includeVenue ? venue : undefined,
         attendees: meetingSettings?.attendees || meetingData?.attendees?.join(', '),
       };
       

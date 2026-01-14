@@ -18,7 +18,10 @@ interface MeetingMetadata {
   date?: string;
   time?: string;
   duration?: string;
+  /** Meeting format, e.g. "Teams", "Hybrid", "Face to face" */
   location?: string;
+  /** Physical venue (only relevant for face-to-face / hybrid) */
+  venue?: string;
   attendees?: string;
   loggedUserName?: string;
   classification?: string; // e.g., "OFFICIAL", "OFFICIAL - SENSITIVE"
@@ -33,27 +36,31 @@ interface GenerateProfessionalMeetingOptions {
 // Extract meeting details from content
 const extractMeetingDetails = (content: string): Partial<MeetingMetadata> => {
   const details: Partial<MeetingMetadata> = {};
-  
+
   // Extract date patterns
   const dateMatch = content.match(/Date[:\s]+([^\n]+)/i);
   if (dateMatch) details.date = dateMatch[1].trim();
-  
+
   // Extract time patterns
   const timeMatch = content.match(/Time[:\s]+([^\n]+)/i);
   if (timeMatch) details.time = timeMatch[1].trim();
-  
-  // Extract location patterns
+
+  // Extract location/format patterns
   const locationMatch = content.match(/Location[:\s]+([^\n]+)/i);
   if (locationMatch) details.location = locationMatch[1].trim();
-  
+
+  // Extract venue patterns
+  const venueMatch = content.match(/Venue[:\s]+([^\n]+)/i);
+  if (venueMatch) details.venue = venueMatch[1].trim();
+
   // Extract attendees patterns
   const attendeesMatch = content.match(/Attendees?[:\s]+([^\n]+)/i);
   if (attendeesMatch) details.attendees = attendeesMatch[1].trim();
-  
+
   // Extract duration patterns
   const durationMatch = content.match(/Duration[:\s]+([^\n]+)/i);
   if (durationMatch) details.duration = durationMatch[1].trim();
-  
+
   return details;
 };
 
@@ -85,10 +92,11 @@ const stripTranscriptAndDetails = (content: string): string => {
   cleaned = cleaned.replace(/^#+?\s*Background\s*$/gim, '');
   cleaned = cleaned.replace(/^\s*Background\s*$/gim, '');
   
-  // Remove duplicate inline meeting details (Date:, Time:, Location:) - these are shown in the header box
+  // Remove duplicate inline meeting details (Date:, Time:, Location:, Venue:) - these are shown in the header box
   cleaned = cleaned.replace(/^\s*Date\s*:\s*.+$/gim, '');
   cleaned = cleaned.replace(/^\s*Time\s*:\s*.+$/gim, '');
   cleaned = cleaned.replace(/^\s*Location\s*:\s*.+$/gim, '');
+  cleaned = cleaned.replace(/^\s*Venue\s*:\s*.+$/gim, '');
   
   // Remove standalone ATTENDEES section with TBC (attendees are already in the Meeting Details box)
   // Matches "# ATTENDEES" or "## ATTENDEES" followed by "- TBC", "TBC", or empty on subsequent lines
@@ -375,6 +383,7 @@ const createMeetingDetailsBox = async (metadata: MeetingMetadata) => {
   if (metadata.time) rows.push(createDetailRow("Time", metadata.time));
   if (metadata.duration) rows.push(createDetailRow("Duration", metadata.duration));
   if (metadata.location) rows.push(createDetailRow("Location", metadata.location));
+  if (metadata.venue) rows.push(createDetailRow("Venue", metadata.venue));
   if (metadata.attendees) rows.push(createDetailRow("Attendees", metadata.attendees));
   
   if (rows.length === 0) return [];
@@ -1302,7 +1311,10 @@ export interface ParsedMeetingDetailsInput {
   title?: string;
   date?: string;
   time?: string;
+  /** Meeting format, e.g. "Teams", "Hybrid", "Face to face" */
   location?: string;
+  /** Physical venue (only relevant for face-to-face / hybrid) */
+  venue?: string;
   attendees?: string;
 }
 
@@ -1321,8 +1333,12 @@ export const generateProfessionalWordFromContent = async (
         date: parsedDetails?.date,
         time: parsedDetails?.time,
         location: parsedDetails?.location,
+        venue: parsedDetails?.venue,
         attendees: parsedDetails?.attendees,
       },
+      content,
+      actionItems: parsedActionItems || [],
+    });
       content,
       actionItems: parsedActionItems || [],
     });
@@ -1350,6 +1366,7 @@ export const generateProfessionalWordBlob = async (
     date: parsedDetails?.date,
     time: parsedDetails?.time,
     location: parsedDetails?.location,
+    venue: parsedDetails?.venue,
     attendees: parsedDetails?.attendees,
   };
   
