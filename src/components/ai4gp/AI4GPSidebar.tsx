@@ -94,7 +94,6 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
     { icon: Activity, label: 'BP Average Service', action: onShowBPCalculator },
     { icon: Languages, label: 'Translation', action: onShowTranslation },
     { icon: Presentation, label: 'Presentation Studio', action: onShowPresentationStudio },
-    { icon: Camera, label: 'LG Capture', action: () => navigate('/lg-capture') },
     { icon: Palette, label: 'Image Studio', action: onShowImageStudio },
   ];
 
