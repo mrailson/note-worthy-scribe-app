@@ -1,0 +1,193 @@
+import React, { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+import { useContentInfographic } from '@/hooks/useContentInfographic';
+import { CheckCircle, AlertCircle, Image } from 'lucide-react';
+
+interface ContentInfographicModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  content: string;
+  title?: string;
+}
+
+const GENERATION_TIPS = [
+  "Creating visual hierarchy for key information...",
+  "Designing icons to represent main concepts...",
+  "Applying professional colour palette...",
+  "Organising content into visual sections...",
+  "Ensuring British English spelling throughout...",
+  "Optimising layout for A4 printing...",
+  "Adding visual flow indicators...",
+  "Balancing text and graphics...",
+  "Generating high-resolution output...",
+];
+
+export const ContentInfographicModal: React.FC<ContentInfographicModalProps> = ({
+  isOpen,
+  onClose,
+  content,
+  title = 'AI Generated Content',
+}) => {
+  const { generateInfographic, isGenerating, currentPhase, error } = useContentInfographic();
+  const [progress, setProgress] = useState(0);
+  const [currentTip, setCurrentTip] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
+
+  // Start generation when modal opens
+  useEffect(() => {
+    if (isOpen && !hasStarted && !isGenerating) {
+      setHasStarted(true);
+      setProgress(0);
+      generateInfographic(content, title);
+    }
+  }, [isOpen, hasStarted, isGenerating, content, title, generateInfographic]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setHasStarted(false);
+      setProgress(0);
+      setCurrentTip(0);
+    }
+  }, [isOpen]);
+
+  // Progress animation
+  useEffect(() => {
+    if (!isGenerating) return;
+
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (currentPhase === 'complete') return 100;
+        if (currentPhase === 'downloading') return Math.min(prev + 5, 95);
+        if (currentPhase === 'generating') return Math.min(prev + 1, 85);
+        return Math.min(prev + 2, 20);
+      });
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isGenerating, currentPhase]);
+
+  // Rotate tips
+  useEffect(() => {
+    if (!isGenerating) return;
+
+    const interval = setInterval(() => {
+      setCurrentTip(prev => (prev + 1) % GENERATION_TIPS.length);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isGenerating]);
+
+  // Auto-close on completion
+  useEffect(() => {
+    if (currentPhase === 'complete') {
+      setProgress(100);
+      const timer = setTimeout(() => {
+        onClose();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentPhase, onClose]);
+
+  const getPhaseLabel = () => {
+    switch (currentPhase) {
+      case 'preparing':
+        return 'Preparing content...';
+      case 'generating':
+        return 'Generating infographic...';
+      case 'downloading':
+        return 'Downloading image...';
+      case 'complete':
+        return 'Complete!';
+      default:
+        return 'Processing...';
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Image className="h-5 w-5 text-primary" />
+            Creating Infographic
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          {error ? (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+              </div>
+              <div>
+                <p className="font-medium text-destructive">Generation Failed</p>
+                <p className="text-sm text-muted-foreground mt-1">{error}</p>
+              </div>
+            </div>
+          ) : currentPhase === 'complete' ? (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <CheckCircle className="h-8 w-8 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-primary">Infographic Ready!</p>
+                <p className="text-sm text-muted-foreground mt-1">Your download should start automatically</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Progress ring */}
+              <div className="flex justify-center">
+                <div className="relative w-24 h-24">
+                  <svg className="w-24 h-24 transform -rotate-90">
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="40"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="none"
+                      className="text-muted"
+                    />
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="40"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="none"
+                      strokeDasharray={251.2}
+                      strokeDashoffset={251.2 - (251.2 * progress) / 100}
+                      className="text-primary transition-all duration-500"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-lg font-semibold">{Math.round(progress)}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Phase label */}
+              <div className="text-center">
+                <p className="font-medium">{getPhaseLabel()}</p>
+                <p className="text-sm text-muted-foreground mt-2 h-5 transition-opacity duration-300">
+                  {GENERATION_TIPS[currentTip]}
+                </p>
+              </div>
+
+              {/* Linear progress bar */}
+              <Progress value={progress} className="h-2" />
+
+              <p className="text-xs text-center text-muted-foreground">
+                This typically takes 30-60 seconds
+              </p>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
