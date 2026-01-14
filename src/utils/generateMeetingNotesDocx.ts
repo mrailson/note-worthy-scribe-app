@@ -150,13 +150,44 @@ export const parseContentToDocxElements = async (content: string) => {
           return null;
         };
         
-        // Helper to suggest deadline if TBC
+        // Helper to convert relative deadlines (Today, Tomorrow, etc.) to actual dates
         const suggestDeadline = (deadline: string) => {
-          if (deadline.toLowerCase() === 'tbc' || deadline.toLowerCase() === 'to be confirmed') {
-            const twoWeeks = new Date();
+          const lower = deadline.toLowerCase().trim();
+          const today = new Date();
+          
+          // Handle TBC/To be confirmed
+          if (lower === 'tbc' || lower === 'to be confirmed') {
+            const twoWeeks = new Date(today);
             twoWeeks.setDate(twoWeeks.getDate() + 14);
             return twoWeeks.toLocaleDateString('en-GB');
           }
+          
+          // Handle relative date terms
+          if (lower === 'today') {
+            return today.toLocaleDateString('en-GB');
+          }
+          if (lower === 'tomorrow') {
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return tomorrow.toLocaleDateString('en-GB');
+          }
+          if (lower === 'this week' || lower === 'end of week') {
+            // Set to Friday of current week
+            const dayOfWeek = today.getDay();
+            const daysUntilFriday = dayOfWeek <= 5 ? 5 - dayOfWeek : 0;
+            const friday = new Date(today);
+            friday.setDate(friday.getDate() + daysUntilFriday);
+            return friday.toLocaleDateString('en-GB');
+          }
+          if (lower === 'next week') {
+            const nextWeek = new Date(today);
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            return nextWeek.toLocaleDateString('en-GB');
+          }
+          if (lower === 'asap' || lower === 'urgent') {
+            return today.toLocaleDateString('en-GB') + ' (ASAP)';
+          }
+          
           return deadline;
         };
         
