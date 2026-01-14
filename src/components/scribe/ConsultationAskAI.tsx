@@ -157,7 +157,14 @@ Include:
         objective: soapNote.O,
         assessment: soapNote.A,
         plan: soapNote.P
-      } : undefined
+      } : undefined,
+      // Include practice and clinician context for professional signatures
+      clinicianName: doctorName,
+      letterSignature: letterSignature,
+      practiceName: practiceName,
+      practiceAddress: practiceContext.practiceAddress,
+      practicePhone: practiceContext.practicePhone,
+      practiceEmail: practiceContext.practiceEmail
     };
   };
 
