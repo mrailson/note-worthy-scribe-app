@@ -4,6 +4,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { NRESHoursEntry } from '@/types/nresHoursTypes';
 
+// Helper to cast database response to proper type
+const castEntry = (data: any): NRESHoursEntry => ({
+  ...data,
+  claimant_type: data.claimant_type as 'gp' | 'pm' | null
+});
+
 export function useNRESHoursTracker() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<NRESHoursEntry[]>([]);
@@ -23,7 +29,7 @@ export function useNRESHoursTracker() {
         .order('start_time', { ascending: false });
 
       if (error) throw error;
-      setEntries(data || []);
+      setEntries((data || []).map(castEntry));
     } catch (error) {
       console.error('Error fetching hours entries:', error);
       toast.error('Failed to load hours entries');
@@ -53,9 +59,9 @@ export function useNRESHoursTracker() {
         .single();
 
       if (error) throw error;
-      setEntries(prev => [data, ...prev]);
+      setEntries(prev => [castEntry(data), ...prev]);
       toast.success('Hours entry added');
-      return data;
+      return castEntry(data);
     } catch (error) {
       console.error('Error adding hours entry:', error);
       toast.error('Failed to add hours entry');
@@ -79,9 +85,9 @@ export function useNRESHoursTracker() {
         .single();
 
       if (error) throw error;
-      setEntries(prev => prev.map(e => e.id === id ? data : e));
+      setEntries(prev => prev.map(e => e.id === id ? castEntry(data) : e));
       toast.success('Hours entry updated');
-      return data;
+      return castEntry(data);
     } catch (error) {
       console.error('Error updating hours entry:', error);
       toast.error('Failed to update hours entry');

@@ -5881,6 +5881,8 @@ export type Database = {
       nres_hours_entries: {
         Row: {
           activity_type: string
+          claimant_name: string | null
+          claimant_type: string | null
           created_at: string
           description: string | null
           duration_hours: number
@@ -5893,6 +5895,8 @@ export type Database = {
         }
         Insert: {
           activity_type: string
+          claimant_name?: string | null
+          claimant_type?: string | null
           created_at?: string
           description?: string | null
           duration_hours: number
@@ -5905,6 +5909,8 @@ export type Database = {
         }
         Update: {
           activity_type?: string
+          claimant_name?: string | null
+          claimant_type?: string | null
           created_at?: string
           description?: string | null
           duration_hours?: number
