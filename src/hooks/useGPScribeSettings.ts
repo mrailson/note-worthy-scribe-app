@@ -4,6 +4,8 @@ import { DEFAULT_SETTINGS } from "@/constants/consultationSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const MICROPHONE_STORAGE_KEY = 'gpscribe_microphone_device_id';
+
 export const useGPScribeSettings = () => {
   const [consultationType, setConsultationType] = useState<ConsultationType>("face-to-face");
   const [outputLevel, setOutputLevel] = useState<number>(DEFAULT_SETTINGS.outputLevel);
@@ -13,6 +15,7 @@ export const useGPScribeSettings = () => {
   const [tickerEnabled, setTickerEnabled] = useState(DEFAULT_SETTINGS.tickerEnabled);
   const [showTranscriptTimestamps, setShowTranscriptTimestamps] = useState(DEFAULT_SETTINGS.showTranscriptTimestamps);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [selectedMicrophoneId, setSelectedMicrophoneId] = useState<string | null>(null);
 
   // UI states
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -21,6 +24,12 @@ export const useGPScribeSettings = () => {
 
   const loadUserSettings = useCallback(async () => {
     try {
+      // Load microphone setting from localStorage
+      const savedMicId = localStorage.getItem(MICROPHONE_STORAGE_KEY);
+      if (savedMicId) {
+        setSelectedMicrophoneId(savedMicId);
+      }
+      
       // For now, just use default settings since user_settings table doesn't exist
       // This can be implemented when the table is created
       setSettingsLoaded(true);
@@ -32,6 +41,13 @@ export const useGPScribeSettings = () => {
 
   const saveUserSettings = useCallback(async () => {
     try {
+      // Save microphone setting to localStorage
+      if (selectedMicrophoneId) {
+        localStorage.setItem(MICROPHONE_STORAGE_KEY, selectedMicrophoneId);
+      } else {
+        localStorage.removeItem(MICROPHONE_STORAGE_KEY);
+      }
+      
       // For now, just show success since user_settings table doesn't exist
       // This can be implemented when the table is created
       toast.success("Settings saved successfully");
@@ -39,7 +55,16 @@ export const useGPScribeSettings = () => {
       console.error('Failed to save settings:', error);
       toast.error("Failed to save settings");
     }
-  }, [outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne, tickerEnabled, showTranscriptTimestamps]);
+  }, [outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne, tickerEnabled, showTranscriptTimestamps, selectedMicrophoneId]);
+
+  const handleMicrophoneChange = useCallback((deviceId: string | null) => {
+    setSelectedMicrophoneId(deviceId);
+    if (deviceId) {
+      localStorage.setItem(MICROPHONE_STORAGE_KEY, deviceId);
+    } else {
+      localStorage.removeItem(MICROPHONE_STORAGE_KEY);
+    }
+  }, []);
 
   const resetSettings = useCallback(() => {
     setOutputLevel(DEFAULT_SETTINGS.outputLevel);
@@ -64,6 +89,7 @@ export const useGPScribeSettings = () => {
     tickerEnabled,
     showTranscriptTimestamps,
     settingsLoaded,
+    selectedMicrophoneId,
 
     // UI states
     isConfigOpen,
@@ -83,6 +109,8 @@ export const useGPScribeSettings = () => {
     setTickerText,
     loadUserSettings,
     saveUserSettings,
-    resetSettings
+    resetSettings,
+    handleMicrophoneChange,
+    setSelectedMicrophoneId
   };
 };

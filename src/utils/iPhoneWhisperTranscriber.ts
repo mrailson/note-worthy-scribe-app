@@ -53,7 +53,8 @@ export class iPhoneWhisperTranscriber {
     private onStatusChange: (status: string) => void,
     meetingSettings?: any,
     meetingId?: string,
-    private onAudioActivity?: (hasActivity: boolean) => void
+    private onAudioActivity?: (hasActivity: boolean) => void,
+    private selectedDeviceId?: string | null
   ) {
     this.meetingSettings = withDefaultThresholds(meetingSettings);
     if (meetingId) {
@@ -212,14 +213,22 @@ export class iPhoneWhisperTranscriber {
       }
 
       // Request microphone access with iPhone-optimized settings
+      // Use selected device if provided
+      const audioConstraints: MediaTrackConstraints = {
+        sampleRate: 16000, // Whisper works well with 16kHz
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: false, // Disable AGC to reduce pumping/hallucinations
+      };
+      
+      if (this.selectedDeviceId) {
+        audioConstraints.deviceId = { exact: this.selectedDeviceId };
+        console.log('🎤 Using selected microphone device:', this.selectedDeviceId);
+      }
+      
       this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 16000, // Whisper works well with 16kHz
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: false, // Disable AGC to reduce pumping/hallucinations
-        }
+        audio: audioConstraints
       });
       
       // Set up audio activity monitoring for VAD-based silence detection

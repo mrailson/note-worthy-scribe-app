@@ -62,11 +62,12 @@ const Index = () => {
   const [patientLanguage, setPatientLanguage] = useState('english');
   
   // Use extracted hooks
-  const recording = useGPScribeRecording();
+  const settings = useGPScribeSettings();
+  const recording = useGPScribeRecording(settings.selectedMicrophoneId);
   const translation = useTranslationService();
   const guidance = useConsultationGuidance();
   const history = useConsultationHistory();
-  const settings = useGPScribeSettings();
+  // settings already defined above
   const documents = useDocumentGeneration();
   const dualTranscription = useDualTranscription();
   

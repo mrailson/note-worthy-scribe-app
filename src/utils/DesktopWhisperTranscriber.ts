@@ -55,7 +55,8 @@ export class DesktopWhisperTranscriber {
     meetingSettings?: any,
     meetingId?: string,
     private onAudioActivity?: (hasActivity: boolean) => void,
-    private onChunkProcessed?: () => void
+    private onChunkProcessed?: () => void,
+    private selectedDeviceId?: string | null
   ) {
     this.sessionId = meetingId || this.generateSessionId();
     this.meetingId = meetingId || null;
@@ -285,14 +286,22 @@ export class DesktopWhisperTranscriber {
       console.log('🖥️ Starting Desktop Whisper transcription...');
 
       // Request microphone access with ChatGPT recommended settings
+      // Use selected device if provided
+      const audioConstraints: MediaTrackConstraints = {
+        sampleRate: 48000, // 48kHz - Chrome native, avoid resampling artifacts
+        channelCount: 1,
+        echoCancellation: false, // Disabled - can create artifacts
+        noiseSuppression: false, // Disabled - can create artifacts  
+        autoGainControl: false,  // Disabled - can create artifacts
+      };
+      
+      if (this.selectedDeviceId) {
+        audioConstraints.deviceId = { exact: this.selectedDeviceId };
+        console.log('🎤 Using selected microphone device:', this.selectedDeviceId);
+      }
+      
       this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 48000, // 48kHz - Chrome native, avoid resampling artifacts
-          channelCount: 1,
-          echoCancellation: false, // Disabled - can create artifacts
-          noiseSuppression: false, // Disabled - can create artifacts  
-          autoGainControl: false,  // Disabled - can create artifacts
-        }
+        audio: audioConstraints
       });
       
       // Set up audio activity monitoring for VAD-based silence detection
