@@ -217,7 +217,24 @@ export function usePresentationStudio() {
         .sort((a, b) => a.order - b.order)
         .map(st => st.type);
 
-      // Build request
+      // Get template name for theme styling
+      const getTemplateName = (templateId: string): string => {
+        const templates: Record<string, string> = {
+          'nhs-professional': 'NHS Professional Blue',
+          'modern-minimal': 'Modern Minimal White',
+          'executive-dark': 'Executive Dark Theme',
+          'clinical-clean': 'Clinical Clean Teal',
+          'friendly-warm': 'Friendly Warm Orange',
+        };
+        return templates[templateId] || templateId;
+      };
+
+      // Determine if this is a Gamma theme or local theme
+      // For now, all our templates are local - Gamma themes would have IDs like 'gamma-xxx'
+      const isGammaTheme = settings.templateId.startsWith('gamma-');
+      const themeSource = isGammaTheme ? 'gamma' : 'local';
+
+      // Build request with proper theme settings
       const request: PresentationStudioRequest = {
         topic: settings.topic || `Overview: ${settings.supportingDocuments[0]?.name || 'Presentation'}`,
         presentationType: settings.presentationType,
@@ -227,11 +244,22 @@ export function usePresentationStudio() {
         complexityLevel: settings.complexityLevel,
         slideTypes: enabledSlideTypes,
         templateId: settings.templateId,
-        colourPalette: settings.useCustomColours ? {
+        // Theme settings for Gamma API
+        themeId: isGammaTheme ? settings.templateId.replace('gamma-', '') : undefined,
+        themeSource,
+        // Always send local theme style with colour palette
+        localThemeStyle: {
+          primaryColor: settings.colourPalette.primary,
+          secondaryColor: settings.colourPalette.secondary,
+          accentColor: settings.colourPalette.accent,
+          themeName: getTemplateName(settings.templateId),
+        },
+        // Also send legacy colour palette for backwards compatibility
+        colourPalette: {
           primary: settings.colourPalette.primary,
           secondary: settings.colourPalette.secondary,
           accent: settings.colourPalette.accent,
-        } : undefined,
+        },
         fontStyle: settings.fontStyle,
         generateImages: settings.generateImages,
         includeSpeakerNotes: settings.includeSpeakerNotes,

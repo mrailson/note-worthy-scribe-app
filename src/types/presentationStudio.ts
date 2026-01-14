@@ -197,6 +197,16 @@ export interface PresentationStudioRequest {
   complexityLevel: ComplexityLevel;
   slideTypes?: SlideTypeId[];
   templateId: TemplateId;
+  // Theme settings for Gamma API
+  themeId?: string;
+  themeSource?: 'gamma' | 'local';
+  localThemeStyle?: {
+    primaryColor: string;
+    secondaryColor: string;
+    accentColor: string;
+    themeName: string;
+  };
+  // Legacy colour palette (still supported)
   colourPalette?: {
     primary: string;
     secondary: string;
