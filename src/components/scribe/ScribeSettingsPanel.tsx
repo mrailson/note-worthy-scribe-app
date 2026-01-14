@@ -1,13 +1,15 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS, HistoryRetention, HISTORY_RETENTION_LABELS } from "@/types/scribe";
-import { Settings, Save, RotateCcw, Stethoscope, Mic, Shield, Clock, AlertTriangle, Monitor } from "lucide-react";
+import { Save, RotateCcw, Stethoscope, Mic, Shield, Clock, AlertTriangle, ChevronDown } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Phone, Video, Users } from "lucide-react";
 import { MicrophoneSettings } from "@/components/gpscribe/MicrophoneSettings";
+import { useState } from "react";
 
 interface ScribeSettingsPanelProps {
   settings: ScribeSettings;
@@ -30,184 +32,208 @@ export const ScribeSettingsPanel = ({
   onResetSettings,
   onMicrophoneChange,
 }: ScribeSettingsPanelProps) => {
+  const [consultationOpen, setConsultationOpen] = useState(false);
+  const [recordingOpen, setRecordingOpen] = useState(false);
+  const [consentOpen, setConsentOpen] = useState(false);
+
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       {/* Microphone Settings - Most important for troubleshooting */}
       <MicrophoneSettings onDeviceChange={onMicrophoneChange} />
-      {/* Consultation Defaults */}
+
+      {/* Consultation Defaults - Collapsible */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Stethoscope className="h-5 w-5" />
-            Consultation Defaults
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Default Consultation Method</Label>
-            <ToggleGroup 
-              type="single" 
-              value={settings.defaultConsultationType} 
-              onValueChange={(v) => v && onUpdateSetting('defaultConsultationType', v as ConsultationType)}
-              className="justify-start"
-            >
-              {(Object.keys(CONSULTATION_TYPE_LABELS) as ConsultationType[]).map((type) => (
-                <ToggleGroupItem
-                  key={type}
-                  value={type}
-                  aria-label={CONSULTATION_TYPE_LABELS[type]}
-                  className="flex items-center gap-2 px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+        <Collapsible open={consultationOpen} onOpenChange={setConsultationOpen}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between p-6">
+              <div className="flex items-center gap-2 font-semibold">
+                <Stethoscope className="h-5 w-5" />
+                Consultation Defaults
+              </div>
+              <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${consultationOpen ? 'rotate-180' : ''}`} />
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-4 pt-0">
+              <div className="space-y-2">
+                <Label>Default Consultation Method</Label>
+                <ToggleGroup 
+                  type="single" 
+                  value={settings.defaultConsultationType} 
+                  onValueChange={(v) => v && onUpdateSetting('defaultConsultationType', v as ConsultationType)}
+                  className="justify-start"
                 >
-                  {typeIcons[type]}
-                  <span className="hidden sm:inline">{CONSULTATION_TYPE_LABELS[type]}</span>
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </div>
+                  {(Object.keys(CONSULTATION_TYPE_LABELS) as ConsultationType[]).map((type) => (
+                    <ToggleGroupItem
+                      key={type}
+                      value={type}
+                      aria-label={CONSULTATION_TYPE_LABELS[type]}
+                      className="flex items-center gap-2 px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                    >
+                      {typeIcons[type]}
+                      <span className="hidden sm:inline">{CONSULTATION_TYPE_LABELS[type]}</span>
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="emrFormat">EMR System</Label>
-            <Select
-              value={settings.emrFormat}
-              onValueChange={(value: 'emis' | 'systmone') => 
-                onUpdateSetting('emrFormat', value)
-              }
-            >
-              <SelectTrigger id="emrFormat">
-                <SelectValue placeholder="Select EMR system" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="emis">EMIS Web</SelectItem>
-                <SelectItem value="systmone">SystmOne (TPP)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Notes will be formatted for easy copy-paste into your EMR
-            </p>
-          </div>
-        </CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="emrFormat">EMR System</Label>
+                <Select
+                  value={settings.emrFormat}
+                  onValueChange={(value: 'emis' | 'systmone') => 
+                    onUpdateSetting('emrFormat', value)
+                  }
+                >
+                  <SelectTrigger id="emrFormat">
+                    <SelectValue placeholder="Select EMR system" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="emis">EMIS Web</SelectItem>
+                    <SelectItem value="systmone">SystmOne (TPP)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Notes will be formatted for easy copy-paste into your EMR
+                </p>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
-      {/* Recording Settings */}
+      {/* Recording Settings - Collapsible */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mic className="h-5 w-5" />
-            Recording Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="transcriptionService">Transcription Service</Label>
-            <Select
-              value={settings.transcriptionService}
-              onValueChange={(value: ScribeSettings['transcriptionService']) => 
-                onUpdateSetting('transcriptionService', value)
-              }
-            >
-              <SelectTrigger id="transcriptionService">
-                <SelectValue placeholder="Select transcription service" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="whisper">Whisper (Default)</SelectItem>
-                <SelectItem value="assembly">Assembly AI</SelectItem>
-                <SelectItem value="dual">Dual (Both Services)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="showLiveTranscript">Show Live Transcript</Label>
-              <p className="text-sm text-muted-foreground">
-                Display transcript during recording
-              </p>
+        <Collapsible open={recordingOpen} onOpenChange={setRecordingOpen}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between p-6">
+              <div className="flex items-center gap-2 font-semibold">
+                <Mic className="h-5 w-5" />
+                Recording Settings
+              </div>
+              <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${recordingOpen ? 'rotate-180' : ''}`} />
             </div>
-            <Switch
-              id="showLiveTranscript"
-              checked={settings.showLiveTranscript}
-              onCheckedChange={(checked) => onUpdateSetting('showLiveTranscript', checked)}
-            />
-          </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-4 pt-0">
+              <div className="space-y-2">
+                <Label htmlFor="transcriptionService">Transcription Service</Label>
+                <Select
+                  value={settings.transcriptionService}
+                  onValueChange={(value: ScribeSettings['transcriptionService']) => 
+                    onUpdateSetting('transcriptionService', value)
+                  }
+                >
+                  <SelectTrigger id="transcriptionService">
+                    <SelectValue placeholder="Select transcription service" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="whisper">Whisper (Default)</SelectItem>
+                    <SelectItem value="assembly">Assembly AI</SelectItem>
+                    <SelectItem value="dual">Dual (Both Services)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="autoSave">Auto-Save Drafts</Label>
-              <p className="text-sm text-muted-foreground">
-                Automatically save transcript drafts
-              </p>
-            </div>
-            <Switch
-              id="autoSave"
-              checked={settings.autoSave}
-              onCheckedChange={(checked) => onUpdateSetting('autoSave', checked)}
-            />
-          </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="showLiveTranscript">Show Live Transcript</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Display transcript during recording
+                  </p>
+                </div>
+                <Switch
+                  id="showLiveTranscript"
+                  checked={settings.showLiveTranscript}
+                  onCheckedChange={(checked) => onUpdateSetting('showLiveTranscript', checked)}
+                />
+              </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="minimalRecordingView">Minimal Recording View</Label>
-              <p className="text-sm text-muted-foreground">
-                Show only timer and word count during consultations
-              </p>
-            </div>
-            <Switch
-              id="minimalRecordingView"
-              checked={settings.minimalRecordingView}
-              onCheckedChange={(checked) => onUpdateSetting('minimalRecordingView', checked)}
-            />
-          </div>
-        </CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="autoSave">Auto-Save Drafts</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically save transcript drafts
+                  </p>
+                </div>
+                <Switch
+                  id="autoSave"
+                  checked={settings.autoSave}
+                  onCheckedChange={(checked) => onUpdateSetting('autoSave', checked)}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="minimalRecordingView">Minimal Recording View</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Show only timer and word count during consultations
+                  </p>
+                </div>
+                <Switch
+                  id="minimalRecordingView"
+                  checked={settings.minimalRecordingView}
+                  onCheckedChange={(checked) => onUpdateSetting('minimalRecordingView', checked)}
+                />
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
-      {/* Consent Settings */}
+      {/* Consent Settings - Collapsible */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Consent & Privacy
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="showConsentReminder">Patient Consent Reminder</Label>
-              <p className="text-sm text-muted-foreground">
-                Require consent confirmation before each consultation
-              </p>
+        <Collapsible open={consentOpen} onOpenChange={setConsentOpen}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between p-6">
+              <div className="flex items-center gap-2 font-semibold">
+                <Shield className="h-5 w-5" />
+                Consent & Privacy
+              </div>
+              <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${consentOpen ? 'rotate-180' : ''}`} />
             </div>
-            <Switch
-              id="showConsentReminder"
-              checked={settings.showConsentReminder}
-              onCheckedChange={(checked) => onUpdateSetting('showConsentReminder', checked)}
-            />
-          </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-4 pt-0">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="showConsentReminder">Patient Consent Reminder</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Require consent confirmation before each consultation
+                  </p>
+                </div>
+                <Switch
+                  id="showConsentReminder"
+                  checked={settings.showConsentReminder}
+                  onCheckedChange={(checked) => onUpdateSetting('showConsentReminder', checked)}
+                />
+              </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="showPatientBanner">Show Patient Banner During Recording</Label>
-              <p className="text-sm text-muted-foreground">
-                Display captured patient details during recording
-              </p>
-            </div>
-            <Switch
-              id="showPatientBanner"
-              checked={settings.showPatientBannerDuringRecording}
-              onCheckedChange={(checked) => onUpdateSetting('showPatientBannerDuringRecording', checked)}
-            />
-          </div>
-        </CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="showPatientBanner">Show Patient Banner During Recording</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Display captured patient details during recording
+                  </p>
+                </div>
+                <Switch
+                  id="showPatientBanner"
+                  checked={settings.showPatientBannerDuringRecording}
+                  onCheckedChange={(checked) => onUpdateSetting('showPatientBannerDuringRecording', checked)}
+                />
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
       </Card>
 
       {/* History Settings */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <div className="p-6">
+          <div className="flex items-center gap-2 font-semibold mb-4">
             <Clock className="h-5 w-5" />
             History Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </div>
           <div className="space-y-2">
             <Label htmlFor="historyRetention">Consultation History Retention</Label>
             <Select
@@ -231,18 +257,16 @@ export const ScribeSettingsPanel = ({
               Consultations older than this will be automatically removed
             </p>
           </div>
-        </CardContent>
+        </div>
       </Card>
 
       {/* Development Settings */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <div className="p-6">
+          <div className="flex items-center gap-2 font-semibold mb-4">
             <AlertTriangle className="h-5 w-5" />
             Development
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </div>
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="showDevDisclaimer">Show Development Disclaimer</Label>
@@ -256,7 +280,7 @@ export const ScribeSettingsPanel = ({
               onCheckedChange={(checked) => onUpdateSetting('showDevDisclaimer', checked)}
             />
           </div>
-        </CardContent>
+        </div>
       </Card>
 
       {/* Action Buttons */}
