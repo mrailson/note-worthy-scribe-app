@@ -36,13 +36,19 @@ interface EnhancedFindReplacePanelProps {
   meetingId?: string;
   /** Optional: Callback to sync corrections to backend transcription tables */
   onTranscriptSync?: (finds: string[], replaceWith: string) => Promise<void>;
+  /** Optional: Current meeting title (for find/replace in title) */
+  meetingTitle?: string;
+  /** Optional: Callback when meeting title is updated */
+  onTitleUpdate?: (updatedTitle: string) => void;
 }
 
 export default function EnhancedFindReplacePanel({ 
   getCurrentText, 
   onApply,
   meetingId,
-  onTranscriptSync
+  onTranscriptSync,
+  meetingTitle,
+  onTitleUpdate
 }: EnhancedFindReplacePanelProps) {
   const { toast } = useToast();
   const [findInput, setFindInput] = useState("");
@@ -166,6 +172,21 @@ export default function EnhancedFindReplacePanel({
 
     onApply(updatedText);
     
+    // Also update meeting title if it contains the search term
+    let titleUpdated = false;
+    if (meetingTitle && onTitleUpdate && findInput.trim() && replaceWith.trim()) {
+      const flags = "gi";
+      const pattern = wholeWordsOnly 
+        ? new RegExp(`\\b${escapeRegex(findInput.trim())}\\b`, flags)
+        : new RegExp(escapeRegex(findInput.trim()), flags);
+      
+      if (pattern.test(meetingTitle)) {
+        const updatedTitle = meetingTitle.replace(pattern, replaceWith.trim());
+        onTitleUpdate(updatedTitle);
+        titleUpdated = true;
+      }
+    }
+    
     // Silently sync corrections to backend transcription tables (non-blocking)
     if (meetingId && onTranscriptSync && findInput.trim() && replaceWith.trim()) {
       // Collect unique original texts from selected changes
@@ -195,11 +216,14 @@ export default function EnhancedFindReplacePanel({
     setFindInput("");
     setSaveForFuture(false);
     
+    const descParts: string[] = [];
+    descParts.push(`Applied ${selectedChanges.size} changes to the text`);
+    if (titleUpdated) descParts.push('and updated the meeting title');
+    if (savedCorrection) descParts.push('and saved correction for future meetings');
+    
     toast({ 
       title: "Changes Applied", 
-      description: savedCorrection 
-        ? `Applied ${selectedChanges.size} changes and saved correction for future meetings.`
-        : `Applied ${selectedChanges.size} changes to the text.`
+      description: descParts.join(' ') + '.'
     });
   };
 

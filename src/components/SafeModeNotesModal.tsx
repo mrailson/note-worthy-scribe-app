@@ -456,6 +456,26 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   }, [meeting?.id]);
 
+  // Update meeting title in database (for Find & Replace)
+  const updateMeetingTitle = useCallback(async (newTitle: string) => {
+    if (!meeting?.id || !newTitle.trim()) return;
+    
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .update({ title: newTitle.trim() })
+        .eq('id', meeting.id);
+      
+      if (error) throw error;
+      
+      // Update local meeting object if possible (parent component may handle this)
+      console.log('[FindReplace] Meeting title updated to:', newTitle.trim());
+    } catch (error) {
+      console.error('Error updating meeting title:', error);
+      toast.error('Failed to update meeting title');
+    }
+  }, [meeting?.id]);
+
   // Parse notes content into sections
   const parseNotesIntoSections = useCallback((content: string): Section[] => {
     if (!content) return [];
@@ -2653,6 +2673,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           await syncTranscriptCorrections(meeting.id, finds, replaceWith);
                         }
                       }}
+                      meetingTitle={meeting?.title}
+                      onTitleUpdate={updateMeetingTitle}
                     />
                   )}
 
@@ -2914,6 +2936,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                             }}
                             onClose={clearNotesSelection}
                             meetingId={meeting?.id}
+                            meetingTitle={meeting?.title}
+                            onTitleUpdate={updateMeetingTitle}
                           />
                         )}
                       </div>
