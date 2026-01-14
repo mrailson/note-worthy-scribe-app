@@ -66,8 +66,8 @@ export const PresentationStudioModal: React.FC<PresentationStudioModalProps> = (
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="p-4 pb-2 border-b">
+      <DialogContent className="max-w-3xl h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
+        <DialogHeader className="p-4 pb-2 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
               <Presentation className="h-5 w-5 text-primary" />
@@ -87,9 +87,9 @@ export const PresentationStudioModal: React.FC<PresentationStudioModalProps> = (
         <Tabs 
           value={activeTab} 
           onValueChange={(v) => setActiveTab(v as typeof activeTab)}
-          className="flex-1 flex flex-col min-h-0"
+          className="flex-1 flex flex-col min-h-0 overflow-hidden"
         >
-          <TabsList className="grid grid-cols-5 mx-4 mt-2">
+          <TabsList className="grid grid-cols-5 mx-4 mt-2 flex-shrink-0">
             {tabs.map(({ id, label, icon: Icon }) => (
               <TabsTrigger key={id} value={id} className="gap-1.5 text-xs sm:text-sm">
                 <Icon className="h-4 w-4" />
@@ -98,53 +98,51 @@ export const PresentationStudioModal: React.FC<PresentationStudioModalProps> = (
             ))}
           </TabsList>
 
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="p-4">
-              <TabsContent value="content" className="mt-0">
-                <ContentTab 
-                  settings={settings} 
-                  onUpdate={updateSettings}
-                  onAddDocument={addDocument}
-                  onRemoveDocument={removeDocument}
-                  onToggleDocument={toggleDocumentSelection}
-                  onAddKeyPoint={addKeyPoint}
-                  onRemoveKeyPoint={removeKeyPoint}
-                />
-              </TabsContent>
+          <div className="flex-1 overflow-y-auto min-h-0 p-4">
+            <TabsContent value="content" className="mt-0 data-[state=inactive]:hidden">
+              <ContentTab 
+                settings={settings} 
+                onUpdate={updateSettings}
+                onAddDocument={addDocument}
+                onRemoveDocument={removeDocument}
+                onToggleDocument={toggleDocumentSelection}
+                onAddKeyPoint={addKeyPoint}
+                onRemoveKeyPoint={removeKeyPoint}
+              />
+            </TabsContent>
 
-              <TabsContent value="style" className="mt-0">
-                <StyleTab settings={settings} onUpdate={updateSettings} />
-              </TabsContent>
+            <TabsContent value="style" className="mt-0 data-[state=inactive]:hidden">
+              <StyleTab settings={settings} onUpdate={updateSettings} />
+            </TabsContent>
 
-              <TabsContent value="branding" className="mt-0">
-                <BrandingTab settings={settings} onUpdate={updateSettings} />
-              </TabsContent>
+            <TabsContent value="branding" className="mt-0 data-[state=inactive]:hidden">
+              <BrandingTab settings={settings} onUpdate={updateSettings} />
+            </TabsContent>
 
-              <TabsContent value="slides" className="mt-0">
-                <SlidesTab 
-                  settings={settings} 
-                  onUpdate={updateSettings}
-                  onToggleSlideType={toggleSlideType}
-                />
-              </TabsContent>
+            <TabsContent value="slides" className="mt-0 data-[state=inactive]:hidden">
+              <SlidesTab 
+                settings={settings} 
+                onUpdate={updateSettings}
+                onToggleSlideType={toggleSlideType}
+              />
+            </TabsContent>
 
-              <TabsContent value="generate" className="mt-0">
-                <GenerateTab
-                  settings={settings}
-                  isGenerating={isGenerating}
-                  phase={generationPhase}
-                  progress={generationProgress}
-                  currentResult={currentResult}
-                  history={generationHistory}
-                  error={error}
-                  onGenerate={generatePresentation}
-                  onDownload={downloadPresentation}
-                  onCancel={cancelGeneration}
-                  onLoadHistory={loadFromHistory}
-                />
-              </TabsContent>
-            </div>
-          </ScrollArea>
+            <TabsContent value="generate" className="mt-0 data-[state=inactive]:hidden">
+              <GenerateTab
+                settings={settings}
+                isGenerating={isGenerating}
+                phase={generationPhase}
+                progress={generationProgress}
+                currentResult={currentResult}
+                history={generationHistory}
+                error={error}
+                onGenerate={generatePresentation}
+                onDownload={downloadPresentation}
+                onCancel={cancelGeneration}
+                onLoadHistory={loadFromHistory}
+              />
+            </TabsContent>
+          </div>
         </Tabs>
 
         {/* Quick navigation footer */}

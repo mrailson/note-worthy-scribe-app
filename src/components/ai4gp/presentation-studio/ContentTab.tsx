@@ -1,12 +1,12 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, X, FileText, Upload, FileSpreadsheet, File, Trash2, Check } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Plus, X, FileText, Upload, FileSpreadsheet, File, Trash2, Check, ChevronDown } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '@/lib/utils';
 import { 
@@ -35,7 +35,9 @@ export const ContentTab: React.FC<ContentTabProps> = ({
   onAddKeyPoint,
   onRemoveKeyPoint,
 }) => {
-  const [newKeyPoint, setNewKeyPoint] = React.useState('');
+  const [newKeyPoint, setNewKeyPoint] = useState('');
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [audienceOpen, setAudienceOpen] = useState(false);
 
   const handleAddKeyPoint = () => {
     if (newKeyPoint.trim() && settings.keyPoints.length < 10) {
@@ -85,6 +87,9 @@ export const ContentTab: React.FC<ContentTabProps> = ({
     return <FileText className="h-4 w-4 text-blue-500" />;
   };
 
+  const selectedType = PRESENTATION_TYPES.find(t => t.id === settings.presentationType);
+  const selectedAudience = TARGET_AUDIENCES.find(a => a.id === settings.targetAudience);
+
   return (
     <div className="space-y-6">
       {/* Topic/Title */}
@@ -104,48 +109,90 @@ export const ContentTab: React.FC<ContentTabProps> = ({
         </p>
       </div>
 
-      {/* Presentation Type */}
-      <div className="space-y-3">
-        <Label>Presentation Type</Label>
-        <div className="grid grid-cols-2 gap-2">
-          {PRESENTATION_TYPES.map((type) => (
-            <Card 
-              key={type.id}
-              className={cn(
-                "cursor-pointer transition-all hover:border-primary/50",
-                settings.presentationType === type.id && "border-primary bg-primary/5"
+      {/* Presentation Type - Collapsible */}
+      <Collapsible open={typeOpen} onOpenChange={setTypeOpen}>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex items-center justify-between w-full p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="font-medium">Presentation Type</span>
+              {selectedType && (
+                <Badge variant="secondary" className="ml-2">
+                  {selectedType.label}
+                </Badge>
               )}
-              onClick={() => onUpdate({ presentationType: type.id })}
-            >
-              <CardContent className="p-3">
-                <p className="font-medium text-sm">{type.label}</p>
-                <p className="text-xs text-muted-foreground line-clamp-1">{type.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+            </div>
+            <ChevronDown className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform",
+              typeOpen && "rotate-180"
+            )} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-3">
+          <div className="grid grid-cols-2 gap-2">
+            {PRESENTATION_TYPES.map((type) => (
+              <Card 
+                key={type.id}
+                className={cn(
+                  "cursor-pointer transition-all hover:border-primary/50",
+                  settings.presentationType === type.id && "border-primary bg-primary/5"
+                )}
+                onClick={() => onUpdate({ presentationType: type.id })}
+              >
+                <CardContent className="p-3">
+                  <p className="font-medium text-sm">{type.label}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-1">{type.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
-      {/* Target Audience */}
-      <div className="space-y-3">
-        <Label>Target Audience</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {TARGET_AUDIENCES.map((audience) => (
-            <Card 
-              key={audience.id}
-              className={cn(
-                "cursor-pointer transition-all hover:border-primary/50",
-                settings.targetAudience === audience.id && "border-primary bg-primary/5"
+      {/* Target Audience - Collapsible */}
+      <Collapsible open={audienceOpen} onOpenChange={setAudienceOpen}>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex items-center justify-between w-full p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="font-medium">Target Audience</span>
+              {selectedAudience && (
+                <Badge variant="secondary" className="ml-2">
+                  {selectedAudience.label}
+                </Badge>
               )}
-              onClick={() => onUpdate({ targetAudience: audience.id })}
-            >
-              <CardContent className="p-2 text-center">
-                <p className="font-medium text-sm">{audience.label}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+            </div>
+            <ChevronDown className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform",
+              audienceOpen && "rotate-180"
+            )} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-3">
+          <div className="grid grid-cols-3 gap-2">
+            {TARGET_AUDIENCES.map((audience) => (
+              <Card 
+                key={audience.id}
+                className={cn(
+                  "cursor-pointer transition-all hover:border-primary/50",
+                  settings.targetAudience === audience.id && "border-primary bg-primary/5"
+                )}
+                onClick={() => onUpdate({ targetAudience: audience.id })}
+              >
+                <CardContent className="p-2 text-center">
+                  <p className="font-medium text-sm">{audience.label}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Supporting Documents */}
       <div className="space-y-3">
