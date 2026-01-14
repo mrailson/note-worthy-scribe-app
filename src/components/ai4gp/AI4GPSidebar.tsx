@@ -52,6 +52,7 @@ interface AI4GPSidebarProps {
   onShowDocumentTranslate: () => void;
   onShowUserGuide: () => void;
   onShowAllQuickActions: () => void;
+  onShowImageStudio: () => void;
   meetings: SidebarMeeting[];
   meetingsLoading: boolean;
   onSelectMeeting: (meetingId: string) => void;
@@ -72,6 +73,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
   onShowDocumentTranslate,
   onShowUserGuide,
   onShowAllQuickActions,
+  onShowImageStudio,
   meetings,
   meetingsLoading,
   onSelectMeeting
@@ -89,6 +91,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
     { icon: Activity, label: 'BP Average Service', action: onShowBPCalculator },
     { icon: Languages, label: 'Translation', action: onShowTranslation },
     { icon: Camera, label: 'LG Capture', action: () => navigate('/lg-capture') },
+    { icon: Palette, label: 'Image Studio', action: onShowImageStudio },
   ];
 
   const SidebarButton = ({ icon: Icon, label, action, className }: { 
