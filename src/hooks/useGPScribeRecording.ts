@@ -9,7 +9,7 @@ import { showToast } from "@/utils/toastWrapper";
 import { bus } from "@/lib/bus";
 import { supabase } from "@/integrations/supabase/client";
 
-export const useGPScribeRecording = () => {
+export const useGPScribeRecording = (selectedMicrophoneId?: string | null) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -338,6 +338,7 @@ export const useGPScribeRecording = () => {
 
       if (isIOS) {
         console.log('📱 Starting iPhone Whisper transcription for GP Scribe...');
+        console.log('🎤 Using microphone device:', selectedMicrophoneId || 'default');
         iPhoneTranscriberRef.current = new iPhoneWhisperTranscriber(
           (data: IPhoneTranscriptData) => {
             handleTranscriptUpdate({
@@ -356,12 +357,16 @@ export const useGPScribeRecording = () => {
           (status: string) => {
             setConnectionStatus(status);
           },
-          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } } // Lower threshold for consultations
+          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } }, // Lower threshold for consultations
+          undefined, // meetingId
+          undefined, // onAudioActivity
+          selectedMicrophoneId // Selected device ID
         );
         
         await iPhoneTranscriberRef.current.startTranscription();
       } else if (isMobile) {
         console.log('📱 Starting Desktop Whisper transcription for Android GP Scribe...');
+        console.log('🎤 Using microphone device:', selectedMicrophoneId || 'default');
         // Use desktop transcriber for Android - same as meeting recorder
         desktopTranscriberRef.current = new DesktopWhisperTranscriber(
           (data: DesktopTranscriptData) => {
@@ -381,12 +386,17 @@ export const useGPScribeRecording = () => {
           (status: string) => {
             setConnectionStatus(status);
           },
-          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.7, deepgram: 0.8 } } // Lower threshold for consultations
+          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.7, deepgram: 0.8 } }, // Lower threshold for consultations
+          undefined, // meetingId
+          undefined, // onAudioActivity
+          undefined, // onChunkProcessed
+          selectedMicrophoneId // Selected device ID
         );
         
         await desktopTranscriberRef.current.startTranscription();
       } else if (useChromiumMicPipeline) {
         console.log('🚀 Starting Chromium Mic Pipeline for GP Scribe...');
+        console.log('🎤 Using microphone device:', selectedMicrophoneId || 'default');
         // Use new Chromium-optimized mic pipeline
         chromiumTranscriberRef.current = new ChromiumMicTranscriber(
           (data: ChromiumTranscriptData) => {
@@ -406,12 +416,14 @@ export const useGPScribeRecording = () => {
           (status: string) => {
             setConnectionStatus(status);
           },
-          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } } // Lower threshold for consultations
+          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } }, // Lower threshold for consultations
+          selectedMicrophoneId // Selected device ID
         );
         
         await chromiumTranscriberRef.current.startTranscription();
       } else {
         console.log('🖥️ Starting Desktop Whisper transcription for GP Scribe...');
+        console.log('🎤 Using microphone device:', selectedMicrophoneId || 'default');
         // Use desktop transcriber for better reliability - don't use UnifiedAudioCapture
         desktopTranscriberRef.current = new DesktopWhisperTranscriber(
           (data: DesktopTranscriptData) => {
@@ -431,7 +443,11 @@ export const useGPScribeRecording = () => {
           (status: string) => {
             setConnectionStatus(status);
           },
-          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } } // Lower threshold for consultations
+          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } }, // Lower threshold for consultations
+          undefined, // meetingId
+          undefined, // onAudioActivity
+          undefined, // onChunkProcessed
+          selectedMicrophoneId // Selected device ID
         );
         
         await desktopTranscriberRef.current.startTranscription();

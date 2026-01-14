@@ -57,7 +57,8 @@ export class ChromiumMicTranscriber {
     private onTranscription: (data: ChromiumTranscriptData) => void,
     private onError: (error: string) => void,
     private onStatusChange: (status: string) => void,
-    meetingSettings?: any
+    meetingSettings?: any,
+    private selectedDeviceId?: string | null
   ) {
     this.sessionId = `chromium_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.meetingSettings = withDefaultThresholds(meetingSettings);
@@ -70,14 +71,22 @@ export class ChromiumMicTranscriber {
       this.onStatusChange('Initializing microphone...');
 
       // Get optimized audio stream for Chromium
+      // Use selected device if provided
+      const audioConstraints: MediaTrackConstraints = {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: 44100
+      };
+      
+      if (this.selectedDeviceId) {
+        audioConstraints.deviceId = { exact: this.selectedDeviceId };
+        this.logEvent('chromium_mic.using_selected_device', { deviceId: this.selectedDeviceId });
+      }
+      
       this.audioStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 44100
-        }
+        audio: audioConstraints
       });
 
       // Select optimal MIME type for Chromium

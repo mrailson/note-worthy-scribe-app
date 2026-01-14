@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConsultationType } from "@/types/gpscribe";
 import { OUTPUT_LEVELS } from "@/constants/consultationSettings";
 import { Save, RotateCcw } from "lucide-react";
+import { MicrophoneSettings } from "./MicrophoneSettings";
 
 interface SettingsPanelProps {
   consultationType: ConsultationType;
@@ -22,6 +23,7 @@ interface SettingsPanelProps {
   onFormatForSystmOneChange: (format: boolean) => void;
   onTickerEnabledChange: (enabled: boolean) => void;
   onShowTranscriptTimestampsChange: (show: boolean) => void;
+  onMicrophoneChange?: (deviceId: string | null) => void;
   onSaveSettings: () => void;
   onResetSettings: () => void;
 }
@@ -41,11 +43,15 @@ export const SettingsPanel = ({
   onFormatForSystmOneChange,
   onTickerEnabledChange,
   onShowTranscriptTimestampsChange,
+  onMicrophoneChange,
   onSaveSettings,
   onResetSettings
 }: SettingsPanelProps) => {
   return (
     <div className="space-y-6">
+      {/* Microphone Settings - Most important for troubleshooting */}
+      <MicrophoneSettings onDeviceChange={onMicrophoneChange} />
+      
       {/* Consultation Settings */}
       <Card>
         <CardHeader>
