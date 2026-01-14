@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
-import { CheckCircle2, User, Calendar, Flag, Pencil } from 'lucide-react';
+import { CheckCircle2, User, Calendar, Flag, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Separator } from '@/components/ui/separator';
 import {
   Popover,
   PopoverContent,
@@ -206,15 +207,19 @@ const priorityConfig: Record<string, { color: string }> = {
   Low: { color: 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20' },
 };
 
-const STATUS_OPTIONS = ['Open', 'In Progress', 'Completed'] as const;
+const STATUS_OPTIONS_OPEN = ['Open', 'In Progress', 'Completed'] as const;
 
 // Status dropdown component
 const StatusDropdown = ({
   status,
   onStatusChange,
+  onDelete,
+  isCompletedView,
 }: {
   status: string;
   onStatusChange: (newStatus: string) => void;
+  onDelete: () => void;
+  isCompletedView: boolean;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -223,6 +228,11 @@ const StatusDropdown = ({
       onStatusChange(newStatus);
     }
     setIsOpen(false);
+  };
+
+  const handleDelete = () => {
+    setIsOpen(false);
+    onDelete();
   };
 
   return (
@@ -240,18 +250,37 @@ const StatusDropdown = ({
       </PopoverTrigger>
       <PopoverContent className="w-36 p-1" align="start">
         <div className="space-y-0.5">
-          {STATUS_OPTIONS.map((option) => (
+          {isCompletedView ? (
+            // Completed view: show Reopen option
             <button
-              key={option}
-              onClick={() => handleSelect(option)}
-              className={cn(
-                "w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted transition-colors",
-                status === option && "bg-muted font-medium"
-              )}
+              onClick={() => handleSelect('Open')}
+              className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted transition-colors"
             >
-              {option === 'Completed' ? '✓ ' : '○ '}{option}
+              ↩ Reopen
             </button>
-          ))}
+          ) : (
+            // Open view: show all status options
+            STATUS_OPTIONS_OPEN.map((option) => (
+              <button
+                key={option}
+                onClick={() => handleSelect(option)}
+                className={cn(
+                  "w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted transition-colors",
+                  status === option && "bg-muted font-medium"
+                )}
+              >
+                {option === 'Completed' ? '✓ ' : '○ '}{option}
+              </button>
+            ))
+          )}
+          <Separator className="my-1" />
+          <button
+            onClick={handleDelete}
+            className="w-full text-left text-sm px-2 py-1.5 rounded hover:bg-destructive/10 text-destructive transition-colors flex items-center gap-2"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete
+          </button>
         </div>
       </PopoverContent>
     </Popover>
@@ -259,32 +288,51 @@ const StatusDropdown = ({
 };
 
 export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProps) => {
-  const { actionItems, isLoading, updateActionItem } = useActionItems(meetingId);
-  const [showCompleted, setShowCompleted] = useState(false);
+  const { actionItems, isLoading, updateActionItem, deleteActionItem } = useActionItems(meetingId);
+  const [viewMode, setViewMode] = useState<'open' | 'completed'>('open');
 
   if (isLoading || actionItems.length === 0) {
     return null;
   }
 
-  const openItems = actionItems.filter(i => i.status !== 'Completed');
-  const completedItems = actionItems.filter(i => i.status === 'Completed');
-  const displayedItems = showCompleted ? actionItems : openItems;
+  const completedCount = actionItems.filter(item => item.status === 'Completed').length;
+  const openCount = actionItems.length - completedCount;
+  
+  const filteredItems = viewMode === 'completed'
+    ? actionItems.filter(item => item.status === 'Completed')
+    : actionItems.filter(item => item.status !== 'Completed');
 
   return (
     <div className="rounded-lg border overflow-hidden">
       <div className="bg-primary px-4 py-2 flex items-center justify-between">
         <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4" />
-          Action Items ({openItems.length} open, {completedItems.length} completed)
+          Action Items
         </h3>
-        {completedItems.length > 0 && (
+        <div className="flex rounded-md border border-primary-foreground/30 overflow-hidden">
           <button
-            onClick={() => setShowCompleted(!showCompleted)}
-            className="text-xs text-primary-foreground/80 hover:text-primary-foreground underline-offset-2 hover:underline"
+            onClick={() => setViewMode('open')}
+            className={cn(
+              "px-3 py-1 text-xs font-medium transition-colors",
+              viewMode === 'open'
+                ? "bg-primary-foreground text-primary"
+                : "bg-transparent hover:bg-primary-foreground/10 text-primary-foreground"
+            )}
           >
-            {showCompleted ? 'Hide completed' : 'Show completed'}
+            Open ({openCount})
           </button>
-        )}
+          <button
+            onClick={() => setViewMode('completed')}
+            className={cn(
+              "px-3 py-1 text-xs font-medium transition-colors border-l border-primary-foreground/30",
+              viewMode === 'completed'
+                ? "bg-primary-foreground text-primary"
+                : "bg-transparent hover:bg-primary-foreground/10 text-primary-foreground"
+            )}
+          >
+            Completed ({completedCount})
+          </button>
+        </div>
       </div>
       <Table>
         <TableHeader>
@@ -297,7 +345,7 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {displayedItems.map((item) => (
+          {filteredItems.map((item) => (
             <TableRow 
               key={item.id} 
               className={item.status === 'Completed' ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}
@@ -358,6 +406,8 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
                 <StatusDropdown
                   status={item.status}
                   onStatusChange={(newStatus) => updateActionItem(item.id, { status: newStatus as 'Open' | 'In Progress' | 'Completed' })}
+                  onDelete={() => deleteActionItem(item.id)}
+                  isCompletedView={viewMode === 'completed'}
                 />
               </TableCell>
             </TableRow>
