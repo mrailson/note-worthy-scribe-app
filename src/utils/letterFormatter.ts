@@ -241,9 +241,9 @@ export async function createLetterDocument(
         const imageBuffer = await imageBlob.arrayBuffer();
         const uint8Array = new Uint8Array(imageBuffer);
 
-        // Compute dimensions preserving aspect ratio within bounds (40% larger)
-        let targetWidth = 280;
-        let targetHeight = 112;
+        // Compute dimensions preserving aspect ratio within bounds
+        let targetWidth = 200;
+        let targetHeight = 80;
         try {
           const tempImg = document.createElement('img');
           const objectUrl = URL.createObjectURL(imageBlob);
@@ -257,11 +257,26 @@ export async function createLetterDocument(
           URL.revokeObjectURL(objectUrl);
 
           if (naturalW && naturalH) {
-            const maxW = 336; // px (40% larger)
-            const maxH = 140; // px (40% larger)
-            const scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
-            targetWidth = Math.max(84, Math.round(naturalW * scale));
-            targetHeight = Math.max(28, Math.round(naturalH * scale));
+            const maxW = 280; // max width in pixels
+            const maxH = 120; // max height in pixels
+            const aspectRatio = naturalW / naturalH;
+            
+            // Scale to fit within bounds while preserving aspect ratio
+            if (naturalW > maxW || naturalH > maxH) {
+              if (maxW / aspectRatio <= maxH) {
+                // Width is the limiting factor
+                targetWidth = maxW;
+                targetHeight = Math.round(maxW / aspectRatio);
+              } else {
+                // Height is the limiting factor
+                targetHeight = maxH;
+                targetWidth = Math.round(maxH * aspectRatio);
+              }
+            } else {
+              // Image is smaller than max, use natural size
+              targetWidth = naturalW;
+              targetHeight = naturalH;
+            }
           }
         } catch (_) {
           // keep defaults
