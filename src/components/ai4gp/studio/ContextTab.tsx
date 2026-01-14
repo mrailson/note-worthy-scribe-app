@@ -120,12 +120,15 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate }) =>
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif'],
+      'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tiff', '.svg'],
       'application/pdf': ['.pdf'],
       'application/msword': ['.doc'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/vnd.ms-powerpoint': ['.ppt'],
       'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'text/csv': ['.csv'],
     },
     maxFiles: 5,
     maxSize: 10 * 1024 * 1024, // 10MB
@@ -242,7 +245,7 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate }) =>
           <p className="text-sm text-muted-foreground">
             {isDragActive ? "Drop files here..." : "Drag & drop files, or click to select"}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">PDF, Word, PowerPoint, Images (max 10MB)</p>
+          <p className="text-xs text-muted-foreground mt-1">PDF, Word, PowerPoint, Excel, Images (max 10MB)</p>
         </div>
 
         {/* Uploaded Files Preview */}
