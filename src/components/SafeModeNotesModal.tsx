@@ -2889,7 +2889,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                       </div>
 
                       {/* Action Items Table - Database-backed with inline editing */}
-                      {viewMode === 'formatted' && meeting?.id && (
+                      {viewMode === 'formatted' && meeting?.id && notesViewSettings.settings.visibleSections.actionList && (
                         <InlineActionItemsTable meetingId={meeting.id} />
                       )}
                     </>
