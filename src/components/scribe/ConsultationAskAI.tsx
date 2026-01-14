@@ -60,10 +60,61 @@ export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps)
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [practiceName, setPracticeName] = useState<string | null>(null);
+  const [doctorName, setDoctorName] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const micRef = useRef<EnhancedBrowserMicRef>(null);
   const { sendEmailAutomatically, isSending: isEmailSending } = useAutoEmail();
+
+  // Fetch practice and doctor details on mount
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch practice details
+        const { data: practiceData } = await supabase
+          .from('practice_details')
+          .select('practice_name')
+          .eq('user_id', user.id)
+          .eq('is_default', true)
+          .maybeSingle();
+
+        if (practiceData?.practice_name) {
+          setPracticeName(practiceData.practice_name);
+        } else {
+          // Fallback to most recent
+          const { data: practices } = await supabase
+            .from('practice_details')
+            .select('practice_name')
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false })
+            .limit(1);
+          
+          if (practices && practices.length > 0) {
+            setPracticeName(practices[0].practice_name);
+          }
+        }
+
+        // Fetch doctor name from profiles
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (profile?.full_name) {
+          setDoctorName(profile.full_name);
+        }
+      } catch (error) {
+        console.error('Error fetching user details:', error);
+      }
+    };
+
+    fetchUserDetails();
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -167,9 +218,19 @@ export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps)
       `**${m.role === 'user' ? 'Question' : 'Answer'}:**\n\n${m.content}`
     ).join('\n\n---\n\n');
     
-    const header = `# Consultation Q&A Chat\n\n**Consultation Type:** ${session.consultationType || 'Unknown'}\n**Date:** ${format(new Date(session.createdAt), 'dd/MM/yyyy HH:mm')}\n\n---\n\n`;
+    const headerParts = [
+      '# Consultation Q&A Chat',
+      '',
+      practiceName ? `**Practice:** ${practiceName}` : null,
+      doctorName ? `**Clinician:** ${doctorName}` : null,
+      `**Consultation Type:** ${session.consultationType || 'Unknown'}`,
+      `**Date:** ${format(new Date(session.createdAt), 'dd/MM/yyyy HH:mm')}`,
+      '',
+      '---',
+      ''
+    ].filter(Boolean).join('\n');
     
-    await generateWordDocument(header + content, `Consultation QA - ${format(new Date(), 'dd-MM-yyyy HH:mm')}`);
+    await generateWordDocument(headerParts + content, `Consultation QA - ${format(new Date(), 'dd-MM-yyyy HH:mm')}`);
     toast.success('Chat exported to Word');
   };
 
@@ -180,9 +241,19 @@ export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps)
       `**${m.role === 'user' ? 'Question' : 'Answer'}:**\n\n${m.content}`
     ).join('\n\n---\n\n');
     
-    const header = `# Consultation Q&A Chat\n\n**Consultation Type:** ${session.consultationType || 'Unknown'}\n**Date:** ${format(new Date(session.createdAt), 'dd/MM/yyyy HH:mm')}\n\n---\n\n`;
+    const headerParts = [
+      '# Consultation Q&A Chat',
+      '',
+      practiceName ? `**Practice:** ${practiceName}` : null,
+      doctorName ? `**Clinician:** ${doctorName}` : null,
+      `**Consultation Type:** ${session.consultationType || 'Unknown'}`,
+      `**Date:** ${format(new Date(session.createdAt), 'dd/MM/yyyy HH:mm')}`,
+      '',
+      '---',
+      ''
+    ].filter(Boolean).join('\n');
     
-    await sendEmailAutomatically(header + content, `Consultation Q&A - ${format(new Date(session.createdAt), 'dd/MM/yyyy')}`);
+    await sendEmailAutomatically(headerParts + content, `Consultation Q&A - ${format(new Date(session.createdAt), 'dd/MM/yyyy')}`);
   };
 
   const handleClearChat = () => {
