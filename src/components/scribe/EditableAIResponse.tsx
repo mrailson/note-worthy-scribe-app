@@ -82,7 +82,7 @@ const stripHtmlToText = (html: string): string => {
     .trim();
 };
 
-// Convert markdown to HTML for display
+// Convert markdown to HTML for display with improved formatting
 const convertMarkdownToHtml = (text: string): string => {
   if (!text) return '';
   
@@ -92,34 +92,59 @@ const convertMarkdownToHtml = (text: string): string => {
     processedText = stripHtmlToText(text);
   }
   
-  let html = processedText
-    // Escape HTML entities
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    // Bold
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Italic (but not list items)
-    .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
-    // Headers
-    .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-4 mb-2">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-4 mb-2">$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-4 mb-2">$1</h1>')
-    // Bullet lists
-    .replace(/^[-•] (.+)$/gm, '<li class="ml-4">$1</li>')
-    // Numbered lists
-    .replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>')
-    // Double line breaks to paragraphs with spacing
-    .replace(/\n\n/g, '</p><p class="mb-3">')
-    // Single line breaks
-    .replace(/\n/g, '<br/>');
-
-  // Wrap consecutive <li> elements in <ul> with spacing
-  html = html.replace(/(<li[^>]*>.*?<\/li>)+/gs, (match) => `<ul class="my-2 space-y-1">${match}</ul>`);
+  // Process bold FIRST with a global multiline approach
+  // This handles cases where ** spans multiple words or has special characters
+  let html = processedText;
   
-  // Wrap in paragraph if not already wrapped
-  if (!html.startsWith('<')) {
-    html = `<p class="mb-3">${html}</p>`;
+  // Handle bold+italic first (***text***)
+  html = html.replace(/\*\*\*(.+?)\*\*\*/gs, '<strong><em>$1</em></strong>');
+  
+  // Handle bold (**text**) - more robust pattern
+  html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+  
+  // Handle italic (*text*) - but not list markers
+  html = html.replace(/(?<![*\w])\*([^*\n]+?)\*(?![*\w])/g, '<em>$1</em>');
+  
+  // Escape HTML entities (but preserve our tags)
+  html = html
+    .replace(/&(?!amp;|lt;|gt;)/g, '&amp;')
+    .replace(/<(?!\/?(?:strong|em|h[1-3]|p|br|ul|ol|li|span)\b)/g, '&lt;')
+    .replace(/(?<!<\/?(?:strong|em|h[1-3]|p|br|ul|ol|li|span)[^>]*)>/g, (match, offset) => {
+      // Only escape > if it's not part of an HTML tag we created
+      const before = html.substring(Math.max(0, offset - 50), offset);
+      if (/<(?:strong|em|h[1-3]|p|br|ul|ol|li|span)[^>]*$/.test(before)) {
+        return match;
+      }
+      return '&gt;';
+    });
+  
+  // Headers with better spacing
+  html = html
+    .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-5 mb-3 text-foreground">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-6 mb-3 text-foreground">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-6 mb-4 text-foreground">$1</h1>');
+  
+  // Bullet lists with proper indentation
+  html = html.replace(/^[-•]\s+(.+)$/gm, '<li class="ml-5 pl-1">$1</li>');
+  
+  // Numbered lists
+  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li class="ml-5 pl-1 list-decimal">$1</li>');
+  
+  // Double line breaks to paragraphs with proper spacing
+  html = html.replace(/\n\n+/g, '</p><p class="mb-4 leading-relaxed">');
+  
+  // Single line breaks - handle carefully
+  html = html.replace(/\n/g, '<br/>');
+
+  // Wrap consecutive <li> elements in <ul> with proper spacing
+  html = html.replace(/(<li[^>]*>.*?<\/li>(?:\s*<br\/>?\s*)?)+/gs, (match) => {
+    const cleanedMatch = match.replace(/<br\s*\/?>/g, '');
+    return `<ul class="my-4 space-y-2 list-disc">${cleanedMatch}</ul>`;
+  });
+  
+  // Wrap in paragraph if not already wrapped and doesn't start with a block element
+  if (!html.startsWith('<h') && !html.startsWith('<ul') && !html.startsWith('<ol') && !html.startsWith('<p')) {
+    html = `<p class="mb-4 leading-relaxed">${html}</p>`;
   }
 
   return html;
@@ -407,11 +432,21 @@ export function EditableAIResponse({
       {/* Editor content */}
       <div 
         className={cn(
-          'prose prose-sm max-w-none dark:prose-invert p-4',
-          'prose-p:mb-3 prose-p:leading-relaxed',
-          'prose-headings:mt-4 prose-headings:mb-2',
-          'prose-ul:my-2 prose-ul:space-y-1 prose-li:my-0.5',
-          'prose-strong:font-semibold',
+          'prose prose-sm max-w-none dark:prose-invert px-5 py-4',
+          // Paragraphs
+          'prose-p:mb-4 prose-p:leading-7 prose-p:text-foreground/90',
+          // Headings
+          'prose-headings:mt-6 prose-headings:mb-3 prose-headings:font-semibold prose-headings:text-foreground',
+          'prose-h1:text-xl prose-h2:text-lg prose-h3:text-base',
+          // Lists
+          'prose-ul:my-4 prose-ul:pl-1 prose-ul:space-y-2',
+          'prose-ol:my-4 prose-ol:pl-1 prose-ol:space-y-2',
+          'prose-li:my-1 prose-li:leading-relaxed prose-li:text-foreground/90',
+          // Strong/Bold
+          'prose-strong:font-semibold prose-strong:text-foreground',
+          // Emphasis
+          'prose-em:italic prose-em:text-foreground/80',
+          // Interactive states
           !isEditing && 'cursor-pointer hover:bg-muted/30 rounded-lg transition-colors',
           isEditing && 'min-h-[100px]'
         )}
