@@ -63,32 +63,42 @@ const QUICK_PROMPTS = [
   }
 ];
 
-// Collapsible message component for long AI responses
-const CollapsibleMessage = ({ content }: { content: string }) => {
+// Collapsible user request component - shows first 2 lines by default
+const CollapsibleUserRequest = ({ content }: { content: string }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const lines = content.split('\n');
+  const previewLines = lines.slice(0, 2).join('\n');
+  const hasMore = lines.length > 2 || content.length > 150;
+  
+  if (!hasMore) {
+    return <p className="text-sm whitespace-pre-wrap">{content}</p>;
+  }
   
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <div className="space-y-2">
+      <div className="space-y-1">
+        {!isOpen && (
+          <p className="text-sm whitespace-pre-wrap">
+            {previewLines.length > 150 ? previewLines.slice(0, 150) + '...' : previewLines}
+            {lines.length > 2 && '...'}
+          </p>
+        )}
+        <CollapsibleContent>
+          <p className="text-sm whitespace-pre-wrap">{content}</p>
+        </CollapsibleContent>
         <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="w-full justify-between h-auto py-2 text-left">
-            <span className="text-sm font-medium">
-              {isOpen ? 'Hide response' : 'View AI response'}
-            </span>
-            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 px-2 py-0 text-xs text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10"
+          >
+            {isOpen ? (
+              <>Show less <ChevronUp className="h-3 w-3 ml-1" /></>
+            ) : (
+              <>Show more <ChevronDown className="h-3 w-3 ml-1" /></>
+            )}
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div 
-            className="text-sm prose prose-sm max-w-none dark:prose-invert 
-                       prose-p:mb-3 prose-p:leading-relaxed
-                       prose-ul:my-2 prose-li:my-1
-                       prose-headings:mb-3 prose-headings:mt-4"
-            dangerouslySetInnerHTML={{ 
-              __html: renderNHSMarkdown(content, { enableNHSStyling: true }) 
-            }}
-          />
-        </CollapsibleContent>
       </div>
     </Collapsible>
   );
@@ -419,9 +429,7 @@ Include:
                         `}
                       >
                         {msg.role === 'user' ? (
-                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                        ) : msg.content.length > 500 ? (
-                          <CollapsibleMessage content={msg.content} />
+                          <CollapsibleUserRequest content={msg.content} />
                         ) : (
                           <div 
                             className="text-sm prose prose-sm max-w-none dark:prose-invert 
