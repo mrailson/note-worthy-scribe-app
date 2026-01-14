@@ -962,8 +962,8 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                               {session.title}
                             </CardTitle>
                           </div>
-                          {/* Patient Memory Jogger - Masked Display */}
-                          {session.patientName && (
+                        {/* Patient Memory Jogger - Masked Display */}
+                          {session.patientName ? (
                             <div className="flex items-center gap-2 mt-1">
                               <User className="h-3 w-3 text-primary/70" />
                               <span className="text-sm font-medium text-primary/80">
@@ -980,6 +980,34 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                                 </span>
                               )}
                             </div>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-xs text-muted-foreground hover:text-primary mt-1 px-1"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                // Add sample patient data for testing
+                                const { error } = await supabase
+                                  .from('gp_consultations')
+                                  .update({
+                                    patient_name: 'James Smith',
+                                    patient_nhs_number: '1234567384',
+                                    patient_dob: '1975-03-15',
+                                    patient_context_confidence: 0.85
+                                  })
+                                  .eq('id', session.id);
+                                if (!error) {
+                                  toast.success('Sample patient data added');
+                                  onRefresh();
+                                } else {
+                                  toast.error('Failed to add patient data');
+                                }
+                              }}
+                            >
+                              <User className="h-3 w-3 mr-1" />
+                              + Add patient context (demo)
+                            </Button>
                           )}
                           <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
