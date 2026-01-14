@@ -62,6 +62,7 @@ import { PlaudIntegrationSettings } from '@/components/settings/PlaudIntegration
 import { ServiceVisibilitySettings } from '@/components/settings/ServiceVisibilitySettings';
 import { QuickRecordSettings } from '@/components/settings/QuickRecordSettings';
 import { PresentationTemplateSettings } from '@/components/settings/PresentationTemplateSettings';
+import { ReferralDestinationsManager } from '@/components/settings/ReferralDestinationsManager';
 import { useToast } from '@/hooks/use-toast';
 import { useToastPreferences } from '@/hooks/useToastPreferences';
 import { useVoicePreference, VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
@@ -735,6 +736,9 @@ export default function Settings() {
 
               {/* Quick Record for iPhone */}
               <QuickRecordSettings />
+
+              {/* Referral Destinations */}
+              <ReferralDestinationsManager />
 
               <Card>
                 <CardHeader>
