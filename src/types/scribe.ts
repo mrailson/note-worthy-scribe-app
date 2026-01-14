@@ -134,6 +134,7 @@ export interface ScribeSettings {
   showPatientBannerDuringRecording: boolean; // Show patient details during recording
   historyRetention: HistoryRetention; // How long to keep consultation history
   showDevDisclaimer: boolean; // Show/hide the development disclaimer banner
+  minimalRecordingView: boolean; // Show minimal timer/word count only during recording
 }
 
 export interface ScribeTranscriptData {
@@ -210,5 +211,6 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   showNotMentioned: false, // Default to hiding "None mentioned" lines
   showPatientBannerDuringRecording: true, // Default to showing patient banner
   historyRetention: '1week', // Default to 1 week retention
-  showDevDisclaimer: true // Default to showing development disclaimer
+  showDevDisclaimer: true, // Default to showing development disclaimer
+  minimalRecordingView: true // Default to minimal view for patient comfort
 };

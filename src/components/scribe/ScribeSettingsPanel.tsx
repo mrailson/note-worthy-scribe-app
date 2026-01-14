@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS, HistoryRetention, HISTORY_RETENTION_LABELS } from "@/types/scribe";
-import { Settings, Save, RotateCcw, Stethoscope, Mic, Shield, Clock, AlertTriangle } from "lucide-react";
+import { Settings, Save, RotateCcw, Stethoscope, Mic, Shield, Clock, AlertTriangle, Monitor } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Phone, Video, Users } from "lucide-react";
 import { MicrophoneSettings } from "@/components/gpscribe/MicrophoneSettings";
@@ -141,6 +141,20 @@ export const ScribeSettingsPanel = ({
               id="autoSave"
               checked={settings.autoSave}
               onCheckedChange={(checked) => onUpdateSetting('autoSave', checked)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="minimalRecordingView">Minimal Recording View</Label>
+              <p className="text-sm text-muted-foreground">
+                Show only timer and word count during consultations
+              </p>
+            </div>
+            <Switch
+              id="minimalRecordingView"
+              checked={settings.minimalRecordingView}
+              onCheckedChange={(checked) => onUpdateSetting('minimalRecordingView', checked)}
             />
           </div>
         </CardContent>
