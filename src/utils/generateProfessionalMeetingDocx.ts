@@ -1339,9 +1339,6 @@ export const generateProfessionalWordFromContent = async (
       content,
       actionItems: parsedActionItems || [],
     });
-      content,
-      actionItems: parsedActionItems || [],
-    });
   } else {
     // Fallback to auto-parsing
     await generateProfessionalMeetingDocx({
