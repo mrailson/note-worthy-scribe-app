@@ -502,9 +502,8 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
           </CardHeader>
           <CardContent className="space-y-4">
             <Tabs defaultValue="consultation" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="consultation">F2F Consultation</TabsTrigger>
-                <TabsTrigger value="referral">Referral</TabsTrigger>
                 <TabsTrigger value="ask-ai" className="flex items-center gap-1">
                   <Sparkles className="h-3 w-3" />
                   Ask AI
@@ -693,16 +692,6 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                 )}
               </TabsContent>
               
-              <TabsContent value="referral" className="mt-4">
-                <div className={isMobile ? 'h-[calc(100vh-400px)]' : 'min-h-[500px]'}>
-                  <ReferralWorkspace
-                    transcript={currentSession.transcript}
-                    notes={currentSession.heidiNote || currentSession.soapNote}
-                    consultationType={currentSession.consultationType}
-                    userId={userId}
-                  />
-                </div>
-              </TabsContent>
               
               <TabsContent value="ask-ai" className="mt-4">
                 <ConsultationAskAI 
