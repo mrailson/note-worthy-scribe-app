@@ -4,6 +4,8 @@ import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Building2, 
   MapPin, 
@@ -30,6 +32,7 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
   const { practiceContext } = usePracticeContext();
   const [showCustomOptions, setShowCustomOptions] = React.useState(settings.brandingLevel === 'custom');
   const [logoError, setLogoError] = React.useState(false);
+  const [brandingOpen, setBrandingOpen] = React.useState(false);
 
   const isLogoAvailable = !!practiceContext?.logoUrl && !logoError;
 
@@ -140,104 +143,126 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
         </CardContent>
       </Card>
 
-      {/* Branding Level */}
-      <div className="space-y-3">
-        <Label>Practice Details to Include</Label>
-        <RadioGroup
-          value={settings.brandingLevel}
-          onValueChange={(v) => handleBrandingLevelChange(v as BrandingLevel)}
-          className="space-y-2"
-        >
-          <div className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
-            <RadioGroupItem value="none" id="brand-none" />
-            <Label htmlFor="brand-none" className="flex-1 cursor-pointer">
-              <span className="font-medium">No practice details</span>
-              <p className="text-sm text-muted-foreground">Generate without text branding</p>
-            </Label>
-          </div>
-
-          <div className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
-            <RadioGroupItem value="name-only" id="brand-name" />
-            <Label htmlFor="brand-name" className="flex-1 cursor-pointer">
-              <span className="font-medium">Practice name only</span>
-              <p className="text-sm text-muted-foreground">Just your practice/organisation name</p>
-            </Label>
-          </div>
-
-          <div className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
-            <RadioGroupItem value="name-contact" id="brand-contact" />
-            <Label htmlFor="brand-contact" className="flex-1 cursor-pointer">
-              <span className="font-medium">Name + Contact</span>
-              <p className="text-sm text-muted-foreground">Practice name, phone, and email</p>
-            </Label>
-          </div>
-
-          <div className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
-            <RadioGroupItem value="full" id="brand-full" />
-            <Label htmlFor="brand-full" className="flex-1 cursor-pointer">
-              <span className="font-medium">All practice details</span>
-              <p className="text-sm text-muted-foreground">Full branding including address, website, PCN</p>
-            </Label>
-          </div>
-
-          <div className="rounded-lg border overflow-hidden">
-            <div 
-              className="flex items-center space-x-3 p-3 hover:bg-muted/50 transition-colors cursor-pointer"
-              onClick={() => handleBrandingLevelChange('custom')}
-            >
-              <RadioGroupItem value="custom" id="brand-custom" />
-              <Label htmlFor="brand-custom" className="flex-1 cursor-pointer">
-                <span className="font-medium">Custom selection</span>
-                <p className="text-sm text-muted-foreground">Choose specific details</p>
+      {/* Branding Level - Collapsible */}
+      <Collapsible open={brandingOpen} onOpenChange={setBrandingOpen}>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex items-center justify-between w-full p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              <span className="font-medium">Practice Details to Include</span>
+              <Badge variant="secondary" className="ml-2">
+                {settings.brandingLevel === 'none' ? 'None' :
+                 settings.brandingLevel === 'name-only' ? 'Name only' :
+                 settings.brandingLevel === 'name-contact' ? 'Name + Contact' :
+                 settings.brandingLevel === 'full' ? 'Full details' : 'Custom'}
+              </Badge>
+            </div>
+            <ChevronDown className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform",
+              brandingOpen && "rotate-180"
+            )} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-3">
+          <RadioGroup
+            value={settings.brandingLevel}
+            onValueChange={(v) => handleBrandingLevelChange(v as BrandingLevel)}
+            className="space-y-2"
+          >
+            <div className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
+              <RadioGroupItem value="none" id="brand-none" />
+              <Label htmlFor="brand-none" className="flex-1 cursor-pointer">
+                <span className="font-medium">No practice details</span>
+                <p className="text-sm text-muted-foreground">Generate without text branding</p>
               </Label>
-              {settings.brandingLevel === 'custom' && (
-                <button 
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowCustomOptions(!showCustomOptions);
-                  }}
-                  className="p-1 hover:bg-muted rounded"
-                >
-                  {showCustomOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
-              )}
             </div>
 
-            {settings.brandingLevel === 'custom' && showCustomOptions && (
-              <div className="border-t bg-muted/30 p-3 space-y-2">
-                {customOptions.map(({ key, label, icon: Icon }) => {
-                  const available = isOptionAvailable(key);
-                  return (
-                    <div 
-                      key={key}
-                      className={cn(
-                        "flex items-center space-x-2 py-1",
-                        !available && "opacity-50"
-                      )}
-                    >
-                      <Checkbox
-                        id={`custom-${key}`}
-                        checked={settings.customBranding[key]}
-                        disabled={!available}
-                        onCheckedChange={() => toggleCustomOption(key)}
-                      />
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <Label 
-                        htmlFor={`custom-${key}`} 
-                        className={cn("cursor-pointer", !available && "cursor-not-allowed")}
-                      >
-                        {label}
-                        {!available && <span className="text-xs text-muted-foreground ml-1">(not set)</span>}
-                      </Label>
-                    </div>
-                  );
-                })}
+            <div className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
+              <RadioGroupItem value="name-only" id="brand-name" />
+              <Label htmlFor="brand-name" className="flex-1 cursor-pointer">
+                <span className="font-medium">Practice name only</span>
+                <p className="text-sm text-muted-foreground">Just your practice/organisation name</p>
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
+              <RadioGroupItem value="name-contact" id="brand-contact" />
+              <Label htmlFor="brand-contact" className="flex-1 cursor-pointer">
+                <span className="font-medium">Name + Contact</span>
+                <p className="text-sm text-muted-foreground">Practice name, phone, and email</p>
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
+              <RadioGroupItem value="full" id="brand-full" />
+              <Label htmlFor="brand-full" className="flex-1 cursor-pointer">
+                <span className="font-medium">All practice details</span>
+                <p className="text-sm text-muted-foreground">Full branding including address, website, PCN</p>
+              </Label>
+            </div>
+
+            <div className="rounded-lg border overflow-hidden">
+              <div 
+                className="flex items-center space-x-3 p-3 hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => handleBrandingLevelChange('custom')}
+              >
+                <RadioGroupItem value="custom" id="brand-custom" />
+                <Label htmlFor="brand-custom" className="flex-1 cursor-pointer">
+                  <span className="font-medium">Custom selection</span>
+                  <p className="text-sm text-muted-foreground">Choose specific details</p>
+                </Label>
+                {settings.brandingLevel === 'custom' && (
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowCustomOptions(!showCustomOptions);
+                    }}
+                    className="p-1 hover:bg-muted rounded"
+                  >
+                    {showCustomOptions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+                )}
               </div>
-            )}
-          </div>
-        </RadioGroup>
-      </div>
+
+              {settings.brandingLevel === 'custom' && showCustomOptions && (
+                <div className="border-t bg-muted/30 p-3 space-y-2">
+                  {customOptions.map(({ key, label, icon: Icon }) => {
+                    const available = isOptionAvailable(key);
+                    return (
+                      <div 
+                        key={key}
+                        className={cn(
+                          "flex items-center space-x-2 py-1",
+                          !available && "opacity-50"
+                        )}
+                      >
+                        <Checkbox
+                          id={`custom-${key}`}
+                          checked={settings.customBranding[key]}
+                          disabled={!available}
+                          onCheckedChange={() => toggleCustomOption(key)}
+                        />
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        <Label 
+                          htmlFor={`custom-${key}`} 
+                          className={cn("cursor-pointer", !available && "cursor-not-allowed")}
+                        >
+                          {label}
+                          {!available && <span className="text-xs text-muted-foreground ml-1">(not set)</span>}
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </RadioGroup>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 };
