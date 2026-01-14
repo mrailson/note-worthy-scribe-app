@@ -1,220 +1,281 @@
 /**
- * Formats acknowledgement letter content into HTML for email with proper styling
- * Matches the layout and design of the Word document and FormattedLetterContent component
+ * Formats letter content into email-safe HTML with inline styles
+ * Works with both complaint letters and AI-generated GP letters
+ * Uses only inline styles - no CSS classes or CSS variables (for email client compatibility)
  */
 
-interface LetterSections {
-  headerLines: string[];
-  dateSection: string;
-  addresseeSection: string[];
-  bodyLines: string[];
-  signatureSection: string[];
-}
+import { parseLetter, cleanMarkdownText, isLetterFormat, ParsedLetter } from './letterParser';
 
-const formatTextWithBold = (text: string): string => {
-  return text.replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight: 600;">$1</strong>');
-};
-
-const parseLetter = (content: string): LetterSections => {
-  // Remove all HTML comments and markdown image syntax
-  const cleanContent = content
-    .replace(/<!--.*?-->\s*/gs, '')
-    .replace(/!\[.*?\]\(.*?\)/g, '');
-  
-  const lines = cleanContent.split('\n').filter(line => line.trim());
-  
-  const sections: LetterSections = {
-    headerLines: [],
-    dateSection: '',
-    addresseeSection: [],
-    bodyLines: [],
-    signatureSection: []
-  };
-  
-  let currentSection = 'header';
-  let bodyStarted = false;
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    if (!line) continue;
-    
-    // Detect date
-    if (/^\*?\*?\d{1,2}[\s]*([A-Z][a-z]+|\w+)[\s]*\d{4}\*?\*?/.test(line)) {
-      sections.dateSection = line.replace(/\*\*/g, '');
-      currentSection = 'addressee';
-      continue;
-    }
-    
-    // Skip private/confidential
-    if (line.toLowerCase().includes('private') && line.toLowerCase().includes('confidential')) {
-      currentSection = 'addressee';
-      continue;
-    }
-    
-    // Detect addressee
-    if (currentSection === 'addressee' && !bodyStarted) {
-      if (line.toLowerCase().includes('dear ') || line.includes('Re:')) {
-        bodyStarted = true;
-        currentSection = 'body';
-        sections.bodyLines.push(line);
-      } else {
-        sections.addresseeSection.push(line);
-      }
-      continue;
-    }
-    
-    // Detect signature
-    if (line.toLowerCase().includes('yours sincerely') || 
-        line.toLowerCase().includes('yours faithfully') ||
-        line.toLowerCase().includes('kind regards')) {
-      currentSection = 'signature';
-      sections.signatureSection.push(line);
-      continue;
-    }
-    
-    // Assign to sections
-    if (currentSection === 'header' && !bodyStarted) {
-      sections.headerLines.push(line);
-    } else if (currentSection === 'body') {
-      sections.bodyLines.push(line);
-    } else if (currentSection === 'signature') {
-      sections.signatureSection.push(line);
-    }
+// Email-safe inline styles (hex colours only, no CSS variables)
+const EMAIL_STYLES = {
+  // Fonts and colours
+  fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+  colors: {
+    primary: '#2563eb',      // Blue
+    primaryDark: '#1e40af',  // Dark blue
+    text: '#1f2937',         // Dark grey
+    muted: '#4b5563',        // Medium grey
+    light: '#6b7280',        // Light grey
+    background: '#ffffff',
+    accentBg: '#eff6ff',     // Light blue background
+    accentBgGradientEnd: '#dbeafe',
+    border: '#93c5fd',
+  },
+  // Size constants
+  fontSize: {
+    body: '14px',
+    heading: '17px',
+    signature: '20px',
+    small: '13px',
+    footer: '11px',
   }
-  
-  return sections;
 };
 
-const renderBodyLines = (bodyLines: string[]): string => {
+/**
+ * Converts markdown bold to HTML strong with inline styles
+ */
+const formatTextWithBold = (text: string): string => {
+  return text.replace(/\*\*(.+?)\*\*/g, `<strong style="font-weight: 600; color: ${EMAIL_STYLES.colors.text};">$1</strong>`);
+};
+
+/**
+ * Cleans text for email display
+ */
+const cleanForEmail = (text: string): string => {
+  return cleanMarkdownText(text)
+    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+    .replace(/`[^`]+`/g, '')        // Remove inline code
+    .trim();
+};
+
+/**
+ * Renders body paragraphs with proper email styling
+ */
+const renderBodyParagraphs = (paragraphs: string[]): string => {
   let html = '';
   
-  bodyLines.forEach((line) => {
-    const trimmedLine = line.trim();
+  paragraphs.forEach((paragraph) => {
+    const text = cleanForEmail(paragraph);
+    if (!text) return;
     
-    // Skip standalone reference number lines
-    if (/^Reference Number:\s*COMP\d+$/i.test(trimmedLine)) {
+    // Skip reference numbers that appear as standalone lines
+    if (/^Reference Number:\s*COMP\d+$/i.test(text)) return;
+    
+    // Handle "Dear" salutation line
+    if (text.toLowerCase().startsWith('dear ')) {
+      html += `<p style="margin: 0 0 24px 0; font-size: ${EMAIL_STYLES.fontSize.body}; font-weight: 600; color: ${EMAIL_STYLES.colors.text}; line-height: 1.6; font-family: ${EMAIL_STYLES.fontFamily};">${formatTextWithBold(text)}</p>`;
       return;
     }
     
-    // Handle "Dear" line with enhanced styling
-    if (trimmedLine.toLowerCase().startsWith('dear ')) {
-      html += `<p style="margin: 0 0 28px 0; font-size: 17px; font-weight: 600; color: #111827; line-height: 1.5;">${formatTextWithBold(trimmedLine)}</p>`;
-      return;
-    }
-    
-    // Handle "Re:" line with enhanced box styling
-    if (trimmedLine.toLowerCase().startsWith('re:') || trimmedLine.toLowerCase().startsWith('subject:')) {
-      html += `<div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 18px 20px; border-radius: 8px; border-left: 5px solid #2563eb; margin: 0 0 28px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-        <p style="margin: 0; font-weight: 700; color: #1e40af; font-size: 15px;">${formatTextWithBold(trimmedLine)}</p>
+    // Handle "Re:" or "Subject:" lines with accent box
+    if (text.toLowerCase().startsWith('re:') || text.toLowerCase().startsWith('subject:')) {
+      html += `<div style="background-color: ${EMAIL_STYLES.colors.accentBg}; padding: 16px 18px; border-radius: 8px; border-left: 4px solid ${EMAIL_STYLES.colors.primary}; margin: 0 0 24px 0;">
+        <p style="margin: 0; font-weight: 700; color: ${EMAIL_STYLES.colors.primaryDark}; font-size: 15px; font-family: ${EMAIL_STYLES.fontFamily};">${formatTextWithBold(text)}</p>
       </div>`;
       return;
     }
     
-    // Regular paragraphs with better readability
-    html += `<p style="margin: 0 0 18px 0; color: #1f2937; font-size: 14px; line-height: 1.7;">${formatTextWithBold(trimmedLine)}</p>`;
+    // Regular paragraphs
+    html += `<p style="margin: 0 0 16px 0; color: ${EMAIL_STYLES.colors.text}; font-size: ${EMAIL_STYLES.fontSize.body}; line-height: 1.7; font-family: ${EMAIL_STYLES.fontFamily};">${formatTextWithBold(text)}</p>`;
   });
   
   return html;
 };
 
-export const formatLetterForEmail = (letterContent: string, logoUrl?: string | null): string => {
-  const sections = parseLetter(letterContent);
+/**
+ * Renders the signature block for email
+ */
+const renderSignatureBlock = (
+  closing: string | undefined, 
+  signature: ParsedLetter['signature']
+): string => {
+  let html = `<div style="margin-top: 32px; padding-top: 24px; border-top: 2px solid ${EMAIL_STYLES.colors.primary};">`;
   
-  // Build the complete HTML email
+  // Closing phrase
+  if (closing) {
+    html += `<p style="margin: 0 0 28px 0; color: ${EMAIL_STYLES.colors.text}; font-size: 15px; font-weight: 500; font-family: ${EMAIL_STYLES.fontFamily};">${cleanForEmail(closing)},</p>`;
+  }
+  
+  // Name
+  if (signature.name) {
+    html += `<p style="margin: 0 0 4px 0; font-size: ${EMAIL_STYLES.fontSize.signature}; font-weight: 700; color: ${EMAIL_STYLES.colors.primaryDark}; font-family: ${EMAIL_STYLES.fontFamily};">${cleanForEmail(signature.name)}</p>`;
+  }
+  
+  // Qualifications
+  if (signature.qualifications) {
+    html += `<p style="margin: 0 0 2px 0; color: ${EMAIL_STYLES.colors.muted}; font-size: ${EMAIL_STYLES.fontSize.small}; line-height: 1.4; font-family: ${EMAIL_STYLES.fontFamily};">${cleanForEmail(signature.qualifications)}</p>`;
+  }
+  
+  // Title/Role
+  if (signature.title) {
+    html += `<p style="margin: 0 0 2px 0; color: ${EMAIL_STYLES.colors.muted}; font-size: ${EMAIL_STYLES.fontSize.small}; line-height: 1.4; font-family: ${EMAIL_STYLES.fontFamily};">${cleanForEmail(signature.title)}</p>`;
+  }
+  
+  // Organisation
+  if (signature.organisation) {
+    html += `<p style="margin: 0; color: ${EMAIL_STYLES.colors.muted}; font-size: ${EMAIL_STYLES.fontSize.small}; line-height: 1.4; font-family: ${EMAIL_STYLES.fontFamily};">${cleanForEmail(signature.organisation)}</p>`;
+  }
+  
+  html += '</div>';
+  return html;
+};
+
+/**
+ * Formats letter content into email-safe HTML
+ * Uses only inline styles for maximum email client compatibility
+ */
+export const formatLetterForEmail = (letterContent: string, logoUrl?: string | null): string => {
+  const parsed = parseLetter(letterContent);
+  
+  // Build the complete HTML email with inline styles only
   let html = `
-    <div style="max-width: 800px; margin: 0 auto; background-color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    <div style="max-width: 700px; margin: 0 auto; background-color: ${EMAIL_STYLES.colors.background}; font-family: ${EMAIL_STYLES.fontFamily};">
   `;
   
   // Main content section
-  html += `<div style="padding: 40px 32px;">`;
+  html += `<div style="padding: 32px 28px;">`;
   
-  
-  
-  
-  // Body
-  if (sections.bodyLines.length > 0) {
-    html += `<div style="margin-bottom: 32px;">${renderBodyLines(sections.bodyLines)}</div>`;
+  // Date section (if present)
+  if (parsed.date) {
+    html += `<p style="margin: 0 0 24px 0; text-align: right; color: ${EMAIL_STYLES.colors.muted}; font-size: ${EMAIL_STYLES.fontSize.body}; font-family: ${EMAIL_STYLES.fontFamily};">${cleanForEmail(parsed.date)}</p>`;
   }
   
-  // Signature with enhanced styling
-  if (sections.signatureSection.length > 0) {
-    html += `
-      <div style="margin-top: 40px; padding-top: 28px; border-top: 3px solid #3b82f6;">
-    `;
-    
-    let nameShown = false;
-    sections.signatureSection.forEach((line, index) => {
-      const trimmedLine = line.trim().replace(/```plaintext|```/g, '').trim();
-      
-      if (!trimmedLine) return;
-      
-      // Closing line
-      if (trimmedLine.toLowerCase().includes('yours sincerely') || 
-          trimmedLine.toLowerCase().includes('yours faithfully') ||
-          trimmedLine.toLowerCase().includes('kind regards')) {
-        html += `<p style="margin: 0 0 32px 0; color: #1f2937; font-size: 15px; font-weight: 500;">${formatTextWithBold(trimmedLine)}</p>`;
-        return;
-      }
-      
-      // Signature name (show only once)
-      if (!nameShown && (trimmedLine.includes('*') || index === 1)) {
-        html += `
-          <div style="margin-bottom: 6px;">
-            <p style="margin: 0; font-size: 20px; font-weight: 700; color: #1e40af; text-transform: none;">${trimmedLine.replace(/\*/g, '')}</p>
-          </div>
-        `;
-        nameShown = true;
-        return;
-      }
-      
-      // Skip if it's a duplicate of the name
-      if (nameShown) {
-        const cleanName = sections.signatureSection.find(l => l.includes('*'))?.replace(/\*/g, '').trim();
-        if (cleanName && trimmedLine === cleanName) {
-          return; // Skip duplicate name
-        }
-      }
-      
-      // Title, qualifications, practice name - with tighter spacing (skip address lines)
-      const isAddressLine = trimmedLine.match(/^\d+\s+.*(street|road|lane|avenue|close)/i) || 
-                            trimmedLine.match(/^(northampton|london|birmingham|manchester|leeds)/i) ||
-                            trimmedLine.match(/^[A-Z]{1,2}\d{1,2}\s*\d[A-Z]{2}$/i); // UK postcode pattern
-      
-      if (!isAddressLine) {
-        html += `<p style="margin: 0 0 2px 0; color: #4b5563; font-size: 13px; line-height: 1.4;">${formatTextWithBold(trimmedLine)}</p>`;
-      }
+  // Recipient address block
+  if (parsed.headerSection.toLines && parsed.headerSection.toLines.length > 0) {
+    html += '<div style="margin-bottom: 24px;">';
+    parsed.headerSection.toLines.forEach((line, index) => {
+      const weight = index === 0 ? 'font-weight: 600;' : '';
+      html += `<p style="margin: 0 0 4px 0; color: ${EMAIL_STYLES.colors.text}; font-size: ${EMAIL_STYLES.fontSize.body}; ${weight} font-family: ${EMAIL_STYLES.fontFamily};">${cleanForEmail(line)}</p>`;
     });
-    
-    html += `</div>`;
+    html += '</div>';
   }
   
-  html += `</div>`; // Close main content
-  
-  // Footer with practice information - enhanced styling
-  if (sections.headerLines.length > 0) {
-    html += `
-      <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 28px 32px; border-top: 3px solid #2563eb; margin-top: 20px;">
-        <div style="text-align: center; margin-bottom: 18px;">
-          <h3 style="margin: 0 0 12px 0; font-size: 17px; font-weight: 700; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">${sections.headerLines[0].replace(/\*\*/g, '')}</h3>
-    `;
-    
-    sections.headerLines.slice(1).forEach(line => {
-      html += `<p style="margin: 0 0 4px 0; font-size: 13px; color: #4b5563; line-height: 1.4;">${formatTextWithBold(line)}</p>`;
-    });
-    
-    html += `
-        </div>
-        <div style="border-top: 2px solid #93c5fd; padding-top: 14px;">
-          <p style="margin: 0; text-align: center; font-size: 11px; color: #6b7280; font-style: italic;">
-            Generated by Notewell AI Complaints Management System
-          </p>
-        </div>
-      </div>
-    `;
+  // Subject line
+  if (parsed.subject) {
+    html += `<div style="background-color: ${EMAIL_STYLES.colors.accentBg}; padding: 16px 18px; border-radius: 8px; border-left: 4px solid ${EMAIL_STYLES.colors.primary}; margin: 0 0 24px 0;">
+      <p style="margin: 0; font-weight: 700; color: ${EMAIL_STYLES.colors.primaryDark}; font-size: 15px; font-family: ${EMAIL_STYLES.fontFamily};">Re: ${cleanForEmail(parsed.subject)}</p>
+    </div>`;
   }
   
-  html += `</div>`; // Close main wrapper
+  // Salutation
+  if (parsed.salutation) {
+    html += `<p style="margin: 0 0 20px 0; font-size: ${EMAIL_STYLES.fontSize.body}; font-weight: 600; color: ${EMAIL_STYLES.colors.text}; line-height: 1.6; font-family: ${EMAIL_STYLES.fontFamily};">${cleanForEmail(parsed.salutation)},</p>`;
+  }
+  
+  // Body paragraphs
+  if (parsed.bodyParagraphs.length > 0) {
+    html += `<div style="margin-bottom: 24px;">${renderBodyParagraphs(parsed.bodyParagraphs)}</div>`;
+  }
+  
+  // Signature section
+  if (parsed.closing || parsed.signature.name) {
+    html += renderSignatureBlock(parsed.closing, parsed.signature);
+  }
+  
+  html += '</div>'; // Close main content
+  
+  // Footer with generated by notice
+  html += `
+    <div style="background-color: ${EMAIL_STYLES.colors.accentBg}; padding: 20px 28px; border-top: 2px solid ${EMAIL_STYLES.colors.border};">
+      <p style="margin: 0; text-align: center; font-size: ${EMAIL_STYLES.fontSize.footer}; color: ${EMAIL_STYLES.colors.light}; font-style: italic; font-family: ${EMAIL_STYLES.fontFamily};">
+        Generated by AI4GP Practice Management System
+      </p>
+    </div>
+  `;
+  
+  html += '</div>'; // Close main wrapper
   
   return html;
+};
+
+/**
+ * Converts generic markdown/text content to email-safe HTML
+ * For non-letter content (meeting notes, summaries, etc.)
+ */
+export const convertToEmailSafeHTML = (content: string): string => {
+  if (!content) return '';
+  
+  // Check if this is a letter format - use letter formatter
+  if (isLetterFormat(content)) {
+    return formatLetterForEmail(content);
+  }
+  
+  // Clean content
+  let text = content
+    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+    .replace(/<!--.*?-->/gs, '')    // Remove HTML comments
+    .trim();
+  
+  // Split into lines for processing
+  const lines = text.split('\n');
+  let html = '';
+  let inList = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) {
+      if (inList) {
+        html += '</ul>';
+        inList = false;
+      }
+      continue;
+    }
+    
+    // Heading 1 (# Title or **TITLE**)
+    if (/^#\s+/.test(line) || /^\*\*[A-Z\s]+\*\*$/.test(line)) {
+      if (inList) { html += '</ul>'; inList = false; }
+      const headingText = cleanMarkdownText(line.replace(/^#\s+/, ''));
+      html += `<h1 style="font-size: 22px; font-weight: bold; color: ${EMAIL_STYLES.colors.primary}; margin: 24px 0 16px 0; font-family: ${EMAIL_STYLES.fontFamily};">${headingText}</h1>`;
+      continue;
+    }
+    
+    // Heading 2 (## Title)
+    if (/^##\s+/.test(line)) {
+      if (inList) { html += '</ul>'; inList = false; }
+      const headingText = cleanMarkdownText(line.replace(/^##\s+/, ''));
+      html += `<h2 style="font-size: 18px; font-weight: 600; color: ${EMAIL_STYLES.colors.primary}; margin: 20px 0 12px 0; font-family: ${EMAIL_STYLES.fontFamily};">${headingText}</h2>`;
+      continue;
+    }
+    
+    // Heading 3 (### Title)
+    if (/^###\s+/.test(line)) {
+      if (inList) { html += '</ul>'; inList = false; }
+      const headingText = cleanMarkdownText(line.replace(/^###\s+/, ''));
+      html += `<h3 style="font-size: 16px; font-weight: 600; color: ${EMAIL_STYLES.colors.primary}; margin: 16px 0 10px 0; font-family: ${EMAIL_STYLES.fontFamily};">${headingText}</h3>`;
+      continue;
+    }
+    
+    // Bullet points
+    if (/^[-•*]\s+/.test(line)) {
+      if (!inList) {
+        html += `<ul style="margin: 12px 0; padding-left: 24px;">`;
+        inList = true;
+      }
+      const bulletText = formatTextWithBold(cleanMarkdownText(line.replace(/^[-•*]\s+/, '')));
+      html += `<li style="margin-bottom: 8px; color: ${EMAIL_STYLES.colors.text}; font-size: ${EMAIL_STYLES.fontSize.body}; line-height: 1.6; font-family: ${EMAIL_STYLES.fontFamily};">${bulletText}</li>`;
+      continue;
+    }
+    
+    // Numbered lists
+    if (/^\d+\.\s+/.test(line)) {
+      if (inList) { html += '</ul>'; inList = false; }
+      const listText = formatTextWithBold(cleanMarkdownText(line.replace(/^\d+\.\s+/, '')));
+      html += `<p style="margin: 0 0 8px 16px; color: ${EMAIL_STYLES.colors.text}; font-size: ${EMAIL_STYLES.fontSize.body}; line-height: 1.6; font-family: ${EMAIL_STYLES.fontFamily};">${line.match(/^\d+/)?.[0]}. ${listText}</p>`;
+      continue;
+    }
+    
+    // Regular paragraph
+    if (inList) { html += '</ul>'; inList = false; }
+    const paraText = formatTextWithBold(cleanMarkdownText(line));
+    html += `<p style="margin: 0 0 12px 0; color: ${EMAIL_STYLES.colors.text}; font-size: ${EMAIL_STYLES.fontSize.body}; line-height: 1.6; font-family: ${EMAIL_STYLES.fontFamily};">${paraText}</p>`;
+  }
+  
+  if (inList) html += '</ul>';
+  
+  // Wrap in container
+  return `
+    <div style="max-width: 700px; margin: 0 auto; background-color: ${EMAIL_STYLES.colors.background}; font-family: ${EMAIL_STYLES.fontFamily}; padding: 24px;">
+      ${html}
+    </div>
+  `;
 };

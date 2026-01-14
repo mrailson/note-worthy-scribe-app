@@ -411,9 +411,10 @@ const createFooter = (options: NHSLetterExportOptions): Footer => {
 };
 
 /**
- * Generates a professional NHS letter Word document
+ * Generates a professional NHS letter Word document and returns the blob
+ * Can be used for both downloading and attaching to emails
  */
-export const generateNHSLetterDocument = async (options: NHSLetterExportOptions): Promise<void> => {
+export const generateNHSLetterBlob = async (options: NHSLetterExportOptions): Promise<Blob> => {
   const { content, filename = 'Letter' } = options;
   
   // Parse the letter content
@@ -496,9 +497,16 @@ export const generateNHSLetterDocument = async (options: NHSLetterExportOptions)
     }]
   });
   
-  // Generate and save the document
-  const blob = await Packer.toBlob(doc);
-  const safeFilename = filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  // Generate and return the blob
+  return await Packer.toBlob(doc);
+};
+
+/**
+ * Generates a professional NHS letter Word document and saves it
+ */
+export const generateNHSLetterDocument = async (options: NHSLetterExportOptions): Promise<void> => {
+  const blob = await generateNHSLetterBlob(options);
+  const safeFilename = (options.filename || 'Letter').replace(/[^a-z0-9]/gi, '_').toLowerCase();
   saveAs(blob, `${safeFilename}.docx`);
 };
 
