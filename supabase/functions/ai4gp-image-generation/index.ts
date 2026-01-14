@@ -6,10 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface ImageAttachment {
+  name: string;
+  content: string;  // Base64 encoded image data
+  type: string;     // MIME type
+}
+
 interface ImageGenerationRequest {
   prompt: string;
   conversationContext: string;
   documentContent?: string;  // Content from attached files for visual generation
+  imageAttachments?: ImageAttachment[];  // Image files for reference-based generation
   imageModel?: 'google/gemini-2.5-flash-image' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1';
   practiceContext?: {
     practiceName?: string;
@@ -254,7 +261,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { prompt, conversationContext, documentContent, practiceContext, requestType, imageModel } = await req.json() as ImageGenerationRequest;
+    const { prompt, conversationContext, documentContent, imageAttachments, practiceContext, requestType, imageModel } = await req.json() as ImageGenerationRequest;
 
     // Use selected model or default to Nano Banana
     const selectedImageModel = imageModel || 'google/gemini-2.5-flash-image';
@@ -265,6 +272,8 @@ serve(async (req) => {
       imageModel: selectedImageModel,
       contextLength: conversationContext?.length || 0,
       hasDocumentContent: !!documentContent,
+      hasImageAttachments: !!(imageAttachments && imageAttachments.length > 0),
+      imageAttachmentsCount: imageAttachments?.length || 0,
       hasPracticeContext: !!practiceContext,
       practiceName: practiceContext?.practiceName || 'NOT PROVIDED',
       practicePhone: practiceContext?.practicePhone || 'NOT PROVIDED'
@@ -710,6 +719,31 @@ Content guidelines:
       
     } else {
       // Use Lovable AI Gateway for Gemini models
+      // Build message content - include image attachments if provided
+      const messageContent: any[] = [];
+      
+      // Add reference images first if provided
+      if (imageAttachments && imageAttachments.length > 0) {
+        console.log(`📎 Including ${imageAttachments.length} image attachment(s) for reference`);
+        for (const attachment of imageAttachments) {
+          // Check if content is already a data URL or needs conversion
+          const imageUrl = attachment.content.startsWith('data:') 
+            ? attachment.content 
+            : `data:${attachment.type};base64,${attachment.content}`;
+          
+          messageContent.push({
+            type: 'image_url',
+            image_url: { url: imageUrl }
+          });
+        }
+      }
+      
+      // Add the text prompt
+      messageContent.push({
+        type: 'text',
+        text: imagePrompt
+      });
+      
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -719,7 +753,7 @@ Content guidelines:
         body: JSON.stringify({
           model: selectedImageModel,
           messages: [
-            { role: 'user', content: imagePrompt }
+            { role: 'user', content: messageContent.length === 1 ? imagePrompt : messageContent }
           ],
           modalities: ['image', 'text']
         }),

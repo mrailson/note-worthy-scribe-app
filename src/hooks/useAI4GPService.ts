@@ -43,7 +43,8 @@ export const useAI4GPService = () => {
     userMessage: Message;
     newMessages: Message[];
     documentContent?: string;
-    isVisualFromDocRequest: boolean;
+    imageAttachments?: { name: string; content: string; type: string }[];
+    isVisualFromFilesRequest: boolean;
   } | null>(null);
   
   // Display Settings - now managed by useDisplayPreferences
@@ -495,6 +496,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     const hasDocumentFiles = hadFilesAttached && userMessage.files!.some(file => 
       !file.type.startsWith('image/')
     );
+    const hasImageFiles = hadFilesAttached && userMessage.files!.some(file => 
+      file.type.startsWith('image/')
+    );
+    const hasAnyFiles = hasDocumentFiles || hasImageFiles;
     
     try {
       const startTime = Date.now();
@@ -504,31 +509,40 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       const previousMessagesForDetection = messages.map(m => ({ role: m.role, content: m.content }));
       const imageDetection = detectImageRequest(messageToUse, previousMessagesForDetection);
       
-      // Allow image generation for visual types even with document files
-      // These types explicitly want to CREATE visuals FROM the document content
-      const visualTypesAllowedWithDocs = [
+      // Allow image generation for visual types even with document/image files
+      // These types explicitly want to CREATE visuals FROM the attached content
+      const visualTypesAllowedWithFiles = [
         'infographic', 'chart', 'diagram', 'poster', 'calendar',
-        'leaflet', 'newsletter', 'social', 'waiting-room', 'form-header', 'campaign'
+        'leaflet', 'newsletter', 'social', 'waiting-room', 'form-header', 'campaign', 'general'
       ];
-      const isVisualFromDocRequest = hasDocumentFiles && visualTypesAllowedWithDocs.includes(imageDetection.requestType);
+      const isVisualFromFilesRequest = hasAnyFiles && visualTypesAllowedWithFiles.includes(imageDetection.requestType);
       const shouldGenerateImage = imageDetection.isImageRequest && 
                                    imageDetection.confidence !== 'low' && 
-                                   (!hasDocumentFiles || isVisualFromDocRequest);
+                                   (!hasDocumentFiles || isVisualFromFilesRequest);
       
       if (shouldGenerateImage) {
         console.log('🎨 Image request detected:', { 
           originalMessage: messageToUse.substring(0, 100),
           requestType: imageDetection.requestType,
           confidence: imageDetection.confidence,
-          isVisualFromDocRequest, 
+          isVisualFromFilesRequest, 
           hasDocumentFiles,
-          documentFilesCount: uploadedFiles.length
+          hasImageFiles,
+          filesCount: uploadedFiles.length
         });
         
-        // For visual types with document files, extract document content
-        const documentContent = isVisualFromDocRequest && uploadedFiles.length > 0
-          ? uploadedFiles.map(f => `## ${f.name}\n${f.content.substring(0, 8000)}`).join('\n\n')
+        // Extract document content from non-image files
+        const documentContent = uploadedFiles.length > 0
+          ? uploadedFiles
+              .filter(f => !f.type.startsWith('image/'))
+              .map(f => `## ${f.name}\n${f.content.substring(0, 8000)}`)
+              .join('\n\n') || undefined
           : undefined;
+        
+        // Extract image file data for reference-based generation
+        const imageAttachments = uploadedFiles
+          .filter(f => f.type.startsWith('image/'))
+          .map(f => ({ name: f.name, content: f.content, type: f.type }));
         
         // Store pending request and show branding dialog
         setPendingImageRequest({
@@ -539,7 +553,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           userMessage,
           newMessages,
           documentContent,
-          isVisualFromDocRequest
+          imageAttachments,
+          isVisualFromFilesRequest
         });
         setShowBrandingDialog(true);
         
@@ -1675,6 +1690,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       userMessage,
       newMessages,
       documentContent,
+      imageAttachments,
     } = pendingImageRequest;
 
     setShowBrandingDialog(false);
@@ -1698,6 +1714,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           prompt: message,
           conversationContext,
           documentContent,
+          imageAttachments,
           imageModel: imageGenerationModel,
           practiceContext: {
             practiceName: practiceContext?.practiceName,
