@@ -201,10 +201,74 @@ const DatePickerCell = ({
   );
 };
 
-const priorityConfig: Record<string, { color: string }> = {
-  High: { color: 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20' },
-  Medium: { color: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-900/20' },
-  Low: { color: 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20' },
+const priorityConfig: Record<string, { color: string; label: string }> = {
+  High: { color: 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:text-red-400', label: 'High' },
+  Medium: { color: 'text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400', label: 'Medium' },
+  Low: { color: 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:text-green-400', label: 'Low' },
+};
+
+const PRIORITY_OPTIONS = ['High', 'Medium', 'Low'] as const;
+
+// Priority dropdown component
+const PriorityDropdown = ({
+  priority,
+  onPriorityChange,
+}: {
+  priority: string;
+  onPriorityChange: (newPriority: string) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleSelect = (newPriority: string) => {
+    if (newPriority !== priority) {
+      onPriorityChange(newPriority);
+    }
+    setIsOpen(false);
+  };
+
+  const config = priorityConfig[priority] || priorityConfig.Medium;
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="group flex items-center gap-1 cursor-pointer hover:bg-muted/50 rounded px-1 -mx-1 py-0.5"
+          title="Click to change priority"
+        >
+          <Badge variant="outline" className={cn('text-xs', config.color)}>
+            <Flag className="h-2.5 w-2.5 mr-1" />
+            {priority}
+          </Badge>
+          <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-50 shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-32 p-1" align="start">
+        <div className="space-y-0.5">
+          {PRIORITY_OPTIONS.map((option) => {
+            const optionConfig = priorityConfig[option];
+            return (
+              <button
+                key={option}
+                onClick={() => handleSelect(option)}
+                className={cn(
+                  "w-full text-left text-sm px-2 py-1.5 rounded hover:bg-muted transition-colors flex items-center gap-2",
+                  priority === option && "bg-muted font-medium"
+                )}
+              >
+                <span className={cn(
+                  "w-2.5 h-2.5 rounded-full",
+                  option === 'High' && "bg-red-500",
+                  option === 'Medium' && "bg-amber-500",
+                  option === 'Low' && "bg-green-500"
+                )} />
+                {option}
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 };
 
 const STATUS_OPTIONS_OPEN = ['Open', 'In Progress', 'Completed'] as const;
@@ -394,13 +458,10 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
                 />
               </TableCell>
               <TableCell>
-                <Badge 
-                  variant="outline" 
-                  className={cn('text-xs', priorityConfig[item.priority]?.color)}
-                >
-                  <Flag className="h-2.5 w-2.5 mr-1" />
-                  {item.priority}
-                </Badge>
+                <PriorityDropdown
+                  priority={item.priority}
+                  onPriorityChange={(newPriority) => updateActionItem(item.id, { priority: newPriority as 'High' | 'Medium' | 'Low' })}
+                />
               </TableCell>
               <TableCell>
                 <StatusDropdown
