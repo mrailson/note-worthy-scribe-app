@@ -504,21 +504,29 @@ ${prompt}
 ${brandingSection}
 
 SOCIAL MEDIA DESIGN REQUIREMENTS:
-- Square format (1080x1080 pixels / 1:1 aspect ratio)
-- Bold, eye-catching design
+- LANDSCAPE format (1536x1024 pixels / 3:2 aspect ratio) - IMPORTANT: Design for wide format, not square
+- Bold, eye-catching design with complete, fully visible elements
 - Large, readable text that works at small sizes
 - Engagement-focused with clear message
-- NHS-appropriate colour scheme
-- Simple, uncluttered layout
+- NHS-appropriate colour scheme (blues, greens, professional palette)
+- Simple, uncluttered layout with balanced composition
 - Include call-to-action if relevant (e.g., "Book Now", "Learn More")
+- ALL content boxes, panels, or containers MUST have FULLY ROUNDED CORNERS on ALL sides (top AND bottom)
+- Ensure ALL design elements are COMPLETE and not cropped at edges
+- Leave adequate margin/padding around all edges to prevent cropping
 ${practiceContext?.practiceName ? `- MUST display the practice name "${practiceContext.practiceName}" prominently at top or bottom` : ''}
 ${practiceContext?.practicePhone ? `- MUST include contact number "${practiceContext.practicePhone}" visibly on the image` : ''}
 
 ${SPELLING_REFERENCE}
 
+CRITICAL LAYOUT RULES:
+- Design MUST be complete within the frame with NO elements cut off at edges
+- White boxes or panels MUST have matching rounded corners on TOP and BOTTOM
+- Ensure balanced visual weight with content centred and fully visible
+
 Content guidelines:
 - Keep all content professional and social media appropriate
-- Suitable for Facebook, Instagram, or Twitter/X
+- Suitable for Facebook, Instagram, LinkedIn, or Twitter/X
 - NO placeholder text - use the real practice details provided above`;
     } else if (requestType === 'waiting-room') {
       // Waiting room display poster
