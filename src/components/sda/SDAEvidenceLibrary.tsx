@@ -71,9 +71,15 @@ const programmeBoardMeetings: Meeting[] = [
 const workgroupMeetings: Meeting[] = [
   {
     id: 1,
-    date: "Coming Soon",
-    location: "TBC",
-    documents: []
+    date: "8 January 2026",
+    location: "PML Bicester (with remote attendees via Teams)",
+    documents: [
+      {
+        title: "Meeting Notes - Workforce Recruitment, Contracts & Enhanced Access",
+        type: "minutes",
+        filePath: "/evidence/meetings/workgroup/SDA_Bicester_Meeting_Notes_8th_Jan_2026.docx"
+      }
+    ]
   }
 ];
 
