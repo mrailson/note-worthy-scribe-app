@@ -4,7 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { X, Check, Save } from 'lucide-react';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { userNameCorrections } from '@/utils/UserNameCorrections';
 
@@ -74,28 +76,91 @@ export function SelectionFindReplacePopup({
     }
   }, [getCurrentText, selectedText, meetingTitle]);
 
-  // Calculate popup position (below selection, within viewport)
+  // Calculate all matches with context for hover preview
+  const matchesWithContext = React.useMemo(() => {
+    const text = getCurrentText();
+    const matches: { match: string; context: string; location: 'content' | 'title' }[] = [];
+    
+    if (!selectedText) return matches;
+    
+    try {
+      const regex = new RegExp(escapeRegex(selectedText), 'gi');
+      
+      // Find matches in content with context
+      let match;
+      const contentRegex = new RegExp(escapeRegex(selectedText), 'gi');
+      while ((match = contentRegex.exec(text)) !== null) {
+        const contextChars = 40;
+        const start = Math.max(0, match.index - contextChars);
+        const end = Math.min(text.length, match.index + match[0].length + contextChars);
+        matches.push({
+          match: match[0],
+          context: text.slice(start, end),
+          location: 'content'
+        });
+      }
+      
+      // Check title for matches
+      if (meetingTitle && regex.test(meetingTitle)) {
+        matches.push({
+          match: selectedText,
+          context: meetingTitle,
+          location: 'title'
+        });
+      }
+      
+      return matches;
+    } catch {
+      return matches;
+    }
+  }, [getCurrentText, selectedText, meetingTitle]);
+
+  // Highlight match within context text
+  const highlightMatch = (context: string, matchText: string) => {
+    const index = context.toLowerCase().indexOf(matchText.toLowerCase());
+    if (index === -1) return <span className="text-muted-foreground">...{context}...</span>;
+
+    const before = context.slice(0, index);
+    const match = context.slice(index, index + matchText.length);
+    const after = context.slice(index + matchText.length);
+
+    // Determine if we need ellipsis
+    const needsStartEllipsis = before.length > 0 && context !== matchText;
+    const needsEndEllipsis = after.length > 0;
+
+    return (
+      <span className="text-muted-foreground">
+        {needsStartEllipsis && '...'}
+        {before}
+        <mark className="bg-yellow-200 dark:bg-yellow-800 text-foreground px-0.5 rounded">
+          {match}
+        </mark>
+        {after}
+        {needsEndEllipsis && '...'}
+      </span>
+    );
+  };
+
+  // Calculate popup position with robust boundary handling
   const popupStyle = React.useMemo(() => {
     const popupWidth = 300;
-    const popupHeight = 180;
-    const padding = 12;
+    const popupHeight = 200; // Slightly taller to account for content
+    const safeMargin = 16;
     
+    // Calculate centered position below selection
     let left = position.left + (position.width / 2) - (popupWidth / 2);
-    let top = position.bottom + padding;
+    let top = position.bottom + safeMargin;
     
-    // Keep within horizontal viewport bounds
-    if (left < padding) left = padding;
-    if (left + popupWidth > window.innerWidth - padding) {
-      left = window.innerWidth - popupWidth - padding;
+    // Clamp horizontal position to stay within viewport
+    left = Math.max(safeMargin, Math.min(left, window.innerWidth - popupWidth - safeMargin));
+    
+    // If popup would go below viewport, position above selection
+    if (top + popupHeight > window.innerHeight - safeMargin) {
+      top = position.top - popupHeight - safeMargin;
     }
     
-    // If popup would go below viewport, show above selection
-    if (top + popupHeight > window.innerHeight - padding) {
-      top = position.top - popupHeight - padding;
-    }
-    
-    // Ensure top is never negative
-    if (top < padding) top = padding;
+    // Final safety clamp for top position
+    top = Math.max(safeMargin, Math.min(top, window.innerHeight - popupHeight - safeMargin));
     
     return {
       position: 'fixed' as const,
@@ -204,12 +269,50 @@ export function SelectionFindReplacePopup({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-foreground truncate max-w-[180px]" title={selectedText}>
+          <span className="text-sm font-medium text-foreground truncate max-w-[150px]" title={selectedText}>
             "{selectedText}"
           </span>
-          <Badge variant="secondary" className="text-xs">
-            {occurrenceCount} match{occurrenceCount !== 1 ? 'es' : ''}
-          </Badge>
+          <HoverCard openDelay={200} closeDelay={100}>
+            <HoverCardTrigger asChild>
+              <Badge 
+                variant="secondary" 
+                className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+              >
+                {occurrenceCount} match{occurrenceCount !== 1 ? 'es' : ''}
+              </Badge>
+            </HoverCardTrigger>
+            <HoverCardContent 
+              className="w-80 p-0" 
+              side="bottom" 
+              align="start"
+              sideOffset={8}
+            >
+              <ScrollArea className="max-h-[200px]">
+                <div className="p-3 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    All matches for "{selectedText}"
+                  </p>
+                  {matchesWithContext.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">No matches found</p>
+                  ) : (
+                    matchesWithContext.map((m, idx) => (
+                      <div 
+                        key={idx} 
+                        className="text-xs border-l-2 border-primary/30 pl-2 py-1"
+                      >
+                        {m.location === 'title' && (
+                          <span className="text-[10px] font-medium text-primary/70 block mb-0.5">
+                            [Meeting Title]
+                          </span>
+                        )}
+                        {highlightMatch(m.context, m.match)}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            </HoverCardContent>
+          </HoverCard>
         </div>
         <Button
           variant="ghost"
