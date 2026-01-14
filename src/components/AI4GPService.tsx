@@ -40,6 +40,7 @@ import { TranslationToolInterface } from '@/components/TranslationToolInterface'
 import { MeetingPreviewDrawer } from '@/components/ai4gp/MeetingPreviewDrawer';
 import { PowerPointGenerationOverlay } from '@/components/PowerPointGenerationOverlay';
 import { ImageBrandingDialog } from '@/components/ai4gp/ImageBrandingDialog';
+import { ImageStudioModal } from '@/components/ai4gp/ImageStudioModal';
 
   // Hook imports
 import { useIsMobile, useDeviceInfo } from '@/hooks/use-mobile';
@@ -124,6 +125,7 @@ const AI4GPService = () => {
   const [previewMeetingId, setPreviewMeetingId] = useState<string | null>(null);
   const [showMeetingPreview, setShowMeetingPreview] = useState(false);
   const [showPromptsModal, setShowPromptsModal] = useState(false);
+  const [showImageStudio, setShowImageStudio] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>(() => {
     const saved = localStorage.getItem('ai4gp-selected-role');
@@ -444,6 +446,7 @@ const AI4GPService = () => {
           onShowDocumentTranslate={() => setShowDocumentTranslate(true)}
           onShowUserGuide={() => setShowUserGuide(true)}
           onShowAllQuickActions={() => setShowAllQuickActions(true)}
+          onShowImageStudio={() => setShowImageStudio(true)}
           meetings={meetings as any}
           meetingsLoading={meetingsLoading}
           onSelectMeeting={(meetingId) => {
@@ -1028,6 +1031,12 @@ const AI4GPService = () => {
         onOpenChange={setShowPromptsModal}
         setInput={setInput}
         defaultTab={selectedRole === 'practice-manager' ? 'pm' : 'gp'}
+      />
+
+      {/* Image Studio Modal */}
+      <ImageStudioModal
+        open={showImageStudio}
+        onOpenChange={setShowImageStudio}
       />
 
     </>
