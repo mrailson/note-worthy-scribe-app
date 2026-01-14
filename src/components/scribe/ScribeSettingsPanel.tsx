@@ -7,12 +7,14 @@ import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS, HistoryRete
 import { Settings, Save, RotateCcw, Stethoscope, Mic, Shield, Clock, AlertTriangle } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Phone, Video, Users } from "lucide-react";
+import { MicrophoneSettings } from "@/components/gpscribe/MicrophoneSettings";
 
 interface ScribeSettingsPanelProps {
   settings: ScribeSettings;
   onUpdateSetting: <K extends keyof ScribeSettings>(key: K, value: ScribeSettings[K]) => void;
   onSaveSettings: () => void;
   onResetSettings: () => void;
+  onMicrophoneChange?: (deviceId: string | null) => void;
 }
 
 const typeIcons: Record<ConsultationType, React.ReactNode> = {
@@ -26,9 +28,12 @@ export const ScribeSettingsPanel = ({
   onUpdateSetting,
   onSaveSettings,
   onResetSettings,
+  onMicrophoneChange,
 }: ScribeSettingsPanelProps) => {
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
+      {/* Microphone Settings - Most important for troubleshooting */}
+      <MicrophoneSettings onDeviceChange={onMicrophoneChange} />
       {/* Consultation Defaults */}
       <Card>
         <CardHeader>
