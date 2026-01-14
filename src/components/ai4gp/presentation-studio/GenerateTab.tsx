@@ -189,26 +189,7 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
                   With Voiceover
                 </Button>
               )}
-              
-              {currentResult.gammaUrl && (
-                <Button 
-                  variant="outline"
-                  onClick={() => window.open(currentResult.gammaUrl, '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Edit in Gamma
-                </Button>
-              )}
             </div>
-            
-            <Button 
-              variant="ghost" 
-              className="w-full"
-              onClick={onGenerate}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Generate New Variation
-            </Button>
           </CardContent>
         </Card>
       )}
