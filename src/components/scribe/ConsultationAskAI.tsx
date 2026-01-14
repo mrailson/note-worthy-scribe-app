@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles, Building, ChevronDown, ChevronUp, NotebookTabs } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles, Building, ChevronDown, ChevronUp, NotebookTabs, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useReferralDestinations } from '@/hooks/useReferralDestinations';
+import { useAIChatHistory, AIChatMessage } from '@/hooks/useAIChatHistory';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,11 +13,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { EnhancedBrowserMic, EnhancedBrowserMicRef } from '@/components/ai4gp/EnhancedBrowserMic';
-import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { generateWordDocument } from '@/utils/documentGenerators';
 import { format } from 'date-fns';
 import { ScribeSession, SOAPNote } from '@/types/scribe';
 import { ReferralDestination } from '@/types/referral';
+import { EditableAIResponse } from './EditableAIResponse';
+import { AIChatHistoryPanel } from './AIChatHistoryPanel';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +31,8 @@ import {
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  editedContent?: string;
+  id?: string;
 }
 
 interface ConsultationAskAIProps {
@@ -115,12 +119,39 @@ export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps)
   const micRef = useRef<EnhancedBrowserMicRef>(null);
   const { sendEmailAutomatically, isSending: isEmailSending } = useAutoEmail();
   const { practiceContext } = usePracticeContext();
-  const { destinations, findMatchingDestinations } = useReferralDestinations();
+  const { destinations } = useReferralDestinations();
+  
+  // Chat history hook
+  const {
+    sessions: chatSessions,
+    currentSession,
+    isSaving,
+    isLoading: isLoadingHistory,
+    createSession,
+    saveMessages,
+    updateMessageContent,
+    loadSession,
+    deleteSession,
+    startNewChat
+  } = useAIChatHistory(session.id || null);
 
   // Get practice name and doctor name from practice context
   const practiceName = practiceContext.practiceName || null;
   const doctorName = practiceContext.userFullName || null;
   const letterSignature = practiceContext.letterSignature || null;
+
+  // Load messages from current session
+  useEffect(() => {
+    if (currentSession) {
+      setMessages(currentSession.messages.map(m => ({
+        role: m.role,
+        content: m.content,
+        editedContent: m.editedContent,
+        id: m.id
+      })));
+    }
+  }, [currentSession]);
+
 
   const handleCreateReferral = (destination?: ReferralDestination) => {
     let destinationInfo = '';
@@ -199,8 +230,10 @@ Include:
     const question = promptText || input.trim();
     if (!question || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: question };
-    setMessages(prev => [...prev, userMessage]);
+    const messageId = crypto.randomUUID();
+    const userMessage: Message = { role: 'user', content: question, id: messageId };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInput('');
     setIsLoading(true);
 
@@ -218,7 +251,8 @@ Include:
         toast.error('Failed to get AI response');
         setMessages(prev => [...prev, { 
           role: 'assistant', 
-          content: 'I apologise, there was an error processing your request. Please try again.' 
+          content: 'I apologise, there was an error processing your request. Please try again.',
+          id: crypto.randomUUID()
         }]);
         return;
       }
@@ -227,27 +261,57 @@ Include:
         toast.error(data.error);
         setMessages(prev => [...prev, { 
           role: 'assistant', 
-          content: `Error: ${data.error}` 
+          content: `Error: ${data.error}`,
+          id: crypto.randomUUID()
         }]);
         return;
       }
 
+      const assistantId = crypto.randomUUID();
       const assistantMessage: Message = { 
         role: 'assistant', 
-        content: data?.answer || 'No response received.' 
+        content: data?.answer || 'No response received.',
+        id: assistantId
       };
-      setMessages(prev => [...prev, assistantMessage]);
+      const finalMessages = [...newMessages, assistantMessage];
+      setMessages(finalMessages);
+
+      // Save to history
+      const aiMessages: AIChatMessage[] = finalMessages.map(m => ({
+        role: m.role,
+        content: m.content,
+        editedContent: m.editedContent,
+        timestamp: new Date().toISOString(),
+        id: m.id || crypto.randomUUID()
+      }));
+
+      if (currentSession) {
+        await saveMessages(aiMessages);
+      } else {
+        await createSession(aiMessages);
+      }
     } catch (err) {
       console.error('Error in handleSend:', err);
       toast.error('Failed to get AI response');
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: 'I apologise, there was an error processing your request. Please try again.' 
+        content: 'I apologise, there was an error processing your request. Please try again.',
+        id: crypto.randomUUID()
       }]);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Handle content edit from EditableAIResponse
+  const handleContentEdit = useCallback(async (messageId: string, editedContent: string) => {
+    setMessages(prev => prev.map(m => 
+      m.id === messageId ? { ...m, editedContent } : m
+    ));
+
+    // Save to database
+    await updateMessageContent(messageId, editedContent);
+  }, [updateMessageContent]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -337,6 +401,28 @@ Include:
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <AIChatHistoryPanel
+                sessions={chatSessions}
+                currentSessionId={currentSession?.id}
+                isLoading={isLoadingHistory}
+                onSelectSession={loadSession}
+                onDeleteSession={deleteSession}
+                onNewChat={() => {
+                  startNewChat();
+                  setMessages([]);
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  startNewChat();
+                  setMessages([]);
+                }}
+                title="New chat"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -464,23 +550,21 @@ Include:
                       )}
                       <div
                         className={`
-                          max-w-[80%] rounded-lg px-4 py-2
+                          max-w-[85%] rounded-lg
                           ${msg.role === 'user' 
-                            ? 'bg-primary text-primary-foreground' 
+                            ? 'bg-primary text-primary-foreground px-4 py-2' 
                             : 'bg-muted'}
                         `}
                       >
                         {msg.role === 'user' ? (
                           <CollapsibleUserRequest content={msg.content} />
                         ) : (
-                          <div 
-                            className="text-sm prose prose-sm max-w-none dark:prose-invert 
-                                       prose-p:mb-3 prose-p:leading-relaxed
-                                       prose-ul:my-2 prose-li:my-1
-                                       prose-headings:mb-3 prose-headings:mt-4"
-                            dangerouslySetInnerHTML={{ 
-                              __html: renderNHSMarkdown(msg.content, { enableNHSStyling: true }) 
-                            }}
+                          <EditableAIResponse
+                            content={msg.content}
+                            editedContent={msg.editedContent}
+                            messageId={msg.id || `msg-${idx}`}
+                            onContentChange={(content) => handleContentEdit(msg.id || `msg-${idx}`, content)}
+                            isSaving={isSaving}
                           />
                         )}
                       </div>

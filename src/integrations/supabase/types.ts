@@ -3234,6 +3234,36 @@ export type Database = {
         }
         Relationships: []
       }
+      gp_consultation_ai_chats: {
+        Row: {
+          consultation_id: string
+          created_at: string | null
+          id: string
+          messages: Json
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          consultation_id: string
+          created_at?: string | null
+          id?: string
+          messages?: Json
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          consultation_id?: string
+          created_at?: string | null
+          id?: string
+          messages?: Json
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       gp_consultation_context: {
         Row: {
           consultation_id: string
