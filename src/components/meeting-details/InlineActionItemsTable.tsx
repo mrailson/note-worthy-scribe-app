@@ -30,22 +30,30 @@ const EditableCell = ({
   onSave,
   placeholder = '',
   className = '',
+  multiline = false,
 }: {
   value: string;
   onSave: (newValue: string) => void;
   placeholder?: string;
   className?: string;
+  multiline?: boolean;
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+    if (isEditing) {
+      if (multiline && textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.select();
+      } else if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
     }
-  }, [isEditing]);
+  }, [isEditing, multiline]);
 
   useEffect(() => {
     setEditValue(value);
@@ -59,15 +67,43 @@ const EditableCell = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSave();
-    } else if (e.key === 'Escape') {
+    if (e.key === 'Escape') {
       setEditValue(value);
       setIsEditing(false);
     }
+    // For single-line input, Enter saves
+    if (!multiline && e.key === 'Enter') {
+      handleSave();
+    }
+    // For multiline, Ctrl/Cmd+Enter saves
+    if (multiline && e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleSave();
+    }
+  };
+
+  // Calculate rows based on content
+  const getRowCount = () => {
+    const lineCount = (value || '').split('\n').length;
+    const estimatedWraps = Math.ceil((value || '').length / 60); // Estimate wraps at ~60 chars
+    return Math.max(2, Math.min(6, Math.max(lineCount, estimatedWraps)));
   };
 
   if (isEditing) {
+    if (multiline) {
+      return (
+        <textarea
+          ref={textareaRef}
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleSave}
+          onKeyDown={handleKeyDown}
+          rows={getRowCount()}
+          className="w-full text-sm p-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+          placeholder={placeholder}
+        />
+      );
+    }
     return (
       <Input
         ref={inputRef}
@@ -220,6 +256,7 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
                   onSave={(newValue) => updateActionItem(item.id, { action_text: newValue })}
                   placeholder="Enter action..."
                   className={item.status === 'Completed' ? 'line-through text-muted-foreground' : ''}
+                  multiline
                 />
               </TableCell>
               <TableCell>
