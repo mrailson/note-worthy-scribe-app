@@ -1,25 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useRef, useEffect } from 'react';
+import { Send, Loader2, Bot, User, MessageCircle, Download, Save, Trash2, X, Mail, FileText, Stethoscope, AlertTriangle, ClipboardList, FileCheck, Search, Sparkles } from 'lucide-react';
+import { useAutoEmail } from '@/hooks/useAutoEmail';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Sparkles, 
-  Send, 
-  Loader2, 
-  FileText, 
-  Stethoscope, 
-  AlertTriangle,
-  ClipboardList,
-  FileCheck,
-  Search,
-  Trash2
-} from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { EnhancedBrowserMic, EnhancedBrowserMicRef } from '@/components/ai4gp/EnhancedBrowserMic';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
+import { generateWordDocument } from '@/utils/documentGenerators';
+import { format } from 'date-fns';
 import { ScribeSession, SOAPNote } from '@/types/scribe';
-import ReactMarkdown from 'react-markdown';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -64,11 +56,14 @@ const QUICK_PROMPTS = [
   }
 ];
 
-export const ConsultationAskAI: React.FC<ConsultationAskAIProps> = ({ session, soapNote }) => {
+export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const micRef = useRef<EnhancedBrowserMicRef>(null);
+  const { sendEmailAutomatically, isSending: isEmailSending } = useAutoEmail();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -147,124 +142,255 @@ export const ConsultationAskAI: React.FC<ConsultationAskAIProps> = ({ session, s
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSend();
+      micRef.current?.clearTranscript();
     }
-    if (e.key === 'Escape') {
-      setInput('');
+    if (e.key === 'Escape' && input.trim()) {
+      e.preventDefault();
+      handleClearInput();
     }
+  };
+
+  const handleClearInput = () => {
+    setInput('');
+    micRef.current?.clearTranscript();
+    textareaRef.current?.focus();
+  };
+
+  const handleTranscriptUpdate = (text: string) => {
+    setInput(text);
+  };
+
+  const handleExportToWord = async () => {
+    if (messages.length === 0) return;
+
+    const content = messages.map(m => 
+      `**${m.role === 'user' ? 'Question' : 'Answer'}:**\n\n${m.content}`
+    ).join('\n\n---\n\n');
+    
+    const header = `# Consultation Q&A Chat\n\n**Consultation Type:** ${session.consultationType || 'Unknown'}\n**Date:** ${format(new Date(session.createdAt), 'dd/MM/yyyy HH:mm')}\n\n---\n\n`;
+    
+    await generateWordDocument(header + content, `Consultation QA - ${format(new Date(), 'dd-MM-yyyy HH:mm')}`);
+    toast.success('Chat exported to Word');
+  };
+
+  const handleEmailChat = async () => {
+    if (messages.length === 0) return;
+    
+    const content = messages.map(m => 
+      `**${m.role === 'user' ? 'Question' : 'Answer'}:**\n\n${m.content}`
+    ).join('\n\n---\n\n');
+    
+    const header = `# Consultation Q&A Chat\n\n**Consultation Type:** ${session.consultationType || 'Unknown'}\n**Date:** ${format(new Date(session.createdAt), 'dd/MM/yyyy HH:mm')}\n\n---\n\n`;
+    
+    await sendEmailAutomatically(header + content, `Consultation Q&A - ${format(new Date(session.createdAt), 'dd/MM/yyyy')}`);
   };
 
   const handleClearChat = () => {
     setMessages([]);
     setInput('');
+    micRef.current?.clearTranscript();
   };
 
   return (
-    <Card className="border-0 shadow-none bg-transparent">
-      <CardHeader className="px-0 pt-0 pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Ask AI About This Consultation
-          </CardTitle>
-          {messages.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleClearChat}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Clear
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="px-0 space-y-4">
-        {/* Quick Prompts */}
-        {messages.length === 0 && (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Quick actions:</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {QUICK_PROMPTS.map((prompt, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  className="h-auto py-2 px-3 justify-start text-left"
-                  onClick={() => handleSend(prompt.prompt)}
-                  disabled={isLoading}
-                >
-                  <prompt.icon className="h-4 w-4 mr-2 shrink-0" />
-                  <span className="text-xs">{prompt.label}</span>
-                </Button>
-              ))}
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                Ask AI About This Consultation
+              </CardTitle>
+              <CardDescription>
+                Chat with AI about the consultation transcript and notes
+              </CardDescription>
             </div>
-          </div>
-        )}
-
-        {/* Chat Messages */}
-        {messages.length > 0 && (
-          <ScrollArea className="h-[400px] pr-4" ref={scrollRef}>
-            <div className="space-y-4">
-              {messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[85%] rounded-lg px-4 py-3 ${
-                      msg.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
+            <div className="flex gap-2">
+              {messages.length > 0 && (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleEmailChat}
+                    disabled={isEmailSending}
+                    title="Email to me"
                   >
-                    {msg.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
+                    {isEmailSending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <p className="text-sm">{msg.content}</p>
+                      <Mail className="h-4 w-4" />
                     )}
-                  </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-muted rounded-lg px-4 py-3">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                </div>
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleExportToWord}
+                    title="Export to Word"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleClearChat}
+                    title="Clear chat"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
               )}
             </div>
-          </ScrollArea>
-        )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Chat Messages */}
+            <ScrollArea className="h-[400px] border rounded-lg p-4" ref={scrollRef}>
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <Bot className="h-16 w-16 text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground mb-4">
+                    Ask questions about this consultation
+                  </p>
+                  <div className="w-full max-w-lg space-y-3">
+                    <p className="text-sm font-medium text-muted-foreground">Quick actions:</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {QUICK_PROMPTS.map((prompt, idx) => (
+                        <Button
+                          key={idx}
+                          variant="outline"
+                          size="sm"
+                          className="h-auto py-2 px-3 justify-start text-left"
+                          onClick={() => handleSend(prompt.prompt)}
+                          disabled={isLoading}
+                        >
+                          <prompt.icon className="h-4 w-4 mr-2 shrink-0 text-primary" />
+                          <span className="text-xs">{prompt.label}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {messages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      {msg.role === 'assistant' && (
+                        <div className="flex-shrink-0">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Bot className="h-5 w-5 text-primary" />
+                          </div>
+                        </div>
+                      )}
+                      <div
+                        className={`
+                          max-w-[80%] rounded-lg px-4 py-2
+                          ${msg.role === 'user' 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'bg-muted'}
+                        `}
+                      >
+                        {msg.role === 'user' ? (
+                          <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        ) : (
+                          <div 
+                            className="text-sm prose prose-sm max-w-none dark:prose-invert 
+                                       prose-p:mb-3 prose-p:leading-relaxed
+                                       prose-ul:my-2 prose-li:my-1
+                                       prose-headings:mb-3 prose-headings:mt-4"
+                            dangerouslySetInnerHTML={{ 
+                              __html: renderNHSMarkdown(msg.content, { enableNHSStyling: true }) 
+                            }}
+                          />
+                        )}
+                      </div>
+                      {msg.role === 'user' && (
+                        <div className="flex-shrink-0">
+                          <div className="h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center">
+                            <User className="h-5 w-5 text-accent" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {isLoading && (
+                    <div className="flex gap-3">
+                      <div className="flex-shrink-0">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Bot className="h-5 w-5 text-primary" />
+                        </div>
+                      </div>
+                      <div className="bg-muted rounded-lg px-4 py-2">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </ScrollArea>
 
-        {/* Input Area */}
-        <div className="flex gap-2">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask a question about this consultation..."
-            className="min-h-[60px] resize-none"
-            disabled={isLoading}
-          />
-          <Button
-            onClick={() => handleSend()}
-            disabled={!input.trim() || isLoading}
-            className="shrink-0"
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Press Ctrl+Enter to send • Esc to clear
-        </p>
-      </CardContent>
-    </Card>
+            {/* Input Area */}
+            <div className="flex gap-2 items-end">
+              <div className="flex-1 relative">
+                <Textarea
+                  ref={textareaRef}
+                  placeholder="Ask a question about this consultation..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={isLoading}
+                  className="min-h-[80px] max-h-40 resize-none pr-10"
+                  rows={3}
+                />
+                {/* Clear button */}
+                {input.trim().length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 bottom-2 h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
+                    onClick={handleClearInput}
+                    title="Clear input (Esc)"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                <EnhancedBrowserMic
+                  ref={micRef}
+                  onTranscriptUpdate={handleTranscriptUpdate}
+                  onRecordingStart={() => textareaRef.current?.focus()}
+                  disabled={isLoading}
+                  compact
+                />
+                <Button 
+                  onClick={() => {
+                    handleSend();
+                    micRef.current?.clearTranscript();
+                  }} 
+                  disabled={isLoading || !input.trim()}
+                  size="icon"
+                  className="h-10 w-10"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground text-center pt-1">
+              <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
+              to send • <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Esc</kbd>
+              to clear • <span className="text-blue-600 font-medium">🎙️ Voice control with pause</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
