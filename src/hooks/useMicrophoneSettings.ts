@@ -15,6 +15,8 @@ export interface MicrophoneSettingsState {
   testStatus: 'idle' | 'connecting' | 'testing' | 'success' | 'error';
   errorMessage: string | null;
   permissionStatus: 'unknown' | 'granted' | 'denied' | 'prompt';
+  recordedAudioUrl: string | null;
+  isPlayingBack: boolean;
 }
 
 const STORAGE_KEY = 'gpscribe_microphone_device_id';
@@ -30,6 +32,8 @@ export const useMicrophoneSettings = () => {
     testStatus: 'idle',
     errorMessage: null,
     permissionStatus: 'unknown',
+    recordedAudioUrl: null,
+    isPlayingBack: false,
   });
 
   const testStreamRef = useRef<MediaStream | null>(null);
@@ -39,6 +43,9 @@ export const useMicrophoneSettings = () => {
   const testTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTestingRef = useRef<boolean>(false);
   const maxVolumeRef = useRef<number>(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
   // Load saved device ID from localStorage
   useEffect(() => {
@@ -151,6 +158,9 @@ export const useMicrophoneSettings = () => {
       clearTimeout(testTimeoutRef.current);
       testTimeoutRef.current = null;
     }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
     if (testStreamRef.current) {
       testStreamRef.current.getTracks().forEach(track => track.stop());
       testStreamRef.current = null;
@@ -167,6 +177,12 @@ export const useMicrophoneSettings = () => {
     cleanupTest();
     maxVolumeRef.current = 0;
     isTestingRef.current = true;
+    audioChunksRef.current = [];
+    
+    // Clean up previous recording URL
+    if (state.recordedAudioUrl) {
+      URL.revokeObjectURL(state.recordedAudioUrl);
+    }
     
     setState(prev => ({
       ...prev,
@@ -175,6 +191,8 @@ export const useMicrophoneSettings = () => {
       testVolume: 0,
       waveformData: new Array(WAVEFORM_BARS).fill(0),
       errorMessage: null,
+      recordedAudioUrl: null,
+      isPlayingBack: false,
     }));
 
     try {
@@ -207,6 +225,20 @@ export const useMicrophoneSettings = () => {
       source.connect(analyserRef.current);
 
       console.log('Audio context state:', audioContextRef.current.state);
+      
+      // Set up MediaRecorder for playback
+      mediaRecorderRef.current = new MediaRecorder(testStreamRef.current, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+      });
+      
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorderRef.current.start();
+      
       setState(prev => ({ ...prev, testStatus: 'testing' }));
 
       // Monitor volume levels using frequency data for waveform
@@ -261,6 +293,23 @@ export const useMicrophoneSettings = () => {
       testTimeoutRef.current = setTimeout(() => {
         const maxVolume = maxVolumeRef.current;
         console.log('Test complete, max volume detected:', maxVolume);
+        
+        // Stop recording and create playback URL
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.onstop = () => {
+            const audioBlob = new Blob(audioChunksRef.current, { 
+              type: mediaRecorderRef.current?.mimeType || 'audio/webm' 
+            });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            
+            setState(prev => ({
+              ...prev,
+              recordedAudioUrl: audioUrl,
+            }));
+          };
+          mediaRecorderRef.current.stop();
+        }
+        
         cleanupTest();
         setState(prev => ({
           ...prev,
@@ -308,6 +357,36 @@ export const useMicrophoneSettings = () => {
     }));
   }, [cleanupTest]);
 
+  // Play recorded audio
+  const playRecordedAudio = useCallback(() => {
+    if (!state.recordedAudioUrl) return;
+    
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+    }
+    
+    audioElementRef.current = new Audio(state.recordedAudioUrl);
+    audioElementRef.current.onplay = () => {
+      setState(prev => ({ ...prev, isPlayingBack: true }));
+    };
+    audioElementRef.current.onended = () => {
+      setState(prev => ({ ...prev, isPlayingBack: false }));
+    };
+    audioElementRef.current.onpause = () => {
+      setState(prev => ({ ...prev, isPlayingBack: false }));
+    };
+    audioElementRef.current.play();
+  }, [state.recordedAudioUrl]);
+
+  // Stop playback
+  const stopPlayback = useCallback(() => {
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.currentTime = 0;
+    }
+    setState(prev => ({ ...prev, isPlayingBack: false }));
+  }, []);
+
   // Listen for device changes
   useEffect(() => {
     const handleDeviceChange = () => {
@@ -333,5 +412,7 @@ export const useMicrophoneSettings = () => {
     selectDevice,
     startMicTest,
     stopMicTest,
+    playRecordedAudio,
+    stopPlayback,
   };
 };

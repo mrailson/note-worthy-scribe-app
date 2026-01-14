@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mic, MicOff, RefreshCw, CheckCircle, XCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { Mic, MicOff, RefreshCw, CheckCircle, XCircle, AlertTriangle, Loader2, Play, Square } from "lucide-react";
 import { useMicrophoneSettings } from "@/hooks/useMicrophoneSettings";
 import { cn } from "@/lib/utils";
 
@@ -20,10 +20,14 @@ export const MicrophoneSettings = ({ onDeviceChange }: MicrophoneSettingsProps) 
     testStatus,
     errorMessage,
     permissionStatus,
+    recordedAudioUrl,
+    isPlayingBack,
     enumerateDevices,
     selectDevice,
     startMicTest,
     stopMicTest,
+    playRecordedAudio,
+    stopPlayback,
   } = useMicrophoneSettings();
 
   // Notify parent of device changes
@@ -200,7 +204,7 @@ export const MicrophoneSettings = ({ onDeviceChange }: MicrophoneSettingsProps) 
         </div>
 
         {/* Test button and status */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <Button
             variant={isTestingMic ? "destructive" : "secondary"}
             onClick={isTestingMic ? stopMicTest : startMicTest}
@@ -219,6 +223,27 @@ export const MicrophoneSettings = ({ onDeviceChange }: MicrophoneSettingsProps) 
               </>
             )}
           </Button>
+          
+          {/* Playback button - show after successful test */}
+          {recordedAudioUrl && testStatus === 'success' && (
+            <Button
+              variant="outline"
+              onClick={isPlayingBack ? stopPlayback : playRecordedAudio}
+              className="gap-2"
+            >
+              {isPlayingBack ? (
+                <>
+                  <Square className="h-4 w-4" />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" />
+                  Play Recording
+                </>
+              )}
+            </Button>
+          )}
           
           <div className="flex items-center gap-2 text-sm">
             {getStatusIcon()}
