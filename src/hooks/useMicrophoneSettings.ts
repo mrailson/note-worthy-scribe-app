@@ -81,11 +81,18 @@ export const useMicrophoneSettings = () => {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = devices
         .filter(device => device.kind === 'audioinput')
-        .map((device, index) => ({
-          deviceId: device.deviceId,
-          label: device.label || `Microphone ${index + 1}`,
-          isDefault: device.deviceId === 'default' || index === 0,
-        }));
+        .map((device, index) => {
+          // Clean up the label by removing technical codes in brackets like (0c76:0063)
+          let label = device.label || `Microphone ${index + 1}`;
+          // Remove USB vendor:product IDs like (0c76:0063) or (1bcf:2cc9)
+          label = label.replace(/\s*\([0-9a-fA-F]{4}:[0-9a-fA-F]{4}\)\s*/g, '').trim();
+          
+          return {
+            deviceId: device.deviceId,
+            label,
+            isDefault: device.deviceId === 'default' || index === 0,
+          };
+        });
 
       setState(prev => {
         // If no device selected yet, select the default one
