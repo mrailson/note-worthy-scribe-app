@@ -5,7 +5,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Activity, Clock, Users, Calendar, TrendingUp } from 'lucide-react';
-import { MetricCard } from '@/components/nres/MetricCard';
 
 interface UserMeetingStats {
   user_id: string;
@@ -28,6 +27,9 @@ interface SystemStats {
   total_duration_mins: number;
   avg_duration_mins: number;
   total_words: number;
+  duration_24h: number;
+  duration_7d: number;
+  duration_30d: number;
 }
 
 const MIN_WORDS_FOR_COUNT = 100;
@@ -65,6 +67,9 @@ export const MeetingUsageReport = () => {
         total_duration_mins: number;
         total_words: number;
         deleted_meetings_count: number;
+        duration_24h: number;
+        duration_7d: number;
+        duration_30d: number;
       }>;
 
       const totalMeetings = results.reduce((sum, r) => sum + (r.all_time || 0), 0);
@@ -79,6 +84,9 @@ export const MeetingUsageReport = () => {
         total_duration_mins: totalDuration,
         avg_duration_mins: totalMeetings > 0 ? Math.round(totalDuration / totalMeetings) : 0,
         total_words: results.reduce((sum, r) => sum + (r.total_words || 0), 0),
+        duration_24h: results.reduce((sum, r) => sum + (r.duration_24h || 0), 0),
+        duration_7d: results.reduce((sum, r) => sum + (r.duration_7d || 0), 0),
+        duration_30d: results.reduce((sum, r) => sum + (r.duration_30d || 0), 0),
       };
 
       setSystemStats(systemStatsCalc);
@@ -151,34 +159,67 @@ export const MeetingUsageReport = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Overview Cards */}
+        {/* Overview Cards with Meeting Counts and Duration */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <MetricCard
-            title="Last 24 Hours"
-            value={systemStats?.last_24h || 0}
-            tooltip={`Completed meetings (over ${MIN_WORDS_FOR_COUNT} words) in the last 24 hours`}
-            icon={<Clock className="h-4 w-4" />}
-            variant={systemStats && systemStats.last_24h > 0 ? 'success' : 'default'}
-          />
-          <MetricCard
-            title="Last 7 Days"
-            value={systemStats?.last_7d || 0}
-            tooltip={`Completed meetings (over ${MIN_WORDS_FOR_COUNT} words) in the last 7 days`}
-            icon={<Calendar className="h-4 w-4" />}
-            variant={systemStats && systemStats.last_7d > 5 ? 'success' : 'default'}
-          />
-          <MetricCard
-            title="Last 30 Days"
-            value={systemStats?.last_30d || 0}
-            tooltip={`Completed meetings (over ${MIN_WORDS_FOR_COUNT} words) in the last 30 days`}
-            icon={<TrendingUp className="h-4 w-4" />}
-          />
-          <MetricCard
-            title="All Time"
-            value={systemStats?.all_time || 0}
-            tooltip={`Total completed meetings (over ${MIN_WORDS_FOR_COUNT} words) since system launch`}
-            icon={<Users className="h-4 w-4" />}
-          />
+          {/* Last 24 Hours */}
+          <div className="border rounded-lg p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Last 24 Hours</span>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-green-600">{systemStats?.last_24h || 0}</span>
+              <span className="text-sm text-muted-foreground">meetings</span>
+            </div>
+            <div className="text-sm text-muted-foreground border-t pt-2">
+              <span className="font-medium text-foreground">{formatDuration(systemStats?.duration_24h || 0)}</span> total
+            </div>
+          </div>
+
+          {/* Last 7 Days */}
+          <div className="border rounded-lg p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Last 7 Days</span>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold text-blue-600">{systemStats?.last_7d || 0}</span>
+              <span className="text-sm text-muted-foreground">meetings</span>
+            </div>
+            <div className="text-sm text-muted-foreground border-t pt-2">
+              <span className="font-medium text-foreground">{formatDuration(systemStats?.duration_7d || 0)}</span> total
+            </div>
+          </div>
+
+          {/* Last 30 Days */}
+          <div className="border rounded-lg p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Last 30 Days</span>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold">{systemStats?.last_30d || 0}</span>
+              <span className="text-sm text-muted-foreground">meetings</span>
+            </div>
+            <div className="text-sm text-muted-foreground border-t pt-2">
+              <span className="font-medium text-foreground">{formatDuration(systemStats?.duration_30d || 0)}</span> total
+            </div>
+          </div>
+
+          {/* All Time */}
+          <div className="border rounded-lg p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">All Time</span>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-bold">{systemStats?.all_time || 0}</span>
+              <span className="text-sm text-muted-foreground">meetings</span>
+            </div>
+            <div className="text-sm text-muted-foreground border-t pt-2">
+              <span className="font-medium text-foreground">{formatDuration(systemStats?.total_duration_mins || 0)}</span> total
+            </div>
+          </div>
         </div>
 
         {/* System-wide Summary */}
