@@ -172,6 +172,7 @@ const priorityConfig: Record<string, { color: string }> = {
 
 export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProps) => {
   const { actionItems, isLoading, updateActionItem } = useActionItems(meetingId);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   if (isLoading || actionItems.length === 0) {
     return null;
@@ -179,14 +180,23 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
 
   const openItems = actionItems.filter(i => i.status !== 'Completed');
   const completedItems = actionItems.filter(i => i.status === 'Completed');
+  const displayedItems = showCompleted ? actionItems : openItems;
 
   return (
     <div className="rounded-lg border overflow-hidden">
-      <div className="bg-primary px-4 py-2">
+      <div className="bg-primary px-4 py-2 flex items-center justify-between">
         <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4" />
           Action Items ({openItems.length} open, {completedItems.length} completed)
         </h3>
+        {completedItems.length > 0 && (
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="text-xs text-primary-foreground/80 hover:text-primary-foreground underline-offset-2 hover:underline"
+          >
+            {showCompleted ? 'Hide completed' : 'Show completed'}
+          </button>
+        )}
       </div>
       <Table>
         <TableHeader>
@@ -199,7 +209,7 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
           </TableRow>
         </TableHeader>
         <TableBody>
-          {actionItems.map((item) => (
+          {displayedItems.map((item) => (
             <TableRow 
               key={item.id} 
               className={item.status === 'Completed' ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}
