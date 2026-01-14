@@ -55,19 +55,85 @@ export const isLetterFormat = (content: string): boolean => {
 };
 
 /**
- * Cleans markdown formatting from text
+ * Basic HTML entity decoding (covers named + numeric entities)
+ */
+const decodeHtmlEntities = (input: string): string => {
+  return input
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#(\d+);/g, (_m, dec) => {
+      const code = Number(dec);
+      if (!Number.isFinite(code)) return _m;
+      try {
+        return String.fromCodePoint(code);
+      } catch {
+        return _m;
+      }
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_m, hex) => {
+      const code = Number.parseInt(hex, 16);
+      if (!Number.isFinite(code)) return _m;
+      try {
+        return String.fromCodePoint(code);
+      } catch {
+        return _m;
+      }
+    });
+};
+
+/**
+ * Strips HTML into readable plain text while preserving paragraph breaks.
+ */
+export const stripHtmlToText = (input: string): string => {
+  if (!input) return '';
+
+  const withBreaks = input
+    // Normalise line breaks
+    .replace(/\r\n/g, "\n")
+    // Paragraph-ish breaks
+    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+    .replace(/<\s*\/\s*p\s*>/gi, "\n\n")
+    .replace(/<\s*\/\s*div\s*>/gi, "\n")
+    // List items
+    .replace(/<\s*li[^>]*>/gi, "• ")
+    .replace(/<\s*\/\s*li\s*>/gi, "\n")
+    // Drop style/script blocks entirely
+    .replace(/<\s*style[^>]*>[\s\S]*?<\s*\/\s*style\s*>/gi, "")
+    .replace(/<\s*script[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi, "");
+
+  const withoutTags = withBreaks.replace(/<[^>]+>/g, "");
+  const decoded = decodeHtmlEntities(withoutTags);
+
+  return decoded
+    .replace(/\u00A0/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
+/**
+ * Cleans markdown formatting from text (and strips any stray HTML)
  */
 export const cleanMarkdownText = (text: string): string => {
   if (!text) return '';
-  
-  return text
-    .replace(/\*\*\*([^*]+)\*\*\*/g, '$1') // Remove bold+italic
-    .replace(/\*\*([^*]+)\*\*/g, '$1')     // Remove bold
-    .replace(/\*([^*]+)\*/g, '$1')         // Remove italic
-    .replace(/`([^`]+)`/g, '$1')           // Remove code
-    .replace(/#{1,6}\s+/g, '')             // Remove heading markers
-    .replace(/^[-•]\s+/gm, '')             // Remove bullet points
-    .replace(/^\d+\.\s+/gm, '')            // Remove numbered list markers
+
+  const looksLikeHtml = /<\s*[a-z][\s\S]*>/i.test(text);
+  const base = looksLikeHtml ? stripHtmlToText(text) : text;
+
+  return base
+    .replace(/\*\*\*([\s\S]+?)\*\*\*/g, '$1') // Remove bold+italic
+    .replace(/\*\*([\s\S]+?)\*\*/g, '$1')       // Remove bold
+    .replace(/\*([^*\n]+)\*/g, '$1')              // Remove italic
+    .replace(/`([^`]+)`/g, '$1')                    // Remove code
+    .replace(/#{1,6}\s+/g, '')                      // Remove heading markers
+    .replace(/^[-•]\s+/gm, '')                      // Remove bullet points
+    .replace(/^\d+\.\s+/gm, '')                    // Remove numbered list markers
+    .replace(/[ \t]+/g, ' ')
     .trim();
 };
 
@@ -171,59 +237,66 @@ const extractHeaders = (content: string): ParsedLetter['headerSection'] => {
  */
 const extractSignature = (content: string): ParsedLetter['signature'] => {
   const signature: ParsedLetter['signature'] = {};
-  
+
+  const looksLikeName = (line: string) =>
+    /^(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Professor|Prof\.?|Miss)\s+/i.test(line) ||
+    /^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+$/.test(line);
+
+  const isValediction = (line: string) =>
+    /^(?:yours\s+(?:sincerely|faithfully|truly)|kind\s+regards|regards|best\s+wishes|with\s+best\s+wishes|many\s+thanks)$/i.test(
+      line.trim().replace(/[,\.]$/, '')
+    );
+
+  const isContactLine = (line: string) =>
+    /^(?:mob|mobile|tel|telephone|phone|email|fax)\s*:/i.test(line) ||
+    /^\+?\d[\d\s()+-]{7,}$/.test(line);
+
   // Look for content after closing phrase
-  const closingIndex = content.search(/yours\s+(?:sincerely|faithfully)|kind\s+regards|best\s+wishes/i);
-  
-  if (closingIndex !== -1) {
-    const afterClosing = content.substring(closingIndex);
-    const lines = afterClosing.split('\n').slice(1)
-      .map(line => cleanMarkdownText(line.trim()))
-      .filter(line => line);
-    
-    // First non-empty line after closing is usually the name
-    if (lines.length > 0) {
-      // Check if it's a name (contains Dr., or starts with capital)
-      const nameLine = lines[0];
-      if (nameLine.match(/^(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Professor|Prof\.?)\s+/i) || nameLine.match(/^[A-Z][a-z]+\s+[A-Z]/)) {
-        signature.name = nameLine;
-      } else {
-        signature.name = nameLine;
-      }
-      
-      // Look for title/role in subsequent lines
-      if (lines.length > 1) {
-        // Check for qualifications (contains abbreviations like MB, ChB, etc.)
-        const qualLine = lines.find(l => l.match(/(?:MB|ChB|MRCGP|FRCGP|MRCP|FRCP|MD|PhD|BSc|MSc)/i));
-        if (qualLine && qualLine !== signature.name) {
-          signature.qualifications = qualLine;
-        }
-        
-        // Look for organisation/practice name
-        const orgLine = lines.find(l => 
-          l !== signature.name && 
-          l !== signature.qualifications && 
-          (l.match(/(?:surgery|practice|medical|health|centre|center|clinic)/i) || l.match(/^[A-Z]/))
-        );
-        if (orgLine) {
-          signature.organisation = orgLine;
-        }
-        
-        // Title might be the line after name that's not qualifications or org
-        const titleLine = lines.find((l, i) => 
-          i > 0 && 
-          l !== signature.name && 
-          l !== signature.qualifications && 
-          l !== signature.organisation &&
-          l.match(/^(?:GP|General\s+Practitioner|Doctor|Consultant|Partner|Locum|Salaried|Registrar)/i)
-        );
-        if (titleLine) {
-          signature.title = titleLine;
-        }
-      }
-    }
-  }
-  
+  const closingIndex = content.search(/yours\s+(?:sincerely|faithfully|truly)|kind\s+regards|best\s+wishes/i);
+  if (closingIndex === -1) return signature;
+
+  const afterClosingRaw = content.substring(closingIndex);
+  const afterClosingText = stripHtmlToText(afterClosingRaw);
+
+  // Remove the closing line itself from the start
+  const withoutClosing = afterClosingText
+    .replace(/^(?:yours\s+(?:sincerely|faithfully|truly)|kind\s+regards|best\s+wishes)\s*,?\s*/i, '')
+    .trim();
+
+  const lines = withoutClosing
+    .split(/\n+/)
+    .map(l => cleanMarkdownText(l.trim()))
+    .map(l => l.replace(/^•\s*/, '').trim())
+    .filter(Boolean)
+    .filter(l => !isValediction(l))
+    .filter(l => !isContactLine(l));
+
+  if (!lines.length) return signature;
+
+  const nameLine = lines.find(looksLikeName) ?? lines[0];
+  signature.name = nameLine;
+
+  const remaining = lines.filter(l => l !== nameLine);
+
+  // Qualifications
+  const qualLine = remaining.find(l => l.match(/(?:MB|ChB|MRCGP|FRCGP|MRCP|FRCP|MD|PhD|BSc|MSc)/i));
+  if (qualLine) signature.qualifications = qualLine;
+
+  // Title / role
+  const titleLine = remaining.find(l =>
+    l !== qualLine &&
+    l.match(/^(?:GP|General\s+Practitioner|Doctor|Consultant|Partner|Locum|Salaried|Registrar)/i)
+  );
+  if (titleLine) signature.title = titleLine;
+
+  // Organisation
+  const orgLine = remaining.find(l =>
+    l !== qualLine &&
+    l !== titleLine &&
+    (l.match(/(?:surgery|practice|medical|health|centre|center|clinic)/i) || /^[A-Z]/.test(l))
+  );
+  if (orgLine) signature.organisation = orgLine;
+
   return signature;
 };
 
