@@ -1254,6 +1254,12 @@ export const MeetingHistoryList = ({
       // Get venue (physical location)
       const venue = (notesFields as any)?.meeting_location || (meeting as any).meeting_location || undefined;
 
+      // Get attendees names
+      const attendeeNames = meetingAttendees
+        ?.map((ma: any) => ma.attendees?.name)
+        .filter(Boolean)
+        .join(', ') || undefined;
+
       // Get meeting format (Teams/Hybrid/Face to face)
       const meetingFormatRaw = (notesFields as any)?.meeting_format || (meeting as any).meeting_format || undefined;
       const formatLabel = (() => {
