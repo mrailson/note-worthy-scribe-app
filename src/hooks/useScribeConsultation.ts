@@ -465,7 +465,7 @@ export const useScribeConsultation = () => {
         (importedTranscript ? importedTranscript.split(/\s+/).filter(w => w.length > 0).length : 0);
       const durationToSave = recording.duration || 0;
 
-      // 1. Insert into gp_consultations (main table)
+      // 1. Insert into gp_consultations (main table) with patient context
       const { data: consultationData, error: consultationError } = await supabase
         .from('gp_consultations')
         .insert([{
@@ -477,7 +477,12 @@ export const useScribeConsultation = () => {
           patient_consent: patientConsent,
           consent_timestamp: consentTimestamp || null,
           duration_seconds: durationToSave,
-          word_count: wordCountToSave
+          word_count: wordCountToSave,
+          // Patient context for memory jogger
+          patient_name: patientContext?.name || null,
+          patient_nhs_number: patientContext?.nhsNumber || null,
+          patient_dob: patientContext?.dateOfBirth || null,
+          patient_context_confidence: patientContext?.confidence || null
         }])
         .select()
         .single();
@@ -543,7 +548,7 @@ export const useScribeConsultation = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [consultationNote, consultationType, consultationCategory, recording, importedTranscript, isSaving, isSaved, patientConsent, consentTimestamp, settings.noteFormat, contextFiles]);
+  }, [consultationNote, consultationType, consultationCategory, recording, importedTranscript, isSaving, isSaved, patientConsent, consentTimestamp, settings.noteFormat, contextFiles, patientContext]);
 
   // Heidi section editing
   const startHeidiEdit = useCallback((section: keyof HeidiNote) => {
