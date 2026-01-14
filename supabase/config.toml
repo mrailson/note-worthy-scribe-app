@@ -392,3 +392,6 @@ verify_jwt = true
 
 [functions.ai-line-transform]
 verify_jwt = true
+
+[functions.consultation-qa-chat]
+verify_jwt = true

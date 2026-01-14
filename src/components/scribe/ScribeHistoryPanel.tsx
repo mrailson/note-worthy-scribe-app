@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle, CONSULTATION_CATEGORY_LABELS, ConsultationCategory } from "@/types/scribe";
-import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft, Send } from "lucide-react";
+import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft, Send, Sparkles } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ import { NoteStyleToggle } from "./NoteStyleToggle";
 import { PatientLetterView } from "./PatientLetterView";
 import { SessionHistorySearch, DateFilter, CategoryFilter } from "./SessionHistorySearch";
 import { ReferralWorkspace } from "./ReferralWorkspace";
+import { ConsultationAskAI } from "./ConsultationAskAI";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ScribeHistoryPanelProps {
@@ -501,9 +502,13 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
           </CardHeader>
           <CardContent className="space-y-4">
             <Tabs defaultValue="consultation" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="consultation">F2F Consultation</TabsTrigger>
                 <TabsTrigger value="referral">Referral</TabsTrigger>
+                <TabsTrigger value="ask-ai" className="flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  Ask AI
+                </TabsTrigger>
                 <TabsTrigger value="transcript">Transcript</TabsTrigger>
               </TabsList>
               
@@ -697,6 +702,13 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     userId={userId}
                   />
                 </div>
+              </TabsContent>
+              
+              <TabsContent value="ask-ai" className="mt-4">
+                <ConsultationAskAI 
+                  session={currentSession} 
+                  soapNote={currentSoapNote}
+                />
               </TabsContent>
               
               <TabsContent value="transcript" className="mt-4">
