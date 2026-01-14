@@ -366,6 +366,26 @@ export function SessionHistoryRow({
         <Collapsible open={isQuickPeekOpen} onOpenChange={setIsQuickPeekOpen}>
           <CollapsibleContent>
             <div className="mt-3 pt-3 border-t border-border/50 space-y-2" onClick={(e) => e.stopPropagation()}>
+              {/* Patient Details - Unmasked */}
+              {session.patientName && (
+                <div className="flex items-center gap-3 px-3 py-2 rounded-md bg-primary/5 border border-primary/20">
+                  <User className="h-4 w-4 text-primary shrink-0" />
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                    <span className="font-medium text-primary">{session.patientName}</span>
+                    {session.patientNhsNumber && (
+                      <span className="text-muted-foreground">
+                        NHS: {session.patientNhsNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')}
+                      </span>
+                    )}
+                    {session.patientDob && (
+                      <span className="text-muted-foreground">
+                        DOB: {session.patientDob}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               {/* Problems Discussed */}
               {quickPeekData.problems.length > 0 && (
                 <div>
@@ -405,7 +425,7 @@ export function SessionHistoryRow({
               )}
               
               {/* Empty state */}
-              {quickPeekData.problems.length === 0 && quickPeekData.planItems.length === 0 && (
+              {quickPeekData.problems.length === 0 && quickPeekData.planItems.length === 0 && !session.patientName && (
                 <p className="text-sm text-muted-foreground italic">No structured notes available</p>
               )}
             </div>
