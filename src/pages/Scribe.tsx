@@ -318,6 +318,7 @@ const Scribe = () => {
                 patientContext={consultation.patientContext}
                 showPatientBanner={consultation.settings.showPatientBannerDuringRecording}
                 contextFiles={consultation.contextFiles}
+                minimalRecordingView={consultation.settings.minimalRecordingView}
                 formatDuration={consultation.formatDuration}
                 onPause={consultation.pauseRecording}
                 onResume={consultation.resumeRecording}

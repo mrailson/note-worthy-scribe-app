@@ -7,6 +7,7 @@ import { ConsultationType, CONSULTATION_TYPE_LABELS, ScribeTranscriptData, Patie
 import { PatientContextBanner } from "./PatientContextBanner";
 import { SoFarReviewPanel } from "./SoFarReviewPanel";
 import { ContextUploadPanel } from "./ContextUploadPanel";
+import { MinimalRecordingState } from "./MinimalRecordingState";
 import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -24,6 +25,7 @@ interface ConsultationRecordingStateProps {
   patientContext: PatientContext | null;
   showPatientBanner: boolean;
   contextFiles: ConsultationContextFile[];
+  minimalRecordingView: boolean;
   formatDuration: (seconds: number) => string;
   onPause: () => void;
   onResume: () => void;
@@ -53,6 +55,7 @@ export const ConsultationRecordingState = ({
   patientContext,
   showPatientBanner,
   contextFiles,
+  minimalRecordingView,
   formatDuration,
   onPause,
   onResume,
@@ -67,6 +70,7 @@ export const ConsultationRecordingState = ({
   const [startTime] = useState(() => new Date());
   const [timestampedSegments, setTimestampedSegments] = useState<TimestampedSegment[]>([]);
   const [activeTab, setActiveTab] = useState<string>("transcript");
+  const [showMinimalView, setShowMinimalView] = useState(minimalRecordingView);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastTranscriptCount = useRef(0);
 
@@ -110,6 +114,22 @@ export const ConsultationRecordingState = ({
     }
     return acc;
   }, []);
+
+  // Show minimal view if enabled
+  if (showMinimalView) {
+    return (
+      <MinimalRecordingState
+        duration={duration}
+        wordCount={wordCount}
+        isPaused={isPaused}
+        formatDuration={formatDuration}
+        onPause={onPause}
+        onResume={onResume}
+        onFinish={onFinish}
+        onExpandView={() => setShowMinimalView(false)}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-180px)] px-2 sm:px-4">
