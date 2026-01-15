@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ConsultationType } from "@/types/scribe";
-import { Pause, Play, Square, Maximize2, ChevronDown, ChevronUp, Mic } from "lucide-react";
+import { Pause, Play, Square, Maximize2, ChevronDown, ChevronUp, Mic, Loader2 } from "lucide-react";
 import { AudioWaveform } from "./AudioWaveform";
 
 interface MicrophoneDevice {
@@ -17,6 +17,7 @@ interface MinimalRecordingStateProps {
   duration: number;
   wordCount: number;
   isPaused: boolean;
+  isFinishing?: boolean;
   formatDuration: (seconds: number) => string;
   onPause: () => void;
   onResume: () => void;
@@ -31,6 +32,7 @@ export const MinimalRecordingState = ({
   duration,
   wordCount,
   isPaused,
+  isFinishing = false,
   formatDuration,
   onPause,
   onResume,
@@ -187,6 +189,7 @@ export const MinimalRecordingState = ({
             variant="outline"
             onClick={isPaused ? onResume : onPause}
             className="w-14 h-14 p-0 rounded-full"
+            disabled={isFinishing}
           >
             {isPaused ? (
               <Play className="h-6 w-6" />
@@ -198,10 +201,20 @@ export const MinimalRecordingState = ({
           {/* Finish button */}
           <Button
             onClick={onFinish}
+            disabled={isFinishing}
             className="h-14 px-8 gap-2 bg-primary hover:bg-primary/90 text-lg"
           >
-            <Square className="h-5 w-5" />
-            Finish
+            {isFinishing ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Ending...
+              </>
+            ) : (
+              <>
+                <Square className="h-5 w-5" />
+                Finish
+              </>
+            )}
           </Button>
         </div>
       </div>
