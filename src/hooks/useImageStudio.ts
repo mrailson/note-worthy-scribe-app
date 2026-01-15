@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
@@ -14,6 +14,38 @@ import {
   NHS_PALETTES 
 } from '@/utils/colourPalettes';
 import type { GeneratedImage } from '@/types/ai4gp';
+
+const HISTORY_STORAGE_KEY = 'image-studio-history';
+const MAX_HISTORY_ITEMS = 20;
+
+// Helper to load history from localStorage
+const loadHistoryFromStorage = (): GenerationHistoryItem[] => {
+  try {
+    const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!stored) return [];
+    
+    const parsed = JSON.parse(stored);
+    // Convert date strings back to Date objects
+    return parsed.map((item: any) => ({
+      ...item,
+      timestamp: new Date(item.timestamp),
+    }));
+  } catch (error) {
+    console.warn('Failed to load image studio history:', error);
+    return [];
+  }
+};
+
+// Helper to save history to localStorage
+const saveHistoryToStorage = (history: GenerationHistoryItem[]) => {
+  try {
+    // Only store the last MAX_HISTORY_ITEMS
+    const toStore = history.slice(0, MAX_HISTORY_ITEMS);
+    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(toStore));
+  } catch (error) {
+    console.warn('Failed to save image studio history:', error);
+  }
+};
 
 const DEFAULT_SETTINGS: ImageStudioSettings = {
   // Context & Content
@@ -50,17 +82,24 @@ const DEFAULT_SETTINGS: ImageStudioSettings = {
 export function useImageStudio() {
   const { practiceContext } = usePracticeContext();
   
-  const [state, setState] = useState<ImageStudioState>({
+  const [state, setState] = useState<ImageStudioState>(() => ({
     settings: DEFAULT_SETTINGS,
     activeTab: 'context',
     isGenerating: false,
     generationProgress: 0,
     currentResult: null,
-    generationHistory: [],
+    generationHistory: loadHistoryFromStorage(), // Load persisted history on init
     error: null,
-  });
+  }));
   
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Save history to localStorage whenever it changes
+  useEffect(() => {
+    if (state.generationHistory.length > 0) {
+      saveHistoryToStorage(state.generationHistory);
+    }
+  }, [state.generationHistory]);
 
   // Update settings
   const updateSettings = useCallback((updates: Partial<ImageStudioSettings>) => {
@@ -291,6 +330,15 @@ export function useImageStudio() {
     }
   }, [state.currentResult]);
 
+  // Select a history item to view/edit
+  const selectHistoryItem = useCallback((item: GenerationHistoryItem) => {
+    setState(prev => ({
+      ...prev,
+      currentResult: item.result,
+      activeTab: 'generate',
+    }));
+  }, []);
+
   return {
     ...state,
     updateSettings,
@@ -302,5 +350,6 @@ export function useImageStudio() {
     cancelGeneration,
     resetSettings,
     editCurrentResult,
+    selectHistoryItem,
   };
 }

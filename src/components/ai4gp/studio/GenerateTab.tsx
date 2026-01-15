@@ -16,6 +16,7 @@ interface GenerateTabProps {
   onGenerate: () => void;
   onCancel: () => void;
   onEditResult: () => void;
+  onSelectHistoryItem: (item: GenerationHistoryItem) => void;
   descriptionProvided: boolean;
 }
 
@@ -28,6 +29,7 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
   onGenerate,
   onCancel,
   onEditResult,
+  onSelectHistoryItem,
   descriptionProvided,
 }) => {
   const handleDownload = () => {
@@ -119,21 +121,34 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
         </Card>
       )}
 
-      {/* History */}
+      {/* History - Show up to 20 items */}
       {history.length > 0 && (
         <div className="space-y-3">
-          <h3 className="font-medium">Recent Generations</h3>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {history.slice(0, 8).map((item) => (
-              <Card key={item.id} className="overflow-hidden cursor-pointer hover:ring-2 ring-primary transition-all">
+          <h3 className="font-medium">Recent Generations ({history.length})</h3>
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+            {history.slice(0, 20).map((item) => (
+              <Card 
+                key={item.id} 
+                className={cn(
+                  "overflow-hidden cursor-pointer hover:ring-2 ring-primary transition-all group relative",
+                  currentResult?.url === item.result.url && "ring-2 ring-primary"
+                )}
+                onClick={() => onSelectHistoryItem(item)}
+              >
                 <img 
                   src={item.result.url} 
                   alt={item.result.alt}
-                  className="w-full h-20 object-contain bg-muted"
+                  className="w-full h-16 sm:h-20 object-contain bg-muted"
                 />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <span className="text-white text-xs font-medium">View</span>
+                </div>
               </Card>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground text-center">
+            Click any image to view, download, or edit it
+          </p>
         </div>
       )}
     </div>
