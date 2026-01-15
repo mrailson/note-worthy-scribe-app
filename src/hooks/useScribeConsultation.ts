@@ -129,7 +129,117 @@ export const useScribeConsultation = () => {
     }
   }, [patientConsent, recording, settings.showConsentReminder, consultationType, getMicrophoneForType]);
 
-  // Finish consultation and generate notes
+  // Internal save function for auto-save (returns promise, no toast on success)
+  const saveConsultationInternal = useCallback(async (
+    noteToSave: ConsultationNote,
+    transcriptToSave: string,
+    wordCountToSave: number,
+    durationToSave: number
+  ): Promise<boolean> => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) {
+      throw new Error('Not authenticated');
+    }
+
+    // 1. Insert into gp_consultations (main table)
+    const { data: consultationData, error: consultationError } = await supabase
+      .from('gp_consultations')
+      .insert([{
+        user_id: userData.user.id,
+        title: `${CONSULTATION_TYPE_LABELS[consultationType]} Consultation`,
+        consultation_type: consultationType,
+        consultation_category: consultationCategory,
+        status: 'completed',
+        patient_consent: patientConsent,
+        consent_timestamp: consentTimestamp || null,
+        duration_seconds: durationToSave,
+        word_count: wordCountToSave,
+        patient_name: patientContext?.name || null,
+        patient_nhs_number: patientContext?.nhsNumber || null,
+        patient_dob: patientContext?.dateOfBirth || null,
+        patient_context_confidence: patientContext?.confidence || null
+      }])
+      .select()
+      .single();
+
+    if (consultationError) throw consultationError;
+
+    const consultationId = consultationData.id;
+
+    // 2. Insert transcript
+    const { error: transcriptError } = await supabase
+      .from('gp_consultation_transcripts')
+      .insert([{
+        consultation_id: consultationId,
+        transcript_text: transcriptToSave,
+        cleaned_transcript: transcriptToSave,
+        transcription_service: 'whisper'
+      }]);
+
+    if (transcriptError) throw transcriptError;
+
+    // 3. Insert notes
+    const { error: notesError } = await supabase
+      .from('gp_consultation_notes')
+      .insert([{
+        consultation_id: consultationId,
+        note_format: noteToSave.noteFormat || 'heidi',
+        note_style: settings.noteFormat,
+        soap_notes: JSON.parse(JSON.stringify(noteToSave.soapNote)),
+        heidi_notes: noteToSave.heidiNote ? JSON.parse(JSON.stringify(noteToSave.heidiNote)) : null,
+        snomed_codes: noteToSave.snomedCodes || []
+      }]);
+
+    if (notesError) throw notesError;
+
+    // 4. Insert context files if any
+    if (contextFiles.length > 0) {
+      const contextInserts = contextFiles
+        .filter(f => !f.isProcessing && !f.error)
+        .map(f => ({
+          consultation_id: consultationId,
+          name: f.name,
+          content_type: f.type === 'image' ? 'image' : 'document',
+          extracted_text: f.content || null,
+          preview_url: f.preview || null
+        }));
+
+      if (contextInserts.length > 0) {
+        await supabase.from('gp_consultation_context').insert(contextInserts);
+      }
+    }
+
+    return true;
+  }, [consultationType, consultationCategory, patientConsent, consentTimestamp, settings.noteFormat, contextFiles, patientContext]);
+
+  // Auto-save with silent background retry
+  const autoSaveWithRetry = useCallback(async (
+    noteToSave: ConsultationNote,
+    transcriptToSave: string,
+    wordCountToSave: number,
+    durationToSave: number,
+    maxRetries = 3
+  ) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await saveConsultationInternal(noteToSave, transcriptToSave, wordCountToSave, durationToSave);
+        setIsSaved(true);
+        console.log('✅ Consultation auto-saved successfully');
+        return true;
+      } catch (error) {
+        console.error(`Auto-save attempt ${attempt} failed:`, error);
+        if (attempt < maxRetries) {
+          // Exponential backoff: 1s, 2s, 4s
+          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt - 1)));
+        }
+      }
+    }
+    // All retries failed - show subtle error, allow manual retry
+    console.error('❌ All auto-save attempts failed');
+    return false;
+  }, [saveConsultationInternal]);
+
+  // Finish consultation and generate notes (with auto-save)
   const finishConsultation = useCallback(async () => {
     try {
       const result = await recording.stopRecording();
@@ -139,6 +249,11 @@ export const useScribeConsultation = () => {
         setConsultationState('ready');
         return;
       }
+
+      // Capture recording data before state changes
+      const transcriptForSave = result.transcript;
+      const wordCountForSave = result.transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
+      const durationForSave = recording.duration;
 
       setConsultationState('generating');
       setIsGenerating(true);
@@ -153,7 +268,7 @@ export const useScribeConsultation = () => {
 
       const { data, error } = await supabase.functions.invoke('generate-scribe-notes', {
         body: { 
-          transcript: result.transcript,
+          transcript: transcriptForSave,
           consultationType,
           outputFormat: 'heidi',
           noteFormat: settings.noteFormat,
@@ -204,8 +319,12 @@ export const useScribeConsultation = () => {
         });
       }
       
+      // Go directly to review state
       setConsultationState('review');
-      showToast.success('Notes generated successfully', { section: 'gpscribe' });
+      
+      // Auto-save in background (silent retry on failure)
+      autoSaveWithRetry(note, transcriptForSave, wordCountForSave, durationForSave);
+      
     } catch (error) {
       console.error('Error generating notes:', error);
       showToast.error('Failed to generate notes. Please try again.', { section: 'gpscribe' });
@@ -213,7 +332,7 @@ export const useScribeConsultation = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [recording, consultationType, settings.noteFormat, settings.consultationDetailLevel]);
+  }, [recording, consultationType, settings.noteFormat, settings.consultationDetailLevel, contextFiles, autoSaveWithRetry]);
 
   // Regenerate notes from existing transcript
   const regenerateNotes = useCallback(async () => {
@@ -457,7 +576,7 @@ export const useScribeConsultation = () => {
     });
   }, []);
 
-  // Save consultation to database (using dedicated gp_consultations tables)
+  // Save consultation manually (for imported consultations that weren't auto-saved)
   const saveConsultation = useCallback(async () => {
     // Guard against duplicate saves
     if (isSaving) {
@@ -478,92 +597,13 @@ export const useScribeConsultation = () => {
     try {
       setIsSaving(true);
       
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData?.user) {
-        showToast.error('Not authenticated', { section: 'gpscribe' });
-        return;
-      }
-
       // Use recording transcript or imported transcript
-      const transcriptToSave = recording.transcript || importedTranscript;
+      const transcriptToSave = recording.transcript || importedTranscript || '';
       const wordCountToSave = recording.wordCount || 
         (importedTranscript ? importedTranscript.split(/\s+/).filter(w => w.length > 0).length : 0);
       const durationToSave = recording.duration || 0;
 
-      // 1. Insert into gp_consultations (main table) with patient context
-      const { data: consultationData, error: consultationError } = await supabase
-        .from('gp_consultations')
-        .insert([{
-          user_id: userData.user.id,
-          title: `${CONSULTATION_TYPE_LABELS[consultationType]} Consultation`,
-          consultation_type: consultationType,
-          consultation_category: consultationCategory,
-          status: 'completed',
-          patient_consent: patientConsent,
-          consent_timestamp: consentTimestamp || null,
-          duration_seconds: durationToSave,
-          word_count: wordCountToSave,
-          // Patient context for memory jogger
-          patient_name: patientContext?.name || null,
-          patient_nhs_number: patientContext?.nhsNumber || null,
-          patient_dob: patientContext?.dateOfBirth || null,
-          patient_context_confidence: patientContext?.confidence || null
-        }])
-        .select()
-        .single();
-
-      if (consultationError) throw consultationError;
-
-      const consultationId = consultationData.id;
-
-      // 2. Insert transcript into gp_consultation_transcripts
-      const { error: transcriptError } = await supabase
-        .from('gp_consultation_transcripts')
-        .insert([{
-          consultation_id: consultationId,
-          transcript_text: transcriptToSave,
-          cleaned_transcript: transcriptToSave,
-          transcription_service: importedTranscript ? 'imported' : 'whisper'
-        }]);
-
-      if (transcriptError) throw transcriptError;
-
-      // 3. Insert notes into gp_consultation_notes
-      const { error: notesError } = await supabase
-        .from('gp_consultation_notes')
-        .insert([{
-          consultation_id: consultationId,
-          note_format: consultationNote.noteFormat || 'heidi',
-          note_style: settings.noteFormat,
-          soap_notes: JSON.parse(JSON.stringify(consultationNote.soapNote)),
-          heidi_notes: consultationNote.heidiNote ? JSON.parse(JSON.stringify(consultationNote.heidiNote)) : null,
-          snomed_codes: consultationNote.snomedCodes || []
-        }]);
-
-      if (notesError) throw notesError;
-
-      // 4. Insert context files if any
-      if (contextFiles.length > 0) {
-        const contextInserts = contextFiles
-          .filter(f => !f.isProcessing && !f.error)
-          .map(f => ({
-            consultation_id: consultationId,
-            name: f.name,
-            content_type: f.type === 'image' ? 'image' : 'document',
-            extracted_text: f.content || null,
-            preview_url: f.preview || null
-          }));
-
-        if (contextInserts.length > 0) {
-          const { error: contextError } = await supabase
-            .from('gp_consultation_context')
-            .insert(contextInserts);
-
-          if (contextError) {
-            console.warn('Failed to save context files:', contextError);
-          }
-        }
-      }
+      await saveConsultationInternal(consultationNote, transcriptToSave, wordCountToSave, durationToSave);
       
       setIsSaved(true);
       showToast.success('Consultation saved', { section: 'gpscribe' });
@@ -573,7 +613,7 @@ export const useScribeConsultation = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [consultationNote, consultationType, consultationCategory, recording, importedTranscript, isSaving, isSaved, patientConsent, consentTimestamp, settings.noteFormat, contextFiles, patientContext]);
+  }, [consultationNote, recording, importedTranscript, isSaving, isSaved, saveConsultationInternal]);
 
   // Heidi section editing
   const startHeidiEdit = useCallback((section: keyof HeidiNote) => {
