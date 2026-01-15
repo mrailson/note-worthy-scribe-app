@@ -65,6 +65,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
 import { SpeechToText } from '@/components/SpeechToText';
 import MessageRenderer from '@/components/MessageRenderer';
+import { QuickImageModal } from '@/components/ai4gp/QuickImageModal';
+import { ImageStudioModal } from '@/components/ai4gp/ImageStudioModal';
 
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, BorderStyle, WidthType } from 'docx';
 import { saveAs } from 'file-saver';
@@ -149,6 +151,8 @@ const AI4PMService = () => {
     const saved = localStorage.getItem('ai4pm-history-collapsed');
     return saved ? JSON.parse(saved) : false;
   });
+  const [showQuickImageModal, setShowQuickImageModal] = useState(false);
+  const [showImageStudioModal, setShowImageStudioModal] = useState(false);
   
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
@@ -481,6 +485,13 @@ const AI4PMService = () => {
       icon: BarChart3,
       prompt: "Create a performance dashboard report for our practice, including key metrics and trends.",
       requiresFiles: true
+    },
+    {
+      label: "Quick Image",
+      icon: Image,
+      prompt: "",
+      requiresFiles: false,
+      isImageAction: true
     }
   ];
 
@@ -1349,6 +1360,11 @@ VARY your opening style using approaches like:
                             size="sm"
                             className="h-auto p-3 flex flex-col items-center gap-2"
                             onClick={() => {
+                              if ((action as any).isImageAction) {
+                                setShowQuickImageModal(true);
+                                setShowQuickActions(false);
+                                return;
+                              }
                               if (action.requiresFiles && uploadedFiles.length === 0) {
                                 const fileInput = document.getElementById('file-input');
                                 fileInput?.click();
@@ -1660,6 +1676,22 @@ VARY your opening style using approaches like:
           </Alert>
         </div>
       )}
+
+      {/* Quick Image Modal */}
+      <QuickImageModal
+        open={showQuickImageModal}
+        onOpenChange={setShowQuickImageModal}
+        onOpenImageStudio={() => {
+          setShowQuickImageModal(false);
+          setShowImageStudioModal(true);
+        }}
+      />
+
+      {/* Full Image Studio Modal */}
+      <ImageStudioModal
+        open={showImageStudioModal}
+        onOpenChange={setShowImageStudioModal}
+      />
     </div>
   );
 };
