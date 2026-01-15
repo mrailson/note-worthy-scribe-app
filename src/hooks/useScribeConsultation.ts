@@ -640,6 +640,7 @@ export const useScribeConsultation = () => {
     connectionStatus: recording.connectionStatus,
     wordCount: recording.wordCount,
     formatDuration: recording.formatDuration,
+    isFinishing: isGenerating,
     
     // Actions
     setConsultationType,

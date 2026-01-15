@@ -10,7 +10,7 @@ import { SoFarReviewPanel } from "./SoFarReviewPanel";
 import { ContextUploadPanel } from "./ContextUploadPanel";
 import { MinimalRecordingState } from "./MinimalRecordingState";
 import { AudioWaveform } from "./AudioWaveform";
-import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip } from "lucide-react";
+import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
@@ -26,6 +26,7 @@ interface ConsultationRecordingStateProps {
   connectionStatus: string;
   consultationType: ConsultationType;
   isPaused: boolean;
+  isFinishing?: boolean;
   transcript: string;
   realtimeTranscripts: ScribeTranscriptData[];
   showLiveTranscript: boolean;
@@ -56,6 +57,7 @@ export const ConsultationRecordingState = ({
   connectionStatus,
   consultationType,
   isPaused,
+  isFinishing = false,
   transcript,
   realtimeTranscripts,
   showLiveTranscript: initialShowTranscript,
@@ -420,6 +422,7 @@ export const ConsultationRecordingState = ({
             variant="outline"
             onClick={onCancel}
             className="flex-1"
+            disabled={isFinishing}
           >
             Cancel
           </Button>
@@ -428,6 +431,7 @@ export const ConsultationRecordingState = ({
             variant="outline"
             onClick={isPaused ? onResume : onPause}
             className="w-12 h-12 p-0 rounded-full"
+            disabled={isFinishing}
           >
             {isPaused ? (
               <Play className="h-5 w-5" />
@@ -438,10 +442,20 @@ export const ConsultationRecordingState = ({
           
           <Button
             onClick={onFinish}
+            disabled={isFinishing}
             className="flex-1 gap-2 bg-primary hover:bg-primary/90"
           >
-            <Square className="h-4 w-4" />
-            Finish & Create Note
+            {isFinishing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Ending Consultation...
+              </>
+            ) : (
+              <>
+                <Square className="h-4 w-4" />
+                Finish & Create Note
+              </>
+            )}
           </Button>
         </div>
       </div>

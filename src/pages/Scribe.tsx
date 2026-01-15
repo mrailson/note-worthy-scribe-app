@@ -313,6 +313,7 @@ const Scribe = () => {
                 connectionStatus={consultation.connectionStatus}
                 consultationType={consultation.consultationType}
                 isPaused={consultation.isPaused}
+                isFinishing={consultation.isFinishing}
                 transcript={consultation.transcript}
                 realtimeTranscripts={consultation.realtimeTranscripts}
                 showLiveTranscript={consultation.settings.showLiveTranscript}
