@@ -147,7 +147,10 @@ ${documentContent}`;
         throw new Error(functionError.message || 'Failed to generate infographic');
       }
       
-      if (!data?.imageUrl) {
+      // Edge function returns { success, image: { url }, textResponse }
+      const imageUrl = data?.image?.url || data?.imageUrl;
+      
+      if (!imageUrl) {
         throw new Error('No image was generated');
       }
       
@@ -155,9 +158,9 @@ ${documentContent}`;
       
       // Handle both base64 and URL responses
       let blob: Blob;
-      if (data.imageUrl.startsWith('data:')) {
+      if (imageUrl.startsWith('data:')) {
         // Base64 response
-        const base64Data = data.imageUrl.split(',')[1];
+        const base64Data = imageUrl.split(',')[1];
         const binaryString = atob(base64Data);
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
@@ -166,7 +169,7 @@ ${documentContent}`;
         blob = new Blob([bytes], { type: 'image/png' });
       } else {
         // URL response - fetch the image
-        const imageResponse = await fetch(data.imageUrl);
+        const imageResponse = await fetch(imageUrl);
         blob = await imageResponse.blob();
       }
       
@@ -186,7 +189,7 @@ ${documentContent}`;
       setCurrentPhase('complete');
       toast.success('Infographic downloaded successfully!');
       
-      return { success: true, imageUrl: data.imageUrl };
+      return { success: true, imageUrl };
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate infographic';
