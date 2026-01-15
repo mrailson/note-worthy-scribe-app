@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConsultationType, CONSULTATION_TYPE_LABELS, ScribeTranscriptData, PatientContext, ConsultationContextFile } from "@/types/scribe";
 import { PatientContextBanner } from "./PatientContextBanner";
 import { SoFarReviewPanel } from "./SoFarReviewPanel";
@@ -12,6 +13,11 @@ import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Papercli
 import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
+
+interface MicrophoneDevice {
+  deviceId: string;
+  label: string;
+}
 
 interface ConsultationRecordingStateProps {
   duration: number;
@@ -71,8 +77,38 @@ export const ConsultationRecordingState = ({
   const [timestampedSegments, setTimestampedSegments] = useState<TimestampedSegment[]>([]);
   const [activeTab, setActiveTab] = useState<string>("transcript");
   const [showMinimalView, setShowMinimalView] = useState(minimalRecordingView);
+  const [microphones, setMicrophones] = useState<MicrophoneDevice[]>([]);
+  const [selectedMicId, setSelectedMicId] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastTranscriptCount = useRef(0);
+
+  // Load available microphones
+  useEffect(() => {
+    const loadMicrophones = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const mics = devices
+          .filter(device => device.kind === 'audioinput')
+          .map((device, index) => ({
+            deviceId: device.deviceId,
+            label: device.label || `Microphone ${index + 1}`,
+          }));
+        setMicrophones(mics);
+        if (mics.length > 0 && !selectedMicId) {
+          setSelectedMicId(mics[0].deviceId);
+        }
+      } catch (error) {
+        console.error('Failed to enumerate devices:', error);
+      }
+    };
+
+    loadMicrophones();
+    
+    navigator.mediaDevices.addEventListener('devicechange', loadMicrophones);
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', loadMicrophones);
+    };
+  }, [selectedMicId]);
 
   // Track new transcripts and add timestamps
   useEffect(() => {
@@ -174,7 +210,24 @@ export const ConsultationRecordingState = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* Microphone Selector */}
+          {microphones.length > 0 && (
+            <Select value={selectedMicId} onValueChange={setSelectedMicId}>
+              <SelectTrigger className="w-[180px] h-8 text-xs bg-background">
+                <Mic className="h-3 w-3 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="Select mic" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border shadow-lg z-50">
+                {microphones.map((mic) => (
+                  <SelectItem key={mic.deviceId} value={mic.deviceId} className="text-xs">
+                    {mic.label.length > 25 ? mic.label.substring(0, 25) + '...' : mic.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          
           <span className="text-sm text-muted-foreground">
             {CONSULTATION_TYPE_LABELS[consultationType]}
           </span>
