@@ -47,6 +47,8 @@ export const ScribeSettingsPanel = ({
         onF2FMicrophoneChange={(deviceId) => onUpdateSetting('f2fMicrophoneId', deviceId)}
         onTelephoneMicrophoneChange={(deviceId) => onUpdateSetting('telephoneMicrophoneId', deviceId)}
         onVideoMicrophoneChange={(deviceId) => onUpdateSetting('videoMicrophoneId', deviceId)}
+        systemAudioEnabled={settings.systemAudioEnabled}
+        onSystemAudioChange={(enabled) => onUpdateSetting('systemAudioEnabled', enabled)}
       />
 
       {/* Consultation Defaults - Collapsible */}
