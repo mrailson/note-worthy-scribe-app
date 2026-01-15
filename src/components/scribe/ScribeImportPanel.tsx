@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { 
   FileText, 
   Upload, 
@@ -14,7 +15,12 @@ import {
   Wand2,
   AlertCircle,
   CheckCircle2,
-  FileAudio
+  FileAudio,
+  Users,
+  User,
+  MapPin,
+  Phone,
+  CreditCard
 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { 
@@ -28,13 +34,14 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/toastWrapper";
 import { FileProcessorManager } from "@/utils/fileProcessors/FileProcessorManager";
+import { SCRIBE_DEMO_CASES, getComplexityColor, getComplexityLabel } from "@/data/scribeDemoCases";
 
 interface ScribeImportPanelProps {
   settings: ScribeSettings;
   onNotesGenerated: (notes: ConsultationNote, transcript: string) => void;
 }
 
-type ImportTab = 'paste' | 'audio' | 'document';
+type ImportTab = 'paste' | 'audio' | 'document' | 'demo';
 
 export const ScribeImportPanel = ({ settings, onNotesGenerated }: ScribeImportPanelProps) => {
   const [activeImportTab, setActiveImportTab] = useState<ImportTab>('audio');
@@ -297,7 +304,7 @@ export const ScribeImportPanel = ({ settings, onNotesGenerated }: ScribeImportPa
       <CardContent className="space-y-6">
         {/* Import method tabs */}
         <Tabs value={activeImportTab} onValueChange={(v) => setActiveImportTab(v as ImportTab)}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="paste" className="gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Paste Text</span>
@@ -312,6 +319,11 @@ export const ScribeImportPanel = ({ settings, onNotesGenerated }: ScribeImportPa
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Document</span>
               <span className="sm:hidden">Doc</span>
+            </TabsTrigger>
+            <TabsTrigger value="demo" className="gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Demo Cases</span>
+              <span className="sm:hidden">Demo</span>
             </TabsTrigger>
           </TabsList>
 
@@ -445,6 +457,67 @@ Patient presents with a 3-day history of productive cough and low-grade fever. N
                 </div>
               </div>
             )}
+          </TabsContent>
+
+          {/* Demo Cases Tab */}
+          <TabsContent value="demo" className="mt-4 space-y-4">
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  These are <strong>fictional consultations</strong> with sample patient data for testing and training purposes only. 
+                  All names, NHS numbers, and addresses are fabricated.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {SCRIBE_DEMO_CASES.map((demoCase) => (
+                <button
+                  key={demoCase.id}
+                  onClick={() => {
+                    setPastedText(demoCase.transcript);
+                    setActiveImportTab('paste');
+                    showToast.success(`Loaded: ${demoCase.title}`, { section: 'gpscribe' });
+                  }}
+                  className="text-left p-4 rounded-lg border bg-white dark:bg-card hover:border-primary hover:shadow-md transition-all group"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <Badge className={getComplexityColor(demoCase.complexity)}>
+                      {getComplexityLabel(demoCase.complexity)}
+                    </Badge>
+                  </div>
+                  
+                  <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors mb-1">
+                    {demoCase.title}
+                  </h4>
+                  
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {demoCase.description}
+                  </p>
+
+                  <div className="space-y-1.5 text-xs text-muted-foreground border-t pt-3">
+                    <div className="flex items-center gap-2">
+                      <User className="h-3.5 w-3.5" />
+                      <span className="font-medium text-foreground">{demoCase.patientDetails.name}</span>
+                      <span className="text-muted-foreground">• DOB: {demoCase.patientDetails.dob}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-3.5 w-3.5" />
+                      <span>NHS: {demoCase.patientDetails.nhsNumber}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5" />
+                      <span className="truncate">{demoCase.patientDetails.address}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-3.5 w-3.5" />
+                      <span>{demoCase.patientDetails.phone}</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
           </TabsContent>
         </Tabs>
 
