@@ -284,13 +284,37 @@ export const PatientContextCapture = ({
                     📍 {patientContext.address}
                   </span>
                 )}
-                {patientContext.phoneNumbers && (
-                  <span className="text-xs opacity-75">
-                    📞 {patientContext.phoneNumbers.preferred && patientContext.phoneNumbers[patientContext.phoneNumbers.preferred] 
-                      ? `${patientContext.phoneNumbers[patientContext.phoneNumbers.preferred]} (preferred)`
-                      : patientContext.phoneNumbers.mobile || patientContext.phoneNumbers.home || patientContext.phoneNumbers.work}
-                  </span>
-                )}
+                {patientContext.phoneNumbers && (() => {
+                  const phones = patientContext.phoneNumbers;
+                  const preferredKey = phones.preferred;
+                  const preferredNumber = preferredKey ? phones[preferredKey] : null;
+                  const displayNumber = preferredNumber || phones.mobile || phones.home || phones.work;
+                  if (!displayNumber) return null;
+                  return (
+                    <span className="basis-full flex items-center gap-2 text-xs mt-1">
+                      <a
+                        href={`tel:${displayNumber.replace(/\s/g, '')}`}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10 text-primary font-medium hover:bg-primary/20 transition-colors cursor-pointer"
+                        title="Click to call"
+                      >
+                        📞 {displayNumber}
+                        {preferredNumber && <span className="text-[10px] opacity-75">(preferred)</span>}
+                      </a>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(displayNumber.replace(/\s/g, ''));
+                          showToast.success('Phone number copied', { section: 'gpscribe' });
+                        }}
+                      >
+                        Copy
+                      </Button>
+                    </span>
+                  );
+                })()}
               </div>
               {patientContext.confidence && patientContext.confidence < 0.8 && (
                 <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
