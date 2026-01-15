@@ -50,22 +50,11 @@ export const ConsultationReadyState = ({
       
       <Card className="w-full max-w-xl">
         <CardContent className={`space-y-5 ${isMobile ? 'pt-4 px-3' : 'pt-6 space-y-6'}`}>
-          {/* Header with Info Button */}
-          <div className="text-center space-y-2 relative">
-            <div className="flex items-center justify-center gap-2">
-              <h2 className={`font-semibold text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-                Ready for Consultation
-              </h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10"
-                onClick={() => setShowExplainer(true)}
-                aria-label="Show patient explainer"
-              >
-                <Info className="h-4 w-4" />
-              </Button>
-            </div>
+          {/* Header */}
+          <div className="text-center space-y-2">
+            <h2 className={`font-semibold text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+              Ready for Consultation
+            </h2>
             <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
               Select consultation type and confirm consent to begin
             </p>
@@ -78,13 +67,26 @@ export const ConsultationReadyState = ({
             emrFormat={settings.emrFormat}
           />
 
-          {/* Consultation Type */}
-          <ConsultationTypeSelector
-            value={consultationType}
-            category={consultationCategory}
-            onChange={onTypeChange}
-            onCategoryChange={onCategoryChange}
-          />
+          {/* Consultation Type with Info Button */}
+          <div className="flex items-start gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 mt-0.5"
+              onClick={() => setShowExplainer(true)}
+              aria-label="Show patient explainer"
+            >
+              <Info className="h-5 w-5" />
+            </Button>
+            <div className="flex-1">
+              <ConsultationTypeSelector
+                value={consultationType}
+                category={consultationCategory}
+                onChange={onTypeChange}
+                onCategoryChange={onCategoryChange}
+              />
+            </div>
+          </div>
 
           {/* Patient Consent */}
           {settings.showConsentReminder && (
