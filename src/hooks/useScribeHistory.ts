@@ -192,8 +192,80 @@ export const useScribeHistory = () => {
     });
   }, [sessions, searchTerm, dateFilter, categoryFilter]);
 
+  // Initial fetch on mount
   useEffect(() => {
     fetchSessions();
+  }, [fetchSessions]);
+
+  // Real-time subscription for new/updated/deleted consultations
+  useEffect(() => {
+    let userId: string | null = null;
+
+    const setupRealtimeSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      userId = user.id;
+
+      const channel = supabase
+        .channel('gp_consultations_realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'gp_consultations',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            console.log('[Realtime] New consultation inserted, refreshing...');
+            fetchSessions();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'gp_consultations',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            console.log('[Realtime] Consultation updated, refreshing...');
+            fetchSessions();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'DELETE',
+            schema: 'public',
+            table: 'gp_consultations',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('[Realtime] Consultation deleted, removing from state...');
+            setSessions((prev) => prev.filter((s) => s.id !== payload.old?.id));
+          }
+        )
+        .subscribe((status) => {
+          console.log('[Realtime] Subscription status:', status);
+        });
+
+      return channel;
+    };
+
+    let channelRef: ReturnType<typeof supabase.channel> | null = null;
+
+    setupRealtimeSubscription().then((channel) => {
+      channelRef = channel;
+    });
+
+    return () => {
+      if (channelRef) {
+        console.log('[Realtime] Cleaning up subscription');
+        supabase.removeChannel(channelRef);
+      }
+    };
   }, [fetchSessions]);
 
   const saveSession = useCallback(async (sessionData: {
