@@ -492,18 +492,33 @@ SUPPORTING CONTENT TO INCORPORATE:
 ${supportingContent.substring(0, 3000)}`;
       }
       
-      // Build reference image instructions
+      // Build reference image instructions with REAL practice details for edits
       let referenceSection = '';
       if (referenceImages && referenceImages.length > 0) {
         const refMode = referenceImages[0].mode;
         const refInstructions = referenceImages[0].instructions || '';
         
+        // Build actual practice details string for edit context
+        const realDetails: string[] = [];
+        if (practiceContext?.practiceName) realDetails.push(`Practice Name: "${practiceContext.practiceName}"`);
+        if (practiceContext?.practicePhone) realDetails.push(`Phone: "${practiceContext.practicePhone}"`);
+        if (practiceContext?.practiceEmail) realDetails.push(`Email: "${practiceContext.practiceEmail}"`);
+        if (practiceContext?.practiceAddress) realDetails.push(`Address: "${practiceContext.practiceAddress}"`);
+        if (practiceContext?.practiceWebsite) realDetails.push(`Website: "${practiceContext.practiceWebsite}"`);
+        
+        const realDetailsBlock = realDetails.length > 0 ? `
+
+⚠️ REAL PRACTICE DETAILS (use ONLY these if adding contact info):
+${realDetails.map(d => `• ${d}`).join('\n')}
+
+🚫 CRITICAL: If asked to add a phone number, email, address, or any contact details, you MUST use ONLY the exact values listed above. DO NOT invent fake numbers like "0123 456789" or fake emails. If the detail is not listed above, respond that it's not available rather than making one up.` : '';
+        
         if (refMode === 'style-reference') {
-          referenceSection = `\nREFERENCE IMAGE: Use the provided image(s) as STYLE REFERENCE. Create a new image inspired by the style, layout, and feel of the reference.`;
+          referenceSection = `\nREFERENCE IMAGE: Use the provided image(s) as STYLE REFERENCE. Create a new image inspired by the style, layout, and feel of the reference.${realDetailsBlock}`;
         } else if (refMode === 'edit-source') {
-          referenceSection = `\nEDIT REQUEST: Modify the provided image according to these instructions: ${refInstructions || 'Apply the style and content requirements to edit this image.'}`;
+          referenceSection = `\nEDIT REQUEST: Modify the provided image according to these instructions: ${refInstructions || 'Apply the style and content requirements to edit this image.'}${realDetailsBlock}`;
         } else if (refMode === 'update-previous') {
-          referenceSection = `\nUPDATE REQUEST: This is a previously generated image. Apply these changes: ${refInstructions || 'Refine and improve the image based on the new settings.'}`;
+          referenceSection = `\nUPDATE REQUEST: This is a previously generated image. Apply these changes: ${refInstructions || 'Refine and improve the image based on the new settings.'}${realDetailsBlock}`;
         }
         
         if (refInstructions && refMode !== 'style-reference') {
