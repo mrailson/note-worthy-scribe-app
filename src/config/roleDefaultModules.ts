@@ -56,7 +56,7 @@ export const moduleInfo: Record<keyof ModuleAccess, { label: string; description
     description: 'Meeting recording and note-taking features'
   },
   gp_scribe_access: {
-    label: '/scribe Service',
+    label: 'Scribe',
     description: 'Consultation transcription and note generation'
   },
   complaints_manager_access: {
