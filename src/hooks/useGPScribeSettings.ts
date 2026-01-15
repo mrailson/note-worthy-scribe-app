@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { ConsultationType } from "@/types/gpscribe";
+import { ConsultationType, AudioCaptureMode } from "@/types/gpscribe";
 import { DEFAULT_SETTINGS } from "@/constants/consultationSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const MICROPHONE_STORAGE_KEY = 'gpscribe_microphone_device_id';
+const AUDIO_CAPTURE_MODE_KEY = 'gpscribe_audio_capture_mode';
 
 export const useGPScribeSettings = () => {
   const [consultationType, setConsultationType] = useState<ConsultationType>("face-to-face");
@@ -16,6 +17,7 @@ export const useGPScribeSettings = () => {
   const [showTranscriptTimestamps, setShowTranscriptTimestamps] = useState(DEFAULT_SETTINGS.showTranscriptTimestamps);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [selectedMicrophoneId, setSelectedMicrophoneId] = useState<string | null>(null);
+  const [audioCaptureMode, setAudioCaptureMode] = useState<AudioCaptureMode>("mic-only");
 
   // UI states
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -28,6 +30,12 @@ export const useGPScribeSettings = () => {
       const savedMicId = localStorage.getItem(MICROPHONE_STORAGE_KEY);
       if (savedMicId) {
         setSelectedMicrophoneId(savedMicId);
+      }
+      
+      // Load audio capture mode from localStorage
+      const savedAudioMode = localStorage.getItem(AUDIO_CAPTURE_MODE_KEY) as AudioCaptureMode | null;
+      if (savedAudioMode && (savedAudioMode === 'mic-only' || savedAudioMode === 'mic-browser')) {
+        setAudioCaptureMode(savedAudioMode);
       }
       
       // For now, just use default settings since user_settings table doesn't exist
@@ -48,6 +56,9 @@ export const useGPScribeSettings = () => {
         localStorage.removeItem(MICROPHONE_STORAGE_KEY);
       }
       
+      // Save audio capture mode to localStorage
+      localStorage.setItem(AUDIO_CAPTURE_MODE_KEY, audioCaptureMode);
+      
       // For now, just show success since user_settings table doesn't exist
       // This can be implemented when the table is created
       toast.success("Settings saved successfully");
@@ -55,7 +66,7 @@ export const useGPScribeSettings = () => {
       console.error('Failed to save settings:', error);
       toast.error("Failed to save settings");
     }
-  }, [outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne, tickerEnabled, showTranscriptTimestamps, selectedMicrophoneId]);
+  }, [outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne, tickerEnabled, showTranscriptTimestamps, selectedMicrophoneId, audioCaptureMode]);
 
   const handleMicrophoneChange = useCallback((deviceId: string | null) => {
     setSelectedMicrophoneId(deviceId);
@@ -79,6 +90,11 @@ export const useGPScribeSettings = () => {
     loadUserSettings();
   }, [loadUserSettings]);
 
+  const handleAudioCaptureModeChange = useCallback((mode: AudioCaptureMode) => {
+    setAudioCaptureMode(mode);
+    localStorage.setItem(AUDIO_CAPTURE_MODE_KEY, mode);
+  }, []);
+
   return {
     // Settings states
     consultationType,
@@ -90,6 +106,7 @@ export const useGPScribeSettings = () => {
     showTranscriptTimestamps,
     settingsLoaded,
     selectedMicrophoneId,
+    audioCaptureMode,
 
     // UI states
     isConfigOpen,
@@ -111,6 +128,8 @@ export const useGPScribeSettings = () => {
     saveUserSettings,
     resetSettings,
     handleMicrophoneChange,
-    setSelectedMicrophoneId
+    setSelectedMicrophoneId,
+    setAudioCaptureMode,
+    handleAudioCaptureModeChange
   };
 };

@@ -63,7 +63,7 @@ const Index = () => {
   
   // Use extracted hooks
   const settings = useGPScribeSettings();
-  const recording = useGPScribeRecording(settings.selectedMicrophoneId);
+  const recording = useGPScribeRecording(settings.selectedMicrophoneId, settings.audioCaptureMode);
   const translation = useTranslationService();
   const guidance = useConsultationGuidance();
   const history = useConsultationHistory();
@@ -593,6 +593,7 @@ const Index = () => {
                 formatForSystmOne={settings.formatForSystmOne}
                 tickerEnabled={settings.tickerEnabled}
                 showTranscriptTimestamps={settings.showTranscriptTimestamps}
+                audioCaptureMode={settings.audioCaptureMode}
                 onConsultationTypeChange={settings.setConsultationType}
                 onOutputLevelChange={settings.setOutputLevel}
                 onShowSnomedCodesChange={settings.setShowSnomedCodes}
@@ -600,6 +601,8 @@ const Index = () => {
                 onFormatForSystmOneChange={settings.setFormatForSystmOne}
                 onTickerEnabledChange={settings.setTickerEnabled}
                 onShowTranscriptTimestampsChange={settings.setShowTranscriptTimestamps}
+                onMicrophoneChange={settings.handleMicrophoneChange}
+                onAudioCaptureModeChange={settings.handleAudioCaptureModeChange}
                 onSaveSettings={settings.saveUserSettings}
                 onResetSettings={settings.resetSettings}
               />
