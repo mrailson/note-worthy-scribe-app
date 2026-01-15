@@ -79,6 +79,13 @@ export const useScribeConsultation = () => {
     }
   }, []);
 
+  // Auto-set consent to true when consent reminder is disabled
+  useEffect(() => {
+    if (!settings.showConsentReminder) {
+      setPatientConsent(true);
+    }
+  }, [settings.showConsentReminder]);
+
   // Start consultation
   const startConsultation = useCallback(async () => {
     if (settings.showConsentReminder && !patientConsent) {
