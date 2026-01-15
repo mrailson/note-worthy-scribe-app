@@ -6,6 +6,18 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Activity, Clock, Users, Calendar, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { format } from 'date-fns';
+
+interface TodaysMeeting {
+  id: string;
+  user_id: string;
+  title: string;
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  word_count: number;
+}
 
 type SortField = 'user' | 'last_24h' | 'last_7d' | 'last_30d' | 'all_time' | 'deleted' | 'avg_duration' | 'total_time';
 type SortDirection = 'asc' | 'desc';
@@ -44,6 +56,7 @@ const MIN_WORDS_FOR_COUNT = 100;
 export const MeetingUsageReport = () => {
   const [userStats, setUserStats] = useState<UserMeetingStats[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
+  const [todaysMeetings, setTodaysMeetings] = useState<TodaysMeeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('all_time');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -103,7 +116,35 @@ export const MeetingUsageReport = () => {
 
   useEffect(() => {
     fetchMeetingUsageStats();
+    fetchTodaysMeetings();
   }, []);
+
+  const fetchTodaysMeetings = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_todays_meetings_details');
+      if (error) {
+        console.error('Error fetching today\'s meetings:', error);
+        return;
+      }
+      setTodaysMeetings((data || []) as TodaysMeeting[]);
+    } catch (error) {
+      console.error('Error fetching today\'s meetings:', error);
+    }
+  };
+
+  // Get today's meetings for a specific user
+  const getUserTodaysMeetings = (userId: string) => {
+    return todaysMeetings.filter(m => m.user_id === userId);
+  };
+
+  // Format time for display (HH:mm)
+  const formatTime = (dateStr: string) => {
+    try {
+      return format(new Date(dateStr), 'HH:mm');
+    } catch {
+      return '--:--';
+    }
+  };
 
   const fetchMeetingUsageStats = async () => {
     try {
@@ -229,10 +270,10 @@ export const MeetingUsageReport = () => {
       <CardContent className="space-y-6">
         {/* Overview Cards with Meeting Counts, Duration and Words */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Last 24 Hours */}
+          {/* Today */}
           <div className="border rounded-lg p-4 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Last 24 Hours</span>
+              <span className="text-sm text-muted-foreground">Today</span>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex items-baseline gap-2">
@@ -358,7 +399,7 @@ export const MeetingUsageReport = () => {
               <TableHeader>
                 <TableRow>
                   <SortableHeader field="user">User</SortableHeader>
-                  <SortableHeader field="last_24h" className="text-center">24h</SortableHeader>
+                  <SortableHeader field="last_24h" className="text-center">Today</SortableHeader>
                   <SortableHeader field="last_7d" className="text-center">7 Days</SortableHeader>
                   <SortableHeader field="last_30d" className="text-center">30 Days</SortableHeader>
                   <SortableHeader field="all_time" className="text-center">All Time</SortableHeader>
@@ -385,7 +426,34 @@ export const MeetingUsageReport = () => {
                       </TableCell>
                       <TableCell className="text-center">
                         {user.last_24h > 0 ? (
-                          <Badge variant="default" className="bg-green-600">{user.last_24h}</Badge>
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <Badge variant="default" className="bg-green-600 cursor-pointer">{user.last_24h}</Badge>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-80" align="start">
+                              <div className="space-y-2">
+                                <h4 className="text-sm font-semibold">Today's Meetings</h4>
+                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                  {getUserTodaysMeetings(user.user_id).map((meeting) => (
+                                    <div key={meeting.id} className="text-xs border-b pb-2 last:border-0">
+                                      <p className="font-medium truncate">{meeting.title || 'Untitled Meeting'}</p>
+                                      <div className="flex justify-between text-muted-foreground mt-1">
+                                        <span>Start: {formatTime(meeting.start_time)}</span>
+                                        <span>End: {formatTime(meeting.end_time)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-muted-foreground">
+                                        <span>Duration: {formatDuration(meeting.duration_minutes || 0)}</span>
+                                        <span>Words: {formatNumber(meeting.word_count || 0)}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {getUserTodaysMeetings(user.user_id).length === 0 && (
+                                    <p className="text-xs text-muted-foreground">No meeting details available</p>
+                                  )}
+                                </div>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
                         ) : (
                           <span className="text-muted-foreground">0</span>
                         )}

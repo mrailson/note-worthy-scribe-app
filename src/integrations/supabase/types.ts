@@ -8890,6 +8890,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_todays_meetings_details: {
+        Args: never
+        Returns: {
+          duration_minutes: number
+          end_time: string
+          id: string
+          start_time: string
+          title: string
+          user_id: string
+          word_count: number
+        }[]
+      }
       get_user_modules: {
         Args: { p_user_id?: string }
         Returns: {
