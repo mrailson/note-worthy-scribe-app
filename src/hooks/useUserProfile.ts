@@ -19,6 +19,8 @@ export interface UserProfile {
   northamptonshire_icb_active?: boolean;
   title?: string | null;
   role?: string | null;
+  letter_signature?: string | null; // Personal signature for letters
+  email_signature?: string | null;  // Personal signature for emails
 }
 
 export function useUserProfile() {
@@ -85,7 +87,7 @@ export function useUserProfile() {
     }
   };
 
-  const updateProfile = async (updates: Partial<Pick<UserProfile, 'email' | 'full_name' | 'display_name' | 'show_ai_service' | 'northamptonshire_icb_active' | 'title' | 'role'>>) => {
+  const updateProfile = async (updates: Partial<Pick<UserProfile, 'email' | 'full_name' | 'display_name' | 'show_ai_service' | 'northamptonshire_icb_active' | 'title' | 'role' | 'letter_signature' | 'email_signature'>>) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {

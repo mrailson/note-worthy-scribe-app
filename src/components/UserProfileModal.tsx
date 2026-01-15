@@ -28,6 +28,8 @@ interface UserProfile {
   email: string;
   role: string;
   organisation_type: OrganisationType;
+  letter_signature?: string; // Personal signature - stored per-user
+  email_signature?: string;  // Personal email signature - stored per-user
 }
 
 interface PracticeDetails {
@@ -39,7 +41,7 @@ interface PracticeDetails {
   phone: string;
   direct_dial?: string;
   practice_logo_url?: string;
-  letter_signature?: string;
+  // Note: letter_signature removed - now stored in UserProfile (per-user)
 }
 
 export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) => {
@@ -73,8 +75,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     website: '',
     phone: '',
     direct_dial: '',
-    practice_logo_url: '',
-    letter_signature: ''
+    practice_logo_url: ''
   });
 
   useEffect(() => {
@@ -118,7 +119,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           last_name: data.full_name?.split(' ').slice(1).join(' ') || '',
           email: user.email || '',
           role: savedRole,
-          organisation_type: orgType
+          organisation_type: orgType,
+          letter_signature: (data as any).letter_signature || '',
+          email_signature: (data as any).email_signature || ''
         });
       } else {
         // No profile found, use email from auth
@@ -190,8 +193,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
               website: practiceData.website || '',
               phone: practiceData.phone || '',
               direct_dial: '',
-              practice_logo_url: (practiceData as any).practice_logo_url || '',
-              letter_signature: (practiceData as any).letter_signature || ''
+              practice_logo_url: (practiceData as any).practice_logo_url || ''
             });
             console.log('Practice details state updated successfully (shared org details)');
             return;
@@ -220,8 +222,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           website: directPracticeData[0].website || '',
           phone: directPracticeData[0].phone || '',
           direct_dial: '',
-          practice_logo_url: (directPracticeData[0] as any).practice_logo_url || '',
-          letter_signature: (directPracticeData[0] as any).letter_signature || ''
+          practice_logo_url: (directPracticeData[0] as any).practice_logo_url || ''
         });
         console.log('Practice details state updated from direct lookup');
       } else {
@@ -245,7 +246,6 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         website: practiceDetails.website,
         phone: practiceDetails.phone,
         practice_logo_url: practiceDetails.practice_logo_url,
-        letter_signature: practiceDetails.letter_signature,
         updated_at: new Date().toISOString()
       };
 
@@ -437,56 +437,24 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     setSignatureLoading(true);
     try {
       console.log('Saving signature for user:', user.id);
-      console.log('Current practiceDetails.id:', practiceDetails.id);
-      console.log('Signature length:', practiceDetails.letter_signature?.length || 0);
+      console.log('Signature length:', userProfile.letter_signature?.length || 0);
 
-      if (practiceDetails.id) {
-        // Update existing record
-        console.log('Updating existing practice record:', practiceDetails.id);
-        const { data, error } = await supabase
-          .from('practice_details')
-          .update({
-            letter_signature: practiceDetails.letter_signature || '',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', practiceDetails.id)
-          .select();
+      // Save signature to user's profile (personal, not shared)
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          letter_signature: userProfile.letter_signature || '',
+          email_signature: userProfile.email_signature || '',
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
 
-        if (error) {
-          console.error('Update error:', error);
-          throw error;
-        }
-        console.log('Update successful:', data);
-      } else {
-        // Insert new record with minimal required data
-        console.log('Creating new practice record for user:', user.id);
-        const newRecord = {
-          user_id: user.id,
-          practice_name: practiceDetails.practice_name || 'My Practice',
-          address: practiceDetails.address || '',
-          email: practiceDetails.email || user.email || '',
-          website: practiceDetails.website || '',
-          phone: practiceDetails.phone || '',
-          letter_signature: practiceDetails.letter_signature || ''
-        };
-        
-        console.log('Inserting new record:', newRecord);
-        const { data, error } = await supabase
-          .from('practice_details')
-          .insert(newRecord)
-          .select();
-
-        if (error) {
-          console.error('Insert error:', error);
-          throw error;
-        }
-        console.log('Insert successful:', data);
+      if (error) {
+        console.error('Update error:', error);
+        throw error;
       }
-
-      // Refetch practice details to ensure signature persists
-      console.log('Refetching practice details...');
-      await fetchPracticeDetails();
       
+      console.log('Signature saved to user profile successfully');
       toast.success('Signature saved successfully');
     } catch (error: any) {
       console.error('Error saving signature:', error);
@@ -854,8 +822,8 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   Signature
                 </Label>
                 <SignatureEditor
-                  content={practiceDetails.letter_signature || ''}
-                  onChange={(content) => setPracticeDetails(prev => ({ ...prev, letter_signature: content }))}
+                  content={userProfile.letter_signature || ''}
+                  onChange={(content) => setUserProfile(prev => ({ ...prev, letter_signature: content }))}
                   placeholder="Create your professional signature..."
                 />
               </div>
