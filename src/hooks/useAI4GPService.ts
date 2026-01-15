@@ -532,12 +532,35 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         });
         
         // Extract document content from non-image files
-        const documentContent = uploadedFiles.length > 0
+        let documentContent = uploadedFiles.length > 0
           ? uploadedFiles
               .filter(f => !f.type.startsWith('image/'))
               .map(f => `## ${f.name}\n${f.content.substring(0, 8000)}`)
               .join('\n\n') || undefined
           : undefined;
+        
+        // If no uploaded files but user is referring to previous content, use last AI response
+        if (!documentContent && isReferringToPreviousContent(messageToUse)) {
+          const lastAssistantMessage = messages.slice().reverse()
+            .find(m => m.role === 'assistant' && m.content.length > 100);
+          
+          if (lastAssistantMessage) {
+            documentContent = `## Previous AI Response\n${lastAssistantMessage.content.substring(0, 8000)}`;
+            console.log('🎨 Using previous AI response as document content for image');
+          }
+        }
+        
+        // Check if user message itself contains substantial pasted content
+        if (!documentContent && messageToUse.length > 300) {
+          // Remove the command portion and see if there's substantial content left
+          const cleanedContent = messageToUse
+            .replace(/^.{0,100}(?:create|generate|make|turn|convert).{0,50}(?:infographic|image|picture|visual|chart|diagram|poster|leaflet).{0,50}(?:from|using|based\s+on|about|of)?:?\s*/i, '')
+            .trim();
+          if (cleanedContent.length > 200) {
+            documentContent = `## User Provided Content\n${cleanedContent.substring(0, 8000)}`;
+            console.log('🎨 Using pasted content from user message for image');
+          }
+        }
         
         // Extract image file data for reference-based generation
         const imageAttachments = uploadedFiles
@@ -705,6 +728,29 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               const truncatedContent = file.content.substring(0, 15000);
               return `### ${file.name}\n${truncatedContent}`;
             }).join('\n\n---\n\n');
+          }
+          
+          // If no uploaded files but user is referring to previous content, use last AI response
+          if (!supportingContent && isReferringToPreviousContent(messageToUse)) {
+            const lastAssistantMessage = messages.slice().reverse()
+              .find(m => m.role === 'assistant' && m.content.length > 100);
+            
+            if (lastAssistantMessage) {
+              supportingContent = `### Previous AI Response\n${lastAssistantMessage.content.substring(0, 20000)}`;
+              console.log('📊 Using previous AI response as supporting content for PowerPoint');
+            }
+          }
+          
+          // Check if user message itself contains substantial pasted content
+          if (!supportingContent && messageToUse.length > 300) {
+            // Remove the command portion and see if there's substantial content left
+            const cleanedContent = messageToUse
+              .replace(/^.{0,100}(?:please\s+)?(?:create|generate|make|turn|convert).{0,50}(?:power\s*point|pptx?|presentation|slides?).{0,50}(?:from|using|based\s+on|about|on)?:?\s*/i, '')
+              .trim();
+            if (cleanedContent.length > 200) {
+              supportingContent = `### User Provided Content\n${cleanedContent.substring(0, 20000)}`;
+              console.log('📊 Using pasted content from user message for PowerPoint');
+            }
           }
           
           // Call Gamma API edge function

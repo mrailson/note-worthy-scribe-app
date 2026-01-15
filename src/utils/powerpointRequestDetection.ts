@@ -1,4 +1,5 @@
 import { UploadedFile } from '@/types/ai4gp';
+import { isReferringToPreviousContent, extractTopicFromContent } from '@/utils/imageRequestDetection';
 
 export interface PowerPointRequestDetection {
   isPowerPointRequest: boolean;
@@ -145,7 +146,18 @@ export function detectPowerPointRequest(
   const slideCount = slideCountMatch ? parseInt(slideCountMatch[1], 10) : undefined;
   
   // Extract topic from the message
-  const topic = extractTopic(message);
+  let topic = extractTopic(message);
+  
+  // If no topic found but user is referring to previous content, try to extract from previous AI response
+  if (!topic && isReferringToPreviousContent(message) && previousMessages.length > 0) {
+    const lastAssistantMessage = [...previousMessages].reverse()
+      .find(m => m.role === 'assistant' && m.content.length > 100);
+    
+    if (lastAssistantMessage) {
+      topic = extractTopicFromContent(lastAssistantMessage.content);
+      console.log('📊 Extracted topic from previous AI response:', topic);
+    }
+  }
   
   // Check if user wants to use uploaded files
   const useUploadedFiles = hasUploadedFiles && (

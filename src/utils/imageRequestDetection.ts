@@ -253,9 +253,9 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
 export function extractImageContext(
   currentMessage: string,
   previousMessages: { role: string; content: string }[],
-  maxContextMessages: number = 5
+  maxContextMessages: number = 8
 ): string {
-  // Get recent messages for context
+  // Get recent messages for context (increased from 5 to 8)
   const recentMessages = previousMessages.slice(-maxContextMessages);
   
   // Build context string
@@ -266,11 +266,11 @@ export function extractImageContext(
       // Extract key information from assistant responses
       const content = msg.content;
       
-      // Always include assistant content for context (truncated)
-      contextParts.push(`Previous AI response:\n${content.substring(0, 2500)}`);
+      // Increased from 2500 to 5000 chars for better context preservation
+      contextParts.push(`Previous AI response:\n${content.substring(0, 5000)}`);
     } else if (msg.role === 'user') {
-      // Include user messages for context
-      contextParts.push(`User request:\n${msg.content.substring(0, 500)}`);
+      // Include user messages for context (increased from 500 to 1000)
+      contextParts.push(`User request:\n${msg.content.substring(0, 1000)}`);
     }
   }
   
@@ -292,10 +292,41 @@ export function isReferringToPreviousContent(message: string): boolean {
     'that', 'this', 'above', 'previous', 'the information',
     'the data', 'the content', 'what you said', 'your response',
     'the schedule', 'the calendar', 'the list', 'the table',
-    'do it', 'make it', 'create it', 'generate it', 'can you'
+    'do it', 'make it', 'create it', 'generate it', 'can you',
+    'turn it into', 'turn that into', 'turn this into', 'convert it',
+    'from that', 'from this', 'based on that', 'based on this',
+    'using that', 'using this', 'with that', 'with this'
   ];
   
   const lowerMessage = message.toLowerCase();
   
   return referenceKeywords.some(keyword => lowerMessage.includes(keyword));
+}
+
+/**
+ * Extracts topic/title from AI response content
+ */
+export function extractTopicFromContent(content: string): string {
+  // Try to extract first heading
+  const headingMatch = content.match(/^#+\s*(.+)$/m);
+  if (headingMatch && headingMatch[1].length > 5 && headingMatch[1].length < 120) {
+    return headingMatch[1].trim();
+  }
+  
+  // Try bold text at the start
+  const boldMatch = content.match(/^\*\*(.+?)\*\*/);
+  if (boldMatch && boldMatch[1].length > 5 && boldMatch[1].length < 120) {
+    return boldMatch[1].trim();
+  }
+  
+  // Use first meaningful line
+  const lines = content.split('\n').filter(l => l.trim().length > 10);
+  if (lines.length > 0) {
+    const firstLine = lines[0].replace(/^[#*\-\s]+/, '').trim();
+    if (firstLine.length > 5 && firstLine.length < 120) {
+      return firstLine;
+    }
+  }
+  
+  return '';
 }
