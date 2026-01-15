@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Database, Trash2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, HardDrive, FileText, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,15 @@ interface OldChat {
   is_protected: boolean;
 }
 
+interface UserChatDetail {
+  id: string;
+  title: string;
+  size_bytes: number;
+  created_at: string;
+  updated_at: string;
+  is_protected: boolean;
+}
+
 const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -63,6 +73,17 @@ const formatDate = (dateStr: string | null): string => {
   });
 };
 
+const formatDateTime = (dateStr: string | null): string => {
+  if (!dateStr) return '-';
+  return new Date(dateStr).toLocaleString('en-GB', { 
+    day: 'numeric', 
+    month: 'short', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
 type SortField = 'email' | 'ai_chats_size_bytes' | 'transcript_size_bytes' | 'total_size_bytes' | 'ai_chats_count';
 type SortDirection = 'asc' | 'desc';
 
@@ -75,6 +96,9 @@ export const StorageManagement: React.FC = () => {
   const [oldChatsOpen, setOldChatsOpen] = useState(false);
   const [sortField, setSortField] = useState<SortField>('total_size_bytes');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [selectedUser, setSelectedUser] = useState<UserStorageData | null>(null);
+  const [userChats, setUserChats] = useState<UserChatDetail[]>([]);
+  const [loadingUserChats, setLoadingUserChats] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchData = async () => {
@@ -118,6 +142,37 @@ export const StorageManagement: React.FC = () => {
       toast.error('Failed to delete chat');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const fetchUserChats = async (user: UserStorageData) => {
+    setSelectedUser(user);
+    setLoadingUserChats(true);
+    try {
+      const { data, error } = await supabase
+        .from('ai_4_pm_searches')
+        .select('id, title, created_at, updated_at, is_protected, messages')
+        .eq('user_id', user.user_id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Calculate size and filter for files over 1MB
+      const chatsWithSize = (data || []).map(chat => ({
+        id: chat.id,
+        title: chat.title,
+        size_bytes: JSON.stringify(chat.messages).length,
+        created_at: chat.created_at,
+        updated_at: chat.updated_at,
+        is_protected: chat.is_protected || false
+      })).filter(chat => chat.size_bytes >= 1048576); // Only show chats over 1MB
+
+      setUserChats(chatsWithSize);
+    } catch (error) {
+      console.error('Error fetching user chats:', error);
+      toast.error('Failed to load user chats');
+    } finally {
+      setLoadingUserChats(false);
     }
   };
 
@@ -254,7 +309,13 @@ export const StorageManagement: React.FC = () => {
                         <div className="text-xs text-muted-foreground truncate">{user.full_name}</div>
                       )}
                     </TableCell>
-                    <TableCell className="text-right">{user.ai_chats_count}</TableCell>
+                    <TableCell 
+                      className="text-right cursor-pointer hover:bg-muted/50 underline text-primary"
+                      onClick={() => fetchUserChats(user)}
+                      title="Click to view large chats (>1MB)"
+                    >
+                      {user.ai_chats_count}
+                    </TableCell>
                     <TableCell className="text-right">{formatBytes(user.ai_chats_size_bytes)}</TableCell>
                     <TableCell className="text-right">
                       {user.transcript_chunks_count} ({formatBytes(user.transcript_size_bytes)})
@@ -270,6 +331,105 @@ export const StorageManagement: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* User Chats Modal */}
+      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>
+              AI Chats for {selectedUser?.email || 'User'}
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                (Files over 1MB only)
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {loadingUserChats ? (
+            <div className="flex items-center justify-center py-8">
+              <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : userChats.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
+              No chats over 1MB found for this user.
+            </p>
+          ) : (
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead className="text-right">Size</TableHead>
+                    <TableHead className="text-right">Created</TableHead>
+                    <TableHead className="text-right">Updated</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {userChats.map((chat) => (
+                    <TableRow key={chat.id}>
+                      <TableCell>
+                        <div className="truncate max-w-[250px]" title={chat.title}>
+                          {chat.title}
+                        </div>
+                        {chat.is_protected && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded mt-1 inline-block">
+                            Protected
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-mono font-medium">
+                        {formatBytes(chat.size_bytes)}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground">
+                        {formatDateTime(chat.created_at)}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground">
+                        {formatDateTime(chat.updated_at)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-destructive hover:text-destructive"
+                              disabled={chat.is_protected || deletingId === chat.id}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete AI Chat?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete "{chat.title.substring(0, 50)}..." 
+                                ({formatBytes(chat.size_bytes)}).
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={async () => {
+                                  await handleDeleteChat(chat.id, chat.title);
+                                  if (selectedUser) fetchUserChats(selectedUser);
+                                }}
+                                className="bg-destructive hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Largest AI Chats */}
       <Collapsible open={largeChatsOpen} onOpenChange={setLargeChatsOpen}>
