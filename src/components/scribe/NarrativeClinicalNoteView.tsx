@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Copy, ClipboardList, Stethoscope, Brain, Activity, ListChecks, Shield } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Copy, ClipboardList, Stethoscope, Brain, Activity, ListChecks, Shield, EyeOff } from "lucide-react";
 import { SOAPNote, HeidiNote } from "@/types/scribe";
 import { 
   transformToNarrativeClinical, 
@@ -18,6 +20,7 @@ interface NarrativeClinicalNoteViewProps {
   soapNote?: SOAPNote | null;
   heidiNote?: HeidiNote | null;
   showNotMentioned?: boolean;
+  onShowNotMentionedChange?: (show: boolean) => void;
 }
 
 // Icon mapping for each section
@@ -33,6 +36,7 @@ export const NarrativeClinicalNoteView = ({
   soapNote,
   heidiNote,
   showNotMentioned = false,
+  onShowNotMentionedChange,
 }: NarrativeClinicalNoteViewProps) => {
   // Transform the notes to Narrative Clinical format
   const narrativeClinicalNote = useMemo(() => {
@@ -50,7 +54,7 @@ export const NarrativeClinicalNoteView = ({
     
     if (showNotMentioned) return result;
     
-    const notMentionedPatterns = /\b(none\s*mentioned|not\s*mentioned|none\s*discussed|none\s*given|none\s*made|none\s*required|n\/a|nil|not\s*applicable|no\s*significant|not\s*recorded|not\s*documented)\b/i;
+    const notMentionedPatterns = /\b(none\s*mentioned|not\s*mentioned|none\s*discussed|not\s*discussed|none\s*given|none\s*made|none\s*required|n\/a|nil|not\s*applicable|no\s*significant|not\s*recorded|not\s*documented)\b/i;
     
     return result
       .split('\n')
@@ -98,9 +102,29 @@ export const NarrativeClinicalNoteView = ({
                 H/E/A/I/P
               </Badge>
             </div>
-            <Button variant="ghost" size="sm" onClick={copyAll}>
-              <Copy className="h-3 w-3 mr-1" /> Copy All
-            </Button>
+            <div className="flex items-center gap-3">
+              {/* Show Not Discussed Toggle */}
+              {onShowNotMentionedChange && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="show-not-discussed"
+                    checked={showNotMentioned}
+                    onCheckedChange={onShowNotMentionedChange}
+                    className="scale-90"
+                  />
+                  <Label 
+                    htmlFor="show-not-discussed" 
+                    className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1"
+                  >
+                    <EyeOff className="h-3 w-3" />
+                    Show "Not Discussed"
+                  </Label>
+                </div>
+              )}
+              <Button variant="ghost" size="sm" onClick={copyAll}>
+                <Copy className="h-3 w-3 mr-1" /> Copy All
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             Presentational layout only • Same underlying clinical data as SOAP
