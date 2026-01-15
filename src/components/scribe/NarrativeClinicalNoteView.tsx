@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,12 +15,16 @@ import {
 } from "@/utils/narrativeClinicalFormatter";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { InteractiveClinicalContent } from "./InteractiveClinicalContent";
 
 interface NarrativeClinicalNoteViewProps {
   soapNote?: SOAPNote | null;
   heidiNote?: HeidiNote | null;
   showNotMentioned?: boolean;
   onShowNotMentionedChange?: (show: boolean) => void;
+  editable?: boolean;
+  onSectionChange?: (sectionKey: string, newContent: string) => void;
+  consultationId?: string;
 }
 
 // Icon mapping for each section
@@ -37,11 +41,21 @@ export const NarrativeClinicalNoteView = ({
   heidiNote,
   showNotMentioned = false,
   onShowNotMentionedChange,
+  editable = true,
+  onSectionChange,
+  consultationId,
 }: NarrativeClinicalNoteViewProps) => {
   // Transform the notes to Narrative Clinical format
   const narrativeClinicalNote = useMemo(() => {
     return transformToNarrativeClinical(soapNote || null, heidiNote, { showNotMentioned });
   }, [soapNote, heidiNote, showNotMentioned]);
+
+  // Handler for section content changes
+  const handleSectionChange = useCallback((sectionKey: string, newContent: string) => {
+    if (onSectionChange) {
+      onSectionChange(sectionKey, newContent);
+    }
+  }, [onSectionChange]);
 
   // Remove square brackets from text
   const stripBrackets = (text: string): string => {
@@ -186,7 +200,18 @@ export const NarrativeClinicalNoteView = ({
               </div>
               <AccordionContent className="pt-0 pb-3">
                 {hasContent ? (
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed pl-9">{content}</p>
+                  editable ? (
+                    <div className="pl-9">
+                      <InteractiveClinicalContent
+                        content={content}
+                        sectionKey={section.key}
+                        onContentChange={(newContent) => handleSectionChange(section.key, newContent)}
+                        consultationId={consultationId}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed pl-9">{content}</p>
+                  )
                 ) : (
                   <p className="text-sm text-muted-foreground italic pl-9">Not discussed</p>
                 )}

@@ -47,6 +47,9 @@ interface ConsultationNoteStateProps {
   viewMode?: ConsultationViewMode;
   onViewModeChange?: (mode: ConsultationViewMode) => void;
   onShowNotMentionedChange?: (show: boolean) => void;
+  // Narrative clinical editing
+  onNarrativeSectionChange?: (sectionKey: string, newContent: string) => void;
+  consultationId?: string;
   // Save state
   isSaving?: boolean;
   isSaved?: boolean;
@@ -86,6 +89,8 @@ export const ConsultationNoteState = ({
   viewMode = 'soap',
   onViewModeChange,
   onShowNotMentionedChange,
+  onNarrativeSectionChange,
+  consultationId,
   isSaving = false,
   isSaved = false,
   transcript,
@@ -318,6 +323,9 @@ export const ConsultationNoteState = ({
               heidiNote={consultationNote.heidiNote}
               showNotMentioned={settings.showNotMentioned}
               onShowNotMentionedChange={onShowNotMentionedChange}
+              editable={true}
+              onSectionChange={onNarrativeSectionChange}
+              consultationId={consultationId}
             />
           ) : useHeidiFormat ? (
             <HeidiNoteEditor
