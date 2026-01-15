@@ -321,6 +321,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
   const [patientDataAccess, setPatientDataAccess] = useState([]);
   const [authSearchQuery, setAuthSearchQuery] = useState('');
   const [authEventFilter, setAuthEventFilter] = useState('all');
+  const [authUserFilter, setAuthUserFilter] = useState('all');
   const [authDateFilter, setAuthDateFilter] = useState('7'); // Last 7 days
   const [loadingAuthLogs, setLoadingAuthLogs] = useState(false);
   const [vulnerabilityScans, setVulnerabilityScans] = useState([]);
@@ -3202,59 +3203,90 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
               <TabsContent value="monitoring" className="space-y-6">
                 {/* Authentication Monitoring Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Total Logins</p>
-                          <p className="text-2xl font-bold">{authenticationLogs.filter(log => log.event.includes('login') || log.event.includes('session')).length}</p>
-                          <p className="text-xs text-muted-foreground">Last {authDateFilter} days</p>
-                        </div>
-                        <UserCheck className="h-8 w-8 text-blue-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
+                {(() => {
+                  // Get unique users for the filter dropdown
+                  const uniqueUsers = [...new Set(authenticationLogs.map((log: any) => log.user).filter(u => u && u !== 'System' && u !== 'Unknown'))].sort();
                   
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Failed Attempts</p>
-                          <p className="text-2xl font-bold text-red-600">{authenticationLogs.filter(log => log.status === 'failed').length}</p>
-                          <p className="text-xs text-muted-foreground">Security alerts</p>
-                        </div>
-                        <AlertTriangle className="h-8 w-8 text-red-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  // Filter logs by selected user for stats
+                  const filteredLogsForStats = authUserFilter === 'all' 
+                    ? authenticationLogs 
+                    : authenticationLogs.filter((log: any) => log.user === authUserFilter);
                   
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Active Sessions</p>
-                          <p className="text-2xl font-bold text-green-600">{authenticationLogs.filter(log => log.event === 'active session').length}</p>
-                          <p className="text-xs text-muted-foreground">Currently logged in</p>
-                        </div>
-                        <Activity className="h-8 w-8 text-green-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
+                  // Calculate accurate stats
+                  const totalLogins = filteredLogsForStats.filter((log: any) => 
+                    log.event.includes('login') || 
+                    log.event === 'session created' ||
+                    (log.source === 'user_sessions' && !log.event.includes('ended'))
+                  ).length;
                   
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-muted-foreground">Security Events</p>
-                          <p className="text-2xl font-bold">{authenticationLogs.filter(log => log.source === 'security_events').length}</p>
-                          <p className="text-xs text-muted-foreground">Monitored events</p>
-                        </div>
-                        <Shield className="h-8 w-8 text-orange-500" />
+                  const failedAttempts = filteredLogsForStats.filter((log: any) => 
+                    log.status === 'failed' || 
+                    log.event.includes('failed')
+                  ).length;
+                  
+                  const activeSessions = filteredLogsForStats.filter((log: any) => 
+                    log.event === 'active session'
+                  ).length;
+                  
+                  const securityEventsCount = filteredLogsForStats.filter((log: any) => 
+                    log.source === 'security_events'
+                  ).length;
+
+                  return (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Total Logins</p>
+                                <p className="text-2xl font-bold">{totalLogins}</p>
+                                <p className="text-xs text-muted-foreground">Last {authDateFilter} days</p>
+                              </div>
+                              <UserCheck className="h-8 w-8 text-blue-500" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Failed Attempts</p>
+                                <p className="text-2xl font-bold text-red-600">{failedAttempts}</p>
+                                <p className="text-xs text-muted-foreground">Security alerts</p>
+                              </div>
+                              <AlertTriangle className="h-8 w-8 text-red-500" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Active Sessions</p>
+                                <p className="text-2xl font-bold text-green-600">{activeSessions}</p>
+                                <p className="text-xs text-muted-foreground">Currently logged in</p>
+                              </div>
+                              <Activity className="h-8 w-8 text-green-500" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Security Events</p>
+                                <p className="text-2xl font-bold">{securityEventsCount}</p>
+                                <p className="text-xs text-muted-foreground">Monitored events</p>
+                              </div>
+                              <Shield className="h-8 w-8 text-orange-500" />
+                            </div>
+                          </CardContent>
+                        </Card>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
 
                 <Card>
                   <CardHeader>
@@ -3278,7 +3310,21 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                           />
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Select value={authUserFilter} onValueChange={setAuthUserFilter}>
+                          <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Filter by User" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Users</SelectItem>
+                            {uniqueUsers.map((userEmail: string) => (
+                              <SelectItem key={userEmail} value={userEmail}>
+                                {userEmail}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
                         <Select value={authEventFilter} onValueChange={setAuthEventFilter}>
                           <SelectTrigger className="w-[150px]">
                             <SelectValue placeholder="Event Type" />
@@ -3331,11 +3377,13 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                         </TableHeader>
                         <TableBody>
                           {authenticationLogs
-                            .filter(log => {
+                            .filter((log: any) => {
                               const matchesSearch = authSearchQuery === '' || 
                                 log.user.toLowerCase().includes(authSearchQuery.toLowerCase()) ||
                                 log.event.toLowerCase().includes(authSearchQuery.toLowerCase()) ||
                                 log.ip.toLowerCase().includes(authSearchQuery.toLowerCase());
+                              
+                              const matchesUser = authUserFilter === 'all' || log.user === authUserFilter;
                               
                               const matchesFilter = authEventFilter === 'all' ||
                                 (authEventFilter === 'login' && log.event.includes('login')) ||
@@ -3343,7 +3391,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                                 (authEventFilter === 'session' && log.event.includes('session')) ||
                                 (authEventFilter === 'security' && log.source === 'security_events');
                               
-                              return matchesSearch && matchesFilter;
+                              return matchesSearch && matchesUser && matchesFilter;
                             })
                             .map((log: any) => (
                               <TableRow key={log.id}>
@@ -3375,6 +3423,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                     )}
                   </CardContent>
                 </Card>
+                    </>
+                  );
+                })()}
               </TabsContent>
 
               <TabsContent value="data-access" className="space-y-6">
