@@ -125,13 +125,13 @@ export const ScribeHistoryPanel = ({
 
   const currentSoapNote = regeneratedNotes || currentSession?.soapNote;
 
-  // Calculate word count from actual notes content
-  const calculatedWordCount = currentSoapNote 
-    ? [currentSoapNote.S, currentSoapNote.O, currentSoapNote.A, currentSoapNote.P]
-        .join(' ')
-        .split(/\s+/)
-        .filter(word => word.length > 0).length
-    : currentSession?.wordCount || 0;
+  // Calculate word count from transcript (more accurate representation of consultation length)
+  const transcriptWordCount = currentSession?.transcript
+    ? currentSession.transcript.split(/\s+/).filter(word => word.length > 0).length
+    : 0;
+  
+  // Use transcript word count if available, otherwise fall back to stored word count
+  const calculatedWordCount = transcriptWordCount || currentSession?.wordCount || 0;
 
   const handleViewModeChange = useCallback((mode: ConsultationViewMode) => {
     onUpdateSetting('consultationViewMode', mode);
