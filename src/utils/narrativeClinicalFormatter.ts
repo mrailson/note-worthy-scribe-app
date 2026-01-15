@@ -59,29 +59,51 @@ const PLAN_PATTERNS = [
  * Filter out negative assertions and "not mentioned" patterns
  * This helps maintain clinical safety by not asserting things that weren't examined
  */
-function filterNegativeAssertions(text: string): string {
+type NegativeFilterOptions = {
+  /**
+   * When true, keep lines like "Not discussed", "Nil", "N/A" etc.
+   * When false (default), hide these transparency placeholders.
+   */
+  showNotMentioned?: boolean;
+};
+
+/**
+ * Filter out unsafe negative assertions, and optionally remove "not mentioned" placeholders.
+ *
+ * NOTE: This is a PRESENTATIONAL transformation; we keep the always-unsafe patterns removed,
+ * whilst allowing UI to toggle visibility for "Not discussed" style placeholders.
+ */
+function filterNegativeAssertions(text: string, options: NegativeFilterOptions = {}): string {
   if (!text) return '';
-  
+
   const lines = text.split('\n');
-  const filteredLines = lines.filter(line => {
-    const trimmedLine = line.trim().toLowerCase();
-    
-    // Skip lines that assert negatives
-    const negativePatterns = [
-      /^no\s+(?:known\s+)?allergies/i,
-      /^nil\s+/i,
-      /^none\s+(?:known|mentioned|documented|recorded|identified)/i,
-      /^not\s+(?:examined|assessed|tested|checked|done)/i,
-      /^no\s+(?:examination|assessment|investigation)\s+(?:performed|done)/i,
-      /n\/a/i,
-      /not\s+applicable/i,
-      /not\s+recorded/i,
-      /not\s+documented/i,
-    ];
-    
-    return !negativePatterns.some(pattern => pattern.test(trimmedLine));
+
+  // Always removed (safety-critical negative assertions)
+  const alwaysRemovePatterns: RegExp[] = [
+    /^no\s+(?:known\s+)?allergies/i,
+    /^not\s+(?:examined|assessed|tested|checked|done)/i,
+    /^no\s+(?:examination|assessment|investigation)\s+(?:performed|done)/i,
+  ];
+
+  // Removed only when the UI toggle is OFF
+  const notMentionedPatterns: RegExp[] = [
+    /^nil\s+/i,
+    /\b(none\s*mentioned|not\s*mentioned|none\s*discussed|not\s*discussed|none\s*given|none\s*made|none\s*required|n\/a|not\s*applicable|not\s*recorded|not\s*documented)\b/i,
+  ];
+
+  const filteredLines = lines.filter((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return true;
+
+    if (alwaysRemovePatterns.some((pattern) => pattern.test(trimmed))) return false;
+
+    if (!options.showNotMentioned && notMentionedPatterns.some((pattern) => pattern.test(trimmed))) {
+      return false;
+    }
+
+    return true;
   });
-  
+
   return filteredLines.join('\n').trim();
 }
 
@@ -141,36 +163,37 @@ function splitPlanContent(planText: string): { intervention: string; plan: strin
  */
 export function transformToNarrativeClinical(
   soapNote: SOAPNote | null,
-  heidiNote?: HeidiNote | null
+  heidiNote?: HeidiNote | null,
+  options: NegativeFilterOptions = {}
 ): NarrativeClinicalNote {
   // If we have Heidi format, prefer it as it has more structured sections
   if (heidiNote) {
-    const planContent = cleanText(filterNegativeAssertions(heidiNote.plan || ''));
+    const planContent = cleanText(filterNegativeAssertions(heidiNote.plan || '', options));
     const { intervention, plan } = splitPlanContent(planContent);
-    
+
     return {
-      history: cleanText(filterNegativeAssertions(heidiNote.history || '')),
-      examination: cleanText(filterNegativeAssertions(heidiNote.examination || '')),
-      assessment: cleanText(filterNegativeAssertions(heidiNote.impression || '')),
+      history: cleanText(filterNegativeAssertions(heidiNote.history || '', options)),
+      examination: cleanText(filterNegativeAssertions(heidiNote.examination || '', options)),
+      assessment: cleanText(filterNegativeAssertions(heidiNote.impression || '', options)),
       intervention: intervention,
       plan: plan || planContent, // Fallback to full plan if no split occurred
     };
   }
-  
+
   // Transform from SOAP format
   if (soapNote) {
-    const planContent = cleanText(filterNegativeAssertions(soapNote.P || ''));
+    const planContent = cleanText(filterNegativeAssertions(soapNote.P || '', options));
     const { intervention, plan } = splitPlanContent(planContent);
-    
+
     return {
-      history: cleanText(filterNegativeAssertions(soapNote.S || '')),
-      examination: cleanText(filterNegativeAssertions(soapNote.O || '')),
-      assessment: cleanText(filterNegativeAssertions(soapNote.A || '')),
+      history: cleanText(filterNegativeAssertions(soapNote.S || '', options)),
+      examination: cleanText(filterNegativeAssertions(soapNote.O || '', options)),
+      assessment: cleanText(filterNegativeAssertions(soapNote.A || '', options)),
       intervention: intervention,
       plan: plan || planContent, // Fallback to full plan if no split occurred
     };
   }
-  
+
   // Return empty structure if no notes provided
   return {
     history: '',

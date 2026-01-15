@@ -40,8 +40,8 @@ export const NarrativeClinicalNoteView = ({
 }: NarrativeClinicalNoteViewProps) => {
   // Transform the notes to Narrative Clinical format
   const narrativeClinicalNote = useMemo(() => {
-    return transformToNarrativeClinical(soapNote || null, heidiNote);
-  }, [soapNote, heidiNote]);
+    return transformToNarrativeClinical(soapNote || null, heidiNote, { showNotMentioned });
+  }, [soapNote, heidiNote, showNotMentioned]);
 
   // Remove square brackets from text
   const stripBrackets = (text: string): string => {
@@ -135,25 +135,31 @@ export const NarrativeClinicalNoteView = ({
       {/* Sections */}
       <Accordion type="multiple" defaultValue={NARRATIVE_CLINICAL_SECTIONS.map(s => s.key)} className="space-y-3">
         {NARRATIVE_CLINICAL_SECTIONS.map((section) => {
-          const content = filterContent(narrativeClinicalNote[section.key]);
+          const raw = narrativeClinicalNote[section.key] || '';
+          const content = filterContent(raw);
           const Icon = sectionIcons[section.key];
-          
-          // Skip empty sections
-          if (!content || !content.trim()) return null;
-          
+
+          const hasContent = !!content && !!content.trim();
+
+          // When toggle is OFF, keep the UI clean by hiding empty sections.
+          // When toggle is ON, show empty sections as "Not discussed".
+          if (!hasContent && !showNotMentioned) return null;
+
           return (
-            <AccordionItem 
-              key={section.key} 
-              value={section.key} 
+            <AccordionItem
+              key={section.key}
+              value={section.key}
               className={cn("border rounded-lg px-4", section.borderClass)}
             >
               <div className="flex items-center justify-between">
                 <AccordionTrigger className="hover:no-underline py-3 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "w-7 h-7 rounded flex items-center justify-center",
-                      section.colorClass
-                    )}>
+                    <span
+                      className={cn(
+                        "w-7 h-7 rounded flex items-center justify-center",
+                        section.colorClass
+                      )}
+                    >
                       <Icon className="h-4 w-4" />
                     </span>
                     <div className="text-left">
@@ -164,12 +170,14 @@ export const NarrativeClinicalNoteView = ({
                     </div>
                   </div>
                 </AccordionTrigger>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-7 text-xs"
+                  disabled={!hasContent}
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (!hasContent) return;
                     copyToClipboard(content, section.title);
                   }}
                 >
@@ -177,9 +185,11 @@ export const NarrativeClinicalNoteView = ({
                 </Button>
               </div>
               <AccordionContent className="pt-0 pb-3">
-                <p className="text-sm whitespace-pre-wrap leading-relaxed pl-9">
-                  {content}
-                </p>
+                {hasContent ? (
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed pl-9">{content}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic pl-9">Not discussed</p>
+                )}
               </AccordionContent>
             </AccordionItem>
           );
