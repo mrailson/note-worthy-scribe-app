@@ -735,6 +735,11 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                 <ConsultationAskAI 
                   session={currentSession} 
                   soapNote={currentSoapNote}
+                  patientContext={currentSession.patientName ? {
+                    name: currentSession.patientName,
+                    nhsNumber: currentSession.patientNhsNumber || undefined,
+                    dateOfBirth: currentSession.patientDob || undefined,
+                  } : undefined}
                 />
               </TabsContent>
               
