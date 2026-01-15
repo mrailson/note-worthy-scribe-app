@@ -8,7 +8,7 @@ import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS, HistoryRete
 import { Save, RotateCcw, Stethoscope, Mic, Shield, Clock, AlertTriangle, ChevronDown } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Phone, Video, Users } from "lucide-react";
-import { MicrophoneSettings } from "@/components/gpscribe/MicrophoneSettings";
+import { ScribeMicrophoneSettings } from "./ScribeMicrophoneSettings";
 import { useState } from "react";
 
 interface ScribeSettingsPanelProps {
@@ -38,8 +38,16 @@ export const ScribeSettingsPanel = ({
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      {/* Microphone Settings - Most important for troubleshooting */}
-      <MicrophoneSettings onDeviceChange={onMicrophoneChange} />
+      {/* Microphone Settings - Per Consultation Type */}
+      <ScribeMicrophoneSettings
+        currentConsultationType={settings.defaultConsultationType}
+        f2fMicrophoneId={settings.f2fMicrophoneId}
+        telephoneMicrophoneId={settings.telephoneMicrophoneId}
+        videoMicrophoneId={settings.videoMicrophoneId}
+        onF2FMicrophoneChange={(deviceId) => onUpdateSetting('f2fMicrophoneId', deviceId)}
+        onTelephoneMicrophoneChange={(deviceId) => onUpdateSetting('telephoneMicrophoneId', deviceId)}
+        onVideoMicrophoneChange={(deviceId) => onUpdateSetting('videoMicrophoneId', deviceId)}
+      />
 
       {/* Consultation Defaults - Collapsible */}
       <Card>

@@ -147,6 +147,10 @@ export interface ScribeSettings {
   historyRetention: HistoryRetention; // How long to keep consultation history
   showDevDisclaimer: boolean; // Show/hide the development disclaimer banner
   minimalRecordingView: boolean; // Show minimal timer/word count only during recording
+  // Per-consultation-type microphone settings
+  f2fMicrophoneId?: string | null;
+  telephoneMicrophoneId?: string | null;
+  videoMicrophoneId?: string | null;
 }
 
 export interface ScribeTranscriptData {
@@ -224,5 +228,9 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   showPatientBannerDuringRecording: true, // Default to showing patient banner
   historyRetention: '1week', // Default to 1 week retention
   showDevDisclaimer: true, // Default to showing development disclaimer
-  minimalRecordingView: true // Default to minimal view for patient comfort
+  minimalRecordingView: true, // Default to minimal view for patient comfort
+  // Per-consultation-type microphone settings (null = use system default)
+  f2fMicrophoneId: null,
+  telephoneMicrophoneId: null,
+  videoMicrophoneId: null,
 };
