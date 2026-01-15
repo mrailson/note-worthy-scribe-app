@@ -113,6 +113,7 @@ export interface PatientContext {
     work?: string;
     preferred?: 'mobile' | 'home' | 'work';  // Which number is marked as preferred
   };
+  gender?: 'M' | 'F';     // Male or Female
 }
 
 // Context file for consultation (blood results, screenshots, documents)

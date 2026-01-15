@@ -145,7 +145,8 @@ export const PatientContextCapture = ({
         confidence: data.confidence,
         rawExtract: data.rawText,
         address: data.address || undefined,
-        phoneNumbers: data.phoneNumbers || undefined
+        phoneNumbers: data.phoneNumbers || undefined,
+        gender: data.gender || undefined
       };
 
       onPatientContextChange(context);
@@ -271,6 +272,11 @@ export const PatientContextCapture = ({
                 {patientContext.dateOfBirth && (
                   <span>
                     <span className="font-medium">DOB:</span> {patientContext.dateOfBirth}
+                  </span>
+                )}
+                {patientContext.gender && (
+                  <span>
+                    <span className="font-medium">Sex:</span> {patientContext.gender === 'M' ? 'Male' : 'Female'}
                   </span>
                 )}
                 {patientContext.address && (
