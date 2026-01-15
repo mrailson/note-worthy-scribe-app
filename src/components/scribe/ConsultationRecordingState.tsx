@@ -9,6 +9,7 @@ import { PatientContextBanner } from "./PatientContextBanner";
 import { SoFarReviewPanel } from "./SoFarReviewPanel";
 import { ContextUploadPanel } from "./ContextUploadPanel";
 import { MinimalRecordingState } from "./MinimalRecordingState";
+import { AudioWaveform } from "./AudioWaveform";
 import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -210,6 +211,15 @@ export const ConsultationRecordingState = ({
           `}>
             {connectionStatus}
           </span>
+          
+          {/* Audio Waveform */}
+          {!isPaused && connectionStatus === 'Connected' && (
+            <AudioWaveform 
+              deviceId={selectedMicId} 
+              isActive={!isPaused}
+              barCount={5}
+            />
+          )}
         </div>
 
         <div className="flex items-center gap-3">
