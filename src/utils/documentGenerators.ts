@@ -317,6 +317,16 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
           const level = Math.min(headingMatch[1].length, 6);
           const headingText = headingMatch[2];
           
+          // More generous spacing for headings - professional document look
+          const headingSpacing = {
+            1: { before: 400, after: 200 },  // H1 - major sections
+            2: { before: 360, after: 180 },  // H2 - sub-sections
+            3: { before: 300, after: 160 },  // H3 - minor sections
+            4: { before: 260, after: 140 },  // H4-H6 - detail headings
+            5: { before: 240, after: 120 },
+            6: { before: 220, after: 100 },
+          };
+          
           documentElements.push(new Paragraph({
             children: processFormattedText(headingText),
             heading: level === 1 ? 'Heading1' : 
@@ -324,14 +334,51 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
                     level === 3 ? 'Heading3' : 
                     level === 4 ? 'Heading4' : 
                     level === 5 ? 'Heading5' : 'Heading6',
-            spacing: { before: 240, after: 120 }
+            spacing: headingSpacing[level as keyof typeof headingSpacing] || { before: 240, after: 120 }
           }));
         } else {
-          // Regular paragraph
-          documentElements.push(new Paragraph({
-            children: processFormattedText(line),
-            spacing: { before: 120, after: 120 }
-          }));
+          // Check for clinical sub-headings (bold text followed by colon)
+          // e.g., "**History:** patient presents..." or "Overall Impression:"
+          const clinicalSubheadingMatch = line.match(/^\*\*([^*]+):\*\*\s*(.*)$/);
+          const inlineSubheadingMatch = line.match(/^([A-Z][^:]{2,30}):\s*(.+)$/);
+          
+          if (clinicalSubheadingMatch) {
+            // Bold clinical sub-heading with content
+            const [, heading, content] = clinicalSubheadingMatch;
+            documentElements.push(new Paragraph({
+              children: [
+                new TextRun({
+                  text: `${heading}: `,
+                  bold: true,
+                  size: 24,
+                  font: defaultRunFont,
+                }),
+                ...processFormattedText(content)
+              ],
+              spacing: { before: 260, after: 160 }
+            }));
+          } else if (inlineSubheadingMatch && inlineSubheadingMatch[1].length < 40) {
+            // Inline sub-heading (e.g., "Overall Impression: ...")
+            const [, heading, content] = inlineSubheadingMatch;
+            documentElements.push(new Paragraph({
+              children: [
+                new TextRun({
+                  text: `${heading}: `,
+                  bold: true,
+                  size: 24,
+                  font: defaultRunFont,
+                }),
+                ...processFormattedText(content)
+              ],
+              spacing: { before: 220, after: 160 }
+            }));
+          } else {
+            // Regular paragraph with improved spacing
+            documentElements.push(new Paragraph({
+              children: processFormattedText(line),
+              spacing: { before: 160, after: 160 }
+            }));
+          }
         }
       }
     }
@@ -340,7 +387,7 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
     if (documentElements.length === 0) {
       documentElements.push(new Paragraph({
         children: processFormattedText(content),
-        spacing: { before: 120, after: 120 }
+        spacing: { before: 160, after: 160 }
       }));
     }
 

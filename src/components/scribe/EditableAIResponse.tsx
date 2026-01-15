@@ -82,7 +82,7 @@ const stripHtmlToText = (html: string): string => {
     .trim();
 };
 
-// Convert markdown to HTML for display with improved formatting
+// Convert markdown to HTML for display with professional formatting
 const convertMarkdownToHtml = (text: string): string => {
   if (!text) return '';
   
@@ -100,7 +100,7 @@ const convertMarkdownToHtml = (text: string): string => {
   html = html.replace(/\*\*\*(.+?)\*\*\*/gs, '<strong><em>$1</em></strong>');
   
   // Handle bold (**text**) - more robust pattern
-  html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*\*([^*]+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
   
   // Handle italic (*text*) - but not list markers
   html = html.replace(/(?<![*\w])\*([^*\n]+?)\*(?![*\w])/g, '<em>$1</em>');
@@ -118,20 +118,24 @@ const convertMarkdownToHtml = (text: string): string => {
       return '&gt;';
     });
   
-  // Headers with better spacing
+  // Headers with professional spacing - generous margins for visual hierarchy
   html = html
-    .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-5 mb-3 text-foreground">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-6 mb-3 text-foreground">$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-6 mb-4 text-foreground">$1</h1>');
+    .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-6 mb-4 text-foreground border-b border-border/30 pb-2">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-8 mb-4 text-foreground border-b border-border/50 pb-2">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-8 mb-5 text-foreground border-b border-border pb-3">$1</h1>');
   
-  // Bullet lists with proper indentation
-  html = html.replace(/^[-•]\s+(.+)$/gm, '<li class="ml-5 pl-1">$1</li>');
+  // Detect clinical sub-headings (bold text followed by colon at start of line)
+  // e.g., "**History:** patient presents with..." or "Overall Impression:"
+  html = html.replace(/<strong[^>]*>([^<]+):<\/strong>/g, '<strong class="font-semibold text-foreground block mt-5 mb-2">$1:</strong>');
+  
+  // Bullet lists with proper indentation and spacing
+  html = html.replace(/^[-•]\s+(.+)$/gm, '<li class="ml-6 pl-2 leading-relaxed">$1</li>');
   
   // Numbered lists
-  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li class="ml-5 pl-1 list-decimal">$1</li>');
+  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li class="ml-6 pl-2 list-decimal leading-relaxed">$1</li>');
   
-  // Double line breaks to paragraphs with proper spacing
-  html = html.replace(/\n\n+/g, '</p><p class="mb-4 leading-relaxed">');
+  // Double line breaks to paragraphs with generous spacing
+  html = html.replace(/\n\n+/g, '</p><p class="mb-5 leading-relaxed text-foreground/90">');
   
   // Single line breaks - handle carefully
   html = html.replace(/\n/g, '<br/>');
@@ -139,12 +143,12 @@ const convertMarkdownToHtml = (text: string): string => {
   // Wrap consecutive <li> elements in <ul> with proper spacing
   html = html.replace(/(<li[^>]*>.*?<\/li>(?:\s*<br\/>?\s*)?)+/gs, (match) => {
     const cleanedMatch = match.replace(/<br\s*\/?>/g, '');
-    return `<ul class="my-4 space-y-2 list-disc">${cleanedMatch}</ul>`;
+    return `<ul class="my-5 space-y-3 list-disc pl-2">${cleanedMatch}</ul>`;
   });
   
   // Wrap in paragraph if not already wrapped and doesn't start with a block element
   if (!html.startsWith('<h') && !html.startsWith('<ul') && !html.startsWith('<ol') && !html.startsWith('<p')) {
-    html = `<p class="mb-4 leading-relaxed">${html}</p>`;
+    html = `<p class="mb-5 leading-relaxed text-foreground/90">${html}</p>`;
   }
 
   return html;
@@ -429,23 +433,27 @@ export function EditableAIResponse({
         </div>
       )}
 
-      {/* Editor content */}
+      {/* Editor content - Professional NHS-style formatting */}
       <div 
         className={cn(
-          'prose prose-sm max-w-none dark:prose-invert px-5 py-4',
-          // Paragraphs
-          'prose-p:mb-4 prose-p:leading-7 prose-p:text-foreground/90',
-          // Headings
-          'prose-headings:mt-6 prose-headings:mb-3 prose-headings:font-semibold prose-headings:text-foreground',
-          'prose-h1:text-xl prose-h2:text-lg prose-h3:text-base',
-          // Lists
-          'prose-ul:my-4 prose-ul:pl-1 prose-ul:space-y-2',
-          'prose-ol:my-4 prose-ol:pl-1 prose-ol:space-y-2',
-          'prose-li:my-1 prose-li:leading-relaxed prose-li:text-foreground/90',
-          // Strong/Bold
+          'prose prose-sm max-w-none dark:prose-invert px-6 py-5',
+          // Paragraphs - generous spacing for readability
+          'prose-p:mb-5 prose-p:leading-8 prose-p:text-foreground/90',
+          // Headings - clear visual hierarchy with borders
+          'prose-headings:mt-8 prose-headings:mb-4 prose-headings:font-semibold prose-headings:text-foreground',
+          'prose-h1:text-xl prose-h1:pb-3 prose-h1:border-b prose-h1:border-border',
+          'prose-h2:text-lg prose-h2:pb-2 prose-h2:border-b prose-h2:border-border/50',
+          'prose-h3:text-base prose-h3:pb-2 prose-h3:border-b prose-h3:border-border/30',
+          // Lists - proper indentation and spacing
+          'prose-ul:my-5 prose-ul:pl-2 prose-ul:space-y-3',
+          'prose-ol:my-5 prose-ol:pl-2 prose-ol:space-y-3',
+          'prose-li:my-2 prose-li:leading-7 prose-li:text-foreground/90 prose-li:pl-2',
+          // Strong/Bold - clear emphasis
           'prose-strong:font-semibold prose-strong:text-foreground',
           // Emphasis
           'prose-em:italic prose-em:text-foreground/80',
+          // Links
+          'prose-a:text-primary prose-a:underline prose-a:underline-offset-2',
           // Interactive states
           !isEditing && 'cursor-pointer hover:bg-muted/30 rounded-lg transition-colors',
           isEditing && 'min-h-[100px]'
