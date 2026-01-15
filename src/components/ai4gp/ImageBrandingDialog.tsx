@@ -42,7 +42,7 @@ interface ImageBrandingDialogProps {
 const DEFAULT_CUSTOM_OPTIONS: CustomBrandingOptions = {
   name: true,
   address: false,
-  phone: true,
+  phone: false,
   email: false,
   website: false,
   pcn: false,
@@ -58,7 +58,7 @@ export const ImageBrandingDialog: React.FC<ImageBrandingDialogProps> = ({
   includePracticeLogo,
   onLogoToggleChange,
 }) => {
-  const [brandingLevel, setBrandingLevel] = useState<BrandingLevel>('name-contact');
+  const [brandingLevel, setBrandingLevel] = useState<BrandingLevel>('name-only');
   const [customBranding, setCustomBranding] = useState<CustomBrandingOptions>(DEFAULT_CUSTOM_OPTIONS);
   const [showCustomOptions, setShowCustomOptions] = useState(false);
   const [logoImageError, setLogoImageError] = useState(false);
@@ -66,7 +66,7 @@ export const ImageBrandingDialog: React.FC<ImageBrandingDialogProps> = ({
   // Reset to sensible defaults when dialog opens
   useEffect(() => {
     if (open) {
-      setBrandingLevel('name-contact');
+      setBrandingLevel('name-only');
       setCustomBranding(DEFAULT_CUSTOM_OPTIONS);
       setShowCustomOptions(false);
       setLogoImageError(false);
