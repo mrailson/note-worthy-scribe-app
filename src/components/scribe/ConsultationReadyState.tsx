@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConsultationTypeSelector } from "./ConsultationTypeSelector";
 import { PatientConsentBanner } from "./PatientConsentBanner";
 import { ScribeDevDisclaimer } from "./ScribeDevDisclaimer";
@@ -69,15 +70,24 @@ export const ConsultationReadyState = ({
 
           {/* Consultation Type with Info Button */}
           <div className="flex items-start gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 mt-0.5"
-              onClick={() => setShowExplainer(true)}
-              aria-label="Show patient explainer"
-            >
-              <Info className="h-5 w-5" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 mt-0.5"
+                    onClick={() => setShowExplainer(true)}
+                    aria-label="Show patient explainer"
+                  >
+                    <Info className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Patient Consent and AVT Scribe Explainer</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <div className="flex-1">
               <ConsultationTypeSelector
                 value={consultationType}
