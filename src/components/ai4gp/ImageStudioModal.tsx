@@ -51,6 +51,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
     cancelGeneration,
     resetSettings,
     editCurrentResult,
+    selectHistoryItem,
   } = useImageStudio();
 
   const handleGenerate = () => {
@@ -133,6 +134,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
                 onGenerate={handleGenerate}
                 onCancel={cancelGeneration}
                 onEditResult={editCurrentResult}
+                onSelectHistoryItem={selectHistoryItem}
                 descriptionProvided={!!settings.description.trim()}
               />
             </TabsContent>
