@@ -56,7 +56,8 @@ export class DesktopWhisperTranscriber {
     meetingId?: string,
     private onAudioActivity?: (hasActivity: boolean) => void,
     private onChunkProcessed?: () => void,
-    private selectedDeviceId?: string | null
+    private selectedDeviceId?: string | null,
+    private externalStream?: MediaStream | null // Allow passing pre-configured stream (e.g., mixed mic + browser audio)
   ) {
     this.sessionId = meetingId || this.generateSessionId();
     this.meetingId = meetingId || null;
@@ -285,24 +286,30 @@ export class DesktopWhisperTranscriber {
       this.onStatusChange('Ready for immediate transcription...');
       console.log('🖥️ Starting Desktop Whisper transcription...');
 
-      // Request microphone access with ChatGPT recommended settings
-      // Use selected device if provided
-      const audioConstraints: MediaTrackConstraints = {
-        sampleRate: 48000, // 48kHz - Chrome native, avoid resampling artifacts
-        channelCount: 1,
-        echoCancellation: false, // Disabled - can create artifacts
-        noiseSuppression: false, // Disabled - can create artifacts  
-        autoGainControl: false,  // Disabled - can create artifacts
-      };
-      
-      if (this.selectedDeviceId) {
-        audioConstraints.deviceId = { exact: this.selectedDeviceId };
-        console.log('🎤 Using selected microphone device:', this.selectedDeviceId);
+      // Use external stream if provided (e.g., pre-mixed mic + browser audio)
+      if (this.externalStream) {
+        console.log('🔊 Using external pre-configured audio stream (mic + browser audio)');
+        this.stream = this.externalStream;
+      } else {
+        // Request microphone access with ChatGPT recommended settings
+        // Use selected device if provided
+        const audioConstraints: MediaTrackConstraints = {
+          sampleRate: 48000, // 48kHz - Chrome native, avoid resampling artifacts
+          channelCount: 1,
+          echoCancellation: false, // Disabled - can create artifacts
+          noiseSuppression: false, // Disabled - can create artifacts  
+          autoGainControl: false,  // Disabled - can create artifacts
+        };
+        
+        if (this.selectedDeviceId) {
+          audioConstraints.deviceId = { exact: this.selectedDeviceId };
+          console.log('🎤 Using selected microphone device:', this.selectedDeviceId);
+        }
+        
+        this.stream = await navigator.mediaDevices.getUserMedia({
+          audio: audioConstraints
+        });
       }
-      
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: audioConstraints
-      });
       
       // Set up audio activity monitoring for VAD-based silence detection
       // This is always enabled for smoother real-time transcription experience

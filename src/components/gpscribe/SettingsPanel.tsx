@@ -1,12 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ConsultationType } from "@/types/gpscribe";
+import { ConsultationType, AudioCaptureMode } from "@/types/gpscribe";
 import { OUTPUT_LEVELS } from "@/constants/consultationSettings";
-import { Save, RotateCcw } from "lucide-react";
+import { Save, RotateCcw, Mic, Monitor, AlertCircle } from "lucide-react";
 import { MicrophoneSettings } from "./MicrophoneSettings";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SettingsPanelProps {
   consultationType: ConsultationType;
@@ -16,6 +19,7 @@ interface SettingsPanelProps {
   formatForSystmOne: boolean;
   tickerEnabled: boolean;
   showTranscriptTimestamps: boolean;
+  audioCaptureMode?: AudioCaptureMode;
   onConsultationTypeChange: (type: ConsultationType) => void;
   onOutputLevelChange: (level: number) => void;
   onShowSnomedCodesChange: (show: boolean) => void;
@@ -24,6 +28,7 @@ interface SettingsPanelProps {
   onTickerEnabledChange: (enabled: boolean) => void;
   onShowTranscriptTimestampsChange: (show: boolean) => void;
   onMicrophoneChange?: (deviceId: string | null) => void;
+  onAudioCaptureModeChange?: (mode: AudioCaptureMode) => void;
   onSaveSettings: () => void;
   onResetSettings: () => void;
 }
@@ -36,6 +41,7 @@ export const SettingsPanel = ({
   formatForSystmOne,
   tickerEnabled,
   showTranscriptTimestamps,
+  audioCaptureMode = "mic-only",
   onConsultationTypeChange,
   onOutputLevelChange,
   onShowSnomedCodesChange,
@@ -44,13 +50,91 @@ export const SettingsPanel = ({
   onTickerEnabledChange,
   onShowTranscriptTimestampsChange,
   onMicrophoneChange,
+  onAudioCaptureModeChange,
   onSaveSettings,
   onResetSettings
 }: SettingsPanelProps) => {
+  // Check if browser supports screen/system audio capture
+  const isChromium = /Chrome|Edg/.test(navigator.userAgent) && !/Safari/.test(navigator.userAgent);
+  const supportsSystemAudio = isChromium;
   return (
     <div className="space-y-6">
       {/* Microphone Settings - Most important for troubleshooting */}
       <MicrophoneSettings onDeviceChange={onMicrophoneChange} />
+      
+      {/* Audio Source Settings - For telephone consultations */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Monitor className="h-5 w-5" />
+            Audio Source
+          </CardTitle>
+          <CardDescription>
+            Choose how audio is captured during consultations
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <RadioGroup
+            value={audioCaptureMode}
+            onValueChange={(value: AudioCaptureMode) => onAudioCaptureModeChange?.(value)}
+            className="space-y-4"
+          >
+            <div className="flex items-start space-x-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+              <RadioGroupItem value="mic-only" id="mic-only" className="mt-1" />
+              <div className="flex-1">
+                <Label htmlFor="mic-only" className="flex items-center gap-2 cursor-pointer font-medium">
+                  <Mic className="h-4 w-4" />
+                  Microphone Only
+                  <Badge variant="secondary" className="text-xs">Default</Badge>
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Best for face-to-face consultations. Captures your microphone only.
+                </p>
+              </div>
+            </div>
+            
+            <div className={`flex items-start space-x-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors ${!supportsSystemAudio ? 'opacity-60' : ''}`}>
+              <RadioGroupItem 
+                value="mic-browser" 
+                id="mic-browser" 
+                className="mt-1"
+                disabled={!supportsSystemAudio}
+              />
+              <div className="flex-1">
+                <Label htmlFor="mic-browser" className="flex items-center gap-2 cursor-pointer font-medium">
+                  <Monitor className="h-4 w-4" />
+                  Microphone + Browser Audio
+                  <Badge variant="outline" className="text-xs">Telephone</Badge>
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  For telephone/video consultations via browser. Captures your voice AND the patient's voice from your computer.
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Requires screen share permission when starting recording.
+                </p>
+              </div>
+            </div>
+          </RadioGroup>
+
+          {audioCaptureMode === 'mic-browser' && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                When you start recording, you'll be asked to share your screen. Select the browser tab with your phone system and <strong>tick "Share audio"</strong> to capture the patient's voice.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!supportsSystemAudio && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Browser audio capture requires Chrome or Edge. Your current browser doesn't support this feature.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
       
       {/* Consultation Settings */}
       <Card>

@@ -1,15 +1,16 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { TranscriptData } from "@/types/gpscribe";
+import { TranscriptData, AudioCaptureMode } from "@/types/gpscribe";
 import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
 import { iPhoneWhisperTranscriber, TranscriptData as IPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 import { ChromiumMicTranscriber, ChromiumTranscriptData } from '@/utils/ChromiumMicTranscriber';
+import { SystemAudioCapture } from '@/utils/SystemAudioCapture';
 import { mergeLive } from "@/utils/TranscriptMerge";
 import { showToast } from "@/utils/toastWrapper";
 import { bus } from "@/lib/bus";
 import { supabase } from "@/integrations/supabase/client";
 
-export const useGPScribeRecording = (selectedMicrophoneId?: string | null) => {
+export const useGPScribeRecording = (selectedMicrophoneId?: string | null, audioCaptureMode: AudioCaptureMode = 'mic-only') => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -29,6 +30,7 @@ export const useGPScribeRecording = (selectedMicrophoneId?: string | null) => {
   const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
   const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
   const chromiumTranscriberRef = useRef<ChromiumMicTranscriber | null>(null);
+  const systemAudioCaptureRef = useRef<SystemAudioCapture | null>(null);
   const wakeLockRef = useRef<any>(null);
   const meetingIdRef = useRef<string | null>(null); // Store meeting ID for status updates
 
@@ -424,7 +426,25 @@ export const useGPScribeRecording = (selectedMicrophoneId?: string | null) => {
       } else {
         console.log('🖥️ Starting Desktop Whisper transcription for GP Scribe...');
         console.log('🎤 Using microphone device:', selectedMicrophoneId || 'default');
-        // Use desktop transcriber for better reliability - don't use UnifiedAudioCapture
+        console.log('🔊 Audio capture mode:', audioCaptureMode);
+        
+        let externalStream: MediaStream | null = null;
+        
+        // If mic-browser mode, use SystemAudioCapture to get mixed stream
+        if (audioCaptureMode === 'mic-browser') {
+          try {
+            showToast.info("Please select a browser tab and tick 'Share audio' to capture patient voice", { section: 'gpscribe', duration: 8000 });
+            systemAudioCaptureRef.current = new SystemAudioCapture();
+            externalStream = await systemAudioCaptureRef.current.startCapture();
+            showToast.success("Browser audio capture enabled - both voices will be transcribed", { section: 'gpscribe' });
+          } catch (error: any) {
+            console.warn('Failed to capture browser audio, falling back to mic-only:', error);
+            showToast.warning("Browser audio not available - using microphone only", { section: 'gpscribe' });
+            // Fall back to mic-only mode
+          }
+        }
+        
+        // Use desktop transcriber for better reliability
         desktopTranscriberRef.current = new DesktopWhisperTranscriber(
           (data: DesktopTranscriptData) => {
             handleTranscriptUpdate({
@@ -447,7 +467,8 @@ export const useGPScribeRecording = (selectedMicrophoneId?: string | null) => {
           undefined, // meetingId
           undefined, // onAudioActivity
           undefined, // onChunkProcessed
-          selectedMicrophoneId // Selected device ID
+          externalStream ? undefined : selectedMicrophoneId, // Only use device ID if not using external stream
+          externalStream // Pass external stream if available
         );
         
         await desktopTranscriberRef.current.startTranscription();
@@ -525,6 +546,11 @@ export const useGPScribeRecording = (selectedMicrophoneId?: string | null) => {
       if (chromiumTranscriberRef.current) {
         chromiumTranscriberRef.current.stopTranscription();
         chromiumTranscriberRef.current = null;
+      }
+
+      if (systemAudioCaptureRef.current) {
+        systemAudioCaptureRef.current.stopCapture();
+        systemAudioCaptureRef.current = null;
       }
 
       showToast.success("Recording stopped", { section: 'gpscribe' });
