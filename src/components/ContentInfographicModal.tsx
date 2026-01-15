@@ -9,6 +9,7 @@ interface ContentInfographicModalProps {
   onClose: () => void;
   content: string;
   title?: string;
+  imageModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
 }
 
 const GENERATION_TIPS = [
@@ -28,6 +29,7 @@ export const ContentInfographicModal: React.FC<ContentInfographicModalProps> = (
   onClose,
   content,
   title = 'AI Generated Content',
+  imageModel = 'google/gemini-2.5-flash-image-preview',
 }) => {
   const { generateInfographic, isGenerating, currentPhase, error } = useContentInfographic();
   const [progress, setProgress] = useState(0);
@@ -39,9 +41,9 @@ export const ContentInfographicModal: React.FC<ContentInfographicModalProps> = (
     if (isOpen && !hasStarted && !isGenerating) {
       setHasStarted(true);
       setProgress(0);
-      generateInfographic(content, title);
+      generateInfographic(content, title, { imageModel });
     }
-  }, [isOpen, hasStarted, isGenerating, content, title, generateInfographic]);
+  }, [isOpen, hasStarted, isGenerating, content, title, imageModel, generateInfographic]);
 
   // Reset state when modal closes
   useEffect(() => {

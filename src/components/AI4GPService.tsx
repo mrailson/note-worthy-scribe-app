@@ -808,6 +808,7 @@ const AI4GPService = () => {
                           // Use the selected model from settings
                           handleQuickResponse(response, practiceContext, selectedModel);
                         }}
+                        imageGenerationModel={imageGenerationModel}
                       />
                     </div>
                   )}
@@ -880,6 +881,7 @@ const AI4GPService = () => {
                   onCloseModal={() => setExpandedMessage(null)} // Close modal function
                   showResponseMetrics={showResponseMetrics}
                   autoCollapseUserPrompts={autoCollapseUserPrompts}
+                  imageGenerationModel={imageGenerationModel}
                 />
               </div>
             )}

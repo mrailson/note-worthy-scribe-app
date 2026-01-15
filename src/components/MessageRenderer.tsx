@@ -78,6 +78,7 @@ interface MessageRendererProps {
   onQuickResponse?: (response: string) => void; // New prop for quick responses
   onSetDrugName?: (drugName: string) => void; // New prop for setting drug name
   autoCollapseUserPrompts?: boolean; // New prop to auto-collapse user prompts
+  imageGenerationModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1'; // Image model for infographics
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
@@ -93,7 +94,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   showAIService = false,
   onQuickResponse,
   onSetDrugName,
-  autoCollapseUserPrompts = false
+  autoCollapseUserPrompts = false,
+  imageGenerationModel = 'google/gemini-2.5-flash-image-preview'
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
@@ -1400,6 +1402,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         onClose={() => setShowInfographicModal(false)}
         content={message.content}
         title="AI Generated Content"
+        imageModel={imageGenerationModel}
       />
     </div>
   );
