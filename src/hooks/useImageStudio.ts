@@ -169,7 +169,7 @@ export function useImageStudio() {
               instructions: settings.referenceInstructions || undefined,
             }))
           : undefined,
-        imageModel: (imageModel as ImageStudioRequest['imageModel']) || 'google/gemini-2.5-flash-image',
+        imageModel: (imageModel as ImageStudioRequest['imageModel']) || 'google/gemini-2.5-flash-image-preview',
         isStudioRequest: true,
       };
 

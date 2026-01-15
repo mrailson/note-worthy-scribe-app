@@ -202,7 +202,7 @@ Additional requirements:
           conversationContext: '',
           documentContent: documentContent,
           requestType: 'infographic',
-          imageModel: 'google/gemini-3-pro-image-preview',
+          imageModel: 'google/gemini-2.5-flash-image-preview',
           practiceContext: {
             brandingLevel: 'none'
           }

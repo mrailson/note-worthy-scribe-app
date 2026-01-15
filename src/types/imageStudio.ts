@@ -96,7 +96,7 @@ export interface ImageStudioRequest {
   }[];
   
   // Model selection
-  imageModel?: 'google/gemini-2.5-flash-image' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1';
+  imageModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   
   // Studio mode flag
   isStudioRequest: true;

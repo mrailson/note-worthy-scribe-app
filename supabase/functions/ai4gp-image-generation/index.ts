@@ -17,7 +17,7 @@ interface ImageGenerationRequest {
   conversationContext?: string;
   documentContent?: string;  // Content from attached files for visual generation
   imageAttachments?: ImageAttachment[];  // Image files for reference-based generation
-  imageModel?: 'google/gemini-2.5-flash-image' | 'google/gemini-3-pro-image-preview' | 'openai/gpt-image-1';
+  imageModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   practiceContext?: {
     practiceName?: string;
     pcnName?: string;
@@ -306,8 +306,8 @@ serve(async (req) => {
       referenceImages
     } = requestBody;
 
-    // Use selected model or default to Nano Banana
-    const selectedImageModel = imageModel || 'google/gemini-2.5-flash-image';
+    // Use selected model or default to Gemini Flash Image Preview
+    const selectedImageModel = imageModel || 'google/gemini-2.5-flash-image-preview';
 
     // Determine effective request type (studio uses 'purpose', regular uses 'requestType')
     const effectiveRequestType = isStudioRequest ? (purpose || 'general') : (requestType || 'general');
