@@ -1,10 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Activity, Clock, Users, Calendar, TrendingUp } from 'lucide-react';
+import { Activity, Clock, Users, Calendar, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+type SortField = 'user' | 'last_24h' | 'last_7d' | 'last_30d' | 'all_time' | 'deleted' | 'avg_duration' | 'total_time';
+type SortDirection = 'asc' | 'desc';
 
 interface UserMeetingStats {
   user_id: string;
@@ -41,6 +45,61 @@ export const MeetingUsageReport = () => {
   const [userStats, setUserStats] = useState<UserMeetingStats[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sortField, setSortField] = useState<SortField>('all_time');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const SortableHeader = ({ field, children, className }: { field: SortField; children: React.ReactNode; className?: string }) => (
+    <TableHead 
+      className={cn("cursor-pointer hover:bg-muted/50 select-none transition-colors", className)}
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortField === field && (
+          sortDirection === 'desc' 
+            ? <ChevronDown className="h-3 w-3" /> 
+            : <ChevronUp className="h-3 w-3" />
+        )}
+      </div>
+    </TableHead>
+  );
+
+  const sortedUserStats = useMemo(() => {
+    return [...userStats].sort((a, b) => {
+      let aVal: string | number = 0;
+      let bVal: string | number = 0;
+      
+      switch (sortField) {
+        case 'user': 
+          aVal = a.full_name || a.email; 
+          bVal = b.full_name || b.email; 
+          break;
+        case 'last_24h': aVal = a.last_24h; bVal = b.last_24h; break;
+        case 'last_7d': aVal = a.last_7d; bVal = b.last_7d; break;
+        case 'last_30d': aVal = a.last_30d; bVal = b.last_30d; break;
+        case 'all_time': aVal = a.all_time; bVal = b.all_time; break;
+        case 'deleted': aVal = a.deleted_meetings_count; bVal = b.deleted_meetings_count; break;
+        case 'avg_duration': aVal = a.avg_duration_mins; bVal = b.avg_duration_mins; break;
+        case 'total_time': aVal = a.total_duration_mins; bVal = b.total_duration_mins; break;
+      }
+      
+      if (typeof aVal === 'string') {
+        return sortDirection === 'asc' 
+          ? aVal.localeCompare(bVal as string) 
+          : (bVal as string).localeCompare(aVal);
+      }
+      return sortDirection === 'asc' ? aVal - (bVal as number) : (bVal as number) - aVal;
+    });
+  }, [userStats, sortField, sortDirection]);
 
   useEffect(() => {
     fetchMeetingUsageStats();
@@ -298,25 +357,25 @@ export const MeetingUsageReport = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead className="text-center">24h</TableHead>
-                  <TableHead className="text-center">7 Days</TableHead>
-                  <TableHead className="text-center">30 Days</TableHead>
-                  <TableHead className="text-center">All Time</TableHead>
-                  <TableHead className="text-center">Deleted</TableHead>
-                  <TableHead className="text-right">Avg Duration</TableHead>
-                  <TableHead className="text-right">Total Time</TableHead>
+                  <SortableHeader field="user">User</SortableHeader>
+                  <SortableHeader field="last_24h" className="text-center">24h</SortableHeader>
+                  <SortableHeader field="last_7d" className="text-center">7 Days</SortableHeader>
+                  <SortableHeader field="last_30d" className="text-center">30 Days</SortableHeader>
+                  <SortableHeader field="all_time" className="text-center">All Time</SortableHeader>
+                  <SortableHeader field="deleted" className="text-center">Deleted</SortableHeader>
+                  <SortableHeader field="avg_duration" className="text-right">Avg Duration</SortableHeader>
+                  <SortableHeader field="total_time" className="text-right">Total Time</SortableHeader>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {userStats.length === 0 ? (
+                {sortedUserStats.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       No completed meetings found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  userStats.map((user) => (
+                  sortedUserStats.map((user) => (
                     <TableRow key={user.user_id}>
                       <TableCell>
                         <div>

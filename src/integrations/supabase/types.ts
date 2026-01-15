@@ -8572,10 +8572,13 @@ export type Database = {
           created_at: string
           duration_minutes: number
           id: string
+          last_chunk_at: string
           status: string
           title: string
+          total_word_count: number
           updated_at: string
           user_id: string
+          words_last_5_mins: number
         }[]
       }
       get_combined_transcript: {

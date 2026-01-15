@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Radio, Clock, User } from 'lucide-react';
+import { RefreshCw, Radio, Clock, User, FileText, TrendingUp, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface MeetingInfo {
   id: string;
@@ -15,6 +16,9 @@ interface MeetingInfo {
   user_email?: string;
   user_name?: string;
   duration_minutes?: number;
+  total_word_count: number;
+  words_last_5_mins: number;
+  last_chunk_at?: string;
 }
 
 export function LiveAndRecentMeetings() {
@@ -59,6 +63,9 @@ export function LiveAndRecentMeetings() {
         duration_minutes: m.duration_minutes,
         user_email: userMap[m.user_id]?.email,
         user_name: userMap[m.user_id]?.name,
+        total_word_count: m.total_word_count || 0,
+        words_last_5_mins: m.words_last_5_mins || 0,
+        last_chunk_at: m.last_chunk_at,
       });
 
       setLiveMeetings((live || []).map(mapMeeting));
@@ -118,27 +125,62 @@ export function LiveAndRecentMeetings() {
             </p>
           ) : (
             <div className="space-y-3">
-              {liveMeetings.map((meeting) => (
-                <div 
-                  key={meeting.id} 
-                  className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1 text-sm">
-                      <User className="h-3 w-3" />
-                      <span className="font-medium">{meeting.user_email || meeting.user_name || 'Unknown user'}</span>
+              {liveMeetings.map((meeting) => {
+                const isStalled = meeting.words_last_5_mins === 0 && meeting.total_word_count > 0;
+                return (
+                  <div 
+                    key={meeting.id} 
+                    className={cn(
+                      "flex items-center justify-between p-3 rounded-lg border",
+                      isStalled 
+                        ? "bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700"
+                        : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+                    )}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1 text-sm">
+                        <User className="h-3 w-3" />
+                        <span className="font-medium">{meeting.user_email || meeting.user_name || 'Unknown user'}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                        <Clock className="h-3 w-3" />
+                        Started {formatTime(meeting.created_at)}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                      <Clock className="h-3 w-3" />
-                      Started {formatTime(meeting.created_at)}
+                    
+                    {/* Word count stats */}
+                    <div className="flex flex-col items-end mr-3 text-xs">
+                      <div className="flex items-center gap-1">
+                        <FileText className="h-3 w-3 text-muted-foreground" />
+                        <span className="font-medium">{meeting.total_word_count.toLocaleString()} words</span>
+                      </div>
+                      <div className={cn(
+                        "flex items-center gap-1",
+                        isStalled ? "text-amber-600" : "text-green-600"
+                      )}>
+                        {isStalled ? (
+                          <AlertTriangle className="h-3 w-3" />
+                        ) : (
+                          <TrendingUp className="h-3 w-3" />
+                        )}
+                        <span>+{meeting.words_last_5_mins} last 5 min</span>
+                      </div>
                     </div>
+                    
+                    <Badge 
+                      variant={isStalled ? "outline" : "destructive"} 
+                      className={cn(
+                        isStalled 
+                          ? "border-amber-500 text-amber-600" 
+                          : "animate-pulse"
+                      )}
+                    >
+                      <Radio className="h-3 w-3 mr-1" />
+                      {isStalled ? "Stalled?" : "Recording"}
+                    </Badge>
                   </div>
-                  <Badge variant="destructive" className="animate-pulse">
-                    <Radio className="h-3 w-3 mr-1" />
-                    Recording
-                  </Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
