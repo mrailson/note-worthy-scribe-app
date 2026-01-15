@@ -43,11 +43,38 @@ serve(async (req) => {
       year: 'numeric'
     });
 
+    // Build patient details block if available
+    let patientDetailsBlock = '';
+    if (consultationContext?.patientContext) {
+      const pc = consultationContext.patientContext;
+      const parts: string[] = [];
+      if (pc.name) parts.push(`**Patient Name:** ${pc.name}`);
+      if (pc.nhsNumber) parts.push(`**NHS Number:** ${pc.nhsNumber}`);
+      if (pc.dateOfBirth) parts.push(`**Date of Birth:** ${pc.dateOfBirth}`);
+      if (pc.address) parts.push(`**Address:** ${pc.address}`);
+      if (pc.gender) parts.push(`**Gender:** ${pc.gender}`);
+      // Format phone numbers
+      if (pc.phoneNumbers) {
+        const phone = pc.phoneNumbers.preferred 
+          ? pc.phoneNumbers[pc.phoneNumbers.preferred]
+          : pc.phoneNumbers.mobile || pc.phoneNumbers.home || '';
+        if (phone) parts.push(`**Contact Number:** ${phone}`);
+      }
+      if (parts.length > 0) {
+        patientDetailsBlock = '\n**Patient Details (from clinical system):**\n' + parts.join('\n');
+      }
+    }
+
     // Build context from consultation data
     const contextParts: string[] = [];
     
+    // Add patient details first if available
+    if (patientDetailsBlock) {
+      contextParts.push(patientDetailsBlock);
+    }
+    
     if (consultationContext?.consultationType) {
-      contextParts.push(`**Consultation Type:** ${consultationContext.consultationType}`);
+      contextParts.push(`\n**Consultation Type:** ${consultationContext.consultationType}`);
     }
     
     if (consultationContext?.soapNote) {
@@ -121,6 +148,14 @@ Ensure proper line spacing between the sign-off and signature details.`
 - Today's date is: ${formattedDate}
 - ALWAYS use today's date (${formattedDate}) for any letters or correspondence - never use any other date`;
 
+    // Build patient details instruction
+    const patientDetailsInstruction = consultationContext?.patientContext 
+      ? `
+- When patient details are provided above, use them in referral letters instead of placeholder text
+- NEVER use placeholder brackets like [NHS Number] or [Patient Name] when actual data is available
+- Include patient name, NHS number, date of birth, and address/phone if available in the letter header`
+      : '';
+
     const systemPrompt = `You are a clinical AI assistant helping UK NHS GPs review their consultations. You have access to the consultation transcript and SOAP notes.
 
 **Guidelines:**
@@ -131,7 +166,7 @@ Ensure proper line spacing between the sign-off and signature details.`
 - When suggesting referrals, use appropriate NHS pathways
 - Include relevant clinical reasoning
 - If asked about investigations, consider cost-effectiveness and availability in primary care
-- For safety netting, include specific red flag symptoms and timeframes
+- For safety netting, include specific red flag symptoms and timeframes${patientDetailsInstruction}
 ${signatureInstruction}
 
 **Consultation Context:**

@@ -48,9 +48,23 @@ interface Message {
   id?: string;
 }
 
+interface PatientContextForAI {
+  name?: string;
+  nhsNumber?: string;
+  dateOfBirth?: string;
+  address?: string;
+  phoneNumbers?: {
+    mobile?: string;
+    home?: string;
+    preferred?: 'mobile' | 'home';
+  };
+  gender?: string;
+}
+
 interface ConsultationAskAIProps {
   session: ScribeSession;
   soapNote?: SOAPNote;
+  patientContext?: PatientContextForAI;
 }
 
 const QUICK_PROMPTS = [
@@ -122,7 +136,7 @@ const CollapsibleUserRequest = ({ content }: { content: string }) => {
   );
 };
 
-export const ConsultationAskAI = ({ session, soapNote }: ConsultationAskAIProps) => {
+export const ConsultationAskAI = ({ session, soapNote, patientContext }: ConsultationAskAIProps) => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -220,6 +234,20 @@ Include:
   }, [messages]);
 
   const buildConsultationContext = () => {
+    // Build patient context from prop or session data
+    const patientDetails = patientContext ? {
+      name: patientContext.name,
+      nhsNumber: patientContext.nhsNumber,
+      dateOfBirth: patientContext.dateOfBirth,
+      address: patientContext.address,
+      phoneNumbers: patientContext.phoneNumbers,
+      gender: patientContext.gender
+    } : (session.patientName ? {
+      name: session.patientName,
+      nhsNumber: session.patientNhsNumber,
+      dateOfBirth: session.patientDob,
+    } : undefined);
+
     return {
       consultationType: session.consultationType,
       transcript: session.transcript || '',
@@ -229,6 +257,8 @@ Include:
         assessment: soapNote.A,
         plan: soapNote.P
       } : undefined,
+      // Include patient details for referral letters
+      patientContext: patientDetails,
       // Include practice and clinician context for professional signatures
       clinicianName: doctorName,
       letterSignature: letterSignature,
