@@ -25,6 +25,7 @@ interface QuickActionsPanelProps {
   onInsertIntoChat?: (message: string) => void;
   onQuickResponse?: (response: string) => void;
   onOpenDocumentTranslate?: () => void;
+  imageGenerationModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
 }
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
@@ -35,7 +36,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   onOpenAITestModal,
   onInsertIntoChat,
   onQuickResponse,
-  onOpenDocumentTranslate
+  onOpenDocumentTranslate,
+  imageGenerationModel = 'google/gemini-2.5-flash-image-preview'
 }) => {
   const navigate = useNavigate();
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -406,6 +408,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       <ImageStudioModal
         open={isImageStudioOpen}
         onOpenChange={setIsImageStudioOpen}
+        imageGenerationModel={imageGenerationModel}
       />
     </>
   );

@@ -24,6 +24,7 @@ interface FloatingQuickActionsProps {
   onOpenNews?: () => void;
   onOpenImageService?: () => void;
   onOpenQuickImageModal?: () => void;
+  imageGenerationModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
 }
 
 export const FloatingQuickActions: React.FC<FloatingQuickActionsProps> = ({
@@ -32,7 +33,8 @@ export const FloatingQuickActions: React.FC<FloatingQuickActionsProps> = ({
   onOpenAITestModal,
   onOpenNews,
   onOpenImageService,
-  onOpenQuickImageModal
+  onOpenQuickImageModal,
+  imageGenerationModel = 'google/gemini-2.5-flash-image-preview'
 }) => {
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
@@ -87,6 +89,7 @@ export const FloatingQuickActions: React.FC<FloatingQuickActionsProps> = ({
         selectedRole="gp"
         onOpenAITestModal={onOpenAITestModal}
         onInsertIntoChat={setInput}
+        imageGenerationModel={imageGenerationModel}
       />
     </div>
   );
@@ -148,6 +151,7 @@ export const FloatingQuickActions: React.FC<FloatingQuickActionsProps> = ({
                 selectedRole="gp"
                 onOpenAITestModal={onOpenAITestModal}
                 onInsertIntoChat={setInput}
+                imageGenerationModel={imageGenerationModel}
               />
             </div>
           </DrawerContent>
@@ -166,6 +170,7 @@ export const FloatingQuickActions: React.FC<FloatingQuickActionsProps> = ({
                 selectedRole="gp"
                 onOpenAITestModal={onOpenAITestModal}
                 onInsertIntoChat={setInput}
+                imageGenerationModel={imageGenerationModel}
               />
             </div>
           </DialogContent>

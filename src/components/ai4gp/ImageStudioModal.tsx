@@ -26,11 +26,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 interface ImageStudioModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  imageGenerationModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
 }
 
 export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   open,
   onOpenChange,
+  imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
 }) => {
   const {
     settings,
@@ -52,7 +54,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   } = useImageStudio();
 
   const handleGenerate = () => {
-    generateImage();
+    generateImage(imageGenerationModel);
   };
 
   const tabs = [

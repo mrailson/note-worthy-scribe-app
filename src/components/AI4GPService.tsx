@@ -999,6 +999,7 @@ const AI4GPService = () => {
               onInsertIntoChat={setInput}
               onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
               onOpenDocumentTranslate={() => setShowDocumentTranslate(true)}
+              imageGenerationModel={imageGenerationModel}
             />
           </div>
         </DialogContent>
@@ -1042,6 +1043,7 @@ const AI4GPService = () => {
       <ImageStudioModal
         open={showImageStudio}
         onOpenChange={setShowImageStudio}
+        imageGenerationModel={imageGenerationModel}
       />
 
       {/* Presentation Studio Modal */}
