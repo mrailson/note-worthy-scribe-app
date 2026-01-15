@@ -29,17 +29,17 @@ const DEFAULT_SETTINGS: ImageStudioSettings = {
   layoutPreference: 'portrait',
   
   // Branding & Logo
-  brandingLevel: 'name-contact',
+  brandingLevel: 'name-only',
   customBranding: {
     name: true,
     address: false,
-    phone: true,
+    phone: false,
     email: false,
     website: false,
     pcn: false,
   },
   logoPlacement: 'top-right',
-  includeLogo: true,
+  includeLogo: false,
   
   // Reference Images
   referenceImages: [],
