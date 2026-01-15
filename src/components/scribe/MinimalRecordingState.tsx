@@ -194,8 +194,8 @@ export const MinimalRecordingState = ({
           )}
         </div>
 
-        {/* Large timer */}
-        <div className="font-mono text-6xl sm:text-7xl font-bold tracking-tight mb-3">
+        {/* Timer */}
+        <div className="font-mono text-3xl sm:text-4xl font-semibold tracking-tight mb-3">
           {formatDuration(duration)}
         </div>
 
