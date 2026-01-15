@@ -130,23 +130,43 @@ export const PatientContextCapture = ({
         throw new Error(data.error || 'Failed to extract patient details');
       }
 
+      // Support both legacy (flat) and new (nested) edge function response shapes
+      const extracted = (data as any).extracted ?? data;
+
+      const nhsRaw = extracted?.nhsNumber ?? extracted?.nhs_number ?? '';
+      const nameRaw = extracted?.name ?? extracted?.patientName ?? extracted?.patient_name ?? '';
+      const dobRaw = extracted?.dob ?? extracted?.dateOfBirth ?? extracted?.date_of_birth ?? '';
+      const genderRaw = extracted?.gender ?? null;
+      const confidenceRaw = extracted?.confidence ?? 0;
+      const rawText = extracted?.rawText ?? extracted?.raw_text ?? '';
+
+      const nhsString = typeof nhsRaw === 'string' ? nhsRaw : String(nhsRaw ?? '');
+
       // Validate NHS number
-      const nhsValidation = validateNHSNumber(data.nhsNumber);
+      const nhsValidation = validateNHSNumber(nhsString);
       if (!nhsValidation.valid) {
         throw new Error(`NHS number validation failed: ${nhsValidation.error}`);
       }
 
+      const normaliseGender = (g: unknown): 'M' | 'F' | undefined => {
+        if (typeof g !== 'string') return undefined;
+        const t = g.trim().toLowerCase();
+        if (t === 'm' || t === 'male') return 'M';
+        if (t === 'f' || t === 'female') return 'F';
+        return undefined;
+      };
+
       // Create patient context
       const context: PatientContext = {
-        name: data.name,
-        nhsNumber: nhsValidation.formatted || formatNHSNumber(data.nhsNumber),
-        dateOfBirth: data.dob || '',
+        name: (typeof nameRaw === 'string' ? nameRaw : String(nameRaw ?? '')).trim() || 'Patient',
+        nhsNumber: nhsValidation.formatted || formatNHSNumber(nhsString),
+        dateOfBirth: typeof dobRaw === 'string' ? dobRaw : String(dobRaw ?? ''),
         extractedAt: new Date().toISOString(),
-        confidence: data.confidence,
-        rawExtract: data.rawText,
-        address: data.address || undefined,
-        phoneNumbers: data.phoneNumbers || undefined,
-        gender: data.gender || undefined
+        confidence: typeof confidenceRaw === 'number' ? confidenceRaw : Number(confidenceRaw ?? 0),
+        rawExtract: typeof rawText === 'string' ? rawText : String(rawText ?? ''),
+        address: extracted?.address || undefined,
+        phoneNumbers: extracted?.phoneNumbers || undefined,
+        gender: normaliseGender(genderRaw)
       };
 
       onPatientContextChange(context);
