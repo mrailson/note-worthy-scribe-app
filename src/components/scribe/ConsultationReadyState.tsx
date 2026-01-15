@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ConsultationTypeSelector } from "./ConsultationTypeSelector";
 import { PatientConsentBanner } from "./PatientConsentBanner";
 import { ScribeDevDisclaimer } from "./ScribeDevDisclaimer";
 import { PatientContextCapture } from "./PatientContextCapture";
 import { ConsultationType, ConsultationCategory, ScribeSettings, PatientContext } from "@/types/scribe";
-import { Mic, Settings2 } from "lucide-react";
+import { Mic, Info, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import scribeExplainer from "@/assets/scribe-explainer.png";
 
 interface ConsultationReadyStateProps {
   consultationType: ConsultationType;
@@ -36,6 +39,7 @@ export const ConsultationReadyState = ({
   onOpenSettings
 }: ConsultationReadyStateProps) => {
   const isMobile = useIsMobile();
+  const [showExplainer, setShowExplainer] = useState(false);
   
   const canStart = !settings.showConsentReminder || patientConsent;
 
@@ -46,11 +50,22 @@ export const ConsultationReadyState = ({
       
       <Card className="w-full max-w-xl">
         <CardContent className={`space-y-5 ${isMobile ? 'pt-4 px-3' : 'pt-6 space-y-6'}`}>
-          {/* Header */}
-          <div className="text-center space-y-2">
-            <h2 className={`font-semibold text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              Ready for Consultation
-            </h2>
+          {/* Header with Info Button */}
+          <div className="text-center space-y-2 relative">
+            <div className="flex items-center justify-center gap-2">
+              <h2 className={`font-semibold text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                Ready for Consultation
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10"
+                onClick={() => setShowExplainer(true)}
+                aria-label="Show patient explainer"
+              >
+                <Info className="h-4 w-4" />
+              </Button>
+            </div>
             <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
               Select consultation type and confirm consent to begin
             </p>
@@ -110,6 +125,28 @@ export const ConsultationReadyState = ({
           </ul>
         </div>
       )}
+
+      {/* Patient Explainer Modal */}
+      <Dialog open={showExplainer} onOpenChange={setShowExplainer}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] p-0 overflow-hidden">
+          <DialogTitle className="sr-only">How the Scribing Service Works</DialogTitle>
+          <div className="relative w-full h-full flex items-center justify-center bg-background p-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 z-10 h-8 w-8 rounded-full bg-background/80 hover:bg-background"
+              onClick={() => setShowExplainer(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <img 
+              src={scribeExplainer} 
+              alt="How the scribing service works - Real-time transcription helps the GP take notes, no recordings are kept, and the clinician verifies everything at the end"
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
