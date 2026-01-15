@@ -29,6 +29,7 @@ interface SessionHistoryRowProps {
   onDelete: () => void;
   onRefresh: () => void;
   isMobile?: boolean;
+  showPatientDetails?: boolean;
 }
 
 // Category icon mapping
@@ -47,6 +48,7 @@ export function SessionHistoryRow({
   onDelete,
   onRefresh,
   isMobile = false,
+  showPatientDetails = false,
 }: SessionHistoryRowProps) {
   const [isQuickPeekOpen, setIsQuickPeekOpen] = useState(false);
   const [isEditingHeadline, setIsEditingHeadline] = useState(false);
@@ -235,8 +237,22 @@ export function SessionHistoryRow({
               {wordCountCategory}
             </Badge>
             
-            {/* Patient (masked) */}
-            {session.patientName && (
+            {/* Patient Details - shown when toggle is on */}
+            {showPatientDetails && session.patientName && (
+              <div className="flex items-center gap-1.5 text-primary/80 bg-primary/5 px-2 py-0.5 rounded-md">
+                <User className="h-3 w-3" />
+                <span className="font-medium">{session.patientName}</span>
+                {session.patientDob && (
+                  <span className="text-muted-foreground">· DOB: {session.patientDob}</span>
+                )}
+                {session.patientNhsNumber && (
+                  <span className="text-muted-foreground">· NHS: {session.patientNhsNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')}</span>
+                )}
+              </div>
+            )}
+            
+            {/* Patient (masked) - shown when toggle is off */}
+            {!showPatientDetails && session.patientName && (
               <div className="flex items-center gap-1 text-primary/70">
                 <User className="h-3 w-3" />
                 <span className="font-medium">{maskPatientName(session.patientName)}</span>
