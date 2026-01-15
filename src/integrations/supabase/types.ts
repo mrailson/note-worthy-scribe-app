@@ -8673,6 +8673,23 @@ export type Database = {
           title: string
         }[]
       }
+      get_large_ai4gp_searches: {
+        Args: { min_size_mb?: number }
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          has_audio: boolean
+          has_presentation: boolean
+          id: string
+          is_flagged: boolean
+          is_protected: boolean
+          size_bytes: number
+          title: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_large_files: {
         Args: { min_size_bytes?: number }
         Returns: {
