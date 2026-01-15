@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Mic, MicOff, RefreshCw, Users, Phone, Video, CheckCircle2, AlertCircle, ChevronDown, Play, Square, MonitorSpeaker, Loader2 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Mic, MicOff, RefreshCw, Users, Phone, Video, CheckCircle2, AlertCircle, ChevronDown, Play, Square, MonitorSpeaker, Loader2, Volume2 } from "lucide-react";
 import { ConsultationType } from "@/types/scribe";
 import { cn } from "@/lib/utils";
-
 interface MicrophoneDevice {
   deviceId: string;
   label: string;
@@ -53,11 +53,13 @@ export const ScribeMicrophoneSettings = ({
   const [testStatus, setTestStatus] = useState<'idle' | 'connecting' | 'testing' | 'success' | 'error'>('idle');
   const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
   const [isPlayingBack, setIsPlayingBack] = useState(false);
+  const [micGain, setMicGain] = useState(100); // 0-200, 100 = normal
 
   // Refs for mic test
   const testStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const testTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTestingRef = useRef<boolean>(false);
@@ -161,6 +163,7 @@ export const ScribeMicrophoneSettings = ({
       audioContextRef.current = null;
     }
     analyserRef.current = null;
+    gainNodeRef.current = null;
   }, []);
 
   // Start microphone test
@@ -199,8 +202,13 @@ export const ScribeMicrophoneSettings = ({
       analyserRef.current.fftSize = 256;
       analyserRef.current.smoothingTimeConstant = 0.3;
       
+      // Create gain node for volume control
+      gainNodeRef.current = audioContextRef.current.createGain();
+      gainNodeRef.current.gain.value = micGain / 100;
+      
       const source = audioContextRef.current.createMediaStreamSource(testStreamRef.current);
-      source.connect(analyserRef.current);
+      source.connect(gainNodeRef.current);
+      gainNodeRef.current.connect(analyserRef.current);
       
       mediaRecorderRef.current = new MediaRecorder(testStreamRef.current, {
         mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
@@ -280,7 +288,14 @@ export const ScribeMicrophoneSettings = ({
       setIsTestingMic(false);
       setTestStatus('error');
     }
-  }, [cleanupTest, recordedAudioUrl, getCurrentMicrophoneId]);
+  }, [cleanupTest, recordedAudioUrl, getCurrentMicrophoneId, micGain]);
+
+  // Update gain in real-time when slider changes during test
+  useEffect(() => {
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = micGain / 100;
+    }
+  }, [micGain]);
 
   const stopMicTest = useCallback(() => {
     cleanupTest();
@@ -543,6 +558,30 @@ export const ScribeMicrophoneSettings = ({
                     </span>
                   </div>
                 )}
+              </div>
+
+              {/* Mic Gain/Volume Control */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Volume2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Input Gain</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-mono">{micGain}%</span>
+                </div>
+                <Slider
+                  value={[micGain]}
+                  onValueChange={(value) => setMicGain(value[0])}
+                  min={10}
+                  max={200}
+                  step={5}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Quieter</span>
+                  <span className={cn(micGain === 100 && "text-primary font-medium")}>Normal</span>
+                  <span>Louder</span>
+                </div>
               </div>
 
               {/* Input Level */}
