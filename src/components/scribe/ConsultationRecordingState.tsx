@@ -226,14 +226,14 @@ export const ConsultationRecordingState = ({
           {/* Microphone Selector */}
           {microphones.length > 0 && (
             <Select value={selectedMicId} onValueChange={setSelectedMicId}>
-              <SelectTrigger className="w-[180px] h-8 text-xs bg-background">
-                <Mic className="h-3 w-3 mr-1.5 text-muted-foreground" />
+              <SelectTrigger className="w-auto max-w-[300px] h-8 text-xs bg-background">
+                <Mic className="h-3 w-3 mr-1.5 text-muted-foreground shrink-0" />
                 <SelectValue placeholder="Select mic" />
               </SelectTrigger>
-              <SelectContent className="bg-background border shadow-lg z-50">
+              <SelectContent className="bg-background border shadow-lg z-50 max-w-[400px]">
                 {microphones.map((mic) => (
                   <SelectItem key={mic.deviceId} value={mic.deviceId} className="text-xs">
-                    {mic.label.length > 25 ? mic.label.substring(0, 25) + '...' : mic.label}
+                    {mic.label}
                   </SelectItem>
                 ))}
               </SelectContent>
