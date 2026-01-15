@@ -1720,7 +1720,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     brandingLevel: BrandingLevel,
     customBranding: CustomBrandingOptions,
     practiceContext: any,
-    includeLogo: boolean
+    includeLogo: boolean,
+    layout?: 'portrait' | 'landscape' | 'square' | 'circle',
+    editedDetails?: string[]
   ) => {
     if (!pendingImageRequest) {
       console.error('No pending image request');
@@ -1762,6 +1764,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           documentContent,
           imageAttachments,
           imageModel: imageGenerationModel,
+          layoutPreference: layout || 'portrait',
           practiceContext: {
             practiceName: practiceContext?.practiceName,
             pcnName: practiceContext?.pcnName,
@@ -1775,7 +1778,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             brandingLevel,
             customBranding,
             // Pass logo toggle state
-            includeLogo
+            includeLogo,
+            // Pass edited details (user-edited branding text)
+            editedDetails
           },
           requestType: imageDetection.requestType
         }
