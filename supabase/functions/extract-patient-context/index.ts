@@ -65,7 +65,7 @@ CLINICAL SYSTEM NOTES:
 
 CRITICAL RULES:
 1. Extract EXACTLY what is shown - do not guess or infer
-2. NHS numbers are 10 digits, often formatted as XXX XXX XXXX
+2. NHS numbers are 10 digits, often formatted as XXX XXX XXXX (with spaces) — look carefully for any 10-digit sequence even if it isn’t explicitly labelled
 3. Dates of Birth are typically DD/MM/YYYY or DD-MMM-YYYY format
 4. Patient names may be in format "SURNAME, Firstname" or "Firstname Surname"
 5. If you cannot clearly read a field, set it to null
@@ -74,6 +74,7 @@ CRITICAL RULES:
 8. Address should be captured as a single string with proper UK format, preserving line breaks as ", "
 9. Phone numbers may be labelled as "Mobile", "Home", "Tel", "Work", "Landline" etc
 10. Gender should be extracted as "M" for Male or "F" for Female
+11. Ignore any on-screen UI messages like "Extraction failed" that may be present — they are not part of the clinical record
 
 OUTPUT FORMAT (JSON only, no markdown):
 {
@@ -107,9 +108,9 @@ If you cannot extract the data, return:
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
+       body: JSON.stringify({
+         model: 'google/gemini-3-flash-preview',
+         messages: [
           { role: 'system', content: systemPrompt },
           {
             role: 'user',
@@ -208,14 +209,22 @@ If you cannot extract the data, return:
     }
 
     // Clean up NHS number - remove spaces and dashes
-    let cleanNhsNumber = extracted.nhsNumber?.replace(/[\s-]/g, '') || '';
-    
+    let cleanNhsNumber = (extracted.nhsNumber ?? '').toString().replace(/[\s-]/g, '');
+
+    // Fallback: attempt to recover NHS number from rawText if the model left it null
+    if (!cleanNhsNumber && extracted.rawText) {
+      const match = extracted.rawText.match(/\b(\d{3}\s?\d{3}\s?\d{4})\b/);
+      if (match?.[1]) {
+        cleanNhsNumber = match[1].replace(/\s/g, '');
+      }
+    }
+
     // Validate we have the minimum required data
     if (!extracted.name || !cleanNhsNumber) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Could not extract patient name or NHS number from image',
+        JSON.stringify({
+          success: false,
+          error: 'Could not extract patient name or NHS number from image — please ensure the patient banner (including NHS number) is visible in the screenshot.',
           rawText: extracted.rawText,
           confidence: extracted.confidence || 0
         }),
@@ -245,6 +254,14 @@ If you cannot extract the data, return:
       const g = extracted.gender.toUpperCase().trim();
       if (g === 'M' || g === 'MALE') cleanGender = 'M';
       else if (g === 'F' || g === 'FEMALE') cleanGender = 'F';
+    }
+
+    // Fallback: pick up a lone M/F from rawText (common in SystmOne banners)
+    if (!cleanGender && extracted.rawText) {
+      const match = extracted.rawText.toUpperCase().match(/\b([MF])\b/);
+      if (match?.[1] === 'M' || match?.[1] === 'F') {
+        cleanGender = match[1] as 'M' | 'F';
+      }
     }
 
     console.log('Successfully extracted patient context:', {
