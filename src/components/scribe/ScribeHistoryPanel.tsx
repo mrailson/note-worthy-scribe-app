@@ -152,7 +152,7 @@ export const ScribeHistoryPanel = ({
     if (settings.showNotMentioned) return text;
     
     // Pattern for "None mentioned", "None discussed", "None given", "None made", etc.
-    const notMentionedPatterns = /\b(none\s*mentioned|not\s*mentioned|none\s*discussed|none\s*given|none\s*made|none\s*required|n\/a|nil|not\s*applicable|no\s*significant|not\s*recorded|not\s*documented)\b/i;
+    const notMentionedPatterns = /\b(none\s*mentioned|not\s*mentioned|none\s*discussed|not\s*discussed|none\s*given|none\s*made|none\s*required|n\/a|nil|not\s*applicable|no\s*significant|not\s*recorded|not\s*documented)\b/i;
     
     // Pattern for lines with only a label and no content (e.g., "- Allergies:" or "Allergies:")
     const blankValuePattern = /^[-•]?\s*[\w\s\/]+:\s*$/;
@@ -673,6 +673,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         soapNote={currentSoapNote}
                         heidiNote={currentSession.heidiNote}
                         showNotMentioned={settings.showNotMentioned}
+                        onShowNotMentionedChange={handleShowNotMentionedChange}
                       />
                     )}
 

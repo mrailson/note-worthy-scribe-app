@@ -253,6 +253,7 @@ const Scribe = () => {
                   onExportWord={handleExportWord}
                   viewMode={consultation.viewMode}
                   onViewModeChange={consultation.setViewMode}
+                  onShowNotMentionedChange={(show) => consultation.updateSetting('showNotMentioned', show)}
                   isSaving={consultation.isSaving}
                   isSaved={consultation.isSaved}
                   transcript={consultation.transcript}
