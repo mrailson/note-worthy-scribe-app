@@ -546,7 +546,7 @@ export const PracticeUserManagement = () => {
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {user.meeting_notes_access && <Badge variant="outline" className="text-xs">Notes</Badge>}
-                            {user.gp_scribe_access && <Badge variant="outline" className="text-xs">GP Scribe</Badge>}
+                            {user.gp_scribe_access && <Badge variant="outline" className="text-xs">Scribe</Badge>}
                             {user.complaints_manager_access && <Badge variant="outline" className="text-xs">Complaints</Badge>}
                             {user.ai4gp_access && <Badge variant="outline" className="text-xs">AI4GP</Badge>}
                             {user.enhanced_access && <Badge variant="outline" className="text-xs">Enhanced</Badge>}

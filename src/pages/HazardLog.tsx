@@ -62,7 +62,7 @@ const HazardLog = () => {
             <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
               <p className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">Covered Systems (Initial Pilot):</p>
               <ul className="list-disc ml-6 space-y-1 text-sm text-blue-800 dark:text-blue-400">
-                <li>Meeting Manager (GP Scribe & Meeting Notes)</li>
+                <li>Meeting Manager (Scribe & Meeting Notes)</li>
                 <li>Complaint Management System</li>
               </ul>
               <p className="text-sm text-blue-700 dark:text-blue-500 mt-2 italic">Note: AI4GP Clinical Decision Support Service is out of scope for the initial pilot.</p>

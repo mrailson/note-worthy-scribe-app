@@ -4402,7 +4402,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <Input
                 value={newIncident.system_component}
                 onChange={(e) => setNewIncident({...newIncident, system_component: e.target.value})}
-                placeholder="e.g., GP Scribe, Complaints System"
+                placeholder="e.g., Scribe, Complaints System"
               />
             </div>
 
