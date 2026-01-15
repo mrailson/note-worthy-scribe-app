@@ -104,7 +104,7 @@ export const useScribeRecording = () => {
     });
   }, []);
 
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(async (selectedMicrophoneId?: string) => {
     try {
       setIsRecording(true);
       setIsPaused(false);
@@ -128,6 +128,7 @@ export const useScribeRecording = () => {
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
       console.log('🎯 Scribe device detection:', { isIOS, isChromium, isMobile });
+      console.log('🎤 Selected microphone ID:', selectedMicrophoneId || 'default');
 
       if (isIOS) {
         console.log('📱 Starting iPhone Whisper transcription for Scribe...');
@@ -149,7 +150,11 @@ export const useScribeRecording = () => {
           (status: string) => {
             setConnectionStatus(status);
           },
-          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } }
+          { 
+            transcriberService: 'whisper', 
+            transcriberThresholds: { whisper: 0.30, deepgram: 0.30 },
+            selectedDeviceId: selectedMicrophoneId
+          }
         );
         
         await iPhoneTranscriberRef.current.startTranscription();
@@ -173,7 +178,11 @@ export const useScribeRecording = () => {
           (status: string) => {
             setConnectionStatus(status);
           },
-          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } }
+          { 
+            transcriberService: 'whisper', 
+            transcriberThresholds: { whisper: 0.30, deepgram: 0.30 },
+            selectedDeviceId: selectedMicrophoneId
+          }
         );
         
         await desktopTranscriberRef.current.startTranscription();
