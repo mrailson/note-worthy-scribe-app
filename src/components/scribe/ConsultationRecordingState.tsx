@@ -164,6 +164,8 @@ export const ConsultationRecordingState = ({
         onFinish={onFinish}
         onExpandView={() => setShowMinimalView(false)}
         transcript={transcript}
+        selectedMicrophoneId={selectedMicId}
+        onMicrophoneChange={setSelectedMicId}
       />
     );
   }
