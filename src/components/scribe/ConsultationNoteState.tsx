@@ -278,7 +278,7 @@ export const ConsultationNoteState = ({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <ScrollArea className={isMobile ? 'h-[calc(100vh-400px)]' : 'max-h-[600px]'}>
+            <ScrollArea className={isMobile ? 'h-[calc(100vh-300px)]' : 'h-[calc(100vh-380px)] max-h-[800px]'}>
               <TranscriptDisplay transcript={transcript || ''} />
             </ScrollArea>
           </CardContent>
