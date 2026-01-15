@@ -8694,6 +8694,20 @@ export type Database = {
           total_large_files_size_pretty: string
         }[]
       }
+      get_largest_ai_chats: {
+        Args: { limit_count?: number }
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          is_flagged: boolean
+          is_protected: boolean
+          size_bytes: number
+          title: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_latest_meeting_note_version: {
         Args: { p_meeting_id: string; p_session_id: string; p_user_id: string }
         Returns: {
@@ -8761,6 +8775,19 @@ export type Database = {
           warning_alerts: number
         }[]
       }
+      get_old_ai_chats: {
+        Args: { days_old?: number }
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          is_protected: boolean
+          size_bytes: number
+          title: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_pcn_manager_practice_ids: {
         Args: { _user_id?: string }
         Returns: string[]
@@ -8824,6 +8851,22 @@ export type Database = {
         }[]
       }
       get_security_setting: { Args: { setting_name: string }; Returns: string }
+      get_storage_by_user: {
+        Args: never
+        Returns: {
+          ai_chats_count: number
+          ai_chats_size_bytes: number
+          email: string
+          full_name: string
+          meetings_count: number
+          oldest_ai_chat: string
+          oldest_meeting: string
+          total_size_bytes: number
+          transcript_chunks_count: number
+          transcript_size_bytes: number
+          user_id: string
+        }[]
+      }
       get_user_modules: {
         Args: { p_user_id?: string }
         Returns: {

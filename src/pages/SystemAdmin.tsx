@@ -67,6 +67,7 @@ import { MeetingUsageReport } from '@/components/admin/MeetingUsageReport';
 import { LiveAndRecentMeetings } from '@/components/admin/LiveAndRecentMeetings';
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
 import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
+import { StorageManagement } from '@/components/admin/StorageManagement';
 import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAccess';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
 
@@ -2302,6 +2303,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Storage Management - Detailed per-user storage analysis */}
+            <StorageManagement />
 
           </TabsContent>
 
