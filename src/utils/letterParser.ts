@@ -427,3 +427,71 @@ export const formatLetterForDisplay = (parsed: ParsedLetter): string => {
   
   return parts.join('\n');
 };
+
+/**
+ * Reconstructs markdown letter from edited parsed components
+ * Used to convert edited letter sections back to a single content string
+ */
+export const reconstructLetter = (parsed: ParsedLetter): string => {
+  const lines: string[] = [];
+  
+  // Recipient section (To:)
+  if (parsed.headerSection.toLines && parsed.headerSection.toLines.length > 0) {
+    lines.push('**To:**');
+    parsed.headerSection.toLines.forEach(line => lines.push(line));
+    lines.push('');
+  }
+  
+  // From section
+  if (parsed.headerSection.fromLines && parsed.headerSection.fromLines.length > 0) {
+    lines.push('**From:**');
+    parsed.headerSection.fromLines.forEach(line => lines.push(line));
+    lines.push('');
+  }
+  
+  // Date
+  if (parsed.date) {
+    lines.push(parsed.date);
+    lines.push('');
+  }
+  
+  // Subject
+  if (parsed.subject) {
+    lines.push(`**Re:** ${parsed.subject}`);
+    lines.push('');
+  }
+  
+  // Salutation
+  if (parsed.salutation) {
+    lines.push(`${parsed.salutation},`);
+    lines.push('');
+  }
+  
+  // Body paragraphs
+  parsed.bodyParagraphs.forEach(p => {
+    lines.push(p);
+    lines.push('');
+  });
+  
+  // Closing
+  if (parsed.closing) {
+    lines.push(parsed.closing);
+    lines.push('');
+  }
+  
+  // Signature block
+  if (parsed.signature.name) {
+    lines.push(parsed.signature.name);
+  }
+  if (parsed.signature.qualifications) {
+    lines.push(parsed.signature.qualifications);
+  }
+  if (parsed.signature.title) {
+    lines.push(parsed.signature.title);
+  }
+  if (parsed.signature.organisation) {
+    lines.push(parsed.signature.organisation);
+  }
+  
+  return lines.join('\n').trim();
+};

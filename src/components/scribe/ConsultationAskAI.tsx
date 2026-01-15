@@ -451,10 +451,21 @@ Include:
 
   // Handle expand single message (show in letter preview modal)
   const [expandedContent, setExpandedContent] = useState<string | null>(null);
+  const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null);
   
-  const handleExpandMessage = useCallback((content: string) => {
+  const handleExpandMessage = useCallback((content: string, messageId?: string) => {
     setExpandedContent(content);
+    setExpandedMessageId(messageId || null);
   }, []);
+
+  // Handle content change from letter preview modal
+  const handleLetterContentChange = useCallback(async (newContent: string) => {
+    if (expandedMessageId) {
+      // Update the message with edited content
+      await handleContentEdit(expandedMessageId, newContent);
+      setExpandedContent(newContent);
+    }
+  }, [expandedMessageId, handleContentEdit]);
 
   const handleClearChat = async () => {
     // If there's a current session, delete it from the database
@@ -670,7 +681,7 @@ Include:
                             onContentChange={(content) => handleContentEdit(msg.id || `msg-${idx}`, content)}
                             onDownload={handleDownloadMessage}
                             onEmail={handleEmailMessage}
-                            onExpand={handleExpandMessage}
+                            onExpand={(content, id) => handleExpandMessage(content, id)}
                             isSaving={isSaving}
                           />
                         )}
@@ -763,10 +774,15 @@ Include:
       {/* Letter Preview Modal */}
       <LetterPreviewModal
         open={!!expandedContent}
-        onOpenChange={() => setExpandedContent(null)}
+        onOpenChange={() => {
+          setExpandedContent(null);
+          setExpandedMessageId(null);
+        }}
         content={expandedContent || ''}
         onDownload={handleDownloadMessage}
         onEmail={handleEmailMessage}
+        onContentChange={handleLetterContentChange}
+        editable={true}
         practiceContext={{
           practiceName: practiceContext.practiceName,
           practiceAddress: practiceContext.practiceAddress,
