@@ -143,7 +143,9 @@ export const PatientContextCapture = ({
         dateOfBirth: data.dob || '',
         extractedAt: new Date().toISOString(),
         confidence: data.confidence,
-        rawExtract: data.rawText
+        rawExtract: data.rawText,
+        address: data.address || undefined,
+        phoneNumbers: data.phoneNumbers || undefined
       };
 
       onPatientContextChange(context);
@@ -269,6 +271,18 @@ export const PatientContextCapture = ({
                 {patientContext.dateOfBirth && (
                   <span>
                     <span className="font-medium">DOB:</span> {patientContext.dateOfBirth}
+                  </span>
+                )}
+                {patientContext.address && (
+                  <span className="basis-full text-xs opacity-75">
+                    📍 {patientContext.address}
+                  </span>
+                )}
+                {patientContext.phoneNumbers && (
+                  <span className="text-xs opacity-75">
+                    📞 {patientContext.phoneNumbers.preferred && patientContext.phoneNumbers[patientContext.phoneNumbers.preferred] 
+                      ? `${patientContext.phoneNumbers[patientContext.phoneNumbers.preferred]} (preferred)`
+                      : patientContext.phoneNumbers.mobile || patientContext.phoneNumbers.home || patientContext.phoneNumbers.work}
                   </span>
                 )}
               </div>

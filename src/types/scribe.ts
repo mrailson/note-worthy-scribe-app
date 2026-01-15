@@ -105,6 +105,14 @@ export interface PatientContext {
   extractedAt: string;    // ISO timestamp
   confidence?: number;    // AI confidence score (0-1)
   rawExtract?: string;    // Original text extracted for debugging
+  // Optional fields for letters/referrals
+  address?: string;       // Full postal address
+  phoneNumbers?: {
+    mobile?: string;
+    home?: string;
+    work?: string;
+    preferred?: 'mobile' | 'home' | 'work';  // Which number is marked as preferred
+  };
 }
 
 // Context file for consultation (blood results, screenshots, documents)
