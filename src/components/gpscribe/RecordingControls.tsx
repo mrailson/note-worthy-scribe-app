@@ -6,8 +6,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mic, RotateCcw, FileText, ChevronDown, ChevronRight, Upload, Settings } from "lucide-react";
+import { Mic, RotateCcw, FileText, ChevronDown, ChevronRight, Upload, Settings, Phone, Video, Users } from "lucide-react";
 import { useState, useEffect } from "react";
+import { ConsultationType } from "@/types/gpscribe";
 import { TranscriptImport } from "./TranscriptImport";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -27,12 +28,14 @@ interface RecordingControlsProps {
     confidence?: number;
     isFinal?: boolean;
   }>;
+  consultationType?: ConsultationType;
   onStartRecording: () => void;
   onStopRecording: () => void;
   onPauseRecording: () => void;
   onResumeRecording: () => void;
   onResetConsultation?: () => void;
   onImportTranscript?: (transcript: string) => void;
+  onConsultationTypeChange?: (type: ConsultationType) => void;
 }
 
 export const RecordingControls = ({
@@ -45,15 +48,16 @@ export const RecordingControls = ({
   formatDuration,
   transcript,
   realtimeTranscripts,
+  consultationType = "face-to-face",
   onStartRecording,
   onStopRecording,
   onPauseRecording,
   onResumeRecording,
   onResetConsultation,
-  onImportTranscript
+  onImportTranscript,
+  onConsultationTypeChange
 }: RecordingControlsProps) => {
   const isMobile = useIsMobile();
-  const [isTelephone, setIsTelephone] = useState(false);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
   const [isImportExpanded, setIsImportExpanded] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
@@ -174,25 +178,34 @@ export const RecordingControls = ({
                   <FileText className="h-4 w-4 text-primary" />
                   <Label className="text-sm font-medium">Consultation Type</Label>
                 </div>
-                <div className="flex items-center gap-4">
-                  <Label 
-                    htmlFor="consultation-type" 
-                    className={`text-sm font-medium transition-colors ${!isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
+                <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                  <Button
+                    variant={consultationType === 'face-to-face' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => onConsultationTypeChange?.('face-to-face')}
+                    className="gap-1.5"
                   >
-                    Face to Face
-                  </Label>
-                  <Switch
-                    id="consultation-type"
-                    checked={isTelephone}
-                    onCheckedChange={setIsTelephone}
-                    className="data-[state=checked]:bg-primary"
-                  />
-                  <Label 
-                    htmlFor="consultation-type" 
-                    className={`text-sm font-medium transition-colors ${isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
+                    <Users className="h-3.5 w-3.5" />
+                    F2F
+                  </Button>
+                  <Button
+                    variant={consultationType === 'telephone' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => onConsultationTypeChange?.('telephone')}
+                    className="gap-1.5"
                   >
-                    Telephone
-                  </Label>
+                    <Phone className="h-3.5 w-3.5" />
+                    Phone
+                  </Button>
+                  <Button
+                    variant={consultationType === 'video' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => onConsultationTypeChange?.('video')}
+                    className="gap-1.5"
+                  >
+                    <Video className="h-3.5 w-3.5" />
+                    Video
+                  </Button>
                 </div>
               </div>
             </CollapsibleContent>
@@ -204,25 +217,34 @@ export const RecordingControls = ({
               <FileText className="h-4 w-4 text-primary" />
               <Label className="text-sm font-medium">Consultation Type</Label>
             </div>
-            <div className="flex items-center gap-4">
-              <Label 
-                htmlFor="consultation-type" 
-                className={`text-sm font-medium transition-colors ${!isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+              <Button
+                variant={consultationType === 'face-to-face' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => onConsultationTypeChange?.('face-to-face')}
+                className="gap-1.5"
               >
+                <Users className="h-3.5 w-3.5" />
                 Face to Face
-              </Label>
-              <Switch
-                id="consultation-type"
-                checked={isTelephone}
-                onCheckedChange={setIsTelephone}
-                className="data-[state=checked]:bg-primary"
-              />
-              <Label 
-                htmlFor="consultation-type" 
-                className={`text-sm font-medium transition-colors ${isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
+              </Button>
+              <Button
+                variant={consultationType === 'telephone' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => onConsultationTypeChange?.('telephone')}
+                className="gap-1.5"
               >
+                <Phone className="h-3.5 w-3.5" />
                 Telephone
-              </Label>
+              </Button>
+              <Button
+                variant={consultationType === 'video' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => onConsultationTypeChange?.('video')}
+                className="gap-1.5"
+              >
+                <Video className="h-3.5 w-3.5" />
+                Video
+              </Button>
             </div>
           </div>
         )}

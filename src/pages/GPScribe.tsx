@@ -437,6 +437,8 @@ const Index = () => {
               formatDuration={recording.formatDuration}
               transcript={dualTranscription.state.primarySource === 'assembly' ? dualTranscription.state.assemblyTranscript : recording.transcript}
               realtimeTranscripts={recording.realtimeTranscripts}
+              consultationType={settings.consultationType}
+              onConsultationTypeChange={settings.setConsultationType}
               onStartRecording={() => {
                 // Use dual transcription if enabled, otherwise use main recording
                 if (dualTranscription.state.assemblyEnabled || dualTranscription.state.whisperEnabled) {
@@ -594,6 +596,9 @@ const Index = () => {
                 tickerEnabled={settings.tickerEnabled}
                 showTranscriptTimestamps={settings.showTranscriptTimestamps}
                 audioCaptureMode={settings.audioCaptureMode}
+                f2fMicrophoneId={settings.f2fMicrophoneId}
+                telephoneMicrophoneId={settings.telephoneMicrophoneId}
+                videoMicrophoneId={settings.videoMicrophoneId}
                 onConsultationTypeChange={settings.setConsultationType}
                 onOutputLevelChange={settings.setOutputLevel}
                 onShowSnomedCodesChange={settings.setShowSnomedCodes}
@@ -602,6 +607,9 @@ const Index = () => {
                 onTickerEnabledChange={settings.setTickerEnabled}
                 onShowTranscriptTimestampsChange={settings.setShowTranscriptTimestamps}
                 onMicrophoneChange={settings.handleMicrophoneChange}
+                onF2fMicrophoneChange={settings.handleF2fMicrophoneChange}
+                onTelephoneMicrophoneChange={settings.handleTelephoneMicrophoneChange}
+                onVideoMicrophoneChange={settings.handleVideoMicrophoneChange}
                 onAudioCaptureModeChange={settings.handleAudioCaptureModeChange}
                 onSaveSettings={settings.saveUserSettings}
                 onResetSettings={settings.resetSettings}
