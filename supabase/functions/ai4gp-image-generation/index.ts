@@ -27,7 +27,7 @@ interface ImageGenerationRequest {
     practiceEmail?: string;
     practiceWebsite?: string;
     logoUrl?: string;
-    // New branding options
+    // Legacy branding options (from practiceContext)
     brandingLevel?: 'none' | 'name-only' | 'name-contact' | 'full' | 'custom';
     customBranding?: {
       name?: boolean;
@@ -37,7 +37,7 @@ interface ImageGenerationRequest {
       website?: boolean;
       pcn?: boolean;
     };
-    includeLogo?: boolean;  // Whether to include practice logo
+    includeLogo?: boolean;
   };
   requestType?: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'leaflet' | 'newsletter' | 'social' | 'waiting-room' | 'form-header' | 'campaign' | 'general';
   includeBranding?: boolean;  // Option to include practice branding
@@ -64,6 +64,18 @@ interface ImageGenerationRequest {
     mode: 'style-reference' | 'edit-source' | 'update-previous';
     instructions?: string;
   }[];
+  
+  // Top-level branding settings (Studio requests send these at top level)
+  brandingLevel?: 'none' | 'name-only' | 'name-contact' | 'full' | 'custom';
+  customBranding?: {
+    name?: boolean;
+    address?: boolean;
+    phone?: boolean;
+    email?: boolean;
+    website?: boolean;
+    pcn?: boolean;
+  };
+  includeLogo?: boolean;
 }
 
 // Extract URL or text content from QR code request
@@ -139,12 +151,13 @@ MANDATORY SPELLING - COPY THESE EXACTLY:
 `;
 
 // Build practice branding section for prompts based on user's selected branding level
-function buildBrandingSection(practiceContext: ImageGenerationRequest['practiceContext'], requestType: string): string {
+function buildBrandingSection(practiceContext: ImageGenerationRequest['practiceContext'], requestType: string, requestBrandingLevel?: string, requestIncludeLogo?: boolean, requestCustomBranding?: ImageGenerationRequest['practiceContext']['customBranding']): string {
   if (!practiceContext) return '';
   
-  const brandingLevel = practiceContext.brandingLevel || 'full';
-  const customBranding = practiceContext.customBranding;
-  const includeLogo = practiceContext.includeLogo && practiceContext.logoUrl;
+  // Use branding settings from request body if provided (Studio requests), otherwise fall back to practiceContext
+  const brandingLevel = requestBrandingLevel || practiceContext.brandingLevel || 'full';
+  const customBranding = requestCustomBranding || practiceContext.customBranding;
+  const includeLogo = (requestIncludeLogo !== undefined ? requestIncludeLogo : practiceContext.includeLogo) && practiceContext.logoUrl;
   
   // If user chose 'none' and no logo, return empty string
   if (brandingLevel === 'none' && !includeLogo) {
@@ -303,7 +316,11 @@ serve(async (req) => {
       colourPalette,
       layoutPreference,
       logoPlacement,
-      referenceImages
+      referenceImages,
+      // Branding settings (may be at top level from Studio requests)
+      brandingLevel,
+      customBranding,
+      includeLogo
     } = requestBody;
 
     // Use selected model or default to Gemini 3 Pro Image (best quality)
@@ -342,7 +359,11 @@ CURRENT DATE: ${dateStr}
       practiceName: practiceContext?.practiceName || 'NOT PROVIDED',
       practicePhone: practiceContext?.practicePhone || 'NOT PROVIDED',
       stylePreset: stylePreset || 'default',
-      targetAudience: targetAudience || 'general'
+      targetAudience: targetAudience || 'general',
+      // Log branding settings
+      brandingLevel: brandingLevel || 'NOT SET',
+      includeLogo: includeLogo !== undefined ? includeLogo : 'NOT SET',
+      customBranding: customBranding || 'NOT SET'
     });
 
     // Handle QR code generation separately using the qrcode library
@@ -503,7 +524,7 @@ ${supportingContent.substring(0, 3000)}`;
         logoSection = `\nLOGO PLACEMENT: ${placements[logoPlacement] || placements['reserve-space']}`;
       }
       
-      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding);
       
       imagePrompt = `Create a professional ${typeDescriptions[effectiveRequestType] || 'image'}.
 
@@ -560,7 +581,7 @@ Content guidelines:
       const keywordReference = extractedKeywords.length > 0 
         ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
         : '';
-      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding);
       
       imagePrompt = `Create a professional single-page infographic that visualises the following content.
 
@@ -586,7 +607,7 @@ Content guidelines:
 - No explicit, offensive, or inappropriate imagery`;
     } else if (effectiveRequestType === 'infographic') {
       // Infographic without document content - use prompt directly
-      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding);
       
       imagePrompt = `Create a professional single-page infographic.
 
@@ -613,7 +634,7 @@ Content guidelines:
       const keywordReference = extractedKeywords.length > 0 
         ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
         : '';
-      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding);
 
       imagePrompt = `Create a professional ${typeDescriptions[requestType]} that visualises the following content.
 
@@ -641,7 +662,7 @@ Content guidelines:
 - No explicit, offensive, or inappropriate imagery`;
     } else if (effectiveRequestType === 'leaflet') {
       // Patient information leaflet
-      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding);
       const extractedKeywords = documentContent ? extractCleanKeywords(documentContent) : [];
       const keywordReference = extractedKeywords.length > 0 
         ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
@@ -672,7 +693,7 @@ Content guidelines:
 - Include clear action points or next steps if relevant`;
     } else if (effectiveRequestType === 'newsletter') {
       // Practice newsletter header/section
-      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding);
       
       imagePrompt = `Create a professional practice newsletter header or section.
 
@@ -695,7 +716,7 @@ Content guidelines:
 - Suitable for patients and staff alike`;
     } else if (effectiveRequestType === 'social') {
       // Social media post image
-      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding);
       
       imagePrompt = `Create a social media post image.
 
@@ -729,7 +750,7 @@ Content guidelines:
 - NO placeholder text - use the real practice details provided above`;
     } else if (effectiveRequestType === 'waiting-room') {
       // Waiting room display poster
-      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding);
       
       imagePrompt = `Create a waiting room display poster.
 
@@ -752,7 +773,7 @@ Content guidelines:
 - Clear, actionable information`;
     } else if (effectiveRequestType === 'form-header') {
       // Document header/letterhead
-      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding);
       
       imagePrompt = `Create a professional document header or letterhead.
 
@@ -775,7 +796,7 @@ Content guidelines:
 - Suitable for official correspondence and documents`;
     } else if (effectiveRequestType === 'campaign') {
       // Health campaign promotional material
-      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding);
       const extractedKeywords = documentContent ? extractCleanKeywords(documentContent) : [];
       const keywordReference = extractedKeywords.length > 0 
         ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
@@ -805,7 +826,7 @@ Content guidelines:
 - Include relevant booking or contact information`;
     } else {
       // Standard prompt for other request types without document content
-      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType);
+      const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding);
       
       imagePrompt = `${prompt}
 ${brandingSection}
