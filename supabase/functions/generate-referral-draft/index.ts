@@ -195,6 +195,7 @@ GMC Number: ${gpGmc}`;
     const patientInfo = patientContext ? `
 Patient Name: ${patientContext.name || '[[MISSING: Patient Name]]'}
 DOB: ${patientContext.dob || '[[MISSING: Date of Birth]]'}
+Sex: ${patientContext.gender === 'M' ? 'Male' : patientContext.gender === 'F' ? 'Female' : ''}
 NHS Number: ${patientContext.nhsNumber || '[[MISSING: NHS Number]]'}
 Address: ${patientContext.address || ''}
 Contact Number: ${patientPhone}` : `

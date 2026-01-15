@@ -19,6 +19,7 @@ interface ExtractionResult {
   dob?: string;
   address?: string;
   phoneNumbers?: PhoneNumbers;
+  gender?: string;
   confidence?: number;
   rawText?: string;
   error?: string;
@@ -56,7 +57,11 @@ serve(async (req) => {
 
     const systemPrompt = `You are an expert at extracting patient identification data from UK clinical system screenshots (EMIS Web, SystmOne, Vision).
 
-TASK: Extract the patient's Name, NHS Number, Date of Birth, Address, and Phone Numbers from the screenshot.
+TASK: Extract the patient's Name, NHS Number, Date of Birth, Gender, Address, and Phone Numbers from the screenshot.
+
+CLINICAL SYSTEM NOTES:
+- For SystmOne: Patient details (name, DOB, NHS number, gender) are typically in the TOP RIGHT section of the screen
+- Gender is usually displayed as "Male"/"Female" or abbreviated as "M"/"F"
 
 CRITICAL RULES:
 1. Extract EXACTLY what is shown - do not guess or infer
@@ -68,12 +73,14 @@ CRITICAL RULES:
 7. For phone numbers, extract all visible numbers and note which is marked as "preferred" or "(P)" or "(preferred)" or has a star
 8. Address should be captured as a single string with proper UK format, preserving line breaks as ", "
 9. Phone numbers may be labelled as "Mobile", "Home", "Tel", "Work", "Landline" etc
+10. Gender should be extracted as "M" for Male or "F" for Female
 
 OUTPUT FORMAT (JSON only, no markdown):
 {
   "name": "Full patient name as displayed",
   "nhsNumber": "10 digit NHS number, digits only",
   "dob": "Date of birth in DD/MM/YYYY format",
+  "gender": "M or F (extracted from Male/Female, M/F, or similar)",
   "address": "Full postal address if visible, or null",
   "phoneNumbers": {
     "mobile": "Mobile number if present, or null",
@@ -109,7 +116,7 @@ If you cannot extract the data, return:
             content: [
               {
                 type: 'text',
-                text: `Extract the patient identification details from this ${clinicalSystem || 'clinical system'} screenshot. Include address and phone numbers if visible. Return only valid JSON.`
+                text: `Extract the patient identification details from this ${clinicalSystem || 'clinical system'} screenshot. Include gender, address and phone numbers if visible. For SystmOne, patient details are typically in the top right area. Return only valid JSON.`
               },
               {
                 type: 'image_url',
@@ -232,10 +239,19 @@ If you cannot extract the data, return:
       }
     }
 
+    // Normalise gender to M/F
+    let cleanGender: 'M' | 'F' | undefined = undefined;
+    if (extracted.gender) {
+      const g = extracted.gender.toUpperCase().trim();
+      if (g === 'M' || g === 'MALE') cleanGender = 'M';
+      else if (g === 'F' || g === 'FEMALE') cleanGender = 'F';
+    }
+
     console.log('Successfully extracted patient context:', {
       name: extracted.name,
       nhsNumberLength: cleanNhsNumber.length,
       hasDob: !!extracted.dob,
+      hasGender: !!cleanGender,
       hasAddress: !!extracted.address,
       hasPhone: !!cleanPhoneNumbers,
       confidence: extracted.confidence
@@ -247,6 +263,7 @@ If you cannot extract the data, return:
         name: extracted.name,
         nhsNumber: cleanNhsNumber,
         dob: extracted.dob || '',
+        gender: cleanGender,
         address: extracted.address || '',
         phoneNumbers: cleanPhoneNumbers,
         confidence: extracted.confidence || 0.8,
