@@ -823,23 +823,32 @@ Content guidelines:
 
       console.log('🎨 Using OpenAI gpt-image-1 API...');
       
-      // Determine optimal size based on request type
+      // Determine optimal size based on layout preference (explicit user choice) or request type
       // Portrait (1024x1536): leaflets, posters, newsletters, form-headers - tall content
-      // Landscape (1536x1024): social media, waiting-room displays, calendars - wide content
+      // Landscape (1536x1024): social media, waiting-room displays, calendars, banners - wide content
       // Square (1024x1024): logos, charts, diagrams, infographics, general
       const portraitTypes = ['leaflet', 'poster', 'newsletter', 'form-header'];
       const landscapeTypes = ['social', 'waiting-room', 'calendar', 'campaign', 'banner'];
       
       let imageSize = '1024x1024'; // Default square
-      if (layoutPreference === 'portrait' || portraitTypes.includes(effectiveRequestType)) {
+      
+      // PRIORITY: User's explicit layoutPreference from Image Studio takes precedence
+      if (layoutPreference) {
+        if (layoutPreference === 'landscape') {
+          imageSize = '1536x1024'; // Landscape
+        } else if (layoutPreference === 'portrait') {
+          imageSize = '1024x1536'; // Portrait
+        } else if (layoutPreference === 'square') {
+          imageSize = '1024x1024'; // Square
+        }
+      } else if (portraitTypes.includes(effectiveRequestType)) {
+        // Fall back to type-based defaults only if no explicit preference
         imageSize = '1024x1536'; // Portrait for documents/leaflets
-      } else if (layoutPreference === 'landscape' || landscapeTypes.includes(effectiveRequestType)) {
+      } else if (landscapeTypes.includes(effectiveRequestType)) {
         imageSize = '1536x1024'; // Landscape for displays/social
-      } else if (layoutPreference === 'square') {
-        imageSize = '1024x1024';
       }
       
-      console.log(`📐 Using size ${imageSize} for request type: ${effectiveRequestType}`);
+      console.log(`📐 Using size ${imageSize} for request type: ${effectiveRequestType}, layoutPreference: ${layoutPreference || 'not set'}`);
       
       const openaiResponse = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
