@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ConsultationType, AudioCaptureMode } from "@/types/gpscribe";
 import { OUTPUT_LEVELS } from "@/constants/consultationSettings";
 import { Save, RotateCcw, Mic, Monitor, AlertCircle } from "lucide-react";
-import { MicrophoneSettings } from "./MicrophoneSettings";
+import { ConsultationMicrophoneSettings } from "./ConsultationMicrophoneSettings";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -20,6 +20,9 @@ interface SettingsPanelProps {
   tickerEnabled: boolean;
   showTranscriptTimestamps: boolean;
   audioCaptureMode?: AudioCaptureMode;
+  f2fMicrophoneId?: string | null;
+  telephoneMicrophoneId?: string | null;
+  videoMicrophoneId?: string | null;
   onConsultationTypeChange: (type: ConsultationType) => void;
   onOutputLevelChange: (level: number) => void;
   onShowSnomedCodesChange: (show: boolean) => void;
@@ -28,6 +31,9 @@ interface SettingsPanelProps {
   onTickerEnabledChange: (enabled: boolean) => void;
   onShowTranscriptTimestampsChange: (show: boolean) => void;
   onMicrophoneChange?: (deviceId: string | null) => void;
+  onF2fMicrophoneChange?: (deviceId: string | null) => void;
+  onTelephoneMicrophoneChange?: (deviceId: string | null) => void;
+  onVideoMicrophoneChange?: (deviceId: string | null) => void;
   onAudioCaptureModeChange?: (mode: AudioCaptureMode) => void;
   onSaveSettings: () => void;
   onResetSettings: () => void;
@@ -42,6 +48,9 @@ export const SettingsPanel = ({
   tickerEnabled,
   showTranscriptTimestamps,
   audioCaptureMode = "mic-only",
+  f2fMicrophoneId = null,
+  telephoneMicrophoneId = null,
+  videoMicrophoneId = null,
   onConsultationTypeChange,
   onOutputLevelChange,
   onShowSnomedCodesChange,
@@ -50,6 +59,9 @@ export const SettingsPanel = ({
   onTickerEnabledChange,
   onShowTranscriptTimestampsChange,
   onMicrophoneChange,
+  onF2fMicrophoneChange,
+  onTelephoneMicrophoneChange,
+  onVideoMicrophoneChange,
   onAudioCaptureModeChange,
   onSaveSettings,
   onResetSettings
@@ -60,10 +72,18 @@ export const SettingsPanel = ({
   const supportsSystemAudio = isChromium;
   return (
     <div className="space-y-6">
-      {/* Microphone Settings - Most important for troubleshooting */}
-      <MicrophoneSettings onDeviceChange={onMicrophoneChange} />
+      {/* Microphone Settings - Per Consultation Type */}
+      <ConsultationMicrophoneSettings
+        currentConsultationType={consultationType}
+        f2fMicrophoneId={f2fMicrophoneId}
+        telephoneMicrophoneId={telephoneMicrophoneId}
+        videoMicrophoneId={videoMicrophoneId}
+        onF2FMicrophoneChange={onF2fMicrophoneChange || (() => {})}
+        onTelephoneMicrophoneChange={onTelephoneMicrophoneChange || (() => {})}
+        onVideoMicrophoneChange={onVideoMicrophoneChange || (() => {})}
+      />
       
-      {/* Audio Source Settings - For telephone consultations */}
+      {/* Audio Source Settings - For telephone/video consultations */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -105,7 +125,7 @@ export const SettingsPanel = ({
                 <Label htmlFor="mic-browser" className="flex items-center gap-2 cursor-pointer font-medium">
                   <Monitor className="h-4 w-4" />
                   Microphone + Browser Audio
-                  <Badge variant="outline" className="text-xs">Telephone</Badge>
+                  <Badge variant="outline" className="text-xs">Telephone/Video</Badge>
                 </Label>
                 <p className="text-sm text-muted-foreground mt-1">
                   For telephone/video consultations via browser. Captures your voice AND the patient's voice from your computer.
@@ -144,7 +164,7 @@ export const SettingsPanel = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Consultation Type</label>
+            <label className="text-sm font-medium">Default Consultation Type</label>
             <Select
               value={consultationType}
               onValueChange={(value: ConsultationType) => onConsultationTypeChange(value)}
@@ -155,6 +175,7 @@ export const SettingsPanel = ({
               <SelectContent>
                 <SelectItem value="face-to-face">Face-to-Face</SelectItem>
                 <SelectItem value="telephone">Telephone</SelectItem>
+                <SelectItem value="video">Video</SelectItem>
               </SelectContent>
             </Select>
           </div>
