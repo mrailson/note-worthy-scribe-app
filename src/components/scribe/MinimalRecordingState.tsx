@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ConsultationType } from "@/types/scribe";
-import { Pause, Play, Square, Maximize2, ChevronDown, ChevronUp, Mic, Loader2 } from "lucide-react";
+import { Pause, Play, Square, Maximize2, ChevronDown, ChevronUp, Mic, Loader2, LayoutList } from "lucide-react";
 import { AudioWaveform } from "./AudioWaveform";
 
 interface MicrophoneDevice {
@@ -72,15 +72,16 @@ export const MinimalRecordingState = ({
 
   return (
     <div className="flex flex-col items-center justify-center h-[calc(100vh-180px)] px-4 relative">
-      {/* Expand button in corner */}
+      {/* Switch to Full View button in corner */}
       <div className="absolute top-4 right-4">
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           onClick={onExpandView}
-          className="text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground gap-2"
         >
-          <Maximize2 className="h-4 w-4" />
+          <LayoutList className="h-4 w-4" />
+          <span className="hidden sm:inline">Full View</span>
         </Button>
       </div>
 

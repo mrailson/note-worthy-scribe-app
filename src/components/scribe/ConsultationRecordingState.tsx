@@ -10,7 +10,7 @@ import { SoFarReviewPanel } from "./SoFarReviewPanel";
 import { ContextUploadPanel } from "./ContextUploadPanel";
 import { MinimalRecordingState } from "./MinimalRecordingState";
 import { AudioWaveform } from "./AudioWaveform";
-import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip, Loader2 } from "lucide-react";
+import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip, Loader2, Minimize2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
@@ -248,6 +248,17 @@ export const ConsultationRecordingState = ({
           <span className="text-sm text-muted-foreground">
             • {wordCount} words
           </span>
+          
+          {/* Minimal View Toggle */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowMinimalView(true)}
+            className="h-8 gap-1.5 text-xs"
+          >
+            <Minimize2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Minimal View</span>
+          </Button>
         </div>
       </div>
 
