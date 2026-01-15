@@ -1031,6 +1031,20 @@ Content guidelines:
       textContent = data.choices?.[0]?.message?.content || '';
       imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
+      // Check for content moderation blocks
+      const choiceError = data.choices?.[0]?.error;
+      if (choiceError?.message === 'PROHIBITED_CONTENT' || choiceError?.code === 502) {
+        console.error('Content moderation block:', JSON.stringify(choiceError));
+        return new Response(JSON.stringify({
+          error: 'Content moderation: This image request was blocked by the AI safety system. Medical and health-related imagery can sometimes trigger content filters. Try simplifying your request, removing reference images, or using more general descriptive terms.',
+          code: 'CONTENT_MODERATION',
+          success: false
+        }), { 
+          status: 422, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+
       if (!imageUrl) {
         console.error('No image in response:', JSON.stringify(data).substring(0, 500));
         throw new Error('No image was generated. Please try rephrasing your request.');
