@@ -36,7 +36,7 @@ interface EditableAIResponseProps {
   onContentChange: (content: string) => void;
   onDownload?: (content: string) => void;
   onEmail?: (content: string) => void;
-  onExpand?: (content: string) => void;
+  onExpand?: (content: string, messageId?: string) => void;
   isSaving?: boolean;
   className?: string;
   messageId: string;
@@ -504,7 +504,7 @@ export function EditableAIResponse({
                 className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onExpand(displayContent);
+                  onExpand(displayContent, messageId);
                 }}
                 title="View full screen"
               >
