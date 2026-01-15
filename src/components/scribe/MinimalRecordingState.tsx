@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ConsultationType } from "@/types/scribe";
 import { Pause, Play, Square, Maximize2, ChevronDown, ChevronUp, Mic } from "lucide-react";
+import { AudioWaveform } from "./AudioWaveform";
 
 interface MicrophoneDevice {
   deviceId: string;
@@ -105,8 +106,8 @@ export const MinimalRecordingState = ({
 
       {/* Main content - centered */}
       <div className="flex flex-col items-center justify-center flex-1 -mt-16">
-        {/* Recording indicator */}
-        <div className="flex items-center gap-2 mb-8">
+        {/* Recording indicator with audio waveform */}
+        <div className="flex items-center gap-3 mb-8">
           <div className={`
             w-3 h-3 rounded-full 
             ${isPaused 
@@ -117,6 +118,13 @@ export const MinimalRecordingState = ({
           <span className="text-sm text-muted-foreground">
             {isPaused ? 'Paused' : 'Recording'}
           </span>
+          {!isPaused && (
+            <AudioWaveform 
+              deviceId={selectedMicrophoneId} 
+              isActive={!isPaused}
+              barCount={5}
+            />
+          )}
         </div>
 
         {/* Large timer */}
