@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Mic, RefreshCw, Users, Phone, Video, CheckCircle2, AlertCircle, ChevronDown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Mic, MicOff, RefreshCw, Users, Phone, Video, CheckCircle2, AlertCircle, ChevronDown, Play, Square, MonitorSpeaker, Loader2 } from "lucide-react";
 import { ConsultationType } from "@/types/scribe";
+import { cn } from "@/lib/utils";
 
 interface MicrophoneDevice {
   deviceId: string;
@@ -21,7 +24,11 @@ interface ScribeMicrophoneSettingsProps {
   onF2FMicrophoneChange: (deviceId: string | null) => void;
   onTelephoneMicrophoneChange: (deviceId: string | null) => void;
   onVideoMicrophoneChange: (deviceId: string | null) => void;
+  systemAudioEnabled?: boolean;
+  onSystemAudioChange?: (enabled: boolean) => void;
 }
+
+const WAVEFORM_BARS = 32;
 
 export const ScribeMicrophoneSettings = ({
   currentConsultationType,
@@ -31,16 +38,37 @@ export const ScribeMicrophoneSettings = ({
   onF2FMicrophoneChange,
   onTelephoneMicrophoneChange,
   onVideoMicrophoneChange,
+  systemAudioEnabled = false,
+  onSystemAudioChange,
 }: ScribeMicrophoneSettingsProps) => {
   const [availableDevices, setAvailableDevices] = useState<MicrophoneDevice[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied'>('unknown');
   const [isOpen, setIsOpen] = useState(false);
 
+  // Mic test state
+  const [isTestingMic, setIsTestingMic] = useState(false);
+  const [testVolume, setTestVolume] = useState(0);
+  const [waveformData, setWaveformData] = useState<number[]>(new Array(WAVEFORM_BARS).fill(0));
+  const [testStatus, setTestStatus] = useState<'idle' | 'connecting' | 'testing' | 'success' | 'error'>('idle');
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [isPlayingBack, setIsPlayingBack] = useState(false);
+
+  // Refs for mic test
+  const testStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const testTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isTestingRef = useRef<boolean>(false);
+  const maxVolumeRef = useRef<number>(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+
   const enumerateDevices = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Request permission first to get device labels
       const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       tempStream.getTracks().forEach(track => track.stop());
       
@@ -51,7 +79,6 @@ export const ScribeMicrophoneSettings = ({
         .filter(device => device.kind === 'audioinput')
         .map((device, index) => {
           let label = device.label || `Microphone ${index + 1}`;
-          // Remove USB vendor:product IDs like (0c76:0063)
           label = label.replace(/\s*\([0-9a-fA-F]{4}:[0-9a-fA-F]{4}\)\s*/g, '').trim();
           
           return {
@@ -82,6 +109,7 @@ export const ScribeMicrophoneSettings = ({
     navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
     return () => {
       navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+      cleanupTest();
     };
   }, [enumerateDevices]);
 
@@ -97,6 +125,207 @@ export const ScribeMicrophoneSettings = ({
       case 'telephone': return 'Telephone';
       case 'video': return 'Video';
       default: return currentConsultationType;
+    }
+  };
+
+  const getCurrentMicrophoneId = () => {
+    switch (currentConsultationType) {
+      case 'f2f': return f2fMicrophoneId;
+      case 'telephone': return telephoneMicrophoneId;
+      case 'video': return videoMicrophoneId;
+      default: return null;
+    }
+  };
+
+  // Cleanup mic test resources
+  const cleanupTest = useCallback(() => {
+    isTestingRef.current = false;
+    
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (testTimeoutRef.current) {
+      clearTimeout(testTimeoutRef.current);
+      testTimeoutRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (testStreamRef.current) {
+      testStreamRef.current.getTracks().forEach(track => track.stop());
+      testStreamRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+  }, []);
+
+  // Start microphone test
+  const startMicTest = useCallback(async () => {
+    cleanupTest();
+    maxVolumeRef.current = 0;
+    isTestingRef.current = true;
+    audioChunksRef.current = [];
+    
+    if (recordedAudioUrl) {
+      URL.revokeObjectURL(recordedAudioUrl);
+    }
+    
+    setIsTestingMic(true);
+    setTestStatus('connecting');
+    setTestVolume(0);
+    setWaveformData(new Array(WAVEFORM_BARS).fill(0));
+    setRecordedAudioUrl(null);
+    setIsPlayingBack(false);
+
+    try {
+      const deviceId = getCurrentMicrophoneId();
+      
+      const constraints: MediaStreamConstraints = {
+        audio: deviceId ? { deviceId: { exact: deviceId } } : true,
+      };
+
+      testStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      audioContextRef.current = new AudioContext();
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+      
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      analyserRef.current.fftSize = 256;
+      analyserRef.current.smoothingTimeConstant = 0.3;
+      
+      const source = audioContextRef.current.createMediaStreamSource(testStreamRef.current);
+      source.connect(analyserRef.current);
+      
+      mediaRecorderRef.current = new MediaRecorder(testStreamRef.current, {
+        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+      });
+      
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorderRef.current.start();
+      setTestStatus('testing');
+
+      const frequencyData = new Uint8Array(analyserRef.current.frequencyBinCount);
+      const timeDomainData = new Uint8Array(analyserRef.current.frequencyBinCount);
+
+      const updateVolume = () => {
+        if (!isTestingRef.current || !analyserRef.current) return;
+
+        analyserRef.current.getByteFrequencyData(frequencyData);
+        analyserRef.current.getByteTimeDomainData(timeDomainData);
+        
+        let sum = 0;
+        for (let i = 0; i < timeDomainData.length; i++) {
+          const normalized = (timeDomainData[i] - 128) / 128;
+          sum += normalized * normalized;
+        }
+        const rms = Math.sqrt(sum / timeDomainData.length);
+        const volumePercent = Math.min(100, Math.round(rms * 400));
+        
+        maxVolumeRef.current = Math.max(maxVolumeRef.current, volumePercent);
+
+        const waveform: number[] = [];
+        const binsPerBar = Math.floor(frequencyData.length / WAVEFORM_BARS);
+        for (let i = 0; i < WAVEFORM_BARS; i++) {
+          let barSum = 0;
+          for (let j = 0; j < binsPerBar; j++) {
+            barSum += frequencyData[i * binsPerBar + j];
+          }
+          const barAvg = barSum / binsPerBar;
+          waveform.push(Math.round((barAvg / 255) * 100));
+        }
+
+        setTestVolume(volumePercent);
+        setWaveformData(waveform);
+
+        animationFrameRef.current = requestAnimationFrame(updateVolume);
+      };
+
+      animationFrameRef.current = requestAnimationFrame(updateVolume);
+
+      testTimeoutRef.current = setTimeout(() => {
+        const maxVolume = maxVolumeRef.current;
+        
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+          mediaRecorderRef.current.onstop = () => {
+            const audioBlob = new Blob(audioChunksRef.current, { 
+              type: mediaRecorderRef.current?.mimeType || 'audio/webm' 
+            });
+            const audioUrl = URL.createObjectURL(audioBlob);
+            setRecordedAudioUrl(audioUrl);
+          };
+          mediaRecorderRef.current.stop();
+        }
+        
+        cleanupTest();
+        setIsTestingMic(false);
+        setTestStatus(maxVolume > 3 ? 'success' : 'error');
+        setTestVolume(0);
+        setWaveformData(new Array(WAVEFORM_BARS).fill(0));
+      }, 5000);
+
+    } catch (error: any) {
+      console.error('Failed to start mic test:', error);
+      cleanupTest();
+      setIsTestingMic(false);
+      setTestStatus('error');
+    }
+  }, [cleanupTest, recordedAudioUrl, getCurrentMicrophoneId]);
+
+  const stopMicTest = useCallback(() => {
+    cleanupTest();
+    setIsTestingMic(false);
+    setTestStatus('idle');
+    setTestVolume(0);
+    setWaveformData(new Array(WAVEFORM_BARS).fill(0));
+  }, [cleanupTest]);
+
+  const playRecordedAudio = useCallback(() => {
+    if (!recordedAudioUrl) return;
+    
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+    }
+    
+    audioElementRef.current = new Audio(recordedAudioUrl);
+    audioElementRef.current.onplay = () => setIsPlayingBack(true);
+    audioElementRef.current.onended = () => setIsPlayingBack(false);
+    audioElementRef.current.onpause = () => setIsPlayingBack(false);
+    audioElementRef.current.play();
+  }, [recordedAudioUrl]);
+
+  const stopPlayback = useCallback(() => {
+    if (audioElementRef.current) {
+      audioElementRef.current.pause();
+      audioElementRef.current.currentTime = 0;
+    }
+    setIsPlayingBack(false);
+  }, []);
+
+  const getVolumeBarColor = () => {
+    if (testVolume > 70) return 'bg-red-500';
+    if (testVolume > 40) return 'bg-green-500';
+    if (testVolume > 10) return 'bg-primary';
+    return 'bg-primary/50';
+  };
+
+  const getStatusText = () => {
+    switch (testStatus) {
+      case 'connecting': return 'Connecting...';
+      case 'testing': return 'Speak now...';
+      case 'success': return 'Microphone working!';
+      case 'error': return 'No audio detected';
+      default: return 'Ready to test';
     }
   };
 
@@ -126,7 +355,6 @@ export const ScribeMicrophoneSettings = ({
       description: 'For video consultations',
     },
   ];
-
   if (permissionStatus === 'denied') {
     return (
       <Card className="border-destructive">
@@ -240,6 +468,148 @@ export const ScribeMicrophoneSettings = ({
                   </div>
                 );
               })}
+            </div>
+
+            {/* System Audio Option for Telephone/Video */}
+            {(currentConsultationType === 'telephone' || currentConsultationType === 'video') && onSystemAudioChange && (
+              <div className="p-3 rounded-lg border border-border bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-muted">
+                      <MonitorSpeaker className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <Label htmlFor="system-audio" className="font-medium text-sm cursor-pointer">
+                        Capture System Audio
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Record audio from phone software (e.g., AccuRx, eConsult)
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="system-audio"
+                    checked={systemAudioEnabled}
+                    onCheckedChange={onSystemAudioChange}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Microphone Test Section */}
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Test Microphone</span>
+                <span className={cn(
+                  "text-xs",
+                  testStatus === 'success' && 'text-green-600 dark:text-green-400',
+                  testStatus === 'error' && 'text-destructive',
+                  testStatus === 'testing' && 'text-primary',
+                  (testStatus === 'idle' || testStatus === 'connecting') && 'text-muted-foreground'
+                )}>
+                  {getStatusText()}
+                </span>
+              </div>
+
+              {/* Waveform Visualiser */}
+              <div className="relative h-16 bg-muted/50 rounded-lg overflow-hidden border border-border">
+                <div className="absolute inset-0 flex items-center justify-center gap-[2px] px-2">
+                  {waveformData.map((value, index) => (
+                    <div
+                      key={index}
+                      className={cn(
+                        "w-full rounded-full transition-all duration-75",
+                        isTestingMic 
+                          ? value > 50 
+                            ? "bg-green-500" 
+                            : value > 20 
+                              ? "bg-primary" 
+                              : "bg-primary/50"
+                          : "bg-muted-foreground/20"
+                      )}
+                      style={{
+                        height: isTestingMic 
+                          ? `${Math.max(4, value * 0.6)}%` 
+                          : '4%',
+                        minHeight: '2px',
+                      }}
+                    />
+                  ))}
+                </div>
+                {!isTestingMic && testStatus === 'idle' && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground">
+                      Click "Test Microphone" to see waveform
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Input Level */}
+              <div className="space-y-1">
+                <div className="relative h-3 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full transition-all duration-75 rounded-full",
+                      isTestingMic ? getVolumeBarColor() : 'bg-muted-foreground/30'
+                    )}
+                    style={{ width: `${testVolume}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Low</span>
+                  <span>High</span>
+                </div>
+              </div>
+
+              {/* Test Controls */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  variant={isTestingMic ? "destructive" : "secondary"}
+                  size="sm"
+                  onClick={isTestingMic ? stopMicTest : startMicTest}
+                  disabled={testStatus === 'connecting'}
+                  className="gap-2"
+                >
+                  {testStatus === 'connecting' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : isTestingMic ? (
+                    <>
+                      <MicOff className="h-4 w-4" />
+                      Stop Test
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="h-4 w-4" />
+                      Test Microphone
+                    </>
+                  )}
+                </Button>
+                
+                {recordedAudioUrl && testStatus === 'success' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={isPlayingBack ? stopPlayback : playRecordedAudio}
+                    className="gap-2"
+                  >
+                    {isPlayingBack ? (
+                      <>
+                        <Square className="h-4 w-4" />
+                        Stop
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4" />
+                        Play Recording
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
 
             {availableDevices.length === 0 && !isLoading && (

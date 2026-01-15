@@ -151,6 +151,7 @@ export interface ScribeSettings {
   f2fMicrophoneId?: string | null;
   telephoneMicrophoneId?: string | null;
   videoMicrophoneId?: string | null;
+  systemAudioEnabled?: boolean; // Capture system audio for telephone/video software
 }
 
 export interface ScribeTranscriptData {
