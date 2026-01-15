@@ -34,6 +34,8 @@ CRITICAL RULES:
 5. Extract any visible allergies or alerts
 6. If you see a number that looks like an NHS number (10 digits, possibly with spaces), ALWAYS include it
 7. IGNORE any error messages, buttons, or UI elements that say things like "extraction failed" or "could not extract" - these are from the application, not the patient record
+8. Extract the FULL HOME ADDRESS if visible - look for address fields, typically in the patient demographics panel or summary. Include house number, street, town/city, county, and postcode.
+9. Extract PHONE NUMBERS - look for "Mobile", "Home", "Tel", "Phone" or "Contact" fields. In SystmOne, these appear in the patient demographics. Note which is the preferred/primary contact if indicated.
 
 Return a JSON object with these fields:
 {
@@ -41,19 +43,27 @@ Return a JSON object with these fields:
   "nhsNumber": "string (10 digits, no spaces) or null", 
   "dateOfBirth": "DD/MM/YYYY format or null",
   "gender": "Male/Female or null",
+  "address": "full address including postcode or null",
+  "phoneNumbers": {
+    "mobile": "mobile number or null",
+    "home": "home/landline number or null",
+    "preferred": "mobile or home - which is marked as preferred"
+  },
   "allergies": ["array of strings"] or [],
   "alerts": ["array of strings"] or [],
   "confidence": 0.0-1.0,
   "rawText": "key text snippets you identified"
 }
 
-Be thorough - look at ALL areas of the screenshot for patient identifiers. The NHS number might be in a header bar, sidebar, or patient banner.`;
+Be thorough - look at ALL areas of the screenshot for patient identifiers. The NHS number might be in a header bar, sidebar, or patient banner. Address and phone details are often in a demographics section or patient summary panel.`;
 
     const userPrompt = `Extract patient information from this ${clinicalSystem === 'systmone' ? 'SystmOne' : clinicalSystem === 'emis' ? 'EMIS Web' : 'clinical system'} screenshot.
 
 IMPORTANT: 
 - Look carefully for the 10-digit NHS number - it may appear with spaces (like "424 146 3061") and might be near "GMS" or "Dispensing" text
 - The patient name is usually in SURNAME, Firstname format
+- Look for the full home address (including postcode) in demographics or patient summary panels
+- Look for mobile and home phone numbers - note which is the preferred contact
 - Extract ALL visible patient identifiers
 
 Return the JSON object with extracted information.`;
@@ -104,6 +114,8 @@ Return the JSON object with extracted information.`;
       nhsNumber: null as string | null,
       dateOfBirth: null as string | null,
       gender: null as string | null,
+      address: null as string | null,
+      phoneNumbers: null as { mobile?: string; home?: string; preferred?: 'mobile' | 'home' } | null,
       allergies: [] as string[],
       alerts: [] as string[],
       confidence: 0,
@@ -197,6 +209,8 @@ Return the JSON object with extracted information.`;
         nhsNumber: cleanNhsNumber || null,
         dateOfBirth: extracted.dateOfBirth,
         gender: extracted.gender,
+        address: extracted.address,
+        phoneNumbers: extracted.phoneNumbers,
         allergies: extracted.allergies || [],
         alerts: extracted.alerts || [],
         confidence: extracted.confidence,

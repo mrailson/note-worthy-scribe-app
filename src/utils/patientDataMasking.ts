@@ -47,15 +47,34 @@ export function maskDateOfBirth(dob: string | null, options: PatientDataMaskingO
   if (!dob) return 'N/A';
   
   try {
-    const birthDate = new Date(dob);
+    // Handle DD/MM/YYYY format (UK format) which new Date() doesn't parse correctly
+    let birthDate: Date;
+    const ukDateMatch = dob.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (ukDateMatch) {
+      const [, day, month, year] = ukDateMatch;
+      birthDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    } else {
+      birthDate = new Date(dob);
+    }
+    
+    // Check if the date is valid
+    if (isNaN(birthDate.getTime())) {
+      return 'N/A';
+    }
+    
     const currentDate = new Date();
     const age = currentDate.getFullYear() - birthDate.getFullYear();
     
+    // Adjust age if birthday hasn't occurred yet this year
+    const monthDiff = currentDate.getMonth() - birthDate.getMonth();
+    const dayDiff = currentDate.getDate() - birthDate.getDate();
+    const adjustedAge = (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) ? age - 1 : age;
+    
     // Show age range instead of exact DOB
-    const ageRange = Math.floor(age / 10) * 10;
+    const ageRange = Math.floor(adjustedAge / 10) * 10;
     return `${ageRange}-${ageRange + 9} years`;
   } catch {
-    return 'Invalid date';
+    return 'N/A';
   }
 }
 
