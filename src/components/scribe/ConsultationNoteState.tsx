@@ -4,8 +4,9 @@ import { SOAPNoteEditor } from "./SOAPNoteEditor";
 import { HeidiNoteEditor } from "./HeidiNoteEditor";
 import { NarrativeClinicalNoteView } from "./NarrativeClinicalNoteView";
 import { ReferralWorkspace } from "./ReferralWorkspace";
+import { TranscriptDisplay } from "./TranscriptDisplay";
 import { QuickActionsBar } from "./QuickActionsBar";
-import { Clock, FileCheck, Stethoscope, Shield, List, Zap, Send, ClipboardList } from "lucide-react";
+import { Clock, FileCheck, Stethoscope, Shield, List, Zap, Send, ClipboardList, FileText } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
@@ -209,6 +210,23 @@ export const ConsultationNoteState = ({
                         </TooltipTrigger>
                         <TooltipContent side="bottom">Referrals</TooltipContent>
                       </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => onViewModeChange('transcript')}
+                            className={cn(
+                              "p-1.5 rounded-md transition-colors",
+                              viewMode === 'transcript' 
+                                ? "text-primary bg-primary/10" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            aria-label="Transcript"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Transcript</TooltipContent>
+                      </Tooltip>
                     </div>
                   </>
                 )}
@@ -232,7 +250,7 @@ export const ConsultationNoteState = ({
         </CardContent>
       </Card>
 
-      {/* Notes Editor or Referral Workspace */}
+      {/* Notes Editor, Referral Workspace, or Transcript */}
       {viewMode === 'referral' ? (
         <div className={isMobile ? 'h-[calc(100vh-320px)]' : 'min-h-[500px]'}>
           <ReferralWorkspace
@@ -247,6 +265,20 @@ export const ConsultationNoteState = ({
             } : undefined}
           />
         </div>
+      ) : viewMode === 'transcript' ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              Full Transcript
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className={isMobile ? 'h-[calc(100vh-400px)]' : 'max-h-[600px]'}>
+              <TranscriptDisplay transcript={transcript || ''} />
+            </ScrollArea>
+          </CardContent>
+        </Card>
       ) : (
         <ScrollArea className={isMobile ? 'h-[calc(100vh-320px)]' : ''}>
           {viewMode === 'narrativeClinical' ? (
