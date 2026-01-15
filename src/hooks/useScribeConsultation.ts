@@ -86,6 +86,20 @@ export const useScribeConsultation = () => {
     }
   }, [settings.showConsentReminder]);
 
+  // Get the appropriate microphone ID based on consultation type
+  const getMicrophoneForType = useCallback((type: ConsultationType): string | undefined => {
+    switch (type) {
+      case 'f2f':
+        return settings.f2fMicrophoneId;
+      case 'telephone':
+        return settings.telephoneMicrophoneId;
+      case 'video':
+        return settings.videoMicrophoneId;
+      default:
+        return undefined;
+    }
+  }, [settings.f2fMicrophoneId, settings.telephoneMicrophoneId, settings.videoMicrophoneId]);
+
   // Start consultation
   const startConsultation = useCallback(async () => {
     if (settings.showConsentReminder && !patientConsent) {
@@ -100,7 +114,11 @@ export const useScribeConsultation = () => {
         setConsentTimestamp(new Date().toISOString());
       }
       
-      await recording.startRecording();
+      // Get the microphone ID for the current consultation type
+      const selectedMicrophoneId = getMicrophoneForType(consultationType);
+      console.log(`🎤 Starting consultation with microphone: ${selectedMicrophoneId || 'default'} for type: ${consultationType}`);
+      
+      await recording.startRecording(selectedMicrophoneId);
       setConsultationState('recording');
       
       return true;
@@ -109,7 +127,7 @@ export const useScribeConsultation = () => {
       showToast.error('Failed to start consultation', { section: 'gpscribe' });
       return false;
     }
-  }, [patientConsent, recording, settings.showConsentReminder]);
+  }, [patientConsent, recording, settings.showConsentReminder, consultationType, getMicrophoneForType]);
 
   // Finish consultation and generate notes
   const finishConsultation = useCallback(async () => {
