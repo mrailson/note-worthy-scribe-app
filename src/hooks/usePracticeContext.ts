@@ -19,10 +19,10 @@ export const usePracticeContext = () => {
     try {
       console.log('🔄 Loading practice context for user:', user.id);
       
-      // Get user profile information
+      // Get user profile information (including personal signatures)
       const { data: userProfile } = await supabase
         .from('profiles')
-        .select('full_name, email, phone')
+        .select('full_name, email, phone, letter_signature, email_signature')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -158,7 +158,7 @@ export const usePracticeContext = () => {
           pcnName: pcnData?.pcn_name,
           neighbourhoodName: neighbourhoodData?.[0]?.name,
           otherPracticesInPCN: otherPractices?.map(p => p.practice_name) || [],
-          logoUrl: sharedPracticeDetails.logo_url,
+          logoUrl: sharedPracticeDetails.practice_logo_url || sharedPracticeDetails.logo_url,
           practiceAddress: sharedPracticeDetails.address,
           practicePhone: sharedPracticeDetails.phone,
           practiceEmail: sharedPracticeDetails.email,
@@ -168,8 +168,9 @@ export const usePracticeContext = () => {
           userPhone: userProfile?.phone,
           userRole: userRoles?.[0]?.role,
           userRoles: userRoles?.map(r => r.role) || [],
-          emailSignature: sharedPracticeDetails.email_signature,
-          letterSignature: sharedPracticeDetails.letter_signature
+          // Signatures come from user's profile (personal, not shared)
+          emailSignature: userProfile?.email_signature,
+          letterSignature: userProfile?.letter_signature
         });
 
         console.log('✅ Practice context loaded (shared across organisation):', {
@@ -185,7 +186,10 @@ export const usePracticeContext = () => {
           userEmail: userProfile?.email || user.email,
           userPhone: userProfile?.phone,
           userRole: userRoles?.[0]?.role,
-          userRoles: userRoles?.map(r => r.role) || []
+          userRoles: userRoles?.map(r => r.role) || [],
+          // Include personal signatures even without practice details
+          emailSignature: userProfile?.email_signature,
+          letterSignature: userProfile?.letter_signature
         });
       }
 

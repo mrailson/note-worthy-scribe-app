@@ -6500,9 +6500,11 @@ export type Database = {
           created_at: string
           department: string | null
           email: string
+          email_signature: string | null
           full_name: string
           id: string
           last_login: string | null
+          letter_signature: string | null
           meeting_retention_policy: string | null
           mic_test_service_visible: boolean
           nhs_trust: string | null
@@ -6523,9 +6525,11 @@ export type Database = {
           created_at?: string
           department?: string | null
           email: string
+          email_signature?: string | null
           full_name: string
           id?: string
           last_login?: string | null
+          letter_signature?: string | null
           meeting_retention_policy?: string | null
           mic_test_service_visible?: boolean
           nhs_trust?: string | null
@@ -6546,9 +6550,11 @@ export type Database = {
           created_at?: string
           department?: string | null
           email?: string
+          email_signature?: string | null
           full_name?: string
           id?: string
           last_login?: string | null
+          letter_signature?: string | null
           meeting_retention_policy?: string | null
           mic_test_service_visible?: boolean
           nhs_trust?: string | null
