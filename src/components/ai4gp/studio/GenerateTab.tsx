@@ -93,12 +93,18 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
             <img 
               src={currentResult.url} 
               alt={currentResult.alt}
-              className="w-full max-h-[400px] object-contain bg-muted"
+              className="w-full max-h-[60vh] object-contain bg-muted cursor-pointer"
+              onClick={() => window.open(currentResult.url, '_blank')}
+              title="Click to open full size"
             />
             <div className="p-4 flex flex-wrap gap-2">
               <Button onClick={handleDownload}>
                 <Download className="h-4 w-4 mr-2" />
                 Download
+              </Button>
+              <Button variant="outline" onClick={() => window.open(currentResult.url, '_blank')}>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Open Full Size
               </Button>
               <Button variant="outline" onClick={onEditResult}>
                 <Pencil className="h-4 w-4 mr-2" />
@@ -123,7 +129,7 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
                 <img 
                   src={item.result.url} 
                   alt={item.result.alt}
-                  className="w-full h-20 object-cover"
+                  className="w-full h-20 object-contain bg-muted"
                 />
               </Card>
             ))}

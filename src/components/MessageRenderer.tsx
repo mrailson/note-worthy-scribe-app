@@ -78,7 +78,7 @@ interface MessageRendererProps {
   onQuickResponse?: (response: string) => void; // New prop for quick responses
   onSetDrugName?: (drugName: string) => void; // New prop for setting drug name
   autoCollapseUserPrompts?: boolean; // New prop to auto-collapse user prompts
-  imageGenerationModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1'; // Image model for infographics
+  imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1'; // Image model for infographics
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 

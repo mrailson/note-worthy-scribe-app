@@ -9,18 +9,26 @@ import { Brain, Clock, Save, Loader2, MapPin, Type, Layout, Monitor, Eye, BookOp
 import { toast } from 'sonner';
 import { VoicePreviewDemo } from './VoicePreviewDemo';
 
-export type ImageGenerationModel = 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
+export type ImageGenerationModel = 
+  | 'google/gemini-3-pro-image-preview' 
+  | 'google/gemini-2.5-flash-image-preview' 
+  | 'openai/gpt-image-1';
 
 export const IMAGE_MODEL_OPTIONS: { value: ImageGenerationModel; label: string; description: string }[] = [
   { 
-    value: 'google/gemini-2.5-flash-image-preview', 
-    label: 'Gemini Flash Image (Recommended)', 
-    description: 'Fast with excellent quality - best for most tasks' 
+    value: 'google/gemini-3-pro-image-preview', 
+    label: 'Gemini 3 Pro Image (Best)', 
+    description: 'Highest quality - recommended for leaflets and posters' 
   },
   { 
     value: 'openai/gpt-image-1', 
     label: 'OpenAI GPT Image', 
-    description: 'OpenAI DALL-E successor - excellent detail & control' 
+    description: 'Excellent detail and control - good alternative' 
+  },
+  { 
+    value: 'google/gemini-2.5-flash-image-preview', 
+    label: 'Gemini Flash (Fast)', 
+    description: 'Quick drafts - may have text quality issues' 
   }
 ];
 

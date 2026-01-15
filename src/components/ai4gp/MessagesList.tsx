@@ -19,7 +19,7 @@ interface MessagesListProps {
   onQuickResponse?: (response: string) => void;
   onSetDrugName?: (drugName: string) => void;
   autoCollapseUserPrompts?: boolean;
-  imageGenerationModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
+  imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
 }
 
 export const MessagesList: React.FC<MessagesListProps> = ({
