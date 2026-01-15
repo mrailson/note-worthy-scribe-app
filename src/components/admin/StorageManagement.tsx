@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Database, Trash2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, HardDrive, FileText, MessageSquare } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Database, Trash2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, HardDrive, FileText, MessageSquare, Mic, Presentation } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -56,6 +57,21 @@ interface UserChatDetail {
   is_protected: boolean;
 }
 
+interface Ai4GpSearch {
+  id: string;
+  user_id: string;
+  email: string;
+  full_name: string;
+  title: string;
+  size_bytes: number;
+  created_at: string;
+  updated_at: string;
+  is_protected: boolean;
+  is_flagged: boolean;
+  has_audio: boolean;
+  has_presentation: boolean;
+}
+
 const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -91,9 +107,12 @@ export const StorageManagement: React.FC = () => {
   const [userStorage, setUserStorage] = useState<UserStorageData[]>([]);
   const [largeChats, setLargeChats] = useState<LargeChat[]>([]);
   const [oldChats, setOldChats] = useState<OldChat[]>([]);
+  const [ai4gpSearches, setAi4gpSearches] = useState<Ai4GpSearch[]>([]);
   const [loading, setLoading] = useState(true);
   const [largeChatsOpen, setLargeChatsOpen] = useState(true);
   const [oldChatsOpen, setOldChatsOpen] = useState(false);
+  const [ai4gpSearchesOpen, setAi4gpSearchesOpen] = useState(true);
+  const [ai4gpSizeFilter, setAi4gpSizeFilter] = useState<string>('1');
   const [sortField, setSortField] = useState<SortField>('total_size_bytes');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedUser, setSelectedUser] = useState<UserStorageData | null>(null);
@@ -101,24 +120,71 @@ export const StorageManagement: React.FC = () => {
   const [loadingUserChats, setLoadingUserChats] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [isDeletingAllAi4gp, setIsDeletingAllAi4gp] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [userResult, largeResult, oldResult] = await Promise.all([
+      const [userResult, largeResult, oldResult, ai4gpResult] = await Promise.all([
         supabase.rpc('get_storage_by_user'),
         supabase.rpc('get_largest_ai_chats', { limit_count: 20 }),
-        supabase.rpc('get_old_ai_chats', { days_old: 90 })
+        supabase.rpc('get_old_ai_chats', { days_old: 90 }),
+        supabase.rpc('get_large_ai4gp_searches', { min_size_mb: parseFloat(ai4gpSizeFilter) })
       ]);
 
       if (userResult.data) setUserStorage(userResult.data);
       if (largeResult.data) setLargeChats(largeResult.data);
       if (oldResult.data) setOldChats(oldResult.data);
+      if (ai4gpResult.data) setAi4gpSearches(ai4gpResult.data);
     } catch (error) {
       console.error('Error fetching storage data:', error);
       toast.error('Failed to load storage data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAi4gpSearches = async (minSizeMb: string) => {
+    try {
+      const { data, error } = await supabase.rpc('get_large_ai4gp_searches', { min_size_mb: parseFloat(minSizeMb) });
+      if (error) throw error;
+      if (data) setAi4gpSearches(data);
+    } catch (error) {
+      console.error('Error fetching AI4GP searches:', error);
+      toast.error('Failed to load AI4GP searches');
+    }
+  };
+
+  const handleAi4gpSizeFilterChange = (value: string) => {
+    setAi4gpSizeFilter(value);
+    fetchAi4gpSearches(value);
+  };
+
+  const handleDeleteAllLargeAi4gpSearches = async () => {
+    const unprotectedSearches = ai4gpSearches.filter(s => !s.is_protected);
+    if (unprotectedSearches.length === 0) {
+      toast.error('No unprotected searches to delete');
+      return;
+    }
+    
+    setIsDeletingAllAi4gp(true);
+    try {
+      const ids = unprotectedSearches.map(s => s.id);
+      const { error } = await supabase
+        .from('ai_4_pm_searches')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+
+      const totalSize = unprotectedSearches.reduce((sum, s) => sum + s.size_bytes, 0);
+      toast.success(`Deleted ${unprotectedSearches.length} large AI4GP searches (${formatBytes(totalSize)} freed)`);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting AI4GP searches:', error);
+      toast.error('Failed to delete AI4GP searches');
+    } finally {
+      setIsDeletingAllAi4gp(false);
     }
   };
 
@@ -236,6 +302,8 @@ export const StorageManagement: React.FC = () => {
   const totalTranscriptStorage = userStorage.reduce((sum, u) => sum + u.transcript_size_bytes, 0);
   const totalStorage = totalAIStorage + totalTranscriptStorage;
   const oldChatsSize = oldChats.reduce((sum, c) => sum + c.size_bytes, 0);
+  const ai4gpSearchesSize = ai4gpSearches.reduce((sum, s) => sum + s.size_bytes, 0);
+  const unprotectedAi4gpCount = ai4gpSearches.filter(s => !s.is_protected).length;
 
   const SortableHeader: React.FC<{ field: SortField; children: React.ReactNode; className?: string }> = ({ 
     field, children, className 
@@ -276,7 +344,7 @@ export const StorageManagement: React.FC = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
@@ -312,6 +380,16 @@ export const StorageManagement: React.FC = () => {
             </div>
             <p className="text-2xl font-bold mt-1">{formatBytes(oldChatsSize)}</p>
             <p className="text-xs text-muted-foreground">{oldChats.length} items</p>
+          </CardContent>
+        </Card>
+        <Card className={ai4gpSearchesSize > 50000000 ? 'border-destructive' : ai4gpSearchesSize > 20000000 ? 'border-amber-500' : ''}>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <Mic className={cn("h-4 w-4", ai4gpSearchesSize > 50000000 ? "text-destructive" : ai4gpSearchesSize > 20000000 ? "text-amber-500" : "text-purple-500")} />
+              <span className="text-sm text-muted-foreground">Large AI4GP</span>
+            </div>
+            <p className="text-2xl font-bold mt-1">{formatBytes(ai4gpSearchesSize)}</p>
+            <p className="text-xs text-muted-foreground">{ai4gpSearches.length} items (&gt;{ai4gpSizeFilter}MB)</p>
           </CardContent>
         </Card>
       </div>
@@ -466,6 +544,204 @@ export const StorageManagement: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Large AI4GP Searches */}
+      <Collapsible open={ai4gpSearchesOpen} onOpenChange={setAi4gpSearchesOpen}>
+        <Card className={ai4gpSearchesSize > 50000000 ? 'border-destructive/50' : ai4gpSearchesSize > 20000000 ? 'border-amber-500/50' : ''}>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 pb-3">
+              <CardTitle className="text-base flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  Large AI4GP Searches (Audio/Presentations)
+                  {ai4gpSearches.length > 0 && (
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full",
+                      ai4gpSearchesSize > 50000000 ? "bg-destructive/10 text-destructive" : "bg-purple-100 text-purple-700"
+                    )}>
+                      {ai4gpSearches.length} items • {formatBytes(ai4gpSearchesSize)}
+                    </span>
+                  )}
+                </span>
+                {ai4gpSearchesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              {ai4gpSearches.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-4">
+                  No large AI4GP searches found above {ai4gpSizeFilter}MB threshold.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {/* Filter and Delete All */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Show records &gt;</span>
+                      <Select value={ai4gpSizeFilter} onValueChange={handleAi4gpSizeFilterChange}>
+                        <SelectTrigger className="w-24">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 MB</SelectItem>
+                          <SelectItem value="2">2 MB</SelectItem>
+                          <SelectItem value="5">5 MB</SelectItem>
+                          <SelectItem value="10">10 MB</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          disabled={isDeletingAllAi4gp || unprotectedAi4gpCount === 0}
+                        >
+                          {isDeletingAllAi4gp ? (
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-2" />
+                          )}
+                          Delete All Unprotected ({unprotectedAi4gpCount})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete All Large AI4GP Searches?</AlertDialogTitle>
+                          <AlertDialogDescription className="space-y-2">
+                            <p>
+                              This will permanently delete <strong>{unprotectedAi4gpCount} unprotected searches</strong> totalling <strong>{formatBytes(ai4gpSearches.filter(s => !s.is_protected).reduce((sum, s) => sum + s.size_bytes, 0))}</strong>.
+                            </p>
+                            <p>
+                              These records contain embedded audio or presentation content that consumes significant database storage.
+                            </p>
+                            <p className="text-destructive font-medium">
+                              This action cannot be undone!
+                            </p>
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={handleDeleteAllLargeAi4gpSearches}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Delete All {unprotectedAi4gpCount} Searches
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                  {/* Table */}
+                  <div className="rounded-md border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Size</TableHead>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Content</TableHead>
+                          <TableHead>User</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {ai4gpSearches.slice(0, 30).map((search) => (
+                          <TableRow key={search.id}>
+                            <TableCell className="font-mono font-medium">
+                              {formatBytes(search.size_bytes)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="truncate max-w-[200px]" title={search.title}>
+                                {search.title}
+                              </div>
+                              {(search.is_protected || search.is_flagged) && (
+                                <div className="flex gap-1 mt-1">
+                                  {search.is_protected && (
+                                    <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Protected</span>
+                                  )}
+                                  {search.is_flagged && (
+                                    <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Flagged</span>
+                                  )}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                {search.has_audio && (
+                                  <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded" title="Contains audio content">
+                                    <Mic className="h-3 w-3" />
+                                    Audio
+                                  </span>
+                                )}
+                                {search.has_presentation && (
+                                  <span className="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded" title="Contains presentation content">
+                                    <Presentation className="h-3 w-3" />
+                                    PPT
+                                  </span>
+                                )}
+                                {!search.has_audio && !search.has_presentation && (
+                                  <span className="text-xs text-muted-foreground">Files/Images</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm truncate max-w-[120px]" title={search.email}>
+                              {search.email || 'Unknown'}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {formatDate(search.created_at)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-destructive hover:text-destructive"
+                                    disabled={search.is_protected || deletingId === search.id}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete AI4GP Search?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete "{search.title.substring(0, 50)}..." 
+                                      ({formatBytes(search.size_bytes)}) belonging to {search.email}.
+                                      {search.has_audio && ' Contains embedded audio content.'}
+                                      {search.has_presentation && ' Contains embedded presentation content.'}
+                                      This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDeleteChat(search.id, search.title)}
+                                      className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {ai4gpSearches.length > 30 && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      Showing 30 of {ai4gpSearches.length} large searches. Lower the size threshold to see fewer.
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Largest AI Chats */}
       <Collapsible open={largeChatsOpen} onOpenChange={setLargeChatsOpen}>
