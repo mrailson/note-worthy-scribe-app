@@ -139,7 +139,17 @@ export const ConsultationNoteState = ({
                 <span>{duration}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span>{wordCount} words</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => onViewModeChange?.('transcript')}
+                      className="hover:text-primary hover:underline transition-colors cursor-pointer"
+                    >
+                      {wordCount} words
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">View full transcript</TooltipContent>
+                </Tooltip>
                 {onViewModeChange && (
                   <>
                     <span className="text-muted-foreground/40">|</span>
