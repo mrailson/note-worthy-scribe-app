@@ -163,7 +163,10 @@ export const NarrativeClinicalNoteView = ({
             <AccordionItem
               key={section.key}
               value={section.key}
-              className={cn("border rounded-lg px-4", section.borderClass)}
+              className={cn(
+                "border rounded-lg px-4 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent",
+                section.borderClass
+              )}
             >
               <div className="flex items-center justify-between">
                 <AccordionTrigger className="hover:no-underline py-3 flex-1">
