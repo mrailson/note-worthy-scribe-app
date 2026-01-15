@@ -247,6 +247,7 @@ const Scribe = () => {
                     history.fetchSessions();
                   }}
                   onNewConsultation={consultation.newConsultation}
+                  onDiscard={consultation.newConsultation}
                   onRegenerate={consultation.regenerateNotes}
                   onExportPDF={handleExportPDF}
                   onExportWord={handleExportWord}
