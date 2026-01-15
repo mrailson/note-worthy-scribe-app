@@ -39,13 +39,20 @@ export const NarrativeClinicalNoteView = ({
     return transformToNarrativeClinical(soapNote || null, heidiNote);
   }, [soapNote, heidiNote]);
 
+  // Remove square brackets from text
+  const stripBrackets = (text: string): string => {
+    return text.replace(/\[|\]/g, '');
+  };
+
   // Filter function for "not mentioned" content
   const filterContent = (text: string): string => {
-    if (showNotMentioned) return text;
+    let result = stripBrackets(text);
+    
+    if (showNotMentioned) return result;
     
     const notMentionedPatterns = /\b(none\s*mentioned|not\s*mentioned|none\s*discussed|none\s*given|none\s*made|none\s*required|n\/a|nil|not\s*applicable|no\s*significant|not\s*recorded|not\s*documented)\b/i;
     
-    return text
+    return result
       .split('\n')
       .filter(line => !notMentionedPatterns.test(line.trim()))
       .join('\n');

@@ -94,7 +94,7 @@ export const QuickActionsBar = ({
           className="gap-2 bg-primary hover:bg-primary/90"
         >
           <Copy className="h-4 w-4" />
-          Copy for {emrLabel}
+          Copy
         </Button>
 
         <Button
