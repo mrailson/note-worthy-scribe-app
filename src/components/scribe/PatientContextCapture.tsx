@@ -362,10 +362,45 @@ export const PatientContextCapture = ({
                   <p className="text-xs text-muted-foreground mt-1">{error}</p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              
+              {/* Action buttons row */}
+              <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={handleRetry} className="gap-2">
                   <RefreshCw className="h-4 w-4" />
                   Try again
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload different image
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setCaptureState('idle');
+                    setError(null);
+                  }} 
+                  className="gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel
+                </Button>
+              </div>
+              
+              {/* Manual entry option */}
+              <div className="pt-2 border-t">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setShowManualEntry(true);
+                    setCaptureState('idle');
+                    setError(null);
+                  }}
+                  className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <Keyboard className="h-4 w-4" />
+                  Enter details manually instead
                 </Button>
               </div>
             </div>
