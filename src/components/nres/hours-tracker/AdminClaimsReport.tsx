@@ -41,7 +41,8 @@ const formatCurrency = (amount: number): string => {
 // Authorised admin users
 const ADMIN_EMAILS = [
   'm.green28@nhs.net',
-  'mark.gray1@nhs.net'
+  'mark.gray1@nhs.net',
+  'amanda.taylor75@nhs.net'
 ];
 
 export function AdminClaimsReport() {
