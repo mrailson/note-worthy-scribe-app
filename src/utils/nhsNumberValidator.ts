@@ -9,9 +9,9 @@ export interface NHSValidationResult {
   formatted?: string;
 }
 
-export function validateNHSNumber(nhs: string): NHSValidationResult {
+export function validateNHSNumber(nhs: string | null | undefined): NHSValidationResult {
   // Remove all whitespace and hyphens
-  const cleaned = nhs.replace(/[\s-]/g, '');
+  const cleaned = (nhs ?? '').replace(/[\s-]/g, '');
   
   // Check length
   if (cleaned.length === 0) {
@@ -55,8 +55,8 @@ export function validateNHSNumber(nhs: string): NHSValidationResult {
   return { valid: true, formatted };
 }
 
-export function formatNHSNumber(nhs: string): string {
-  const cleaned = nhs.replace(/[\s-]/g, '');
-  if (cleaned.length !== 10) return nhs;
+export function formatNHSNumber(nhs: string | null | undefined): string {
+  const cleaned = (nhs ?? '').replace(/[\s-]/g, '');
+  if (cleaned.length !== 10) return nhs ?? '';
   return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6, 10)}`;
 }
