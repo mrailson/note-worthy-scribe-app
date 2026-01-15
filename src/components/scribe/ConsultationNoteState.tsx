@@ -6,7 +6,7 @@ import { NarrativeClinicalNoteView } from "./NarrativeClinicalNoteView";
 import { ReferralWorkspace } from "./ReferralWorkspace";
 import { TranscriptDisplay } from "./TranscriptDisplay";
 import { QuickActionsBar } from "./QuickActionsBar";
-import { Clock, FileCheck, Stethoscope, Shield, List, Zap, Send, ClipboardList, FileText } from "lucide-react";
+import { Clock, FileCheck, Stethoscope, Shield, List, Zap, Send, ClipboardList, FileText, User } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
@@ -123,9 +123,24 @@ export const ConsultationNoteState = ({
                     </Badge>
                   )}
                 </CardTitle>
-                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Review and edit your notes below
-                </p>
+                {patientContext ? (
+                  <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'} flex items-center gap-1.5`}>
+                    <User className="h-3.5 w-3.5" />
+                    <span className="font-medium">{patientContext.name}</span>
+                    <span className="text-muted-foreground/60">|</span>
+                    <span>NHS: {patientContext.nhsNumber}</span>
+                    {patientContext.dateOfBirth && (
+                      <>
+                        <span className="text-muted-foreground/60">|</span>
+                        <span>DOB: {patientContext.dateOfBirth}</span>
+                      </>
+                    )}
+                  </p>
+                ) : (
+                  <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    Review and edit your notes below
+                  </p>
+                )}
               </div>
             </div>
             
