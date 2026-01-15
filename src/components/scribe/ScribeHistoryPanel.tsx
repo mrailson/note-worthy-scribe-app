@@ -88,6 +88,9 @@ export const ScribeHistoryPanel = ({
   const [deleteAllConfirmText, setDeleteAllConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   
+  // Patient details toggle state
+  const [showPatientDetails, setShowPatientDetails] = useState(false);
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -922,6 +925,8 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
         onCategoryFilterChange={handleCategoryFilterChange}
         resultCount={filteredSessions.length}
         totalCount={sessions.length}
+        showPatientDetails={showPatientDetails}
+        onShowPatientDetailsChange={setShowPatientDetails}
       />
 
       {filteredSessions.length === 0 ? (
@@ -950,6 +955,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                   onDelete={() => onDeleteSession(session.id)}
                   onRefresh={onRefresh}
                   isMobile={isMobile}
+                  showPatientDetails={showPatientDetails}
                 />
               );
             })}
