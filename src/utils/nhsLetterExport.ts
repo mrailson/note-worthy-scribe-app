@@ -34,15 +34,16 @@ export interface NHSLetterExportOptions {
   clinicianQualifications?: string;
 }
 
-// Professional letter styling constants
+// Professional letter styling constants - NHS standard formatting
 const LETTER_STYLES = {
   font: 'Calibri',
   fontSize: {
     body: 22,           // 11pt
-    heading: 24,        // 12pt
+    heading: 26,        // 13pt - slightly larger for better hierarchy
+    subheading: 24,     // 12pt
     letterhead: 20,     // 10pt
     footer: 18,         // 9pt
-    practiceName: 26,   // 13pt
+    practiceName: 28,   // 14pt - more prominent
   },
   colors: {
     primary: '005EB8',      // NHS Blue
@@ -51,9 +52,11 @@ const LETTER_STYLES = {
     border: 'AEB7BD',       // NHS Light grey
   },
   spacing: {
-    paragraph: 200,         // 10pt after
-    section: 360,           // 18pt after
-    line: 276,              // 1.15 line spacing
+    paragraph: 280,         // 14pt after - more generous
+    section: 480,           // 24pt after - clear section separation
+    subsection: 320,        // 16pt after - for clinical sub-headings
+    line: 300,              // 1.25 line spacing - more readable
+    beforeHeading: 360,     // 18pt before headings
   }
 };
 
@@ -83,9 +86,68 @@ const fetchLogoAsUint8Array = async (logoUrl: string): Promise<{ data: Uint8Arra
 
 /**
  * Creates a formatted paragraph with proper NHS styling
+ * Handles clinical sub-headings (bold text followed by colon) intelligently
  */
-const createBodyParagraph = (text: string, options?: { bold?: boolean; italic?: boolean; spacing?: number }): Paragraph => {
+const createBodyParagraph = (text: string, options?: { bold?: boolean; italic?: boolean; spacing?: number; isSubheading?: boolean }): Paragraph => {
   const cleanText = cleanMarkdownText(text);
+  
+  // Detect clinical sub-headings pattern: "**Heading:** content" or "Heading: content" at start
+  const clinicalSubheadingMatch = text.match(/^\*\*([^*]+):\*\*\s*(.*)$/);
+  const inlineSubheadingMatch = text.match(/^([A-Z][^:]{2,40}):\s*(.+)$/);
+  
+  if (clinicalSubheadingMatch) {
+    const [, heading, content] = clinicalSubheadingMatch;
+    return new Paragraph({
+      children: [
+        new TextRun({
+          text: `${cleanMarkdownText(heading)}: `,
+          font: LETTER_STYLES.font,
+          size: LETTER_STYLES.fontSize.body,
+          color: LETTER_STYLES.colors.text,
+          bold: true,
+        }),
+        new TextRun({
+          text: cleanMarkdownText(content),
+          font: LETTER_STYLES.font,
+          size: LETTER_STYLES.fontSize.body,
+          color: LETTER_STYLES.colors.text,
+        })
+      ],
+      spacing: {
+        before: LETTER_STYLES.spacing.subsection,
+        after: LETTER_STYLES.spacing.paragraph,
+        line: LETTER_STYLES.spacing.line,
+      },
+      alignment: AlignmentType.JUSTIFIED,
+    });
+  }
+  
+  if (inlineSubheadingMatch && inlineSubheadingMatch[1].length < 40) {
+    const [, heading, content] = inlineSubheadingMatch;
+    return new Paragraph({
+      children: [
+        new TextRun({
+          text: `${heading}: `,
+          font: LETTER_STYLES.font,
+          size: LETTER_STYLES.fontSize.body,
+          color: LETTER_STYLES.colors.text,
+          bold: true,
+        }),
+        new TextRun({
+          text: cleanMarkdownText(content),
+          font: LETTER_STYLES.font,
+          size: LETTER_STYLES.fontSize.body,
+          color: LETTER_STYLES.colors.text,
+        })
+      ],
+      spacing: {
+        before: options?.isSubheading ? LETTER_STYLES.spacing.subsection : 0,
+        after: LETTER_STYLES.spacing.paragraph,
+        line: LETTER_STYLES.spacing.line,
+      },
+      alignment: AlignmentType.JUSTIFIED,
+    });
+  }
   
   return new Paragraph({
     children: [
