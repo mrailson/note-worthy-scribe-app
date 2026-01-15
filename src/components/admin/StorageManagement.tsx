@@ -100,6 +100,7 @@ export const StorageManagement: React.FC = () => {
   const [userChats, setUserChats] = useState<UserChatDetail[]>([]);
   const [loadingUserChats, setLoadingUserChats] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -142,6 +143,27 @@ export const StorageManagement: React.FC = () => {
       toast.error('Failed to delete chat');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleDeleteAllOldChats = async () => {
+    setIsDeletingAll(true);
+    try {
+      const chatIds = oldChats.map(c => c.id);
+      const { error } = await supabase
+        .from('ai_4_pm_searches')
+        .delete()
+        .in('id', chatIds);
+
+      if (error) throw error;
+
+      toast.success(`Deleted ${oldChats.length} old chats (${formatBytes(oldChatsSize)} freed)`);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting old chats:', error);
+      toast.error('Failed to delete old chats');
+    } finally {
+      setIsDeletingAll(false);
     }
   };
 
@@ -564,72 +586,116 @@ export const StorageManagement: React.FC = () => {
                   No old chats found. All chats are less than 90 days old.
                 </p>
               ) : (
-                <div className="rounded-md border overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Size</TableHead>
-                        <TableHead>Title</TableHead>
-                        <TableHead>User</TableHead>
-                        <TableHead>Last Updated</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {oldChats.slice(0, 20).map((chat) => (
-                        <TableRow key={chat.id}>
-                          <TableCell className="font-mono font-medium">
-                            {formatBytes(chat.size_bytes)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="truncate max-w-[250px]" title={chat.title}>
-                              {chat.title}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm truncate max-w-[150px]" title={chat.email}>
-                            {chat.email || 'Unknown'}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {formatDate(chat.updated_at)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="text-destructive hover:text-destructive"
-                                  disabled={deletingId === chat.id}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Old AI Chat?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete "{chat.title.substring(0, 50)}..." 
-                                    ({formatBytes(chat.size_bytes)}) belonging to {chat.email}.
-                                    Last updated: {formatDate(chat.updated_at)}.
-                                    This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                    onClick={() => handleDeleteChat(chat.id, chat.title)}
-                                    className="bg-destructive hover:bg-destructive/90"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </TableCell>
+                <div className="space-y-4">
+                  {/* Delete All Button */}
+                  <div className="flex justify-end">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          disabled={isDeletingAll}
+                        >
+                          {isDeletingAll ? (
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-2" />
+                          )}
+                          Delete All ({oldChats.length} items)
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete All Old AI Chats?</AlertDialogTitle>
+                          <AlertDialogDescription className="space-y-2">
+                            <p>
+                              This will permanently delete <strong>{oldChats.length} old chats</strong> totalling <strong>{formatBytes(oldChatsSize)}</strong>.
+                            </p>
+                            <p className="text-destructive font-medium">
+                              This action cannot be undone!
+                            </p>
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={handleDeleteAllOldChats}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Delete All {oldChats.length} Chats
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                  {/* Table */}
+                  <div className="rounded-md border overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Size</TableHead>
+                          <TableHead>Title</TableHead>
+                          <TableHead>User</TableHead>
+                          <TableHead>Last Updated</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {oldChats.slice(0, 20).map((chat) => (
+                          <TableRow key={chat.id}>
+                            <TableCell className="font-mono font-medium">
+                              {formatBytes(chat.size_bytes)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="truncate max-w-[250px]" title={chat.title}>
+                                {chat.title}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm truncate max-w-[150px]" title={chat.email}>
+                              {chat.email || 'Unknown'}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {formatDate(chat.updated_at)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-destructive hover:text-destructive"
+                                    disabled={deletingId === chat.id}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Old AI Chat?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete "{chat.title.substring(0, 50)}..." 
+                                      ({formatBytes(chat.size_bytes)}) belonging to {chat.email}.
+                                      Last updated: {formatDate(chat.updated_at)}.
+                                      This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleDeleteChat(chat.id, chat.title)}
+                                      className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
             </CardContent>
