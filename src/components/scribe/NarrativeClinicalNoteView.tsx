@@ -164,7 +164,7 @@ export const NarrativeClinicalNoteView = ({
               key={section.key}
               value={section.key}
               className={cn(
-                "border rounded-lg px-4 bg-background",
+                "border rounded-lg px-4 bg-white dark:bg-card",
                 section.borderClass
               )}
             >
