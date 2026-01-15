@@ -158,16 +158,30 @@ export const StorageManagement: React.FC = () => {
       if (error) throw error;
 
       // Calculate size and filter for files over 1MB
-      const chatsWithSize = (data || []).map(chat => ({
+      const allChats = (data || []).map(chat => ({
         id: chat.id,
         title: chat.title,
-        size_bytes: JSON.stringify(chat.messages).length,
+        size_bytes: typeof chat.messages === 'string' 
+          ? chat.messages.length 
+          : JSON.stringify(chat.messages || {}).length,
         created_at: chat.created_at,
         updated_at: chat.updated_at,
         is_protected: chat.is_protected || false
-      })).filter(chat => chat.size_bytes >= 1048576); // Only show chats over 1MB
+      }));
+      
+      // Filter for files over 1MB and sort by size descending
+      const largeChats = allChats
+        .filter(chat => chat.size_bytes >= 1048576)
+        .sort((a, b) => b.size_bytes - a.size_bytes);
+      
+      console.log('User chats analysis:', {
+        email: user.email,
+        totalChats: allChats.length,
+        largeChats: largeChats.length,
+        allSizes: allChats.map(c => ({ title: c.title.substring(0, 30), size: c.size_bytes }))
+      });
 
-      setUserChats(chatsWithSize);
+      setUserChats(largeChats);
     } catch (error) {
       console.error('Error fetching user chats:', error);
       toast.error('Failed to load user chats');
