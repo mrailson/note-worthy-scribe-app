@@ -5,11 +5,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface PhoneNumbers {
+  mobile?: string;
+  home?: string;
+  work?: string;
+  preferred?: 'mobile' | 'home' | 'work';
+}
+
 interface ExtractionResult {
   success: boolean;
   name?: string;
   nhsNumber?: string;
   dob?: string;
+  address?: string;
+  phoneNumbers?: PhoneNumbers;
   confidence?: number;
   rawText?: string;
   error?: string;
@@ -47,7 +56,7 @@ serve(async (req) => {
 
     const systemPrompt = `You are an expert at extracting patient identification data from UK clinical system screenshots (EMIS Web, SystmOne, Vision).
 
-TASK: Extract the patient's Name, NHS Number, and Date of Birth from the screenshot.
+TASK: Extract the patient's Name, NHS Number, Date of Birth, Address, and Phone Numbers from the screenshot.
 
 CRITICAL RULES:
 1. Extract EXACTLY what is shown - do not guess or infer
@@ -56,12 +65,22 @@ CRITICAL RULES:
 4. Patient names may be in format "SURNAME, Firstname" or "Firstname Surname"
 5. If you cannot clearly read a field, set it to null
 6. Do NOT include any patient data that is not clearly visible
+7. For phone numbers, extract all visible numbers and note which is marked as "preferred" or "(P)" or "(preferred)" or has a star
+8. Address should be captured as a single string with proper UK format, preserving line breaks as ", "
+9. Phone numbers may be labelled as "Mobile", "Home", "Tel", "Work", "Landline" etc
 
 OUTPUT FORMAT (JSON only, no markdown):
 {
   "name": "Full patient name as displayed",
   "nhsNumber": "10 digit NHS number, digits only",
   "dob": "Date of birth in DD/MM/YYYY format",
+  "address": "Full postal address if visible, or null",
+  "phoneNumbers": {
+    "mobile": "Mobile number if present, or null",
+    "home": "Home/landline number if present, or null",
+    "work": "Work number if present, or null",
+    "preferred": "mobile|home|work indicating which is marked as preferred, or null"
+  },
   "confidence": 0.0-1.0 confidence score,
   "rawText": "Any relevant text you extracted"
 }
@@ -90,7 +109,7 @@ If you cannot extract the data, return:
             content: [
               {
                 type: 'text',
-                text: `Extract the patient identification details from this ${clinicalSystem || 'clinical system'} screenshot. Return only valid JSON.`
+                text: `Extract the patient identification details from this ${clinicalSystem || 'clinical system'} screenshot. Include address and phone numbers if visible. Return only valid JSON.`
               },
               {
                 type: 'image_url',
@@ -99,7 +118,7 @@ If you cannot extract the data, return:
             ]
           }
         ],
-        max_tokens: 500,
+        max_tokens: 800,
         temperature: 0.1 // Low temperature for more consistent extraction
       })
     });
@@ -197,10 +216,28 @@ If you cannot extract the data, return:
       );
     }
 
+    // Clean up phone numbers - remove any null values from the object
+    let cleanPhoneNumbers: PhoneNumbers | undefined = undefined;
+    if (extracted.phoneNumbers) {
+      const phones = extracted.phoneNumbers;
+      const hasAnyPhone = phones.mobile || phones.home || phones.work;
+      if (hasAnyPhone) {
+        cleanPhoneNumbers = {};
+        if (phones.mobile) cleanPhoneNumbers.mobile = phones.mobile;
+        if (phones.home) cleanPhoneNumbers.home = phones.home;
+        if (phones.work) cleanPhoneNumbers.work = phones.work;
+        if (phones.preferred && ['mobile', 'home', 'work'].includes(phones.preferred)) {
+          cleanPhoneNumbers.preferred = phones.preferred as 'mobile' | 'home' | 'work';
+        }
+      }
+    }
+
     console.log('Successfully extracted patient context:', {
       name: extracted.name,
       nhsNumberLength: cleanNhsNumber.length,
       hasDob: !!extracted.dob,
+      hasAddress: !!extracted.address,
+      hasPhone: !!cleanPhoneNumbers,
       confidence: extracted.confidence
     });
 
@@ -210,6 +247,8 @@ If you cannot extract the data, return:
         name: extracted.name,
         nhsNumber: cleanNhsNumber,
         dob: extracted.dob || '',
+        address: extracted.address || '',
+        phoneNumbers: cleanPhoneNumbers,
         confidence: extracted.confidence || 0.8,
         rawText: extracted.rawText
       }),

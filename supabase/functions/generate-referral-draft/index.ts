@@ -181,11 +181,23 @@ Clinician Name: ${gpName}
 Job Title: ${gpJobTitle}
 GMC Number: ${gpGmc}`;
 
+    // Build patient phone number for contact
+    let patientPhone = '';
+    if (patientContext?.phoneNumbers) {
+      const phones = patientContext.phoneNumbers;
+      if (phones.preferred && phones[phones.preferred]) {
+        patientPhone = phones[phones.preferred];
+      } else {
+        patientPhone = phones.mobile || phones.home || phones.work || '';
+      }
+    }
+
     const patientInfo = patientContext ? `
 Patient Name: ${patientContext.name || '[[MISSING: Patient Name]]'}
 DOB: ${patientContext.dob || '[[MISSING: Date of Birth]]'}
 NHS Number: ${patientContext.nhsNumber || '[[MISSING: NHS Number]]'}
-Address: ${patientContext.address || ''}` : `
+Address: ${patientContext.address || ''}
+Contact Number: ${patientPhone}` : `
 Patient Name: [[MISSING: Patient Name]]
 DOB: [[MISSING: Date of Birth]]
 NHS Number: [[MISSING: NHS Number]]`;
