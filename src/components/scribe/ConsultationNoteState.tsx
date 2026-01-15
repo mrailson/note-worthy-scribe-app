@@ -39,6 +39,7 @@ interface ConsultationNoteStateProps {
   // Actions
   onSaveConsultation: () => void;
   onNewConsultation: () => void;
+  onDiscard?: () => void;
   onRegenerate?: () => void;
   onExportPDF?: () => void;
   onExportWord?: () => void;
@@ -77,6 +78,7 @@ export const ConsultationNoteState = ({
   onHeidiEditContentChange,
   onSaveConsultation,
   onNewConsultation,
+  onDiscard,
   onRegenerate,
   onExportPDF,
   onExportWord,
@@ -241,11 +243,13 @@ export const ConsultationNoteState = ({
             onCopyAll={onCopyAll}
             onSave={onSaveConsultation}
             onNewConsultation={onNewConsultation}
+            onDiscard={onDiscard}
             onRegenerate={onRegenerate}
             onExportPDF={onExportPDF}
             onExportWord={onExportWord}
             isSaving={isSaving}
             isSaved={isSaved}
+            wordCount={wordCount}
           />
         </CardContent>
       </Card>
