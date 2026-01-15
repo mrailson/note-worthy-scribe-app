@@ -8,7 +8,7 @@ import { PatientConsentBanner } from "./PatientConsentBanner";
 import { ScribeDevDisclaimer } from "./ScribeDevDisclaimer";
 import { PatientContextCapture } from "./PatientContextCapture";
 import { ConsultationType, ConsultationCategory, ScribeSettings, PatientContext } from "@/types/scribe";
-import { Mic, Info, X } from "lucide-react";
+import { Mic, Info } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import scribeExplainer from "@/assets/scribe-explainer.png";
 
@@ -140,32 +140,20 @@ export const ConsultationReadyState = ({
 
       {/* Patient Explainer Modal */}
       <Dialog open={showExplainer} onOpenChange={setShowExplainer}>
-        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] p-0 overflow-hidden flex flex-col">
+        <DialogContent className="max-w-5xl w-[98vw] h-[95vh] p-2 border-0 flex flex-col">
           <DialogTitle className="sr-only">How the Scribing Service Works</DialogTitle>
           
-          {/* Header with X button */}
-          <div className="flex justify-end p-2 shrink-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
-              onClick={() => setShowExplainer(false)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          {/* Image container */}
-          <div className="flex-1 flex items-center justify-center px-4 overflow-auto">
+          {/* Image container - takes maximum space */}
+          <div className="flex-1 flex items-center justify-center overflow-auto min-h-0">
             <img 
               src={scribeExplainer} 
               alt="How the scribing service works - Real-time transcription helps the GP take notes, no recordings are kept, and the clinician verifies everything at the end"
-              className="max-w-full max-h-full object-contain rounded-lg"
+              className="max-w-full max-h-full object-contain"
             />
           </div>
           
           {/* Footer with Close button */}
-          <div className="flex justify-center p-4 shrink-0">
+          <div className="flex justify-center pt-2 shrink-0">
             <Button
               variant="outline"
               onClick={() => setShowExplainer(false)}
