@@ -140,22 +140,39 @@ export const ConsultationReadyState = ({
 
       {/* Patient Explainer Modal */}
       <Dialog open={showExplainer} onOpenChange={setShowExplainer}>
-        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] p-0 overflow-hidden">
+        <DialogContent className="max-w-4xl w-[95vw] h-[90vh] p-0 overflow-hidden flex flex-col">
           <DialogTitle className="sr-only">How the Scribing Service Works</DialogTitle>
-          <div className="relative w-full h-full flex items-center justify-center bg-background p-4">
+          
+          {/* Header with X button */}
+          <div className="flex justify-end p-2 shrink-0">
             <Button
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 z-10 h-8 w-8 rounded-full bg-background/80 hover:bg-background"
+              className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
               onClick={() => setShowExplainer(false)}
             >
               <X className="h-4 w-4" />
             </Button>
+          </div>
+          
+          {/* Image container */}
+          <div className="flex-1 flex items-center justify-center px-4 overflow-auto">
             <img 
               src={scribeExplainer} 
               alt="How the scribing service works - Real-time transcription helps the GP take notes, no recordings are kept, and the clinician verifies everything at the end"
               className="max-w-full max-h-full object-contain rounded-lg"
             />
+          </div>
+          
+          {/* Footer with Close button */}
+          <div className="flex justify-center p-4 shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowExplainer(false)}
+              className="min-w-[120px]"
+            >
+              Close
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
