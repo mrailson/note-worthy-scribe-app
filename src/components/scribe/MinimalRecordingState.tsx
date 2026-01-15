@@ -1,6 +1,16 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ConsultationType } from "@/types/scribe";
-import { Pause, Play, Square, Maximize2 } from "lucide-react";
+import { Pause, Play, Square, Maximize2, ChevronDown, ChevronUp, Mic } from "lucide-react";
+
+interface MicrophoneDevice {
+  deviceId: string;
+  label: string;
+}
 
 interface MinimalRecordingStateProps {
   duration: number;
@@ -11,6 +21,9 @@ interface MinimalRecordingStateProps {
   onResume: () => void;
   onFinish: () => void;
   onExpandView: () => void;
+  transcript?: string;
+  selectedMicrophoneId?: string;
+  onMicrophoneChange?: (deviceId: string) => void;
 }
 
 export const MinimalRecordingState = ({
@@ -22,9 +35,40 @@ export const MinimalRecordingState = ({
   onResume,
   onFinish,
   onExpandView,
+  transcript,
+  selectedMicrophoneId,
+  onMicrophoneChange,
 }: MinimalRecordingStateProps) => {
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [microphones, setMicrophones] = useState<MicrophoneDevice[]>([]);
+
+  // Load available microphones
+  useEffect(() => {
+    const loadMicrophones = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const mics = devices
+          .filter(device => device.kind === 'audioinput')
+          .map((device, index) => ({
+            deviceId: device.deviceId,
+            label: device.label || `Microphone ${index + 1}`,
+          }));
+        setMicrophones(mics);
+      } catch (error) {
+        console.error('Failed to enumerate devices:', error);
+      }
+    };
+
+    loadMicrophones();
+    
+    navigator.mediaDevices.addEventListener('devicechange', loadMicrophones);
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', loadMicrophones);
+    };
+  }, []);
+
   return (
-    <div className="flex flex-col items-center justify-center h-[calc(100vh-180px)] px-4">
+    <div className="flex flex-col items-center justify-center h-[calc(100vh-180px)] px-4 relative">
       {/* Expand button in corner */}
       <div className="absolute top-4 right-4">
         <Button
@@ -36,6 +80,28 @@ export const MinimalRecordingState = ({
           <Maximize2 className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Mic selector in top left */}
+      {microphones.length > 0 && onMicrophoneChange && (
+        <div className="absolute top-4 left-4">
+          <Select 
+            value={selectedMicrophoneId || microphones[0]?.deviceId} 
+            onValueChange={onMicrophoneChange}
+          >
+            <SelectTrigger className="w-[200px] h-9 text-xs bg-background">
+              <Mic className="h-3 w-3 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Select microphone" />
+            </SelectTrigger>
+            <SelectContent className="bg-background border shadow-lg z-50">
+              {microphones.map((mic) => (
+                <SelectItem key={mic.deviceId} value={mic.deviceId} className="text-xs">
+                  {mic.label.length > 30 ? mic.label.substring(0, 30) + '...' : mic.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Main content - centered */}
       <div className="flex flex-col items-center justify-center flex-1 -mt-16">
@@ -59,9 +125,50 @@ export const MinimalRecordingState = ({
         </div>
 
         {/* Word count */}
-        <div className="text-xl text-muted-foreground">
+        <div className="text-xl text-muted-foreground mb-6">
           {wordCount.toLocaleString()} words
         </div>
+
+        {/* Collapsible Transcript */}
+        <Collapsible 
+          open={showTranscript} 
+          onOpenChange={setShowTranscript}
+          className="w-full max-w-2xl"
+        >
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full justify-between text-muted-foreground"
+            >
+              <span>{showTranscript ? 'Hide Transcript' : 'Show Transcript'}</span>
+              {showTranscript ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2">
+            <Card className="bg-muted/30">
+              <CardContent className="p-0">
+                <ScrollArea className="h-48">
+                  <div className="p-4">
+                    {transcript ? (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
+                        {transcript}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic text-center">
+                        Transcript will appear here as you speak...
+                      </p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       {/* Bottom controls */}

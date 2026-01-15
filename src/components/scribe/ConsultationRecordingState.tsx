@@ -127,6 +127,7 @@ export const ConsultationRecordingState = ({
         onResume={onResume}
         onFinish={onFinish}
         onExpandView={() => setShowMinimalView(false)}
+        transcript={transcript}
       />
     );
   }
