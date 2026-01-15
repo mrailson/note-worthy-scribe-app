@@ -192,6 +192,11 @@ export function useImageStudio() {
         throw error;
       }
 
+      // Check for error in response data (from edge function)
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
       if (!data?.image?.url) {
         throw new Error('No image was generated');
       }
