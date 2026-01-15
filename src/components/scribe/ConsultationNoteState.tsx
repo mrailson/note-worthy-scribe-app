@@ -157,6 +157,23 @@ export const ConsultationNoteState = ({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
+                            onClick={() => onViewModeChange('narrativeClinical')}
+                            className={cn(
+                              "p-1.5 rounded-md transition-colors",
+                              viewMode === 'narrativeClinical' 
+                                ? "text-primary bg-primary/10" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            aria-label="Narrative Clinical (H/E/A/I/P)"
+                          >
+                            <ClipboardList className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Narrative Clinical (H/E/A/I/P)</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
                             onClick={() => onViewModeChange('soap')}
                             className={cn(
                               "p-1.5 rounded-md transition-colors",
@@ -164,30 +181,13 @@ export const ConsultationNoteState = ({
                                 ? "text-primary bg-primary/10" 
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
                             )}
-                                            aria-label="Structured (SOAP)"
-                                          >
-                                            <List className="h-3.5 w-3.5" />
-                                          </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="bottom">Structured (SOAP)</TooltipContent>
-                                      </Tooltip>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <button
-                                            onClick={() => onViewModeChange('narrativeClinical')}
-                                            className={cn(
-                                              "p-1.5 rounded-md transition-colors",
-                                              viewMode === 'narrativeClinical' 
-                                                ? "text-primary bg-primary/10" 
-                                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                                            )}
-                                            aria-label="Narrative Clinical (H/E/A/I/P)"
-                                          >
-                                            <ClipboardList className="h-3.5 w-3.5" />
-                                          </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="bottom">Narrative Clinical (H/E/A/I/P)</TooltipContent>
-                                      </Tooltip>
+                            aria-label="Structured (SOAP)"
+                          >
+                            <List className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Structured (SOAP)</TooltipContent>
+                      </Tooltip>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <button
