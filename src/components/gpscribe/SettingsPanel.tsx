@@ -55,7 +55,8 @@ export const SettingsPanel = ({
   onResetSettings
 }: SettingsPanelProps) => {
   // Check if browser supports screen/system audio capture
-  const isChromium = /Chrome|Edg/.test(navigator.userAgent) && !/Safari/.test(navigator.userAgent);
+  // Chrome's userAgent contains both "Chrome" and "Safari", so we check for Chrome/Edge specifically
+  const isChromium = /Chrome|Edg/.test(navigator.userAgent);
   const supportsSystemAudio = isChromium;
   return (
     <div className="space-y-6">
