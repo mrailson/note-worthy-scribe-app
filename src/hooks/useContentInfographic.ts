@@ -7,7 +7,7 @@ type GenerationPhase = 'preparing' | 'generating' | 'downloading' | 'complete';
 interface ContentInfographicOptions {
   style?: string;
   detailLevel?: string;
-  imageModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
+  imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
 }
 
 // Style prompt mappings

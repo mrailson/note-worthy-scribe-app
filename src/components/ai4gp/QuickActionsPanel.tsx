@@ -25,7 +25,7 @@ interface QuickActionsPanelProps {
   onInsertIntoChat?: (message: string) => void;
   onQuickResponse?: (response: string) => void;
   onOpenDocumentTranslate?: () => void;
-  imageGenerationModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
+  imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
 }
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({

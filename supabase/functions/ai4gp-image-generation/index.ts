@@ -17,7 +17,7 @@ interface ImageGenerationRequest {
   conversationContext?: string;
   documentContent?: string;  // Content from attached files for visual generation
   imageAttachments?: ImageAttachment[];  // Image files for reference-based generation
-  imageModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
+  imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   practiceContext?: {
     practiceName?: string;
     pcnName?: string;
@@ -306,11 +306,25 @@ serve(async (req) => {
       referenceImages
     } = requestBody;
 
-    // Use selected model or default to Gemini Flash Image Preview
-    const selectedImageModel = imageModel || 'google/gemini-2.5-flash-image-preview';
+    // Use selected model or default to Gemini 3 Pro Image (best quality)
+    const selectedImageModel = imageModel || 'google/gemini-3-pro-image-preview';
 
     // Determine effective request type (studio uses 'purpose', regular uses 'requestType')
     const effectiveRequestType = isStudioRequest ? (purpose || 'general') : (requestType || 'general');
+
+    // Generate current date string for date anchoring (prevents 2023/2024 hallucinations)
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const dateStr = currentDate.toLocaleDateString('en-GB', { 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric' 
+    });
+    const dateAnchor = `
+CURRENT DATE: ${dateStr}
+- Use the year ${currentYear} for any dates unless a different year is explicitly specified
+- Do not use 2023 or 2024 unless the user requests historical content
+`;
 
     console.log('🎨 AI4GP Image Generation request:', { 
       prompt: prompt.substring(0, 100), 
@@ -497,6 +511,7 @@ USER REQUEST:
 ${prompt}
 ${keyMessagesSection}
 ${supportingSection}
+${dateAnchor}
 
 STYLE REQUIREMENTS:
 ${styleInstructions[stylePreset || 'nhs-professional']}
@@ -514,6 +529,8 @@ DESIGN GUIDELINES:
 - Ensure visual hierarchy guides the viewer's eye
 - Keep all content professional and workplace-appropriate
 - No explicit, offensive, or inappropriate imagery
+- For posters and leaflets: use HEADINGS and SHORT BULLET POINTS only, avoid long paragraphs
+- Use large font sizes for better readability - avoid small body copy
 
 ${SPELLING_REFERENCE}`;
 

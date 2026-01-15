@@ -30,7 +30,7 @@ export const useAI4GPService = () => {
   const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
   const [chatHistoryRetentionDays, setChatHistoryRetentionDays] = useState(30);
   const [hideGPClinical, setHideGPClinical] = useState(false);
-  const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1'>('google/gemini-2.5-flash-image-preview');
+  const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1'>('google/gemini-3-pro-image-preview');
   const [includePracticeLogo, setIncludePracticeLogo] = useState(true);
   
   // Image branding dialog state
@@ -1341,7 +1341,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setAutoCollapseUserPrompts(preferences.autoCollapseUserPrompts ?? false);
           setChatHistoryRetentionDays(preferences.chatHistoryRetentionDays ?? 30);
           setHideGPClinical(preferences.hideGPClinical ?? false);
-          setImageGenerationModel(preferences.imageGenerationModel ?? 'google/gemini-2.5-flash-image-preview');
+          setImageGenerationModel(preferences.imageGenerationModel ?? 'google/gemini-3-pro-image-preview');
           setIncludePracticeLogo(preferences.includePracticeLogo ?? true);
           console.log('AI4GP settings loaded successfully');
         } else {
@@ -1801,7 +1801,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         timestamp: userMessage.timestamp,
         isStreaming: false,
         responseTime,
-        model: imageGenerationModel === 'google/gemini-2.5-flash-image-preview' ? 'Gemini Flash' : 'GPT Image',
+        model: imageGenerationModel === 'google/gemini-3-pro-image-preview' ? 'Gemini 3 Pro' : imageGenerationModel === 'google/gemini-2.5-flash-image-preview' ? 'Gemini Flash' : 'GPT Image',
         generatedImages: [data.image as GeneratedImage]
       };
 
