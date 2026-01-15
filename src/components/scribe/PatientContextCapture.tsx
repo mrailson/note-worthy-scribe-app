@@ -276,7 +276,7 @@ export const PatientContextCapture = ({
                 )}
                 {patientContext.gender && (
                   <span>
-                    <span className="font-medium">Sex:</span> {patientContext.gender === 'M' ? 'Male' : 'Female'}
+                    <span className="font-medium">Sex:</span> {patientContext.gender}
                   </span>
                 )}
                 {patientContext.address && (
