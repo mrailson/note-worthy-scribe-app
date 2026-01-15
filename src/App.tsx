@@ -151,8 +151,8 @@ const App = () => {
                 </ProtectedRoute>
               } />
               <Route path="/ai4gp" element={<AI4GP />} />
-              <Route path="/gp-scribe" element={<GPScribe />} />
-              <Route path="/gp-scribe/settings" element={<GPScribeSettings />} />
+              <Route path="/gp-scribe" element={<Navigate to="/scribe" replace />} />
+              <Route path="/gp-scribe/settings" element={<Navigate to="/scribe" replace />} />
               <Route path="/meetings" element={<MeetingHistory />} />
               <Route path="/meeting-history" element={<MeetingHistory />} />
               <Route path="/meeting-summary" element={<MeetingSummary />} />

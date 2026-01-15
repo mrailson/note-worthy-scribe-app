@@ -48,7 +48,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const [isIcbMember, setIsIcbMember] = useState(false);
   
   const isHomePage = location.pathname === '/';
-  const isGPScribePage = location.pathname === '/gp-scribe';
+  const isScribePage = location.pathname === '/scribe';
   const isMeetingHistoryPage = location.pathname === '/meetings';
   const isSettingsPage = location.pathname === '/settings';
   const isAdminPage = location.pathname === '/admin';
@@ -227,7 +227,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         className="cursor-pointer py-3"
                       >
                         <Stethoscope className="h-4 w-4 mr-2" />
-                        GP Scribe
+                        Scribe
                       </DropdownMenuItem>
                     )}
                     {hasModuleAccess('complaints_system') && isServiceVisible('complaints_system') && (
@@ -606,7 +606,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 <DrawerClose asChild>
                                   <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/scribe')}>
                                     <Stethoscope className="h-4 w-4 mr-2" />
-                                    GP Scribe
+                                    Scribe
                                   </Button>
                                 </DrawerClose>
                               )}
