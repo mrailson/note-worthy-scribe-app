@@ -7,6 +7,7 @@ type GenerationPhase = 'preparing' | 'generating' | 'downloading' | 'complete';
 interface ContentInfographicOptions {
   style?: string;
   detailLevel?: string;
+  imageModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
 }
 
 // Style prompt mappings
@@ -92,7 +93,11 @@ export const useContentInfographic = () => {
     title?: string,
     options: ContentInfographicOptions = {}
   ) => {
-    const { style = 'professional', detailLevel = 'standard' } = options;
+    const { 
+      style = 'professional', 
+      detailLevel = 'standard',
+      imageModel = 'google/gemini-2.5-flash-image-preview'
+    } = options;
     
     setIsGenerating(true);
     setCurrentPhase('preparing');
@@ -134,7 +139,7 @@ ${documentContent}`;
         body: {
           prompt: imagePrompt,
           requestType: 'infographic',
-          imageModel: 'google/gemini-2.5-flash-image-preview',
+          imageModel,
         },
       });
       

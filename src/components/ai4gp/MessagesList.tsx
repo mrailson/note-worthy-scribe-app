@@ -19,6 +19,7 @@ interface MessagesListProps {
   onQuickResponse?: (response: string) => void;
   onSetDrugName?: (drugName: string) => void;
   autoCollapseUserPrompts?: boolean;
+  imageGenerationModel?: 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
 }
 
 export const MessagesList: React.FC<MessagesListProps> = ({
@@ -34,7 +35,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   showAIService = false,
   onQuickResponse,
   onSetDrugName,
-  autoCollapseUserPrompts = false
+  autoCollapseUserPrompts = false,
+  imageGenerationModel = 'google/gemini-2.5-flash-image-preview'
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const previousMessageCountRef = useRef(0);
@@ -169,6 +171,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
                 onQuickResponse={onQuickResponse}
                 onSetDrugName={onSetDrugName}
                 autoCollapseUserPrompts={autoCollapseUserPrompts}
+                imageGenerationModel={imageGenerationModel}
               />
             </div>
           );
