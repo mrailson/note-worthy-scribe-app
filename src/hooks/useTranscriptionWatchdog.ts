@@ -33,8 +33,8 @@ interface WatchdogState {
 
 export function useTranscriptionWatchdog(config: WatchdogConfig) {
   const {
-    warningThresholdMs = 120000, // 2 minutes
-    criticalThresholdMs = 240000, // 4 minutes
+    warningThresholdMs = 30000, // 30 seconds (reduced from 2 minutes)
+    criticalThresholdMs = 60000, // 60 seconds (reduced from 4 minutes)
     isActive,
     onStallDetected,
     onStallRecovered
