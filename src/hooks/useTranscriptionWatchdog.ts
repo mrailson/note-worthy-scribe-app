@@ -240,6 +240,20 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
   }, []);
 
   /**
+   * Call when a chunk is processed but filtered out (not a stall, just low quality/hallucination)
+   * This resets the stall timer without incrementing the chunk count
+   */
+  const reportChunkFiltered = useCallback(() => {
+    // Reset last chunk time to prevent false stalls
+    lastChunkTimeRef.current = Date.now();
+    
+    // Don't increment totalChunksRef - filtered chunks don't count as "processed"
+    // But they DO prove the system is still working, so reset stall detection
+    
+    console.log(`🐕 Watchdog: Chunk filtered (quality/hallucination check) - stall timer reset`);
+  }, []);
+
+  /**
    * Call this when visibility changes to check if we need to alert
    */
   const checkOnVisibilityRestore = useCallback(() => {
@@ -291,6 +305,7 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
   return {
     ...state,
     reportChunkProcessed,
+    reportChunkFiltered,
     checkOnVisibilityRestore,
     reset
   };
