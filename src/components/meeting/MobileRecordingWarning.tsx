@@ -9,17 +9,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Smartphone, AlertTriangle, Check } from "lucide-react";
+import { Smartphone, AlertTriangle, Check, Activity } from "lucide-react";
 import { detectDevice } from '@/utils/DeviceDetection';
+import { cn } from '@/lib/utils';
 
 interface MobileRecordingWarningProps {
   isRecording: boolean;
   onAcknowledge: () => void;
+  transcriptionHealth?: 'healthy' | 'warning' | 'critical' | 'inactive';
+  lastChunkSecondsAgo?: number;
 }
 
 export const MobileRecordingWarning: React.FC<MobileRecordingWarningProps> = ({
   isRecording,
-  onAcknowledge
+  onAcknowledge,
+  transcriptionHealth = 'inactive',
+  lastChunkSecondsAgo = 0
 }) => {
   const [showWarning, setShowWarning] = useState(false);
   const [hasAcknowledged, setHasAcknowledged] = useState(false);
@@ -119,13 +124,52 @@ export const MobileRecordingWarning: React.FC<MobileRecordingWarningProps> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Persistent banner while recording on iOS */}
+      {/* Persistent health indicator while recording on iOS */}
       {isRecording && hasAcknowledged && (
-        <Alert variant="default" className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 mb-4">
-          <Smartphone className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
-            Keep this app in the foreground for reliable recording
-          </AlertDescription>
+        <Alert 
+          variant="default" 
+          className={cn(
+            "mb-4 transition-all duration-300",
+            transcriptionHealth === 'healthy' && "border-green-200 bg-green-50 dark:bg-green-950/20",
+            transcriptionHealth === 'warning' && "border-amber-200 bg-amber-50 dark:bg-amber-950/20 animate-pulse",
+            transcriptionHealth === 'critical' && "border-red-200 bg-red-50 dark:bg-red-950/20 animate-pulse"
+          )}
+        >
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-2">
+              <Activity 
+                className={cn(
+                  "h-4 w-4",
+                  transcriptionHealth === 'healthy' && "text-green-600",
+                  transcriptionHealth === 'warning' && "text-amber-600",
+                  transcriptionHealth === 'critical' && "text-red-600"
+                )} 
+              />
+              <AlertDescription 
+                className={cn(
+                  "text-xs",
+                  transcriptionHealth === 'healthy' && "text-green-800 dark:text-green-200",
+                  transcriptionHealth === 'warning' && "text-amber-800 dark:text-amber-200",
+                  transcriptionHealth === 'critical' && "text-red-800 dark:text-red-200"
+                )}
+              >
+                {transcriptionHealth === 'healthy' && 'Transcription active'}
+                {transcriptionHealth === 'warning' && `No new text for ${lastChunkSecondsAgo}s - keep app visible`}
+                {transcriptionHealth === 'critical' && `Transcription stalled (${lastChunkSecondsAgo}s) - tap to recover`}
+                {transcriptionHealth === 'inactive' && 'Keep this app in the foreground'}
+              </AlertDescription>
+            </div>
+            
+            {/* Health indicator dot */}
+            <div 
+              className={cn(
+                "h-2 w-2 rounded-full",
+                transcriptionHealth === 'healthy' && "bg-green-500",
+                transcriptionHealth === 'warning' && "bg-amber-500 animate-pulse",
+                transcriptionHealth === 'critical' && "bg-red-500 animate-pulse"
+              )}
+            />
+          </div>
         </Alert>
       )}
     </>
