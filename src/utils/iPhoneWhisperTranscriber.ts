@@ -681,10 +681,20 @@ export class iPhoneWhisperTranscriber {
     return Math.min(2000 * Math.pow(2, this.consecutiveFailures - 1), 16000);
   }
   
+  // Hard timeout for API calls - prevents hung requests from blocking processing
+  private readonly API_TIMEOUT_MS = 30000; // 30 seconds max per request
+
   /**
    * Send a chunk to the Whisper API and process the result
+   * Now includes a hard timeout to prevent hung requests
    */
   private async sendChunkToWhisper(chunk: ProcessableChunk): Promise<boolean> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      console.warn('⏱️ iPhone: Whisper API request timed out after 30s');
+    }, this.API_TIMEOUT_MS);
+
     try {
       // Convert to base64
       const arrayBuffer = await chunk.blob.arrayBuffer();
@@ -702,7 +712,8 @@ export class iPhoneWhisperTranscriber {
 
       console.log('📡 Sending chunk to Whisper API...');
 
-      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+      // Use Promise.race to enforce timeout on the entire operation
+      const apiPromise = supabase.functions.invoke('speech-to-text', {
         body: {
           audio: base64Audio,
           mimeType: chunk.blob.type,
@@ -713,7 +724,16 @@ export class iPhoneWhisperTranscriber {
         }
       });
 
-      if (error || !data.text) {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        controller.signal.addEventListener('abort', () => {
+          reject(new Error('API_TIMEOUT'));
+        });
+      });
+
+      const { data, error } = await Promise.race([apiPromise, timeoutPromise]);
+      clearTimeout(timeoutId);
+
+      if (error || !data?.text) {
         console.error('❌ Whisper API error:', error);
         return false;
       }
@@ -761,7 +781,12 @@ export class iPhoneWhisperTranscriber {
       return true;
       
     } catch (error) {
-      console.error('❌ sendChunkToWhisper error:', error);
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.message === 'API_TIMEOUT') {
+        console.error('❌ iPhone: API request timed out - will retry with next chunk');
+      } else {
+        console.error('❌ sendChunkToWhisper error:', error);
+      }
       return false;
     }
   }
