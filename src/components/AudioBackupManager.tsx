@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,9 +17,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, RotateCcw, AlertTriangle, CheckCircle, Trash2, Download } from 'lucide-react';
+import { Loader2, RotateCcw, AlertTriangle, CheckCircle, Trash2, Download, HardDrive, FolderOpen, Search, FileAudio } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { StorageBackupBrowser } from './admin/StorageBackupBrowser';
+import { MeetingAudioRecovery } from './admin/MeetingAudioRecovery';
 
 interface AudioBackup {
   id: string;
@@ -36,6 +39,12 @@ interface AudioBackup {
   created_at: string;
 }
 
+interface StorageStats {
+  totalFiles: number;
+  totalSize: number;
+  totalMeetings: number;
+}
+
 export const AudioBackupManager = () => {
   const { user } = useAuth();
   const [backups, setBackups] = useState<AudioBackup[]>([]);
@@ -46,11 +55,62 @@ export const AudioBackupManager = () => {
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [autoDeleteEnabled, setAutoDeleteEnabled] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
+  const [storageStats, setStorageStats] = useState<StorageStats>({ totalFiles: 0, totalSize: 0, totalMeetings: 0 });
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     fetchAudioBackups();
     fetchAutoDeleteSetting();
+    fetchStorageStats();
   }, []);
+
+  const fetchStorageStats = async () => {
+    try {
+      // List all files in storage bucket
+      const { data: folders, error: folderError } = await supabase.storage
+        .from('meeting-audio-backups')
+        .list('', { limit: 1000 });
+
+      if (folderError) {
+        console.error('Error listing storage folders:', folderError);
+        return;
+      }
+
+      let totalFiles = 0;
+      let totalSize = 0;
+      const meetingIds = new Set<string>();
+
+      for (const folder of folders || []) {
+        if (!folder.id) continue;
+
+        const { data: files, error: filesError } = await supabase.storage
+          .from('meeting-audio-backups')
+          .list(folder.name, { limit: 1000 });
+
+        if (filesError) continue;
+
+        for (const file of files || []) {
+          if (file.id) {
+            totalFiles++;
+            totalSize += (file.metadata as { size?: number })?.size || 0;
+            // Extract meeting ID from filename
+            const meetingMatch = file.name.match(/^([a-f0-9-]+)_/);
+            if (meetingMatch) {
+              meetingIds.add(meetingMatch[1]);
+            }
+          }
+        }
+      }
+
+      setStorageStats({
+        totalFiles,
+        totalSize,
+        totalMeetings: meetingIds.size
+      });
+    } catch (error) {
+      console.error('Error fetching storage stats:', error);
+    }
+  };
 
   const fetchAudioBackups = async () => {
     try {
@@ -227,6 +287,14 @@ export const AudioBackupManager = () => {
     return <Badge variant="destructive">Poor</Badge>;
   };
 
+  const formatStorageSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -237,45 +305,83 @@ export const AudioBackupManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-2xl font-bold mb-2">Audio Backup Manager</h2>
-          <p className="text-muted-foreground">
-            Manage audio backups for meetings with transcription quality issues.
-            Only super administrators can access this feature.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={deleteOldAudioBackups}
-            disabled={deletingOld || loading}
-            className="flex items-center gap-2"
-          >
-            {deletingOld ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-            Delete Old Files (24h+)
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setShowDeleteAllDialog(true)}
-            disabled={deletingAll || loading || backups.length === 0}
-            className="flex items-center gap-2"
-          >
-            {deletingAll ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-            Delete All Audio
-          </Button>
-        </div>
-      </div>
+      {/* Quick Stats Banner */}
+      <Alert className="border-blue-200 bg-blue-50">
+        <HardDrive className="h-4 w-4" />
+        <AlertTitle>Storage Overview</AlertTitle>
+        <AlertDescription>
+          <div className="flex gap-6 mt-2">
+            <div>
+              <span className="font-bold text-lg">{storageStats.totalFiles}</span>
+              <span className="text-muted-foreground ml-1">audio files</span>
+            </div>
+            <div>
+              <span className="font-bold text-lg">{formatStorageSize(storageStats.totalSize)}</span>
+              <span className="text-muted-foreground ml-1">total storage</span>
+            </div>
+            <div>
+              <span className="font-bold text-lg">{storageStats.totalMeetings}</span>
+              <span className="text-muted-foreground ml-1">meetings with backups</span>
+            </div>
+          </div>
+        </AlertDescription>
+      </Alert>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <FileAudio className="h-4 w-4" />
+            Database Records
+          </TabsTrigger>
+          <TabsTrigger value="storage" className="flex items-center gap-2">
+            <FolderOpen className="h-4 w-4" />
+            Storage Browser
+          </TabsTrigger>
+          <TabsTrigger value="recovery" className="flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            Meeting Recovery
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Audio Backup Records</h2>
+              <p className="text-muted-foreground">
+                Database records for audio backups with quality metadata.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={deleteOldAudioBackups}
+                disabled={deletingOld || loading}
+                className="flex items-center gap-2"
+              >
+                {deletingOld ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Delete Old Files (24h+)
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowDeleteAllDialog(true)}
+                disabled={deletingAll || loading || backups.length === 0}
+                className="flex items-center gap-2"
+              >
+                {deletingAll ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Delete All Audio
+              </Button>
+            </div>
+          </div>
 
       <div className="flex items-center space-x-2 p-4 border rounded-lg bg-muted/50">
         <Checkbox
@@ -320,100 +426,110 @@ export const AudioBackupManager = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {backups.length === 0 ? (
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            No audio backups found. Backups are automatically created when transcription quality is poor.
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <div className="grid gap-4">
-          {backups.map((backup) => (
-            <Card key={backup.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">Meeting Audio Backup</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      Created: {new Date(backup.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {getQualityBadge(backup.transcription_quality_score)}
-                    {backup.is_reprocessed && (
-                      <Badge variant="outline" className="text-green-600 border-green-600">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Reprocessed
-                      </Badge>
+          {backups.length === 0 ? (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                No audio backups found in database. Check the Storage Browser tab to see files in the storage bucket.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="grid gap-4">
+              {backups.map((backup) => (
+                <Card key={backup.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">Meeting Audio Backup</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          Created: {new Date(backup.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        {getQualityBadge(backup.transcription_quality_score)}
+                        {backup.is_reprocessed && (
+                          <Badge variant="outline" className="text-green-600 border-green-600">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Reprocessed
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium">Duration:</span>
+                        <p>{formatDuration(backup.duration_seconds)}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">File Size:</span>
+                        <p>{formatFileSize(backup.file_size)}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Word Count:</span>
+                        <p>{backup.word_count} / {backup.expected_word_count}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Quality Score:</span>
+                        <p>{(backup.transcription_quality_score * 100).toFixed(1)}%</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="font-medium text-sm">Backup Reason:</span>
+                      <p className="text-sm text-muted-foreground capitalize">
+                        {backup.backup_reason.replace('_', ' ')}
+                      </p>
+                    </div>
+
+                    {backup.reprocessed_at && (
+                      <div>
+                        <span className="font-medium text-sm">Reprocessed:</span>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(backup.reprocessed_at).toLocaleString()}
+                        </p>
+                      </div>
                     )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Duration:</span>
-                    <p>{formatDuration(backup.duration_seconds)}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium">File Size:</span>
-                    <p>{formatFileSize(backup.file_size)}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium">Word Count:</span>
-                    <p>{backup.word_count} / {backup.expected_word_count}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium">Quality Score:</span>
-                    <p>{(backup.transcription_quality_score * 100).toFixed(1)}%</p>
-                  </div>
-                </div>
 
-                <div>
-                  <span className="font-medium text-sm">Backup Reason:</span>
-                  <p className="text-sm text-muted-foreground capitalize">
-                    {backup.backup_reason.replace('_', ' ')}
-                  </p>
-                </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadAudio(backup)}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Audio
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => reprocessAudio(backup.id)}
+                        disabled={reprocessing === backup.id}
+                      >
+                        {reprocessing === backup.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <RotateCcw className="h-4 w-4 mr-2" />
+                        )}
+                        Reprocess Audio
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
 
-                {backup.reprocessed_at && (
-                  <div>
-                    <span className="font-medium text-sm">Reprocessed:</span>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(backup.reprocessed_at).toLocaleString()}
-                    </p>
-                  </div>
-                )}
+        <TabsContent value="storage">
+          <StorageBackupBrowser />
+        </TabsContent>
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadAudio(backup)}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download Audio
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => reprocessAudio(backup.id)}
-                    disabled={reprocessing === backup.id}
-                  >
-                    {reprocessing === backup.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                    )}
-                    Reprocess Audio
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+        <TabsContent value="recovery">
+          <MeetingAudioRecovery />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
