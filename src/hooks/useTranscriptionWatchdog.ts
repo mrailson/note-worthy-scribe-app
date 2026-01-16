@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { showToast } from '@/utils/toastWrapper';
+import { detectDevice } from '@/utils/DeviceDetection';
+import { iOSAudioAlert } from '@/utils/iOSAudioAlert';
 
 interface WatchdogConfig {
   /** Time in ms before showing warning (default: 60000 = 1 minute) */
@@ -12,6 +14,8 @@ interface WatchdogConfig {
   onStallDetected?: (stalledDurationMs: number) => void;
   /** Callback when transcription resumes after stall */
   onStallRecovered?: () => void;
+  /** Callback to attempt automatic recovery (for mobile) */
+  onAutoRecoveryAttempt?: () => void;
 }
 
 interface WatchdogState {
@@ -37,8 +41,12 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
     criticalThresholdMs = 60000, // 60 seconds (reduced from 4 minutes)
     isActive,
     onStallDetected,
-    onStallRecovered
+    onStallRecovered,
+    onAutoRecoveryAttempt
   } = config;
+
+  const device = detectDevice();
+  const isMobile = device.isMobile;
 
   const [state, setState] = useState<WatchdogState>({
     healthStatus: 'inactive',
@@ -133,22 +141,41 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
 
         if (healthStatus === 'critical' && !criticalShownRef.current) {
           criticalShownRef.current = true;
+          
+          // Play critical audio alert on iOS (works even with screen locked)
+          if (isMobile) {
+            iOSAudioAlert.playCriticalAlert();
+            // Auto-trigger recovery attempt on mobile
+            console.log('📱 Auto-triggering recovery attempt on mobile...');
+            onAutoRecoveryAttempt?.();
+          }
+          
           showToast.error(
             'Transcription appears to have stopped. Check your recording.',
             {
               section: 'meeting_manager',
               duration: Infinity,
-              description: 'No transcription activity for over 2 minutes'
+              description: isMobile 
+                ? 'Attempting automatic recovery...' 
+                : 'No transcription activity for over 2 minutes'
             }
           );
         } else if (healthStatus === 'warning' && !warningShownRef.current) {
           warningShownRef.current = true;
+          
+          // Play warning beep on iOS
+          if (isMobile) {
+            iOSAudioAlert.playWarningBeep();
+          }
+          
           showToast.warning(
-            'Transcription may be stalled - checking...',
+            isMobile 
+              ? 'Transcription may be paused - keep app in foreground'
+              : 'Transcription may be stalled - checking...',
             {
               section: 'meeting_manager',
               duration: 10000,
-              description: 'No new text for 1 minute'
+              description: `No new text for ${Math.round(timeSinceLastChunk / 1000)}s`
             }
           );
         }
@@ -159,6 +186,12 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
         criticalShownRef.current = false;
         console.log('✅ Transcription recovered from stall');
         onStallRecovered?.();
+        
+        // Play recovery chime on iOS
+        if (isMobile) {
+          iOSAudioAlert.playRecoveryChime();
+        }
+        
         showToast.success('Transcription resumed', { section: 'meeting_manager', duration: 3000 });
       }
 
@@ -184,7 +217,7 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
         checkIntervalRef.current = null;
       }
     };
-  }, [isActive, warningThresholdMs, criticalThresholdMs, onStallDetected, onStallRecovered]);
+  }, [isActive, warningThresholdMs, criticalThresholdMs, onStallDetected, onStallRecovered, onAutoRecoveryAttempt, isMobile]);
 
   /**
    * Call this whenever a chunk is successfully processed

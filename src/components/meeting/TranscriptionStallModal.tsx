@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +10,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, RefreshCw, Square, Clock } from "lucide-react";
+import { AlertTriangle, RefreshCw, Square, Clock, Smartphone } from "lucide-react";
+import { detectDevice } from '@/utils/DeviceDetection';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TranscriptionStallModalProps {
   isOpen: boolean;
@@ -20,6 +22,7 @@ interface TranscriptionStallModalProps {
   onKeepWaiting: () => void;
   stalledDurationSeconds: number;
   lastChunkTime: Date | null;
+  meetingId?: string;
 }
 
 export const TranscriptionStallModal: React.FC<TranscriptionStallModalProps> = ({
@@ -29,8 +32,61 @@ export const TranscriptionStallModal: React.FC<TranscriptionStallModalProps> = (
   onStopRecording,
   onKeepWaiting,
   stalledDurationSeconds,
-  lastChunkTime
+  lastChunkTime,
+  meetingId
 }) => {
+  const device = detectDevice();
+  const isMobile = device.isMobile;
+  const [autoReconnectCountdown, setAutoReconnectCountdown] = useState<number | null>(null);
+  
+  // Auto-reconnect countdown for mobile devices
+  useEffect(() => {
+    if (isOpen && isMobile) {
+      setAutoReconnectCountdown(5);
+      
+      const interval = setInterval(() => {
+        setAutoReconnectCountdown(prev => {
+          if (prev === null || prev <= 1) {
+            clearInterval(interval);
+            // Auto-trigger reconnect
+            onReconnect();
+            onClose();
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    } else {
+      setAutoReconnectCountdown(null);
+    }
+  }, [isOpen, isMobile, onReconnect, onClose]);
+  
+  // Log stall event to database for analysis
+  useEffect(() => {
+    if (isOpen && meetingId) {
+      const logStallEvent = async () => {
+        try {
+          const user = (await supabase.auth.getUser()).data.user;
+          if (user) {
+            console.log('📊 Logging transcription stall event:', {
+              meetingId,
+              stalledDurationSeconds,
+              device: device.deviceType,
+              isIOS: device.isIOS,
+              timestamp: new Date().toISOString()
+            });
+            // Could insert into a stall_events table if needed for analytics
+          }
+        } catch (error) {
+          console.warn('Failed to log stall event:', error);
+        }
+      };
+      logStallEvent();
+    }
+  }, [isOpen, meetingId, stalledDurationSeconds, device]);
+  
   const formatDuration = (seconds: number): string => {
     if (seconds < 60) return `${seconds} seconds`;
     const minutes = Math.floor(seconds / 60);
@@ -72,14 +128,36 @@ export const TranscriptionStallModal: React.FC<TranscriptionStallModalProps> = (
                 </div>
               </div>
 
+              {isMobile && autoReconnectCountdown !== null && (
+                <div className="bg-primary/10 rounded-lg p-3 border border-primary/20">
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">
+                      Auto-reconnecting in {autoReconnectCountdown}s...
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <p className="text-sm">
                 This could be caused by:
               </p>
               <ul className="text-sm list-disc list-inside space-y-1 text-muted-foreground">
-                <li>Browser tab was in the background</li>
-                <li>Network connection was interrupted</li>
-                <li>Microphone was disconnected</li>
-                <li>Device went to sleep</li>
+                {isMobile ? (
+                  <>
+                    <li>App was moved to background or screen locked</li>
+                    <li>iOS Safari paused web audio</li>
+                    <li>Network connection was interrupted</li>
+                    <li>Phone call or notification interrupted</li>
+                  </>
+                ) : (
+                  <>
+                    <li>Browser tab was in the background</li>
+                    <li>Network connection was interrupted</li>
+                    <li>Microphone was disconnected</li>
+                    <li>Device went to sleep</li>
+                  </>
+                )}
               </ul>
             </div>
           </AlertDialogDescription>

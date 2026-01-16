@@ -47,6 +47,14 @@ export class iPhoneWhisperTranscriber {
 
   private selectedMimeType: string = 'audio/webm';
 
+  // Auto-recovery for iOS background throttling
+  private lastSuccessfulTranscriptionTime = 0;
+  private autoRecoveryAttempts = 0;
+  private healthCheckInterval: NodeJS.Timeout | null = null;
+  private readonly AUTO_RECOVERY_THRESHOLD_MS = 45000; // 45 seconds without transcription
+  private readonly MAX_AUTO_RECOVERY_ATTEMPTS = 3;
+  private onRecoveryAttempt?: () => void;
+
   constructor(
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
@@ -54,13 +62,131 @@ export class iPhoneWhisperTranscriber {
     meetingSettings?: any,
     meetingId?: string,
     private onAudioActivity?: (hasActivity: boolean) => void,
-    private selectedDeviceId?: string | null
+    private selectedDeviceId?: string | null,
+    onRecoveryAttempt?: () => void
   ) {
     this.meetingSettings = withDefaultThresholds(meetingSettings);
+    this.onRecoveryAttempt = onRecoveryAttempt;
     if (meetingId) {
       this.meetingId = meetingId;
       this.sessionId = meetingId;
     }
+  }
+
+  /**
+   * Set callback for recovery attempts (called when auto-recovery kicks in)
+   */
+  public setRecoveryCallback(callback: () => void) {
+    this.onRecoveryAttempt = callback;
+  }
+
+  /**
+   * Start health monitoring for auto-recovery
+   * Detects when transcription has stalled and attempts automatic recovery
+   */
+  private startHealthMonitoring() {
+    // Clear any existing interval
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+    }
+
+    this.lastSuccessfulTranscriptionTime = Date.now();
+    this.autoRecoveryAttempts = 0;
+
+    // Check every 15 seconds
+    this.healthCheckInterval = setInterval(async () => {
+      if (!this.isRecording) {
+        this.stopHealthMonitoring();
+        return;
+      }
+
+      const timeSinceLastTranscription = Date.now() - this.lastSuccessfulTranscriptionTime;
+      
+      if (timeSinceLastTranscription > this.AUTO_RECOVERY_THRESHOLD_MS) {
+        console.warn(`⚠️ iPhone: No transcription for ${Math.round(timeSinceLastTranscription / 1000)}s - checking audio activity`);
+        
+        // Check if we're still capturing audio
+        if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
+          // We have unprocessed chunks - try to process them
+          console.log('🔄 iPhone: Found unprocessed chunks, attempting recovery...');
+          await this.attemptAutoRecovery();
+        } else {
+          console.log('⏸️ iPhone: No new audio chunks - possible background throttling');
+        }
+      }
+    }, 15000);
+
+    console.log('🏥 iPhone: Health monitoring started');
+  }
+
+  private stopHealthMonitoring() {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+    console.log('🏥 iPhone: Health monitoring stopped');
+  }
+
+  /**
+   * Attempt automatic recovery when transcription appears stalled
+   */
+  private async attemptAutoRecovery() {
+    if (this.autoRecoveryAttempts >= this.MAX_AUTO_RECOVERY_ATTEMPTS) {
+      console.error('❌ iPhone: Max auto-recovery attempts reached');
+      this.onError('Transcription stalled - tap to retry');
+      return;
+    }
+
+    this.autoRecoveryAttempts++;
+    console.log(`🔄 iPhone: Auto-recovery attempt ${this.autoRecoveryAttempts}/${this.MAX_AUTO_RECOVERY_ATTEMPTS}`);
+    this.onStatusChange(`Recovering transcription (attempt ${this.autoRecoveryAttempts})...`);
+
+    // Notify caller about recovery attempt
+    this.onRecoveryAttempt?.();
+
+    try {
+      // Force process any pending chunks
+      if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
+        await this.processNewAudioChunks();
+        this.onStatusChange('Recording...');
+      }
+    } catch (error) {
+      console.error('❌ iPhone: Auto-recovery failed:', error);
+    }
+  }
+
+  /**
+   * Process any pending chunks that may have accumulated during background state
+   * Call this when visibility is restored
+   */
+  public async processPendingChunks(): Promise<number> {
+    const pendingCount = this.fullRecordingChunks.length - this.lastProcessedChunkIndex;
+    
+    if (pendingCount <= 0) {
+      console.log('📱 iPhone: No pending chunks to process');
+      return 0;
+    }
+
+    console.log(`📱 iPhone: Processing ${pendingCount} pending chunks after visibility restore`);
+    this.onStatusChange(`Processing ${pendingCount} pending chunks...`);
+
+    try {
+      await this.processNewAudioChunks();
+      this.onStatusChange('Recording...');
+      return pendingCount;
+    } catch (error) {
+      console.error('❌ iPhone: Failed to process pending chunks:', error);
+      this.onError('Failed to catch up - some audio may be lost');
+      return 0;
+    }
+  }
+
+  /**
+   * Mark successful transcription (resets recovery counter)
+   */
+  private markSuccessfulTranscription() {
+    this.lastSuccessfulTranscriptionTime = Date.now();
+    this.autoRecoveryAttempts = 0;
   }
 
   public setMeetingId(id: string) {
@@ -294,6 +420,9 @@ export class iPhoneWhisperTranscriber {
       this.isRecording = true;
       this.startChunkedRecording();
       
+      // Start health monitoring for auto-recovery
+      this.startHealthMonitoring();
+      
       this.onStatusChange('Recording...');
       console.log('✅ iPhone transcription started');
 
@@ -417,6 +546,9 @@ export class iPhoneWhisperTranscriber {
         };
         
         this.onTranscription(transcriptData);
+        
+        // Mark successful transcription for health monitoring
+        this.markSuccessfulTranscription();
         
         // Update word count (only for new words)
         const newWordCount = newText.split(/\s+/).filter(Boolean).length;
@@ -657,7 +789,8 @@ export class iPhoneWhisperTranscriber {
     this.isRecording = false;
     this.onStatusChange('Processing final transcript...');
     
-    // Stop audio activity monitoring
+    // Stop health monitoring and audio activity monitoring
+    this.stopHealthMonitoring();
     this.stopActivityMonitoring();
 
     if (this.transcriptionInterval) {
