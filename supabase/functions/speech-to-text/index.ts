@@ -254,8 +254,8 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
     }
 
     // Detect and filter out pure repetitive hallucinations
-    if (finalText && finalText.length < 150) {
-      const cleaned = finalText.replace(/[.,\s]/g, '').toLowerCase();
+    // FIXED: Removed 150 character limit - repetitive hallucinations can be any length
+    if (finalText && finalText.length > 0) {
       const words = finalText.toLowerCase().split(/\s+/).filter(Boolean);
       
       // Count occurrences of known hallucination terms
@@ -272,8 +272,29 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
       const uniqueRatio = words.length > 0 ? uniqueWords / words.length : 1;
       const isRepetitive = words.length >= 8 && uniqueRatio < 0.30;
       
-      if ((isPureRepetition || isRepetitive) && confidence < 0.4 && avg_logprob < -0.6) {
-        console.log('🚫 SPEECH-TO-TEXT: Detected repetitive hallucination (ratio:', hallucinationRatio.toFixed(2), ', unique:', uniqueRatio.toFixed(2), ')');
+      // NEW: Check for repeated phrase patterns (e.g., "go-to-market team, go-to-market team, ...")
+      const phrases = finalText.split(/[,.]/).map(p => p.trim().toLowerCase()).filter(p => p.length > 3);
+      let hasPhraseRepetition = false;
+      if (phrases.length >= 4) {
+        const uniquePhrases = new Set(phrases).size;
+        const phraseUniqueRatio = uniquePhrases / phrases.length;
+        if (phraseUniqueRatio < 0.3) {
+          console.log(`🚫 SPEECH-TO-TEXT: Detected repeated phrase pattern: ${uniquePhrases}/${phrases.length} unique (${(phraseUniqueRatio * 100).toFixed(0)}%)`);
+          hasPhraseRepetition = true;
+        }
+      }
+      
+      // FIXED: Repetitive content is ALWAYS suspicious - don't require low confidence/logprob
+      if (isPureRepetition || hasPhraseRepetition) {
+        console.log('🚫 SPEECH-TO-TEXT: Detected repetitive hallucination (pure repetition or phrase pattern)');
+        finalText = '';
+        confidence = 0.0;
+        no_speech_prob = Math.max(no_speech_prob, 0.95);
+        segments = [];
+        hallucinationDetected = true;
+      } else if (isRepetitive) {
+        // For word-level repetition, still be cautious but can check quality metrics
+        console.log('🚫 SPEECH-TO-TEXT: Detected repetitive content (unique ratio:', uniqueRatio.toFixed(2), ')');
         finalText = '';
         confidence = 0.0;
         no_speech_prob = Math.max(no_speech_prob, 0.95);

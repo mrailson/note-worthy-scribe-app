@@ -392,6 +392,7 @@ export const useGPScribeRecording = (selectedMicrophoneId?: string | null, audio
           undefined, // meetingId
           undefined, // onAudioActivity
           undefined, // onChunkProcessed
+          undefined, // onChunkFiltered
           selectedMicrophoneId // Selected device ID
         );
         
@@ -467,6 +468,7 @@ export const useGPScribeRecording = (selectedMicrophoneId?: string | null, audio
           undefined, // meetingId
           undefined, // onAudioActivity
           undefined, // onChunkProcessed
+          undefined, // onChunkFiltered
           externalStream ? undefined : selectedMicrophoneId, // Only use device ID if not using external stream
           externalStream // Pass external stream if available
         );

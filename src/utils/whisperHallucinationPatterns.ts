@@ -221,6 +221,60 @@ export function isLaughterNoise(text: string): HallucinationCheckResult {
 }
 
 /**
+ * Detect repeated phrase patterns like "X, X, X, X..."
+ * This catches Whisper's tendency to loop on the same phrase
+ * e.g., "go-to-market team, go-to-market team, go-to-market team..."
+ */
+export function hasRepeatedPhrases(text: string, threshold = 0.3): HallucinationCheckResult {
+  // Split by comma, period, or "and" to get phrases
+  const phrases = text.split(/[,.]|\band\b/i)
+    .map(p => p.trim().toLowerCase())
+    .filter(p => p.length > 3);
+    
+  if (phrases.length < 4) {
+    return { isHallucination: false };
+  }
+  
+  const uniquePhrases = new Set(phrases).size;
+  const phraseUniqueRatio = uniquePhrases / phrases.length;
+  
+  if (phraseUniqueRatio < threshold) {
+    return {
+      isHallucination: true,
+      reason: `Repeated phrase pattern: only ${uniquePhrases}/${phrases.length} unique phrases (${(phraseUniqueRatio * 100).toFixed(0)}%)`,
+      confidence: 0.95
+    };
+  }
+  
+  // Also check for word-level repetition in longer text (catches "word word word word...")
+  const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  if (words.length >= 10) {
+    // Count consecutive repeated words
+    let maxConsecutive = 1;
+    let currentConsecutive = 1;
+    for (let i = 1; i < words.length; i++) {
+      if (words[i] === words[i - 1]) {
+        currentConsecutive++;
+        maxConsecutive = Math.max(maxConsecutive, currentConsecutive);
+      } else {
+        currentConsecutive = 1;
+      }
+    }
+    
+    // If same word repeated 5+ times consecutively, it's likely a hallucination
+    if (maxConsecutive >= 5) {
+      return {
+        isHallucination: true,
+        reason: `Word repeated ${maxConsecutive} times consecutively`,
+        confidence: 0.92
+      };
+    }
+  }
+  
+  return { isHallucination: false };
+}
+
+/**
  * Combined hallucination check with confidence scoring
  */
 export function isLikelyHallucination(
@@ -231,6 +285,7 @@ export function isLikelyHallucination(
     checkRepetition?: boolean;
     checkUrls?: boolean;
     checkLaughter?: boolean;
+    checkRepeatedPhrases?: boolean;
     confidenceThreshold?: number;
   } = {}
 ): HallucinationCheckResult {
@@ -239,6 +294,7 @@ export function isLikelyHallucination(
     checkRepetition = true,
     checkUrls = true,
     checkLaughter = true,
+    checkRepeatedPhrases = true,
     confidenceThreshold = 0.15
   } = options;
   
@@ -260,6 +316,13 @@ export function isLikelyHallucination(
   if (checkLaughter) {
     const laughterCheck = isLaughterNoise(trimmedText);
     if (laughterCheck.isHallucination) return laughterCheck;
+  }
+  
+  // CRITICAL: Check for repeated phrase patterns (catches "X, X, X, X..." hallucinations)
+  // This runs BEFORE other checks as it's a strong signal regardless of confidence
+  if (checkRepeatedPhrases) {
+    const phraseRepetitionCheck = hasRepeatedPhrases(trimmedText);
+    if (phraseRepetitionCheck.isHallucination) return phraseRepetitionCheck;
   }
   
   // Check for known hallucination phrases
@@ -286,7 +349,7 @@ export function isLikelyHallucination(
     }
   }
   
-  // Check for repetitive content
+  // Check for repetitive word content (low unique word ratio)
   if (checkRepetition) {
     const repetitionCheck = isRepetitiveContent(trimmedText);
     if (repetitionCheck.isHallucination) return repetitionCheck;

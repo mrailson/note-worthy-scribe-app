@@ -2230,7 +2230,8 @@ export const MeetingRecorder = ({
       meetingSettings, // Pass meeting settings for confidence gating
       meetingId,
       (hasActivity: boolean) => setAudioActivity(hasActivity), // Callback for audio activity
-      () => watchdog.reportChunkProcessed() // Callback when chunk is processed
+      () => watchdog.reportChunkProcessed(), // Callback when chunk is processed
+      () => watchdog.reportChunkFiltered() // Callback when chunk is filtered (not stalled, just low quality)
     );
 
     await transcriber.startTranscription();

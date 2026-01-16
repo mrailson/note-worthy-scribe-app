@@ -57,6 +57,7 @@ export class DesktopWhisperTranscriber {
     meetingId?: string,
     private onAudioActivity?: (hasActivity: boolean) => void,
     private onChunkProcessed?: () => void,
+    private onChunkFiltered?: () => void, // NEW: Called when chunk is filtered (not stalled, just low quality)
     private selectedDeviceId?: string | null,
     private externalStream?: MediaStream | null // Allow passing pre-configured stream (e.g., mixed mic + browser audio)
   ) {
@@ -517,12 +518,16 @@ export class DesktopWhisperTranscriber {
         // CRITICAL: Reject chunks with very high no_speech_prob (>0.85) - likely silence/noise
         if (noSpeechProb > 0.85) {
           console.log(`🚫 Rejecting chunk: high no_speech_prob (${(noSpeechProb * 100).toFixed(1)}%) - likely silence/noise`);
+          // Notify watchdog that we're still processing (not stalled), just filtering
+          this.onChunkFiltered?.();
           return;
         }
         
         // CRITICAL: Reject chunks with extremely low confidence (<0.12)
         if (chunkConfidence < 0.12) {
           console.log(`🚫 Rejecting chunk: extremely low confidence (${(chunkConfidence * 100).toFixed(1)}%)`);
+          // Notify watchdog that we're still processing (not stalled), just filtering
+          this.onChunkFiltered?.();
           return;
         }
         
@@ -536,6 +541,8 @@ export class DesktopWhisperTranscriber {
         // ENHANCED: Use comprehensive hallucination detection with confidence scoring
         if (this.isLikelyRepetitiveNoise(cleanText, chunkConfidence)) {
           console.log('🚫 Skipping likely hallucinated/repetitive chunk');
+          // Notify watchdog that we're still processing (not stalled), just filtering
+          this.onChunkFiltered?.();
           return;
         }
         
@@ -547,6 +554,8 @@ export class DesktopWhisperTranscriber {
           const hasSuspicious = suspiciousPhrases.some(p => lowerText.includes(p));
           if (hasSuspicious) {
             console.log(`🚫 Rejecting low-confidence chunk with suspicious phrase: "${cleanText.substring(0, 50)}..."`);
+            // Notify watchdog that we're still processing (not stalled), just filtering
+            this.onChunkFiltered?.();
             return;
           }
         }
