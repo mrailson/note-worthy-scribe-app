@@ -174,7 +174,38 @@ export const ConsultationRecordingState = ({
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)] px-2 sm:px-4">
+    <>
+      {/* Full-screen finishing overlay - shows immediately when finish is clicked */}
+      {isFinishing && (
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex items-center justify-center">
+          <Card className="w-full max-w-md mx-4 border-primary/20">
+            <CardContent className="pt-8 pb-8 text-center space-y-4">
+              <div className="relative mx-auto w-16 h-16">
+                <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+                <div className="relative w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Finishing Consultation</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Processing final transcript...
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground pt-2">
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatDuration(duration)}
+                </span>
+                <span>•</span>
+                <span>{wordCount} words</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <div className="flex flex-col h-[calc(100vh-180px)] px-2 sm:px-4">
       {/* Patient Context Banner */}
       {patientContext && showPatientBanner && (
         <div className="mb-3">
@@ -470,6 +501,7 @@ export const ConsultationRecordingState = ({
           </Button>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
