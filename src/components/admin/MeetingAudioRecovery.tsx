@@ -42,11 +42,14 @@ interface RecentMeeting {
   id: string;
   title: string;
   createdAt: string;
+  startTime: string | null;
+  endTime: string | null;
   status: string;
   wordCount: number | null;
   durationMinutes: number | null;
   userId: string;
   userName: string | null;
+  lastTranscriptTime: string | null;
 }
 
 export const MeetingAudioRecovery = () => {
@@ -72,7 +75,7 @@ export const MeetingAudioRecovery = () => {
       // Fetch meetings first
       const { data: meetingsData, error: meetingsError } = await supabase
         .from('meetings')
-        .select('id, title, created_at, status, word_count, duration_minutes, user_id')
+        .select('id, title, created_at, start_time, end_time, status, word_count, duration_minutes, user_id')
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -80,6 +83,7 @@ export const MeetingAudioRecovery = () => {
 
       // Get unique user IDs to fetch profiles
       const userIds = [...new Set((meetingsData || []).map(m => m.user_id).filter(Boolean))];
+      const meetingIds = (meetingsData || []).map(m => m.id);
       
       // Fetch profiles for these users
       let profilesMap: Record<string, string> = {};
@@ -95,15 +99,35 @@ export const MeetingAudioRecovery = () => {
         }, {} as Record<string, string>);
       }
 
+      // Fetch last transcript chunk time for each meeting
+      let lastTranscriptMap: Record<string, string> = {};
+      if (meetingIds.length > 0) {
+        const { data: transcriptsData } = await supabase
+          .from('assembly_transcripts')
+          .select('meeting_id, created_at')
+          .in('meeting_id', meetingIds)
+          .order('created_at', { ascending: false });
+        
+        // Get the most recent transcript time per meeting
+        (transcriptsData || []).forEach((t) => {
+          if (!lastTranscriptMap[t.meeting_id]) {
+            lastTranscriptMap[t.meeting_id] = t.created_at;
+          }
+        });
+      }
+
       const meetings: RecentMeeting[] = (meetingsData || []).map((m: any) => ({
         id: m.id,
         title: m.title || 'Untitled',
         createdAt: m.created_at,
+        startTime: m.start_time,
+        endTime: m.end_time,
         status: m.status,
         wordCount: m.word_count,
         durationMinutes: m.duration_minutes,
         userId: m.user_id,
-        userName: profilesMap[m.user_id] || null
+        userName: profilesMap[m.user_id] || null,
+        lastTranscriptTime: lastTranscriptMap[m.id] || null
       }));
 
       setRecentMeetings(meetings);
@@ -495,10 +519,10 @@ export const MeetingAudioRecovery = () => {
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>User</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Duration</TableHead>
                   <TableHead>Words</TableHead>
+                  <TableHead>Start Time</TableHead>
+                  <TableHead>End Time</TableHead>
+                  <TableHead>Last Chunk</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
@@ -513,16 +537,16 @@ export const MeetingAudioRecovery = () => {
                       {meeting.userName || '-'}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(meeting.createdAt), 'dd/MM/yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(meeting.createdAt), 'HH:mm')}
-                    </TableCell>
-                    <TableCell>
-                      {meeting.durationMinutes ? `${meeting.durationMinutes}m` : '-'}
-                    </TableCell>
-                    <TableCell>
                       {meeting.wordCount?.toLocaleString() || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {meeting.startTime ? format(new Date(meeting.startTime), 'dd/MM/yy HH:mm') : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {meeting.endTime ? format(new Date(meeting.endTime), 'dd/MM/yy HH:mm') : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {meeting.lastTranscriptTime ? format(new Date(meeting.lastTranscriptTime), 'dd/MM/yy HH:mm') : '-'}
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusBadgeVariant(meeting.status)}>
