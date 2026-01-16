@@ -1323,7 +1323,8 @@ export const MeetingRecorder = ({
                 });
 
               if (error) {
-                console.error('Error saving raw chunk:', error);
+                console.error('❌ Error saving raw chunk:', error.message, error.details, error.hint, error.code);
+                console.error('❌ Full error object:', JSON.stringify(error, null, 2));
                 
                 // Update status to failed and increment retry count
                 setChunkSaveStatuses(prev => prev.map(chunk => 
