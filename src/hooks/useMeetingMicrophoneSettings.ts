@@ -6,9 +6,12 @@ export interface MicrophoneDevice {
   isDefault: boolean;
 }
 
+export type AudioSourceMode = 'microphone' | 'microphone_and_system' | 'system_only';
+
 export interface MeetingMicrophoneSettingsState {
   availableDevices: MicrophoneDevice[];
   selectedDeviceId: string | null;
+  audioSourceMode: AudioSourceMode;
   isTestingMic: boolean;
   testVolume: number;
   waveformData: number[];
@@ -20,12 +23,14 @@ export interface MeetingMicrophoneSettingsState {
 }
 
 const STORAGE_KEY = 'meeting_recorder_microphone_id';
+const AUDIO_SOURCE_STORAGE_KEY = 'meeting_recorder_audio_source';
 const WAVEFORM_BARS = 32;
 
 export const useMeetingMicrophoneSettings = () => {
   const [state, setState] = useState<MeetingMicrophoneSettingsState>({
     availableDevices: [],
     selectedDeviceId: null,
+    audioSourceMode: 'microphone',
     isTestingMic: false,
     testVolume: 0,
     waveformData: new Array(WAVEFORM_BARS).fill(0),
@@ -47,15 +52,19 @@ export const useMeetingMicrophoneSettings = () => {
   const audioChunksRef = useRef<Blob[]>([]);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
-  // Load saved device ID from localStorage
+  // Load saved device ID and audio source mode from localStorage
   useEffect(() => {
     try {
       const savedDeviceId = localStorage.getItem(STORAGE_KEY);
-      if (savedDeviceId) {
-        setState(prev => ({ ...prev, selectedDeviceId: savedDeviceId }));
-      }
+      const savedAudioSource = localStorage.getItem(AUDIO_SOURCE_STORAGE_KEY) as AudioSourceMode | null;
+      
+      setState(prev => ({
+        ...prev,
+        selectedDeviceId: savedDeviceId || prev.selectedDeviceId,
+        audioSourceMode: savedAudioSource || 'microphone',
+      }));
     } catch (e) {
-      console.warn('Could not load saved microphone setting:', e);
+      console.warn('Could not load saved microphone settings:', e);
     }
   }, []);
 
@@ -138,6 +147,16 @@ export const useMeetingMicrophoneSettings = () => {
       localStorage.setItem(STORAGE_KEY, deviceId);
     } catch (e) {
       console.warn('Could not save microphone setting:', e);
+    }
+  }, []);
+
+  // Select audio source mode
+  const selectAudioSource = useCallback((mode: AudioSourceMode) => {
+    setState(prev => ({ ...prev, audioSourceMode: mode }));
+    try {
+      localStorage.setItem(AUDIO_SOURCE_STORAGE_KEY, mode);
+    } catch (e) {
+      console.warn('Could not save audio source setting:', e);
     }
   }, []);
 
@@ -389,6 +408,7 @@ export const useMeetingMicrophoneSettings = () => {
     ...state,
     enumerateDevices,
     selectDevice,
+    selectAudioSource,
     startMicTest,
     stopMicTest,
     playRecordedAudio,
