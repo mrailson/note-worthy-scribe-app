@@ -37,8 +37,8 @@ interface WatchdogState {
 
 export function useTranscriptionWatchdog(config: WatchdogConfig) {
   const {
-    warningThresholdMs = 90000, // 90 seconds - allows 3-4 chunk cycles with API latency
-    criticalThresholdMs = 150000, // 150 seconds (2.5 min) - only for genuine failures
+    warningThresholdMs = 120000, // 2 minutes - allows multiple chunk cycles with API latency
+    criticalThresholdMs = 180000, // 3 minutes - only for genuine failures
     isActive,
     onStallDetected,
     onStallRecovered,

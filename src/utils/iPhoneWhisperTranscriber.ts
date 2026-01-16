@@ -83,6 +83,9 @@ export class iPhoneWhisperTranscriber {
   // NEW: Track consecutive failures for backoff
   private consecutiveFailures = 0;
   private lastApiCallTime = 0;
+  
+  // NEW: Pending tick flag - prevents missed chunks when processing
+  private pendingTick = false;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -108,10 +111,10 @@ export class iPhoneWhisperTranscriber {
     // Initialize chunk manager if using new strategy
     if (USE_NEW_IPHONE_CHUNKING) {
       this.chunkManager = new iPhoneChunkManager({
-        maxBufferDurationMs: 90000,    // 90s buffer max - prevent premature pruning
-        targetChunkDurationMs: 25000,  // Process every 25s
-        overlapDurationMs: 5000,       // 5s overlap for continuity
-        minChunkDurationMs: 8000       // Minimum 8s before processing
+        maxBufferDurationMs: 60000,    // 60s buffer max (reduced for faster processing)
+        targetChunkDurationMs: 15000,  // Process every 15s (was 25s) - faster turnaround
+        overlapDurationMs: 3000,       // 3s overlap (reduced)
+        minChunkDurationMs: 5000       // Minimum 5s before processing (was 8s)
       });
     }
     
@@ -171,9 +174,15 @@ export class iPhoneWhisperTranscriber {
       this.timerWorker.onmessage = async (event) => {
         const { type, isForced } = event.data;
         
-        if (type === 'tick' && this.isRecording && !this.isProcessing) {
-          console.log(`⏰ Worker tick (forced: ${isForced || false})`);
-          await this.processChunkFromManager();
+        if (type === 'tick' && this.isRecording) {
+          if (this.isProcessing) {
+            // Don't skip the tick - queue it for later processing
+            console.log('⏰ Worker tick - queuing (processing in progress)');
+            this.pendingTick = true;
+          } else {
+            console.log(`⏰ Worker tick (forced: ${isForced || false})`);
+            await this.processChunkFromManager();
+          }
         }
       };
       
@@ -524,10 +533,10 @@ export class iPhoneWhisperTranscriber {
         this.chunkManager.initialize(this.selectedMimeType);
       }
 
-      // Create MediaRecorder
+      // Create MediaRecorder with lower bitrate for smaller files
       this.mediaRecorder = new MediaRecorder(this.stream, {
         mimeType: this.selectedMimeType,
-        audioBitsPerSecond: 128000
+        audioBitsPerSecond: 64000  // 64kbps - plenty for speech, faster uploads
       });
 
       this.mediaRecorder.ondataavailable = (event) => {
@@ -566,7 +575,7 @@ export class iPhoneWhisperTranscriber {
       // Initialize and start Web Worker for reliable timing
       this.initializeWorker();
       if (this.timerWorker) {
-        this.timerWorker.postMessage({ type: 'start', intervalMs: 15000 }); // 15s interval
+        this.timerWorker.postMessage({ type: 'start', intervalMs: 10000 }); // 10s interval (was 15s)
       }
 
       // Start recording
@@ -669,6 +678,13 @@ export class iPhoneWhisperTranscriber {
       this.consecutiveFailures++;
     } finally {
       this.isProcessing = false;
+      
+      // Process any pending tick that arrived while we were busy
+      if (this.pendingTick && this.isRecording) {
+        this.pendingTick = false;
+        console.log('⏰ Processing queued tick...');
+        setTimeout(() => this.processChunkFromManager(), 100);
+      }
     }
   }
   
