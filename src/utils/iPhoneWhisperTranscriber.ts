@@ -57,7 +57,7 @@ export class iPhoneWhisperTranscriber {
   private lastSuccessfulTranscriptionTime = 0;
   private autoRecoveryAttempts = 0;
   private healthCheckInterval: NodeJS.Timeout | null = null;
-  private readonly AUTO_RECOVERY_THRESHOLD_MS = 30000; // Reduced to 30 seconds
+  private readonly AUTO_RECOVERY_THRESHOLD_MS = 45000; // 45 seconds - allow time for 25s chunk + API processing
   private readonly MAX_AUTO_RECOVERY_ATTEMPTS = 5; // Increased attempts
   private onRecoveryAttempt?: () => void;
 
@@ -243,7 +243,7 @@ export class iPhoneWhisperTranscriber {
       }
     }, 10000);
 
-    console.log('🏥 iPhone: Health monitoring started (10s interval, 30s threshold)');
+    console.log('🏥 iPhone: Health monitoring started (10s interval, 45s threshold)');
   }
 
   private stopHealthMonitoring() {
