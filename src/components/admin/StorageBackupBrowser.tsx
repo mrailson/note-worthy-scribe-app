@@ -71,7 +71,7 @@ export const StorageBackupBrowser = () => {
       // Process each item at root level
       for (const item of rootItems || []) {
         // Check if this is a file (has .webm extension) at root level
-        if (item.name.endsWith('.webm') || item.name.endsWith('.mp3') || item.name.endsWith('.wav')) {
+        if (item.name.endsWith('.webm') || item.name.endsWith('.mp3') || item.name.endsWith('.wav') || item.name.endsWith('.m4a') || item.name.endsWith('.ogg')) {
           // This is a file at root level (e.g., meeting-xxx-session-xxx.webm)
           if (item.id) {
             allFiles.push({
@@ -92,7 +92,7 @@ export const StorageBackupBrowser = () => {
           }
 
           for (const file of userFiles || []) {
-            if (file.id && (file.name.endsWith('.webm') || file.name.endsWith('.mp3') || file.name.endsWith('.wav'))) {
+            if (file.id && (file.name.endsWith('.webm') || file.name.endsWith('.mp3') || file.name.endsWith('.wav') || file.name.endsWith('.m4a') || file.name.endsWith('.ogg'))) {
               allFiles.push({
                 ...file,
                 name: `${item.name}/${file.name}`,

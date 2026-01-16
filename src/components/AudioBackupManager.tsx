@@ -100,7 +100,7 @@ export const AudioBackupManager = () => {
 
       for (const item of rootItems || []) {
         // Check if this is a file at root level (has audio extension)
-        if (item.name.endsWith('.webm') || item.name.endsWith('.mp3') || item.name.endsWith('.wav')) {
+        if (item.name.endsWith('.webm') || item.name.endsWith('.mp3') || item.name.endsWith('.wav') || item.name.endsWith('.m4a') || item.name.endsWith('.ogg')) {
           if (item.id) {
             totalFiles++;
             totalSize += (item.metadata as { size?: number })?.size || 0;
@@ -116,7 +116,7 @@ export const AudioBackupManager = () => {
           if (filesError) continue;
 
           for (const file of files || []) {
-            if (file.id && (file.name.endsWith('.webm') || file.name.endsWith('.mp3') || file.name.endsWith('.wav'))) {
+            if (file.id && (file.name.endsWith('.webm') || file.name.endsWith('.mp3') || file.name.endsWith('.wav') || file.name.endsWith('.m4a') || file.name.endsWith('.ogg'))) {
               totalFiles++;
               totalSize += (file.metadata as { size?: number })?.size || 0;
               const meetingId = extractMeetingId(file.name);
