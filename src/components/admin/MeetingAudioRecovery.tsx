@@ -324,11 +324,21 @@ export const MeetingAudioRecovery = () => {
     try {
       toast.info('Starting audio reprocessing...', { duration: 5000 });
 
-      // Call the reprocess edge function
+      // Get the user ID from the first chunk path (userId/filename.m4a)
+      const firstChunkPath = audioChunks[0]?.path || '';
+      const pathParts = firstChunkPath.split('/');
+      const userId = pathParts.length >= 2 ? pathParts[0] : '';
+
+      if (!userId) {
+        throw new Error('Could not determine user ID from audio file path');
+      }
+
+      // Call the reprocess edge function with all required params
       const { data, error } = await supabase.functions.invoke('reprocess-audio-chunks', {
         body: {
           meetingId: meetingInfo.id,
-          audioFilePath: audioChunks[0]?.path // Pass first chunk as reference
+          userId: userId,
+          audioFilePath: firstChunkPath
         }
       });
 
@@ -342,7 +352,7 @@ export const MeetingAudioRecovery = () => {
 
     } catch (error) {
       console.error('Error reprocessing:', error);
-      toast.error('Failed to reprocess audio');
+      toast.error(`Failed to reprocess audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setReprocessing(false);
     }
