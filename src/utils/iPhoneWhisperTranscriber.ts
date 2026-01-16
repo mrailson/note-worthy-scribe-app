@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
+import { isLikelyHallucination, isRepetitiveContent } from './whisperHallucinationPatterns';
 
 export interface TranscriptData {
   text: string;
@@ -681,20 +682,23 @@ export class iPhoneWhisperTranscriber {
     return '';
   }
 
-  private isHallucination(text: string): boolean {
-    const words = text.split(/\s+/).filter(Boolean);
-    if (words.length < 5) return false;
+  /**
+   * Check if text is likely a hallucination using comprehensive pattern detection
+   */
+  private isHallucination(text: string, confidence?: number): boolean {
+    const result = isLikelyHallucination(text, confidence, {
+      checkPhrases: true,
+      checkRepetition: true,
+      checkUrls: true,
+      checkLaughter: true,
+      confidenceThreshold: 0.15
+    });
     
-    // Check for repetition - less than 30% unique words = likely hallucination
-    const uniqueWords = new Set(words.map(w => w.toLowerCase()));
-    const uniqueRatio = uniqueWords.size / words.length;
-    
-    if (uniqueRatio < 0.3) {
-      console.warn(`🚨 Hallucination detected: only ${(uniqueRatio * 100).toFixed(1)}% unique words`);
-      return true;
+    if (result.isHallucination) {
+      console.warn(`🚨 iPhone hallucination detected: ${result.reason}`);
     }
     
-    return false;
+    return result.isHallucination;
   }
 
   private async uploadAndClearProcessedChunks(processedChunks: Blob[]) {
@@ -771,15 +775,23 @@ export class iPhoneWhisperTranscriber {
     return d[m][n];
   }
 
-  private isLikelyRepetitiveNoise(text: string): boolean {
-    const t = text.toLowerCase().trim();
-    if (/(?:\b(?:ha|haha|ha-ha|hee|hehe|lol|woo|beep)[\s,!.?-]*){6,}/i.test(t)) return true;
-    const words = t.split(/\s+/).filter(Boolean);
-    if (words.length >= 10) {
-      const unique = new Set(words).size;
-      if (unique / words.length < 0.4) return true;
+  /**
+   * Check if text is likely repetitive noise using comprehensive patterns
+   */
+  private isLikelyRepetitiveNoise(text: string, confidence?: number): boolean {
+    const result = isLikelyHallucination(text, confidence, {
+      checkPhrases: true,
+      checkRepetition: true,
+      checkUrls: true,
+      checkLaughter: true,
+      confidenceThreshold: 0.15
+    });
+    
+    if (result.isHallucination) {
+      console.log(`🚫 iPhone noise/hallucination detected: ${result.reason}`);
     }
-    return false;
+    
+    return result.isHallucination;
   }
 
   async stopTranscription() {

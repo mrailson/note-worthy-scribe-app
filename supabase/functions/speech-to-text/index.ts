@@ -217,31 +217,81 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
 
     let segments = result.segments || [];
     let finalText: string = result.text || '';
+    let hallucinationDetected = false;
 
-    // Detect and filter out ONLY pure repetitive hallucinations (not legitimate mentions)
+    // Comprehensive hallucination detection patterns
+    const HALLUCINATION_PHRASES = [
+      'thank you for watching', 'thanks for watching', 'thank you for listening',
+      'thanks for listening', 'thank you for your time', 'thank you for joining',
+      'please subscribe', 'like and subscribe', 'don\'t forget to subscribe',
+      'see you in the next video', 'see you next time', 'until next time',
+      'i hope you enjoyed', 'this concludes', 'end of presentation',
+      'leave a comment', 'hit the like button', 'smash the like button',
+      'check out the link', 'link in the description', 'brought to you by',
+      'subtitles by', 'transcribed by', 'captions by',
+      'welcome to my channel', 'welcome back to my channel',
+      '[music]', '[applause]', '[laughter]', '[silence]',
+      'music playing', 'background music', 'upbeat music',
+    ];
+
+    // Check for hallucination phrases
+    if (finalText) {
+      const lowerText = finalText.toLowerCase();
+      
+      for (const phrase of HALLUCINATION_PHRASES) {
+        if (lowerText.includes(phrase)) {
+          console.log(`🚫 SPEECH-TO-TEXT: Hallucination phrase detected: "${phrase}"`);
+          hallucinationDetected = true;
+          // Clear text if it's mostly this phrase
+          if (finalText.length < 100) {
+            finalText = '';
+            confidence = 0.0;
+            segments = [];
+          }
+          break;
+        }
+      }
+    }
+
+    // Detect and filter out pure repetitive hallucinations
     if (finalText && finalText.length < 150) {
       const cleaned = finalText.replace(/[.,\s]/g, '').toLowerCase();
       const words = finalText.toLowerCase().split(/\s+/).filter(Boolean);
       
-      // Count occurrences of hallucination terms
+      // Count occurrences of known hallucination terms
       const pcnCount = (finalText.match(/\bpcn\b/gi) || []).length;
       const nmhtCount = (finalText.match(/\bnmht\b/gi) || []).length;
       const totalHallucinationTerms = pcnCount + nmhtCount;
       
       // Only filter if it's MOSTLY these terms repeated (>70% of words)
-      const hallucinationRatio = totalHallucinationTerms / words.length;
+      const hallucinationRatio = words.length > 0 ? totalHallucinationTerms / words.length : 0;
       const isPureRepetition = hallucinationRatio > 0.7 && totalHallucinationTerms >= 5;
       
-      if (isPureRepetition && confidence < 0.4 && avg_logprob < -0.6) {
-        console.log('🚫 SPEECH-TO-TEXT: Detected pure repetitive hallucination (ratio:', hallucinationRatio.toFixed(2), ')');
+      // Check for low unique word ratio (repetitive content)
+      const uniqueWords = new Set(words).size;
+      const uniqueRatio = words.length > 0 ? uniqueWords / words.length : 1;
+      const isRepetitive = words.length >= 8 && uniqueRatio < 0.30;
+      
+      if ((isPureRepetition || isRepetitive) && confidence < 0.4 && avg_logprob < -0.6) {
+        console.log('🚫 SPEECH-TO-TEXT: Detected repetitive hallucination (ratio:', hallucinationRatio.toFixed(2), ', unique:', uniqueRatio.toFixed(2), ')');
         finalText = '';
         confidence = 0.0;
         no_speech_prob = Math.max(no_speech_prob, 0.95);
         segments = [];
+        hallucinationDetected = true;
       }
     }
 
-    console.log('📊 SPEECH-TO-TEXT: Calculated confidence:', confidence);
+    // Reject very high no_speech_prob (>0.85) - likely silence/noise processed as speech
+    if (no_speech_prob > 0.85 && confidence < 0.3) {
+      console.log(`🚫 SPEECH-TO-TEXT: Rejecting due to high no_speech_prob (${(no_speech_prob * 100).toFixed(1)}%)`);
+      finalText = '';
+      confidence = 0.0;
+      segments = [];
+      hallucinationDetected = true;
+    }
+
+    console.log('📊 SPEECH-TO-TEXT: Calculated confidence:', confidence, hallucinationDetected ? '(hallucination filtered)' : '');
     
     // DIAGNOSTIC FIX: Ensure segments always exists
     if (segments.length === 0 && finalText) {
@@ -260,12 +310,13 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
     return new Response(
       JSON.stringify({ 
         text: finalText,
-        confidence: confidence, // Real confidence from Whisper segments
+        confidence: confidence,
         avg_logprob: avg_logprob,
         no_speech_prob: no_speech_prob,
         duration: result.duration,
         language: result.language,
-        segments: segments
+        segments: segments,
+        hallucination_detected: hallucinationDetected
       }),
       { 
         headers: { 
