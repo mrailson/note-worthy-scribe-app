@@ -105,49 +105,82 @@ export const MeetingAudioRecovery = () => {
 
   const searchAudioFiles = async (meetingId: string, userId?: string) => {
     try {
-      // First, get list of all user folders
-      const { data: folders, error: folderError } = await supabase.storage
+      const isAudioFile = (name: string) =>
+        /\.(webm|mp3|wav|m4a|ogg)$/i.test(name);
+
+      const extractChunkNumber = (name: string) => {
+        // Handles: ..._chunk_007.m4a, ..._chunk007_..., ...chunk-7...
+        const m = name.match(/_chunk_?(\d+)/i) || name.match(/chunk[-_ ]?(\d+)/i);
+        return m ? Number.parseInt(m[1], 10) : 0;
+      };
+
+      // Root list returns folder placeholders with id = null
+      const { data: rootItems, error: rootError } = await supabase.storage
         .from('meeting-audio-backups')
         .list('', { limit: 1000 });
 
-      if (folderError) throw folderError;
+      if (rootError) throw rootError;
 
       const chunks: AudioChunk[] = [];
+      const folderNames = new Set<string>();
 
-      // Search through each user folder for files matching this meeting ID
-      for (const folder of folders || []) {
-        if (!folder.id) continue;
+      for (const item of rootItems || []) {
+        // Root-level file (rare, but supported)
+        if (item.id && isAudioFile(item.name) && item.name.includes(meetingId)) {
+          chunks.push({
+            name: item.name,
+            path: item.name,
+            size: (item.metadata as { size?: number })?.size || 0,
+            chunkNumber: extractChunkNumber(item.name),
+            createdAt: item.created_at
+          });
+          continue;
+        }
 
+        // Folder placeholder
+        if (item.id === null) {
+          folderNames.add(item.name);
+        }
+      }
+
+      // Prefer searching the meeting owner folder first (fast path)
+      if (userId) folderNames.add(userId);
+
+      for (const folderName of folderNames) {
         const { data: files, error: filesError } = await supabase.storage
           .from('meeting-audio-backups')
-          .list(folder.name, { limit: 1000 });
+          .list(folderName, { limit: 1000 });
 
         if (filesError) continue;
 
         for (const file of files || []) {
-          if (file.name.includes(meetingId)) {
-            // Extract chunk number from filename
-            const chunkMatch = file.name.match(/_chunk(\d+)_/);
-            const chunkNumber = chunkMatch ? parseInt(chunkMatch[1], 10) : 0;
+          if (!file.name.includes(meetingId)) continue;
+          if (!isAudioFile(file.name)) continue;
 
-            chunks.push({
-              name: file.name,
-              path: `${folder.name}/${file.name}`,
-              size: (file.metadata as { size?: number })?.size || 0,
-              chunkNumber,
-              createdAt: file.created_at
-            });
-          }
+          chunks.push({
+            name: file.name,
+            path: `${folderName}/${file.name}`,
+            size: (file.metadata as { size?: number })?.size || 0,
+            chunkNumber: extractChunkNumber(file.name),
+            createdAt: file.created_at
+          });
         }
       }
 
-      // Sort by chunk number
-      chunks.sort((a, b) => a.chunkNumber - b.chunkNumber);
+      // Sort by chunk number then created time
+      chunks.sort((a, b) => (a.chunkNumber - b.chunkNumber) || (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
       setAudioChunks(chunks);
+
+      // Basic duration + expected words estimate from chunk numbering
+      const maxChunk = chunks.length > 0 ? Math.max(...chunks.map((c) => c.chunkNumber || 0)) : 0;
+      const assumedChunkSeconds = 60;
+      const estimatedDurationSeconds = maxChunk > 0 ? maxChunk * assumedChunkSeconds : chunks.length * assumedChunkSeconds;
+      const expectedWords = Math.round(estimatedDurationSeconds * 2.5); // ~150 wpm
+
+      setMeetingInfo((prev) => (prev ? { ...prev, durationSeconds: estimatedDurationSeconds, expectedWordCount: expectedWords } : prev));
 
       // Analyse gaps
       analyseGaps(chunks);
-
     } catch (error) {
       console.error('Error searching audio files:', error);
     }
@@ -176,10 +209,23 @@ export const MeetingAudioRecovery = () => {
       return;
     }
 
-    const chunkNumbers = chunks.map(c => c.chunkNumber);
+    const chunkNumbers = chunks.map(c => c.chunkNumber).filter(n => n > 0);
+
+    // If chunk numbers aren't present, fall back to "no gaps" assumption
+    if (chunkNumbers.length === 0) {
+      setGapAnalysis({
+        totalChunks: chunks.length,
+        expectedChunks: chunks.length,
+        missingChunks: [],
+        gapDuration: 0,
+        coveragePercent: 100
+      });
+      return;
+    }
+
     const maxChunk = Math.max(...chunkNumbers);
     const expectedChunks = maxChunk;
-    
+
     const missingChunks: number[] = [];
     for (let i = 1; i <= maxChunk; i++) {
       if (!chunkNumbers.includes(i)) {
@@ -187,10 +233,11 @@ export const MeetingAudioRecovery = () => {
       }
     }
 
-    // Each chunk is approximately 5 seconds
-    const gapDuration = missingChunks.length * 5;
-    const coveragePercent = expectedChunks > 0 
-      ? Math.round(((expectedChunks - missingChunks.length) / expectedChunks) * 100) 
+    // Assume each chunk ~60 seconds (best-effort estimate for diagnostics)
+    const assumedChunkSeconds = 60;
+    const gapDuration = missingChunks.length * assumedChunkSeconds;
+    const coveragePercent = expectedChunks > 0
+      ? Math.round(((expectedChunks - missingChunks.length) / expectedChunks) * 100)
       : 0;
 
     setGapAnalysis({
@@ -303,9 +350,12 @@ export const MeetingAudioRecovery = () => {
 
   const getQualityStatus = () => {
     if (!meetingInfo) return null;
-    
+    if (meetingInfo.expectedWordCount <= 0) {
+      return { status: 'unknown', label: 'Calculating', color: 'bg-muted-foreground' };
+    }
+
     const ratio = meetingInfo.transcriptWordCount / meetingInfo.expectedWordCount;
-    
+
     if (ratio >= 0.8) {
       return { status: 'good', label: 'Good', color: 'bg-green-500' };
     } else if (ratio >= 0.5) {
@@ -395,9 +445,11 @@ export const MeetingAudioRecovery = () => {
                     <>
                       <div className={`w-3 h-3 rounded-full ${qualityStatus.color}`} />
                       <span className="text-lg font-bold">{qualityStatus.label}</span>
-                      <span className="text-sm text-muted-foreground">
-                        ({Math.round((meetingInfo.transcriptWordCount / meetingInfo.expectedWordCount) * 100)}%)
-                      </span>
+                       <span className="text-sm text-muted-foreground">
+                         {meetingInfo.expectedWordCount > 0
+                           ? `(${Math.round((meetingInfo.transcriptWordCount / meetingInfo.expectedWordCount) * 100)}%)`
+                           : '(calculating…)'}
+                       </span>
                     </>
                   )}
                 </div>
@@ -516,7 +568,7 @@ export const MeetingAudioRecovery = () => {
                     </TableCell>
                     <TableCell className="font-mono text-sm">{chunk.name}</TableCell>
                     <TableCell>{formatFileSize(chunk.size)}</TableCell>
-                    <TableCell>{format(new Date(chunk.createdAt), 'HH:mm:ss')}</TableCell>
+                    <TableCell>{format(new Date(chunk.createdAt), 'HH:mm')}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
