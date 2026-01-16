@@ -54,6 +54,7 @@ import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { TabAudioGuidanceDialog } from "@/components/meeting/TabAudioGuidanceDialog";
 import { AudioCaptureStatusIndicator } from "@/components/meeting/AudioCaptureStatusIndicator";
 import { QuickRecordQRLink } from "@/components/meeting/QuickRecordQRLink";
+import { MeetingMicrophoneSettings } from "@/components/meeting/MeetingMicrophoneSettings";
 import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscriptImportModal";
 import { MultiAudioImport } from "@/components/meeting/MultiAudioImport";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
@@ -190,6 +191,15 @@ export const MeetingRecorder = ({
   const [meetingType, setMeetingType] = useState<'teams' | 'face-to-face' | 'hybrid'>('teams');
   const [meetingLocation, setMeetingLocation] = useState<string>('');
   const [userPractices, setUserPractices] = useState<Array<{id: string, practice_name: string}>>([]);
+  
+  // Microphone device selection
+  const [selectedMicrophoneId, setSelectedMicrophoneId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('meeting_recorder_microphone_id');
+    } catch {
+      return null;
+    }
+  });
   
   // Early word count progress display (first 20 seconds)
   const [showEarlyWordCount, setShowEarlyWordCount] = useState(false);
@@ -2204,7 +2214,8 @@ export const MeetingRecorder = ({
         handleStatusChange,
         meetingSettings, // Pass meeting settings for confidence gating
         meetingId,
-        (hasActivity: boolean) => setAudioActivity(hasActivity) // Callback for audio activity
+        (hasActivity: boolean) => setAudioActivity(hasActivity), // Callback for audio activity
+        selectedMicrophoneId // Pass selected microphone device
       );
 
       console.log('📱 Starting transcription...');
@@ -2231,7 +2242,8 @@ export const MeetingRecorder = ({
       meetingId,
       (hasActivity: boolean) => setAudioActivity(hasActivity), // Callback for audio activity
       () => watchdog.reportChunkProcessed(), // Callback when chunk is processed
-      () => watchdog.reportChunkFiltered() // Callback when chunk is filtered (not stalled, just low quality)
+      () => watchdog.reportChunkFiltered(), // Callback when chunk is filtered (not stalled, just low quality)
+      selectedMicrophoneId // Pass selected microphone device
     );
 
     await transcriber.startTranscription();
@@ -5093,8 +5105,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             {/* Compact Recording Controls */}
             <Card className="shadow-lg">
               <CardContent className="pt-4 pb-4">
-                {/* Import Audio & Smartphone Icons - Top Right */}
+                {/* Microphone Settings, Import Audio & Smartphone Icons - Top Right */}
                 <div className="flex justify-end gap-1 mb-2">
+                  <MeetingMicrophoneSettings onDeviceChange={setSelectedMicrophoneId} />
                   <QuickRecordQRLink />
                   <Tooltip>
                     <TooltipTrigger asChild>
