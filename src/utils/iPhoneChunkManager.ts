@@ -53,7 +53,7 @@ export class iPhoneChunkManager {
   
   constructor(config: ChunkManagerConfig = {}) {
     this.config = {
-      maxBufferDurationMs: config.maxBufferDurationMs ?? 60000,
+      maxBufferDurationMs: config.maxBufferDurationMs ?? 90000,  // 90s default - prevent premature pruning
       targetChunkDurationMs: config.targetChunkDurationMs ?? 25000,
       overlapDurationMs: config.overlapDurationMs ?? 5000,
       minChunkDurationMs: config.minChunkDurationMs ?? 8000
@@ -113,8 +113,21 @@ export class iPhoneChunkManager {
 
   /**
    * Remove old chunks to keep buffer within maxBufferDurationMs
+   * Note: Won't prune if a chunk is currently being processed
    */
   private pruneOldChunks(): void {
+    // Don't prune while processing - could lose audio
+    if (this.processingChunk) {
+      console.log(`📦 ChunkManager: Skipping prune - chunk being processed`);
+      return;
+    }
+    
+    // Warn when approaching limit
+    const bufferPercentage = (this.totalBufferDurationMs / this.config.maxBufferDurationMs) * 100;
+    if (bufferPercentage > 75 && bufferPercentage < 100) {
+      console.warn(`⚠️ ChunkManager: Buffer at ${bufferPercentage.toFixed(0)}% capacity (${(this.totalBufferDurationMs / 1000).toFixed(1)}s / ${this.config.maxBufferDurationMs / 1000}s)`);
+    }
+    
     while (this.totalBufferDurationMs > this.config.maxBufferDurationMs && this.audioBuffer.length > 1) {
       const removed = this.audioBuffer.shift();
       if (removed) {

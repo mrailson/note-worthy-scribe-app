@@ -57,7 +57,7 @@ export class iPhoneWhisperTranscriber {
   private lastSuccessfulTranscriptionTime = 0;
   private autoRecoveryAttempts = 0;
   private healthCheckInterval: NodeJS.Timeout | null = null;
-  private readonly AUTO_RECOVERY_THRESHOLD_MS = 45000; // 45 seconds - allow time for 25s chunk + API processing
+  private readonly AUTO_RECOVERY_THRESHOLD_MS = 75000; // 75 seconds - allows 3 chunk cycles + API latency
   private readonly MAX_AUTO_RECOVERY_ATTEMPTS = 5; // Increased attempts
   private onRecoveryAttempt?: () => void;
 
@@ -100,7 +100,7 @@ export class iPhoneWhisperTranscriber {
     // Initialize chunk manager if using new strategy
     if (USE_NEW_IPHONE_CHUNKING) {
       this.chunkManager = new iPhoneChunkManager({
-        maxBufferDurationMs: 60000,    // Keep 60s buffer max
+        maxBufferDurationMs: 90000,    // 90s buffer max - prevent premature pruning
         targetChunkDurationMs: 25000,  // Process every 25s
         overlapDurationMs: 5000,       // 5s overlap for continuity
         minChunkDurationMs: 8000       // Minimum 8s before processing
@@ -243,7 +243,7 @@ export class iPhoneWhisperTranscriber {
       }
     }, 10000);
 
-    console.log('🏥 iPhone: Health monitoring started (10s interval, 45s threshold)');
+    console.log('🏥 iPhone: Health monitoring started (10s interval, 75s threshold)');
   }
 
   private stopHealthMonitoring() {
@@ -624,15 +624,11 @@ export class iPhoneWhisperTranscriber {
     this.isProcessing = true;
     
     try {
-      // Check for exponential backoff after failures
-      const backoffMs = this.calculateBackoff();
-      if (backoffMs > 0) {
-        const timeSinceLastCall = Date.now() - this.lastApiCallTime;
-        if (timeSinceLastCall < backoffMs) {
-          console.log(`📱 iPhone: Waiting ${backoffMs - timeSinceLastCall}ms (backoff after ${this.consecutiveFailures} failures)`);
-          this.isProcessing = false;
-          return;
-        }
+      // NOTE: Removed blocking backoff logic - it was causing processing to stall completely
+      // Instead, we only apply a small delay between RETRY attempts (handled in chunk manager)
+      // Fresh chunks always process immediately regardless of previous failures
+      if (this.consecutiveFailures > 0) {
+        console.log(`📱 iPhone: Processing despite ${this.consecutiveFailures} consecutive failures (not blocking)`);
       }
       
       const chunk = this.chunkManager.getChunkForProcessing();
