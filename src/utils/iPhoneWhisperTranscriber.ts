@@ -61,6 +61,10 @@ export class iPhoneWhisperTranscriber {
   private readonly MAX_AUTO_RECOVERY_ATTEMPTS = 5; // Increased attempts
   private onRecoveryAttempt?: () => void;
 
+  // NEW: Watchdog hooks (MeetingRecorder uses these to avoid false stall alarms)
+  private onChunkProcessed?: () => void;
+  private onChunkFiltered?: () => void;
+
   // NEW: Chunk manager for sliding window approach
   private chunkManager: iPhoneChunkManager | null = null;
   
@@ -88,9 +92,13 @@ export class iPhoneWhisperTranscriber {
     meetingId?: string,
     private onAudioActivity?: (hasActivity: boolean) => void,
     private selectedDeviceId?: string | null,
+    onChunkProcessed?: () => void,
+    onChunkFiltered?: () => void,
     onRecoveryAttempt?: () => void
   ) {
     this.meetingSettings = withDefaultThresholds(meetingSettings);
+    this.onChunkProcessed = onChunkProcessed;
+    this.onChunkFiltered = onChunkFiltered;
     this.onRecoveryAttempt = onRecoveryAttempt;
     if (meetingId) {
       this.meetingId = meetingId;
@@ -715,7 +723,8 @@ export class iPhoneWhisperTranscriber {
       // Check for hallucination
       if (this.isHallucination(fullTranscribedText)) {
         console.warn('⚠️ Hallucination detected, skipping');
-        return true; // Return true to mark as processed (don't retry hallucinations)
+        this.onChunkFiltered?.();
+        return true; // Mark as processed (don't retry hallucinations)
       }
       
       // Extract only NEW text
@@ -733,6 +742,8 @@ export class iPhoneWhisperTranscriber {
           speaker: 'Speaker'
         };
         
+        // This will also reset the watchdog via MeetingRecorder's handleBrowserTranscript
+        this.onChunkProcessed?.();
         this.onTranscription(transcriptData);
         
         // Update word count
@@ -744,6 +755,7 @@ export class iPhoneWhisperTranscriber {
         await this.storeTranscriptionChunk(newText, data.confidence || 0.9);
       } else {
         console.log('ℹ️ No new text in this chunk');
+        this.onChunkFiltered?.();
       }
       
       return true;
