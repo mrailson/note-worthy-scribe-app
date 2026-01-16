@@ -59,6 +59,7 @@ import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscript
 import { MultiAudioImport } from "@/components/meeting/MultiAudioImport";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
+import { MeetingTypeToggle } from "@/components/meeting/MeetingTypeToggle";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -187,8 +188,15 @@ export const MeetingRecorder = ({
   const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
   
-  // Meeting type and location state
-  const [meetingType, setMeetingType] = useState<'teams' | 'face-to-face' | 'hybrid'>('teams');
+  // Meeting type state (persisted) - controls audio source defaults
+  const [meetingType, setMeetingType] = useState<'face-to-face' | 'teams'>(() => {
+    try {
+      const saved = localStorage.getItem('meeting_type_preference');
+      return (saved as 'face-to-face' | 'teams') || 'face-to-face';
+    } catch {
+      return 'face-to-face';
+    }
+  });
   const [meetingLocation, setMeetingLocation] = useState<string>('');
   const [userPractices, setUserPractices] = useState<Array<{id: string, practice_name: string}>>([]);
   
@@ -294,8 +302,27 @@ export const MeetingRecorder = ({
   const [firstTranscriptionReceived, setFirstTranscriptionReceived] = useState(false);
   const transcriptSnippetIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Recording mode state
-  const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-and-system'>('mic-only');
+  // Recording mode state (derived from meetingType)
+  const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-and-system'>(() => {
+    try {
+      const saved = localStorage.getItem('meeting_type_preference');
+      return saved === 'teams' ? 'mic-and-system' : 'mic-only';
+    } catch {
+      return 'mic-only';
+    }
+  });
+  
+  // Sync meetingType with recordingMode and persist preference
+  useEffect(() => {
+    localStorage.setItem('meeting_type_preference', meetingType);
+    if (meetingType === 'teams') {
+      setRecordingMode('mic-and-system');
+      setAudioSourceMode('microphone_and_system');
+    } else {
+      setRecordingMode('mic-only');
+      setAudioSourceMode('microphone');
+    }
+  }, [meetingType]);
   
   // Pause/Mute state
   const [isPaused, setIsPaused] = useState(false);
@@ -5141,59 +5168,15 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 <div className="text-center space-y-4">
                    {!isRecording ? (
                        <div className="space-y-4">
-                         {/* Recording Mode Slider - Hidden on iOS */}
-                        {!isIOS && (
-                          <div className="p-4 bg-secondary/30 rounded-lg border border-border/50">
-                            <Label className="text-sm font-semibold mb-4 block text-center">Audio Source/Meeting Type</Label>
-                            
-                            <div className="relative px-6">
-                              {/* Slider Track Background */}
-                              <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 h-2 bg-border rounded-full" />
-                              
-                              {/* Active Track Fill */}
-                              <div 
-                                className="absolute top-1/2 -translate-y-1/2 h-2 bg-primary rounded-full transition-all duration-300"
-                                style={{
-                                  left: recordingMode === 'mic-only' ? '1.5rem' : '50%',
-                                  right: recordingMode === 'mic-and-system' ? '1.5rem' : '50%'
-                                }}
-                              />
-                              
-                              {/* Slider Handle */}
-                              <div 
-                                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-300"
-                                style={{ left: recordingMode === 'mic-only' ? '1.5rem' : 'calc(100% - 1.5rem)' }}
-                              >
-                                <div className="w-6 h-6 rounded-full bg-primary border-4 border-background shadow-lg cursor-pointer hover:scale-110 transition-transform" />
-                              </div>
-                              
-                              {/* Click Areas */}
-                              <div className="relative flex justify-between items-center gap-4 py-8">
-                                <button
-                                  type="button"
-                                  onClick={() => setRecordingMode('mic-only')}
-                                  className="flex-1 flex flex-col items-center gap-2 cursor-pointer group"
-                                >
-                                  <Mic className={`h-5 w-5 transition-colors ${recordingMode === 'mic-only' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
-                                  <span className={`text-sm font-medium transition-colors text-center ${recordingMode === 'mic-only' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`}>
-                                    Microphone Only/Face to Face Meeting
-                                  </span>
-                                </button>
-                                
-                                <button
-                                  type="button"
-                                  onClick={() => setRecordingMode('mic-and-system')}
-                                  className="flex-1 flex flex-col items-center gap-2 cursor-pointer group"
-                                >
-                                  <MonitorSpeaker className={`h-5 w-5 transition-colors ${recordingMode === 'mic-and-system' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
-                                  <span className={`text-sm font-medium transition-colors text-center ${recordingMode === 'mic-and-system' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`}>
-                                    Teams/Zoom Meetings
-                                  </span>
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                          {/* Meeting Type Toggle - Hidden on iOS */}
+                         {!isIOS && (
+                           <div className="flex justify-center">
+                             <MeetingTypeToggle
+                               meetingType={meetingType}
+                               onMeetingTypeChange={setMeetingType}
+                             />
+                           </div>
+                         )}
                         
                         <div className="flex flex-col items-center gap-4">
                           <div className="flex items-center justify-center gap-4">
