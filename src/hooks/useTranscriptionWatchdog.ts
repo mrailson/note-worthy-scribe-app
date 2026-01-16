@@ -37,8 +37,8 @@ interface WatchdogState {
 
 export function useTranscriptionWatchdog(config: WatchdogConfig) {
   const {
-    warningThresholdMs = 30000, // 30 seconds (reduced from 2 minutes)
-    criticalThresholdMs = 60000, // 60 seconds (reduced from 4 minutes)
+    warningThresholdMs = 60000, // 60 seconds - allow time for chunk processing + API latency
+    criticalThresholdMs = 90000, // 90 seconds - show modal only after significant delay
     isActive,
     onStallDetected,
     onStallRecovered,
