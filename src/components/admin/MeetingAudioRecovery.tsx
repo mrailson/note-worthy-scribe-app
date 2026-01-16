@@ -64,7 +64,7 @@ export const MeetingAudioRecovery = () => {
       // Fetch meeting info
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
-        .select('id, title, status, word_count, recording_duration, created_at, user_id')
+        .select('id, title, status, word_count, created_at, user_id')
         .eq('id', meetingId.trim())
         .single();
 
@@ -78,9 +78,9 @@ export const MeetingAudioRecovery = () => {
         return;
       }
 
-      // Calculate expected word count (5000 words per hour)
-      const durationSeconds = parseDuration(meeting.recording_duration);
-      const expectedWords = Math.floor((durationSeconds / 3600) * 5000);
+      // Estimate expected word count based on audio chunks (5 words per second average)
+      const estimatedDuration = 0; // Will be calculated from chunks
+      const expectedWords = 0; // Will be calculated after finding chunks
 
       setMeetingInfo({
         id: meeting.id,
@@ -88,7 +88,7 @@ export const MeetingAudioRecovery = () => {
         status: meeting.status,
         transcriptWordCount: meeting.word_count || 0,
         expectedWordCount: expectedWords,
-        durationSeconds,
+        durationSeconds: estimatedDuration,
         createdAt: meeting.created_at
       });
 
