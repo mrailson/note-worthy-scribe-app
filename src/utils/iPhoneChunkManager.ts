@@ -222,14 +222,20 @@ export class iPhoneChunkManager {
     const processedDuration = this.processingChunk.endTimeMs - this.processingChunk.startTimeMs;
     this.lastProcessedEndTime = this.processingChunk.endTimeMs;
     
-    // Keep overlap for continuity
-    const overlapChunks = Math.ceil(this.config.overlapDurationMs / 5000); // Assuming 5s per raw chunk
+    // Keep overlap for continuity - DURATION-BASED, not chunk-count based
+    // Remove oldest entries while keeping at least overlapDurationMs of audio
+    const targetOverlapMs = this.config.overlapDurationMs;
     
-    // Remove processed chunks, keeping overlap
-    while (this.audioBuffer.length > overlapChunks) {
-      const removed = this.audioBuffer.shift();
-      if (removed) {
-        this.totalBufferDurationMs -= removed.durationMs;
+    while (this.audioBuffer.length > 1 && this.totalBufferDurationMs > targetOverlapMs) {
+      const oldestDuration = this.audioBuffer[0]?.durationMs || 0;
+      // Only remove if we'll still have enough overlap after removal
+      if (this.totalBufferDurationMs - oldestDuration >= targetOverlapMs * 0.8) {
+        const removed = this.audioBuffer.shift();
+        if (removed) {
+          this.totalBufferDurationMs -= removed.durationMs;
+        }
+      } else {
+        break; // Keep this chunk to maintain overlap
       }
     }
 

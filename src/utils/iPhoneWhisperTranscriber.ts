@@ -96,6 +96,12 @@ export class iPhoneWhisperTranscriber {
   
   // NEW: Backup timer interval
   private backupTimerInterval: NodeJS.Timeout | null = null;
+  
+  // NEW: Track last ondataavailable time for accurate duration estimation
+  private lastDataAvailableTime = 0;
+  
+  // NEW: Force requestData interval for iOS Safari
+  private requestDataInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -552,16 +558,25 @@ export class iPhoneWhisperTranscriber {
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
+          const now = Date.now();
+          
+          // Calculate REAL duration since last ondataavailable (not hardcoded 5000ms)
+          let estimatedDurationMs = 5000; // default fallback
+          if (this.lastDataAvailableTime > 0) {
+            estimatedDurationMs = Math.min(Math.max(now - this.lastDataAvailableTime, 1000), 30000);
+          }
+          this.lastDataAvailableTime = now;
+          
           if (!this.headerChunk) {
             this.headerChunk = event.data;
             console.log(`📦 iPhone: Captured M4A header (${event.data.size} bytes)`);
           }
           
-          console.log(`📦 iPhone MediaRecorder chunk: ${event.data.size} bytes`);
+          console.log(`📦 iPhone ondataavailable: ${event.data.size} bytes, estimated ${(estimatedDurationMs / 1000).toFixed(1)}s since last`);
           
-          // Add to chunk manager if using new strategy
+          // Add to chunk manager if using new strategy - with REAL duration
           if (USE_NEW_IPHONE_CHUNKING && this.chunkManager) {
-            this.chunkManager.addChunk(event.data, 5000); // 5s timeslice
+            this.chunkManager.addChunk(event.data, estimatedDurationMs);
           }
           
           // Also maintain legacy arrays for fallback
@@ -618,11 +633,15 @@ export class iPhoneWhisperTranscriber {
     this.recordingStartTime = Date.now();
     this.chunkStartTime = Date.now();
     this.lastSpeechTime = Date.now();
+    this.lastDataAvailableTime = Date.now(); // Initialize for accurate duration tracking
     
     // Use 5s timeslice for regular ondataavailable events
     this.mediaRecorder.start(5000);
     
     console.log('📱 iPhone MediaRecorder started with 5s timeslice');
+    
+    // iOS Safari fallback: force requestData() if ondataavailable is infrequent
+    this.startRequestDataFallback();
 
     // First transcription after 12 seconds for quick feedback
     const FIRST_PROCESS_INTERVAL = 12000;
@@ -1110,6 +1129,26 @@ export class iPhoneWhisperTranscriber {
       }
     }, 20000);
   }
+  
+  /**
+   * iOS Safari fallback - force requestData() if ondataavailable is infrequent
+   * Some iOS Safari versions ignore the timeslice parameter entirely
+   */
+  private startRequestDataFallback(): void {
+    this.requestDataInterval = setInterval(() => {
+      if (this.isRecording && this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+        const timeSinceLastData = Date.now() - this.lastDataAvailableTime;
+        if (timeSinceLastData > 8000) {
+          console.log(`📱 iOS fallback: Forcing requestData() (${Math.round(timeSinceLastData / 1000)}s since last ondataavailable)`);
+          try {
+            this.mediaRecorder.requestData();
+          } catch (e) {
+            console.warn('📱 requestData() failed:', e);
+          }
+        }
+      }
+    }, 5000); // Check every 5 seconds
+  }
 
   async stopTranscription() {
     console.log('🛑 Stopping iPhone transcription...');
@@ -1140,6 +1179,12 @@ export class iPhoneWhisperTranscriber {
     if (this.backupTimerInterval) {
       clearInterval(this.backupTimerInterval);
       this.backupTimerInterval = null;
+    }
+    
+    // Stop requestData fallback
+    if (this.requestDataInterval) {
+      clearInterval(this.requestDataInterval);
+      this.requestDataInterval = null;
     }
     
     // Remove visibility handler
