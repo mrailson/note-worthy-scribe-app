@@ -364,11 +364,11 @@ export const MeetingRecorder = ({
   const [isContinuationMode, setIsContinuationMode] = useState(false);
   const [continuationMeetingTitle, setContinuationMeetingTitle] = useState<string>('');
   
-  // Transcription watchdog for detecting stalled transcription
+  // Transcription watchdog for detecting stalled transcription - AGGRESSIVE thresholds
   const watchdog = useTranscriptionWatchdog({
     isActive: isRecording,
-    warningThresholdMs: 120000, // 2 minutes
-    criticalThresholdMs: 240000, // 4 minutes
+    warningThresholdMs: 30000, // 30 seconds - warn early
+    criticalThresholdMs: 60000, // 60 seconds - critical alert
     onStallDetected: (stalledDurationMs) => {
       console.error(`🚨 Transcription stall detected after ${Math.round(stalledDurationMs / 1000)}s`);
       // Log diagnostic info
