@@ -3,18 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Mic, MicOff, RefreshCw, CheckCircle, XCircle, AlertTriangle, Loader2, Play, Square, Settings2 } from "lucide-react";
-import { useMeetingMicrophoneSettings } from "@/hooks/useMeetingMicrophoneSettings";
+import { Mic, MicOff, RefreshCw, CheckCircle, XCircle, AlertTriangle, Loader2, Play, Square, Settings2, Monitor, Headphones } from "lucide-react";
+import { useMeetingMicrophoneSettings, AudioSourceMode } from "@/hooks/useMeetingMicrophoneSettings";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
 
 interface MeetingMicrophoneSettingsProps {
   onDeviceChange?: (deviceId: string | null) => void;
+  onAudioSourceChange?: (mode: AudioSourceMode) => void;
 }
 
-export const MeetingMicrophoneSettings = ({ onDeviceChange }: MeetingMicrophoneSettingsProps) => {
+export const MeetingMicrophoneSettings = ({ onDeviceChange, onAudioSourceChange }: MeetingMicrophoneSettingsProps) => {
   const {
     availableDevices,
     selectedDeviceId,
+    audioSourceMode,
     isTestingMic,
     testVolume,
     waveformData,
@@ -25,6 +28,7 @@ export const MeetingMicrophoneSettings = ({ onDeviceChange }: MeetingMicrophoneS
     isPlayingBack,
     enumerateDevices,
     selectDevice,
+    selectAudioSource,
     startMicTest,
     stopMicTest,
     playRecordedAudio,
@@ -36,8 +40,17 @@ export const MeetingMicrophoneSettings = ({ onDeviceChange }: MeetingMicrophoneS
     onDeviceChange?.(selectedDeviceId);
   }, [selectedDeviceId, onDeviceChange]);
 
+  // Notify parent of audio source changes
+  useEffect(() => {
+    onAudioSourceChange?.(audioSourceMode);
+  }, [audioSourceMode, onAudioSourceChange]);
+
   const handleDeviceChange = (deviceId: string) => {
     selectDevice(deviceId);
+  };
+
+  const handleAudioSourceChange = (mode: string) => {
+    selectAudioSource(mode as AudioSourceMode);
   };
 
   const getStatusIcon = () => {
@@ -119,22 +132,62 @@ export const MeetingMicrophoneSettings = ({ onDeviceChange }: MeetingMicrophoneS
             </div>
           )}
 
+          {/* Audio Source selector */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Audio Source</Label>
+            <Select
+              value={audioSourceMode}
+              onValueChange={handleAudioSourceChange}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select audio source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="microphone">
+                  <div className="flex items-center gap-2">
+                    <Mic className="h-3 w-3 text-muted-foreground" />
+                    <span>Microphone Only</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="microphone_and_system">
+                  <div className="flex items-center gap-2">
+                    <Headphones className="h-3 w-3 text-muted-foreground" />
+                    <span>Microphone + System Audio</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="system_only">
+                  <div className="flex items-center gap-2">
+                    <Monitor className="h-3 w-3 text-muted-foreground" />
+                    <span>System Audio Only</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {audioSourceMode === 'microphone' && 'Record your voice only - ideal for in-person meetings'}
+              {audioSourceMode === 'microphone_and_system' && 'Record your voice and computer audio - ideal for Teams/Zoom calls'}
+              {audioSourceMode === 'system_only' && 'Record computer audio only - ideal for watching recordings'}
+            </p>
+          </div>
+
           {/* Device selector */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Select Microphone</label>
+            <Label className="text-sm font-medium">Select Microphone</Label>
             <div className="flex gap-2">
               <Select
                 value={selectedDeviceId || ''}
                 onValueChange={handleDeviceChange}
-                disabled={availableDevices.length === 0 || permissionStatus === 'denied'}
+                disabled={availableDevices.length === 0 || permissionStatus === 'denied' || audioSourceMode === 'system_only'}
               >
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder={
-                    permissionStatus === 'denied' 
-                      ? 'Permission denied' 
-                      : availableDevices.length === 0 
-                        ? 'No microphones found' 
-                        : 'Select a microphone'
+                    audioSourceMode === 'system_only'
+                      ? 'Not required for system audio'
+                      : permissionStatus === 'denied' 
+                        ? 'Permission denied' 
+                        : availableDevices.length === 0 
+                          ? 'No microphones found' 
+                          : 'Select a microphone'
                   } />
                 </SelectTrigger>
                 <SelectContent>
@@ -156,11 +209,12 @@ export const MeetingMicrophoneSettings = ({ onDeviceChange }: MeetingMicrophoneS
                 size="icon"
                 onClick={enumerateDevices}
                 title="Refresh device list"
+                disabled={audioSourceMode === 'system_only'}
               >
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
-            {availableDevices.length === 0 && permissionStatus !== 'denied' && (
+            {availableDevices.length === 0 && permissionStatus !== 'denied' && audioSourceMode !== 'system_only' && (
               <p className="text-xs text-muted-foreground">
                 Click refresh to detect microphones, or connect a microphone and try again.
               </p>

@@ -192,12 +192,21 @@ export const MeetingRecorder = ({
   const [meetingLocation, setMeetingLocation] = useState<string>('');
   const [userPractices, setUserPractices] = useState<Array<{id: string, practice_name: string}>>([]);
   
-  // Microphone device selection
+  // Microphone device selection and audio source mode
   const [selectedMicrophoneId, setSelectedMicrophoneId] = useState<string | null>(() => {
     try {
       return localStorage.getItem('meeting_recorder_microphone_id');
     } catch {
       return null;
+    }
+  });
+  
+  const [audioSourceMode, setAudioSourceMode] = useState<'microphone' | 'microphone_and_system' | 'system_only'>(() => {
+    try {
+      const saved = localStorage.getItem('meeting_recorder_audio_source');
+      return (saved as 'microphone' | 'microphone_and_system' | 'system_only') || 'microphone';
+    } catch {
+      return 'microphone';
     }
   });
   
@@ -5107,7 +5116,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               <CardContent className="pt-4 pb-4">
                 {/* Microphone Settings, Import Audio & Smartphone Icons - Top Right */}
                 <div className="flex justify-end gap-1 mb-2">
-                  <MeetingMicrophoneSettings onDeviceChange={setSelectedMicrophoneId} />
+                  <MeetingMicrophoneSettings 
+                    onDeviceChange={setSelectedMicrophoneId}
+                    onAudioSourceChange={setAudioSourceMode}
+                  />
                   <QuickRecordQRLink />
                   <Tooltip>
                     <TooltipTrigger asChild>
