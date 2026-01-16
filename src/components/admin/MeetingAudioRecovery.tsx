@@ -517,6 +517,7 @@ export const MeetingAudioRecovery = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-8"></TableHead>
                   <TableHead>Title</TableHead>
                   <TableHead>User</TableHead>
                   <TableHead>Words</TableHead>
@@ -528,8 +529,39 @@ export const MeetingAudioRecovery = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentMeetings.map((meeting) => (
+                {recentMeetings.map((meeting) => {
+                  // Determine if transcript might be missing
+                  // Red if: end_time exists but lastTranscriptTime is missing, or gap > 5 mins
+                  const hasTranscriptIssue = (() => {
+                    if (meeting.status === 'recording') return false; // Still recording
+                    if (!meeting.endTime) return false; // No end time to compare
+                    if (!meeting.lastTranscriptTime) return true; // No transcript at all
+                    const endTime = new Date(meeting.endTime).getTime();
+                    const lastChunk = new Date(meeting.lastTranscriptTime).getTime();
+                    const gapMinutes = (endTime - lastChunk) / (1000 * 60);
+                    return gapMinutes > 5; // Gap of more than 5 minutes
+                  })();
+                  
+                  return (
                   <TableRow key={meeting.id}>
+                    <TableCell className="pr-0">
+                      <div 
+                        className={`w-3 h-3 rounded-full ${
+                          meeting.status === 'recording' 
+                            ? 'bg-yellow-500' 
+                            : hasTranscriptIssue 
+                              ? 'bg-red-500' 
+                              : 'bg-green-500'
+                        }`}
+                        title={
+                          meeting.status === 'recording' 
+                            ? 'Recording in progress' 
+                            : hasTranscriptIssue 
+                              ? 'Transcript may be missing' 
+                              : 'Transcript complete'
+                        }
+                      />
+                    </TableCell>
                     <TableCell className="max-w-[200px] truncate font-medium" title={meeting.title}>
                       {meeting.title}
                     </TableCell>
@@ -571,7 +603,8 @@ export const MeetingAudioRecovery = () => {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}
