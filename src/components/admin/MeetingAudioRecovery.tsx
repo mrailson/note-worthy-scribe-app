@@ -69,18 +69,33 @@ export const MeetingAudioRecovery = () => {
   const fetchRecentMeetings = async () => {
     setLoadingRecent(true);
     try {
-      const { data, error } = await supabase
+      // Fetch meetings first
+      const { data: meetingsData, error: meetingsError } = await supabase
         .from('meetings')
-        .select(`
-          id, title, created_at, status, word_count, duration_minutes, user_id,
-          profiles!meetings_user_id_fkey(full_name)
-        `)
+        .select('id, title, created_at, status, word_count, duration_minutes, user_id')
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (error) throw error;
+      if (meetingsError) throw meetingsError;
 
-      const meetings: RecentMeeting[] = (data || []).map((m: any) => ({
+      // Get unique user IDs to fetch profiles
+      const userIds = [...new Set((meetingsData || []).map(m => m.user_id).filter(Boolean))];
+      
+      // Fetch profiles for these users
+      let profilesMap: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds);
+        
+        profilesMap = (profilesData || []).reduce((acc, p) => {
+          acc[p.id] = p.full_name || '';
+          return acc;
+        }, {} as Record<string, string>);
+      }
+
+      const meetings: RecentMeeting[] = (meetingsData || []).map((m: any) => ({
         id: m.id,
         title: m.title || 'Untitled',
         createdAt: m.created_at,
@@ -88,7 +103,7 @@ export const MeetingAudioRecovery = () => {
         wordCount: m.word_count,
         durationMinutes: m.duration_minutes,
         userId: m.user_id,
-        userName: m.profiles?.full_name || null
+        userName: profilesMap[m.user_id] || null
       }));
 
       setRecentMeetings(meetings);
