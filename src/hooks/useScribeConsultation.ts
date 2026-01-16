@@ -29,6 +29,7 @@ export const useScribeConsultation = () => {
   const [consentTimestamp, setConsentTimestamp] = useState<string | undefined>();
   const [consultationNote, setConsultationNote] = useState<ConsultationNote | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false); // Dedicated state for immediate feedback
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [settings, setSettings] = useState<ScribeSettings>(DEFAULT_SCRIBE_SETTINGS);
@@ -241,12 +242,16 @@ export const useScribeConsultation = () => {
 
   // Finish consultation and generate notes (with auto-save)
   const finishConsultation = useCallback(async () => {
+    // SET IMMEDIATELY - before any await operations
+    setIsFinishing(true);
+    
     try {
       const result = await recording.stopRecording();
       
       if (!result?.transcript?.trim()) {
         showToast.error("No transcript available to generate notes", { section: 'gpscribe' });
         setConsultationState('ready');
+        setIsFinishing(false);
         return;
       }
 
@@ -331,6 +336,7 @@ export const useScribeConsultation = () => {
       setConsultationState('recording');
     } finally {
       setIsGenerating(false);
+      setIsFinishing(false);
     }
   }, [recording, consultationType, settings.noteFormat, settings.consultationDetailLevel, contextFiles, autoSaveWithRetry]);
 
@@ -698,7 +704,7 @@ export const useScribeConsultation = () => {
     connectionStatus: recording.connectionStatus,
     wordCount: recording.wordCount,
     formatDuration: recording.formatDuration,
-    isFinishing: isGenerating,
+    isFinishing: isFinishing,
     
     // Actions
     setConsultationType,
