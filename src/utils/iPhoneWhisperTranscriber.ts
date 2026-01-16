@@ -86,6 +86,16 @@ export class iPhoneWhisperTranscriber {
   
   // NEW: Pending tick flag - prevents missed chunks when processing
   private pendingTick = false;
+  
+  // NEW: Worker blob URL - don't revoke until worker is destroyed
+  private workerBlobUrl: string | null = null;
+  
+  // NEW: Worker heartbeat tracking
+  private lastWorkerTick = 0;
+  private workerWatchdogInterval: NodeJS.Timeout | null = null;
+  
+  // NEW: Backup timer interval
+  private backupTimerInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -175,6 +185,7 @@ export class iPhoneWhisperTranscriber {
         const { type, isForced } = event.data;
         
         if (type === 'tick' && this.isRecording) {
+          this.lastWorkerTick = Date.now(); // Update heartbeat
           if (this.isProcessing) {
             // Don't skip the tick - queue it for later processing
             console.log('⏰ Worker tick - queuing (processing in progress)');
@@ -194,8 +205,8 @@ export class iPhoneWhisperTranscriber {
       
       console.log('📱 iPhone: Web Worker initialized for reliable timing');
       
-      // Clean up blob URL
-      URL.revokeObjectURL(workerUrl);
+      // Store blob URL - DON'T revoke here! iOS Safari kills worker if URL is revoked
+      this.workerBlobUrl = workerUrl;
       
     } catch (error) {
       console.warn('📱 iPhone: Failed to create Web Worker:', error);
@@ -575,7 +586,8 @@ export class iPhoneWhisperTranscriber {
       // Initialize and start Web Worker for reliable timing
       this.initializeWorker();
       if (this.timerWorker) {
-        this.timerWorker.postMessage({ type: 'start', intervalMs: 10000 }); // 10s interval (was 15s)
+        this.timerWorker.postMessage({ type: 'start', intervalMs: 10000 }); // 10s interval
+        this.lastWorkerTick = Date.now(); // Initialize heartbeat
       }
 
       // Start recording
@@ -584,6 +596,12 @@ export class iPhoneWhisperTranscriber {
       
       // Start health monitoring
       this.startHealthMonitoring();
+      
+      // Start worker watchdog - detects if worker dies
+      this.startWorkerWatchdog();
+      
+      // Start backup timer - safety net in case worker fails
+      this.startBackupTimer();
       
       this.onStatusChange('Recording...');
       console.log('✅ iPhone transcription started');
@@ -1043,6 +1061,56 @@ export class iPhoneWhisperTranscriber {
     }
   }
 
+  /**
+   * Worker heartbeat watchdog - detects if worker dies and restarts it
+   */
+  private startWorkerWatchdog(): void {
+    this.workerWatchdogInterval = setInterval(() => {
+      if (this.isRecording && this.timerWorker) {
+        const timeSinceLastTick = Date.now() - this.lastWorkerTick;
+        if (timeSinceLastTick > 25000) {
+          console.warn(`⚠️ Worker appears dead (${Math.round(timeSinceLastTick / 1000)}s since last tick) - forcing process and reinitializing`);
+          
+          // Force process any pending audio
+          this.processChunkFromManager();
+          
+          // Terminate dead worker
+          this.timerWorker.terminate();
+          this.timerWorker = null;
+          
+          // Clean up old blob URL
+          if (this.workerBlobUrl) {
+            URL.revokeObjectURL(this.workerBlobUrl);
+            this.workerBlobUrl = null;
+          }
+          
+          // Reinitialize worker
+          this.initializeWorker();
+          if (this.timerWorker) {
+            this.timerWorker.postMessage({ type: 'start', intervalMs: 10000 });
+            this.lastWorkerTick = Date.now();
+            console.log('✅ Worker reinitialized');
+          }
+        }
+      }
+    }, 10000);
+  }
+  
+  /**
+   * Backup timer - safety net that processes audio even if worker fails
+   */
+  private startBackupTimer(): void {
+    this.backupTimerInterval = setInterval(() => {
+      if (this.isRecording && !this.isProcessing) {
+        const stats = this.chunkManager?.getStats();
+        if (stats && stats.bufferDurationMs > 12000) {
+          console.log(`⏰ Backup timer triggered - processing ${Math.round(stats.bufferDurationMs / 1000)}s of accumulated audio`);
+          this.processChunkFromManager();
+        }
+      }
+    }, 20000);
+  }
+
   async stopTranscription() {
     console.log('🛑 Stopping iPhone transcription...');
     
@@ -1054,6 +1122,24 @@ export class iPhoneWhisperTranscriber {
       this.timerWorker.postMessage({ type: 'stop' });
       this.timerWorker.terminate();
       this.timerWorker = null;
+    }
+    
+    // Clean up worker blob URL
+    if (this.workerBlobUrl) {
+      URL.revokeObjectURL(this.workerBlobUrl);
+      this.workerBlobUrl = null;
+    }
+    
+    // Stop worker watchdog
+    if (this.workerWatchdogInterval) {
+      clearInterval(this.workerWatchdogInterval);
+      this.workerWatchdogInterval = null;
+    }
+    
+    // Stop backup timer
+    if (this.backupTimerInterval) {
+      clearInterval(this.backupTimerInterval);
+      this.backupTimerInterval = null;
     }
     
     // Remove visibility handler
