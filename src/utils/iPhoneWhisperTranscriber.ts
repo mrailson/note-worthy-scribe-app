@@ -2,6 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
 import { isLikelyHallucination, isRepetitiveContent } from './whisperHallucinationPatterns';
+import { iPhoneChunkManager, type ProcessableChunk } from './iPhoneChunkManager';
+import { iOSAudioKeepAlive } from './iOSAudioKeepAlive';
 
 export interface TranscriptData {
   text: string;
@@ -9,6 +11,9 @@ export interface TranscriptData {
   confidence: number;
   speaker: string;
 }
+
+// Feature flag for new chunking strategy
+const USE_NEW_IPHONE_CHUNKING = true;
 
 export class iPhoneWhisperTranscriber {
   private mediaRecorder: MediaRecorder | null = null;
@@ -25,26 +30,26 @@ export class iPhoneWhisperTranscriber {
   private chunkCounter = 0;
   private totalWordCount = 0;
   private meetingSettings: MeetingSettingsWithThresholds;
-  private lastSegmentEndTime = 0; // Track the last segment end time to avoid duplicates
-  private totalProcessedDuration = 0; // Track cumulative audio duration for time offset
-  private finalTranscript = ''; // Accumulated transcript for UI
-  private lastProcessedChunkIndex = 0; // Track which chunks we've already processed
-  private backupChunkCounter = 0; // Track incremental backup uploads
-  private headerChunk: Blob | null = null; // Preserve M4A header for valid audio files
+  private lastSegmentEndTime = 0;
+  private totalProcessedDuration = 0;
+  private finalTranscript = '';
+  private lastProcessedChunkIndex = 0;
+  private backupChunkCounter = 0;
+  private headerChunk: Blob | null = null;
 
   // Audio activity monitoring
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private activityCheckInterval: NodeJS.Timeout | null = null;
   
-  // VAD-based silence detection for smoother real-time experience
+  // VAD-based silence detection
   private silenceTimer: NodeJS.Timeout | null = null;
   private lastSpeechTime = 0;
   private isSpeaking = false;
   private chunkStartTime = 0;
-  private readonly SILENCE_THRESHOLD = 0.015; // RMS threshold for speech detection
-  private readonly SILENCE_DURATION_MS = 1500; // 1.5 seconds of silence triggers flush
-  private readonly MIN_CHUNK_DURATION_MS = 2000; // Minimum 2 seconds before flushing
+  private readonly SILENCE_THRESHOLD = 0.015;
+  private readonly SILENCE_DURATION_MS = 1500;
+  private readonly MIN_CHUNK_DURATION_MS = 2000;
 
   private selectedMimeType: string = 'audio/webm';
 
@@ -52,9 +57,28 @@ export class iPhoneWhisperTranscriber {
   private lastSuccessfulTranscriptionTime = 0;
   private autoRecoveryAttempts = 0;
   private healthCheckInterval: NodeJS.Timeout | null = null;
-  private readonly AUTO_RECOVERY_THRESHOLD_MS = 45000; // 45 seconds without transcription
-  private readonly MAX_AUTO_RECOVERY_ATTEMPTS = 3;
+  private readonly AUTO_RECOVERY_THRESHOLD_MS = 30000; // Reduced to 30 seconds
+  private readonly MAX_AUTO_RECOVERY_ATTEMPTS = 5; // Increased attempts
   private onRecoveryAttempt?: () => void;
+
+  // NEW: Chunk manager for sliding window approach
+  private chunkManager: iPhoneChunkManager | null = null;
+  
+  // NEW: Web Worker for reliable timing
+  private timerWorker: Worker | null = null;
+  private workerSupported = false;
+  
+  // NEW: Visibility change handling
+  private visibilityHandler: (() => void) | null = null;
+  
+  // NEW: Retry queue for failed API calls
+  private retryQueue: { chunk: ProcessableChunk; attempts: number }[] = [];
+  private readonly MAX_RETRY_ATTEMPTS = 3;
+  private isProcessing = false;
+  
+  // NEW: Track consecutive failures for backoff
+  private consecutiveFailures = 0;
+  private lastApiCallTime = 0;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -72,21 +96,131 @@ export class iPhoneWhisperTranscriber {
       this.meetingId = meetingId;
       this.sessionId = meetingId;
     }
+    
+    // Initialize chunk manager if using new strategy
+    if (USE_NEW_IPHONE_CHUNKING) {
+      this.chunkManager = new iPhoneChunkManager({
+        maxBufferDurationMs: 60000,    // Keep 60s buffer max
+        targetChunkDurationMs: 25000,  // Process every 25s
+        overlapDurationMs: 5000,       // 5s overlap for continuity
+        minChunkDurationMs: 8000       // Minimum 8s before processing
+      });
+    }
+    
+    // Check for Web Worker support
+    this.workerSupported = typeof Worker !== 'undefined';
   }
 
-  /**
-   * Set callback for recovery attempts (called when auto-recovery kicks in)
-   */
   public setRecoveryCallback(callback: () => void) {
     this.onRecoveryAttempt = callback;
   }
 
   /**
-   * Start health monitoring for auto-recovery
-   * Detects when transcription has stalled and attempts automatic recovery
+   * Initialize Web Worker for reliable background timing
    */
+  private initializeWorker(): void {
+    if (!this.workerSupported) {
+      console.log('📱 iPhone: Web Workers not supported, using main thread timers');
+      return;
+    }
+
+    try {
+      // Create worker from inline code to avoid separate file issues
+      const workerCode = `
+        let intervalId = null;
+        let tickCount = 0;
+        
+        self.onmessage = (event) => {
+          const { type, intervalMs } = event.data;
+          
+          switch (type) {
+            case 'start':
+              if (intervalId) clearInterval(intervalId);
+              tickCount = 0;
+              const interval = intervalMs || 15000;
+              intervalId = setInterval(() => {
+                tickCount++;
+                self.postMessage({ type: 'tick', timestamp: Date.now(), tickCount });
+              }, interval);
+              self.postMessage({ type: 'tick', timestamp: Date.now(), tickCount: 0, isInitial: true });
+              break;
+            case 'stop':
+              if (intervalId) { clearInterval(intervalId); intervalId = null; }
+              tickCount = 0;
+              break;
+            case 'forceProcess':
+              self.postMessage({ type: 'tick', timestamp: Date.now(), tickCount: ++tickCount, isForced: true });
+              break;
+          }
+        };
+        self.postMessage({ type: 'ready' });
+      `;
+      
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      const workerUrl = URL.createObjectURL(blob);
+      this.timerWorker = new Worker(workerUrl);
+      
+      this.timerWorker.onmessage = async (event) => {
+        const { type, isForced } = event.data;
+        
+        if (type === 'tick' && this.isRecording && !this.isProcessing) {
+          console.log(`⏰ Worker tick (forced: ${isForced || false})`);
+          await this.processChunkFromManager();
+        }
+      };
+      
+      this.timerWorker.onerror = (error) => {
+        console.error('📱 iPhone: Worker error:', error);
+        this.workerSupported = false;
+        this.timerWorker = null;
+      };
+      
+      console.log('📱 iPhone: Web Worker initialized for reliable timing');
+      
+      // Clean up blob URL
+      URL.revokeObjectURL(workerUrl);
+      
+    } catch (error) {
+      console.warn('📱 iPhone: Failed to create Web Worker:', error);
+      this.workerSupported = false;
+    }
+  }
+
+  /**
+   * Set up visibility change handler for background recovery
+   */
+  private setupVisibilityHandler(): void {
+    this.visibilityHandler = async () => {
+      if (document.visibilityState === 'visible' && this.isRecording) {
+        console.log('👁️ iPhone: Visibility restored, processing any pending audio...');
+        
+        // Resume AudioContext if suspended
+        await iOSAudioKeepAlive.forceResume();
+        
+        // Force immediate processing when page becomes visible
+        if (this.chunkManager && USE_NEW_IPHONE_CHUNKING) {
+          const stats = this.chunkManager.getStats();
+          if (stats.bufferDurationMs > 0) {
+            console.log(`👁️ iPhone: Found ${(stats.bufferDurationMs / 1000).toFixed(1)}s of unprocessed audio`);
+            this.onStatusChange('Catching up on audio...');
+            await this.processChunkFromManager();
+          }
+        } else {
+          await this.processPendingChunks();
+        }
+        
+        // Trigger worker to process if available
+        if (this.timerWorker) {
+          this.timerWorker.postMessage({ type: 'forceProcess' });
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+    console.log('👁️ iPhone: Visibility handler registered');
+  }
+
   private startHealthMonitoring() {
-    // Clear any existing interval
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
     }
@@ -94,7 +228,7 @@ export class iPhoneWhisperTranscriber {
     this.lastSuccessfulTranscriptionTime = Date.now();
     this.autoRecoveryAttempts = 0;
 
-    // Check every 15 seconds
+    // Check every 10 seconds (reduced from 15)
     this.healthCheckInterval = setInterval(async () => {
       if (!this.isRecording) {
         this.stopHealthMonitoring();
@@ -104,20 +238,12 @@ export class iPhoneWhisperTranscriber {
       const timeSinceLastTranscription = Date.now() - this.lastSuccessfulTranscriptionTime;
       
       if (timeSinceLastTranscription > this.AUTO_RECOVERY_THRESHOLD_MS) {
-        console.warn(`⚠️ iPhone: No transcription for ${Math.round(timeSinceLastTranscription / 1000)}s - checking audio activity`);
-        
-        // Check if we're still capturing audio
-        if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
-          // We have unprocessed chunks - try to process them
-          console.log('🔄 iPhone: Found unprocessed chunks, attempting recovery...');
-          await this.attemptAutoRecovery();
-        } else {
-          console.log('⏸️ iPhone: No new audio chunks - possible background throttling');
-        }
+        console.warn(`⚠️ iPhone: No transcription for ${Math.round(timeSinceLastTranscription / 1000)}s - attempting recovery`);
+        await this.attemptAutoRecovery();
       }
-    }, 15000);
+    }, 10000);
 
-    console.log('🏥 iPhone: Health monitoring started');
+    console.log('🏥 iPhone: Health monitoring started (10s interval, 30s threshold)');
   }
 
   private stopHealthMonitoring() {
@@ -128,9 +254,6 @@ export class iPhoneWhisperTranscriber {
     console.log('🏥 iPhone: Health monitoring stopped');
   }
 
-  /**
-   * Attempt automatic recovery when transcription appears stalled
-   */
   private async attemptAutoRecovery() {
     if (this.autoRecoveryAttempts >= this.MAX_AUTO_RECOVERY_ATTEMPTS) {
       console.error('❌ iPhone: Max auto-recovery attempts reached');
@@ -140,27 +263,37 @@ export class iPhoneWhisperTranscriber {
 
     this.autoRecoveryAttempts++;
     console.log(`🔄 iPhone: Auto-recovery attempt ${this.autoRecoveryAttempts}/${this.MAX_AUTO_RECOVERY_ATTEMPTS}`);
-    this.onStatusChange(`Recovering transcription (attempt ${this.autoRecoveryAttempts})...`);
+    this.onStatusChange(`Recovering (${this.autoRecoveryAttempts}/${this.MAX_AUTO_RECOVERY_ATTEMPTS})...`);
 
-    // Notify caller about recovery attempt
     this.onRecoveryAttempt?.();
 
     try {
-      // Force process any pending chunks
-      if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
+      // Resume AudioContext if suspended
+      await iOSAudioKeepAlive.forceResume();
+      
+      // Force process any pending audio
+      if (USE_NEW_IPHONE_CHUNKING && this.chunkManager) {
+        await this.processChunkFromManager();
+      } else if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
         await this.processNewAudioChunks();
-        this.onStatusChange('Recording...');
       }
+      
+      this.onStatusChange('Recording...');
     } catch (error) {
       console.error('❌ iPhone: Auto-recovery failed:', error);
     }
   }
 
-  /**
-   * Process any pending chunks that may have accumulated during background state
-   * Call this when visibility is restored
-   */
   public async processPendingChunks(): Promise<number> {
+    if (USE_NEW_IPHONE_CHUNKING && this.chunkManager) {
+      const stats = this.chunkManager.getStats();
+      if (stats.bufferDurationMs > 0) {
+        await this.processChunkFromManager();
+        return 1;
+      }
+      return 0;
+    }
+    
     const pendingCount = this.fullRecordingChunks.length - this.lastProcessedChunkIndex;
     
     if (pendingCount <= 0) {
@@ -168,7 +301,7 @@ export class iPhoneWhisperTranscriber {
       return 0;
     }
 
-    console.log(`📱 iPhone: Processing ${pendingCount} pending chunks after visibility restore`);
+    console.log(`📱 iPhone: Processing ${pendingCount} pending chunks`);
     this.onStatusChange(`Processing ${pendingCount} pending chunks...`);
 
     try {
@@ -182,12 +315,10 @@ export class iPhoneWhisperTranscriber {
     }
   }
 
-  /**
-   * Mark successful transcription (resets recovery counter)
-   */
   private markSuccessfulTranscription() {
     this.lastSuccessfulTranscriptionTime = Date.now();
     this.autoRecoveryAttempts = 0;
+    this.consecutiveFailures = 0;
   }
 
   public setMeetingId(id: string) {
@@ -218,74 +349,60 @@ export class iPhoneWhisperTranscriber {
       }
       const rms = Math.sqrt(sum / bufferLength);
       
-      // Track speech activity for VAD-based flushing
       const wasSpeaking = this.isSpeaking;
       this.isSpeaking = rms > this.SILENCE_THRESHOLD;
       
       if (this.isSpeaking) {
-        // Speech detected - record timestamp and clear silence timer
         this.lastSpeechTime = Date.now();
         if (this.silenceTimer) {
           clearTimeout(this.silenceTimer);
           this.silenceTimer = null;
         }
       } else if (wasSpeaking && !this.isSpeaking) {
-        // Transition from speaking to silence - schedule early flush
         this.scheduleSilenceFlush();
       }
       
-      // Call callback with activity status
       if (this.onAudioActivity) {
         this.onAudioActivity(this.isSpeaking);
       }
-    }, 100); // Check every 100ms
+    }, 100);
   }
   
-  /**
-   * Schedule an early chunk flush when silence is detected
-   * This provides smoother real-time feedback to clinicians
-   */
   private scheduleSilenceFlush() {
-    if (this.silenceTimer) return; // Already scheduled
+    if (this.silenceTimer) return;
     
-    this.silenceTimer = setTimeout(() => {
+    this.silenceTimer = setTimeout(async () => {
       const timeSinceLastSpeech = Date.now() - this.lastSpeechTime;
       const chunkDuration = Date.now() - this.chunkStartTime;
       
-      // Only flush if we have enough audio and silence has been maintained
       if (timeSinceLastSpeech >= this.SILENCE_DURATION_MS && 
           chunkDuration >= this.MIN_CHUNK_DURATION_MS &&
-          this.fullRecordingChunks.length > this.lastProcessedChunkIndex &&
           this.isRecording) {
-        console.log(`🔇 iPhone: Silence detected for ${(timeSinceLastSpeech/1000).toFixed(1)}s after ${(chunkDuration/1000).toFixed(1)}s of audio - processing early`);
-        this.flushCurrentChunk();
+        console.log(`🔇 iPhone: Silence detected - processing early`);
+        await this.flushCurrentChunk();
       }
       
       this.silenceTimer = null;
     }, this.SILENCE_DURATION_MS);
   }
   
-  /**
-   * Flush current audio chunk early (triggered by silence detection)
-   * Process available chunks immediately for faster feedback
-   */
   private async flushCurrentChunk() {
-    // Cancel any scheduled processing
     if (this.chunkTimeout) {
       clearTimeout(this.chunkTimeout);
       this.chunkTimeout = null;
     }
     
-    // Process any new chunks immediately
-    if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex && this.isRecording) {
-      console.log(`📤 iPhone: Processing early flush (${this.fullRecordingChunks.length - this.lastProcessedChunkIndex} new chunks)`);
+    if (USE_NEW_IPHONE_CHUNKING && this.chunkManager && this.isRecording) {
+      if (this.chunkManager.hasEnoughForChunk()) {
+        await this.processChunkFromManager();
+        this.chunkStartTime = Date.now();
+        this.lastSpeechTime = Date.now();
+      }
+    } else if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex && this.isRecording) {
+      console.log(`📤 iPhone: Early flush (${this.fullRecordingChunks.length - this.lastProcessedChunkIndex} chunks)`);
       await this.processNewAudioChunks();
-      
-      // Reset chunk start time for next segment
       this.chunkStartTime = Date.now();
       this.lastSpeechTime = Date.now();
-      
-      // Resume scheduled processing
       this.scheduleNextProcessing();
     }
   }
@@ -293,16 +410,21 @@ export class iPhoneWhisperTranscriber {
   private scheduleNextProcessing() {
     if (!this.isRecording) return;
     
-    // Schedule next processing at 60 second intervals (backup timer)
-    this.chunkTimeout = setTimeout(async () => {
-      if (this.isRecording && this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
-        console.log(`📤 Processing scheduled audio chunks (${this.fullRecordingChunks.length - this.lastProcessedChunkIndex} new chunks)`);
-        await this.processNewAudioChunks();
-        this.chunkStartTime = Date.now();
-        this.lastSpeechTime = Date.now();
-        this.scheduleNextProcessing();
-      }
-    }, 60000); // 60 second backup interval
+    // Only use main thread timer as fallback if worker not available
+    if (!this.timerWorker) {
+      this.chunkTimeout = setTimeout(async () => {
+        if (this.isRecording) {
+          if (USE_NEW_IPHONE_CHUNKING && this.chunkManager) {
+            await this.processChunkFromManager();
+          } else if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
+            await this.processNewAudioChunks();
+          }
+          this.chunkStartTime = Date.now();
+          this.lastSpeechTime = Date.now();
+          this.scheduleNextProcessing();
+        }
+      }, 30000); // Fallback: 30 second interval
+    }
   }
   
   private stopActivityMonitoring() {
@@ -324,9 +446,9 @@ export class iPhoneWhisperTranscriber {
   async startTranscription() {
     try {
       this.onStatusChange('Starting iPhone transcription...');
-      console.log('📱 Starting iPhone Whisper transcription...');
+      console.log('📱 Starting iPhone Whisper transcription (new chunking: ' + USE_NEW_IPHONE_CHUNKING + ')');
 
-      // Ensure session and meeting IDs for chunk storage and backups
+      // Initialize session/meeting IDs
       try {
         if (!this.sessionId) {
           const existing = sessionStorage.getItem('currentSessionId');
@@ -339,14 +461,13 @@ export class iPhoneWhisperTranscriber {
         console.warn('Could not initialize session/meeting id', e);
       }
 
-      // Request microphone access with iPhone-optimized settings
-      // Use selected device if provided
+      // Request microphone with iPhone-optimized settings
       const audioConstraints: MediaTrackConstraints = {
-        sampleRate: 16000, // Whisper works well with 16kHz
+        sampleRate: 16000,
         channelCount: 1,
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: false, // Disable AGC to reduce pumping/hallucinations
+        autoGainControl: false,
       };
       
       if (this.selectedDeviceId) {
@@ -358,8 +479,7 @@ export class iPhoneWhisperTranscriber {
         audio: audioConstraints
       });
       
-      // Set up audio activity monitoring for VAD-based silence detection
-      // This is always enabled for smoother real-time transcription experience
+      // Set up audio context for VAD
       this.audioContext = new AudioContext({ sampleRate: 16000 });
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 256;
@@ -367,19 +487,22 @@ export class iPhoneWhisperTranscriber {
       const source = this.audioContext.createMediaStreamSource(this.stream);
       source.connect(this.analyser);
       
-      // Start checking for audio activity (VAD + optional callback)
+      // Start audio keep-alive to prevent context suspension
+      await iOSAudioKeepAlive.start(this.audioContext);
+      
+      // Start VAD monitoring
       this.startActivityMonitoring();
 
-      // Check supported MIME types for iPhone
+      // Check supported MIME types
       const mimeTypes = [
-        'audio/mp4;codecs=mp4a.40.2', // Prefer explicit AAC on iOS
+        'audio/mp4;codecs=mp4a.40.2',
         'audio/mp4',
         'audio/aac',
         'audio/webm;codecs=opus',
         'audio/webm'
       ];
 
-      this.selectedMimeType = 'audio/webm'; // fallback
+      this.selectedMimeType = 'audio/webm';
       for (const mimeType of mimeTypes) {
         if (MediaRecorder.isTypeSupported(mimeType)) {
           this.selectedMimeType = mimeType;
@@ -388,20 +511,32 @@ export class iPhoneWhisperTranscriber {
         }
       }
 
-      // Create single MediaRecorder that will run for entire session
+      // Initialize chunk manager with selected MIME type
+      if (USE_NEW_IPHONE_CHUNKING && this.chunkManager) {
+        this.chunkManager.initialize(this.selectedMimeType);
+      }
+
+      // Create MediaRecorder
       this.mediaRecorder = new MediaRecorder(this.stream, {
         mimeType: this.selectedMimeType,
-        audioBitsPerSecond: 128000 // Higher bitrate to reduce artifacts on iOS
+        audioBitsPerSecond: 128000
       });
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          // Capture first chunk as M4A header (contains container metadata)
           if (!this.headerChunk) {
             this.headerChunk = event.data;
-            console.log(`📦 iPhone: Captured M4A header chunk (${event.data.size} bytes)`);
+            console.log(`📦 iPhone: Captured M4A header (${event.data.size} bytes)`);
           }
-          console.log(`📦 iPhone MediaRecorder ondataavailable: ${event.data.size} bytes`);
+          
+          console.log(`📦 iPhone MediaRecorder chunk: ${event.data.size} bytes`);
+          
+          // Add to chunk manager if using new strategy
+          if (USE_NEW_IPHONE_CHUNKING && this.chunkManager) {
+            this.chunkManager.addChunk(event.data, 5000); // 5s timeslice
+          }
+          
+          // Also maintain legacy arrays for fallback
           this.audioChunks.push(event.data);
           this.fullRecordingChunks.push(event.data);
         }
@@ -412,16 +547,25 @@ export class iPhoneWhisperTranscriber {
         this.onError('Recording error occurred');
       };
 
-      console.log('✅ Created single iPhone MediaRecorder instance with MIME type:', this.selectedMimeType);
+      console.log('✅ Created iPhone MediaRecorder with MIME type:', this.selectedMimeType);
 
-      // Wait briefly for audio stream to fully initialize (prevents missing first seconds)
+      // Wait for stream to initialize
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      // Start recording and process in chunks
+      // Set up visibility handler for background recovery
+      this.setupVisibilityHandler();
+
+      // Initialize and start Web Worker for reliable timing
+      this.initializeWorker();
+      if (this.timerWorker) {
+        this.timerWorker.postMessage({ type: 'start', intervalMs: 15000 }); // 15s interval
+      }
+
+      // Start recording
       this.isRecording = true;
       this.startChunkedRecording();
       
-      // Start health monitoring for auto-recovery
+      // Start health monitoring
       this.startHealthMonitoring();
       
       this.onStatusChange('Recording...');
@@ -437,40 +581,249 @@ export class iPhoneWhisperTranscriber {
     if (!this.isRecording || !this.mediaRecorder) return;
 
     this.recordingStartTime = Date.now();
-    this.chunkStartTime = Date.now(); // Track for VAD minimum duration
-    this.lastSpeechTime = Date.now(); // Assume starting with speech
+    this.chunkStartTime = Date.now();
+    this.lastSpeechTime = Date.now();
     
-    // Use timeslice to get regular ondataavailable events (5 seconds)
-    // This is more reliable on iOS Safari than requestData()
-    this.mediaRecorder.start(5000);  
+    // Use 5s timeslice for regular ondataavailable events
+    this.mediaRecorder.start(5000);
     
-    console.log('📱 iPhone MediaRecorder started with 5s timeslice + VAD silence detection');
+    console.log('📱 iPhone MediaRecorder started with 5s timeslice');
 
-    // First transcription after 15 seconds for quick feedback
-    const FIRST_PROCESS_INTERVAL = 15000;
+    // First transcription after 12 seconds for quick feedback
+    const FIRST_PROCESS_INTERVAL = 12000;
     
     this.chunkTimeout = setTimeout(async () => {
-      if (this.isRecording && this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
-        console.log(`📤 Processing FIRST audio chunks (${this.fullRecordingChunks.length - this.lastProcessedChunkIndex} new chunks)`);
-        await this.processNewAudioChunks();
+      if (this.isRecording) {
+        console.log('📤 Processing FIRST audio chunk...');
+        if (USE_NEW_IPHONE_CHUNKING && this.chunkManager) {
+          await this.processChunkFromManager();
+        } else if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
+          await this.processNewAudioChunks();
+        }
         this.chunkStartTime = Date.now();
         this.lastSpeechTime = Date.now();
-        console.log('✅ First process complete, VAD will trigger subsequent flushes or 60s backup');
+        console.log('✅ First chunk processed, VAD or worker will trigger subsequent');
         
-        // Schedule backup processing (VAD will trigger earlier if silence detected)
-        this.scheduleNextProcessing();
+        // Schedule backup processing if worker not available
+        if (!this.timerWorker) {
+          this.scheduleNextProcessing();
+        }
       }
     }, FIRST_PROCESS_INTERVAL);
   }
 
+  /**
+   * NEW: Process chunk using the chunk manager (sliding window approach)
+   */
+  private async processChunkFromManager(): Promise<void> {
+    if (!this.chunkManager || this.isProcessing) {
+      console.log('📱 iPhone: Skipping process - manager null or already processing');
+      return;
+    }
+    
+    this.isProcessing = true;
+    
+    try {
+      // Check for exponential backoff after failures
+      const backoffMs = this.calculateBackoff();
+      if (backoffMs > 0) {
+        const timeSinceLastCall = Date.now() - this.lastApiCallTime;
+        if (timeSinceLastCall < backoffMs) {
+          console.log(`📱 iPhone: Waiting ${backoffMs - timeSinceLastCall}ms (backoff after ${this.consecutiveFailures} failures)`);
+          this.isProcessing = false;
+          return;
+        }
+      }
+      
+      const chunk = this.chunkManager.getChunkForProcessing();
+      if (!chunk) {
+        this.isProcessing = false;
+        return;
+      }
+      
+      console.log(`📤 iPhone: Processing chunk #${chunk.chunkIndex} (${(chunk.blob.size / 1024).toFixed(1)}KB)`);
+      this.lastApiCallTime = Date.now();
+      
+      const success = await this.sendChunkToWhisper(chunk);
+      
+      if (success) {
+        this.chunkManager.markChunkProcessed();
+        this.markSuccessfulTranscription();
+        
+        // Upload backup periodically
+        if (this.chunkCounter % 3 === 0) {
+          await this.uploadBackup(chunk.blob);
+        }
+      } else {
+        this.chunkManager.markChunkFailed();
+        this.consecutiveFailures++;
+        console.warn(`⚠️ iPhone: Chunk failed, consecutive failures: ${this.consecutiveFailures}`);
+      }
+      
+    } catch (error) {
+      console.error('❌ iPhone: processChunkFromManager error:', error);
+      this.consecutiveFailures++;
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+  
+  /**
+   * Calculate exponential backoff delay based on consecutive failures
+   */
+  private calculateBackoff(): number {
+    if (this.consecutiveFailures === 0) return 0;
+    // Backoff: 2s, 4s, 8s, max 16s
+    return Math.min(2000 * Math.pow(2, this.consecutiveFailures - 1), 16000);
+  }
+  
+  /**
+   * Send a chunk to the Whisper API and process the result
+   */
+  private async sendChunkToWhisper(chunk: ProcessableChunk): Promise<boolean> {
+    try {
+      // Convert to base64
+      const arrayBuffer = await chunk.blob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      let binary = '';
+      const chunkSize = 4096;
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const segment = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+        for (let j = 0; j < segment.length; j++) {
+          binary += String.fromCharCode(segment[j]);
+        }
+      }
+      const base64Audio = btoa(binary);
+
+      console.log('📡 Sending chunk to Whisper API...');
+
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: {
+          audio: base64Audio,
+          mimeType: chunk.blob.type,
+          fileName: 'iphone-audio.m4a',
+          language: 'en',
+          temperature: 0,
+          condition_on_previous_text: false
+        }
+      });
+
+      if (error || !data.text) {
+        console.error('❌ Whisper API error:', error);
+        return false;
+      }
+
+      const fullTranscribedText = data.text.trim();
+      
+      // Check for hallucination
+      if (this.isHallucination(fullTranscribedText)) {
+        console.warn('⚠️ Hallucination detected, skipping');
+        return true; // Return true to mark as processed (don't retry hallucinations)
+      }
+      
+      // Extract only NEW text
+      const newText = this.extractNewText(fullTranscribedText, this.finalTranscript);
+      
+      if (newText) {
+        console.log(`📝 NEW text (${newText.split(/\s+/).length} words): "${newText.substring(0, 80)}..."`);
+        
+        this.finalTranscript = fullTranscribedText;
+        
+        const transcriptData: TranscriptData = {
+          text: newText,
+          is_final: true,
+          confidence: data.confidence || 0.9,
+          speaker: 'Speaker'
+        };
+        
+        this.onTranscription(transcriptData);
+        
+        // Update word count
+        const newWordCount = newText.split(/\s+/).filter(Boolean).length;
+        this.totalWordCount += newWordCount;
+        console.log(`📊 Word count: +${newWordCount} (total: ${this.totalWordCount})`);
+        
+        // Store in database
+        await this.storeTranscriptionChunk(newText, data.confidence || 0.9);
+      } else {
+        console.log('ℹ️ No new text in this chunk');
+      }
+      
+      return true;
+      
+    } catch (error) {
+      console.error('❌ sendChunkToWhisper error:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Store transcription chunk in database
+   */
+  private async storeTranscriptionChunk(text: string, confidence: number): Promise<void> {
+    try {
+      this.chunkCounter++;
+      const user = (await supabase.auth.getUser()).data.user?.id;
+      
+      if (this.meetingId && this.sessionId && user) {
+        const segments = [{
+          start: this.lastSegmentEndTime,
+          end: this.lastSegmentEndTime + 25, // Approximate
+          text
+        }];
+        
+        const { error } = await supabase
+          .from('meeting_transcription_chunks')
+          .insert({
+            meeting_id: this.meetingId,
+            session_id: this.sessionId,
+            chunk_number: this.chunkCounter,
+            transcription_text: JSON.stringify(segments),
+            confidence,
+            is_final: true,
+            user_id: user,
+            merge_rejection_reason: null
+          });
+        
+        if (error) {
+          console.warn('⚠️ Failed to store chunk:', error);
+        } else {
+          this.lastSegmentEndTime += 25;
+          console.log(`💾 Stored chunk #${this.chunkCounter}`);
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Error storing chunk:', e);
+    }
+  }
+  
+  /**
+   * Upload backup audio to storage
+   */
+  private async uploadBackup(blob: Blob): Promise<void> {
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId || !this.meetingId) return;
+    
+    this.backupChunkCounter++;
+    const ext = this.selectedMimeType.includes('mp4') ? 'm4a' : 'webm';
+    const fileName = `${userId}/${this.meetingId}_chunk_${String(this.backupChunkCounter).padStart(3, '0')}.${ext}`;
+    
+    const { error } = await supabase.storage
+      .from('meeting-audio-backups')
+      .upload(fileName, blob, { contentType: this.selectedMimeType });
+    
+    if (!error) {
+      console.log(`📤 Uploaded backup #${this.backupChunkCounter}`);
+    }
+  }
+
+  // Legacy method for fallback
   private async processNewAudioChunks() {
     const newChunks = this.fullRecordingChunks.slice(this.lastProcessedChunkIndex);
     if (newChunks.length === 0) return;
 
     try {
-      // Build valid M4A: always prepend header + ALL accumulated chunks
-      // iOS M4A format requires the header for proper decoding
-      // We'll extract only the NEW text by comparing with previously transcribed content
       const allChunks = this.fullRecordingChunks;
       const chunksToProcess = this.headerChunk 
         ? [this.headerChunk, ...allChunks.filter(c => c !== this.headerChunk)]
@@ -480,13 +833,11 @@ export class iPhoneWhisperTranscriber {
         type: this.selectedMimeType || 'audio/mp4' 
       });
       
-      console.log(`📏 Full audio blob: ${audioBlob.size} bytes from ${allChunks.length} total chunks (${newChunks.length} new)`);
+      console.log(`📏 Full audio blob: ${audioBlob.size} bytes from ${allChunks.length} chunks`);
 
-      // Convert to base64
       const arrayBuffer = await audioBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Convert to base64 in chunks to prevent memory issues
       let binary = '';
       const chunkSize = 4096;
       for (let i = 0; i < uint8Array.length; i += chunkSize) {
@@ -499,9 +850,6 @@ export class iPhoneWhisperTranscriber {
       }
       const base64Audio = btoa(binary);
 
-      console.log('📡 Sending audio to Whisper API...');
-
-      // Send to Whisper
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
         body: {
           audio: base64Audio,
@@ -521,24 +869,17 @@ export class iPhoneWhisperTranscriber {
 
       const fullTranscribedText = data.text.trim();
       
-      // Check for hallucination
       if (this.isHallucination(fullTranscribedText)) {
-        console.warn('⚠️ Hallucination detected, skipping chunk:', fullTranscribedText.substring(0, 100));
+        console.warn('⚠️ Hallucination detected, skipping');
         this.lastProcessedChunkIndex = this.fullRecordingChunks.length;
         return;
       }
       
-      // Extract only NEW text by removing what we've already transcribed
       const newText = this.extractNewText(fullTranscribedText, this.finalTranscript);
       
       if (newText) {
-        console.log(`📝 NEW text (${newText.split(/\s+/).length} words): "${newText.substring(0, 80)}${newText.length > 80 ? '...' : ''}"`);
-        console.log(`📝 Full transcript now: ${fullTranscribedText.split(/\s+/).length} words`);
-        
-        // Update our running transcript
         this.finalTranscript = fullTranscribedText;
         
-        // Emit ONLY the new text to UI
         const transcriptData: TranscriptData = {
           text: newText,
           is_final: true,
@@ -547,70 +888,19 @@ export class iPhoneWhisperTranscriber {
         };
         
         this.onTranscription(transcriptData);
-        
-        // Mark successful transcription for health monitoring
         this.markSuccessfulTranscription();
         
-        // Update word count (only for new words)
         const newWordCount = newText.split(/\s+/).filter(Boolean).length;
         this.totalWordCount += newWordCount;
-        console.log(`📊 Word count: +${newWordCount} words (total: ${this.totalWordCount})`);
         
-        // Store segments in database
-        try {
-          this.chunkCounter += 1;
-          const currentChunkNumber = this.chunkCounter;
-          const user = (await supabase.auth.getUser()).data.user?.id;
-          
-          if (this.meetingId && this.sessionId && user) {
-            // Create synthetic segment for the new text only
-            const newSegments = [{
-              start: this.lastSegmentEndTime,
-              end: this.lastSegmentEndTime + (newChunks.length * 5), // Approximate based on chunks
-              text: newText
-            }];
-            
-            console.log(`📦 Storing new segment: ${newText.length} chars`);
-            
-            const { error: dbError } = await supabase
-              .from('meeting_transcription_chunks')
-              .insert({
-                meeting_id: this.meetingId,
-                session_id: this.sessionId,
-                chunk_number: currentChunkNumber,
-                transcription_text: JSON.stringify(newSegments),
-                confidence: transcriptData.confidence,
-                is_final: true,
-                user_id: user,
-                merge_rejection_reason: null
-              });
-            
-            if (dbError) {
-              console.warn('⚠️ Failed to store segments:', dbError);
-            } else {
-              // Update last end time
-              this.lastSegmentEndTime += newChunks.length * 5;
-              console.log(`💾 Stored segment in chunk #${currentChunkNumber}, lastEndTime: ${this.lastSegmentEndTime.toFixed(2)}s`);
-            }
-          } else {
-            console.warn('ℹ️ Skipping DB store: missing meetingId/sessionId/user');
-          }
-        } catch (e) {
-          console.warn('⚠️ Error while saving segments to DB:', e);
-        }
-      } else {
-        console.log('ℹ️ No new text detected in this chunk');
+        await this.storeTranscriptionChunk(newText, data.confidence || 0.9);
       }
       
-      // Mark these chunks as processed (but don't clear - we need them for subsequent full transcriptions)
       this.lastProcessedChunkIndex = this.fullRecordingChunks.length;
       
-      // Upload backup periodically
       if (this.fullRecordingChunks.length > 0 && this.chunkCounter % 3 === 0) {
         await this.uploadAndClearProcessedChunks([...this.fullRecordingChunks]);
       }
-      
-      console.log(`✅ Processed ${newChunks.length} new chunks, total accumulated: ${this.fullRecordingChunks.length}`);
       
     } catch (error) {
       console.error('❌ processNewAudioChunks error:', error);
@@ -618,10 +908,6 @@ export class iPhoneWhisperTranscriber {
     }
   }
   
-  /**
-   * Extract only the NEW text from the full transcription by comparing with previous transcript
-   * This handles iOS M4A format where we must send the full audio each time
-   */
   private extractNewText(fullText: string, previousText: string): string {
     if (!previousText) return fullText;
     if (!fullText) return '';
@@ -631,13 +917,10 @@ export class iPhoneWhisperTranscriber {
     const fullNorm = normalise(fullText);
     const prevNorm = normalise(previousText);
     
-    // If the full text starts with the previous text, extract the delta
     if (fullNorm.startsWith(prevNorm)) {
-      // Find where the new content starts in the original (non-normalised) text
       const prevWords = previousText.split(/\s+/).filter(Boolean);
       const fullWords = fullText.split(/\s+/).filter(Boolean);
       
-      // Find the point where new content begins
       let matchEnd = 0;
       for (let i = 0; i < Math.min(prevWords.length, fullWords.length); i++) {
         if (normalise(prevWords[i]) === normalise(fullWords[i])) {
@@ -652,18 +935,15 @@ export class iPhoneWhisperTranscriber {
       }
     }
     
-    // Fuzzy matching: find the longest suffix of previous that appears in full
     const prevWords = previousText.split(/\s+/).filter(Boolean);
     const fullWords = fullText.split(/\s+/).filter(Boolean);
     
-    // Look for overlap point (where previous text ends in full text)
     for (let overlapLen = Math.min(prevWords.length, 20); overlapLen >= 3; overlapLen--) {
       const suffix = prevWords.slice(-overlapLen).map(w => normalise(w)).join(' ');
       
       for (let i = 0; i <= fullWords.length - overlapLen; i++) {
         const segment = fullWords.slice(i, i + overlapLen).map(w => normalise(w)).join(' ');
         if (segment === suffix) {
-          // Found the overlap point - return everything after
           const newContent = fullWords.slice(i + overlapLen).join(' ');
           if (newContent) {
             console.log(`🔍 Found overlap at word ${i + overlapLen}, extracting ${fullWords.length - i - overlapLen} new words`);
@@ -673,18 +953,13 @@ export class iPhoneWhisperTranscriber {
       }
     }
     
-    // Fallback: if full text is longer, assume it's all new (edge case)
     if (fullWords.length > prevWords.length + 3) {
-      console.log('⚠️ Could not find overlap, returning excess words as new');
       return fullWords.slice(prevWords.length).join(' ');
     }
     
     return '';
   }
 
-  /**
-   * Check if text is likely a hallucination using comprehensive pattern detection
-   */
   private isHallucination(text: string, confidence?: number): boolean {
     const result = isLikelyHallucination(text, confidence, {
       checkPhrases: true,
@@ -695,20 +970,19 @@ export class iPhoneWhisperTranscriber {
     });
     
     if (result.isHallucination) {
-      console.warn(`🚨 iPhone hallucination detected: ${result.reason}`);
+      console.warn(`🚨 iPhone hallucination: ${result.reason}`);
     }
     
     return result.isHallucination;
   }
 
   private async uploadAndClearProcessedChunks(processedChunks: Blob[]) {
-    // Upload mini-backup to storage
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId || !this.meetingId || processedChunks.length === 0) return;
     
     this.backupChunkCounter++;
     const chunkBlob = new Blob(processedChunks, { type: this.selectedMimeType });
-    const ext = this.selectedMimeType.includes('mp4') ? 'm4a' : this.selectedMimeType.includes('aac') ? 'aac' : 'webm';
+    const ext = this.selectedMimeType.includes('mp4') ? 'm4a' : 'webm';
     const fileName = `${userId}/${this.meetingId}_chunk_${String(this.backupChunkCounter).padStart(3, '0')}.${ext}`;
     
     const { error } = await supabase.storage
@@ -716,92 +990,33 @@ export class iPhoneWhisperTranscriber {
       .upload(fileName, chunkBlob, { contentType: this.selectedMimeType });
     
     if (!error) {
-      console.log(`📤 Uploaded backup chunk #${this.backupChunkCounter} (${chunkBlob.size} bytes)`);
-    } else {
-      console.warn('⚠️ Failed to upload backup chunk:', error);
+      console.log(`📤 Uploaded backup chunk #${this.backupChunkCounter}`);
     }
-  }
-
-  private simpleSmartMerge(oldText: string, newText: string): string {
-    if (!oldText) return newText;
-    if (!newText) return oldText;
-    
-    // Simple tail overlap detection (12-20 words)
-    const oldWords = oldText.trim().split(/\s+/);
-    const newWords = newText.trim().split(/\s+/);
-    const checkLength = Math.min(20, oldWords.length, newWords.length);
-    
-    for (let i = checkLength; i >= 3; i--) {
-      const lastOld = oldWords.slice(-i).join(' ').toLowerCase();
-      const firstNew = newWords.slice(0, i).join(' ').toLowerCase();
-      
-      // Simple similarity check
-      if (lastOld === firstNew || this.fuzzyMatch(lastOld, firstNew)) {
-        return oldText + " " + newWords.slice(i).join(' ');
-      }
-    }
-    
-    return oldText + " " + newText;
-  }
-
-  private fuzzyMatch(str1: string, str2: string): boolean {
-    if (str1.length === 0 || str2.length === 0) return false;
-    const longer = str1.length > str2.length ? str1 : str2;
-    const shorter = str1.length > str2.length ? str2 : str1;
-    const editDistance = this.levenshteinDistance(longer, shorter);
-    const similarity = (longer.length - editDistance) / longer.length;
-    return similarity > 0.7;
-  }
-
-  private levenshteinDistance(str1: string, str2: string): number {
-    const m = str1.length;
-    const n = str2.length;
-    const d: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-    
-    for (let i = 0; i <= m; i++) d[i][0] = i;
-    for (let j = 0; j <= n; j++) d[0][j] = j;
-    
-    for (let j = 1; j <= n; j++) {
-      for (let i = 1; i <= m; i++) {
-        const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
-        d[i][j] = Math.min(
-          d[i - 1][j] + 1,
-          d[i][j - 1] + 1,
-          d[i - 1][j - 1] + cost
-        );
-      }
-    }
-    
-    return d[m][n];
-  }
-
-  /**
-   * Check if text is likely repetitive noise using comprehensive patterns
-   */
-  private isLikelyRepetitiveNoise(text: string, confidence?: number): boolean {
-    const result = isLikelyHallucination(text, confidence, {
-      checkPhrases: true,
-      checkRepetition: true,
-      checkUrls: true,
-      checkLaughter: true,
-      confidenceThreshold: 0.15
-    });
-    
-    if (result.isHallucination) {
-      console.log(`🚫 iPhone noise/hallucination detected: ${result.reason}`);
-    }
-    
-    return result.isHallucination;
   }
 
   async stopTranscription() {
     console.log('🛑 Stopping iPhone transcription...');
     
-    // CRITICAL: Set isRecording to false FIRST to prevent race conditions
     this.isRecording = false;
     this.onStatusChange('Processing final transcript...');
     
-    // Stop health monitoring and audio activity monitoring
+    // Stop worker
+    if (this.timerWorker) {
+      this.timerWorker.postMessage({ type: 'stop' });
+      this.timerWorker.terminate();
+      this.timerWorker = null;
+    }
+    
+    // Remove visibility handler
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
+    
+    // Stop audio keep-alive
+    iOSAudioKeepAlive.stop();
+    
+    // Stop monitoring
     this.stopHealthMonitoring();
     this.stopActivityMonitoring();
 
@@ -809,17 +1024,14 @@ export class iPhoneWhisperTranscriber {
       clearInterval(this.transcriptionInterval);
       this.transcriptionInterval = null;
     }
-    // Clear scheduled chunk extraction
     if (this.chunkTimeout) {
       clearTimeout(this.chunkTimeout);
       this.chunkTimeout = null;
     }
 
-    // Stop the recorder - this triggers final ondataavailable
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
-      console.log('🔄 Stopping MediaRecorder and waiting for final data...');
+      console.log('🔄 Stopping MediaRecorder...');
       
-      // Create a promise that resolves when onstop fires
       const stopPromise = new Promise<void>((resolve) => {
         const recorder = this.mediaRecorder!;
         const originalOnStop = recorder.onstop;
@@ -833,21 +1045,24 @@ export class iPhoneWhisperTranscriber {
       
       this.mediaRecorder.stop();
       
-      // Wait for onstop with timeout safety
       await Promise.race([
         stopPromise,
         new Promise(resolve => setTimeout(resolve, 3000))
       ]);
       
-      // Wait longer for final ondataavailable to fire
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Process any remaining new audio chunks
-      if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
-        console.log('🔄 Processing final new audio chunks...');
-        this.onStatusChange('Processing final transcript...');
+      // Process final chunks
+      if (USE_NEW_IPHONE_CHUNKING && this.chunkManager) {
+        const finalChunk = this.chunkManager.getFinalChunk();
+        if (finalChunk) {
+          console.log('🔄 Processing final chunk...');
+          await this.sendChunkToWhisper(finalChunk);
+          this.chunkManager.markChunkProcessed();
+        }
+      } else if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
+        console.log('🔄 Processing final audio chunks...');
         await this.processNewAudioChunks();
-        // Wait for database operations
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
@@ -857,14 +1072,20 @@ export class iPhoneWhisperTranscriber {
       this.stream = null;
     }
 
+    // Reset chunk manager
+    if (this.chunkManager) {
+      this.chunkManager.reset();
+    }
+
     this.mediaRecorder = null;
     this.audioChunks = [];
-    this.fullRecordingChunks = []; // Clear any remaining chunks
-    this.headerChunk = null; // Clear header reference
-    this.finalTranscript = ''; // Reset for next session
+    this.fullRecordingChunks = [];
+    this.headerChunk = null;
+    this.finalTranscript = '';
     this.lastProcessedChunkIndex = 0;
+    this.consecutiveFailures = 0;
 
-    console.log(`✅ iPhone transcription stopped. ${this.backupChunkCounter} backup chunks uploaded during recording.`);
+    console.log(`✅ iPhone transcription stopped. ${this.backupChunkCounter} backups uploaded.`);
     this.onStatusChange('Stopped');
   }
 
