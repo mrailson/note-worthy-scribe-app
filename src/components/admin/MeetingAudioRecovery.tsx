@@ -99,20 +99,17 @@ export const MeetingAudioRecovery = () => {
         }, {} as Record<string, string>);
       }
 
-      // Fetch last transcript chunk time for each meeting
+      // Fetch last transcript time from meeting_transcripts (the final saved transcripts)
       let lastTranscriptMap: Record<string, string> = {};
       if (meetingIds.length > 0) {
         const { data: transcriptsData } = await supabase
-          .from('assembly_transcripts')
+          .from('meeting_transcripts')
           .select('meeting_id, created_at')
-          .in('meeting_id', meetingIds)
-          .order('created_at', { ascending: false });
+          .in('meeting_id', meetingIds);
         
-        // Get the most recent transcript time per meeting
+        // Get the transcript time per meeting
         (transcriptsData || []).forEach((t) => {
-          if (!lastTranscriptMap[t.meeting_id]) {
-            lastTranscriptMap[t.meeting_id] = t.created_at;
-          }
+          lastTranscriptMap[t.meeting_id] = t.created_at;
         });
       }
 
