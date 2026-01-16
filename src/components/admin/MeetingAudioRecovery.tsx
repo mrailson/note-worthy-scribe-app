@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Search, Play, Download, RotateCcw, AlertTriangle, CheckCircle, XCircle, Combine, FileAudio } from 'lucide-react';
+import { Loader2, Search, Play, Download, RotateCcw, AlertTriangle, CheckCircle, XCircle, FileAudio, Eye, Users, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -38,6 +38,17 @@ interface GapAnalysis {
   coveragePercent: number;
 }
 
+interface RecentMeeting {
+  id: string;
+  title: string;
+  createdAt: string;
+  status: string;
+  wordCount: number | null;
+  durationMinutes: number | null;
+  userId: string;
+  userName: string | null;
+}
+
 export const MeetingAudioRecovery = () => {
   const [meetingId, setMeetingId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,9 +59,57 @@ export const MeetingAudioRecovery = () => {
   const [reprocessProgress, setReprocessProgress] = useState(0);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [recentMeetings, setRecentMeetings] = useState<RecentMeeting[]>([]);
+  const [loadingRecent, setLoadingRecent] = useState(false);
 
-  const searchMeeting = async () => {
-    if (!meetingId.trim()) {
+  useEffect(() => {
+    fetchRecentMeetings();
+  }, []);
+
+  const fetchRecentMeetings = async () => {
+    setLoadingRecent(true);
+    try {
+      const { data, error } = await supabase
+        .from('meetings')
+        .select(`
+          id, title, created_at, status, word_count, duration_minutes, user_id,
+          profiles!meetings_user_id_fkey(full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      const meetings: RecentMeeting[] = (data || []).map((m: any) => ({
+        id: m.id,
+        title: m.title || 'Untitled',
+        createdAt: m.created_at,
+        status: m.status,
+        wordCount: m.word_count,
+        durationMinutes: m.duration_minutes,
+        userId: m.user_id,
+        userName: m.profiles?.full_name || null
+      }));
+
+      setRecentMeetings(meetings);
+    } catch (error) {
+      console.error('Error fetching recent meetings:', error);
+      toast.error('Failed to load recent meetings');
+    } finally {
+      setLoadingRecent(false);
+    }
+  };
+
+  const viewMeeting = (id: string) => {
+    setMeetingId(id);
+    // Trigger search after setting the ID
+    setTimeout(() => {
+      searchMeetingById(id);
+    }, 0);
+  };
+
+  const searchMeetingById = async (id: string) => {
+    if (!id.trim()) {
       toast.error('Please enter a meeting ID');
       return;
     }
@@ -61,11 +120,10 @@ export const MeetingAudioRecovery = () => {
     setGapAnalysis(null);
 
     try {
-      // Fetch meeting info
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
         .select('id, title, status, word_count, created_at, user_id')
-        .eq('id', meetingId.trim())
+        .eq('id', id.trim())
         .single();
 
       if (meetingError) {
@@ -78,9 +136,8 @@ export const MeetingAudioRecovery = () => {
         return;
       }
 
-      // Estimate expected word count based on audio chunks (5 words per second average)
-      const estimatedDuration = 0; // Will be calculated from chunks
-      const expectedWords = 0; // Will be calculated after finding chunks
+      const estimatedDuration = 0;
+      const expectedWords = 0;
 
       setMeetingInfo({
         id: meeting.id,
@@ -92,7 +149,6 @@ export const MeetingAudioRecovery = () => {
         createdAt: meeting.created_at
       });
 
-      // Search for audio files in storage
       await searchAudioFiles(meeting.id, meeting.user_id);
 
     } catch (error) {
@@ -103,7 +159,93 @@ export const MeetingAudioRecovery = () => {
     }
   };
 
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'completed': return 'default';
+      case 'recording': return 'secondary';
+      case 'failed': return 'destructive';
+      default: return 'outline';
+    }
+  };
+
+  const searchMeeting = async () => {
+    searchMeetingById(meetingId);
+  };
+
   const searchAudioFiles = async (meetingId: string, userId?: string) => {
+    try {
+      const isAudioFile = (name: string) =>
+        /\.(webm|mp3|wav|m4a|ogg)$/i.test(name);
+
+      const extractChunkNumber = (name: string) => {
+        const m = name.match(/_chunk_?(\d+)/i) || name.match(/chunk[-_ ]?(\d+)/i);
+        return m ? Number.parseInt(m[1], 10) : 0;
+      };
+
+      const { data: rootItems, error: rootError } = await supabase.storage
+        .from('meeting-audio-backups')
+        .list('', { limit: 1000 });
+
+      if (rootError) throw rootError;
+
+      const chunks: AudioChunk[] = [];
+      const folderNames = new Set<string>();
+
+      for (const item of rootItems || []) {
+        if (item.id && isAudioFile(item.name) && item.name.includes(meetingId)) {
+          chunks.push({
+            name: item.name,
+            path: item.name,
+            size: (item.metadata as { size?: number })?.size || 0,
+            chunkNumber: extractChunkNumber(item.name),
+            createdAt: item.created_at
+          });
+          continue;
+        }
+
+        if (item.id === null) {
+          folderNames.add(item.name);
+        }
+      }
+
+      if (userId) folderNames.add(userId);
+
+      for (const folderName of folderNames) {
+        const { data: files, error: filesError } = await supabase.storage
+          .from('meeting-audio-backups')
+          .list(folderName, { limit: 1000 });
+
+        if (filesError) continue;
+
+        for (const file of files || []) {
+          if (!file.name.includes(meetingId)) continue;
+          if (!isAudioFile(file.name)) continue;
+
+          chunks.push({
+            name: file.name,
+            path: `${folderName}/${file.name}`,
+            size: (file.metadata as { size?: number })?.size || 0,
+            chunkNumber: extractChunkNumber(file.name),
+            createdAt: file.created_at
+          });
+        }
+      }
+
+      chunks.sort((a, b) => (a.chunkNumber - b.chunkNumber) || (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+      setAudioChunks(chunks);
+
+      const maxChunk = chunks.length > 0 ? Math.max(...chunks.map((c) => c.chunkNumber || 0)) : 0;
+      const assumedChunkSeconds = 60;
+      const estimatedDurationSeconds = maxChunk > 0 ? maxChunk * assumedChunkSeconds : chunks.length * assumedChunkSeconds;
+      const expectedWords = Math.round(estimatedDurationSeconds * 2.5);
+
+      setMeetingInfo((prev) => (prev ? { ...prev, durationSeconds: estimatedDurationSeconds, expectedWordCount: expectedWords } : prev));
+
+      analyseGaps(chunks);
+    } catch (error) {
+      console.error('Error searching audio files:', error);
+    }
+  };
     try {
       const isAudioFile = (name: string) =>
         /\.(webm|mp3|wav|m4a|ogg)$/i.test(name);
@@ -379,6 +521,105 @@ export const MeetingAudioRecovery = () => {
 
   return (
     <div className="space-y-6">
+      {/* Recent Meetings Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Recent Meetings
+              </CardTitle>
+              <CardDescription>
+                Last 10 meetings across all users
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchRecentMeetings}
+              disabled={loadingRecent}
+            >
+              {loadingRecent ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loadingRecent ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : recentMeetings.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No meetings found</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Words</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentMeetings.map((meeting) => (
+                  <TableRow key={meeting.id}>
+                    <TableCell className="max-w-[200px] truncate font-medium" title={meeting.title}>
+                      {meeting.title}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {meeting.userName || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(meeting.createdAt), 'dd/MM/yyyy')}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(meeting.createdAt), 'HH:mm')}
+                    </TableCell>
+                    <TableCell>
+                      {meeting.durationMinutes ? `${meeting.durationMinutes}m` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {meeting.wordCount?.toLocaleString() || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusBadgeVariant(meeting.status)}>
+                        {meeting.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => viewMeeting(meeting.id)}
+                        disabled={loading && meetingId === meeting.id}
+                      >
+                        {loading && meetingId === meeting.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </>
+                        )}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Search Section */}
       <Card>
         <CardHeader>
