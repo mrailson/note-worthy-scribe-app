@@ -42,6 +42,7 @@ export const useMeetingMicrophoneSettings = () => {
   });
 
   const testStreamRef = useRef<MediaStream | null>(null);
+  const systemStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -179,6 +180,10 @@ export const useMeetingMicrophoneSettings = () => {
       testStreamRef.current.getTracks().forEach(track => track.stop());
       testStreamRef.current = null;
     }
+    if (systemStreamRef.current) {
+      systemStreamRef.current.getTracks().forEach(track => track.stop());
+      systemStreamRef.current = null;
+    }
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
@@ -210,30 +215,86 @@ export const useMeetingMicrophoneSettings = () => {
 
     try {
       const deviceId = state.selectedDeviceId;
-      
-      const constraints: MediaStreamConstraints = {
-        audio: deviceId
-          ? { deviceId: { exact: deviceId } }
-          : true,
-      };
+      const mode = state.audioSourceMode;
+      let finalStream: MediaStream;
 
-      console.log('Starting mic test with constraints:', constraints);
-      testStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
-      
+      // Get microphone stream if needed
+      if (mode === 'microphone' || mode === 'microphone_and_system') {
+        const constraints: MediaStreamConstraints = {
+          audio: deviceId
+            ? { deviceId: { exact: deviceId } }
+            : true,
+        };
+        console.log('Starting mic test with constraints:', constraints);
+        testStreamRef.current = await navigator.mediaDevices.getUserMedia(constraints);
+      }
+
+      // Get system audio stream if needed (requires screen share)
+      if (mode === 'microphone_and_system' || mode === 'system_only') {
+        console.log('Requesting system audio via screen share...');
+        try {
+          systemStreamRef.current = await navigator.mediaDevices.getDisplayMedia({
+            video: true, // Required, but we'll ignore it
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+            } as any,
+          });
+          
+          // Stop the video track immediately - we only want audio
+          systemStreamRef.current.getVideoTracks().forEach(track => track.stop());
+          
+          const audioTracks = systemStreamRef.current.getAudioTracks();
+          if (audioTracks.length === 0) {
+            throw new Error('No system audio available. Make sure to select "Share audio" in the screen share dialog.');
+          }
+          console.log('✅ System audio captured:', audioTracks[0].label);
+        } catch (e: any) {
+          console.error('Failed to get system audio:', e);
+          if (mode === 'system_only') {
+            throw new Error('System audio capture cancelled or not available. Make sure to check "Share audio" in the dialog.');
+          }
+          // For mixed mode, continue with just microphone
+          console.log('Continuing with microphone only');
+        }
+      }
+
+      // Create the final stream based on what we captured
       audioContextRef.current = new AudioContext();
       
       if (audioContextRef.current.state === 'suspended') {
         await audioContextRef.current.resume();
       }
-      
+
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 256;
       analyserRef.current.smoothingTimeConstant = 0.3;
+
+      const destination = audioContextRef.current.createMediaStreamDestination();
+
+      // Connect microphone if available
+      if (testStreamRef.current) {
+        const micSource = audioContextRef.current.createMediaStreamSource(testStreamRef.current);
+        micSource.connect(analyserRef.current);
+        micSource.connect(destination);
+      }
+
+      // Connect system audio if available
+      if (systemStreamRef.current && systemStreamRef.current.getAudioTracks().length > 0) {
+        const systemSource = audioContextRef.current.createMediaStreamSource(systemStreamRef.current);
+        // Apply gain to make system audio more audible
+        const gainNode = audioContextRef.current.createGain();
+        gainNode.gain.value = 1.5; // Boost system audio slightly
+        systemSource.connect(gainNode);
+        gainNode.connect(analyserRef.current);
+        gainNode.connect(destination);
+      }
+
+      // Use the mixed stream for recording
+      finalStream = destination.stream;
       
-      const source = audioContextRef.current.createMediaStreamSource(testStreamRef.current);
-      source.connect(analyserRef.current);
-      
-      mediaRecorderRef.current = new MediaRecorder(testStreamRef.current, {
+      mediaRecorderRef.current = new MediaRecorder(finalStream, {
         mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
       });
       
@@ -323,16 +384,18 @@ export const useMeetingMicrophoneSettings = () => {
       }, 5000);
 
     } catch (error: any) {
-      console.error('Failed to start mic test:', error);
+      console.error('Failed to start audio test:', error);
       cleanupTest();
       
-      let errorMessage = 'Could not access microphone';
+      let errorMessage = 'Could not access audio';
       if (error.name === 'NotAllowedError') {
-        errorMessage = 'Microphone access denied';
+        errorMessage = 'Audio access denied or screen share cancelled';
       } else if (error.name === 'NotFoundError') {
         errorMessage = 'Selected microphone not found. It may have been disconnected.';
       } else if (error.name === 'OverconstrainedError') {
         errorMessage = 'Selected microphone is not available';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
 
       setState(prev => ({
@@ -342,7 +405,7 @@ export const useMeetingMicrophoneSettings = () => {
         errorMessage,
       }));
     }
-  }, [state.selectedDeviceId, state.recordedAudioUrl, cleanupTest]);
+  }, [state.selectedDeviceId, state.audioSourceMode, state.recordedAudioUrl, cleanupTest]);
 
   // Stop microphone test
   const stopMicTest = useCallback(() => {

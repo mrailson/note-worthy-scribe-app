@@ -278,12 +278,25 @@ export const MeetingMicrophoneSettings = ({ onDeviceChange, onAudioSourceChange 
             </div>
           </div>
 
+          {/* System audio info banner */}
+          {(audioSourceMode === 'microphone_and_system' || audioSourceMode === 'system_only') && (
+            <div className="flex items-start gap-2 p-3 bg-primary/10 border border-primary/20 rounded-md text-sm">
+              <Monitor className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-primary">System Audio Capture</p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  When you click "Test Audio", a screen share dialog will appear. Select a tab or window and <strong>check "Share audio"</strong> to capture system sound.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Test button and status */}
           <div className="flex items-center gap-3 flex-wrap">
             <Button
               variant={isTestingMic ? "destructive" : "secondary"}
               onClick={isTestingMic ? stopMicTest : startMicTest}
-              disabled={!selectedDeviceId || permissionStatus === 'denied'}
+              disabled={(audioSourceMode !== 'system_only' && !selectedDeviceId) || permissionStatus === 'denied'}
               className="gap-2"
             >
               {isTestingMic ? (
@@ -293,8 +306,8 @@ export const MeetingMicrophoneSettings = ({ onDeviceChange, onAudioSourceChange 
                 </>
               ) : (
                 <>
-                  <Mic className="h-4 w-4" />
-                  Test Microphone
+                  {audioSourceMode === 'system_only' ? <Monitor className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  Test Audio
                 </>
               )}
             </Button>
