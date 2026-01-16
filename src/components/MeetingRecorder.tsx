@@ -694,6 +694,7 @@ export const MeetingRecorder = ({
   const [recordingAudioUrl, setRecordingAudioUrl] = useState<string | null>(null);
   const [micAudioUrl, setMicAudioUrl] = useState<string | null>(null);
   const [systemAudioUrl, setSystemAudioUrl] = useState<string | null>(null);
+  const [showRecordingPlayer, setShowRecordingPlayer] = useState(false); // Only show player on request for iPhone
   
   // Store actual blobs for saving to database
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
@@ -5392,120 +5393,150 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                     
                       {/* Recording Audio Player - Show after recording stops */}
                       {recordingAudioUrl && !isRecording && (
-                       <div className="mt-4 space-y-3">
-                        {/* Mixed Stereo Playback */}
-                        <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 rounded-full bg-accent/20">
-                                <Headphones className="h-4 w-4 text-accent" />
-                              </div>
-                              <span className="text-sm font-medium">Mixed Recording (Left + Right Channels):</span>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                if (recordingAudioRef.current) {
-                                  if (recordingAudioRef.current.paused) {
-                                    recordingAudioRef.current.play();
-                                  } else {
-                                    recordingAudioRef.current.pause();
-                                  }
-                                }
-                              }}
-                              className="flex items-center gap-2"
-                            >
-                              <Play className="h-3 w-3" />
-                              Play Mixed
-                            </Button>
-                          </div>
-                          <audio
-                            ref={recordingAudioRef}
-                            src={recordingAudioUrl}
-                            controls
-                            className="w-full h-10"
-                            preload="metadata"
-                          />
-                        </div>
-
-                        {/* Left Channel (Microphone) Playback */}
-                        {micAudioUrl && (
-                          <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="p-1.5 rounded-full bg-blue-100 dark:bg-blue-900/50">
-                                  <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                </div>
-                                <span className="text-sm font-medium">Left Channel Recording (Microphone):</span>
-                              </div>
+                        <>
+                          {/* On iPhone, show a button to reveal the player instead of auto-showing */}
+                          {isIOS && !showRecordingPlayer ? (
+                            <div className="mt-4">
                               <Button
-                                size="sm"
                                 variant="outline"
-                                onClick={() => {
-                                  if (micAudioRef.current) {
-                                    if (micAudioRef.current.paused) {
-                                      micAudioRef.current.play();
-                                    } else {
-                                      micAudioRef.current.pause();
-                                    }
-                                  }
-                                }}
-                                className="flex items-center gap-2"
+                                size="sm"
+                                onClick={() => setShowRecordingPlayer(true)}
+                                className="w-full flex items-center justify-center gap-2"
                               >
-                                <Play className="h-3 w-3" />
-                                Play Left
+                                <Headphones className="h-4 w-4" />
+                                Show Recording Playback
                               </Button>
                             </div>
-                            <audio
-                              ref={micAudioRef}
-                              src={micAudioUrl}
-                              controls
-                              className="w-full h-10"
-                              preload="metadata"
-                            />
-                          </div>
-                        )}
-
-                        {/* Right Channel (System Audio) Playback */}
-                        {systemAudioUrl && (
-                          <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="flex items-center gap-2">
-                                <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/50">
-                                  <Monitor className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          ) : (
+                            <div className="mt-4 space-y-3">
+                              {/* Close button for iPhone */}
+                              {isIOS && (
+                                <div className="flex justify-end">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowRecordingPlayer(false)}
+                                    className="text-muted-foreground"
+                                  >
+                                    Hide Player
+                                  </Button>
                                 </div>
-                                <span className="text-sm font-medium">Right Channel Recording (System Audio):</span>
+                              )}
+                              {/* Mixed Stereo Playback */}
+                              <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
+                                <div className="flex items-center gap-3 mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="p-1.5 rounded-full bg-accent/20">
+                                      <Headphones className="h-4 w-4 text-accent" />
+                                    </div>
+                                    <span className="text-sm font-medium">Mixed Recording (Left + Right Channels):</span>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      if (recordingAudioRef.current) {
+                                        if (recordingAudioRef.current.paused) {
+                                          recordingAudioRef.current.play();
+                                        } else {
+                                          recordingAudioRef.current.pause();
+                                        }
+                                      }
+                                    }}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Play className="h-3 w-3" />
+                                    Play Mixed
+                                  </Button>
+                                </div>
+                                <audio
+                                  ref={recordingAudioRef}
+                                  src={recordingAudioUrl}
+                                  controls
+                                  className="w-full h-10"
+                                  preload="metadata"
+                                />
                               </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  if (systemAudioRef.current) {
-                                    if (systemAudioRef.current.paused) {
-                                      systemAudioRef.current.play();
-                                    } else {
-                                      systemAudioRef.current.pause();
-                                    }
-                                  }
-                                }}
-                                className="flex items-center gap-2"
-                              >
-                                <Play className="h-3 w-3" />
-                                Play Right
-                              </Button>
+
+                              {/* Left Channel (Microphone) Playback */}
+                              {micAudioUrl && (
+                                <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <div className="flex items-center gap-2">
+                                      <div className="p-1.5 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                                        <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                      </div>
+                                      <span className="text-sm font-medium">Left Channel Recording (Microphone):</span>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        if (micAudioRef.current) {
+                                          if (micAudioRef.current.paused) {
+                                            micAudioRef.current.play();
+                                          } else {
+                                            micAudioRef.current.pause();
+                                          }
+                                        }
+                                      }}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <Play className="h-3 w-3" />
+                                      Play Left
+                                    </Button>
+                                  </div>
+                                  <audio
+                                    ref={micAudioRef}
+                                    src={micAudioUrl}
+                                    controls
+                                    className="w-full h-10"
+                                    preload="metadata"
+                                  />
+                                </div>
+                              )}
+
+                              {/* Right Channel (System Audio) Playback */}
+                              {systemAudioUrl && (
+                                <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <div className="flex items-center gap-2">
+                                      <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/50">
+                                        <Monitor className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                      </div>
+                                      <span className="text-sm font-medium">Right Channel Recording (System Audio):</span>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        if (systemAudioRef.current) {
+                                          if (systemAudioRef.current.paused) {
+                                            systemAudioRef.current.play();
+                                          } else {
+                                            systemAudioRef.current.pause();
+                                          }
+                                        }
+                                      }}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <Play className="h-3 w-3" />
+                                      Play Right
+                                    </Button>
+                                  </div>
+                                  <audio
+                                    ref={systemAudioRef}
+                                    src={systemAudioUrl}
+                                    controls
+                                    className="w-full h-10"
+                                    preload="metadata"
+                                  />
+                                </div>
+                              )}
                             </div>
-                            <audio
-                              ref={systemAudioRef}
-                              src={systemAudioUrl}
-                              controls
-                              className="w-full h-10"
-                              preload="metadata"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    )}
+                          )}
+                        </>
+                      )}
                  </div>
 
                 {/* Compact Mic Control */}
