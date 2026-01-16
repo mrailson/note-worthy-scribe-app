@@ -66,41 +66,67 @@ export const AudioBackupManager = () => {
 
   const fetchStorageStats = async () => {
     try {
-      // List all files in storage bucket
-      const { data: folders, error: folderError } = await supabase.storage
+      // List all items at root level in storage bucket
+      const { data: rootItems, error: rootError } = await supabase.storage
         .from('meeting-audio-backups')
         .list('', { limit: 1000 });
 
-      if (folderError) {
-        console.error('Error listing storage folders:', folderError);
+      if (rootError) {
+        console.error('Error listing storage:', rootError);
         return;
       }
+
+      console.log('Storage root items:', rootItems?.length);
 
       let totalFiles = 0;
       let totalSize = 0;
       const meetingIds = new Set<string>();
 
-      for (const folder of folders || []) {
-        if (!folder.id) continue;
+      const extractMeetingId = (fileName: string): string | null => {
+        // Pattern 1: meetingId_chunk or meetingId_backup
+        let match = fileName.match(/^([a-f0-9-]{36})_/);
+        if (match) return match[1];
+        
+        // Pattern 2: meeting-meetingId-session
+        match = fileName.match(/^meeting-([a-f0-9-]{36})-session/);
+        if (match) return match[1];
+        
+        // Pattern 3: Any UUID
+        match = fileName.match(/([a-f0-9-]{36})/);
+        if (match) return match[1];
+        
+        return null;
+      };
 
-        const { data: files, error: filesError } = await supabase.storage
-          .from('meeting-audio-backups')
-          .list(folder.name, { limit: 1000 });
-
-        if (filesError) continue;
-
-        for (const file of files || []) {
-          if (file.id) {
+      for (const item of rootItems || []) {
+        // Check if this is a file at root level (has audio extension)
+        if (item.name.endsWith('.webm') || item.name.endsWith('.mp3') || item.name.endsWith('.wav')) {
+          if (item.id) {
             totalFiles++;
-            totalSize += (file.metadata as { size?: number })?.size || 0;
-            // Extract meeting ID from filename
-            const meetingMatch = file.name.match(/^([a-f0-9-]+)_/);
-            if (meetingMatch) {
-              meetingIds.add(meetingMatch[1]);
+            totalSize += (item.metadata as { size?: number })?.size || 0;
+            const meetingId = extractMeetingId(item.name);
+            if (meetingId) meetingIds.add(meetingId);
+          }
+        } else if (item.id) {
+          // This might be a folder, list its contents
+          const { data: files, error: filesError } = await supabase.storage
+            .from('meeting-audio-backups')
+            .list(item.name, { limit: 1000 });
+
+          if (filesError) continue;
+
+          for (const file of files || []) {
+            if (file.id && (file.name.endsWith('.webm') || file.name.endsWith('.mp3') || file.name.endsWith('.wav'))) {
+              totalFiles++;
+              totalSize += (file.metadata as { size?: number })?.size || 0;
+              const meetingId = extractMeetingId(file.name);
+              if (meetingId) meetingIds.add(meetingId);
             }
           }
         }
       }
+
+      console.log('Storage stats:', { totalFiles, totalSize, meetings: meetingIds.size });
 
       setStorageStats({
         totalFiles,

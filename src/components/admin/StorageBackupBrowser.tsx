@@ -54,39 +54,56 @@ export const StorageBackupBrowser = () => {
   const fetchStorageFiles = async () => {
     setLoading(true);
     try {
-      // List all files in the meeting-audio-backups bucket
-      const { data: folders, error: folderError } = await supabase.storage
+      // List all items at root level of the meeting-audio-backups bucket
+      const { data: rootItems, error: rootError } = await supabase.storage
         .from('meeting-audio-backups')
         .list('', { limit: 1000 });
 
-      if (folderError) throw folderError;
+      if (rootError) {
+        console.error('Storage list error:', rootError);
+        throw rootError;
+      }
+
+      console.log('Root items found:', rootItems?.length, rootItems);
 
       const allFiles: StorageFile[] = [];
 
-      // For each user folder, list the files
-      for (const folder of folders || []) {
-        if (folder.id === null) continue; // Skip if it's just a placeholder
-
-        const { data: userFiles, error: filesError } = await supabase.storage
-          .from('meeting-audio-backups')
-          .list(folder.name, { limit: 1000 });
-
-        if (filesError) {
-          console.error(`Error listing files in ${folder.name}:`, filesError);
-          continue;
-        }
-
-        for (const file of userFiles || []) {
-          if (file.id) {
+      // Process each item at root level
+      for (const item of rootItems || []) {
+        // Check if this is a file (has .webm extension) at root level
+        if (item.name.endsWith('.webm') || item.name.endsWith('.mp3') || item.name.endsWith('.wav')) {
+          // This is a file at root level (e.g., meeting-xxx-session-xxx.webm)
+          if (item.id) {
             allFiles.push({
-              ...file,
-              name: `${folder.name}/${file.name}`,
-              metadata: file.metadata as { size: number; mimetype: string } | null
+              ...item,
+              name: item.name,
+              metadata: item.metadata as { size: number; mimetype: string } | null
             });
+          }
+        } else if (item.id) {
+          // This might be a folder (user ID folder), try to list its contents
+          const { data: userFiles, error: filesError } = await supabase.storage
+            .from('meeting-audio-backups')
+            .list(item.name, { limit: 1000 });
+
+          if (filesError) {
+            console.error(`Error listing files in folder ${item.name}:`, filesError);
+            continue;
+          }
+
+          for (const file of userFiles || []) {
+            if (file.id && (file.name.endsWith('.webm') || file.name.endsWith('.mp3') || file.name.endsWith('.wav'))) {
+              allFiles.push({
+                ...file,
+                name: `${item.name}/${file.name}`,
+                metadata: file.metadata as { size: number; mimetype: string } | null
+              });
+            }
           }
         }
       }
 
+      console.log('Total files found:', allFiles.length);
       setFiles(allFiles);
       groupFilesByMeeting(allFiles);
       calculateStats(allFiles);
@@ -103,18 +120,39 @@ export const StorageBackupBrowser = () => {
     const groups = new Map<string, MeetingBackupGroup>();
 
     for (const file of files) {
-      // Parse filename: userId/meetingId_chunkNumber_timestamp.webm or userId/meetingId_backup.webm
-      const parts = file.name.split('/');
-      if (parts.length < 2) continue;
-
-      const userId = parts[0];
-      const fileName = parts[1];
+      let userId = 'root';
+      let meetingId = '';
+      let fileName = file.name;
       
-      // Extract meeting ID from filename
-      const meetingIdMatch = fileName.match(/^([a-f0-9-]+)_/);
-      if (!meetingIdMatch) continue;
+      // Check if file is in a user folder (userId/filename) or at root level
+      const parts = file.name.split('/');
+      if (parts.length >= 2) {
+        userId = parts[0];
+        fileName = parts[1];
+      }
+      
+      // Try different patterns to extract meeting ID
+      // Pattern 1: meetingId_chunkNumber_timestamp.webm or meetingId_backup.webm
+      let meetingIdMatch = fileName.match(/^([a-f0-9-]{36})_/);
+      
+      // Pattern 2: meeting-meetingId-session-xxx.webm (from transcript-data-integrity)
+      if (!meetingIdMatch) {
+        meetingIdMatch = fileName.match(/^meeting-([a-f0-9-]{36})-session/);
+      }
+      
+      // Pattern 3: Any UUID at the start
+      if (!meetingIdMatch) {
+        meetingIdMatch = fileName.match(/([a-f0-9-]{36})/);
+      }
+      
+      if (!meetingIdMatch) {
+        console.log('Could not extract meeting ID from:', fileName);
+        // Still include the file but group under 'unknown'
+        meetingId = 'unknown';
+      } else {
+        meetingId = meetingIdMatch[1];
+      }
 
-      const meetingId = meetingIdMatch[1];
       const key = `${userId}/${meetingId}`;
 
       if (!groups.has(key)) {
@@ -145,6 +183,7 @@ export const StorageBackupBrowser = () => {
       (a, b) => new Date(b.newestFile).getTime() - new Date(a.newestFile).getTime()
     );
 
+    console.log('Grouped backups:', sortedGroups.length, 'groups');
     setGroupedBackups(sortedGroups);
   };
 
