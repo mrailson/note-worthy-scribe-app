@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
+import { isLikelyHallucination, isLaughterNoise } from './whisperHallucinationPatterns';
 
 export interface TranscriptData {
   text: string;
@@ -229,15 +230,23 @@ export class DesktopWhisperTranscriber {
     return matrix[str2.length][str1.length];
   }
 
-  private isLikelyRepetitiveNoise(text: string): boolean {
-    const t = text.toLowerCase().trim();
-    if (/(?:\b(?:ha|haha|ha-ha|hee|hehe|lol|woo|beep)[\s,!.?-]*){6,}/i.test(t)) return true;
-    const words = t.split(/\s+/).filter(Boolean);
-    if (words.length >= 10) {
-      const unique = new Set(words).size;
-      if (unique / words.length < 0.4) return true;
+  /**
+   * Check if text is likely hallucinated/repetitive noise using comprehensive patterns
+   */
+  private isLikelyRepetitiveNoise(text: string, confidence?: number): boolean {
+    const result = isLikelyHallucination(text, confidence, {
+      checkPhrases: true,
+      checkRepetition: true,
+      checkUrls: true,
+      checkLaughter: true,
+      confidenceThreshold: 0.15
+    });
+    
+    if (result.isHallucination) {
+      console.log(`🚫 Hallucination detected: ${result.reason}`);
     }
-    return false;
+    
+    return result.isHallucination;
   }
 
   private checkAudioQuality(audioData: Uint8Array): boolean {
@@ -501,26 +510,45 @@ export class DesktopWhisperTranscriber {
         // ChatGPT recommended guardrails: check quality metrics
         const avgLogprob = data.avg_logprob ?? -0.3;
         const noSpeechProb = data.no_speech_prob ?? 0.0;
+        const chunkConfidence = data.confidence ?? 0.5;
         
-        console.log(`📊 Quality metrics - avg_logprob: ${avgLogprob.toFixed(3)}, no_speech_prob: ${noSpeechProb.toFixed(3)}`);
+        console.log(`📊 Quality metrics - confidence: ${(chunkConfidence * 100).toFixed(1)}%, avg_logprob: ${avgLogprob.toFixed(3)}, no_speech_prob: ${noSpeechProb.toFixed(3)}`);
         
-        // Previously we hard-gated on these and dropped chunks.
-        // For completeness (especially in Mic + System mode), we now only LOG
-        // suspicious chunks but still pass them through so we don't lose speech.
-        if (avgLogprob < -1.5) {
-          console.log(`⚠️ Low avg_logprob (likely noisy / hard to hear), but keeping chunk for completeness`);
+        // CRITICAL: Reject chunks with very high no_speech_prob (>0.85) - likely silence/noise
+        if (noSpeechProb > 0.85) {
+          console.log(`🚫 Rejecting chunk: high no_speech_prob (${(noSpeechProb * 100).toFixed(1)}%) - likely silence/noise`);
+          return;
         }
         
-        if (noSpeechProb > 0.9) {
-          console.log(`⚠️ High no_speech_prob (model not confident speech is present), but keeping chunk for completeness`);
+        // CRITICAL: Reject chunks with extremely low confidence (<0.12)
+        if (chunkConfidence < 0.12) {
+          console.log(`🚫 Rejecting chunk: extremely low confidence (${(chunkConfidence * 100).toFixed(1)}%)`);
+          return;
+        }
+        
+        // Log warnings for suspicious chunks but don't block them
+        if (avgLogprob < -1.5) {
+          console.log(`⚠️ Low avg_logprob (likely noisy / hard to hear), checking for hallucination`);
         }
         
         const cleanText = data.text.trim();
         
-        // Skip only clearly hallucinated/repetitive noise chunks (e.g., endless "ha ha ha")
-        if (this.isLikelyRepetitiveNoise(cleanText)) {
+        // ENHANCED: Use comprehensive hallucination detection with confidence scoring
+        if (this.isLikelyRepetitiveNoise(cleanText, chunkConfidence)) {
           console.log('🚫 Skipping likely hallucinated/repetitive chunk');
           return;
+        }
+        
+        // Additional check: if low confidence + low logprob, be extra cautious
+        if (chunkConfidence < 0.25 && avgLogprob < -1.0) {
+          // Double-check for hallucination phrases even with partial matches
+          const lowerText = cleanText.toLowerCase();
+          const suspiciousPhrases = ['thank you', 'subscribe', 'like and', 'next video', 'see you'];
+          const hasSuspicious = suspiciousPhrases.some(p => lowerText.includes(p));
+          if (hasSuspicious) {
+            console.log(`🚫 Rejecting low-confidence chunk with suspicious phrase: "${cleanText.substring(0, 50)}..."`);
+            return;
+          }
         }
 
         // Use smart merge with de-duplication to avoid duplicates
