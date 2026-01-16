@@ -410,11 +410,12 @@ export const MeetingRecorder = ({
   const [isContinuationMode, setIsContinuationMode] = useState(false);
   const [continuationMeetingTitle, setContinuationMeetingTitle] = useState<string>('');
   
-  // Transcription watchdog for detecting stalled transcription - AGGRESSIVE thresholds
+  // Transcription watchdog for detecting stalled transcription
+  // iPhone chunking runs on ~25s windows, so iOS needs much longer thresholds to avoid false alarms.
   const watchdog = useTranscriptionWatchdog({
     isActive: isRecording,
-    warningThresholdMs: 30000, // 30 seconds - warn early
-    criticalThresholdMs: 60000, // 60 seconds - critical alert
+    warningThresholdMs: isIOS ? 90000 : 30000,
+    criticalThresholdMs: isIOS ? 150000 : 60000,
     onStallDetected: (stalledDurationMs) => {
       console.error(`🚨 Transcription stall detected after ${Math.round(stalledDurationMs / 1000)}s`);
       // Log diagnostic info
@@ -1501,6 +1502,8 @@ export const MeetingRecorder = ({
         } else {
           console.log(`⏭️ Chunk ${chunkId} was silent or unclear`);
           addDebugLog(`⏭️ Chunk ${chunkId}: silent/unclear`);
+          // Not a technical stall; reset stall timer without incrementing chunk count
+          watchdog.reportChunkFiltered();
         }
 
       } catch (transcriptionError) {
@@ -2252,7 +2255,9 @@ export const MeetingRecorder = ({
         meetingSettings, // Pass meeting settings for confidence gating
         meetingId,
         (hasActivity: boolean) => setAudioActivity(hasActivity), // Callback for audio activity
-        selectedMicrophoneId // Pass selected microphone device
+        selectedMicrophoneId, // Pass selected microphone device
+        undefined, // processed callback handled inside handleBrowserTranscript
+        () => watchdog.reportChunkFiltered() // Reset stall timer when iPhone chunk produces no new text
       );
 
       console.log('📱 Starting transcription...');
