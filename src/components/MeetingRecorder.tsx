@@ -2959,6 +2959,8 @@ export const MeetingRecorder = ({
         const currentMeetingId = sessionStorage.getItem('currentMeetingId');
         if (currentMeetingId) {
           const chunkStartTime = new Date();
+          const wavSize = wavBuffer.byteLength;
+          
           await supabase
             .from('audio_chunks')
             .insert({
@@ -2967,10 +2969,14 @@ export const MeetingRecorder = ({
               start_time: chunkStartTime.toISOString(),
               end_time: new Date(chunkStartTime.getTime() + 15000).toISOString(), // 15 seconds
               processing_status: 'completed',
-              chunk_duration_ms: 15000
+              chunk_duration_ms: 15000,
+              file_size: wavSize,
+              original_file_size: wavSize, // System audio is processed directly as WAV
+              transcoded_file_size: wavSize,
+              compression_ratio: 0 // No compression for system audio path
             });
           
-          addDebugLog(`💾 Saved system audio chunk #${chunkNumber} to database`);
+          addDebugLog(`💾 Saved system audio chunk #${chunkNumber} to database (${(wavSize/1024).toFixed(1)}KB)`);
         }
       }
       

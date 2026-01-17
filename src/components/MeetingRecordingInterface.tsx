@@ -281,6 +281,9 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         end_time: new Date().toISOString(),
         audio_blob_path: fileName,
         file_size: chunk.size,
+        original_file_size: chunk.size, // Raw chunk before any processing
+        transcoded_file_size: chunk.size,
+        compression_ratio: 0, // No transcoding in this path
         chunk_duration_ms: 5000,
         processing_status: 'stored'
       });
