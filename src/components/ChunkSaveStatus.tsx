@@ -374,7 +374,9 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
                     {isRecording ? "📱 Listening for speech chunks..." : "No chunks processed yet"}
                   </div>
                 ) : (
-                  chunks.slice().reverse().map((chunk) => {
+                  [...chunks].reverse().map((chunk, reverseIndex) => {
+                    // Calculate the original sequential index (1-based)
+                    const displayChunkNumber = chunks.length - reverseIndex;
                     const chunkWords = chunk.text.trim().split(/\s+/).filter(word => word.length > 0).length;
                     const inTranscript = isChunkInTranscript(chunk.text);
                     return (
@@ -386,7 +388,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
                           {getStatusIcon(chunk.saveStatus)}
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
-                              <span>Chunk #{chunk.chunkNumber}</span>
+                              <span>Chunk #{displayChunkNumber}</span>
                               {inTranscript && (
                                 <span className="inline-flex items-center" title="80%+ of chunk text appears in main transcript">
                                   <CheckCircle className="h-4 w-4 text-success" />
