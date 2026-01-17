@@ -53,7 +53,8 @@ export class TimestampedSegmentMerger {
    * Process a new chunk with strict timestamp-based deduplication
    */
   processChunk(chunk: TimestampedChunk): ChunkProcessResult {
-    console.log(`🔍 [Merger] Processing chunk: confidence=${(chunk.confidence ?? 0 * 100).toFixed(0)}%, length=${chunk.text?.length ?? 0}, id=${chunk.id}`);
+    const hasRealTs = chunk.start_ms !== undefined && chunk.start_ms > 0;
+    console.log(`🔍 [Merger] Processing chunk: confidence=${((chunk.confidence ?? 0) * 100).toFixed(0)}%, length=${chunk.text?.length ?? 0}, id=${chunk.id}, hasRealTimestamps=${hasRealTs}, start_ms=${chunk.start_ms}, end_ms=${chunk.end_ms}`);
     
     if (!chunk.text?.trim() || chunk.text.trim().length < TimestampedSegmentMerger.MIN_SEGMENT_LENGTH) {
       console.log(`🚫 [Merger] Rejected: too short (${chunk.text?.length ?? 0} chars, min ${TimestampedSegmentMerger.MIN_SEGMENT_LENGTH})`);
@@ -91,11 +92,13 @@ export class TimestampedSegmentMerger {
       };
     }
 
+    const hasRealTimestamps = chunk.start_ms !== undefined && chunk.start_ms > 0;
     const startTime = this.getChunkStartTime(chunk);
     const endTime = this.getChunkEndTime(chunk, startTime);
 
-    // Check for temporal overlap with already processed content
-    if (startTime <= this.state.lastProcessedTimestamp + TimestampedSegmentMerger.GRACE_MS) {
+    // Only check temporal overlap if we have REAL timestamps from the recording
+    // For synthetic timestamps (fallback), rely on content-based deduplication only
+    if (hasRealTimestamps && startTime <= this.state.lastProcessedTimestamp + TimestampedSegmentMerger.GRACE_MS) {
       console.log(`🚫 Temporal overlap detected: chunk starts at ${startTime}ms, last processed: ${this.state.lastProcessedTimestamp}ms`);
       return { text: this.state.lastText, wasProcessed: false, reason: 'Temporal overlap detected' };
     }
@@ -236,10 +239,17 @@ export class TimestampedSegmentMerger {
   }
 
   private getChunkStartTime(chunk: TimestampedChunk): number {
-    if (chunk.start_ms !== undefined) return chunk.start_ms;
-    if (chunk.timestamp !== undefined) return chunk.timestamp;
-    // Fallback: use current time relative to session start
-    return Date.now() - this.state.lastProcessedTimestamp;
+    // Priority 1: Explicit millisecond timestamps (from recording timeline)
+    if (chunk.start_ms !== undefined && chunk.start_ms > 0) return chunk.start_ms;
+    
+    // Priority 2: Numeric timestamp (already ms)
+    if (chunk.timestamp !== undefined && typeof chunk.timestamp === 'number' && chunk.timestamp > 0) {
+      return chunk.timestamp;
+    }
+    
+    // Fallback: Sequential after last processed (ensures no overlap, relies on content dedup)
+    // Add 1ms to guarantee we're after the last timestamp
+    return this.state.lastProcessedTimestamp + 1;
   }
 
   private getChunkEndTime(chunk: TimestampedChunk, startTime: number): number {

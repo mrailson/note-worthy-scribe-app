@@ -90,6 +90,8 @@ interface TranscriptData {
   dbSaveStatus?: 'saving' | 'saved' | 'failed' | 'retrying';
   dbSaveTimestamp?: string;
   retryCount?: number;
+  start_ms?: number;  // Monotonic start time in milliseconds relative to recording start
+  end_ms?: number;    // Monotonic end time in milliseconds relative to recording start
 }
 
 interface ChunkSaveStatus {
@@ -2059,7 +2061,10 @@ export const MeetingRecorder = ({
       confidence: transcriptData.confidence,
       timestamp: transcriptData.timestamp,
       speaker: transcriptData.speaker,
-      segment_id: `${transcriptData.speaker}_${transcriptData.timestamp}_${Date.now()}`
+      segment_id: `${transcriptData.speaker}_${transcriptData.timestamp}_${Date.now()}`,
+      // Pass timing data for accurate timestamp-based merging
+      start_ms: transcriptData.start_ms,
+      end_ms: transcriptData.end_ms,
     };
 
     // Process through incremental handler and capture merge result
@@ -2250,6 +2255,10 @@ export const MeetingRecorder = ({
     persistIOSChunk();
     
     // CRITICAL FIX: Force isFinal=true for iOS chunks so they're merged correctly
+    // Calculate monotonic timestamps in milliseconds for accurate merge timing
+    const startMs = Math.round((newChunkStatus.startTime || 0) * 1000);
+    const endMs = Math.round((newChunkStatus.endTime || approxNowSeconds) * 1000);
+    
     const transcriptData: TranscriptData = {
       text: data.text.trim(),
       speaker: data.speaker || 'Speaker',
@@ -2258,7 +2267,9 @@ export const MeetingRecorder = ({
       isFinal: true, // CRITICAL FIX: Always true for iOS chunks so they're merged
       chunkNumber: currentChunkNumber,
       chunkLength: chunkLength,
-      dbSaveStatus: 'saving'
+      dbSaveStatus: 'saving',
+      start_ms: startMs,
+      end_ms: endMs,
     };
     
     
