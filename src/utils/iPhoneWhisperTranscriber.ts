@@ -1117,17 +1117,22 @@ export class iPhoneWhisperTranscriber {
   
   /**
    * Backup timer - safety net that processes audio even if worker fails
+   * NEW: Now triggers based on time since last process, not just buffer size
    */
   private startBackupTimer(): void {
     this.backupTimerInterval = setInterval(() => {
       if (this.isRecording && !this.isProcessing) {
         const stats = this.chunkManager?.getStats();
-        if (stats && stats.bufferDurationMs > 12000) {
-          console.log(`⏰ Backup timer triggered - processing ${Math.round(stats.bufferDurationMs / 1000)}s of accumulated audio`);
-          this.processChunkFromManager();
+        if (stats) {
+          // Trigger if: enough buffer OR too long since last process
+          const shouldTrigger = stats.bufferDurationMs >= 5000 || stats.timeSinceLastProcessMs > 20000;
+          if (shouldTrigger) {
+            console.log(`⏰ Backup timer triggered - buffer: ${Math.round(stats.bufferDurationMs / 1000)}s, time since last: ${Math.round(stats.timeSinceLastProcessMs / 1000)}s`);
+            this.processChunkFromManager();
+          }
         }
       }
-    }, 20000);
+    }, 15000); // Run every 15s instead of 20s
   }
   
   /**

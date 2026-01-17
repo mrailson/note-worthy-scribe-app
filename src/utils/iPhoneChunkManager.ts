@@ -51,6 +51,9 @@ export class iPhoneChunkManager {
   private pendingQueue: ProcessableChunk[] = [];
   private processingChunk: ProcessableChunk | null = null;
   
+  // NEW: Track time since last successful processing
+  private lastProcessedTime = 0;
+  
   constructor(config: ChunkManagerConfig = {}) {
     this.config = {
       maxBufferDurationMs: config.maxBufferDurationMs ?? 90000,  // 90s default - prevent premature pruning
@@ -73,6 +76,7 @@ export class iPhoneChunkManager {
     this.totalBufferDurationMs = 0;
     this.pendingQueue = [];
     this.processingChunk = null;
+    this.lastProcessedTime = 0; // Reset time tracking
     
     console.log('📦 iPhoneChunkManager initialized', {
       mimeType,
@@ -160,8 +164,17 @@ export class iPhoneChunkManager {
   }
 
   /**
+   * Get time since last successful processing in milliseconds
+   */
+  getTimeSinceLastProcess(): number {
+    if (this.lastProcessedTime === 0) return 0;
+    return Date.now() - this.lastProcessedTime;
+  }
+
+  /**
    * Get a chunk ready for transcription
    * Returns null if not enough audio data available
+   * NEW: Now includes time-based forcing to prevent deadlocks
    */
   getChunkForProcessing(force: boolean = false): ProcessableChunk | null {
     // Check if we have anything in the retry queue first
@@ -172,15 +185,35 @@ export class iPhoneChunkManager {
       return chunk;
     }
 
-    // Check if we have enough audio
-    if (!force && !this.hasEnoughForChunk()) {
+    // NEW: Force processing if it's been too long since last process (prevents deadlock)
+    const timeSinceLastProcess = this.getTimeSinceLastProcess();
+    const timeForced = timeSinceLastProcess > 20000; // 20 seconds without processing
+
+    // Check if we have enough audio (unless time-forced)
+    if (!force && !timeForced && !this.hasEnoughForChunk()) {
       console.log(`📦 ChunkManager: Not enough audio for chunk (${(this.totalBufferDurationMs / 1000).toFixed(1)}s < ${this.config.minChunkDurationMs / 1000}s min)`);
       return null;
     }
 
-    if (!force && !this.shouldProcessNow()) {
-      console.log(`📦 ChunkManager: Below target duration (${(this.totalBufferDurationMs / 1000).toFixed(1)}s < ${this.config.targetChunkDurationMs / 1000}s target)`);
+    // If time-forced but below absolute minimum, still need at least 2 seconds of audio
+    if (timeForced && this.totalBufferDurationMs < 2000) {
+      console.log(`📦 ChunkManager: Time-forced but only ${(this.totalBufferDurationMs / 1000).toFixed(1)}s (need 2s min)`);
       return null;
+    }
+
+    // Check target duration (with time-based override)
+    if (!force && !timeForced && !this.shouldProcessNow()) {
+      // Allow processing if we have minimum AND it's been >10s since last process
+      if (this.hasEnoughForChunk() && timeSinceLastProcess > 10000) {
+        console.log(`📦 ChunkManager: Below target but ${(timeSinceLastProcess / 1000).toFixed(0)}s since last process - allowing`);
+      } else {
+        console.log(`📦 ChunkManager: Below target duration (${(this.totalBufferDurationMs / 1000).toFixed(1)}s < ${this.config.targetChunkDurationMs / 1000}s target)`);
+        return null;
+      }
+    }
+
+    if (timeForced) {
+      console.log(`⏰ ChunkManager: TIME-FORCED processing (${(timeSinceLastProcess / 1000).toFixed(0)}s since last, buffer: ${(this.totalBufferDurationMs / 1000).toFixed(1)}s)`);
     }
 
     if (this.audioBuffer.length === 0) {
@@ -221,6 +254,7 @@ export class iPhoneChunkManager {
 
     const processedDuration = this.processingChunk.endTimeMs - this.processingChunk.startTimeMs;
     this.lastProcessedEndTime = this.processingChunk.endTimeMs;
+    this.lastProcessedTime = Date.now(); // Track when we last processed
     
     // Keep overlap for continuity - DURATION-BASED, not chunk-count based
     // Remove oldest entries while keeping at least overlapDurationMs of audio
@@ -300,13 +334,15 @@ export class iPhoneChunkManager {
     processedChunks: number;
     pendingRetries: number;
     lastProcessedEndTime: number;
+    timeSinceLastProcessMs: number;
   } {
     return {
       bufferChunks: this.audioBuffer.length,
       bufferDurationMs: this.totalBufferDurationMs,
       processedChunks: this.chunkCounter,
       pendingRetries: this.pendingQueue.length,
-      lastProcessedEndTime: this.lastProcessedEndTime
+      lastProcessedEndTime: this.lastProcessedEndTime,
+      timeSinceLastProcessMs: this.getTimeSinceLastProcess()
     };
   }
 }
