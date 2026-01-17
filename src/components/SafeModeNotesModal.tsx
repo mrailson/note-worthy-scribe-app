@@ -2913,7 +2913,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
           <div className="mx-6 mt-4 flex items-center gap-2">
-            <TabsList className="w-fit flex-shrink-0 grid grid-cols-5">
+            <TabsList className="w-fit flex-shrink-0 grid grid-cols-4">
               <TabsTrigger value="notes" className="gap-2">
                 <FileText className="h-4 w-4" />
                 <span className="hidden sm:inline">Notes</span>
@@ -2921,15 +2921,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <TabsTrigger value="transcript" className="gap-2">
                 <MessageSquare className="h-4 w-4" />
                 <span className="hidden sm:inline">Transcript</span>
-              </TabsTrigger>
-              <TabsTrigger value="actions" className="gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Action Items</span>
-                {openItemsCount > 0 && (
-                  <Badge variant="secondary" className="ml-1 h-6 min-w-6 px-2 text-xs font-medium flex items-center justify-center rounded-full">
-                    {openItemsCount}
-                  </Badge>
-                )}
               </TabsTrigger>
               <TabsTrigger value="ask-ai" className="gap-2">
                 <MessageSquare className="h-4 w-4" />
@@ -3347,19 +3338,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               </ScrollArea>
             </TabsContent>
 
-            {/* Action Items Tab */}
-            <TabsContent value="actions" className="h-full m-0">
-              <ScrollArea className="h-full rounded-lg border bg-card">
-                <div className="p-6">
-                  {meeting && (
-                    <MeetingActionItemsTab
-                      meetingId={meeting.id}
-                      meetingAttendees={attendees.map(a => a.name)}
-                    />
-                  )}
-                </div>
-              </ScrollArea>
-            </TabsContent>
 
             {/* Ask AI Tab */}
             <TabsContent value="ask-ai" className="h-full m-0">
