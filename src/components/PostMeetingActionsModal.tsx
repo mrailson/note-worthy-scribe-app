@@ -607,8 +607,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     }
     
     onOpenChange(false);
-    // Navigate to the new meeting summary view
-    navigate(`/meeting-summary/${meetingId}`);
+    // Navigate to meeting history and trigger SafeModeNotesModal (the new better version)
+    navigate('/meeting-history', { 
+      state: { 
+        openSafeModeModal: true,
+        safeModeModalMeetingId: meetingId 
+      } 
+    });
   };
 
   const handleStartNew = () => {

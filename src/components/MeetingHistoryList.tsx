@@ -181,6 +181,10 @@ interface MeetingHistoryListProps {
   onRefresh?: () => void;
   // Callback for when a folder is assigned
   onFolderAssigned?: (meetingId: string, folderId: string | null) => void;
+  // Auto-open SafeModeNotesModal for a specific meeting ID (from navigation state)
+  autoOpenSafeModeForMeetingId?: string | null;
+  // Callback when auto-open has been processed
+  onAutoOpenSafeModeProcessed?: () => void;
 }
 
 export const MeetingHistoryList = ({ 
@@ -197,7 +201,9 @@ export const MeetingHistoryList = ({
   onDocumentsUploaded,
   showRecordingPlayback = true,
   onRefresh,
-  onFolderAssigned
+  onFolderAssigned,
+  autoOpenSafeModeForMeetingId,
+  onAutoOpenSafeModeProcessed
 }: MeetingHistoryListProps) => {
   const navigate = useNavigate();
   const { isRecording, isResourceOperationSafe, setRecordingState } = useRecording();
@@ -476,6 +482,79 @@ export const MeetingHistoryList = ({
   // Ref to track modal open state for real-time subscription - updated synchronously
   const safeModeModalOpenRef = useRef(false);
   
+  // Handle auto-opening SafeModeNotesModal when navigated from PostMeetingActionsModal
+  useEffect(() => {
+    if (!autoOpenSafeModeForMeetingId || meetings.length === 0) return;
+    
+    console.log('🛡️ Processing auto-open for SafeModeNotesModal, meeting ID:', autoOpenSafeModeForMeetingId);
+    
+    // Find the meeting in our list or fetch it
+    const targetMeeting = meetings.find(m => m.id === autoOpenSafeModeForMeetingId);
+    
+    if (targetMeeting) {
+      console.log('🛡️ Found meeting in list, opening SafeModeNotesModal:', targetMeeting.title);
+      // Open the SafeModeNotesModal
+      setSafeModeNotes(targetMeeting.meeting_summary || '');
+      setSafeModeSelectedMeeting(targetMeeting);
+      safeModeModalOpenRef.current = true;
+      setSafeModeModalOpen(true);
+      
+      // Notify parent that we've processed the auto-open
+      if (onAutoOpenSafeModeProcessed) {
+        onAutoOpenSafeModeProcessed();
+      }
+    } else {
+      // Meeting not in current list, fetch it from database with summary
+      const fetchAndOpenMeeting = async () => {
+        try {
+          const { data: meeting, error } = await supabase
+            .from('meetings')
+            .select('*')
+            .eq('id', autoOpenSafeModeForMeetingId)
+            .maybeSingle();
+          
+          if (error) {
+            console.error('❌ Error fetching meeting for SafeModeNotesModal:', error);
+            return;
+          }
+          
+          if (meeting) {
+            console.log('🛡️ Fetched meeting from DB, opening SafeModeNotesModal:', meeting.title);
+            
+            // Also fetch the summary from meeting_summaries table
+            const { data: summaryData } = await supabase
+              .from('meeting_summaries')
+              .select('summary')
+              .eq('meeting_id', autoOpenSafeModeForMeetingId)
+              .maybeSingle();
+            
+            const meetingWithSummary: Meeting = {
+              ...meeting,
+              meeting_summary: summaryData?.summary || meeting.overview || ''
+            };
+            
+            setSafeModeNotes(meetingWithSummary.meeting_summary || '');
+            setSafeModeSelectedMeeting(meetingWithSummary);
+            safeModeModalOpenRef.current = true;
+            setSafeModeModalOpen(true);
+          }
+          
+          // Notify parent that we've processed the auto-open
+          if (onAutoOpenSafeModeProcessed) {
+            onAutoOpenSafeModeProcessed();
+          }
+        } catch (err) {
+          console.error('❌ Error in fetchAndOpenMeeting:', err);
+          if (onAutoOpenSafeModeProcessed) {
+            onAutoOpenSafeModeProcessed();
+          }
+        }
+      };
+      
+      fetchAndOpenMeeting();
+    }
+  }, [autoOpenSafeModeForMeetingId, meetings, onAutoOpenSafeModeProcessed]);
+
   // Add state for signed URLs
   const [audioUrls, setAudioUrls] = useState<Record<string, AudioUrls>>({});
   const [docListRefresh, setDocListRefresh] = useState<Record<string, number>>({});
