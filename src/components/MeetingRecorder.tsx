@@ -53,6 +53,7 @@ import { MeetingFoldersManager } from "@/components/meeting-folders/MeetingFolde
 import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { TabAudioGuidanceDialog } from "@/components/meeting/TabAudioGuidanceDialog";
 import { AudioCaptureStatusIndicator } from "@/components/meeting/AudioCaptureStatusIndicator";
+import { QuickAudioSourceSwitcher, AudioSourceMode as QuickAudioSourceMode } from "@/components/meeting/QuickAudioSourceSwitcher";
 import { QuickRecordQRLink } from "@/components/meeting/QuickRecordQRLink";
 import { MeetingMicrophoneSettings } from "@/components/meeting/MeetingMicrophoneSettings";
 import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscriptImportModal";
@@ -405,6 +406,9 @@ export const MeetingRecorder = ({
   const [micCaptured, setMicCaptured] = useState(false);
   const [systemAudioCaptured, setSystemAudioCaptured] = useState(false);
   const [audioActivity, setAudioActivity] = useState(false);
+  
+  // Audio source switching state
+  const [isSwitchingAudioSource, setIsSwitchingAudioSource] = useState(false);
   
   // Controlled tabs state for programmatic switching
   const [activeTab, setActiveTab] = useState<string>("recorder");
@@ -2432,7 +2436,139 @@ export const MeetingRecorder = ({
     await startWhisperTranscription(meetingId);
   };
 
-  // Computer audio transcription for Teams/Zoom meetings using enhanced audio processing
+  // Hot-swap audio source during active recording
+  const switchAudioSourceLive = async (newMode: QuickAudioSourceMode): Promise<void> => {
+    if (!isRecording || !isRecordingRef.current) {
+      console.log('⚠️ Cannot switch audio source - not recording');
+      return;
+    }
+
+    const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+    if (!currentMeetingId) {
+      console.error('❌ Cannot switch audio source - no meeting ID');
+      showToast.error('Cannot switch audio source', { section: 'meeting_manager' });
+      return;
+    }
+
+    console.log(`🔄 Switching audio source from ${audioSourceMode} to ${newMode}`);
+    setIsSwitchingAudioSource(true);
+    
+    try {
+      // Show user feedback
+      showToast.info(`Switching to ${newMode === 'microphone' ? 'Microphone Only' : 'Mic + System Audio'}...`, { 
+        section: 'meeting_manager',
+        id: 'audio-switch',
+        duration: 3000
+      });
+
+      // Step 1: Stop current transcription streams (but keep recording state active)
+      console.log('🛑 Stopping current audio streams...');
+      
+      // Stop desktop transcriber
+      if (desktopTranscriberRef.current) {
+        await desktopTranscriberRef.current.stopTranscription();
+        desktopTranscriberRef.current = null;
+      }
+      
+      // Stop simple iOS transcriber
+      if (simpleIOSTranscriberRef.current) {
+        await simpleIOSTranscriberRef.current.stop();
+        simpleIOSTranscriberRef.current = null;
+      }
+      
+      // Stop browser transcriber
+      if (browserTranscriberRef.current) {
+        browserTranscriberRef.current.stopTranscription();
+        browserTranscriberRef.current = null;
+      }
+      
+      // Stop microphone stream
+      if (micAudioStreamRef.current) {
+        micAudioStreamRef.current.getTracks().forEach(track => track.stop());
+        micAudioStreamRef.current = null;
+      }
+      
+      // Stop screen stream
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach(track => track.stop());
+        screenStreamRef.current = null;
+      }
+
+      // Reset capture states
+      setMicCaptured(false);
+      setSystemAudioCaptured(false);
+
+      // Step 2: Update mode state
+      setAudioSourceMode(newMode);
+      localStorage.setItem('meeting_recorder_audio_source', newMode);
+      
+      if (newMode === 'microphone') {
+        setRecordingMode('mic-only');
+        setMeetingType('face-to-face');
+      } else {
+        setRecordingMode('mic-and-system');
+        setMeetingType('teams');
+      }
+
+      // Small delay to let cleanup complete
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Step 3: Start new audio streams based on mode
+      console.log(`🎤 Starting new audio streams for mode: ${newMode}`);
+      
+      if (newMode === 'microphone') {
+        // Mic only mode
+        setMicCaptured(true);
+        await startMicrophoneTranscription(currentMeetingId);
+      } else if (newMode === 'microphone_and_system') {
+        // Mic + System mode - check if Chrome/Edge for parallel streams
+        const isChromiumBased = /Chrome|Edg/.test(navigator.userAgent) && !/Firefox/.test(navigator.userAgent);
+        
+        if (isChromiumBased) {
+          try {
+            // Start both system and mic transcription
+            await startComputerAudioTranscription(currentMeetingId);
+            setMicCaptured(true);
+            await startMicrophoneTranscription(currentMeetingId);
+          } catch (systemError: any) {
+            console.error('❌ System audio capture failed:', systemError);
+            // Fall back to mic only
+            showToast.warning('System audio not captured - using microphone only', { section: 'meeting_manager' });
+            setMicCaptured(true);
+            await startMicrophoneTranscription(currentMeetingId);
+          }
+        } else {
+          // Non-Chromium: use stereo recording
+          await startStereoRecording();
+          setMicCaptured(true);
+          setSystemAudioCaptured(true);
+        }
+      }
+
+      showToast.success(`Switched to ${newMode === 'microphone' ? 'Microphone Only' : 'Mic + System Audio'}`, { 
+        section: 'meeting_manager',
+        id: 'audio-switch'
+      });
+      
+      console.log('✅ Audio source switch completed successfully');
+      
+    } catch (error: any) {
+      console.error('❌ Audio source switch failed:', error);
+      showToast.error(`Audio switch failed: ${error.message}`, { section: 'meeting_manager', id: 'audio-switch' });
+      
+      // Attempt recovery - try to restart mic transcription at minimum
+      try {
+        setMicCaptured(true);
+        await startMicrophoneTranscription(currentMeetingId);
+        showToast.info('Recovered with microphone only', { section: 'meeting_manager' });
+      } catch (recoveryError) {
+        console.error('❌ Recovery failed:', recoveryError);
+      }
+    } finally {
+      setIsSwitchingAudioSource(false);
+    }
+  };
+
   const startComputerAudioTranscription = async (meetingId: string) => {
     addDebugLog('💻 Starting computer audio capture via screen share...');
     
@@ -5477,7 +5613,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                          </div>
                         </div>
                       
-                       {/* Audio Capture Status Indicator */}
+                       {/* Audio Capture Status Indicator + Quick Source Switcher */}
                        <div className="flex items-center gap-3 flex-wrap">
                          <AudioCaptureStatusIndicator
                            micCaptured={micCaptured}
@@ -5485,6 +5621,16 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                            recordingMode={recordingMode}
                            isRecording={isRecording}
                            audioActivity={audioActivity}
+                         />
+                         
+                         {/* Quick Audio Source Switcher - visible during recording */}
+                         <QuickAudioSourceSwitcher
+                           currentMode={audioSourceMode}
+                           onModeChange={switchAudioSourceLive}
+                           isRecording={isRecording}
+                           isSwitching={isSwitchingAudioSource}
+                           micCaptured={micCaptured}
+                           systemAudioCaptured={systemAudioCaptured}
                          />
                          
                          {/* Transcription Health Indicator */}
