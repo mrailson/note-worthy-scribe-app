@@ -274,37 +274,46 @@ export type Database = {
           audio_blob_path: string | null
           chunk_duration_ms: number | null
           chunk_number: number
+          compression_ratio: number | null
           created_at: string | null
           end_time: string
           file_size: number | null
           id: string
           meeting_id: string | null
+          original_file_size: number | null
           processing_status: string | null
           start_time: string
+          transcoded_file_size: number | null
         }
         Insert: {
           audio_blob_path?: string | null
           chunk_duration_ms?: number | null
           chunk_number: number
+          compression_ratio?: number | null
           created_at?: string | null
           end_time: string
           file_size?: number | null
           id?: string
           meeting_id?: string | null
+          original_file_size?: number | null
           processing_status?: string | null
           start_time: string
+          transcoded_file_size?: number | null
         }
         Update: {
           audio_blob_path?: string | null
           chunk_duration_ms?: number | null
           chunk_number?: number
+          compression_ratio?: number | null
           created_at?: string | null
           end_time?: string
           file_size?: number | null
           id?: string
           meeting_id?: string | null
+          original_file_size?: number | null
           processing_status?: string | null
           start_time?: string
+          transcoded_file_size?: number | null
         }
         Relationships: [
           {
