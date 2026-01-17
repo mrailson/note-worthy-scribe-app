@@ -1091,13 +1091,68 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       // Get logged-in user's name to replace Facilitator/Unidentified
       const loggedUserName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
 
+      // Fetch action items from database - only Open and In Progress (exclude Completed to match UI)
+      let contentWithFilteredActionItems = content;
+      if (meeting?.id) {
+        const { data: actionItemsData } = await supabase
+          .from('meeting_action_items')
+          .select('*')
+          .eq('meeting_id', meeting.id)
+          .not('status', 'in', '("Completed","completed")')
+          .order('sort_order', { ascending: true });
+
+        if (actionItemsData && actionItemsData.length > 0) {
+          // Build a new action items table with filtered items
+          const actionItemsTable = [
+            '| Action | Owner | Deadline | Priority | Status |',
+            '|--------|-------|----------|----------|--------|',
+            ...actionItemsData.map((item: any) => {
+              const status = item.status === 'In Progress' || item.status === 'in_progress' 
+                ? 'In Progress' 
+                : 'Open';
+              const deadline = item.due_date || 'TBC';
+              const priority = item.priority ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1) : 'Medium';
+              const owner = item.assignee_name || 'TBC';
+              return `| ${item.action_text} | ${owner} | ${deadline} | ${priority} | ${status} |`;
+            })
+          ].join('\n');
+
+          // Replace existing action items section with filtered version
+          // Match various action items section patterns
+          const actionSectionPatterns = [
+            /(\n*##?\s*ACTION ITEMS\s*\n+)(\|[^\n]+\n\|[-:\s|]+\n(?:\|[^\n]+\n)*)/gi,
+            /(\n*\*\*ACTION ITEMS\*\*\s*\n+)(\|[^\n]+\n\|[-:\s|]+\n(?:\|[^\n]+\n)*)/gi,
+            /(\n*ACTION ITEMS\s*\n+)(\|[^\n]+\n\|[-:\s|]+\n(?:\|[^\n]+\n)*)/gi,
+          ];
+
+          let replaced = false;
+          for (const pattern of actionSectionPatterns) {
+            if (pattern.test(contentWithFilteredActionItems)) {
+              contentWithFilteredActionItems = contentWithFilteredActionItems.replace(
+                pattern,
+                `$1${actionItemsTable}\n`
+              );
+              replaced = true;
+              console.log('📋 Replaced action items in Word export with filtered database items');
+              break;
+            }
+          }
+
+          // If no existing section found but we have items, append them
+          if (!replaced) {
+            console.log('📋 No existing action section found, appending filtered action items');
+            contentWithFilteredActionItems += `\n\n## ACTION ITEMS\n\n${actionItemsTable}\n`;
+          }
+        }
+      }
+
       await generateMeetingNotesDocx({
         metadata: { 
           title: cleanTitle,
           attendees: extractedAttendees,
           loggedUserName: loggedUserName,
         },
-        content,
+        content: contentWithFilteredActionItems,
         filename,
       });
     } catch (error) {

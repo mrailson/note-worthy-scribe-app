@@ -1194,11 +1194,12 @@ export const MeetingHistoryList = ({
         .eq('meeting_id', meeting.id)
         .maybeSingle();
       
-      // Fetch action items for this meeting
+      // Fetch action items for this meeting - only Open and In Progress (exclude Completed)
       const { data: actionItemsData } = await supabase
         .from('meeting_action_items')
         .select('*')
         .eq('meeting_id', meeting.id)
+        .not('status', 'in', '("Completed","completed")')
         .order('sort_order', { ascending: true });
       
       // Fetch attendees for this meeting
