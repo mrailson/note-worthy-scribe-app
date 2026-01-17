@@ -225,14 +225,9 @@ export const MeetingRecorder = ({
     }
   });
   
-  const [audioSourceMode, setAudioSourceMode] = useState<'microphone' | 'microphone_and_system' | 'system_only'>(() => {
-    try {
-      const saved = localStorage.getItem('meeting_recorder_audio_source');
-      return (saved as 'microphone' | 'microphone_and_system' | 'system_only') || 'microphone';
-    } catch {
-      return 'microphone';
-    }
-  });
+  // Audio source mode - ALWAYS default to microphone only for reliability
+  // Users can switch to other modes after starting if needed
+  const [audioSourceMode, setAudioSourceMode] = useState<'microphone' | 'microphone_and_system' | 'system_only'>('microphone');
   
   // Early word count progress display (first 20 seconds)
   const [showEarlyWordCount, setShowEarlyWordCount] = useState(false);
@@ -1573,19 +1568,23 @@ export const MeetingRecorder = ({
               } else {
                 console.log('🔍 Raw chunk saved successfully');
                 
-                // Update status to saved with timestamp
+                // Calculate file sizes for UI display
+                const transcodedSize = chunkBlob.size;
+                
+                // Update status to saved with timestamp and file sizes
                 setChunkSaveStatuses(prev => prev.map(chunk => 
                   chunk.id === uniqueChunkId 
                     ? { 
                         ...chunk, 
                         saveStatus: 'saved' as const,
-                        saveTimestamp: new Date().toISOString()
+                        saveTimestamp: new Date().toISOString(),
+                        originalFileSize: originalSize,
+                        transcodedFileSize: transcodedSize
                       }
                     : chunk
                 ));
                 
                 // Save audio chunk metadata with file sizes for analytics
-                const transcodedSize = chunkBlob.size;
                 const compressionRatio = originalSize > 0 ? parseFloat((1 - transcodedSize / originalSize).toFixed(2)) : 0;
                 
                 const { error: audioChunkError } = await supabase
