@@ -30,7 +30,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
 import { useRecordingProtection } from "@/hooks/useRecordingProtection";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check, Folder, Loader2, MoreVertical, ChevronDown, CheckCircle } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check, Folder, Loader2, MoreVertical, ChevronDown, CheckCircle, Timer, Type } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
@@ -6183,6 +6183,44 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 {meetings.filter(m => m.summary_exists || m.generatedNotes).length}
               </span>
               <span className="text-muted-foreground">with summaries</span>
+            </div>
+            
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500/10 to-purple-500/5 border border-purple-500/20 text-sm transition-all hover:shadow-sm hover:border-purple-500/30">
+              <Timer className="h-3.5 w-3.5 text-purple-500" />
+              <span className="font-semibold text-purple-500">
+                {(() => {
+                  const totalMinutes = meetings.reduce((acc, m) => {
+                    if (m.start_time && m.end_time) {
+                      const start = new Date(m.start_time);
+                      const end = new Date(m.end_time);
+                      return acc + (end.getTime() - start.getTime()) / (1000 * 60);
+                    }
+                    return acc;
+                  }, 0);
+                  const hours = Math.floor(totalMinutes / 60);
+                  const mins = Math.round(totalMinutes % 60);
+                  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                })()}
+              </span>
+              <span className="text-muted-foreground">total time</span>
+            </div>
+            
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500/10 to-orange-500/5 border border-orange-500/20 text-sm transition-all hover:shadow-sm hover:border-orange-500/30">
+              <Type className="h-3.5 w-3.5 text-orange-500" />
+              <span className="font-semibold text-orange-500">
+                {(() => {
+                  const totalWords = meetings.reduce((acc, m) => {
+                    const transcript = m.transcript || m.rawTranscript || '';
+                    const notes = m.generatedNotes || '';
+                    const wordCount = (transcript + ' ' + notes).split(/\s+/).filter(w => w.length > 0).length;
+                    return acc + wordCount;
+                  }, 0);
+                  if (totalWords >= 1000000) return `${(totalWords / 1000000).toFixed(1)}M`;
+                  if (totalWords >= 1000) return `${(totalWords / 1000).toFixed(1)}k`;
+                  return totalWords.toString();
+                })()}
+              </span>
+              <span className="text-muted-foreground">words</span>
             </div>
           </div>
 
