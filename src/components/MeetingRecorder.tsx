@@ -30,7 +30,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
 import { useRecordingProtection } from "@/hooks/useRecordingProtection";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check, Folder, Loader2, MoreVertical, ChevronDown } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check, Folder, Loader2, MoreVertical, ChevronDown, CheckCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
@@ -6159,43 +6159,31 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{meetings.length}</div>
-              </CardContent>
-            </Card>
+          {/* Compact Stats Pills */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-sm transition-all hover:shadow-sm hover:border-primary/30">
+              <FileText className="h-3.5 w-3.5 text-primary" />
+              <span className="font-semibold text-primary">{meetings.length}</span>
+              <span className="text-muted-foreground">meetings</span>
+            </div>
             
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">This Month</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {meetings.filter(m => 
-                    new Date(m.created_at || m.start_time).getMonth() === new Date().getMonth()
-                  ).length}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-500/20 text-sm transition-all hover:shadow-sm hover:border-blue-500/30">
+              <Clock className="h-3.5 w-3.5 text-blue-500" />
+              <span className="font-semibold text-blue-500">
+                {meetings.filter(m => 
+                  new Date(m.created_at || m.start_time).getMonth() === new Date().getMonth()
+                ).length}
+              </span>
+              <span className="text-muted-foreground">this month</span>
+            </div>
             
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">With Summaries</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {meetings.filter(m => m.summary_exists || m.generatedNotes).length}
-                </div>
-              </CardContent>
-            </Card>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-green-500/10 to-green-500/5 border border-green-500/20 text-sm transition-all hover:shadow-sm hover:border-green-500/30">
+              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+              <span className="font-semibold text-green-500">
+                {meetings.filter(m => m.summary_exists || m.generatedNotes).length}
+              </span>
+              <span className="text-muted-foreground">with summaries</span>
+            </div>
           </div>
 
           {/* Search and Filter Controls */}
