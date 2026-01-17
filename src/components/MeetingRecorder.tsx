@@ -159,6 +159,11 @@ export const MeetingRecorder = ({
   const [chunkSaveStatuses, setChunkSaveStatuses] = useState<ChunkSaveStatus[]>([]);
   const [stopUIStatus, setStopUIStatus] = useState<string>('');
   
+  // CRITICAL: Synchronous chunk counter ref to ensure correct numbering
+  // React setState is async, so using state alone results in all chunks being numbered 0
+  // This ref is incremented synchronously and always has the correct current value
+  const chunkCounterRef = useRef(0);
+  
   // Synchronous guard to prevent duplicate stop flows
   const stopInProgressRef = useRef(false);
   
@@ -458,6 +463,7 @@ export const MeetingRecorder = ({
     setTranscript("");
     setRealtimeTranscripts([]);
     setChunkCounter(0);
+    chunkCounterRef.current = 0; // CRITICAL: Reset ref alongside state
     setConnectionStatus("Disconnected");
     setSpeakerCount(0);
     setWordCount(0);
@@ -1190,12 +1196,10 @@ export const MeetingRecorder = ({
       console.log(`🎵 Processing chunk ${chunkId} (${chunks.length} audio chunks, total size: ${chunks.reduce((sum, chunk) => sum + chunk.size, 0)} bytes)...`);
       
       // Add chunk to status tracking immediately with timestamps
-      // Use functional setState to get atomic chunk number assignment
-      let currentChunkNumber = 0;
-      setChunkCounter(prev => {
-        currentChunkNumber = prev + 1;
-        return currentChunkNumber;
-      });
+      // CRITICAL: Use synchronous ref for correct chunk numbering (setState is async)
+      chunkCounterRef.current += 1;
+      const currentChunkNumber = chunkCounterRef.current;
+      setChunkCounter(currentChunkNumber); // Update state for UI display
       
       const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
       
@@ -2111,12 +2115,12 @@ export const MeetingRecorder = ({
     if (!data.text || !data.text.trim()) return;
     
     // Add chunk status tracking for iPhone/mobile transcription with timestamps
-    // Use functional setState to get atomic chunk number assignment
-    let currentChunkNumber = 0;
-    setChunkCounter(prev => {
-      currentChunkNumber = prev + 1;
-      return currentChunkNumber;
-    });
+    // CRITICAL: Use synchronous ref for correct chunk numbering (setState is async)
+    chunkCounterRef.current += 1;
+    const currentChunkNumber = chunkCounterRef.current;
+    setChunkCounter(currentChunkNumber); // Update state for UI display
+    
+    console.log(`📊 Chunk counter: ${currentChunkNumber} (ref: ${chunkCounterRef.current})`);
     
     const chunkLength = data.text.trim().length;
     const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
@@ -3449,6 +3453,8 @@ export const MeetingRecorder = ({
         sessionStorage.setItem('currentMeetingId', realMeetingId);
         
         // Set starting chunk counter for continuation mode
+        // CRITICAL: Set both ref (synchronous) and state (UI display)
+        chunkCounterRef.current = startingChunkNumber;
         setChunkCounter(startingChunkNumber);
       } catch (error) {
         console.error('❌ Failed to create/continue meeting:', error);
