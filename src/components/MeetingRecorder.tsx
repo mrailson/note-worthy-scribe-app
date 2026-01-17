@@ -4211,12 +4211,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       }
 
       console.log('🚨 MEETING UPDATED IN DATABASE:', savedMeeting.id);
-      
-      // Show success toast
-      showToast.success('Meeting has been saved and is available in Meeting History tab', {
-        section: 'meeting_manager',
-        duration: 5000,
-      });
 
       // 2. Save transcript with post-save validation
       if (meetingData.transcript) {
