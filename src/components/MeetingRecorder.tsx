@@ -6190,10 +6190,15 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               <span className="font-semibold text-purple-500">
                 {(() => {
                   const totalMinutes = meetings.reduce((acc, m) => {
+                    // Use duration_minutes if available, otherwise calculate from start/end
+                    if (m.duration_minutes && m.duration_minutes > 0) {
+                      return acc + m.duration_minutes;
+                    }
                     if (m.start_time && m.end_time) {
                       const start = new Date(m.start_time);
                       const end = new Date(m.end_time);
-                      return acc + (end.getTime() - start.getTime()) / (1000 * 60);
+                      const diff = (end.getTime() - start.getTime()) / (1000 * 60);
+                      return acc + (diff > 0 ? diff : 0);
                     }
                     return acc;
                   }, 0);
@@ -6210,9 +6215,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               <span className="font-semibold text-orange-500">
                 {(() => {
                   const totalWords = meetings.reduce((acc, m) => {
-                    const transcript = m.transcript || m.rawTranscript || '';
-                    const notes = m.generatedNotes || '';
-                    const wordCount = (transcript + ' ' + notes).split(/\s+/).filter(w => w.length > 0).length;
+                    // Use meeting_summary (from notes_style_3) or overview for word count
+                    const notes = m.meeting_summary || m.notes_style_3 || m.overview || '';
+                    const wordCount = notes.split(/\s+/).filter((w: string) => w.length > 0).length;
                     return acc + wordCount;
                   }, 0);
                   if (totalWords >= 1000000) return `${(totalWords / 1000000).toFixed(1)}M`;
