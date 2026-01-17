@@ -2229,7 +2229,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 bg-background [&>button:last-child]:hidden"
+        className="max-w-5xl h-[90vh] h-[90dvh] flex flex-col p-0 gap-0 bg-background [&>button:last-child]:hidden overflow-hidden"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingTop: 'env(safe-area-inset-top)',
+        }}
         // Prevent the parent dialog from dismissing when interacting with portalled children
         // (e.g. Select popovers, nested modals like attendee manager)
         onInteractOutside={(e) => e.preventDefault()}
@@ -3019,9 +3023,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 min-h-0 px-6 pb-6 pt-4">
+          <div className="flex-1 min-h-0 px-6 pb-6 pt-4 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
             <TabsContent value="notes" className="h-full m-0">
-              <ScrollArea className="h-full rounded-lg border bg-card">
+              <ScrollArea className="h-full rounded-lg border bg-card" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <div className="p-6 space-y-6">
                   {/* Find & Replace Panel */}
                   {showNotesFindReplace && notesContent && (
