@@ -216,6 +216,9 @@ const MeetingHistory = () => {
   // Import dialog state
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
+  // Auto-open SafeModeNotesModal state (triggered from PostMeetingActionsModal navigation)
+  const [autoOpenSafeModeForMeetingId, setAutoOpenSafeModeForMeetingId] = useState<string | null>(null);
+
   // Folder management
   const { folders, assignMeetingToFolder } = useMeetingFolders();
   const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
@@ -1154,7 +1157,19 @@ const MeetingHistory = () => {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [location.state]);
+    
+    // Handle auto-opening SafeModeNotesModal when navigated from PostMeetingActionsModal
+    if (state?.openSafeModeModal && state?.safeModeModalMeetingId) {
+      console.log('🛡️ Auto-opening SafeModeNotesModal for meeting:', state.safeModeModalMeetingId);
+      // Wait for meetings to load, then set the auto-open meeting ID
+      const timer = setTimeout(() => {
+        setAutoOpenSafeModeForMeetingId(state.safeModeModalMeetingId);
+        // Clear the navigation state to prevent re-opening on refresh
+        navigate(location.pathname, { replace: true, state: {} });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state, navigate, location.pathname]);
 
   useEffect(() => {
     filterMeetings();
@@ -2448,6 +2463,8 @@ const MeetingHistory = () => {
             }}
             showRecordingPlayback={micTestServiceVisible}
             onFolderAssigned={handleFolderAssigned}
+            autoOpenSafeModeForMeetingId={autoOpenSafeModeForMeetingId}
+            onAutoOpenSafeModeProcessed={() => setAutoOpenSafeModeForMeetingId(null)}
           />
         )}
 
