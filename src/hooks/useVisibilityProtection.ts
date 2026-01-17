@@ -61,14 +61,8 @@ export function useVisibilityProtection(config: VisibilityProtectionConfig) {
 
         console.log(`👁️ Tab hidden (count: ${hiddenCountRef.current})`);
         
-        // Show warning toast that stays visible
+        // Log only - no toast per user request
         warningToastIdRef.current = `visibility-warning-${now}`;
-        showToast.warning('Recording may be affected while tab is in background', {
-          section: 'meeting_manager',
-          duration: Infinity,
-          id: warningToastIdRef.current,
-          description: 'Return to this tab to ensure continuous recording'
-        });
 
         setState(prev => ({
           ...prev,
@@ -101,16 +95,9 @@ export function useVisibilityProtection(config: VisibilityProtectionConfig) {
           hasActiveWarning: false
         }));
 
-        // Show warning if hidden for a significant time
+        // Log only - no toast per user request
         if (hiddenDuration >= warningThresholdMs) {
-          showToast.warning(
-            `Tab was in background for ${Math.round(hiddenDuration / 1000)} seconds`,
-            {
-              section: 'meeting_manager',
-              duration: 5000,
-              description: 'Checking transcription status...'
-            }
-          );
+          console.log(`⚠️ Tab was in background for ${Math.round(hiddenDuration / 1000)} seconds`);
         }
 
         onVisible?.(hiddenDuration);
