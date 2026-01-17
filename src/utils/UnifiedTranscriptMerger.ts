@@ -4,6 +4,7 @@
 
 import { mergeByTimestamps, segmentsToPlainText, type Segment } from "@/lib/segmentMerge";
 import { mergeLive, type LiveChunk } from "@/utils/liveMerge";
+import { isLikelyHallucination } from "@/utils/whisperHallucinationPatterns";
 
 export interface TranscriptChunk {
   id?: string;
@@ -151,11 +152,29 @@ export class UnifiedTranscriptMerger {
 
   // Private helper methods
   private static filterValidChunks(chunks: TranscriptChunk[]): TranscriptChunk[] {
-    return chunks.filter(chunk => 
-      chunk?.text && 
-      chunk.text.trim().length >= this.MIN_CHUNK_LENGTH &&
-      (chunk.confidence === undefined || chunk.confidence >= this.CONFIDENCE_THRESHOLD)
-    );
+    return chunks.filter(chunk => {
+      // Basic validation
+      if (!chunk?.text || chunk.text.trim().length < this.MIN_CHUNK_LENGTH) {
+        return false;
+      }
+      
+      // Confidence threshold check (hard gate at 30%)
+      if (chunk.confidence !== undefined && chunk.confidence < this.CONFIDENCE_THRESHOLD) {
+        console.log(`🚫 Chunk filtered: confidence ${(chunk.confidence * 100).toFixed(1)}% below ${this.CONFIDENCE_THRESHOLD * 100}% threshold`);
+        return false;
+      }
+      
+      // Hallucination check - defence in depth
+      const hallucinationCheck = isLikelyHallucination(chunk.text, chunk.confidence, {
+        confidenceThreshold: this.CONFIDENCE_THRESHOLD
+      });
+      if (hallucinationCheck.isHallucination) {
+        console.log(`🚫 Chunk filtered as hallucination: ${hallucinationCheck.reason}`);
+        return false;
+      }
+      
+      return true;
+    });
   }
 
   private static hasTimestamps(chunks: TranscriptChunk[]): boolean {

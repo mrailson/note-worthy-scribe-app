@@ -1,5 +1,6 @@
 // Enhanced timestamp-based segment merger to prevent large-scale duplications
 import { mergeByTimestamps, segmentsToPlainText, type Segment } from "@/lib/segmentMerge";
+import { isLikelyHallucination } from "@/utils/whisperHallucinationPatterns";
 
 export interface TimestampedChunk {
   text: string;
@@ -18,6 +19,14 @@ export interface MergerState {
   lastProcessedTimestamp: number;
   contentHashes: Set<string>;
   lastText: string;
+  recentSentences: string[];  // For cross-chunk repetition detection
+}
+
+export interface ChunkProcessResult {
+  text: string;
+  wasProcessed: boolean;
+  reason?: string;
+  wasHallucination?: boolean;
 }
 
 export class TimestampedSegmentMerger {
@@ -25,6 +34,8 @@ export class TimestampedSegmentMerger {
   private static readonly MIN_SEGMENT_LENGTH = 8; // Slightly reduced minimum length
   private static readonly HASH_LENGTH = 80; // Reduced hash length for better duplicate detection
   private static readonly OVERLAP_THRESHOLD = 0.75; // balanced overlap detection
+  private static readonly CROSS_CHUNK_SIMILARITY_THRESHOLD = 0.85; // For detecting repeated sentences
+  private static readonly MAX_RECENT_SENTENCES = 50; // Track last N sentences for repetition detection
   
   private state: MergerState;
   
@@ -33,14 +44,15 @@ export class TimestampedSegmentMerger {
       finalizedSegments: [],
       lastProcessedTimestamp: 0,
       contentHashes: new Set(),
-      lastText: ''
+      lastText: '',
+      recentSentences: []
     };
   }
 
   /**
    * Process a new chunk with strict timestamp-based deduplication
    */
-  processChunk(chunk: TimestampedChunk): { text: string; wasProcessed: boolean; reason?: string } {
+  processChunk(chunk: TimestampedChunk): ChunkProcessResult {
     if (!chunk.text?.trim() || chunk.text.trim().length < TimestampedSegmentMerger.MIN_SEGMENT_LENGTH) {
       return { text: this.state.lastText, wasProcessed: false, reason: 'Chunk too short or empty' };
     }
@@ -49,6 +61,31 @@ export class TimestampedSegmentMerger {
     if (chunk.isFinal === false) {
       console.log(`⏳ Skipping interim chunk: "${chunk.text.substring(0, 30)}..."`);
       return { text: this.state.lastText, wasProcessed: false, reason: 'Interim chunk ignored' };
+    }
+
+    // HALLUCINATION CHECK - Defence in depth at merger level
+    const hallucinationCheck = isLikelyHallucination(chunk.text, chunk.confidence, {
+      confidenceThreshold: 0.30  // Match our hard gate threshold
+    });
+    if (hallucinationCheck.isHallucination) {
+      console.log(`🚫 Hallucination detected in merger: ${hallucinationCheck.reason}`);
+      return { 
+        text: this.state.lastText, 
+        wasProcessed: false, 
+        reason: hallucinationCheck.reason,
+        wasHallucination: true
+      };
+    }
+
+    // CROSS-CHUNK REPETITION CHECK - Detect "end of webinar" loops
+    const crossChunkRepetition = this.detectCrossChunkRepetition(chunk.text);
+    if (crossChunkRepetition.isRepetitive) {
+      console.log(`🚫 Cross-chunk repetition detected: ${crossChunkRepetition.reason}`);
+      return { 
+        text: this.state.lastText, 
+        wasProcessed: false, 
+        reason: crossChunkRepetition.reason 
+      };
     }
 
     const startTime = this.getChunkStartTime(chunk);
@@ -92,6 +129,9 @@ export class TimestampedSegmentMerger {
     this.state.contentHashes.add(contentHash);
     this.state.lastText = mergedText;
 
+    // Track sentences for cross-chunk repetition detection
+    this.updateRecentSentences(chunk.text);
+
     // Cleanup old hashes to prevent memory growth (keep last 100)
     if (this.state.contentHashes.size > 100) {
       const hashArray = Array.from(this.state.contentHashes);
@@ -100,6 +140,75 @@ export class TimestampedSegmentMerger {
 
     console.log(`🔗 Timestamp merge complete: ${mergedText.length} chars total`);
     return { text: mergedText, wasProcessed: true };
+  }
+
+  /**
+   * Detect cross-chunk repetition by comparing sentences to recent history
+   */
+  private detectCrossChunkRepetition(text: string): { isRepetitive: boolean; reason?: string } {
+    const sentences = text
+      .split(/[.!?]+/)
+      .map(s => s.trim().toLowerCase())
+      .filter(s => s.length > 10);
+    
+    if (sentences.length === 0) {
+      return { isRepetitive: false };
+    }
+
+    let repeatedCount = 0;
+    for (const sentence of sentences) {
+      for (const recent of this.state.recentSentences) {
+        if (this.calculateSimilarity(sentence, recent) > TimestampedSegmentMerger.CROSS_CHUNK_SIMILARITY_THRESHOLD) {
+          repeatedCount++;
+          break;
+        }
+      }
+    }
+
+    const repetitionRatio = repeatedCount / sentences.length;
+    if (repetitionRatio > 0.5) {
+      return { 
+        isRepetitive: true, 
+        reason: `Cross-chunk repetition: ${repeatedCount}/${sentences.length} sentences (${(repetitionRatio * 100).toFixed(0)}%) already in transcript`
+      };
+    }
+
+    return { isRepetitive: false };
+  }
+
+  /**
+   * Calculate similarity between two strings (Jaccard-like)
+   */
+  private calculateSimilarity(a: string, b: string): number {
+    const wordsA = new Set(a.split(/\s+/).filter(w => w.length > 2));
+    const wordsB = new Set(b.split(/\s+/).filter(w => w.length > 2));
+    
+    if (wordsA.size === 0 || wordsB.size === 0) return 0;
+    
+    let intersection = 0;
+    for (const word of wordsA) {
+      if (wordsB.has(word)) intersection++;
+    }
+    
+    const union = wordsA.size + wordsB.size - intersection;
+    return intersection / union;
+  }
+
+  /**
+   * Update recent sentences tracker
+   */
+  private updateRecentSentences(text: string): void {
+    const sentences = text
+      .split(/[.!?]+/)
+      .map(s => s.trim().toLowerCase())
+      .filter(s => s.length > 10);
+    
+    this.state.recentSentences.push(...sentences);
+    
+    // Keep only the most recent sentences
+    if (this.state.recentSentences.length > TimestampedSegmentMerger.MAX_RECENT_SENTENCES) {
+      this.state.recentSentences = this.state.recentSentences.slice(-TimestampedSegmentMerger.MAX_RECENT_SENTENCES);
+    }
   }
 
   /**
@@ -117,7 +226,8 @@ export class TimestampedSegmentMerger {
       finalizedSegments: [],
       lastProcessedTimestamp: 0,
       contentHashes: new Set(),
-      lastText: ''
+      lastText: '',
+      recentSentences: []
     };
     console.log('🔄 TimestampedSegmentMerger reset');
   }

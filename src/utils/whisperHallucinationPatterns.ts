@@ -19,6 +19,21 @@ export const HALLUCINATION_PHRASES = [
   'i hope you enjoyed this video',
   'i hope you enjoyed this',
   
+  // WEBINAR/MEETING CLOSING LOOPS (new - from hallucination report)
+  'this is the end of the webinar',
+  'the webinar is now over',
+  'thank you for attending',
+  'thank you very much for attending',
+  'if you have any questions',
+  'what is your view on',
+  'so what is your view on the number of cases',
+  'this meeting is being recorded',
+  
+  // Generic medical/clinical boilerplate hallucinations
+  'all of these terms are used to assess',
+  'if you don\'t know what you\'re looking for',
+  'the patient\'s condition',
+  
   // Presentation/video endings
   'this is the end of the presentation',
   'end of presentation',
@@ -117,6 +132,15 @@ const LEGITIMATE_URL_PATTERNS = [
   /accurx/i,
 ];
 
+// FABRICATED URL PATTERNS - common hallucinated incorrect domains
+const FABRICATED_URL_PATTERNS = [
+  /cdc\.gov\.uk/i,   // CDC is .gov (US), not .gov.uk
+  /nhs\.com/i,       // NHS is .uk, not .com
+  /nice\.com/i,      // NICE is .org.uk, not .com
+  /cdc\.org\.uk/i,   // CDC doesn't have .org.uk
+  /who\.gov\.uk/i,   // WHO is .int, not .gov.uk
+];
+
 export interface HallucinationCheckResult {
   isHallucination: boolean;
   reason?: string;
@@ -170,6 +194,18 @@ export function isRepetitiveContent(text: string, minWords = 8, maxUniqueRatio =
  * Check for fabricated URLs that aren't legitimate medical/NHS sites
  */
 export function hasFabricatedUrls(text: string): HallucinationCheckResult {
+  // First check for known fabricated URL patterns
+  for (const pattern of FABRICATED_URL_PATTERNS) {
+    if (pattern.test(text)) {
+      const match = text.match(pattern);
+      return {
+        isHallucination: true,
+        reason: `Fabricated URL pattern detected: "${match?.[0] || 'unknown'}"`,
+        confidence: 0.95
+      };
+    }
+  }
+
   // Check if text contains URL-like patterns
   const urlPatterns = [
     /www\.\S+/gi,
