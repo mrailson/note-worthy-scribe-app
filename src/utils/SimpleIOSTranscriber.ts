@@ -58,8 +58,9 @@ export class SimpleIOSTranscriber {
   private lastTranscriptTail = '';
   private readonly PROMPT_TAIL_LENGTH = 200;
   
-  // Heartbeat: force requestData if no ondataavailable
-  private heartbeatInterval: NodeJS.Timeout | null = null;
+  // Web Worker-based heartbeat (resistant to background throttling)
+  private heartbeatWorker: Worker | null = null;
+  private heartbeatWorkerBlobUrl: string | null = null;
   private readonly HEARTBEAT_INTERVAL_MS = 8000;
   private readonly TIMESLICE_MS = 5000; // 5 second blobs
   
@@ -69,6 +70,9 @@ export class SimpleIOSTranscriber {
   
   // Device selection
   private selectedDeviceId: string | null = null;
+  
+  // Visibility handler for tab switching
+  private visibilityHandler: (() => void) | null = null;
 
   constructor(
     private callbacks: IOSTranscriberCallbacks,
@@ -154,8 +158,11 @@ export class SimpleIOSTranscriber {
       this.mediaRecorder.start(this.TIMESLICE_MS);
       this.isRecording = true;
 
-      // Start heartbeat to force requestData if needed
+      // Start heartbeat to force requestData if needed (uses Web Worker)
       this.startHeartbeat();
+      
+      // Add visibility handler for tab switching recovery
+      this.setupVisibilityHandler();
 
       this.callbacks.onStatusChange('Recording...');
       this.emitStats();
@@ -181,6 +188,7 @@ export class SimpleIOSTranscriber {
 
     this.isRecording = false;
     this.stopHeartbeat();
+    this.removeVisibilityHandler();
 
     // Stop MediaRecorder (triggers final ondataavailable)
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
@@ -336,31 +344,125 @@ export class SimpleIOSTranscriber {
 
   /**
    * Heartbeat: force requestData if no ondataavailable recently
+   * Uses Web Worker to resist browser background throttling
    */
   private startHeartbeat(): void {
-    this.heartbeatInterval = setInterval(() => {
-      if (!this.isRecording || !this.mediaRecorder) return;
-
-      const timeSinceLastData = Date.now() - this.lastOndataavailableTime;
+    // Create inline Web Worker for background-resistant timing
+    const workerCode = `
+      let intervalId = null;
       
-      if (timeSinceLastData > this.HEARTBEAT_INTERVAL_MS) {
-        console.log(`📱 SimpleIOS: Heartbeat - forcing requestData (${Math.round(timeSinceLastData / 1000)}s since last)`);
+      self.onmessage = (event) => {
+        const { type, intervalMs } = event.data;
         
-        if (this.mediaRecorder.state === 'recording') {
-          try {
-            this.mediaRecorder.requestData();
-          } catch (e) {
-            console.warn('📱 SimpleIOS: requestData failed:', e);
+        if (type === 'start') {
+          if (intervalId) clearInterval(intervalId);
+          intervalId = setInterval(() => {
+            self.postMessage({ type: 'tick', timestamp: Date.now() });
+          }, intervalMs);
+          // Send initial tick
+          self.postMessage({ type: 'tick', timestamp: Date.now(), isInitial: true });
+        } else if (type === 'stop') {
+          if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
           }
         }
+      };
+    `;
+    
+    try {
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      this.heartbeatWorkerBlobUrl = URL.createObjectURL(blob);
+      this.heartbeatWorker = new Worker(this.heartbeatWorkerBlobUrl);
+      
+      this.heartbeatWorker.onmessage = (event) => {
+        if (event.data.type === 'tick') {
+          this.handleHeartbeatTick();
+        }
+      };
+      
+      this.heartbeatWorker.postMessage({ 
+        type: 'start', 
+        intervalMs: this.HEARTBEAT_INTERVAL_MS 
+      });
+      
+      console.log('📱 SimpleIOS: Web Worker heartbeat started');
+    } catch (error) {
+      // Fallback to setInterval if Web Worker fails
+      console.warn('📱 SimpleIOS: Web Worker failed, using setInterval fallback:', error);
+      this.startHeartbeatFallback();
+    }
+  }
+  
+  private startHeartbeatFallback(): void {
+    setInterval(() => {
+      if (this.isRecording) {
+        this.handleHeartbeatTick();
       }
     }, this.HEARTBEAT_INTERVAL_MS);
   }
+  
+  private handleHeartbeatTick(): void {
+    if (!this.isRecording || !this.mediaRecorder) return;
+
+    const timeSinceLastData = Date.now() - this.lastOndataavailableTime;
+    
+    if (timeSinceLastData > this.HEARTBEAT_INTERVAL_MS) {
+      console.log(`📱 SimpleIOS: Heartbeat - forcing requestData (${Math.round(timeSinceLastData / 1000)}s since last)`);
+      
+      if (this.mediaRecorder.state === 'recording') {
+        try {
+          this.mediaRecorder.requestData();
+        } catch (e) {
+          console.warn('📱 SimpleIOS: requestData failed:', e);
+        }
+      }
+    }
+  }
 
   private stopHeartbeat(): void {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
+    if (this.heartbeatWorker) {
+      this.heartbeatWorker.postMessage({ type: 'stop' });
+      this.heartbeatWorker.terminate();
+      this.heartbeatWorker = null;
+    }
+    if (this.heartbeatWorkerBlobUrl) {
+      URL.revokeObjectURL(this.heartbeatWorkerBlobUrl);
+      this.heartbeatWorkerBlobUrl = null;
+    }
+  }
+  
+  /**
+   * Setup visibility handler to recover when tab becomes visible
+   */
+  private setupVisibilityHandler(): void {
+    this.visibilityHandler = () => {
+      if (document.visibilityState === 'visible' && this.isRecording) {
+        console.log('📱 SimpleIOS: Tab visible - forcing immediate data request');
+        
+        // Force request current data when returning to tab
+        if (this.mediaRecorder?.state === 'recording') {
+          try {
+            this.mediaRecorder.requestData();
+          } catch (e) {
+            console.warn('📱 SimpleIOS: requestData on visibility failed:', e);
+          }
+        }
+        
+        // Process any queued blobs immediately
+        if (this.queue.length > 0 && !this.uploadInFlight) {
+          this.drainQueue();
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+  }
+  
+  private removeVisibilityHandler(): void {
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
     }
   }
 
