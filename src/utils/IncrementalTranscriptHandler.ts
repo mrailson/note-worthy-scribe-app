@@ -12,6 +12,12 @@ export interface IncrementalTranscriptData {
   source?: string;
 }
 
+export interface ProcessTranscriptResult {
+  wasProcessed: boolean;
+  reason?: string;
+  wasHallucination?: boolean;
+}
+
 export class IncrementalTranscriptHandler {
   private merger: TimestampedSegmentMerger;
   private lastInterimText: string = '';
@@ -25,30 +31,33 @@ export class IncrementalTranscriptHandler {
     this.merger = new TimestampedSegmentMerger();
   }
 
-  processTranscript(data: IncrementalTranscriptData): void {
+  processTranscript(data: IncrementalTranscriptData): ProcessTranscriptResult {
     // Generate a unique segment ID if not provided
     const segmentId = data.segment_id || `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     // Deduplication: Skip if we've already processed this exact segment
     if (data.is_final && this.processedSegmentIds.has(segmentId)) {
       console.log('🚫 Skipping duplicate final segment:', segmentId);
-      return;
+      return { wasProcessed: false, reason: 'Duplicate segment ID' };
     }
 
     // Clean the text
     const cleanedText = this.cleanText(data.text);
-    if (!cleanedText.trim()) return;
+    if (!cleanedText.trim()) {
+      return { wasProcessed: false, reason: 'Empty text after cleaning' };
+    }
 
     if (data.is_final) {
       // Handle final text using timestamp-based merging
-      this.processFinalText(cleanedText, segmentId, data);
+      return this.processFinalText(cleanedText, segmentId, data);
     } else {
       // Handle interim text
       this.processInterimText(cleanedText);
+      return { wasProcessed: false, reason: 'Interim text (not final)' };
     }
   }
 
-  private processFinalText(text: string, segmentId: string, data: IncrementalTranscriptData): void {
+  private processFinalText(text: string, segmentId: string, data: IncrementalTranscriptData): ProcessTranscriptResult {
     // Create timestamped chunk for enhanced merging
     const chunk: TimestampedChunk = {
       text,
@@ -67,7 +76,11 @@ export class IncrementalTranscriptHandler {
     
     if (!result.wasProcessed) {
       console.log(`🚫 Chunk not processed: ${result.reason}`);
-      return;
+      return { 
+        wasProcessed: false, 
+        reason: result.reason,
+        wasHallucination: result.wasHallucination 
+      };
     }
 
     // Mark as processed and update
@@ -80,6 +93,8 @@ export class IncrementalTranscriptHandler {
     
     console.log('✅ Added final segment via timestamp merger:', text.substring(0, 50) + '...');
     console.log('📊 Total transcript length:', this.lastFinalText.length);
+    
+    return { wasProcessed: true };
   }
 
   private processInterimText(text: string): void {

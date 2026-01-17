@@ -19,6 +19,7 @@ interface ChunkSaveStatus {
   confidence: number;
   startTime?: number; // in seconds
   endTime?: number; // in seconds
+  wasMerged?: boolean; // True if merger actually processed this chunk
   mergeRejectionReason?: string; // Reason why chunk wasn't merged into transcript
 }
 
@@ -211,7 +212,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
   
   const successRate = chunks.length > 0 ? Math.round((savedChunks / chunks.length) * 100) : 0;
   
-  // Robustly check if a chunk appears in the main transcript
+  // Robustly check if a chunk appears in the main transcript (fallback method)
   const isChunkInTranscript = (chunkText: string): boolean => {
     if (!chunkText || !mainTranscript) return false;
 
@@ -233,24 +234,32 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
     // 1) Direct substring match on normalised text
     if (tNorm.includes(cNorm)) return true;
 
-    // 2) Any 5-word n-gram from the chunk present in transcript
-    if (words.length >= 5) {
-      for (let i = 0; i <= words.length - 5; i++) {
-        const gram = normalise(words.slice(i, i + 5).join(' '));
+    // 2) Any 3-word n-gram from the chunk present in transcript (relaxed from 5)
+    if (words.length >= 3) {
+      for (let i = 0; i <= words.length - 3; i++) {
+        const gram = normalise(words.slice(i, i + 3).join(' '));
         if (gram && tNorm.includes(gram)) return true;
       }
     }
 
-    // 3) Fallback: significant-word overlap (>=70%), ignoring very short words
+    // 3) Fallback: significant-word overlap (>=50%), ignoring very short words (relaxed from 70%)
     const cTokens = cNorm.split(' ').filter(w => w.length >= 3);
     if (cTokens.length === 0) return false;
     const matched = cTokens.filter(w => tNorm.includes(w)).length;
-    return (matched / cTokens.length) >= 0.7;
+    return (matched / cTokens.length) >= 0.50;
   };
+  
   // Calculate chunks that were merged into main transcript
-  const chunksMergedToTranscript = chunks.filter(chunk => 
-    chunk.text && chunk.text.trim().length > 0 && isChunkInTranscript(chunk.text)
-  ).length;
+  // Primary: use actual wasMerged status if available
+  // Fallback: use text matching for backwards compatibility
+  const chunksMergedToTranscript = chunks.filter(chunk => {
+    if (!chunk.text || chunk.text.trim().length === 0) return false;
+    // Use wasMerged if explicitly set
+    if (chunk.wasMerged === true) return true;
+    if (chunk.wasMerged === false) return false;
+    // Fallback to text matching for older chunks without wasMerged tracking
+    return isChunkInTranscript(chunk.text);
+  }).length;
   
   const chunksRecorded = chunks.length;
   
@@ -385,13 +394,19 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
                         className="flex items-start justify-between p-2 sm:p-3 rounded-lg border bg-card/50"
                       >
                           <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
-                          {getStatusIcon(chunk.saveStatus)}
+                      {getStatusIcon(chunk.saveStatus)}
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium flex items-center gap-2 flex-wrap">
                               <span>Chunk #{displayChunkNumber}</span>
-                              {inTranscript && (
-                                <span className="inline-flex items-center" title="80%+ of chunk text appears in main transcript">
+                              {/* Show merged status - prefer wasMerged if set, else use text matching */}
+                              {(chunk.wasMerged === true || (chunk.wasMerged === undefined && inTranscript)) && (
+                                <span className="inline-flex items-center" title="Chunk merged into main transcript">
                                   <CheckCircle className="h-4 w-4 text-success" />
+                                </span>
+                              )}
+                              {chunk.wasMerged === false && chunk.mergeRejectionReason && (
+                                <span className="inline-flex items-center text-xs text-warning" title={chunk.mergeRejectionReason}>
+                                  ⚠️ {chunk.mergeRejectionReason.substring(0, 30)}...
                                 </span>
                               )}
                               {chunk.startTime !== undefined && chunk.endTime !== undefined && (
