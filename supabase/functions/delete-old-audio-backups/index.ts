@@ -66,7 +66,13 @@ serve(async (req) => {
     // Calculate cutoff date (24 hours ago)
     const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-    // Get old audio backups
+    let totalDeletedBackups = 0
+    let totalDeletedChunks = 0
+    let totalDeletedFiles = 0
+
+    // ========================================
+    // 1. Delete old meeting_audio_backups
+    // ========================================
     const { data: oldBackups, error: selectError } = await supabase
       .from('meeting_audio_backups')
       .select('id, file_path')
@@ -74,83 +80,122 @@ serve(async (req) => {
 
     if (selectError) {
       console.error('Error fetching old backups:', selectError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch old backups' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    } else if (oldBackups && oldBackups.length > 0) {
+      console.log(`Found ${oldBackups.length} old audio backups to delete`)
+
+      // Delete files from storage
+      const backupFilePaths = oldBackups.map(backup => backup.file_path).filter(Boolean)
+      
+      if (backupFilePaths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('meeting-audio-backups')
+          .remove(backupFilePaths)
+
+        if (storageError) {
+          console.error('Error deleting backup files from storage:', storageError)
+        } else {
+          totalDeletedFiles += backupFilePaths.length
         }
-      )
-    }
+      }
 
-    if (!oldBackups || oldBackups.length === 0) {
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'No audio backups older than 24 hours found',
-          deleted_count: 0 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+      // Delete records from database
+      const { error: deleteError } = await supabase
+        .from('meeting_audio_backups')
+        .delete()
+        .lt('created_at', cutoffDate)
 
-    console.log(`Found ${oldBackups.length} old audio backups to delete`)
-
-    // Delete files from storage
-    let deletedFiles = 0
-    const filePaths = oldBackups.map(backup => backup.file_path)
-    
-    if (filePaths.length > 0) {
-      const { error: storageError } = await supabase.storage
-        .from('meeting-audio-backups')
-        .remove(filePaths)
-
-      if (storageError) {
-        console.error('Error deleting files from storage:', storageError)
-        // Continue with database deletion even if storage deletion fails
+      if (deleteError) {
+        console.error('Error deleting backup records:', deleteError)
       } else {
-        deletedFiles = filePaths.length
+        totalDeletedBackups = oldBackups.length
       }
     }
 
-    // Delete records from database
-    const { error: deleteError } = await supabase
-      .from('meeting_audio_backups')
-      .delete()
+    // ========================================
+    // 2. Delete old audio_chunks
+    // ========================================
+    const { data: oldChunks, error: chunksSelectError } = await supabase
+      .from('audio_chunks')
+      .select('id, audio_blob_path, meeting_id')
       .lt('created_at', cutoffDate)
 
-    if (deleteError) {
-      console.error('Error deleting backup records:', deleteError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to delete backup records' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    if (chunksSelectError) {
+      console.error('Error fetching old audio chunks:', chunksSelectError)
+    } else if (oldChunks && oldChunks.length > 0) {
+      console.log(`Found ${oldChunks.length} old audio chunks to delete`)
+
+      // Delete files from storage (meeting-audio-chunks bucket)
+      const chunkFilePaths = oldChunks
+        .map(chunk => chunk.audio_blob_path)
+        .filter(Boolean)
+      
+      if (chunkFilePaths.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('meeting-audio-chunks')
+          .remove(chunkFilePaths)
+
+        if (storageError) {
+          console.error('Error deleting chunk files from storage:', storageError)
+        } else {
+          totalDeletedFiles += chunkFilePaths.length
+          console.log(`Deleted ${chunkFilePaths.length} chunk files from storage`)
         }
-      )
+      }
+
+      // Delete records from database
+      const { error: deleteError } = await supabase
+        .from('audio_chunks')
+        .delete()
+        .lt('created_at', cutoffDate)
+
+      if (deleteError) {
+        console.error('Error deleting chunk records:', deleteError)
+      } else {
+        totalDeletedChunks = oldChunks.length
+      }
     }
 
     // Log the cleanup action
     await supabase
       .from('system_audit_log')
       .insert({
-        table_name: 'meeting_audio_backups',
+        table_name: 'audio_cleanup',
         operation: 'BULK_DELETE',
         user_id: user.id,
         user_email: user.email,
         new_values: {
-          deleted_count: oldBackups.length,
+          deleted_backups: totalDeletedBackups,
+          deleted_chunks: totalDeletedChunks,
+          deleted_files: totalDeletedFiles,
           cutoff_date: cutoffDate,
-          action: 'cleanup_old_audio_backups'
+          action: 'cleanup_old_audio_files'
         }
       })
+
+    const totalDeleted = totalDeletedBackups + totalDeletedChunks
+
+    if (totalDeleted === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'No audio files older than 24 hours found',
+          deleted_count: 0,
+          deleted_backups: 0,
+          deleted_chunks: 0,
+          deleted_files: 0
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: `Successfully deleted ${oldBackups.length} old audio backups`,
-        deleted_count: oldBackups.length,
-        deleted_files: deletedFiles
+        message: `Successfully deleted ${totalDeletedBackups} backups and ${totalDeletedChunks} chunks`,
+        deleted_count: totalDeleted,
+        deleted_backups: totalDeletedBackups,
+        deleted_chunks: totalDeletedChunks,
+        deleted_files: totalDeletedFiles
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
