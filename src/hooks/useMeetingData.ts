@@ -25,7 +25,7 @@ export const useMeetingData = () => {
     format: "",
     location: "",
     practiceId: "",
-    meetingFormat: "teams",
+    meetingFormat: "f2f",
     transcriberService: "whisper",
     transcriberThresholds: {
       whisper: 0.30,
