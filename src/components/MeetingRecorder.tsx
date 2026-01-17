@@ -60,7 +60,7 @@ import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscript
 import { MultiAudioImport } from "@/components/meeting/MultiAudioImport";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
-import { MeetingTypeToggle } from "@/components/meeting/MeetingTypeToggle";
+
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -5479,16 +5479,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 <div className="text-center space-y-4">
                    {!isRecording ? (
                        <div className="space-y-4">
-                          {/* Meeting Type Toggle - Hidden on iOS */}
-                         {!isIOS && (
-                           <div className="flex justify-center">
-                             <MeetingTypeToggle
-                               meetingType={meetingType}
-                               onMeetingTypeChange={setMeetingType}
-                             />
-                           </div>
-                         )}
-                        
                         <div className="flex flex-col items-center gap-4">
                           <div className="flex items-center justify-center gap-4">
                             <Button
