@@ -607,13 +607,8 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     }
     
     onOpenChange(false);
-    // Navigate to meeting history with state to open the standard notes view
-    navigate('/meeting-history', { 
-      state: { 
-        viewNotes: meetingId, 
-        openModal: true 
-      } 
-    });
+    // Navigate to the new meeting summary view
+    navigate(`/meeting-summary/${meetingId}`);
   };
 
   const handleStartNew = () => {
