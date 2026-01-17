@@ -15,6 +15,50 @@ const DEDUPE_SIM_THRESHOLD = 0.75; // relaxed threshold for medical terminology 
 const DEDUPE_WINDOW = 8;        // compare against last 8 sentences (increased for better context)
 const MIN_CONFIDENCE_THRESHOLD = 0.30; // minimum confidence to accept chunks (30%)
 
+// SAFETY-CRITICAL KEYWORDS: Sentences containing these terms must NEVER be dropped
+// This protects clinically important content like risk factors, red-flag exclusions, and safety-netting
+const SAFETY_KEYWORDS = [
+  // Risk factors
+  'smoke', 'smoking', 'smoked', 'smoker', 'ex-smoker', 'non-smoker',
+  'cholesterol', 'blood pressure', 'diabetes', 'diabetic', 'hypertension',
+  'family history', 'heart attack', 'stroke', 'cardiac', 'cardiovascular',
+  'overweight', 'obesity', 'bmi', 'alcohol', 'units per week',
+  // Red flag symptoms and exclusions (negative findings are still findings)
+  'chest pain at rest', 'pain lasting', 'more than 15 minutes', 'less than 15',
+  'no chest pain', 'no pain', 'nothing like that', 'denies', 'ruled out',
+  'shortness of breath', 'breathless', 'palpitations', 'syncope', 'collapse',
+  'radiating', 'radiation to', 'jaw pain', 'arm pain', 'back pain',
+  // Safety netting
+  'call 999', 'call 111', 'a&e', 'emergency', 'ambulance',
+  'if you develop', 'if it worsens', 'red flags', 'warning signs',
+  'come back if', 'seek help if', 'urgent', 'immediately',
+  // Clinical examination findings
+  'blood test', 'ecg', 'troponin', 'blood results', 'normal', 'abnormal',
+  'examination', 'auscultation', 'murmur', 'pulse', 'regular', 'irregular',
+  // Medication and allergies
+  'allergy', 'allergies', 'allergic', 'medication', 'prescribed', 'taking',
+  'aspirin', 'statin', 'beta blocker', 'ace inhibitor', 'anticoagulant'
+];
+
+/**
+ * Check if text contains safety-critical clinical content that must never be dropped
+ */
+function containsSafetyCriticalContent(text: string): boolean {
+  const normalised = text.toLowerCase();
+  return SAFETY_KEYWORDS.some(kw => normalised.includes(kw));
+}
+
+// Track rejected chunks for audit purposes
+export interface ChunkRejection {
+  timestamp: Date;
+  chunkText: string;
+  reason: string;
+  confidence?: number;
+  hadSafetyCriticalContent: boolean;
+}
+
+export const rejectedChunks: ChunkRejection[] = [];
+
 const norm = (s: string) =>
   s.replace(/\u2026/g, "...")      // normalize ellipsis
    .replace(/[ \t]+/g, " ")
@@ -101,6 +145,14 @@ function dedupeTail(text: string) {
   const sents = splitSents(text);
   const out: string[] = [];
   for (const s of sents) {
+    // SAFETY RULE: Never drop sentences containing critical clinical content
+    // This protects risk factors, red-flag exclusions, and safety-netting information
+    if (containsSafetyCriticalContent(s)) {
+      out.push(s);
+      console.log(`🛡️ Protected safety-critical sentence: "${s.substring(0, 80)}..."`);
+      continue;
+    }
+    
     const recent = out.slice(-DEDUPE_WINDOW);
     const dup = recent.some(r => sim(r, s) >= DEDUPE_SIM_THRESHOLD);
     if (!dup) {
@@ -185,6 +237,26 @@ export function mergeLive(prevText: string, chunk: LiveChunk): MergeResult {
       rejectionReason = `Dedupe rejected: Content matched recent sentences (similarity > ${DEDUPE_SIM_THRESHOLD})`;
     }
     
+    const hasSafetyCritical = containsSafetyCriticalContent(chunk.text);
+    
+    // Log rejection for audit trail
+    const rejection: ChunkRejection = {
+      timestamp: new Date(),
+      chunkText: chunk.text,
+      reason: rejectionReason,
+      hadSafetyCriticalContent: hasSafetyCritical
+    };
+    rejectedChunks.push(rejection);
+    
+    // Keep audit trail manageable (last 100 rejections)
+    if (rejectedChunks.length > 100) {
+      rejectedChunks.shift();
+    }
+    
+    if (hasSafetyCritical) {
+      console.error(`🚨 CRITICAL: Safety-critical content was about to be rejected!`, rejection);
+    }
+    
     console.error(`❌ CHUNK COMPLETELY REJECTED: No text added despite ${chunk.text.length} char input!`, {
       originalChunk: chunk.text,
       prevTranscriptEnd: prevText.substring(Math.max(0, prevText.length - 300)),
@@ -192,8 +264,20 @@ export function mergeLive(prevText: string, chunk: LiveChunk): MergeResult {
       dedupedLength: deduped.length,
       afterStitch,
       afterDedupe,
-      reason: rejectionReason
+      reason: rejectionReason,
+      hasSafetyCriticalContent: hasSafetyCritical
     });
+    
+    // SAFETY RULE: Always force-append content with safety-critical keywords
+    if (hasSafetyCritical) {
+      console.warn('🛡️ SAFETY OVERRIDE: Forcing append of safety-critical content');
+      const separator = (/[.!?…]$/.test(prev) ? ' ' : '. ');
+      return { 
+        text: prev + separator + next, 
+        rejectionReason: `${rejectionReason} (safety override: forced append)`, 
+        addedChars: next.length 
+      };
+    }
     
     // Enhanced fallback: if nothing was added at all, force append with clear separator
     if (afterStitch === 0) {
@@ -216,3 +300,6 @@ export function mergeLive(prevText: string, chunk: LiveChunk): MergeResult {
   
   return { text: deduped, rejectionReason, addedChars: afterDedupe };
 }
+
+// Export helper for UI to check if content is safety-critical
+export { containsSafetyCriticalContent };
