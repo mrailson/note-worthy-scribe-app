@@ -573,6 +573,35 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     showToast.info('Playback stopped', { section: 'meeting_manager' });
   };
 
+  // Helper to check if a chunk's text is in the merged transcript
+  const isChunkInTranscript = (chunkText: string): boolean => {
+    if (!transcript || !chunkText) return false;
+    const cleanedChunk = chunkText.trim().toLowerCase().replace(/[^\w\s]/g, '');
+    const cleanedTranscript = transcript.toLowerCase().replace(/[^\w\s]/g, '');
+    // Check if significant portion of chunk appears in transcript
+    const words = cleanedChunk.split(/\s+/).filter(w => w.length > 3);
+    if (words.length === 0) return false;
+    const matchingWords = words.filter(word => cleanedTranscript.includes(word));
+    return matchingWords.length / words.length > 0.5;
+  };
+
+  // Helper to extract clean text from chunk (handles JSON format)
+  const extractCleanChunkText = (chunk: TranscriptionChunk): string => {
+    const rawText = chunk.cleaned_text || chunk.transcription_text;
+    // Check if it's JSON array format
+    if (rawText.startsWith('[{') || rawText.startsWith('[{"')) {
+      try {
+        const parsed = JSON.parse(rawText);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item: any) => item.text || '').join(' ').trim();
+        }
+      } catch {
+        // Not valid JSON, return as-is
+      }
+    }
+    return rawText.trim();
+  };
+
   // Export Chunk Analysis Report to Word
   const exportChunkAnalysisToWord = async () => {
     if (chunks.length === 0) {
@@ -595,43 +624,63 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '#', bold: true })] })], width: { size: 5, type: WidthType.PERCENTAGE } }),
           new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Start', bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
           new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'End', bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Words', bold: true })] })], width: { size: 8, type: WidthType.PERCENTAGE } }),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Conf', bold: true })] })], width: { size: 8, type: WidthType.PERCENTAGE } }),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Text', bold: true })] })], width: { size: 59, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Duration', bold: true })] })], width: { size: 8, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Words', bold: true })] })], width: { size: 6, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Conf', bold: true })] })], width: { size: 6, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Merged', bold: true })] })], width: { size: 7, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Text', bold: true })] })], width: { size: 48, type: WidthType.PERCENTAGE } }),
         ],
       }),
     ];
 
     // Add data rows for each chunk
     chunks.forEach((chunk) => {
-      const chunkText = chunk.cleaned_text || chunk.transcription_text;
+      const chunkText = extractCleanChunkText(chunk);
+      const wordCount = chunkText.split(/\s+/).filter(w => w.length > 0).length;
+      const duration = chunk.start_time !== undefined && chunk.end_time !== undefined 
+        ? (chunk.end_time - chunk.start_time).toFixed(1) + 's' 
+        : 'N/A';
+      const merged = isChunkInTranscript(chunkText) ? '✓' : '✗';
+
       tableRows.push(
         new TableRow({
           children: [
             new TableCell({ children: [new Paragraph(String(chunk.chunk_number))] }),
             new TableCell({ children: [new Paragraph(formatTime(chunk.start_time))] }),
             new TableCell({ children: [new Paragraph(formatTime(chunk.end_time))] }),
-            new TableCell({ children: [new Paragraph(String(chunk.word_count))] }),
+            new TableCell({ children: [new Paragraph(duration)] }),
+            new TableCell({ children: [new Paragraph(String(wordCount))] }),
             new TableCell({ children: [new Paragraph(`${Math.round(chunk.confidence * 100)}%`)] }),
-            new TableCell({ children: [new Paragraph(chunkText.trim().substring(0, 200) + (chunkText.length > 200 ? '...' : ''))] }),
+            new TableCell({ children: [new Paragraph(merged)] }),
+            new TableCell({ children: [new Paragraph(chunkText)] }),
           ],
         })
       );
     });
 
     // Calculate totals
-    const totalWords = chunks.reduce((sum, c) => sum + (c.word_count || 0), 0);
+    const totalWords = chunks.reduce((sum, c) => {
+      const text = extractCleanChunkText(c);
+      return sum + text.split(/\s+/).filter(w => w.length > 0).length;
+    }, 0);
+    const totalDuration = chunks.reduce((sum, c) => {
+      if (c.start_time !== undefined && c.end_time !== undefined) {
+        return sum + (c.end_time - c.start_time);
+      }
+      return sum;
+    }, 0);
     const avgConfidence = chunks.length > 0 
       ? chunks.reduce((sum, c) => sum + c.confidence, 0) / chunks.length 
       : 0;
     const transcriptWords = transcript.trim().split(/\s+/).filter(w => w.length > 0).length;
+    const mergedCount = chunks.filter(c => isChunkInTranscript(extractCleanChunkText(c))).length;
 
     const doc = new Document({
       sections: [{
         properties: {},
         children: [
           new Paragraph({
-            text: 'Chunk Analysis Report',
+            text: 'Audio Chunk Analysis Report',
             heading: HeadingLevel.HEADING_1,
           }),
           new Paragraph({
@@ -646,7 +695,9 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
           new Paragraph({ text: `Net Words (merged transcript): ${transcriptWords}` }),
           new Paragraph({ text: `Words Filtered: ${totalWords - transcriptWords}` }),
+          new Paragraph({ text: `Total Duration: ${Math.floor(totalDuration / 60)}m ${Math.floor(totalDuration % 60)}s` }),
           new Paragraph({ text: `Average Confidence: ${Math.round(avgConfidence * 100)}%` }),
+          new Paragraph({ text: `Chunks Merged: ${mergedCount}/${chunks.length}` }),
           new Paragraph({ text: '' }),
           new Paragraph({
             text: 'Chunk Details',
@@ -670,7 +721,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
     const blob = await Packer.toBlob(doc);
     saveAs(blob, `chunk-analysis-${new Date().toISOString().slice(0, 10)}.docx`);
-    showToast.success('Chunk Analysis Report downloaded', { section: 'meeting_manager' });
+    showToast.success('Audio Chunk Analysis Report downloaded', { section: 'meeting_manager' });
   };
 
   const handleDownloadWord = async () => {
