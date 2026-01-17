@@ -1047,17 +1047,17 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   }, [meeting?.id, notesContent, rebuildNotesFromSections]);
 
-  // Load transcript chunks from assembly_transcripts
+  // Load transcript chunks from meeting_transcription_chunks table
   const loadTranscriptChunks = useCallback(async () => {
     if (!meeting?.id || transcriptChunks.length > 0 || isLoadingChunks) return;
     
     setIsLoadingChunks(true);
     try {
       const { data, error } = await supabase
-        .from('assembly_transcripts')
+        .from('meeting_transcription_chunks')
         .select('*')
         .eq('meeting_id', meeting.id)
-        .order('chunk_index', { ascending: true });
+        .order('chunk_number', { ascending: true });
       
       if (error) throw error;
       setTranscriptChunks(data || []);
@@ -1081,7 +1081,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
   // Helper to extract clean text from chunk
   const extractCleanChunkText = useCallback((chunk: any): string => {
-    const rawText = chunk.transcript_text || '';
+    const rawText = chunk.cleaned_text || chunk.transcription_text || '';
     if (rawText.startsWith('[{') || rawText.startsWith('[{"')) {
       try {
         const parsed = JSON.parse(rawText);
@@ -1131,18 +1131,20 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
 
     transcriptChunks.forEach((chunk) => {
       const chunkText = extractCleanChunkText(chunk);
-      const wordCount = chunkText.split(/\s+/).filter(w => w.length > 0).length;
-      const startMs = chunk.timestamp_ms || 0;
-      const duration = 'N/A';
+      const wordCount = chunk.word_count || chunkText.split(/\s+/).filter(w => w.length > 0).length;
+      const startMs = (chunk.start_time || 0) * 1000;
+      const endMs = (chunk.end_time || 0) * 1000;
+      const durationMs = endMs - startMs;
+      const duration = durationMs > 0 ? formatTime(durationMs) : 'N/A';
       const merged = isChunkInTranscript(chunkText) ? '✓' : '✗';
       const confidence = chunk.confidence || 0;
 
       tableRows.push(
         new DocxTableRow({
           children: [
-            new DocxTableCell({ children: [new Paragraph(String(chunk.chunk_index))] }),
+            new DocxTableCell({ children: [new Paragraph(String(chunk.chunk_number))] }),
             new DocxTableCell({ children: [new Paragraph(formatTime(startMs))] }),
-            new DocxTableCell({ children: [new Paragraph('N/A')] }),
+            new DocxTableCell({ children: [new Paragraph(formatTime(endMs))] }),
             new DocxTableCell({ children: [new Paragraph(duration)] }),
             new DocxTableCell({ children: [new Paragraph(String(wordCount))] }),
             new DocxTableCell({ children: [new Paragraph(`${Math.round(confidence * 100)}%`)] }),
