@@ -53,16 +53,16 @@ export const useMeetingMicrophoneSettings = () => {
   const audioChunksRef = useRef<Blob[]>([]);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
-  // Load saved device ID and audio source mode from localStorage
+  // Load saved device ID from localStorage (but NOT audio source - always default to microphone)
   useEffect(() => {
     try {
       const savedDeviceId = localStorage.getItem(STORAGE_KEY);
-      const savedAudioSource = localStorage.getItem(AUDIO_SOURCE_STORAGE_KEY) as AudioSourceMode | null;
-      
+      // IMPORTANT: Do NOT load audio source from localStorage - always default to 'microphone'
+      // This ensures the recorder always starts in mic-only mode for reliability
       setState(prev => ({
         ...prev,
         selectedDeviceId: savedDeviceId || prev.selectedDeviceId,
-        audioSourceMode: savedAudioSource || 'microphone',
+        // audioSourceMode stays as default 'microphone' - never loaded from storage
       }));
     } catch (e) {
       console.warn('Could not load saved microphone settings:', e);
