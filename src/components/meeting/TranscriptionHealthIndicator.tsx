@@ -83,7 +83,7 @@ export const TranscriptionHealthIndicator: React.FC<TranscriptionHealthIndicator
       <TooltipTrigger asChild>
         <div 
           className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all",
+            "flex items-center gap-1.5 px-2 py-1.5 rounded-full border transition-all cursor-help",
             config.bgColor,
             config.borderColor,
             healthStatus === 'critical' && "animate-pulse"
@@ -107,11 +107,7 @@ export const TranscriptionHealthIndicator: React.FC<TranscriptionHealthIndicator
             />
           </span>
           
-          <Icon className={cn("h-4 w-4", config.color)} />
-          
-          <span className={cn("text-xs font-medium", config.color)}>
-            {totalChunks} chunks
-          </span>
+          <Icon className={cn("h-3.5 w-3.5", config.color)} />
         </div>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-xs">
@@ -122,17 +118,17 @@ export const TranscriptionHealthIndicator: React.FC<TranscriptionHealthIndicator
           </div>
           <p className="text-xs text-muted-foreground">{config.description}</p>
           <div className="text-xs space-y-1 pt-1 border-t border-border/50">
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-4">
+              <span className="text-muted-foreground">Chunks processed:</span>
+              <span className="font-medium">{totalChunks}</span>
+            </div>
+            <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Last chunk:</span>
               <span>{formatTimeSince(timeSinceLastChunk)}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-4">
               <span className="text-muted-foreground">Chunks/min:</span>
               <span>{actualChunksPerMinute.toFixed(1)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Total chunks:</span>
-              <span>{totalChunks}</span>
             </div>
           </div>
         </div>
