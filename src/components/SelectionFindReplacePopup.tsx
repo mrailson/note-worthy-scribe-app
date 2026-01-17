@@ -170,11 +170,15 @@ export function SelectionFindReplacePopup({
     };
   }, [position]);
 
-  // Focus input on mount
+  // Focus input on mount (prevent scroll jumps inside ScrollArea)
   useEffect(() => {
-    setTimeout(() => {
-      inputRef.current?.focus();
+    const timer = setTimeout(() => {
+      // Some browsers will scroll the nearest scroll container when focusing.
+      // preventScroll avoids the transcript view "jumping".
+      (inputRef.current as any)?.focus?.({ preventScroll: true });
     }, 50);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Handle click outside to close
