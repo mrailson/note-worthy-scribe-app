@@ -1279,6 +1279,49 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           new Paragraph({ text: `Word Count: ${transcriptWords}` }),
           new Paragraph({ text: '' }),
           new Paragraph({ text: transcript || '(No transcript text)' }),
+          new Paragraph({ text: '' }),
+          new Paragraph({ text: '' }),
+          new Paragraph({ 
+            children: [
+              new TextRun({ 
+                text: 'Disclaimer', 
+                bold: true,
+                size: 20
+              })
+            ]
+          }),
+          new Paragraph({ 
+            children: [
+              new TextRun({ 
+                text: 'This document is an AI-generated meeting transcript and may contain inaccuracies. It does not constitute a verbatim record, formal minutes, or a legally binding account of the meeting.',
+                italics: true,
+                size: 18,
+                color: '666666'
+              })
+            ]
+          }),
+          new Paragraph({ text: '' }),
+          new Paragraph({ 
+            children: [
+              new TextRun({ 
+                text: 'Responsibility for confirming accuracy, decisions, and agreed actions remains with the meeting participants.',
+                italics: true,
+                size: 18,
+                color: '666666'
+              })
+            ]
+          }),
+          new Paragraph({ text: '' }),
+          new Paragraph({ 
+            children: [
+              new TextRun({ 
+                text: 'No audio recordings are retained. Audio data is processed solely for real-time transcription and permanently deleted after processing.',
+                italics: true,
+                size: 18,
+                color: '666666'
+              })
+            ]
+          }),
         ],
       }],
     });
