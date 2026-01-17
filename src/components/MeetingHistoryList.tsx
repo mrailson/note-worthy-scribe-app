@@ -1572,7 +1572,7 @@ export const MeetingHistoryList = ({
     const meetingId = meeting.id;
     
     // Show toast notification
-    toast.info('Regenerating Meeting Overview, Standard Minutes, Style Gallery, and Audio...', {
+    toast.info('Regenerating Meeting Overview, Standard Minutes, and Audio...', {
       duration: 3000
     });
     
@@ -1584,7 +1584,7 @@ export const MeetingHistoryList = ({
       limerick: false
     });
     
-    // Now regenerate Style Gallery and wait for completion
+    // Generate audio overview at the end
     try {
       const { data: transcriptData } = await supabase.rpc('get_meeting_full_transcript', { 
         p_meeting_id: meetingId 
@@ -1592,28 +1592,7 @@ export const MeetingHistoryList = ({
       const transcript = transcriptData?.[0]?.transcript;
       
       if (transcript && transcript.length >= 50) {
-        console.log('🎨 Regenerating Style Gallery...');
-        
-        // Trigger style gallery regeneration and await it
-        const { error } = await supabase.functions.invoke('generate-style-previews', {
-          body: {
-            meetingId,
-            transcript,
-            meetingContext: {
-              title: meeting.title,
-              date: meeting.start_time
-            }
-          }
-        });
-        
-        if (error) {
-          console.error('Style gallery regeneration error:', error);
-          toast.error('Failed to regenerate Style Gallery');
-        } else {
-          console.log('✅ Style gallery regenerated successfully');
-        }
-        
-        // Generate audio overview at the end
+        // Generate audio overview
         console.log('🔊 Regenerating Audio Overview...');
         const audioBody = {
           meetingId,
@@ -1827,38 +1806,6 @@ export const MeetingHistoryList = ({
         }
       }
       
-      // Regenerate Style Gallery automatically after all note types
-      try {
-        const { data: transcriptData } = await supabase.rpc('get_meeting_full_transcript', { 
-          p_meeting_id: meetingId 
-        });
-        const transcript = transcriptData?.[0]?.transcript;
-        
-        if (transcript && transcript.length >= 50) {
-          console.log('🎨 Auto-regenerating Style Gallery after note processing...');
-          
-          const { error } = await supabase.functions.invoke('generate-style-previews', {
-            body: {
-              meetingId,
-              transcript,
-              meetingContext: {
-                title: meeting.title,
-                date: meeting.start_time
-              }
-            }
-          });
-          
-          if (error) {
-            console.error('Style gallery regeneration error:', error);
-            // Don't fail the whole process, just log the error
-          } else {
-            console.log('✅ Style gallery regenerated successfully');
-          }
-        }
-      } catch (err) {
-        console.error('Error triggering style gallery regeneration:', err);
-        // Don't fail the whole process, just log the error
-      }
       
       // Mark all as complete
       const finalStages: any = {

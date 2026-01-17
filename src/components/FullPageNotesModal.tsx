@@ -501,13 +501,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
    }, [isOpen, meeting?.id, meeting?.title, user?.id]);
 
-   // Auto-load transcript when Style Gallery tab is opened
-   useEffect(() => {
-     if (activeTab === 'notes' && activeNotesStyleTab === 'style-gallery' && !transcriptLoaded && !isLoadingTranscript && meeting?.id) {
-       console.log('🎨 Style Gallery opened - auto-loading transcript');
-       fetchTranscriptData();
-     }
-   }, [activeTab, activeNotesStyleTab, transcriptLoaded, isLoadingTranscript, meeting?.id]);
 
    const fetchTranscriptData = async (): Promise<string> => {
      if (!meeting?.id) {
@@ -1591,9 +1584,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       console.log('🔍 EDIT DEBUG - activeTab:', activeTab, 'activeNotesStyleTab:', activeNotesStyleTab);
       console.log('🔍 EDIT DEBUG - available content:', {
         notes: notes?.length || 0,
-        notesStyle2: notesStyle2?.length || 0,
         notesStyle3: notesStyle3?.length || 0,
-        notesStyle4: notesStyle4?.length || 0,
         transcript: transcript?.length || 0
       });
       
@@ -1607,14 +1598,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           case 'style2': 
             currentContent = notes || "";
             currentTabIdentifier = "notes-style2";
-            break;
-          case 'style3': 
-            currentContent = notesStyle2 || "";
-            currentTabIdentifier = "notes-style3";
-            break;
-          case 'style4': 
-            currentContent = notesStyle4 || "";
-            currentTabIdentifier = "notes-style4";
             break;
           default:
             currentContent = notes || "";
@@ -1650,14 +1633,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           case 'style2':
             onNotesChange(editingContent);
             saveSummaryToDatabase(editingContent);
-            break;
-          case 'style3':
-            setNotesStyle2(editingContent);
-            saveNoteStyleToDatabase(2, editingContent);
-            break;
-          case 'style4':
-            setNotesStyle4(editingContent);
-            saveNoteStyleToDatabase(4, editingContent);
             break;
           default:
             onNotesChange(editingContent);
@@ -2256,18 +2231,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             toast.success('Meeting title updated with AI-generated name');
           }
           
-          // Update other style notes if they were regenerated
-          if (updatedMeeting.notes_style_2) {
-            setNotesStyle2(updatedMeeting.notes_style_2);
-            console.log('📝 Brief notes updated');
-          }
-          if (updatedMeeting.notes_style_4) {
-            setNotesStyle4(updatedMeeting.notes_style_4);
-            console.log('📝 Executive summary updated');
-          }
         }
         
-        toast.success('Notes, overview & gallery regenerated successfully');
+        toast.success('Notes and overview regenerated successfully');
       } else {
         console.error('❌ Timeout waiting for notes generation');
         toast.error('Note generation timed out. Please try again.');
@@ -2298,191 +2264,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
-  const generateNotesStyle4 = async () => {
-    console.log('💼 Starting Minutes - Executive regeneration...');
-    
-    // Reset state immediately to prevent sticking
-    setIsGeneratingStyle4(true);
-    
-    if (!meeting?.id) {
-      console.error('❌ Missing meeting ID for Executive');
-      setIsGeneratingStyle4(false);
-      toast.error('Missing meeting data');
-      return;
-    }
-    try {
-      // Ensure transcript is loaded
-      let transcriptToUse = transcript;
-      if (!transcriptToUse || transcriptToUse.trim().length === 0) {
-        console.log('📋 Transcript not loaded yet, fetching...');
-        toast.info('Loading transcript...', { duration: 2000 });
-        transcriptToUse = await fetchTranscriptData();
-        
-        if (!transcriptToUse || transcriptToUse.trim().length === 0) {
-          toast.error('No transcript available');
-          setIsGeneratingStyle4(false);
-          return;
-        }
-      }
-      
-      // Round time to nearest 15 minutes
-      const roundToNearest15Minutes = (date: Date) => {
-        const minutes = date.getMinutes();
-        const rounded = Math.round(minutes / 15) * 15;
-        const newDate = new Date(date);
-        newDate.setMinutes(rounded, 0, 0);
-        return newDate;
-      };
-
-      const startDate = new Date(meeting.start_time || meeting.created_at);
-      const roundedTime = roundToNearest15Minutes(startDate);
-      
-      const meetingDate = roundedTime.toLocaleDateString('en-GB', {
-        weekday: 'long',
-        year: 'numeric', 
-        month: 'long',
-        day: 'numeric'
-      });
-      
-      const meetingTime = roundedTime.toLocaleTimeString('en-GB', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-
-      const style4Prompt = `Please analyze the provided PCN meeting transcript and create a brief executive overview specifically for non-attending GP partners. Focus on financial impacts, operational changes affecting practices, and strategic decisions while avoiding administrative detail.
-
-**TARGET AUDIENCE**
-• GP partners from member practices who didn't attend
-• Limited PCN operational knowledge
-• Need key information affecting their practice/finances
-• Want updates without lengthy detail
-
-**REQUIRED STRUCTURE**
-
-📋 **MEETING SNAPSHOT**
-Date: ${meetingDate} | Time: ${meetingTime} | Attendees: [Key roles only]
-Meeting Focus: [One sentence - what this meeting was primarily about]
-
-💰 **FINANCIAL HIGHLIGHTS**
-Money Matters That Affect You:
-• [Financial decision/impact in plain terms with £ amounts]
-• [Budget allocation affecting member practices]
-• [Revenue/funding changes and practice implications]
-• [Any financial commitments requiring practice input]
-
-🏥 **OPERATIONAL UPDATES**
-Changes to How We Work:
-• [Service delivery changes affecting patient flow]
-• [Staffing decisions impacting practice operations]
-• [New processes or requirements for member practices]
-• [Technology/system changes you need to know about]
-
-⚡ **KEY DECISIONS MADE**
-• [Decision 1] - [Impact on practices in 1 line]
-• [Decision 2] - [What this means for GPs in 1 line]
-• [Decision 3] - [Practice implications briefly stated]
-
-📅 **WHAT YOU NEED TO DO**
-Action Required from Member Practices:
-• [Specific task] - Due: [Date] - Contact: [Who to ask]
-• [Information needed] - Due: [Date] - Details: [Brief requirement]
-• [Decision input required] - Due: [Date] - Context: [Why needed]
-
-Nothing Required But FYI:
-• [Updates that don't need action but good to know]
-
-🔄 **NEXT STEPS**
-• [Immediate next action affecting practices]
-• [Upcoming decision that might impact you]
-• [Next meeting date if input needed]
-
-❓ **QUESTIONS OR CONCERNS?**
-Contact: [Primary contact name and method]
-For: [What types of queries they handle]
-
-**GENERATION GUIDELINES:**
-• Lead with Money: Always prioritize financial impacts first
-• Practice Impact Focus: Only include what affects day-to-day practice operations
-• Plain English: Avoid PCN jargon - explain acronyms briefly
-• Bottom Line Up Front: Start each section with the most important point
-• Quantify Everything: Include specific amounts, dates, and numbers
-• Action Clarity: Make any required actions crystal clear
-• Skip Process Detail: Don't explain how decisions were reached, just what was decided
-• Time Respect: Maximum 1 page - these are busy clinicians
-
-**CRITICAL FILTERS:**
-• Include: Financial changes, operational impacts, required actions, strategic shifts
-• Exclude: Administrative process, detailed discussions, background context, procedural updates
-• Emphasize: Anything costing money, making money, or changing patient care delivery
-
-**TONE:** Professional but conversational - like briefing a colleague over coffee.
-**LENGTH TARGET:** Maximum 1 page that can be read in under 3 minutes.
-
-Here is the PCN meeting transcript to process:
-
-${transcriptToUse}`;
-
-      console.log('📝 Executive prompt created, length:', style4Prompt.length);
-      console.log('📅 Meeting date being sent:', meetingDate);
-      console.log('🕐 Meeting time being sent:', meetingTime);
-      console.log('📄 Transcript length:', transcriptToUse?.length);
-      console.log('🚀 Calling Executive generation...');
-
-      // Add meeting metadata to transcript
-      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcriptToUse, {
-        startTime: meeting.start_time,
-        endTime: meeting.end_time || undefined,
-        duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
-      });
-
-      // Use the recorded meeting date
-      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
-        body: {
-          transcript: transcriptWithMetadata,
-          meetingTitle: meeting.title,
-          meetingDate: meetingDate,
-          meetingTime: meetingTime,
-          detailLevel: 'standard',
-          customPrompt: style4Prompt
-        }
-      });
-
-      console.log('📋 Executive response:', { data: !!data, error: !!error });
-
-      if (error) throw error;
-
-      if (data?.meetingMinutes || data?.generatedNotes) {
-        let generatedContent = data.meetingMinutes || data.generatedNotes;
-        console.log('✅ Executive notes generated, length:', generatedContent.length);
-
-        // Post-process to ensure meeting date/time are populated (avoid placeholders)
-        // Only replace if placeholders exist
-        if (generatedContent.includes('[Not specified') || generatedContent.includes('[Date') || generatedContent.includes('[Time')) {
-          console.log('🔧 Fixing placeholder date/time values');
-          generatedContent = generatedContent
-            .replace(/Date:\s*\[Not specified[^\]]*\]/gi, `Date: ${meetingDate}`)
-            .replace(/Date:\s*\[[^\]]*\]/gi, `Date: ${meetingDate}`)
-            .replace(/Time:\s*\[Not specified[^\]]*\]/gi, `Time: ${meetingTime}`)
-            .replace(/Time:\s*\[[^\]]*\]/gi, `Time: ${meetingTime}`);
-        }
-
-        setNotesStyle4(generatedContent);
-        
-        // Save to database
-        await saveNoteStyleToDatabase(4, generatedContent);
-      } else if (data?.error) {
-        console.error('❌ Executive generation returned error:', data.error);
-        toast.error(`AI could not generate executive notes: ${data.error}`);
-      } else {
-        console.error('❌ No content in Executive response:', data);
-      }
-    } catch (error) {
-      console.error('❌ Error generating Executive notes:', error);
-    } finally {
-      console.log('🏁 Executive generation finished');
-      setIsGeneratingStyle4(false);
-    }
-  };
 
   const generateSoapNotes = async () => {
     if (!meeting?.id || !user?.id) {
@@ -2961,11 +2742,7 @@ ${transcriptToUse}`;
       <NoteEnhancementDialog
         open={enhancementDialogOpen}
         onOpenChange={setEnhancementDialogOpen}
-        originalContent={
-          activeNotesStyleTab === 'style1' ? notesStyle3 :
-          activeNotesStyleTab === 'style4' ? notesStyle4 :
-          notesStyle3
-        }
+        originalContent={notesStyle3}
         onEnhanced={handleEnhanced}
         meetingId={meeting.id}
       />
@@ -3141,14 +2918,6 @@ ${transcriptToUse}`;
                       onNotesChange(editingContent);
                       saveSummaryToDatabase(editingContent);
                       break;
-                    case 'style3':
-                      setNotesStyle2(editingContent);
-                      saveNoteStyleToDatabase(2, editingContent);
-                      break;
-                    case 'style4':
-                      setNotesStyle4(editingContent);
-                      saveNoteStyleToDatabase(4, editingContent);
-                      break;
                   }
                 } else if (editingTab === "transcript") {
                   setTranscript(editingContent);
@@ -3211,10 +2980,6 @@ ${transcriptToUse}`;
                           <TabsList>
                             <TabsTrigger value="style1" className="text-xs sm:text-sm">
                               Meeting Minutes - Standard View
-                            </TabsTrigger>
-                            <TabsTrigger value="style-gallery" className="text-xs sm:text-sm">
-                              <Sparkles className="h-4 w-4 mr-1" />
-                              Style Gallery
                             </TabsTrigger>
                             {canViewConsultationExamples && (
                               <TabsTrigger value="style6" className="text-xs sm:text-sm">
@@ -3404,7 +3169,7 @@ ${transcriptToUse}`;
                                           </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                          <p>Regenerate notes, overview & gallery</p>
+                                          <p>Regenerate notes and overview</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
@@ -3750,27 +3515,7 @@ ${transcriptToUse}`;
                           )}
                        </TabsContent>
                       
-                      {/* Style Gallery Tab */}
-                      <TabsContent value="style-gallery" className="flex-1 overflow-hidden mt-0">
-                        <Suspense fallback={
-                          <div className="flex items-center justify-center h-full">
-                            <div className="flex flex-col items-center gap-4">
-                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-                              <p className="text-sm text-muted-foreground">Loading style gallery...</p>
-                            </div>
-                          </div>
-                        }>
-                          <LazyStyleGallery
-                            meetingId={meeting?.id || ''}
-                            transcript={transcript}
-                            meetingContext={{
-                              title: meeting?.title || 'Meeting',
-                              date: meeting?.start_time
-                            }}
-                            currentNotesStyle={notesStyle3}
-                          />
-                        </Suspense>
-                      </TabsContent>
+                      
                       
                          {/* Patient Consultation Content (style6) */}
                        <TabsContent value="style6" className="flex-1 overflow-hidden mt-0">
