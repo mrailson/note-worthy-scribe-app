@@ -80,15 +80,11 @@ export const useRecordingProtection = ({
     }
   }, [isRecording]);
 
-  // Page visibility change handling
+  // Page visibility change handling - log only, no toast
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (isRecording && document.visibilityState === 'hidden' && !isIPhone) {
-        toast({
-          title: "⚠️ Recording Active",
-          description: "Keep this tab open to continue recording",
-          duration: 3000,
-        });
+        console.log('📱 Tab hidden while recording - recording continues in background');
       }
     };
 
@@ -96,7 +92,7 @@ export const useRecordingProtection = ({
       document.addEventListener('visibilitychange', handleVisibilityChange);
       return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }
-  }, [isRecording, toast]);
+  }, [isRecording]);
 
   // Reset preparing state when dialog is closed without confirming
   useEffect(() => {

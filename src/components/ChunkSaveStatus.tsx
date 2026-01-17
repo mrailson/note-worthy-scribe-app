@@ -146,6 +146,9 @@ const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: str
     : 0;
   const mergedCount = chunks.filter(c => isChunkInTranscript(c.text)).length;
 
+  // Calculate net transcript word count
+  const netTranscriptWords = mainTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
+
   const doc = new Document({
     sections: [{
       properties: {},
@@ -163,7 +166,9 @@ const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: str
           heading: HeadingLevel.HEADING_2,
         }),
         new Paragraph({ text: `Total Chunks: ${chunks.length}` }),
-        new Paragraph({ text: `Total Words: ${totalWords}` }),
+        new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
+        new Paragraph({ text: `Net Words (merged transcript): ${netTranscriptWords}` }),
+        new Paragraph({ text: `Words Filtered: ${totalWords - netTranscriptWords}` }),
         new Paragraph({ text: `Total Duration: ${Math.floor(totalDuration / 60)}m ${Math.floor(totalDuration % 60)}s` }),
         new Paragraph({ text: `Average Confidence: ${Math.round(avgConfidence * 100)}%` }),
         new Paragraph({ text: `Chunks Merged: ${mergedCount}/${chunks.length}` }),
@@ -176,6 +181,14 @@ const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: str
           rows: tableRows,
           width: { size: 100, type: WidthType.PERCENTAGE },
         }),
+        new Paragraph({ text: '' }),
+        new Paragraph({
+          text: 'Consolidated Transcript',
+          heading: HeadingLevel.HEADING_2,
+        }),
+        new Paragraph({ text: `Word Count: ${netTranscriptWords}` }),
+        new Paragraph({ text: '' }),
+        new Paragraph({ text: mainTranscript || '(No transcript text)' }),
       ],
     }],
   });
