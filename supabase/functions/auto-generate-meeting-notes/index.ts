@@ -168,8 +168,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { meetingId, forceRegenerate = false, detailLevel = 'standard' } = await req.json();
-    console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel);
+    const { meetingId, forceRegenerate = false, detailLevel = 'standard', noteType = 'standard' } = await req.json();
+    console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel, 'with note type:', noteType);
 
     if (!meetingId) {
       throw new Error('Meeting ID is required');
@@ -520,6 +520,65 @@ DETAIL LEVEL: FULL
     const selectedDetailInstruction = detailInstructions[detailLevel] || detailInstructions['standard'];
     console.log('📊 Using detail level:', detailLevel);
 
+    // Note type instructions for different output formats
+    const noteTypeInstructions: Record<string, string> = {
+      'standard': `
+NOTE TYPE: STANDARD PROFESSIONAL
+- Use the default format structure as specified
+- Balanced coverage of all meeting elements
+- Professional but accessible language`,
+
+      'nhs-formal': `
+NOTE TYPE: NHS FORMAL GOVERNANCE
+- Strict adherence to NHS governance language standards
+- Suitable for ICB circulation, CQC review, Board packs
+- Use formal terminology: "The meeting noted...", "It was resolved that...", "Members agreed..."
+- Include explicit risk statements and compliance references
+- Reference relevant NHS policies or frameworks where applicable
+- Structure with clear governance headers: DECISIONS, RISKS, ESCALATIONS
+- Use passive voice throughout for formality
+- Include quorum confirmation if attendance suggests it
+- Add "For Information", "For Decision", "For Approval" markers where appropriate`,
+
+      'clinical': `
+NOTE TYPE: CLINICAL MEETING NOTES
+- Use clinical terminology appropriate for healthcare professionals
+- Structure using clinical frameworks where relevant (SOAP, MDT format)
+- Highlight patient pathways, clinical outcomes, and care decisions
+- Include sections for: Clinical Discussions, Patient-Related Actions, Safety Considerations
+- Reference clinical guidelines or NICE recommendations if mentioned
+- Use appropriate clinical abbreviations (define on first use)
+- Include safety netting advice and red flags where clinically relevant
+- Structure around clinical decision-making processes`,
+
+      'action-focused': `
+NOTE TYPE: ACTION-FOCUSED SUMMARY
+- Prioritise decisions made and actions agreed
+- Minimal background/context - focus on outcomes
+- Lead with the ACTION ITEMS table prominently
+- Brief bullet points for key decisions only
+- Omit detailed discussion unless directly tied to an action
+- Clear ownership and deadlines for every action
+- Group actions by priority (High → Medium → Low)
+- Include a "Quick Reference" section at the top with counts: X decisions, Y actions, Z deadlines
+- Skip narrative sections - this is for busy executives who need to act`,
+
+      'educational': `
+NOTE TYPE: EDUCATIONAL/CPD FORMAT
+- Structure around learning objectives and outcomes
+- Include sections: Learning Objectives, Key Concepts Discussed, Discussion Points, Reflection Questions
+- Highlight CPD-relevant content and learning takeaways
+- Summarise educational content in digestible format
+- Include suggested further reading or resources if mentioned in the meeting
+- Add a "Key Takeaways" summary section at the end
+- Note any training requirements or competency gaps identified
+- Format suitable for inclusion in CPD portfolios and training records
+- Include hours that could count towards CPD if the meeting was educational`
+    };
+
+    const selectedNoteTypeInstruction = noteTypeInstructions[noteType] || noteTypeInstructions['standard'];
+    console.log('📊 Using note type:', noteType);
+
     // Generate notes using Lovable AI
     let systemPrompt = `You are an expert meeting notes assistant. Create comprehensive, professional meeting notes from ANY provided transcript content.
 
@@ -663,6 +722,8 @@ Do NOT remove: decisions, actions, dates, financial figures, estates/legal/contr
 NHS Board Packs, ICB circulation, sharing with NHFT or PML, FOI response, CQC review
 
 ═══════════════════════════════════════════════════════════════════════════════
+
+${selectedNoteTypeInstruction}
 
 ${selectedDetailInstruction}`;
 

@@ -91,9 +91,11 @@ import {
   Award,
   Layers,
   PieChart,
-  Hash
+  Hash,
+  Stethoscope
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
+import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
 
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -238,10 +240,22 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   // Control mode toggle state (fontSize vs detailLevel)
   const [controlMode, setControlMode] = useState<'fontSize' | 'detailLevel'>('fontSize');
   const [detailLevel, setDetailLevel] = useState<number>(3); // Default: Standard
+  const [noteType, setNoteType] = useState<string>('standard'); // Note type selection
   const [isRegeneratingNotes, setIsRegeneratingNotes] = useState(false);
 
-  // Regenerate notes at a new detail level
-  const triggerRegeneration = useCallback(async (newLevel: number) => {
+  // Get icon for note type
+  const getNoteTypeIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'Award': return Award;
+      case 'Stethoscope': return Stethoscope;
+      case 'Target': return Target;
+      case 'GraduationCap': return GraduationCap;
+      default: return FileText;
+    }
+  };
+
+  // Regenerate notes at a new detail level and/or note type
+  const triggerRegeneration = useCallback(async (newLevel: number, newNoteType?: string) => {
     if (!meeting?.id) {
       toast.error('No meeting available to regenerate notes');
       return;
@@ -252,13 +266,17 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     try {
       const levelConfig = MEETING_DETAIL_LEVELS.find(l => l.value === newLevel);
       const levelLabel = levelConfig?.label || 'Standard';
-      toast.info(`Regenerating notes at ${levelLabel} detail level...`);
+      const typeToUse = newNoteType ?? noteType;
+      const typeConfig = MEETING_NOTE_TYPES.find(t => t.id === typeToUse);
+      
+      toast.info(`Regenerating ${typeConfig?.label || 'Standard'} notes at ${levelLabel} detail level...`);
       
       const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: { 
           meetingId: meeting.id,
           forceRegenerate: true,
-          detailLevel: levelLabel.toLowerCase()
+          detailLevel: levelLabel.toLowerCase(),
+          noteType: typeToUse
         }
       });
       
@@ -267,7 +285,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       // Update local notes content with regenerated notes
       if (data?.content) {
         setNotesContent(data.content);
-        toast.success(`Notes regenerated at ${levelLabel} detail level`);
+        toast.success(`${typeConfig?.label || 'Standard'} notes regenerated`);
       } else {
         // Fetch the updated notes from the database
         const { data: updatedMeeting } = await supabase
@@ -278,7 +296,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           
         if (updatedMeeting?.notes_style_3) {
           setNotesContent(sanitiseMeetingNotes(updatedMeeting.notes_style_3));
-          toast.success(`Notes regenerated at ${levelLabel} detail level`);
+          toast.success(`${typeConfig?.label || 'Standard'} notes regenerated`);
         } else {
           toast.success('Notes regenerated - refresh to see updates');
         }
@@ -289,7 +307,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     } finally {
       setIsRegeneratingNotes(false);
     }
-  }, [meeting?.id]);
+  }, [meeting?.id, noteType]);
 
   // Convert DB meeting_format to local meetingType
   const mapFormatToType = (format: string | null): 'teams' | 'f2f' | 'hybrid' => {
@@ -2267,7 +2285,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     } else {
                       const newLevel = Math.max(1, detailLevel - 1);
                       setDetailLevel(newLevel);
-                      triggerRegeneration(newLevel);
+                      triggerRegeneration(newLevel, noteType);
                     }
                   }}
                   disabled={controlMode === 'fontSize' ? fontSize <= 10 : detailLevel <= 1 || isRegeneratingNotes}
@@ -2318,7 +2336,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     } else {
                       const newLevel = Math.min(5, detailLevel + 1);
                       setDetailLevel(newLevel);
-                      triggerRegeneration(newLevel);
+                      triggerRegeneration(newLevel, noteType);
                     }
                   }}
                   disabled={controlMode === 'fontSize' ? fontSize >= 24 : detailLevel >= 5 || isRegeneratingNotes}
@@ -2359,6 +2377,62 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 <Loader2 className="h-3 w-3 animate-spin" />
               </div>
             )}
+
+            {/* Divider */}
+            <div className="w-px h-5 bg-border mx-1.5" />
+
+            {/* Note Type Selector */}
+            <Select 
+              value={noteType} 
+              onValueChange={(value) => {
+                setNoteType(value);
+                triggerRegeneration(detailLevel, value);
+              }}
+              disabled={isRegeneratingNotes}
+            >
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SelectTrigger className="w-auto h-8 gap-2 border-0 bg-transparent hover:bg-accent px-2">
+                    {isRegeneratingNotes ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      (() => {
+                        const currentType = MEETING_NOTE_TYPES.find(t => t.id === noteType);
+                        const IconComponent = getNoteTypeIcon(currentType?.iconName || 'FileText');
+                        return <IconComponent className="h-4 w-4" />;
+                      })()
+                    )}
+                    <span className="text-sm hidden sm:inline">
+                      {MEETING_NOTE_TYPES.find(t => t.id === noteType)?.label || 'Standard'}
+                    </span>
+                  </SelectTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="text-center">
+                    <div className="font-medium">Note Type</div>
+                    <div className="text-xs text-muted-foreground">
+                      {MEETING_NOTE_TYPES.find(t => t.id === noteType)?.description}
+                    </div>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+              <SelectContent className="w-[280px]">
+                {MEETING_NOTE_TYPES.map((type) => {
+                  const IconComponent = getNoteTypeIcon(type.iconName);
+                  return (
+                    <SelectItem key={type.id} value={type.id}>
+                      <div className="flex items-start gap-2">
+                        <IconComponent className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                        <div className="flex flex-col">
+                          <span className="font-medium">{type.label}</span>
+                          <span className="text-xs text-muted-foreground">{type.description}</span>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
 
             {/* Divider */}
             <div className="w-px h-5 bg-border mx-1.5" />
