@@ -4756,6 +4756,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          document_type: string | null
           file_name: string
           file_path: string
           file_size: number | null
@@ -4768,6 +4769,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          document_type?: string | null
           file_name: string
           file_path: string
           file_size?: number | null
@@ -4780,6 +4782,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          document_type?: string | null
           file_name?: string
           file_path?: string
           file_size?: number | null
