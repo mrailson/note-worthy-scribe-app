@@ -2146,25 +2146,84 @@ export const MeetingRecorder = ({
     
     setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
     
-    // Simulate database save for iPhone chunks (iPhone transcriber handles actual saving)
-    setTimeout(() => {
-      setChunkSaveStatuses(prev => prev.map(chunk => 
-        chunk.id === uniqueChunkId 
-          ? { 
-              ...chunk, 
-              saveStatus: 'saved' as const,
-              saveTimestamp: new Date().toISOString()
-            }
-          : chunk
-      ));
-    }, 1000); // Simulate save time
+    // CRITICAL FIX: Actually persist iOS chunks to database (was previously simulated)
+    // This enables consolidation to work and meeting transcript to be saved
+    const persistIOSChunk = async () => {
+      const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+      const currentSessionId = sessionStorage.getItem('currentSessionId');
+      
+      if (!currentMeetingId) {
+        console.log('📱 iOS chunk: No meetingId yet, skipping DB save');
+        // Update UI status anyway
+        setTimeout(() => {
+          setChunkSaveStatuses(prev => prev.map(chunk => 
+            chunk.id === uniqueChunkId 
+              ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
+              : chunk
+          ));
+        }, 500);
+        return;
+      }
+      
+      try {
+        console.log(`📱 iOS chunk #${currentChunkNumber}: Saving to meeting_transcription_chunks...`);
+        
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) {
+          console.error('📱 iOS chunk: No authenticated user');
+          return;
+        }
+        
+        const { error } = await supabase
+          .from('meeting_transcription_chunks')
+          .insert({
+            meeting_id: currentMeetingId,
+            user_id: currentUser.id,
+            chunk_number: currentChunkNumber,
+            transcription_text: data.text.trim(),
+            confidence: data.confidence || 0.9,
+            is_final: true,
+            transcriber_type: 'ios-simple',
+            start_time: newChunkStatus.startTime || 0,
+            end_time: newChunkStatus.endTime || approxNowSeconds,
+            session_id: currentSessionId || currentMeetingId
+          });
+        
+        if (error) {
+          console.error(`📱 iOS chunk #${currentChunkNumber}: DB save failed:`, error.message);
+          setChunkSaveStatuses(prev => prev.map(chunk => 
+            chunk.id === uniqueChunkId 
+              ? { ...chunk, saveStatus: 'failed' as const }
+              : chunk
+          ));
+        } else {
+          console.log(`📱 iOS chunk #${currentChunkNumber}: Saved successfully`);
+          setChunkSaveStatuses(prev => prev.map(chunk => 
+            chunk.id === uniqueChunkId 
+              ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
+              : chunk
+          ));
+        }
+      } catch (err) {
+        console.error(`📱 iOS chunk #${currentChunkNumber}: DB save exception:`, err);
+        setChunkSaveStatuses(prev => prev.map(chunk => 
+          chunk.id === uniqueChunkId 
+            ? { ...chunk, saveStatus: 'failed' as const }
+            : chunk
+        ));
+      }
+    };
     
+    // Execute the async save
+    persistIOSChunk();
+    
+    // CRITICAL FIX: Force isFinal=true for iOS chunks so they're merged correctly
     const transcriptData: TranscriptData = {
       text: data.text.trim(),
       speaker: data.speaker || 'Speaker',
       confidence: data.confidence || 0.9,
       timestamp: new Date().toISOString(),
-      isFinal: data.is_final,
+      isFinal: true, // CRITICAL FIX: Always true for iOS chunks so they're merged
       chunkNumber: currentChunkNumber,
       chunkLength: chunkLength,
       dbSaveStatus: 'saving'

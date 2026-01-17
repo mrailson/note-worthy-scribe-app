@@ -392,8 +392,9 @@ export class SimpleIOSTranscriber {
             
             console.log(`📱 iOS-Rotate: Buffered text from chunk #${item.index}: "${cleanText.slice(0, 50)}..."`);
             
-            // Emit immediately for faster feedback (since chunks are 20s now)
-            this.emitBufferedText(false);
+            // CRITICAL FIX: Emit as FINAL so merger processes it correctly
+            // Previously emitted as false, causing merger to ignore iOS chunks
+            this.emitBufferedText(true);
           }
         }
       } else {
