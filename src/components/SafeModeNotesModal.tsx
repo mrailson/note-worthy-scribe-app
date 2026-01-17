@@ -1079,6 +1079,37 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     return matchingWords.length / words.length > 0.5;
   }, [transcript]);
 
+  // Extract start/end times from chunk - check columns first, then parse from JSON if needed
+  const extractChunkTiming = useCallback((chunk: any): { startMs: number; endMs: number } => {
+    // First try the dedicated columns
+    if (chunk.start_time != null && chunk.end_time != null) {
+      return {
+        startMs: chunk.start_time * 1000,
+        endMs: chunk.end_time * 1000
+      };
+    }
+    
+    // Fall back to parsing from transcription_text JSON
+    const rawText = chunk.transcription_text || '';
+    if (rawText.startsWith('[{') || rawText.startsWith('[{"')) {
+      try {
+        const parsed = JSON.parse(rawText);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const firstSegment = parsed[0];
+          const lastSegment = parsed[parsed.length - 1];
+          return {
+            startMs: (firstSegment.start || 0) * 1000,
+            endMs: (lastSegment.end || 0) * 1000
+          };
+        }
+      } catch {
+        // Parsing failed
+      }
+    }
+    
+    return { startMs: 0, endMs: 0 };
+  }, []);
+
   // Helper to extract clean text from chunk
   const extractCleanChunkText = useCallback((chunk: any): string => {
     const rawText = chunk.cleaned_text || chunk.transcription_text || '';
@@ -1132,8 +1163,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     transcriptChunks.forEach((chunk) => {
       const chunkText = extractCleanChunkText(chunk);
       const wordCount = chunk.word_count || chunkText.split(/\s+/).filter(w => w.length > 0).length;
-      const startMs = (chunk.start_time || 0) * 1000;
-      const endMs = (chunk.end_time || 0) * 1000;
+      const { startMs, endMs } = extractChunkTiming(chunk);
       const durationMs = endMs - startMs;
       const duration = durationMs > 0 ? formatTime(durationMs) : 'N/A';
       const merged = isChunkInTranscript(chunkText) ? '✓' : '✗';
