@@ -68,6 +68,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
+import { SimpleIOSTranscriber, IOSTranscriberStats } from '@/utils/SimpleIOSTranscriber';
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils/IncrementalTranscriptHandler';
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
@@ -520,6 +521,11 @@ export const MeetingRecorder = ({
     if (iPhoneTranscriberRef.current) {
       iPhoneTranscriberRef.current.stopTranscription();
       iPhoneTranscriberRef.current = null;
+    }
+    
+    if (simpleIOSTranscriberRef.current) {
+      await simpleIOSTranscriberRef.current.stop();
+      simpleIOSTranscriberRef.current = null;
     }
     
     if (desktopTranscriberRef.current) {
@@ -1730,7 +1736,9 @@ export const MeetingRecorder = ({
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
   const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
+  const simpleIOSTranscriberRef = useRef<SimpleIOSTranscriber | null>(null);
   const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
+  const [iosTranscriberStats, setIosTranscriberStats] = useState<IOSTranscriberStats | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
   const liveTranscriptRef = useRef<{ getCurrentTranscript: () => string } | null>(null);
@@ -1868,6 +1876,9 @@ export const MeetingRecorder = ({
         }
         if (iPhoneTranscriberRef.current) {
           iPhoneTranscriberRef.current.stopTranscription();
+        }
+        if (simpleIOSTranscriberRef.current) {
+          simpleIOSTranscriberRef.current.stop();
         }
         if (desktopTranscriberRef.current) {
           desktopTranscriberRef.current.stopTranscription();
@@ -2243,31 +2254,69 @@ export const MeetingRecorder = ({
     }
   };
 
-  // iPhone-optimized transcription using Whisper AI
+  // iPhone-optimized transcription using Simple iOS Transcriber
   const startIPhoneWhisperTranscription = async (meetingId: string) => {
     try {
-      console.log('📱 Creating iPhone Whisper transcriber instance...');
-      addDebugLog('📱 Starting iPhone Whisper transcription...');
-      iPhoneTranscriberRef.current = new iPhoneWhisperTranscriber(
-        handleBrowserTranscript, // Same handler works for both
-        handleTranscriptionError,
-        handleStatusChange,
-        meetingSettings, // Pass meeting settings for confidence gating
+      console.log('📱 Creating Simple iOS transcriber instance...');
+      addDebugLog('📱 Starting Simple iOS transcription (serial queue)...');
+      
+      simpleIOSTranscriberRef.current = new SimpleIOSTranscriber(
+        {
+          onTranscription: (text: string, isFinal: boolean, confidence: number) => {
+            // Use same handler as browser transcriber
+            const transcriptData = {
+              text,
+              speaker: 'Speaker',
+              confidence,
+              timestamp: new Date().toISOString(),
+              isFinal,
+              is_final: isFinal
+            };
+            handleBrowserTranscript(transcriptData);
+            watchdog.reportChunkProcessed();
+            
+            // Update word count tracking
+            if (text.trim()) {
+              const chunkTime = Date.now();
+              setChunkSaveStatuses(prev => [...prev, {
+                id: `ios-${chunkTime}`,
+                chunkNumber: prev.length + 1,
+                text: text,
+                chunkLength: text.length,
+                saveStatus: 'saved' as const,
+                saveTimestamp: new Date().toISOString(),
+                retryCount: 0,
+                confidence: confidence
+              }]);
+            }
+          },
+          onError: (error: string) => {
+            console.error('📱 SimpleIOS error:', error);
+            handleTranscriptionError(error);
+          },
+          onStatusChange: (status: string) => {
+            console.log('📱 SimpleIOS status:', status);
+            handleStatusChange(status);
+          },
+          onStatsUpdate: (stats: IOSTranscriberStats) => {
+            setIosTranscriberStats(stats);
+            // Keep watchdog happy when we're receiving blobs
+            if (stats.capturedBlobs > 0) {
+              setAudioActivity(true);
+            }
+          }
+        },
         meetingId,
-        (hasActivity: boolean) => setAudioActivity(hasActivity), // Callback for audio activity
-        selectedMicrophoneId, // Pass selected microphone device
-        undefined, // processed callback handled inside handleBrowserTranscript
-        () => watchdog.reportChunkFiltered() // Reset stall timer when iPhone chunk produces no new text
+        selectedMicrophoneId
       );
 
-      console.log('📱 Starting transcription...');
-      await iPhoneTranscriberRef.current.startTranscription();
-      console.log('✅ iPhone Whisper transcription started successfully');
-      addDebugLog('✅ iPhone Whisper transcription started');
+      console.log('📱 Starting Simple iOS transcription...');
+      await simpleIOSTranscriberRef.current.start();
+      console.log('✅ Simple iOS transcription started successfully');
+      addDebugLog('✅ Simple iOS transcription started (serial queue mode)');
     } catch (error) {
-      console.error('❌ iPhone Whisper transcription error:', error);
-      addDebugLog(`❌ Failed to start iPhone transcription: ${error}`);
-      console.error('Failed to start iPhone transcription:', error);
+      console.error('❌ Simple iOS transcription error:', error);
+      addDebugLog(`❌ Failed to start iOS transcription: ${error}`);
       throw error;
     }
   };
@@ -3046,6 +3095,10 @@ export const MeetingRecorder = ({
         iPhoneTranscriberRef.current.stopTranscription();
       }
       
+      if (simpleIOSTranscriberRef.current) {
+        simpleIOSTranscriberRef.current.stop();
+      }
+      
       if (desktopTranscriberRef.current) {
         desktopTranscriberRef.current.stopTranscription();
       }
@@ -3607,6 +3660,10 @@ export const MeetingRecorder = ({
           iPhoneTranscriberRef.current.stopTranscription();
           iPhoneTranscriberRef.current = null;
         }
+        if (simpleIOSTranscriberRef.current) {
+          await simpleIOSTranscriberRef.current.stop();
+          simpleIOSTranscriberRef.current = null;
+        }
       } catch (e) {
         console.error('iPhone transcriber stop error', e);
       }
@@ -3706,6 +3763,12 @@ export const MeetingRecorder = ({
        // Give iPhone transcriber time to process final audio segments
        await new Promise(resolve => setTimeout(resolve, 200));
       iPhoneTranscriberRef.current = null;
+    }
+    
+    // Stop Simple iOS transcriber and wait for final processing
+    if (simpleIOSTranscriberRef.current) {
+      await simpleIOSTranscriberRef.current.stop();
+      simpleIOSTranscriberRef.current = null;
     }
     
     // Stop desktop transcriber and wait for final processing
@@ -4956,6 +5019,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       }
       if (iPhoneTranscriberRef.current) {
         iPhoneTranscriberRef.current.stopTranscription();
+      }
+      if (simpleIOSTranscriberRef.current) {
+        simpleIOSTranscriberRef.current.stop();
       }
       if (desktopTranscriberRef.current) {
         desktopTranscriberRef.current.stopTranscription();
