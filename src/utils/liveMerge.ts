@@ -1,4 +1,6 @@
 // src/utils/liveMerge.ts
+import { HALLUCINATION_PHRASES } from './whisperHallucinationPatterns';
+
 export type LiveChunk = {
   text: string;
   isFinal?: boolean;   // IMPORTANT: set this from your STT if available
@@ -7,6 +9,7 @@ export type LiveChunk = {
   end_ms?: number;
   source?: string;     // "deepgram" | "whisper" | "browser" | ...
   speaker?: string | null;
+  wordConfidences?: { word: string; confidence: number }[]; // Word-level confidence for better merge decisions
 };
 
 const OVERLAP_SCAN = 200;       // chars to scan for overlaps (increased for better detection)
@@ -14,6 +17,23 @@ const STITCH_SIM_THRESHOLD = 0.70; // relaxed threshold for medical content (was
 const DEDUPE_SIM_THRESHOLD = 0.75; // relaxed threshold for medical terminology (was 0.90)
 const DEDUPE_WINDOW = 8;        // compare against last 8 sentences (increased for better context)
 const MIN_CONFIDENCE_THRESHOLD = 0.30; // minimum confidence to accept chunks (30%)
+
+// INCOMPLETE ENDING PATTERNS - avoid selecting chunk endings that terminate on these
+// This prevents mid-sentence splits at chunk boundaries
+const INCOMPLETE_ENDING_PATTERNS = [
+  // Conjunctions
+  /\b(and|but|so|because|however|therefore|although|though|while|whereas|unless|if|when|since|before|after|until|once|whether|as|or|nor|yet|for)$/i,
+  // Prepositions
+  /\b(to|for|with|of|in|on|at|by|from|into|onto|upon|within|without|between|among|through|during|before|after|about|against|around|behind|below|beneath|beside|besides|beyond|concerning|considering|despite|down|except|following|given|inside|near|outside|over|past|regarding|since|throughout|toward|towards|under|underneath|unlike|up|via)$/i,
+  // Incomplete verb phrases (verbs that typically need an object)
+  /\b(bring|get|make|have|take|do|give|put|set|keep|let|begin|start|try|want|need|like|would|could|should|might|must|shall|will|can|may)$/i,
+  // Trailing comma or incomplete clause
+  /,\s*$/,
+  // Trailing articles
+  /\b(a|an|the)$/i,
+  // Trailing "that" or "which" (relative clauses)
+  /\b(that|which|who|whom|whose|where)$/i,
+];
 
 // SAFETY-CRITICAL KEYWORDS: Sentences containing these terms must NEVER be dropped
 // This protects clinically important content like risk factors, red-flag exclusions, and safety-netting
@@ -46,6 +66,133 @@ const SAFETY_KEYWORDS = [
 function containsSafetyCriticalContent(text: string): boolean {
   const normalised = text.toLowerCase();
   return SAFETY_KEYWORDS.some(kw => normalised.includes(kw));
+}
+
+/**
+ * Check if text ends with a complete sentence (punctuation)
+ */
+function hasSentenceCompletion(text: string): boolean {
+  return /[.!?]$/.test(text.trim());
+}
+
+/**
+ * Check if text ends with an incomplete pattern (conjunction, preposition, etc.)
+ * These endings should be avoided when selecting chunk boundaries
+ */
+function hasIncompleteEnding(text: string): boolean {
+  const trimmed = text.trim();
+  return INCOMPLETE_ENDING_PATTERNS.some(pattern => pattern.test(trimmed));
+}
+
+/**
+ * PRE-MERGE HALLUCINATION FILTERING
+ * Check the last ~50 words for boilerplate hallucination patterns and truncate if found
+ * This prevents hallucinations from "winning" overlap resolution at chunk endings
+ */
+function filterHallucinationsFromEndings(text: string): string {
+  if (!text || text.length < 50) return text;
+  
+  const trimmed = text.trim();
+  const words = trimmed.split(/\s+/);
+  
+  // Only check last ~50 words for efficiency
+  const checkWords = words.slice(-50).join(' ').toLowerCase();
+  
+  for (const phrase of HALLUCINATION_PHRASES) {
+    const phraseLower = phrase.toLowerCase();
+    if (checkWords.includes(phraseLower)) {
+      console.log(`🛡️ Pre-merge hallucination filter: Found "${phrase}" in chunk ending`);
+      
+      // Find the position of the hallucination and truncate before it
+      const fullLower = trimmed.toLowerCase();
+      const hallIndex = fullLower.lastIndexOf(phraseLower);
+      
+      if (hallIndex > 0) {
+        // Find the last complete sentence before the hallucination
+        const beforeHall = trimmed.slice(0, hallIndex).trim();
+        const lastPunctuation = Math.max(
+          beforeHall.lastIndexOf('.'),
+          beforeHall.lastIndexOf('!'),
+          beforeHall.lastIndexOf('?')
+        );
+        
+        if (lastPunctuation > beforeHall.length * 0.5) {
+          // Truncate to last complete sentence
+          const cleaned = beforeHall.slice(0, lastPunctuation + 1).trim();
+          console.log(`🧹 Truncated hallucination from ending: removed ${trimmed.length - cleaned.length} chars`);
+          return cleaned;
+        }
+      }
+    }
+  }
+  
+  return text;
+}
+
+/**
+ * Calculate average confidence of the last N words in a chunk
+ * Used for confidence-weighted ending selection
+ */
+function getEndingConfidence(chunk: LiveChunk, wordCount: number = 5): number {
+  if (!chunk.wordConfidences || chunk.wordConfidences.length === 0) {
+    return 0.5; // Default if no word-level confidence available
+  }
+  
+  const lastWords = chunk.wordConfidences.slice(-wordCount);
+  if (lastWords.length === 0) return 0.5;
+  
+  const sum = lastWords.reduce((acc, w) => acc + w.confidence, 0);
+  return sum / lastWords.length;
+}
+
+/**
+ * Select the best ending between two overlapping chunk variants
+ * Prefers: 1) Higher word confidence, 2) Sentence completion, 3) Non-incomplete endings
+ */
+function selectBestEnding(chunkA: LiveChunk, chunkB: LiveChunk): { preferA: boolean; reason: string } {
+  const textA = chunkA.text?.trim() || '';
+  const textB = chunkB.text?.trim() || '';
+  
+  // Get confidence scores for last ~5 words
+  const confA = getEndingConfidence(chunkA, 5);
+  const confB = getEndingConfidence(chunkB, 5);
+  
+  // Check sentence completion
+  const completeA = hasSentenceCompletion(textA);
+  const completeB = hasSentenceCompletion(textB);
+  
+  // Check incomplete endings
+  const incompleteA = hasIncompleteEnding(textA);
+  const incompleteB = hasIncompleteEnding(textB);
+  
+  // Priority 1: Prefer complete sentences over incomplete
+  if (completeA && !completeB) {
+    return { preferA: true, reason: 'A has sentence completion, B does not' };
+  }
+  if (completeB && !completeA) {
+    return { preferA: false, reason: 'B has sentence completion, A does not' };
+  }
+  
+  // Priority 2: Avoid incomplete endings (conjunctions, prepositions)
+  if (!incompleteA && incompleteB) {
+    return { preferA: true, reason: 'A has complete ending, B ends with conjunction/preposition' };
+  }
+  if (!incompleteB && incompleteA) {
+    return { preferA: false, reason: 'B has complete ending, A ends with conjunction/preposition' };
+  }
+  
+  // Priority 3: Higher confidence (significant difference only)
+  const confDiff = confA - confB;
+  if (Math.abs(confDiff) > 0.1) {
+    if (confDiff > 0) {
+      return { preferA: true, reason: `A has higher ending confidence (${confA.toFixed(2)} vs ${confB.toFixed(2)})` };
+    } else {
+      return { preferA: false, reason: `B has higher ending confidence (${confB.toFixed(2)} vs ${confA.toFixed(2)})` };
+    }
+  }
+  
+  // Default: prefer longer text (more content preserved)
+  return { preferA: textA.length >= textB.length, reason: 'Default: preferring longer content' };
 }
 
 // Track rejected chunks for audit purposes
@@ -86,7 +233,11 @@ const jacc = (a: Set<string>, b: Set<string>) => {
 const sim = (a: string, b: string) =>
   Math.max(jacc(grams(a, 3), grams(b, 3)), jacc(grams(a, 2), grams(b, 2)));
 
-function stitchWithOverlap(prev: string, next: string) {
+/**
+ * Enhanced stitch with overlap removal and sentence boundary preference
+ * Now includes: sentence boundary detection, incomplete ending avoidance
+ */
+function stitchWithOverlap(prev: string, next: string, chunk?: LiveChunk) {
   if (!prev) return next;
   const a = prev.slice(-OVERLAP_SCAN);
   const b = next.slice(0, OVERLAP_SCAN);
@@ -100,18 +251,37 @@ function stitchWithOverlap(prev: string, next: string) {
     
     if (similarity >= STITCH_SIM_THRESHOLD) {
       console.log(`🔗 Detected overlap (${k} chars, similarity: ${similarity.toFixed(3)}), merging without duplication`);
+      
+      // SENTENCE BOUNDARY PREFERENCE: If chunk ends with incomplete pattern,
+      // try to use the overlapping continuation from next chunk instead
+      const overlapPoint = prev.length - k;
+      const chunkEnding = prev.slice(overlapPoint);
+      
+      if (hasIncompleteEnding(chunkEnding) && !hasIncompleteEnding(next)) {
+        // The overlap continuation has a better ending - prefer it
+        console.log(`📝 Sentence boundary fix: Using continuation from next chunk (incomplete ending detected)`);
+        // Find the last sentence boundary before the incomplete part
+        const lastSentenceEnd = Math.max(
+          prev.lastIndexOf('.', overlapPoint),
+          prev.lastIndexOf('!', overlapPoint),
+          prev.lastIndexOf('?', overlapPoint)
+        );
+        
+        if (lastSentenceEnd > overlapPoint - 100 && lastSentenceEnd > 0) {
+          // Use prev up to last sentence, then merge with next
+          return prev.slice(0, lastSentenceEnd + 1) + ' ' + next;
+        }
+      }
+      
       return prev + next.slice(k);
     }
   }
   
-  // Additional check for large block duplicates
-  // TEMPORARILY DISABLED - may be too aggressive for medical terminology
-  // if (hasLargeBlockOverlap(prev, next)) {
-  //   console.log(`🚫 Large block overlap detected, skipping duplicate content`);
-  //   return prev; // Don't add the duplicate content
-  // }
+  // Check if prev ends with incomplete pattern - add space appropriately
+  const separator = hasSentenceCompletion(prev) ? " " : 
+                    hasIncompleteEnding(prev) ? " " : " ";
   
-  return prev + (/[.!?…]$/.test(prev) ? " " : " ") + next;
+  return prev + separator + next;
 }
 
 // New function to detect large block overlaps
@@ -197,18 +367,30 @@ export function mergeLive(prevText: string, chunk: LiveChunk): MergeResult {
     return { text: prevText, rejectionReason: 'Non-final chunk (interim result)', addedChars: 0 };
   }
 
-  console.log(`✅ Processing final chunk: "${chunk.text.substring(0, 80)}..." (${chunk.text.length} chars)`);
+  // PRE-MERGE HALLUCINATION FILTERING (Step 5 from ChatGPT recommendations)
+  // Filter boilerplate hallucinations from chunk endings BEFORE merging
+  // This prevents them from "winning" overlap resolution
+  const filteredChunkText = filterHallucinationsFromEndings(chunk.text);
+  const wasFiltered = filteredChunkText !== chunk.text;
+  if (wasFiltered) {
+    console.log(`🧹 Pre-merge filtered: ${chunk.text.length} -> ${filteredChunkText.length} chars`);
+  }
+  
+  // Update chunk with filtered text for processing
+  const processedChunk = { ...chunk, text: filteredChunkText };
+
+  console.log(`✅ Processing final chunk: "${filteredChunkText.substring(0, 80)}..." (${filteredChunkText.length} chars)`);
 
   const prev = norm(prevText);
-  const next = norm(chunk.text);
+  const next = norm(processedChunk.text);
   
   console.log(`🔄 Normalized text:`, {
     prevEnd: prev.substring(Math.max(0, prev.length - 150)),
     nextStart: next.substring(0, 150)
   });
 
-  // stitch with overlap removal
-  const stitched = stitchWithOverlap(prev, next);
+  // stitch with overlap removal (now includes sentence boundary preference)
+  const stitched = stitchWithOverlap(prev, next, processedChunk);
   const afterStitch = stitched.length - prev.length;
   
   let rejectionReason: string | undefined;
@@ -301,5 +483,12 @@ export function mergeLive(prevText: string, chunk: LiveChunk): MergeResult {
   return { text: deduped, rejectionReason, addedChars: afterDedupe };
 }
 
-// Export helper for UI to check if content is safety-critical
-export { containsSafetyCriticalContent };
+// Export helpers for external use
+export { 
+  containsSafetyCriticalContent,
+  hasSentenceCompletion,
+  hasIncompleteEnding,
+  filterHallucinationsFromEndings,
+  selectBestEnding,
+  getEndingConfidence
+};
