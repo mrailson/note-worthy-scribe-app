@@ -7,6 +7,11 @@ import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingDocuments } from "@/components/MeetingDocuments";
 import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
 import { MeetingImporter } from "@/components/meeting-dashboard/MeetingImporter";
+import { MeetingHistoryViewSelector, HistoryViewMode } from "@/components/meeting-history/MeetingHistoryViewSelector";
+import { CompactMeetingList } from "@/components/meeting-history/CompactMeetingList";
+import { MeetingGridView } from "@/components/meeting-history/MeetingGridView";
+import { MeetingTableView } from "@/components/meeting-history/MeetingTableView";
+import { MeetingTimelineView } from "@/components/meeting-history/MeetingTimelineView";
 
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
 import { useRecording } from "@/contexts/RecordingContext";
@@ -156,7 +161,21 @@ const MeetingHistory = () => {
   
   // iPhone detection and view mode
   const isIPhone = useIsIPhone();
-  const [viewMode, setViewMode] = useState<'list' | 'folders'>('list');
+  const [iphoneViewMode, setIphoneViewMode] = useState<'list' | 'folders'>('list');
+  
+  // Layout view mode with localStorage persistence
+  const [layoutViewMode, setLayoutViewMode] = useState<HistoryViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('meetingHistoryLayoutMode') as HistoryViewMode) || 'list';
+    }
+    return 'list';
+  });
+  
+  const handleLayoutViewModeChange = (mode: HistoryViewMode) => {
+    setLayoutViewMode(mode);
+    localStorage.setItem('meetingHistoryLayoutMode', mode);
+  };
+  
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1864,23 +1883,23 @@ const MeetingHistory = () => {
           {isIPhone && (
             <div className="flex gap-2 p-1 bg-muted rounded-lg mb-4">
               <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                variant={iphoneViewMode === 'list' ? 'secondary' : 'ghost'}
                 className="flex-1"
-                onClick={() => setViewMode('list')}
+                onClick={() => setIphoneViewMode('list')}
               >
                 All Meetings
               </Button>
               <Button
-                variant={viewMode === 'folders' ? 'secondary' : 'ghost'}
+                variant={iphoneViewMode === 'folders' ? 'secondary' : 'ghost'}
                 className="flex-1"
-                onClick={() => setViewMode('folders')}
+                onClick={() => setIphoneViewMode('folders')}
               >
                 By Folder
               </Button>
             </div>
           )}
 
-         {/* Search Bar */}
+         {/* Search Bar and View Selector */}
          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
            <div className="flex-1">
             <MeetingSearchBar 
@@ -1894,6 +1913,13 @@ const MeetingHistory = () => {
               folders={folders}
             />
            </div>
+           {/* View Mode Selector - Hidden on mobile */}
+           {!isMobile && (
+             <MeetingHistoryViewSelector
+               viewMode={layoutViewMode}
+               onViewModeChange={handleLayoutViewModeChange}
+             />
+           )}
          </div>
 
           {/* Selection Controls and Actions Row - Hidden on mobile */}
@@ -2414,7 +2440,7 @@ const MeetingHistory = () => {
               </div>
             </CardContent>
           </Card>
-        ) : isIPhone && viewMode === 'folders' ? (
+        ) : isIPhone && iphoneViewMode === 'folders' ? (
           <MeetingFolderView
             folders={folders}
             meetings={filteredMeetings}
@@ -2450,6 +2476,47 @@ const MeetingHistory = () => {
             }}
             showRecordingPlayback={micTestServiceVisible}
             onFolderAssigned={handleFolderAssigned}
+          />
+        ) : layoutViewMode === 'compact' ? (
+          <CompactMeetingList
+            meetings={filteredMeetings}
+            isSelectMode={isSelectMode}
+            selectedMeetings={selectedMeetings}
+            onSelectMeeting={handleSelectMeeting}
+            onViewNotes={handleViewMeetingSummary}
+            onDelete={handleMeetingDelete}
+            loading={loading}
+          />
+        ) : layoutViewMode === 'grid' ? (
+          <MeetingGridView
+            meetings={filteredMeetings}
+            isSelectMode={isSelectMode}
+            selectedMeetings={selectedMeetings}
+            onSelectMeeting={handleSelectMeeting}
+            onViewNotes={handleViewMeetingSummary}
+            onDelete={handleMeetingDelete}
+            loading={loading}
+          />
+        ) : layoutViewMode === 'table' ? (
+          <MeetingTableView
+            meetings={filteredMeetings}
+            isSelectMode={isSelectMode}
+            selectedMeetings={selectedMeetings}
+            onSelectMeeting={handleSelectMeeting}
+            onSelectAll={handleSelectAll}
+            onViewNotes={handleViewMeetingSummary}
+            onDelete={handleMeetingDelete}
+            loading={loading}
+          />
+        ) : layoutViewMode === 'timeline' ? (
+          <MeetingTimelineView
+            meetings={filteredMeetings}
+            isSelectMode={isSelectMode}
+            selectedMeetings={selectedMeetings}
+            onSelectMeeting={handleSelectMeeting}
+            onViewNotes={handleViewMeetingSummary}
+            onDelete={handleMeetingDelete}
+            loading={loading}
           />
         ) : (
           <MeetingHistoryList 
