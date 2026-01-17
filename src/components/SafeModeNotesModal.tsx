@@ -3252,20 +3252,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         />
                       )}
 
-                      {/* Selection-based Find & Replace Popup for Transcript */}
-                      {transcriptSelection.isValid && transcriptSelection.rect && (
-                        <SelectionFindReplacePopup
-                          selectedText={transcriptSelection.text}
-                          position={transcriptSelection.rect}
-                          getCurrentText={() => transcript}
-                          onApply={(updatedText) => {
-                            setTranscript(updatedText);
-                            clearTranscriptSelection();
-                          }}
-                          onClose={clearTranscriptSelection}
-                          meetingId={meeting?.id}
-                        />
-                      )}
                     </div>
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
