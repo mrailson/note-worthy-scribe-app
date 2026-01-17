@@ -166,7 +166,8 @@ const MeetingHistory = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalMeetings, setTotalMeetings] = useState(0);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [isSearching, setIsSearching] = useState(false);
   
   // Multi-select functionality
   const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
@@ -1231,6 +1232,18 @@ const MeetingHistory = () => {
     };
   }, [user, currentPage]);
 
+  // Debounced server-side search
+  useEffect(() => {
+    const searchTimer = setTimeout(() => {
+      if (user?.id) {
+        setCurrentPage(1);
+        fetchMeetings(1, searchQuery);
+      }
+    }, 400);
+    
+    return () => clearTimeout(searchTimer);
+  }, [searchQuery, user?.id, itemsPerPage]);
+
   // Load notes for modal when generation completes
   const loadNotesForModal = async (meetingId: string) => {
     try {
@@ -1248,8 +1261,8 @@ const MeetingHistory = () => {
     }
   };
 
-  const fetchMeetings = async (pageToFetch = 1) => {
-    console.log('🎯 fetchMeetings CALLED - Page:', pageToFetch, 'User ID:', user?.id);
+  const fetchMeetings = async (pageToFetch = 1, searchTerm = '') => {
+    console.log('🎯 fetchMeetings CALLED - Page:', pageToFetch, 'User ID:', user?.id, 'Search:', searchTerm);
     
     if (!user) {
       console.log('❌ fetchMeetings BLOCKED - No user');
@@ -1258,12 +1271,13 @@ const MeetingHistory = () => {
     
     try {
       setLoading(true);
-      console.log('📥 Fetching meetings - Page:', pageToFetch, 'User:', user.id);
+      if (searchTerm) setIsSearching(true);
+      console.log('📥 Fetching meetings - Page:', pageToFetch, 'User:', user.id, 'Search:', searchTerm);
       
       const offset = (pageToFetch - 1) * itemsPerPage;
        
-      // Single optimized query with count
-      const { data: meetingsData, error: meetingsError, count } = await supabase
+      // Build query with optional search
+      let query = supabase
         .from('meetings')
         .select(`
           id,
@@ -1291,7 +1305,15 @@ const MeetingHistory = () => {
           meeting_overviews(overview, audio_overview_url, audio_overview_text, audio_overview_duration)
         `, { count: 'exact' })
         .eq('user_id', user.id)
-        .neq('meeting_type', 'gp_consultation')
+        .neq('meeting_type', 'gp_consultation');
+      
+      // Add server-side search if provided
+      if (searchTerm.trim()) {
+        query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%,meeting_type.ilike.%${searchTerm}%`);
+      }
+      
+      // Apply ordering and pagination
+      const { data: meetingsData, error: meetingsError, count } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + itemsPerPage - 1);
 
@@ -1393,6 +1415,7 @@ const MeetingHistory = () => {
     } finally {
       console.log('✅ fetchMeetings completed - Setting loading to false');
       setLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -1863,7 +1886,7 @@ const MeetingHistory = () => {
             <MeetingSearchBar 
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
-              resultsCount={filteredMeetings.length}
+              resultsCount={totalMeetings}
               filterType={filterType}
               onFilterChange={setFilterType}
               onAdvancedFiltersChange={setAdvancedFilters}
