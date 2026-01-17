@@ -109,7 +109,7 @@ const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: str
   ];
 
   // Data rows
-  chunks.forEach((chunk) => {
+  chunks.forEach((chunk, index) => {
     const wordCount = chunk.text.trim().split(/\s+/).filter(w => w.length > 0).length;
     const duration = chunk.startTime !== undefined && chunk.endTime !== undefined 
       ? (chunk.endTime - chunk.startTime).toFixed(1) + 's' 
@@ -120,7 +120,7 @@ const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: str
     tableRows.push(
       new TableRow({
         children: [
-          new TableCell({ children: [new Paragraph(String(chunk.chunkNumber))] }),
+          new TableCell({ children: [new Paragraph(String(index + 1))] }),
           new TableCell({ children: [new Paragraph(formatTime(chunk.startTime))] }),
           new TableCell({ children: [new Paragraph(formatTime(chunk.endTime))] }),
           new TableCell({ children: [new Paragraph(duration)] }),
