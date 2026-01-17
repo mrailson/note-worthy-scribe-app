@@ -53,13 +53,16 @@ export class TimestampedSegmentMerger {
    * Process a new chunk with strict timestamp-based deduplication
    */
   processChunk(chunk: TimestampedChunk): ChunkProcessResult {
+    console.log(`🔍 [Merger] Processing chunk: confidence=${(chunk.confidence ?? 0 * 100).toFixed(0)}%, length=${chunk.text?.length ?? 0}, id=${chunk.id}`);
+    
     if (!chunk.text?.trim() || chunk.text.trim().length < TimestampedSegmentMerger.MIN_SEGMENT_LENGTH) {
+      console.log(`🚫 [Merger] Rejected: too short (${chunk.text?.length ?? 0} chars, min ${TimestampedSegmentMerger.MIN_SEGMENT_LENGTH})`);
       return { text: this.state.lastText, wasProcessed: false, reason: 'Chunk too short or empty' };
     }
 
     // Only process final chunks to avoid duplicates from interim updates
     if (chunk.isFinal === false) {
-      console.log(`⏳ Skipping interim chunk: "${chunk.text.substring(0, 30)}..."`);
+      console.log(`⏳ [Merger] Skipping interim chunk: "${chunk.text.substring(0, 30)}..."`);
       return { text: this.state.lastText, wasProcessed: false, reason: 'Interim chunk ignored' };
     }
 

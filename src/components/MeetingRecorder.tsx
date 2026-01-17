@@ -71,7 +71,7 @@ import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } fro
 import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
 import { SimpleIOSTranscriber, IOSTranscriberStats } from '@/utils/SimpleIOSTranscriber';
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
-import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils/IncrementalTranscriptHandler';
+import { IncrementalTranscriptHandler, IncrementalTranscriptData, ProcessTranscriptResult } from '@/utils/IncrementalTranscriptHandler';
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
 import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
@@ -103,6 +103,8 @@ interface ChunkSaveStatus {
   confidence: number;
   startTime?: number; // in seconds
   endTime?: number; // in seconds
+  wasMerged?: boolean; // True if merger actually processed this chunk
+  mergeRejectionReason?: string; // Reason why chunk wasn't merged into transcript
 }
 
 interface MeetingRecorderProps {
@@ -2060,9 +2062,25 @@ export const MeetingRecorder = ({
       segment_id: `${transcriptData.speaker}_${transcriptData.timestamp}_${Date.now()}`
     };
 
-    // Process through incremental handler
+    // Process through incremental handler and capture merge result
     if (transcriptHandler.current) {
-      transcriptHandler.current.processTranscript(incrementalData);
+      const result = transcriptHandler.current.processTranscript(incrementalData);
+      
+      // Update chunk status with merge result if this was a final chunk
+      if (transcriptData.isFinal && transcriptData.chunkNumber !== undefined) {
+        setChunkSaveStatuses(prevStatuses => 
+          prevStatuses.map(status => 
+            status.chunkNumber === transcriptData.chunkNumber
+              ? { 
+                  ...status, 
+                  wasMerged: result.wasProcessed,
+                  mergeRejectionReason: result.reason 
+                }
+              : status
+          )
+        );
+        console.log(`📊 Chunk #${transcriptData.chunkNumber} merge result: wasProcessed=${result.wasProcessed}, reason=${result.reason || 'none'}`);
+      }
     }
 
     // Progressive pre-summaries: ingest transcript chunks for long sessions
