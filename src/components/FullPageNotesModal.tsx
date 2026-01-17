@@ -5,7 +5,7 @@ import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal"
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
 import { useMinutesFormatter } from "@/hooks/useMinutesFormatter";
 
-import { StyleGalleryContainer } from "@/components/meeting/StyleGallery/StyleGalleryContainer";
+
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 import React, { useState, useEffect, useRef, Suspense, lazy, useCallback } from "react";
@@ -46,9 +46,6 @@ const TranscriptTabContent = lazy(() =>
   import("@/components/meeting/notes-modal/TranscriptTabContent").then(module => ({ default: module.TranscriptTabContent }))
 );
 
-const LazyStyleGallery = lazy(() =>
-  import("@/components/meeting/StyleGallery/StyleGalleryContainer").then(module => ({ default: module.StyleGalleryContainer }))
-);
 
 const LazySoapNotesDisplay = lazy(() =>
   import("@/components/meeting/EnhancedSoapNotesDisplay").then(module => ({ default: module.EnhancedSoapNotesDisplay }))
@@ -179,12 +176,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       setActiveTab(initialTab);
     }
   }, [initialTab, isOpen]);
-  const [notesStyle2, setNotesStyle2] = useState(" ");
   const [notesStyle3, setNotesStyle3] = useState("");
-  const [notesStyle4, setNotesStyle4] = useState("");
-  const [isGeneratingStyle2, setIsGeneratingStyle2] = useState(false);
   const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
-  const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
   
   // Ref to prevent multiple simultaneous regeneration calls
   const isRegeneratingStyle3Ref = useRef(false);
@@ -276,30 +269,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   
   // Search functionality for transcript
   const [searchTerm, setSearchTerm] = useState("");
-  // Generate Executive HTML lazily when tab is opened or content changes
-  useEffect(() => {
-    if (activeNotesStyleTab === 'style4') {
-      if (!notesStyle4) {
-        setExecHtml("");
-        setIsRenderingExec(false);
-        return;
-      }
-      setIsRenderingExec(true);
-      // Use requestIdleCallback for better performance
-      const id = requestIdleCallback(() => {
-        try {
-          const html = renderNHSMarkdown(notesStyle4, { enableNHSStyling: true, baseFontSize: fontSizeStyle1 });
-          setExecHtml(html);
-        } catch (e) {
-          console.error('Error rendering Executive notes markdown:', e);
-          setExecHtml(notesStyle4);
-        } finally {
-          setIsRenderingExec(false);
-        }
-      }, { timeout: 100 });
-      return () => cancelIdleCallback(id);
-    }
-  }, [activeNotesStyleTab, notesStyle4, fontSizeStyle1]);
   
   // Reset note styles when meeting changes to prevent showing stale data
   useEffect(() => {
@@ -308,11 +277,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     // Clear all note styles and rendered HTML when switching meetings
     console.log('🔄 Meeting changed - clearing note styles for:', meeting.id);
     setNoteStylesLoaded(false);
-    setNotesStyle2("");
     setNotesStyle3("");
-    setNotesStyle4("");
     setMinutesHtml("");
-    setExecHtml("");
     setIsRenderingMinutes(false); // Reset rendering state
   }, [isOpen, meeting?.id]);
 
@@ -767,32 +733,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
      // OPTIMISATION: Use note styles already in meeting object if available (from handleViewMeetingSummary)
      // This avoids redundant DB calls for data we already have
-     const hasPreloadedStyles = meeting.notes_style_2 || meeting.notes_style_3 || meeting.notes_style_4;
+     const hasPreloadedStyles = meeting.notes_style_3;
      
      if (hasPreloadedStyles) {
        console.log('✅ Using preloaded note styles from meeting object');
-       if (meeting.notes_style_2) setNotesStyle2(meeting.notes_style_2);
        if (meeting.notes_style_3) setNotesStyle3(meeting.notes_style_3);
-       if (meeting.notes_style_4) setNotesStyle4(meeting.notes_style_4);
        setNoteStylesLoaded(true);
-       
-       // Still need to check meeting_notes_multi for executive notes (might be newer)
-       try {
-         const { data: multiNotesData } = await supabase
-           .from('meeting_notes_multi')
-           .select('note_type, content')
-           .eq('meeting_id', currentMeetingId)
-           .in('note_type', ['executive'])
-           .order('generated_at', { ascending: false })
-           .limit(1);
-         
-         if (multiNotesData?.[0]?.content) {
-           setNotesStyle4(multiNotesData[0].content);
-           console.log('✅ Updated executive notes from meeting_notes_multi');
-         }
-       } catch (e) {
-         console.warn('⚠️ Failed to check meeting_notes_multi:', e);
-       }
        return;
      }
 
@@ -828,14 +774,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         }
 
          if (meetingData) {
-           if (meetingData.notes_style_2) {
-             setNotesStyle2(meetingData.notes_style_2);
-           }
            if (meetingData.notes_style_3) {
              setNotesStyle3(meetingData.notes_style_3);
-           }
-           if (meetingData.notes_style_4) {
-             setNotesStyle4(meetingData.notes_style_4);
            }
            // Mark note styles as loaded after applying data
            setNoteStylesLoaded(true);
@@ -857,16 +797,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
              console.log('✅ Loaded Standard notes from meeting_summaries fallback');
              setNoteStylesLoaded(true);
            }
-         }
-
-        // Load executive notes from multi-type notes table (takes priority)
-        if (multiNotesData && multiNotesData.length > 0) {
-           multiNotesData.forEach(note => {
-             if (note.note_type === 'executive' && note.content) {
-               setNotesStyle4(note.content);
-               console.log('✅ Loaded executive notes from meeting_notes_multi');
-             }
-           });
          }
 
         console.log('✅ Loaded existing note styles for meeting:', currentMeetingId);
@@ -1401,10 +1331,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       // Return content based on the active sub-tab
       switch (activeNotesStyleTab) {
         case 'style1': return notesStyle3 || "";
-        case 'style2': return notes || "";
-        case 'style3': return notesStyle2 || "";
-        case 'style4': return notesStyle4 || "";
-        default: return notes || "";
+        default: return notesStyle3 || "";
       }
     } else {
       return transcript || "";
@@ -1420,21 +1347,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           setNotesStyle3(content);
           saveNoteStyleToDatabase(3, content);
           break;
-        case 'style2':
-          onNotesChange(content);
-          saveSummaryToDatabase(content);
-          break;
-        case 'style3':
-          setNotesStyle2(content);
-          saveNoteStyleToDatabase(2, content);
-          break;
-        case 'style4':
-          setNotesStyle4(content);
-          saveNoteStyleToDatabase(4, content);
-          break;
         default:
-          onNotesChange(content);
-          saveSummaryToDatabase(content);
+          setNotesStyle3(content);
+          saveNoteStyleToDatabase(3, content);
       }
     } else {
       setTranscript(content);
@@ -1529,11 +1444,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           currentContent = notesStyle3;
           updateColumn = 'notes_style_3';
           setStateFunction = setNotesStyle3;
-          break;
-        case 'style4':
-          currentContent = notesStyle4;
-          updateColumn = 'notes_style_4';
-          setStateFunction = setNotesStyle4;
           break;
         default:
           return;
@@ -2211,152 +2121,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       toast.error('Failed to regenerate notes');
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const generateNotesStyle2 = async () => {
-    console.log('📄 Starting Minutes - Brief regeneration...');
-    
-    if (!meeting?.id) {
-      console.error('❌ Missing meeting ID for Very Detailed');
-      toast.error('Missing meeting data');
-      return;
-    }
-
-    setIsGeneratingStyle2(true);
-    try {
-      // Ensure transcript is loaded
-      let transcriptToUse = transcript;
-      if (!transcriptToUse || transcriptToUse.trim().length === 0) {
-        console.log('📋 Transcript not loaded yet, fetching...');
-        toast.info('Loading transcript...', { duration: 2000 });
-        transcriptToUse = await fetchTranscriptData();
-        
-        if (!transcriptToUse || transcriptToUse.trim().length === 0) {
-          toast.error('No transcript available');
-          setIsGeneratingStyle2(false);
-          return;
-        }
-      }
-      const style2Prompt = `Please analyze the provided meeting transcript and create brief, professional meeting minutes with the following structure. Focus on capturing every point discussed while keeping descriptions concise and actionable.
-
-FORMATTING REQUIREMENTS
-
-Use clear, concise bullet points
-Keep each point to 1-2 lines maximum
-Maintain professional tone
-Prioritize actionable information
-Use consistent formatting throughout
-
-REQUIRED STRUCTURE
-MEETING OVERVIEW
-
-Date: [Extract date]
-Time: [Meeting time and duration]
-Attendees: [Names and roles if mentioned]
-Meeting Purpose: [One sentence objective]
-
-AGENDA ITEMS DISCUSSED
-[TOPIC 1 NAME]
-
-[Key point 1 - one line summary]
-[Key point 2 - one line summary]
-[Key point 3 - one line summary]
-Decision: [Final outcome if any]
-
-[TOPIC 2 NAME]
-
-[Key point 1 - one line summary]
-[Key point 2 - one line summary]
-Decision: [Final outcome if any]
-
-[Continue for all topics discussed]
-DECISIONS MADE
-
-[Decision 1] - [Brief rationale]
-[Decision 2] - [Brief rationale]
-[Decision 3] - [Brief rationale]
-
-ACTION ITEMS
-
-[Task] - Owner: [Name] | Due: [Date]
-[Task] - Owner: [Name] | Due: [Date]
-[Task] - Owner: [Name] | Due: [Date]
-
-NEXT STEPS
-
-[Immediate next step 1]
-[Immediate next step 2]
-[Future meeting scheduled/required]
-
-PARKING LOT
-
-[Unresolved item 1]
-[Unresolved item 2]
-[Items for future discussion]
-
-
-SPECIFIC INSTRUCTIONS:
-
-Capture Every Point: Don't skip topics - include all substantive discussion points
-One Line Per Point: Keep individual bullets concise but comprehensive
-Clear Ownership: Always identify who is responsible for actions
-Specific Timelines: Include exact dates and deadlines mentioned
-Precise Language: Use concrete terms, avoid vague descriptions
-Consistent Format: Maintain the same structure throughout
-Complete Coverage: Ensure no significant discussion is omitted
-
-TONE: Professional, neutral, factual - suitable for formal distribution and record-keeping.
-LENGTH TARGET: Aim for 1-2 pages maximum while ensuring completeness.
-
-Paste your meeting transcript after this prompt for processing.
-
-${transcriptToUse}`;
-
-      console.log('📝 Very Detailed prompt created, length:', style2Prompt.length);
-      console.log('🚀 Calling Very Detailed generation...');
-
-      // Add meeting metadata to transcript
-      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcriptToUse, {
-        startTime: meeting.start_time,
-        endTime: meeting.end_time || undefined,
-        duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
-      });
-
-      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
-        body: {
-          transcript: transcriptWithMetadata,
-          meetingTitle: meeting.title,
-          meetingDate: new Date().toLocaleDateString('en-GB'),
-          meetingTime: new Date().toLocaleTimeString('en-GB', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          detailLevel: 'standard',
-          customPrompt: style2Prompt
-        }
-      });
-
-      console.log('📋 Very Detailed response:', { data: !!data, error: !!error });
-
-      if (error) throw error;
-
-      if (data?.meetingMinutes || data?.generatedNotes) {
-        const generatedContent = data.meetingMinutes || data.generatedNotes;
-        console.log('✅ Brief notes generated, length:', generatedContent.length);
-        setNotesStyle2(generatedContent);
-        
-        // Save to database
-        await saveNoteStyleToDatabase(2, generatedContent);
-      } else {
-        console.error('❌ No content in Brief response:', data);
-      }
-    } catch (error: any) {
-      console.error('❌ Error generating Brief notes:', error);
-      toast.error(error?.message || 'Failed to generate brief notes');
-    } finally {
-      console.log('🏁 Brief generation finished');
-      setIsGeneratingStyle2(false);
     }
   };
 
