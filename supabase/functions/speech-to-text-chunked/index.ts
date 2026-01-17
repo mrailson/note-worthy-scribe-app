@@ -54,15 +54,20 @@ serve(async (req) => {
     const chunkIndex = Number(formData.get('chunkIndex') ?? 0);
     const isFinal = formData.get('isFinal') === 'true';
     const language = formData.get('language') as string | null;
+    const prompt = formData.get('prompt') as string | null; // Previous transcript tail for continuity
     const meetingId = formData.get('meetingId') as string;
     const sessionId = formData.get('sessionId') as string;
 
+    // Detect MIME type from blob
+    const incomingMimeType = blob?.type || 'audio/webm';
+    
     console.log(`📋 [${requestId}] Form data parsed:`, {
       hasAudioFile: !!blob,
       fileSize: blob?.size,
-      fileType: blob?.type,
+      fileType: incomingMimeType,
       chunkIndex,
       isFinal,
+      hasPrompt: !!prompt,
       meetingId,
       sessionId,
     });
@@ -103,20 +108,34 @@ serve(async (req) => {
 
     console.log(`📡 [${requestId}] Sending to OpenAI Whisper API...`, {
       audioSize: blob.size,
+      mimeType: incomingMimeType,
       chunkIndex,
       isFinal,
     });
 
+    // Determine correct file extension based on MIME type
+    // This is CRITICAL for iOS which uses audio/mp4
+    let fileExtension = 'webm';
+    if (incomingMimeType.includes('mp4') || incomingMimeType.includes('m4a') || incomingMimeType.includes('aac')) {
+      fileExtension = 'm4a';
+    } else if (incomingMimeType.includes('ogg')) {
+      fileExtension = 'ogg';
+    } else if (incomingMimeType.includes('wav')) {
+      fileExtension = 'wav';
+    }
+
     // Build a NEW FormData payload for OpenAI every time - prevents reuse issues
     const fd = new FormData();
-    fd.append("file", new File([blob], `chunk_${chunkIndex}.webm`, { type: "audio/webm" }));
+    // Use the CORRECT MIME type and extension for the incoming audio
+    fd.append("file", new File([blob], `chunk_${chunkIndex}.${fileExtension}`, { type: incomingMimeType }));
     fd.append("model", MODEL);
     fd.append("response_format", "verbose_json");
     // Anti-hallucination parameters
     fd.append("temperature", "0");
     fd.append("no_speech_threshold", "0.6"); 
     fd.append("condition_on_previous_text", "false");
-    fd.append("prompt", ""); // Empty prompt reduces hallucinations
+    // Use prompt if provided (for continuity between chunks), otherwise empty
+    fd.append("prompt", prompt || "");
     if (language) fd.append("language", language);
 
     // Idempotency for safe retries

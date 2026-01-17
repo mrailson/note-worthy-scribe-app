@@ -207,7 +207,7 @@ export const MeetingMicrophoneSettings = ({ onDeviceChange, onAudioSourceChange 
               <Button
                 variant="outline"
                 size="icon"
-                onClick={enumerateDevices}
+                onClick={() => enumerateDevices()}
                 title="Refresh device list"
                 disabled={audioSourceMode === 'system_only'}
               >

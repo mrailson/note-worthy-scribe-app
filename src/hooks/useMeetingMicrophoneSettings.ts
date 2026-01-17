@@ -85,18 +85,23 @@ export const useMeetingMicrophoneSettings = () => {
     }
   }, []);
 
-  // Enumerate available audio input devices
-  const enumerateDevices = useCallback(async () => {
+  // Enumerate available audio input devices WITHOUT triggering permission prompt
+  // Only enumerate - labels may be blank until permission is granted
+  const enumerateDevices = useCallback(async (forcePermission: boolean = false) => {
     try {
-      const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      tempStream.getTracks().forEach(track => track.stop());
-      
-      setState(prev => ({ ...prev, permissionStatus: 'granted' }));
+      // Only call getUserMedia if explicitly forced (e.g., user clicked "Enable Microphone")
+      if (forcePermission) {
+        console.log('🎤 Force requesting microphone permission...');
+        const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        tempStream.getTracks().forEach(track => track.stop());
+        setState(prev => ({ ...prev, permissionStatus: 'granted' }));
+      }
 
       const devices = await navigator.mediaDevices.enumerateDevices();
       const audioInputs = devices
         .filter(device => device.kind === 'audioinput')
         .map((device, index) => {
+          // Labels may be blank if permission not yet granted - that's OK
           let label = device.label || `Microphone ${index + 1}`;
           label = label.replace(/\s*\([0-9a-fA-F]{4}:[0-9a-fA-F]{4}\)\s*/g, '').trim();
           
@@ -140,6 +145,11 @@ export const useMeetingMicrophoneSettings = () => {
       return [];
     }
   }, []);
+
+  // Force permission request (call this when user explicitly wants to enable mic)
+  const requestMicrophonePermission = useCallback(async () => {
+    return enumerateDevices(true);
+  }, [enumerateDevices]);
 
   // Select a device
   const selectDevice = useCallback((deviceId: string) => {
@@ -453,13 +463,17 @@ export const useMeetingMicrophoneSettings = () => {
   useEffect(() => {
     const handleDeviceChange = () => {
       console.log('Audio devices changed, re-enumerating...');
-      enumerateDevices();
+      enumerateDevices(false); // Don't force permission on device change
     };
 
     navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
     
+    // Check permission status without prompting
     checkPermission();
-    enumerateDevices();
+    
+    // Enumerate devices WITHOUT forcing permission prompt
+    // Labels may be blank - that's OK, they'll populate after user grants permission
+    enumerateDevices(false);
 
     return () => {
       navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
@@ -470,6 +484,7 @@ export const useMeetingMicrophoneSettings = () => {
   return {
     ...state,
     enumerateDevices,
+    requestMicrophonePermission,
     selectDevice,
     selectAudioSource,
     startMicTest,
