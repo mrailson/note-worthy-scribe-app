@@ -1195,6 +1195,25 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       : 0;
     const transcriptWords = transcript.trim().split(/\s+/).filter(w => w.length > 0).length;
     const mergedCount = transcriptChunks.filter(c => isChunkInTranscript(extractCleanChunkText(c))).length;
+    const missingCount = transcriptChunks.length - mergedCount;
+
+    // Calculate total recording duration in hours to determine acceptable missing threshold
+    let totalDurationMs = 0;
+    transcriptChunks.forEach((chunk) => {
+      const { startMs, endMs } = extractChunkTiming(chunk);
+      if (endMs > totalDurationMs) {
+        totalDurationMs = endMs;
+      }
+    });
+    const totalHours = Math.max(1, totalDurationMs / (1000 * 60 * 60));
+    const maxAcceptableMissing = Math.floor(totalHours); // 1 missing chunk per hour is acceptable
+
+    // Determine colour: green if all merged, red if more than 1 missing per hour
+    const allMerged = missingCount === 0;
+    const tooManyMissing = missingCount > maxAcceptableMissing;
+    
+    // docx uses hex colours without # prefix
+    const mergedTextColor = allMerged ? '228B22' : (tooManyMissing ? 'DC143C' : '000000'); // ForestGreen, Crimson, or Black
 
     const doc = new Document({
       sections: [{
@@ -1209,7 +1228,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           new Paragraph({ text: `Net Words (merged transcript): ${transcriptWords}` }),
           new Paragraph({ text: `Words Filtered: ${totalWords - transcriptWords}` }),
           new Paragraph({ text: `Average Confidence: ${Math.round(avgConfidence * 100)}%` }),
-          new Paragraph({ text: `Chunks Merged: ${mergedCount}/${transcriptChunks.length}` }),
+          new Paragraph({ 
+            children: [
+              new TextRun({ 
+                text: `Chunks Merged: ${mergedCount}/${transcriptChunks.length}`,
+                color: mergedTextColor,
+                bold: true
+              })
+            ]
+          }),
           new Paragraph({ text: '' }),
           new Paragraph({ text: 'Chunk Details', heading: HeadingLevel.HEADING_2 }),
           new DocxTable({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
