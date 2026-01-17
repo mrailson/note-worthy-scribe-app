@@ -84,6 +84,8 @@ import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
 import { mergeLive } from '@/utils/liveMerge';
 import { mergeByTimestamps, segmentsToPlainText, type Segment } from '@/lib/segmentMerge';
 import { useMeetingData } from "@/hooks/useMeetingData";
+import { trimSilence } from '@/utils/audioSilenceTrimmer';
+import { transcodeToWhisperFormat, shouldTranscode } from '@/utils/audioTranscoder';
 
 interface TranscriptData {
   text: string;
@@ -1359,8 +1361,23 @@ export const MeetingRecorder = ({
       setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
       
       // Create blob from chunks
-      const chunkBlob = new Blob(chunks, { type: 'audio/webm' });
+      let chunkBlob = new Blob(chunks, { type: 'audio/webm' });
+      const originalSize = chunkBlob.size;
       const endTime = new Date();
+      
+      // Step 1: Trim leading/trailing silence (>500ms) to improve last-word confidence
+      console.log(`✂️ Trimming silence from chunk ${chunkId}...`);
+      chunkBlob = await trimSilence(chunkBlob, { thresholdMs: 500, silenceLevel: -40 });
+      
+      // Step 2: Transcode to 16kHz mono WAV for Whisper optimisation (10-20× smaller)
+      if (shouldTranscode(chunkBlob)) {
+        console.log(`🎵 Transcoding chunk ${chunkId} to 16kHz mono...`);
+        chunkBlob = await transcodeToWhisperFormat(chunkBlob, { 
+          targetSampleRate: 16000, 
+          channels: 1 
+        });
+        console.log(`📉 Chunk ${chunkId}: ${(originalSize / 1024).toFixed(1)}KB → ${(chunkBlob.size / 1024).toFixed(1)}KB (${((1 - chunkBlob.size / originalSize) * 100).toFixed(0)}% reduction)`);
+      }
       
       // Add timeout for the transcription request
       const controller = new AbortController();
