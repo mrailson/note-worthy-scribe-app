@@ -34,6 +34,11 @@ import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Setti
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
+import { MeetingHistoryViewSelector, HistoryViewMode } from "@/components/meeting-history/MeetingHistoryViewSelector";
+import { CompactMeetingList } from "@/components/meeting-history/CompactMeetingList";
+import { MeetingGridView } from "@/components/meeting-history/MeetingGridView";
+import { MeetingTableView } from "@/components/meeting-history/MeetingTableView";
+import { MeetingTimelineView } from "@/components/meeting-history/MeetingTimelineView";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
 import { useRecording } from "@/contexts/RecordingContext";
 import { detectDevice } from "@/utils/DeviceDetection";
@@ -327,6 +332,25 @@ export const MeetingRecorder = ({
   const [meetings, setMeetings] = useState<any[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Layout view mode for meeting history (persisted)
+  const [layoutViewMode, setLayoutViewMode] = useState<HistoryViewMode>(() => {
+    try {
+      const saved = localStorage.getItem('recorderMeetingHistoryLayoutMode');
+      return (saved as HistoryViewMode) || 'list';
+    } catch {
+      return 'list';
+    }
+  });
+  
+  // Persist layout view mode changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('recorderMeetingHistoryLayoutMode', layoutViewMode);
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [layoutViewMode]);
 
   // Signal to Meeting History that a new meeting was saved
   const signalMeetingHistoryRefresh = () => {
@@ -4780,8 +4804,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             audio_overview_duration
           )
         `)
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -6148,8 +6171,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   </SelectContent>
                 </Select>
               )}
-              <div className="flex gap-2">
-              </div>
+              <MeetingHistoryViewSelector
+                viewMode={layoutViewMode}
+                onViewModeChange={setLayoutViewMode}
+              />
               {filteredMeetings.length > 0 && (
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
                   {filteredMeetings.length} meeting{filteredMeetings.length > 1 ? 's' : ''}
@@ -6395,35 +6420,108 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             )}
           </div>
 
-          {/* Meetings List */}
-          <MeetingHistoryList 
-            meetings={filteredMeetings}
-            onEdit={(meetingId) => navigate(`/meeting-summary`, { state: { id: meetingId } })}
-            onViewSummary={handleViewSummary}
-            onViewTranscript={handleViewTranscript}
-            onDelete={handleDeleteMeeting}
-            onRefresh={loadMeetingHistory}
-            loading={loadingHistory}
-            isSelectMode={isSelectMode}
-            selectedMeetings={selectedMeetings}
-            onSelectMeeting={(meetingId, isSelected) => {
-              if (isSelected) {
-                setSelectedMeetings(prev => [...prev, meetingId]);
-              } else {
-                setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
-              }
-            }}
-            onMeetingUpdate={(meetingId, updatedTitle) => {
-              setMeetings(prev => prev.map(meeting =>
-                meeting.id === meetingId 
-                  ? { ...meeting, title: updatedTitle }
-                  : meeting
-              ));
-            }}
-            showRecordingPlayback={false}
-            autoOpenSafeModeForMeetingId={autoOpenSafeModeForMeetingId}
-            onAutoOpenSafeModeProcessed={() => setAutoOpenSafeModeForMeetingId(null)}
-          />
+          {/* Meetings List - Conditional rendering based on view mode */}
+          {layoutViewMode === 'compact' ? (
+            <CompactMeetingList
+              meetings={filteredMeetings}
+              isSelectMode={isSelectMode}
+              selectedMeetings={selectedMeetings}
+              onSelectMeeting={(meetingId, isSelected) => {
+                if (isSelected) {
+                  setSelectedMeetings(prev => [...prev, meetingId]);
+                } else {
+                  setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                }
+              }}
+              onViewNotes={handleViewSummary}
+              onDelete={handleDeleteMeeting}
+              loading={loadingHistory}
+            />
+          ) : layoutViewMode === 'grid' ? (
+            <MeetingGridView
+              meetings={filteredMeetings}
+              isSelectMode={isSelectMode}
+              selectedMeetings={selectedMeetings}
+              onSelectMeeting={(meetingId, isSelected) => {
+                if (isSelected) {
+                  setSelectedMeetings(prev => [...prev, meetingId]);
+                } else {
+                  setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                }
+              }}
+              onViewNotes={handleViewSummary}
+              onDelete={handleDeleteMeeting}
+              loading={loadingHistory}
+            />
+          ) : layoutViewMode === 'table' ? (
+            <MeetingTableView
+              meetings={filteredMeetings}
+              isSelectMode={isSelectMode}
+              selectedMeetings={selectedMeetings}
+              onSelectMeeting={(meetingId, isSelected) => {
+                if (isSelected) {
+                  setSelectedMeetings(prev => [...prev, meetingId]);
+                } else {
+                  setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                }
+              }}
+              onSelectAll={() => {
+                if (selectedMeetings.length === filteredMeetings.length) {
+                  setSelectedMeetings([]);
+                } else {
+                  setSelectedMeetings(filteredMeetings.map(m => m.id));
+                }
+              }}
+              onViewNotes={handleViewSummary}
+              onDelete={handleDeleteMeeting}
+              loading={loadingHistory}
+            />
+          ) : layoutViewMode === 'timeline' ? (
+            <MeetingTimelineView
+              meetings={filteredMeetings}
+              isSelectMode={isSelectMode}
+              selectedMeetings={selectedMeetings}
+              onSelectMeeting={(meetingId, isSelected) => {
+                if (isSelected) {
+                  setSelectedMeetings(prev => [...prev, meetingId]);
+                } else {
+                  setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                }
+              }}
+              onViewNotes={handleViewSummary}
+              onDelete={handleDeleteMeeting}
+              loading={loadingHistory}
+            />
+          ) : (
+            <MeetingHistoryList 
+              meetings={filteredMeetings}
+              onEdit={(meetingId) => navigate(`/meeting-summary`, { state: { id: meetingId } })}
+              onViewSummary={handleViewSummary}
+              onViewTranscript={handleViewTranscript}
+              onDelete={handleDeleteMeeting}
+              onRefresh={loadMeetingHistory}
+              loading={loadingHistory}
+              isSelectMode={isSelectMode}
+              selectedMeetings={selectedMeetings}
+              onSelectMeeting={(meetingId, isSelected) => {
+                if (isSelected) {
+                  setSelectedMeetings(prev => [...prev, meetingId]);
+                } else {
+                  setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                }
+              }}
+              onMeetingUpdate={(meetingId, updatedTitle) => {
+                setMeetings(prev => prev.map(meeting =>
+                  meeting.id === meetingId 
+                    ? { ...meeting, title: updatedTitle }
+                    : meeting
+                ));
+              }}
+              showRecordingPlayback={false}
+              autoOpenSafeModeForMeetingId={autoOpenSafeModeForMeetingId}
+              onAutoOpenSafeModeProcessed={() => setAutoOpenSafeModeForMeetingId(null)}
+            />
+          )}
         </TabsContent>
 
       </Tabs>
