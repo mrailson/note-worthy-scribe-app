@@ -184,6 +184,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
   
+  // Chunk analysis state
+  const [transcriptChunks, setTranscriptChunks] = useState<any[]>([]);
+  const [isLoadingChunks, setIsLoadingChunks] = useState(false);
+  
   // Section-based editing state
   const [sections, setSections] = useState<Section[]>([]);
   const [isSavingSections, setIsSavingSections] = useState(false);
@@ -1043,11 +1047,163 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   }, [meeting?.id, notesContent, rebuildNotesFromSections]);
 
+  // Load transcript chunks from assembly_transcripts
+  const loadTranscriptChunks = useCallback(async () => {
+    if (!meeting?.id || transcriptChunks.length > 0 || isLoadingChunks) return;
+    
+    setIsLoadingChunks(true);
+    try {
+      const { data, error } = await supabase
+        .from('assembly_transcripts')
+        .select('*')
+        .eq('meeting_id', meeting.id)
+        .order('chunk_index', { ascending: true });
+      
+      if (error) throw error;
+      setTranscriptChunks(data || []);
+    } catch (error) {
+      console.error('Error loading transcript chunks:', error);
+    } finally {
+      setIsLoadingChunks(false);
+    }
+  }, [meeting?.id, transcriptChunks.length, isLoadingChunks]);
+
+  // Helper to check if a chunk's text is in the merged transcript
+  const isChunkInTranscript = useCallback((chunkText: string): boolean => {
+    if (!transcript || !chunkText) return false;
+    const cleanedChunk = chunkText.trim().toLowerCase().replace(/[^\w\s]/g, '');
+    const cleanedTranscript = transcript.toLowerCase().replace(/[^\w\s]/g, '');
+    const words = cleanedChunk.split(/\s+/).filter(w => w.length > 3);
+    if (words.length === 0) return false;
+    const matchingWords = words.filter(word => cleanedTranscript.includes(word));
+    return matchingWords.length / words.length > 0.5;
+  }, [transcript]);
+
+  // Helper to extract clean text from chunk
+  const extractCleanChunkText = useCallback((chunk: any): string => {
+    const rawText = chunk.transcript_text || '';
+    if (rawText.startsWith('[{') || rawText.startsWith('[{"')) {
+      try {
+        const parsed = JSON.parse(rawText);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item: any) => item.text || '').join(' ').trim();
+        }
+      } catch {
+        // Not valid JSON
+      }
+    }
+    return rawText.trim();
+  }, []);
+
+  // Export Chunk Analysis Report to Word
+  const exportChunkAnalysisToWord = useCallback(async () => {
+    if (transcriptChunks.length === 0) {
+      toast.error('No chunks available for analysis');
+      return;
+    }
+
+    const { Document, Paragraph, TextRun, Packer, Table: DocxTable, TableRow: DocxTableRow, TableCell: DocxTableCell, WidthType, HeadingLevel } = await import('docx');
+    const { saveAs } = await import('file-saver');
+
+    const formatTime = (ms: number | undefined): string => {
+      if (ms === undefined) return 'N/A';
+      const seconds = ms / 1000;
+      const mins = Math.floor(seconds / 60);
+      const secs = (seconds % 60).toFixed(1);
+      return `${mins}m ${secs}s`;
+    };
+
+    // Build table rows
+    const tableRows = [
+      new DocxTableRow({
+        children: [
+          new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: '#', bold: true })] })], width: { size: 5, type: WidthType.PERCENTAGE } }),
+          new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Start', bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
+          new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'End', bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
+          new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Duration', bold: true })] })], width: { size: 8, type: WidthType.PERCENTAGE } }),
+          new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Words', bold: true })] })], width: { size: 6, type: WidthType.PERCENTAGE } }),
+          new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Conf', bold: true })] })], width: { size: 6, type: WidthType.PERCENTAGE } }),
+          new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Merged', bold: true })] })], width: { size: 7, type: WidthType.PERCENTAGE } }),
+          new DocxTableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Text', bold: true })] })], width: { size: 48, type: WidthType.PERCENTAGE } }),
+        ],
+      }),
+    ];
+
+    transcriptChunks.forEach((chunk) => {
+      const chunkText = extractCleanChunkText(chunk);
+      const wordCount = chunkText.split(/\s+/).filter(w => w.length > 0).length;
+      const startMs = chunk.timestamp_ms || 0;
+      const duration = 'N/A';
+      const merged = isChunkInTranscript(chunkText) ? '✓' : '✗';
+      const confidence = chunk.confidence || 0;
+
+      tableRows.push(
+        new DocxTableRow({
+          children: [
+            new DocxTableCell({ children: [new Paragraph(String(chunk.chunk_index))] }),
+            new DocxTableCell({ children: [new Paragraph(formatTime(startMs))] }),
+            new DocxTableCell({ children: [new Paragraph('N/A')] }),
+            new DocxTableCell({ children: [new Paragraph(duration)] }),
+            new DocxTableCell({ children: [new Paragraph(String(wordCount))] }),
+            new DocxTableCell({ children: [new Paragraph(`${Math.round(confidence * 100)}%`)] }),
+            new DocxTableCell({ children: [new Paragraph(merged)] }),
+            new DocxTableCell({ children: [new Paragraph(chunkText)] }),
+          ],
+        })
+      );
+    });
+
+    // Calculate totals
+    const totalWords = transcriptChunks.reduce((sum, c) => {
+      const text = extractCleanChunkText(c);
+      return sum + text.split(/\s+/).filter(w => w.length > 0).length;
+    }, 0);
+    const avgConfidence = transcriptChunks.length > 0 
+      ? transcriptChunks.reduce((sum, c) => sum + (c.confidence || 0), 0) / transcriptChunks.length 
+      : 0;
+    const transcriptWords = transcript.trim().split(/\s+/).filter(w => w.length > 0).length;
+    const mergedCount = transcriptChunks.filter(c => isChunkInTranscript(extractCleanChunkText(c))).length;
+
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({ text: 'Audio Chunk Analysis Report', heading: HeadingLevel.HEADING_1 }),
+          new Paragraph({ text: `Generated: ${new Date().toLocaleString('en-GB')}` }),
+          new Paragraph({ text: '' }),
+          new Paragraph({ text: 'Summary', heading: HeadingLevel.HEADING_2 }),
+          new Paragraph({ text: `Total Chunks: ${transcriptChunks.length}` }),
+          new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
+          new Paragraph({ text: `Net Words (merged transcript): ${transcriptWords}` }),
+          new Paragraph({ text: `Words Filtered: ${totalWords - transcriptWords}` }),
+          new Paragraph({ text: `Average Confidence: ${Math.round(avgConfidence * 100)}%` }),
+          new Paragraph({ text: `Chunks Merged: ${mergedCount}/${transcriptChunks.length}` }),
+          new Paragraph({ text: '' }),
+          new Paragraph({ text: 'Chunk Details', heading: HeadingLevel.HEADING_2 }),
+          new DocxTable({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
+          new Paragraph({ text: '' }),
+          new Paragraph({ text: 'Consolidated Transcript', heading: HeadingLevel.HEADING_2 }),
+          new Paragraph({ text: `Word Count: ${transcriptWords}` }),
+          new Paragraph({ text: '' }),
+          new Paragraph({ text: transcript || '(No transcript text)' }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `chunk-analysis-${new Date().toISOString().slice(0, 10)}.docx`);
+    toast.success('Audio Chunk Analysis Report downloaded');
+  }, [transcriptChunks, transcript, extractCleanChunkText, isChunkInTranscript]);
+
   // Handle tab change
   const handleTabChange = (value: string) => {
     setActiveTab(value as 'notes' | 'transcript' | 'actions' | 'ask-ai' | 'audio' | 'documents');
     if (value === 'transcript' && !transcript && !isLoadingTranscript) {
       loadTranscript();
+    }
+    // Load chunks when switching to transcript tab
+    if (value === 'transcript') {
+      loadTranscriptChunks();
     }
   };
 
@@ -2960,9 +3116,20 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <TabsContent value="transcript" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card">
                 <div className="p-6 space-y-4">
-                  {/* Find & Replace toggle for transcript */}
+                  {/* Find & Replace toggle and Chunk Report for transcript */}
                   {transcript && !isLoadingTranscript && !transcriptError && (
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={exportChunkAnalysisToWord}
+                        disabled={transcriptChunks.length === 0 || isLoadingChunks}
+                        className="gap-2"
+                        title="Download detailed chunk analysis as Word document"
+                      >
+                        <Download className="h-4 w-4 text-emerald-600" />
+                        Chunk Report
+                      </Button>
                       <Button
                         variant={showTranscriptFindReplace ? 'default' : 'outline'}
                         size="sm"
