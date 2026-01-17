@@ -1,14 +1,14 @@
 /**
- * Fixed iOS Transcriber - Upload Individual Blobs, Buffer Text
+ * iOS Transcriber with Recorder Rotation
  * 
- * Key fix: iOS uses fMP4 (fragmented MP4) which CANNOT be concatenated.
- * Combining blobs creates corrupt audio files that fail to transcribe.
+ * Key fix: iOS uses fMP4 (fragmented MP4). Using timeslice or requestData()
+ * produces fragment blobs that are NOT valid standalone audio files.
+ * Whisper rejects these with "Invalid file format" errors.
  * 
- * Solution:
- * - Upload each 5-second blob individually (as valid fMP4 segments)
- * - Buffer the transcription TEXT instead of audio
- * - Apply smart merge de-duplication on accumulated text
- * - Emit merged text every ~12 seconds for UI updates
+ * Solution: ROTATE the MediaRecorder every ~20 seconds
+ * - Start recorder WITHOUT timeslice
+ * - Every ~20s: stop() the recorder → get complete valid MP4 blob → restart()
+ * - This ensures every uploaded blob is a valid, self-contained audio file
  * 
  * Quality features retained:
  * - Hallucination/noise filtering
@@ -52,7 +52,7 @@ export class SimpleIOSTranscriber {
   private stream: MediaStream | null = null;
   private isRecording = false;
   
-  // Upload queue for individual blobs (NOT combined)
+  // Upload queue for individual blobs
   private queue: QueuedChunk[] = [];
   private uploadInFlight = false;
   private capturedBlobCount = 0;
@@ -71,15 +71,19 @@ export class SimpleIOSTranscriber {
   // Smart merge: accumulated transcript for de-duplication
   private finalTranscript = '';
   private lastTranscriptTail = '';
-  private readonly PROMPT_TAIL_LENGTH = 200;
+  private readonly PROMPT_TAIL_LENGTH = 150; // Reduced to minimize hallucination drag
   
-  // MediaRecorder timeslice
-  private readonly BLOB_TIMESLICE_MS = 5000; // 5-second blobs
+  // Recorder rotation: produce complete MP4 files by stop/restart
+  private readonly SEGMENT_DURATION_MS = 20000; // Rotate every 20 seconds
+  private segmentStartMs = 0;
+  private rotationInProgress = false;
+  private stopRequested = false;
+  private mimeType = 'audio/mp4';
   
   // Web Worker-based heartbeat (resistant to background throttling)
   private heartbeatWorker: Worker | null = null;
   private heartbeatWorkerBlobUrl: string | null = null;
-  private readonly HEARTBEAT_INTERVAL_MS = 8000;
+  private readonly HEARTBEAT_INTERVAL_MS = 5000; // Check more frequently for rotation
   
   // Meeting context
   private meetingId: string | null = null;
@@ -111,13 +115,13 @@ export class SimpleIOSTranscriber {
    */
   async start(): Promise<void> {
     if (this.isRecording) {
-      console.log('📱 FixedIOS: Already recording');
+      console.log('📱 iOS-Rotate: Already recording');
       return;
     }
 
     try {
       this.callbacks.onStatusChange('Starting iOS transcription...');
-      console.log('📱 FixedIOS: Starting with individual blob uploads (no audio combining)...');
+      console.log('📱 iOS-Rotate: Starting with recorder rotation (no timeslice)...');
 
       // Get microphone stream
       const constraints: MediaStreamConstraints = {
@@ -131,34 +135,16 @@ export class SimpleIOSTranscriber {
       };
 
       this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('📱 FixedIOS: Got microphone stream');
+      console.log('📱 iOS-Rotate: Got microphone stream');
 
       // Determine MIME type (iOS prefers audio/mp4)
-      const mimeType = MediaRecorder.isTypeSupported('audio/mp4') 
+      this.mimeType = MediaRecorder.isTypeSupported('audio/mp4') 
         ? 'audio/mp4' 
         : MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
           ? 'audio/webm;codecs=opus'
           : 'audio/webm';
 
-      console.log('📱 FixedIOS: Using MIME type:', mimeType);
-
-      // Create MediaRecorder with timeslice for automatic blob emission
-      this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
-
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          this.handleDataAvailable(event.data);
-        }
-      };
-
-      this.mediaRecorder.onerror = (event: any) => {
-        console.error('📱 FixedIOS: MediaRecorder error:', event.error);
-        this.callbacks.onError(`Recording error: ${event.error?.message || 'Unknown'}`);
-      };
-
-      this.mediaRecorder.onstop = () => {
-        console.log('📱 FixedIOS: MediaRecorder stopped');
-      };
+      console.log('📱 iOS-Rotate: Using MIME type:', this.mimeType);
 
       // Reset state
       this.queue = [];
@@ -174,12 +160,14 @@ export class SimpleIOSTranscriber {
       this.pendingConfidences = [];
       this.lastEmitTime = Date.now();
       this.lastOndataavailableTime = Date.now();
+      this.rotationInProgress = false;
+      this.stopRequested = false;
 
-      // Start recording with timeslice
-      this.mediaRecorder.start(this.BLOB_TIMESLICE_MS);
+      // Create and start recorder (NO timeslice - we rotate instead)
+      this.createAndStartRecorder();
       this.isRecording = true;
 
-      // Start heartbeat to force requestData if needed (uses Web Worker)
+      // Start heartbeat for rotation checks (uses Web Worker)
       this.startHeartbeat();
       
       // Add visibility handler for tab switching recovery
@@ -187,12 +175,89 @@ export class SimpleIOSTranscriber {
 
       this.callbacks.onStatusChange('Recording...');
       this.emitStats();
-      console.log('📱 FixedIOS: Recording started - uploading individual 5s blobs');
+      console.log('📱 iOS-Rotate: Recording started - rotating every 20s for valid MP4 files');
 
     } catch (error: any) {
-      console.error('📱 FixedIOS: Failed to start:', error);
+      console.error('📱 iOS-Rotate: Failed to start:', error);
       this.callbacks.onError(`Failed to start: ${error.message}`);
       throw error;
+    }
+  }
+
+  /**
+   * Create a new MediaRecorder and start it (no timeslice)
+   */
+  private createAndStartRecorder(): void {
+    if (!this.stream) {
+      console.error('📱 iOS-Rotate: No stream available for recorder');
+      return;
+    }
+
+    this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: this.mimeType });
+
+    this.mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        this.handleDataAvailable(event.data);
+      }
+    };
+
+    this.mediaRecorder.onerror = (event: any) => {
+      console.error('📱 iOS-Rotate: MediaRecorder error:', event.error);
+      this.callbacks.onError(`Recording error: ${event.error?.message || 'Unknown'}`);
+    };
+
+    this.mediaRecorder.onstop = () => {
+      console.log('📱 iOS-Rotate: MediaRecorder stopped');
+      this.handleRecorderStop();
+    };
+
+    // Start WITHOUT timeslice - we control segmentation via stop/restart
+    this.mediaRecorder.start();
+    this.segmentStartMs = Date.now();
+    this.rotationInProgress = false;
+    
+    console.log('📱 iOS-Rotate: Recorder started (no timeslice)');
+  }
+
+  /**
+   * Handle recorder stop - restart if we're still recording
+   */
+  private handleRecorderStop(): void {
+    // If we're still supposed to be recording and not user-initiated stop
+    if (this.isRecording && !this.stopRequested && this.stream) {
+      console.log('📱 iOS-Rotate: Restarting recorder for next segment...');
+      
+      // Small delay before restarting to ensure clean state
+      setTimeout(() => {
+        if (this.isRecording && !this.stopRequested && this.stream) {
+          this.createAndStartRecorder();
+        }
+      }, 50);
+    }
+  }
+
+  /**
+   * Rotate the recorder: stop current one (triggers complete blob), then restart
+   */
+  private rotateRecorder(reason: string): void {
+    if (!this.isRecording || !this.mediaRecorder || this.rotationInProgress) {
+      return;
+    }
+
+    if (this.mediaRecorder.state !== 'recording') {
+      console.log('📱 iOS-Rotate: Cannot rotate - recorder not in recording state');
+      return;
+    }
+
+    console.log(`📱 iOS-Rotate: Rotating recorder (${reason})`);
+    this.rotationInProgress = true;
+    
+    try {
+      // Stop will trigger ondataavailable with complete file, then onstop will restart
+      this.mediaRecorder.stop();
+    } catch (e) {
+      console.warn('📱 iOS-Rotate: Rotation stop failed:', e);
+      this.rotationInProgress = false;
     }
   }
 
@@ -204,16 +269,21 @@ export class SimpleIOSTranscriber {
       return;
     }
 
-    console.log('📱 FixedIOS: Stopping transcription...');
+    console.log('📱 iOS-Rotate: Stopping transcription...');
     this.callbacks.onStatusChange('Processing final audio...');
 
+    this.stopRequested = true;
     this.isRecording = false;
     this.stopHeartbeat();
     this.removeVisibilityHandler();
 
-    // Stop MediaRecorder (triggers final ondataavailable)
+    // Stop MediaRecorder (triggers final ondataavailable with complete file)
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      this.mediaRecorder.stop();
+      try {
+        this.mediaRecorder.stop();
+      } catch (e) {
+        console.warn('📱 iOS-Rotate: Stop failed:', e);
+      }
     }
 
     // Stop stream
@@ -223,11 +293,13 @@ export class SimpleIOSTranscriber {
     }
 
     // Wait a moment for final blob to be queued
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 200));
     
     // Process any remaining queue
-    while (this.queue.length > 0 || this.uploadInFlight) {
+    let waitCount = 0;
+    while ((this.queue.length > 0 || this.uploadInFlight) && waitCount < 20) {
       await new Promise(resolve => setTimeout(resolve, 500));
+      waitCount++;
     }
     
     // Emit any remaining buffered text
@@ -237,20 +309,26 @@ export class SimpleIOSTranscriber {
 
     this.callbacks.onStatusChange('Recording stopped');
     this.emitStats();
-    console.log('📱 FixedIOS: Stopped. Total transcribed chars:', this.totalTranscribedChars);
+    console.log('📱 iOS-Rotate: Stopped. Total transcribed chars:', this.totalTranscribedChars);
   }
 
   /**
    * Handle incoming audio blob from MediaRecorder
-   * NOW: Queue each individual blob for upload (no combining!)
+   * Each blob is now a COMPLETE MP4 file (from stop/restart rotation)
    */
   private handleDataAvailable(blob: Blob): void {
     this.capturedBlobCount++;
     this.lastOndataavailableTime = Date.now();
 
-    console.log(`📱 FixedIOS: Received blob #${this.capturedBlobCount} (${(blob.size / 1024).toFixed(1)}KB)`);
+    // Filter out tiny blobs (less than 1KB likely invalid)
+    if (blob.size < 1000) {
+      console.log(`📱 iOS-Rotate: Skipping tiny blob #${this.capturedBlobCount} (${blob.size} bytes)`);
+      return;
+    }
 
-    // Queue for immediate individual upload (no combining!)
+    console.log(`📱 iOS-Rotate: Received complete MP4 blob #${this.capturedBlobCount} (${(blob.size / 1024).toFixed(1)}KB)`);
+
+    // Queue for upload
     const queuedChunk: QueuedChunk = {
       blob,
       index: this.capturedBlobCount,
@@ -290,46 +368,50 @@ export class SimpleIOSTranscriber {
         
         // Quality filtering: hallucination detection
         if (this.isLikelyRepetitiveNoise(cleanText, result.confidence)) {
-          console.log(`📱 FixedIOS: Filtered hallucination: "${cleanText.substring(0, 50)}..."`);
-        } else if (result.noSpeechProb && result.noSpeechProb > 0.85) {
-          console.log(`📱 FixedIOS: Filtered high no_speech_prob (${(result.noSpeechProb * 100).toFixed(1)}%)`);
-        } else if (result.confidence !== undefined && result.confidence < 0.12) {
-          console.log(`📱 FixedIOS: Filtered low confidence (${(result.confidence * 100).toFixed(1)}%)`);
+          console.log(`📱 iOS-Rotate: Filtered hallucination: "${cleanText.substring(0, 50)}..."`);
+        } else if (result.noSpeechProb && result.noSpeechProb > 0.80) {
+          console.log(`📱 iOS-Rotate: Filtered high no_speech_prob (${(result.noSpeechProb * 100).toFixed(1)}%)`);
+        } else if (result.confidence !== undefined && result.confidence < 0.15) {
+          console.log(`📱 iOS-Rotate: Filtered low confidence (${(result.confidence * 100).toFixed(1)}%)`);
         } else {
-          // Buffer this text for later emission
-          this.pendingTexts.push(cleanText);
-          this.pendingConfidences.push(result.confidence || 0.8);
-          
-          this.lastTextLength = cleanText.length;
-          this.totalTranscribedChars += cleanText.length;
-          
-          // Update prompt tail for next chunk
-          this.lastTranscriptTail = cleanText.slice(-this.PROMPT_TAIL_LENGTH);
-          
-          console.log(`📱 FixedIOS: Buffered text from chunk #${item.index}: "${cleanText.slice(0, 50)}..."`);
-          
-          // Check if we should emit accumulated text
-          const timeSinceLastEmit = Date.now() - this.lastEmitTime;
-          if (timeSinceLastEmit >= this.TEXT_EMIT_INTERVAL_MS || this.pendingTexts.length >= 3) {
+          // Additional end-of-segment filter: skip if text looks like prompt echo
+          if (this.lastTranscriptTail && this.isLikelyPromptEcho(cleanText, this.lastTranscriptTail)) {
+            console.log(`📱 iOS-Rotate: Filtered prompt echo: "${cleanText.substring(0, 40)}..."`);
+          } else {
+            // Buffer this text for later emission
+            this.pendingTexts.push(cleanText);
+            this.pendingConfidences.push(result.confidence || 0.8);
+            
+            this.lastTextLength = cleanText.length;
+            this.totalTranscribedChars += cleanText.length;
+            
+            // Update prompt tail for next chunk (only if good quality)
+            if (result.confidence === undefined || result.confidence > 0.4) {
+              this.lastTranscriptTail = cleanText.slice(-this.PROMPT_TAIL_LENGTH);
+            }
+            
+            console.log(`📱 iOS-Rotate: Buffered text from chunk #${item.index}: "${cleanText.slice(0, 50)}..."`);
+            
+            // Emit immediately for faster feedback (since chunks are 20s now)
             this.emitBufferedText(false);
           }
         }
       } else {
-        console.log(`📱 FixedIOS: Chunk #${item.index} returned empty/silent`);
+        console.log(`📱 iOS-Rotate: Chunk #${item.index} returned empty/silent`);
       }
 
     } catch (error: any) {
-      console.error(`📱 FixedIOS: Upload failed for chunk #${item.index}:`, error);
+      console.error(`📱 iOS-Rotate: Upload failed for chunk #${item.index}:`, error);
       
       // Retry logic
       if (item.retryCount < 2) {
         item.retryCount++;
         this.lastUploadStatus = 'retrying';
         this.queue.unshift(item);
-        console.log(`📱 FixedIOS: Retrying chunk #${item.index} (attempt ${item.retryCount + 1})`);
+        console.log(`📱 iOS-Rotate: Retrying chunk #${item.index} (attempt ${item.retryCount + 1})`);
       } else {
         this.lastUploadStatus = 'failed';
-        console.error(`📱 FixedIOS: Giving up on chunk #${item.index} after 3 attempts`);
+        console.error(`📱 iOS-Rotate: Giving up on chunk #${item.index} after 3 attempts`);
       }
     } finally {
       this.uploadInFlight = false;
@@ -343,6 +425,26 @@ export class SimpleIOSTranscriber {
   }
 
   /**
+   * Check if transcribed text is just echoing the prompt
+   */
+  private isLikelyPromptEcho(text: string, promptTail: string): boolean {
+    if (!promptTail || promptTail.length < 20) return false;
+    
+    const textLower = text.toLowerCase().trim();
+    const promptLower = promptTail.toLowerCase().trim();
+    
+    // Check if text starts with most of the prompt
+    const checkLength = Math.min(50, promptLower.length);
+    if (textLower.startsWith(promptLower.slice(0, checkLength))) {
+      return true;
+    }
+    
+    // Check high similarity
+    const similarity = this.calculateSimilarity(textLower.slice(0, 60), promptLower.slice(-60));
+    return similarity > 0.8;
+  }
+
+  /**
    * Emit buffered text with smart merge de-duplication
    */
   private emitBufferedText(isFinal: boolean): void {
@@ -350,7 +452,7 @@ export class SimpleIOSTranscriber {
       return;
     }
 
-    console.log(`📱 FixedIOS: Emitting ${this.pendingTexts.length} buffered texts`);
+    console.log(`📱 iOS-Rotate: Emitting ${this.pendingTexts.length} buffered texts`);
 
     // Merge all pending texts together with de-duplication
     let mergedText = '';
@@ -366,7 +468,7 @@ export class SimpleIOSTranscriber {
 
     // Emit to UI
     this.callbacks.onTranscription(mergedText, isFinal, avgConfidence);
-    console.log(`📱 FixedIOS: Emitted merged text (${mergedText.length} chars, ${(avgConfidence * 100).toFixed(0)}% conf)`);
+    console.log(`📱 iOS-Rotate: Emitted merged text (${mergedText.length} chars, ${(avgConfidence * 100).toFixed(0)}% conf)`);
 
     // Clear buffers
     this.pendingTexts = [];
@@ -573,18 +675,11 @@ export class SimpleIOSTranscriber {
   private handleHeartbeatTick(): void {
     if (!this.isRecording || !this.mediaRecorder) return;
 
-    const timeSinceLastData = Date.now() - this.lastOndataavailableTime;
+    const timeSinceSegmentStart = Date.now() - this.segmentStartMs;
     
-    if (timeSinceLastData > this.HEARTBEAT_INTERVAL_MS) {
-      console.log(`📱 FixedIOS: Heartbeat - forcing requestData (${Math.round(timeSinceLastData / 1000)}s since last)`);
-      
-      if (this.mediaRecorder.state === 'recording') {
-        try {
-          this.mediaRecorder.requestData();
-        } catch (e) {
-          console.warn('📱 FixedIOS: requestData failed:', e);
-        }
-      }
+    // Check if it's time to rotate the recorder
+    if (timeSinceSegmentStart >= this.SEGMENT_DURATION_MS && !this.rotationInProgress) {
+      this.rotateRecorder(`timer: ${Math.round(timeSinceSegmentStart / 1000)}s`);
     }
     
     // Also check if we should emit buffered text
@@ -612,14 +707,12 @@ export class SimpleIOSTranscriber {
   private setupVisibilityHandler(): void {
     this.visibilityHandler = () => {
       if (document.visibilityState === 'visible' && this.isRecording) {
-        console.log('📱 FixedIOS: Tab visible - forcing immediate data request');
+        console.log('📱 iOS-Rotate: Tab visible - checking if rotation needed');
         
-        if (this.mediaRecorder?.state === 'recording') {
-          try {
-            this.mediaRecorder.requestData();
-          } catch (e) {
-            console.warn('📱 FixedIOS: requestData on visibility failed:', e);
-          }
+        // Force rotation if segment has been running too long
+        const timeSinceSegmentStart = Date.now() - this.segmentStartMs;
+        if (timeSinceSegmentStart >= this.SEGMENT_DURATION_MS && !this.rotationInProgress) {
+          this.rotateRecorder('visibility recovery');
         }
         
         if (this.queue.length > 0 && !this.uploadInFlight) {
