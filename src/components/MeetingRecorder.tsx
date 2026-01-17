@@ -1211,7 +1211,8 @@ export const MeetingRecorder = ({
 
         console.log(`🎵 Started chunk ${currentChunkId}`);
 
-        // Stop this chunk after 5 seconds
+        // Stop this chunk after 30 seconds (updated from 5s per ChatGPT recommendations)
+        // Longer chunks reduce mid-sentence truncation and improve sentence integrity
         const stopTimeout = setTimeout(() => {
           if (chunkRecorders.current.has(currentChunkId)) {
             const recorder = chunkRecorders.current.get(currentChunkId);
@@ -1220,7 +1221,7 @@ export const MeetingRecorder = ({
               chunkRecorders.current.delete(currentChunkId);
             }
           }
-        }, 5000);
+        }, 30000);
 
         chunkIntervals.current.set(currentChunkId, stopTimeout);
       };
@@ -1228,7 +1229,8 @@ export const MeetingRecorder = ({
       // Start first chunk immediately
       startNewChunk();
 
-      // Start new chunks every 3 seconds (5 second chunks with 2 second overlap)
+      // Start new chunks every 27 seconds (30 second chunks with 3 second overlap)
+      // Updated from 3s interval per ChatGPT recommendations for better sentence integrity
       const chunkInterval = setInterval(() => {
         // More robust check for recording state
         if (isRecording && isRecordingRef.current && chunksStream && chunksStream.active) {
@@ -1263,7 +1265,7 @@ export const MeetingRecorder = ({
             audioContext.close();
           }
         }
-      }, 3000); // 3 seconds = 5 second chunk - 2 second overlap
+      }, 27000); // 27 seconds = 30 second chunk - 3 second overlap
 
       // Add a heartbeat to show recording is active every 5 seconds
       const heartbeatInterval = setInterval(() => {
