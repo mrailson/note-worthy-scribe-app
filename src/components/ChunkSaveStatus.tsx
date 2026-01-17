@@ -3,7 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { CheckCircle, Clock, XCircle, RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Clock, XCircle, RefreshCw, ChevronDown, ChevronRight, Download } from "lucide-react";
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, HeadingLevel } from "docx";
+import { saveAs } from "file-saver";
 
 interface ChunkSaveStatus {
   id: string;
@@ -78,6 +81,107 @@ const renderChunkTextWithLastWordHighlight = (text: string) => {
       <span className="opacity-30 italic" title="Last word may be preliminary">{lastWord}</span>"
     </span>
   );
+};
+
+// Export chunks to Word document
+const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: string, isChunkInTranscript: (text: string) => boolean) => {
+  const formatTime = (seconds: number | undefined): string => {
+    if (seconds === undefined) return 'N/A';
+    const mins = Math.floor(seconds / 60);
+    const secs = (seconds % 60).toFixed(1);
+    return `${mins}m ${secs}s`;
+  };
+
+  const tableRows: TableRow[] = [
+    // Header row
+    new TableRow({
+      children: [
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '#', bold: true })] })], width: { size: 5, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Start', bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'End', bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Duration', bold: true })] })], width: { size: 8, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Words', bold: true })] })], width: { size: 6, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Conf', bold: true })] })], width: { size: 6, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Merged', bold: true })] })], width: { size: 7, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Text', bold: true })] })], width: { size: 48, type: WidthType.PERCENTAGE } }),
+      ],
+    }),
+  ];
+
+  // Data rows
+  chunks.forEach((chunk) => {
+    const wordCount = chunk.text.trim().split(/\s+/).filter(w => w.length > 0).length;
+    const duration = chunk.startTime !== undefined && chunk.endTime !== undefined 
+      ? (chunk.endTime - chunk.startTime).toFixed(1) + 's' 
+      : 'N/A';
+    const merged = isChunkInTranscript(chunk.text) ? '✓' : '✗';
+    const rejectionNote = chunk.mergeRejectionReason ? ` [${chunk.mergeRejectionReason}]` : '';
+
+    tableRows.push(
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph(String(chunk.chunkNumber))] }),
+          new TableCell({ children: [new Paragraph(formatTime(chunk.startTime))] }),
+          new TableCell({ children: [new Paragraph(formatTime(chunk.endTime))] }),
+          new TableCell({ children: [new Paragraph(duration)] }),
+          new TableCell({ children: [new Paragraph(String(wordCount))] }),
+          new TableCell({ children: [new Paragraph(`${Math.round(chunk.confidence * 100)}%`)] }),
+          new TableCell({ children: [new Paragraph(merged)] }),
+          new TableCell({ children: [new Paragraph(chunk.text.trim() + rejectionNote)] }),
+        ],
+      })
+    );
+  });
+
+  // Calculate totals
+  const totalWords = chunks.reduce((sum, c) => sum + c.text.trim().split(/\s+/).filter(w => w.length > 0).length, 0);
+  const totalDuration = chunks.reduce((sum, c) => {
+    if (c.startTime !== undefined && c.endTime !== undefined) {
+      return sum + (c.endTime - c.startTime);
+    }
+    return sum;
+  }, 0);
+  const avgConfidence = chunks.length > 0 
+    ? chunks.reduce((sum, c) => sum + c.confidence, 0) / chunks.length 
+    : 0;
+  const mergedCount = chunks.filter(c => isChunkInTranscript(c.text)).length;
+
+  const doc = new Document({
+    sections: [{
+      properties: {},
+      children: [
+        new Paragraph({
+          text: 'Audio Chunk Analysis Report',
+          heading: HeadingLevel.HEADING_1,
+        }),
+        new Paragraph({
+          text: `Generated: ${new Date().toLocaleString('en-GB')}`,
+        }),
+        new Paragraph({ text: '' }),
+        new Paragraph({
+          text: 'Summary',
+          heading: HeadingLevel.HEADING_2,
+        }),
+        new Paragraph({ text: `Total Chunks: ${chunks.length}` }),
+        new Paragraph({ text: `Total Words: ${totalWords}` }),
+        new Paragraph({ text: `Total Duration: ${Math.floor(totalDuration / 60)}m ${Math.floor(totalDuration % 60)}s` }),
+        new Paragraph({ text: `Average Confidence: ${Math.round(avgConfidence * 100)}%` }),
+        new Paragraph({ text: `Chunks Merged: ${mergedCount}/${chunks.length}` }),
+        new Paragraph({ text: '' }),
+        new Paragraph({
+          text: 'Chunk Details',
+          heading: HeadingLevel.HEADING_2,
+        }),
+        new Table({
+          rows: tableRows,
+          width: { size: 100, type: WidthType.PERCENTAGE },
+        }),
+      ],
+    }],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  saveAs(blob, `chunk-analysis-${new Date().toISOString().slice(0, 10)}.docx`);
 };
 
 export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({ 
@@ -220,6 +324,21 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
             >
               🔗 Merged: {chunksMergedToTranscript}/{chunksRecorded}
             </Badge>
+            {chunks.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 px-2 text-xs gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  exportChunksToWord(chunks, mainTranscript, isChunkInTranscript);
+                }}
+                title="Download chunk analysis as Word document"
+              >
+                <Download className="h-3 w-3" />
+                Word
+              </Button>
+            )}
           </div>
           
           {/* Mobile-friendly status indicator - Always visible */}
