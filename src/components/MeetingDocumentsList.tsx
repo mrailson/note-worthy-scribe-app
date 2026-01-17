@@ -121,7 +121,6 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploading, setUploading] = useState(false);
   const [selectedDocType, setSelectedDocType] = useState<string>('general');
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   // Fetch documents if not provided
   useEffect(() => {
@@ -200,8 +199,6 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
         setUploadDialogOpen(true);
       }
     },
-    onDragEnter: () => setIsDraggingOver(true),
-    onDragLeave: () => setIsDraggingOver(false),
     noClick: true,
     accept: {
       'application/pdf': ['.pdf'],
