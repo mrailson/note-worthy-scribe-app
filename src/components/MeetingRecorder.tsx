@@ -6168,7 +6168,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <div className="flex items-center gap-3">
               <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Meeting History</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground">My Meeting History</h2>
                 <p className="text-sm sm:text-base text-muted-foreground">
                   View, edit, and manage your saved meetings
                 </p>
