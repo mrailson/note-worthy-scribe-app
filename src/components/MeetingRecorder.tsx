@@ -5507,13 +5507,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
 
         {/* Meeting Recorder Tab - ONLY recording controls */}
         <TabsContent value="recorder" className="space-y-6 mt-6">
-          {/* User Login Info */}
-          {user && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="h-2 w-2 rounded-full bg-green-500" />
-              <span>Logged in as <span className="font-medium text-foreground">{user.email}</span></span>
-            </div>
-          )}
           <div className="space-y-4">
             {/* Compact Stats Dashboard */}
             <Card className="bg-gradient-to-br from-background to-muted/30">
