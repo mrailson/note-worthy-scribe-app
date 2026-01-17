@@ -6275,15 +6275,15 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   </SelectContent>
                 </Select>
               )}
-              <MeetingHistoryViewSelector
-                viewMode={layoutViewMode}
-                onViewModeChange={setLayoutViewMode}
-              />
-              {filteredMeetings.length > 0 && (
+              {selectedFolderId && filteredMeetings.length > 0 && (
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
                   {filteredMeetings.length} meeting{filteredMeetings.length > 1 ? 's' : ''}
                 </span>
               )}
+              <MeetingHistoryViewSelector
+                viewMode={layoutViewMode}
+                onViewModeChange={setLayoutViewMode}
+              />
             </div>
 
             {/* Multi-select and Delete Controls */}
