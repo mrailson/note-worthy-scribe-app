@@ -77,6 +77,31 @@ serve(async (req) => {
     console.log(`✅ Consolidated: ${consolidatedTranscript.length} chars, ${totalWords} words`);
     console.log(`📈 Breakdown: ${cleanedCount} cleaned, ${pendingCount} pending`);
 
+    // VERIFICATION: Check if all chunks are adequately represented in consolidated transcript
+    // This helps detect merge issues where clinically important content might be under-represented
+    const consolidatedWordsSet = new Set(
+      consolidatedTranscript.toLowerCase().split(/\s+/).filter(w => w.length > 3)
+    );
+    
+    const underRepresentedChunks: number[] = [];
+    for (const chunk of chunks) {
+      const chunkText = chunk.cleaned_text || chunk.transcription_text || '';
+      const chunkWords = chunkText.toLowerCase().split(/\s+/).filter((w: string) => w.length > 4);
+      if (chunkWords.length < 5) continue; // Skip very short chunks
+      
+      const matchedWords = chunkWords.filter((w: string) => consolidatedWordsSet.has(w));
+      const matchRatio = matchedWords.length / chunkWords.length;
+      
+      if (matchRatio < 0.5) {
+        underRepresentedChunks.push(chunk.chunk_number);
+        console.warn(`⚠️ Chunk ${chunk.chunk_number} may be under-represented (${(matchRatio * 100).toFixed(0)}% words matched)`);
+      }
+    }
+    
+    if (underRepresentedChunks.length > 0) {
+      console.warn(`🚨 VERIFICATION WARNING: ${underRepresentedChunks.length} chunks may be under-represented: [${underRepresentedChunks.join(', ')}]`);
+    }
+
     // Update the meeting's transcript (use live_transcript_text as it's what the UI reads)
     const { error: updateError } = await supabase
       .from('meetings')

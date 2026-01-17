@@ -28,7 +28,9 @@ export interface MergedTranscriptResult {
 }
 
 export class UnifiedTranscriptMerger {
-  private static readonly CONFIDENCE_THRESHOLD = 0.85;
+  // CRITICAL: Lowered from 0.85 to 0.30 to prevent clinically important chunks being dropped
+  // Chunk 4 (73% confidence) was being filtered out despite containing critical cardiovascular data
+  private static readonly CONFIDENCE_THRESHOLD = 0.30;
   private static readonly MIN_CHUNK_LENGTH = 10;
   
   /**
