@@ -123,6 +123,9 @@ interface Meeting {
   title: string;
   meeting_summary?: string;
   transcript?: string;
+  start_time?: string;
+  import_source?: string;
+  import_metadata?: Record<string, unknown> | null;
 }
 
 interface SafeModeNotesModalProps {
@@ -1213,12 +1216,45 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // docx uses hex colours without # prefix
     const mergedTextColor = allMerged ? '228B22' : (tooManyMissing ? 'DC143C' : '000000'); // ForestGreen, Crimson, or Black
 
+    // Format meeting start date/time for the report header
+    const meetingStartDate = meeting?.start_time
+      ? new Date(meeting.start_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
+      : 'Unknown';
+    const meetingStartTime = meeting?.start_time
+      ? new Date(meeting.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+      : '';
+
+    // Determine recording device
+    const getDeviceLabel = (): string => {
+      const source = meeting?.import_source?.toLowerCase() || '';
+      const meta = meeting?.import_metadata as Record<string, unknown> | null;
+      const platform = (meta?.platform as string)?.toLowerCase() || '';
+      const userAgent = (meta?.userAgent as string)?.toLowerCase() || '';
+
+      if (source.includes('ios') || platform.includes('ios') || userAgent.includes('iphone') || userAgent.includes('ipad')) {
+        return 'iOS Device';
+      }
+      if (source.includes('android') || platform.includes('android') || userAgent.includes('android')) {
+        return 'Android Device';
+      }
+      if (source.includes('desktop') || source.includes('whisper') || platform.includes('win') || platform.includes('mac') || userAgent.includes('windows') || userAgent.includes('macintosh')) {
+        return 'PC / Desktop';
+      }
+      if (source) {
+        return source.charAt(0).toUpperCase() + source.slice(1);
+      }
+      return 'Unknown';
+    };
+    const deviceLabel = getDeviceLabel();
+
     const doc = new Document({
       sections: [{
         properties: {},
         children: [
           new Paragraph({ text: 'Audio Chunk Analysis Report', heading: HeadingLevel.HEADING_1 }),
-          new Paragraph({ text: `Generated: ${new Date().toLocaleString('en-GB')}` }),
+          new Paragraph({ text: `Meeting: ${meeting?.title || 'Untitled'}` }),
+          new Paragraph({ text: `Date: ${meetingStartDate}${meetingStartTime ? ` at ${meetingStartTime}` : ''}` }),
+          new Paragraph({ text: `Recorded On: ${deviceLabel}` }),
           new Paragraph({ text: '' }),
           new Paragraph({ text: 'Summary', heading: HeadingLevel.HEADING_2 }),
           new Paragraph({ text: `Total Chunks: ${transcriptChunks.length}` }),
@@ -1250,7 +1286,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const blob = await Packer.toBlob(doc);
     saveAs(blob, `chunk-analysis-${new Date().toISOString().slice(0, 10)}.docx`);
     toast.success('Audio Chunk Analysis Report downloaded');
-  }, [transcriptChunks, transcript, extractCleanChunkText, isChunkInTranscript]);
+  }, [transcriptChunks, transcript, extractCleanChunkText, extractChunkTiming, isChunkInTranscript, meeting]);
 
   // Handle tab change
   const handleTabChange = (value: string) => {
