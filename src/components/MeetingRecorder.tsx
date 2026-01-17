@@ -306,27 +306,9 @@ export const MeetingRecorder = ({
   const [firstTranscriptionReceived, setFirstTranscriptionReceived] = useState(false);
   const transcriptSnippetIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Recording mode state (derived from meetingType)
-  const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-and-system'>(() => {
-    try {
-      const saved = localStorage.getItem('meeting_type_preference');
-      return saved === 'teams' ? 'mic-and-system' : 'mic-only';
-    } catch {
-      return 'mic-only';
-    }
-  });
+  // Recording mode state - defaults to mic-only
+  const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-and-system'>('mic-only');
   
-  // Sync meetingType with recordingMode and persist preference
-  useEffect(() => {
-    localStorage.setItem('meeting_type_preference', meetingType);
-    if (meetingType === 'teams') {
-      setRecordingMode('mic-and-system');
-      setAudioSourceMode('microphone_and_system');
-    } else {
-      setRecordingMode('mic-only');
-      setAudioSourceMode('microphone');
-    }
-  }, [meetingType]);
   
   // Pause/Mute state
   const [isPaused, setIsPaused] = useState(false);
@@ -490,8 +472,8 @@ export const MeetingRecorder = ({
     setShowEarlyWordCount(false);
     setEarlyWordCountValue(0);
     
-    // Reset meeting type and location
-    setMeetingType('teams');
+    // Reset meeting type and location - default to face-to-face
+    setMeetingType('face-to-face');
     setMeetingLocation('');
     
     updateMeetingSettings({
@@ -2504,10 +2486,8 @@ export const MeetingRecorder = ({
       
       if (newMode === 'microphone') {
         setRecordingMode('mic-only');
-        setMeetingType('face-to-face');
       } else {
         setRecordingMode('mic-and-system');
-        setMeetingType('teams');
       }
 
       // Small delay to let cleanup complete
