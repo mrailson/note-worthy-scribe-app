@@ -412,8 +412,8 @@ export const MeetingRecorder = ({
   // iPhone chunking runs on ~25s windows, so iOS needs much longer thresholds to avoid false alarms.
   const watchdog = useTranscriptionWatchdog({
     isActive: isRecording,
-    warningThresholdMs: isIOS ? 90000 : 30000,
-    criticalThresholdMs: isIOS ? 150000 : 60000,
+    warningThresholdMs: isIOS ? 120000 : 60000, // 2 minutes for iOS, 1 minute for desktop
+    criticalThresholdMs: isIOS ? 180000 : 120000, // 3 minutes for iOS, 2 minutes for desktop
     onStallDetected: (stalledDurationMs) => {
       console.error(`🚨 Transcription stall detected after ${Math.round(stalledDurationMs / 1000)}s`);
       // Log diagnostic info
