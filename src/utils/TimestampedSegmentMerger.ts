@@ -96,11 +96,21 @@ export class TimestampedSegmentMerger {
     const startTime = this.getChunkStartTime(chunk);
     const endTime = this.getChunkEndTime(chunk, startTime);
 
-    // Only check temporal overlap if we have REAL timestamps from the recording
-    // For synthetic timestamps (fallback), rely on content-based deduplication only
-    if (hasRealTimestamps && startTime <= this.state.lastProcessedTimestamp + TimestampedSegmentMerger.GRACE_MS) {
-      console.log(`🚫 Temporal overlap detected: chunk starts at ${startTime}ms, last processed: ${this.state.lastProcessedTimestamp}ms`);
-      return { text: this.state.lastText, wasProcessed: false, reason: 'Temporal overlap detected' };
+    // For real timestamps: Accept chunks that either:
+    // 1. Start after the last processed time (sequential)
+    // 2. Have end_ms greater than lastProcessedTimestamp (progressive audio windows)
+    // This handles overlapping audio chunking windows where chunks share audio data
+    if (hasRealTimestamps) {
+      const chunkEndTime = chunk.end_ms ?? endTime;
+      const isProgressive = chunkEndTime > this.state.lastProcessedTimestamp;
+      const isSequential = startTime > this.state.lastProcessedTimestamp - TimestampedSegmentMerger.GRACE_MS;
+      
+      // Only reject if chunk is completely before our last processed position
+      if (!isProgressive && !isSequential) {
+        console.log(`🚫 Temporal overlap detected: chunk ${startTime}-${chunkEndTime}ms is before last processed ${this.state.lastProcessedTimestamp}ms`);
+        return { text: this.state.lastText, wasProcessed: false, reason: 'Temporal overlap detected' };
+      }
+      console.log(`✅ Temporal check passed: progressive=${isProgressive}, sequential=${isSequential}`);
     }
 
     // Content fingerprinting for exact duplicate detection
