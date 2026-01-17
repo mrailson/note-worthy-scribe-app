@@ -1,19 +1,21 @@
 /**
- * Enhanced iOS Transcriber - Desktop-Quality Approach for iOS
+ * Fixed iOS Transcriber - Upload Individual Blobs, Buffer Text
  * 
- * Now uses the same quality features as DesktopWhisperTranscriber:
- * - Audio buffering to 20 seconds (not 5s blobs)
- * - Smart merge de-duplication using Levenshtein distance
+ * Key fix: iOS uses fMP4 (fragmented MP4) which CANNOT be concatenated.
+ * Combining blobs creates corrupt audio files that fail to transcribe.
+ * 
+ * Solution:
+ * - Upload each 5-second blob individually (as valid fMP4 segments)
+ * - Buffer the transcription TEXT instead of audio
+ * - Apply smart merge de-duplication on accumulated text
+ * - Emit merged text every ~12 seconds for UI updates
+ * 
+ * Quality features retained:
  * - Hallucination/noise filtering
- * - Confidence gating
- * - Serial queue upload with retry
- * 
- * Key principles:
- * - MediaRecorder emits 5s blobs, but we accumulate to 20s before uploading
- * - Each accumulated chunk is queued and uploaded serially (max 1 inflight)
- * - Multipart/form-data upload (no base64 conversion)
- * - Smart merge removes overlapping words at chunk boundaries
- * - Hallucination patterns are filtered out
+ * - Confidence gating  
+ * - No-speech probability filtering
+ * - Prompt tail for continuity
+ * - Levenshtein-based text de-duplication
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +37,7 @@ export interface IOSTranscriberStats {
   isRecording: boolean;
   totalTranscribedChars: number;
   lastOndataavailableTime: number;
-  bufferedDurationMs: number; // NEW: Track buffered audio duration
+  bufferedTextCount: number;
 }
 
 interface QueuedChunk {
@@ -43,7 +45,6 @@ interface QueuedChunk {
   index: number;
   capturedAt: number;
   retryCount: number;
-  durationMs: number;
 }
 
 export class SimpleIOSTranscriber {
@@ -51,14 +52,7 @@ export class SimpleIOSTranscriber {
   private stream: MediaStream | null = null;
   private isRecording = false;
   
-  // Audio buffering - accumulate 5s blobs until we have ~20s of audio
-  private audioBuffer: Blob[] = [];
-  private bufferedDurationMs = 0;
-  private readonly TARGET_CHUNK_DURATION_MS = 20000; // 20 seconds (matching desktop)
-  private readonly MIN_CHUNK_DURATION_MS = 8000; // Minimum 8s before allowing upload
-  private readonly BLOB_TIMESLICE_MS = 5000; // MediaRecorder emits every 5s
-  
-  // Serial upload queue
+  // Upload queue for individual blobs (NOT combined)
   private queue: QueuedChunk[] = [];
   private uploadInFlight = false;
   private capturedBlobCount = 0;
@@ -68,10 +62,19 @@ export class SimpleIOSTranscriber {
   private lastTextLength = 0;
   private lastOndataavailableTime = 0;
   
+  // TEXT buffering (not audio buffering!)
+  private pendingTexts: string[] = [];
+  private pendingConfidences: number[] = [];
+  private lastEmitTime = 0;
+  private readonly TEXT_EMIT_INTERVAL_MS = 12000; // Emit merged text every ~12s
+  
   // Smart merge: accumulated transcript for de-duplication
   private finalTranscript = '';
   private lastTranscriptTail = '';
   private readonly PROMPT_TAIL_LENGTH = 200;
+  
+  // MediaRecorder timeslice
+  private readonly BLOB_TIMESLICE_MS = 5000; // 5-second blobs
   
   // Web Worker-based heartbeat (resistant to background throttling)
   private heartbeatWorker: Worker | null = null;
@@ -108,13 +111,13 @@ export class SimpleIOSTranscriber {
    */
   async start(): Promise<void> {
     if (this.isRecording) {
-      console.log('📱 EnhancedIOS: Already recording');
+      console.log('📱 FixedIOS: Already recording');
       return;
     }
 
     try {
       this.callbacks.onStatusChange('Starting iOS transcription...');
-      console.log('📱 EnhancedIOS: Starting transcription with desktop-quality features...');
+      console.log('📱 FixedIOS: Starting with individual blob uploads (no audio combining)...');
 
       // Get microphone stream
       const constraints: MediaStreamConstraints = {
@@ -128,7 +131,7 @@ export class SimpleIOSTranscriber {
       };
 
       this.stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log('📱 EnhancedIOS: Got microphone stream');
+      console.log('📱 FixedIOS: Got microphone stream');
 
       // Determine MIME type (iOS prefers audio/mp4)
       const mimeType = MediaRecorder.isTypeSupported('audio/mp4') 
@@ -137,7 +140,7 @@ export class SimpleIOSTranscriber {
           ? 'audio/webm;codecs=opus'
           : 'audio/webm';
 
-      console.log('📱 EnhancedIOS: Using MIME type:', mimeType);
+      console.log('📱 FixedIOS: Using MIME type:', mimeType);
 
       // Create MediaRecorder with timeslice for automatic blob emission
       this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
@@ -149,17 +152,15 @@ export class SimpleIOSTranscriber {
       };
 
       this.mediaRecorder.onerror = (event: any) => {
-        console.error('📱 EnhancedIOS: MediaRecorder error:', event.error);
+        console.error('📱 FixedIOS: MediaRecorder error:', event.error);
         this.callbacks.onError(`Recording error: ${event.error?.message || 'Unknown'}`);
       };
 
       this.mediaRecorder.onstop = () => {
-        console.log('📱 EnhancedIOS: MediaRecorder stopped');
+        console.log('📱 FixedIOS: MediaRecorder stopped');
       };
 
       // Reset state
-      this.audioBuffer = [];
-      this.bufferedDurationMs = 0;
       this.queue = [];
       this.uploadInFlight = false;
       this.capturedBlobCount = 0;
@@ -169,6 +170,9 @@ export class SimpleIOSTranscriber {
       this.lastTextLength = 0;
       this.lastTranscriptTail = '';
       this.finalTranscript = '';
+      this.pendingTexts = [];
+      this.pendingConfidences = [];
+      this.lastEmitTime = Date.now();
       this.lastOndataavailableTime = Date.now();
 
       // Start recording with timeslice
@@ -183,10 +187,10 @@ export class SimpleIOSTranscriber {
 
       this.callbacks.onStatusChange('Recording...');
       this.emitStats();
-      console.log('📱 EnhancedIOS: Recording started with 20s buffering (5s blobs)');
+      console.log('📱 FixedIOS: Recording started - uploading individual 5s blobs');
 
     } catch (error: any) {
-      console.error('📱 EnhancedIOS: Failed to start:', error);
+      console.error('📱 FixedIOS: Failed to start:', error);
       this.callbacks.onError(`Failed to start: ${error.message}`);
       throw error;
     }
@@ -200,7 +204,7 @@ export class SimpleIOSTranscriber {
       return;
     }
 
-    console.log('📱 EnhancedIOS: Stopping transcription...');
+    console.log('📱 FixedIOS: Stopping transcription...');
     this.callbacks.onStatusChange('Processing final audio...');
 
     this.isRecording = false;
@@ -221,79 +225,40 @@ export class SimpleIOSTranscriber {
     // Wait a moment for final blob to be queued
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Flush any remaining buffered audio (even if < 20s)
-    if (this.audioBuffer.length > 0) {
-      console.log(`📱 EnhancedIOS: Flushing final ${this.bufferedDurationMs}ms of buffered audio`);
-      this.flushAudioBuffer(true);
-    }
-    
     // Process any remaining queue
     while (this.queue.length > 0 || this.uploadInFlight) {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
+    
+    // Emit any remaining buffered text
+    if (this.pendingTexts.length > 0) {
+      this.emitBufferedText(true);
+    }
 
     this.callbacks.onStatusChange('Recording stopped');
     this.emitStats();
-    console.log('📱 EnhancedIOS: Stopped. Total transcribed chars:', this.totalTranscribedChars);
+    console.log('📱 FixedIOS: Stopped. Total transcribed chars:', this.totalTranscribedChars);
   }
 
   /**
    * Handle incoming audio blob from MediaRecorder
-   * Now buffers blobs until we have ~20s of audio
+   * NOW: Queue each individual blob for upload (no combining!)
    */
   private handleDataAvailable(blob: Blob): void {
     this.capturedBlobCount++;
     this.lastOndataavailableTime = Date.now();
 
-    // Add to buffer
-    this.audioBuffer.push(blob);
-    this.bufferedDurationMs += this.BLOB_TIMESLICE_MS;
+    console.log(`📱 FixedIOS: Received blob #${this.capturedBlobCount} (${(blob.size / 1024).toFixed(1)}KB)`);
 
-    console.log(`📱 EnhancedIOS: Buffered blob #${this.capturedBlobCount} (${(blob.size / 1024).toFixed(1)}KB) - Total buffer: ${this.bufferedDurationMs}ms`);
-    this.emitStats();
-
-    // Check if we've accumulated enough audio
-    if (this.bufferedDurationMs >= this.TARGET_CHUNK_DURATION_MS) {
-      console.log(`📱 EnhancedIOS: Buffer reached ${this.bufferedDurationMs}ms - flushing for transcription`);
-      this.flushAudioBuffer(false);
-    }
-  }
-
-  /**
-   * Flush accumulated audio buffer into a single chunk for upload
-   */
-  private flushAudioBuffer(isFinal: boolean): void {
-    if (this.audioBuffer.length === 0) {
-      return;
-    }
-
-    // Don't flush if below minimum duration (unless final)
-    if (!isFinal && this.bufferedDurationMs < this.MIN_CHUNK_DURATION_MS) {
-      console.log(`📱 EnhancedIOS: Skipping flush - only ${this.bufferedDurationMs}ms (min: ${this.MIN_CHUNK_DURATION_MS}ms)`);
-      return;
-    }
-
-    // Combine all buffered blobs into one
-    const combinedBlob = new Blob(this.audioBuffer, { type: this.audioBuffer[0].type });
-    const durationMs = this.bufferedDurationMs;
-    
-    console.log(`📱 EnhancedIOS: Created ${(combinedBlob.size / 1024).toFixed(1)}KB chunk from ${this.audioBuffer.length} blobs (${durationMs}ms)`);
-
-    // Queue for upload
+    // Queue for immediate individual upload (no combining!)
     const queuedChunk: QueuedChunk = {
-      blob: combinedBlob,
-      index: this.uploadedChunkCount + this.queue.length + 1,
+      blob,
+      index: this.capturedBlobCount,
       capturedAt: Date.now(),
-      retryCount: 0,
-      durationMs
+      retryCount: 0
     };
 
     this.queue.push(queuedChunk);
-    
-    // Clear buffer
-    this.audioBuffer = [];
-    this.bufferedDurationMs = 0;
-    
     this.emitStats();
 
     // Trigger queue drain
@@ -301,7 +266,7 @@ export class SimpleIOSTranscriber {
   }
 
   /**
-   * Serial queue drain - upload one chunk at a time
+   * Serial queue drain - upload one blob at a time
    */
   private async drainQueue(): Promise<void> {
     if (this.uploadInFlight || this.queue.length === 0) {
@@ -325,16 +290,15 @@ export class SimpleIOSTranscriber {
         
         // Quality filtering: hallucination detection
         if (this.isLikelyRepetitiveNoise(cleanText, result.confidence)) {
-          console.log(`📱 EnhancedIOS: Filtered hallucination: "${cleanText.substring(0, 50)}..."`);
+          console.log(`📱 FixedIOS: Filtered hallucination: "${cleanText.substring(0, 50)}..."`);
         } else if (result.noSpeechProb && result.noSpeechProb > 0.85) {
-          // High no_speech_prob - likely silence
-          console.log(`📱 EnhancedIOS: Filtered high no_speech_prob (${(result.noSpeechProb * 100).toFixed(1)}%)`);
+          console.log(`📱 FixedIOS: Filtered high no_speech_prob (${(result.noSpeechProb * 100).toFixed(1)}%)`);
         } else if (result.confidence !== undefined && result.confidence < 0.12) {
-          // Extremely low confidence
-          console.log(`📱 EnhancedIOS: Filtered low confidence (${(result.confidence * 100).toFixed(1)}%)`);
+          console.log(`📱 FixedIOS: Filtered low confidence (${(result.confidence * 100).toFixed(1)}%)`);
         } else {
-          // Smart merge de-duplication
-          this.finalTranscript = this.smartMerge(this.finalTranscript, cleanText);
+          // Buffer this text for later emission
+          this.pendingTexts.push(cleanText);
+          this.pendingConfidences.push(result.confidence || 0.8);
           
           this.lastTextLength = cleanText.length;
           this.totalTranscribedChars += cleanText.length;
@@ -342,26 +306,30 @@ export class SimpleIOSTranscriber {
           // Update prompt tail for next chunk
           this.lastTranscriptTail = cleanText.slice(-this.PROMPT_TAIL_LENGTH);
           
-          // Emit transcription
-          this.callbacks.onTranscription(cleanText, true, result.confidence || 0.8);
-          console.log(`📱 EnhancedIOS: Transcribed chunk #${item.index}: "${cleanText.slice(0, 50)}..."`);
+          console.log(`📱 FixedIOS: Buffered text from chunk #${item.index}: "${cleanText.slice(0, 50)}..."`);
+          
+          // Check if we should emit accumulated text
+          const timeSinceLastEmit = Date.now() - this.lastEmitTime;
+          if (timeSinceLastEmit >= this.TEXT_EMIT_INTERVAL_MS || this.pendingTexts.length >= 3) {
+            this.emitBufferedText(false);
+          }
         }
       } else {
-        console.log(`📱 EnhancedIOS: Chunk #${item.index} returned empty/silent`);
+        console.log(`📱 FixedIOS: Chunk #${item.index} returned empty/silent`);
       }
 
     } catch (error: any) {
-      console.error(`📱 EnhancedIOS: Upload failed for chunk #${item.index}:`, error);
+      console.error(`📱 FixedIOS: Upload failed for chunk #${item.index}:`, error);
       
       // Retry logic
       if (item.retryCount < 2) {
         item.retryCount++;
         this.lastUploadStatus = 'retrying';
-        this.queue.unshift(item); // Re-add to front of queue
-        console.log(`📱 EnhancedIOS: Retrying chunk #${item.index} (attempt ${item.retryCount + 1})`);
+        this.queue.unshift(item);
+        console.log(`📱 FixedIOS: Retrying chunk #${item.index} (attempt ${item.retryCount + 1})`);
       } else {
         this.lastUploadStatus = 'failed';
-        console.error(`📱 EnhancedIOS: Giving up on chunk #${item.index} after 3 attempts`);
+        console.error(`📱 FixedIOS: Giving up on chunk #${item.index} after 3 attempts`);
       }
     } finally {
       this.uploadInFlight = false;
@@ -369,14 +337,45 @@ export class SimpleIOSTranscriber {
       
       // Continue draining if more items
       if (this.queue.length > 0) {
-        // Small delay between uploads to avoid overwhelming
         setTimeout(() => this.drainQueue(), 100);
       }
     }
   }
 
   /**
-   * Upload a single chunk via multipart/form-data
+   * Emit buffered text with smart merge de-duplication
+   */
+  private emitBufferedText(isFinal: boolean): void {
+    if (this.pendingTexts.length === 0) {
+      return;
+    }
+
+    console.log(`📱 FixedIOS: Emitting ${this.pendingTexts.length} buffered texts`);
+
+    // Merge all pending texts together with de-duplication
+    let mergedText = '';
+    for (const text of this.pendingTexts) {
+      mergedText = this.smartMerge(mergedText, text);
+    }
+
+    // Now merge into final transcript
+    this.finalTranscript = this.smartMerge(this.finalTranscript, mergedText);
+
+    // Calculate average confidence
+    const avgConfidence = this.pendingConfidences.reduce((a, b) => a + b, 0) / this.pendingConfidences.length;
+
+    // Emit to UI
+    this.callbacks.onTranscription(mergedText, isFinal, avgConfidence);
+    console.log(`📱 FixedIOS: Emitted merged text (${mergedText.length} chars, ${(avgConfidence * 100).toFixed(0)}% conf)`);
+
+    // Clear buffers
+    this.pendingTexts = [];
+    this.pendingConfidences = [];
+    this.lastEmitTime = Date.now();
+  }
+
+  /**
+   * Upload a single blob via multipart/form-data
    */
   private async uploadChunk(item: QueuedChunk): Promise<{ 
     text: string; 
@@ -409,7 +408,7 @@ export class SimpleIOSTranscriber {
       formData.append('sessionId', this.sessionId);
     }
 
-    console.log(`📱 EnhancedIOS: Uploading chunk #${item.index} (${(item.blob.size / 1024).toFixed(1)}KB, ${item.durationMs}ms, ${extension})`);
+    console.log(`📱 FixedIOS: Uploading blob #${item.index} (${(item.blob.size / 1024).toFixed(1)}KB, ${extension})`);
 
     const { data, error } = await supabase.functions.invoke('speech-to-text-chunked', {
       body: formData
@@ -427,7 +426,7 @@ export class SimpleIOSTranscriber {
     };
   }
 
-  // ========== SMART MERGE DE-DUPLICATION (ported from DesktopWhisperTranscriber) ==========
+  // ========== SMART MERGE DE-DUPLICATION ==========
 
   /**
    * Smart merge with de-duplication - removes overlapping words at chunk boundaries
@@ -436,21 +435,19 @@ export class SimpleIOSTranscriber {
     if (!oldText) return newText;
     if (!newText) return oldText;
     
-    // Drop leading tokens in new chunk that appear at end of previous
     const oldWords = oldText.trim().split(/\s+/);
     const newWords = newText.trim().split(/\s+/);
     
-    // Look for fuzzy match of last 12-20 words from old text in beginning of new text
-    const checkLength = Math.min(20, oldWords.length, newWords.length);
+    // Look for overlap of last N words from old text in beginning of new text
+    const checkLength = Math.min(15, oldWords.length, newWords.length);
     
-    for (let i = checkLength; i >= 3; i--) { // At least 3 words to be meaningful
+    for (let i = checkLength; i >= 2; i--) {
       const lastOldWords = oldWords.slice(-i).join(' ').toLowerCase();
       const firstNewWords = newWords.slice(0, i).join(' ').toLowerCase();
       
-      // Use fuzzy matching to handle slight transcription differences
       const similarity = this.calculateSimilarity(lastOldWords, firstNewWords);
-      if (similarity > 0.7) { // 70% similarity threshold
-        console.log(`📱 EnhancedIOS: De-duplication found ${(similarity * 100).toFixed(0)}% similarity, removing ${i} overlapping words`);
+      if (similarity > 0.7) {
+        console.log(`📱 FixedIOS: De-dup found ${(similarity * 100).toFixed(0)}% match, removing ${i} overlapping words`);
         return oldText + " " + newWords.slice(i).join(' ');
       }
     }
@@ -483,9 +480,9 @@ export class SimpleIOSTranscriber {
       for (let i = 1; i <= str1.length; i++) {
         const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
         matrix[j][i] = Math.min(
-          matrix[j][i - 1] + 1,     // deletion
-          matrix[j - 1][i] + 1,     // insertion
-          matrix[j - 1][i - 1] + cost // substitution
+          matrix[j][i - 1] + 1,
+          matrix[j - 1][i] + 1,
+          matrix[j - 1][i - 1] + cost
         );
       }
     }
@@ -493,7 +490,7 @@ export class SimpleIOSTranscriber {
     return matrix[str2.length][str1.length];
   }
 
-  // ========== HALLUCINATION DETECTION (ported from DesktopWhisperTranscriber) ==========
+  // ========== HALLUCINATION DETECTION ==========
 
   /**
    * Check if text is likely hallucinated/repetitive noise
@@ -508,13 +505,13 @@ export class SimpleIOSTranscriber {
     });
     
     if (result.isHallucination) {
-      console.log(`📱 EnhancedIOS: Hallucination detected: ${result.reason}`);
+      console.log(`📱 FixedIOS: Hallucination detected: ${result.reason}`);
     }
     
     return result.isHallucination;
   }
 
-  // ========== HEARTBEAT & VISIBILITY (kept from original) ==========
+  // ========== HEARTBEAT & VISIBILITY ==========
 
   /**
    * Heartbeat: force requestData if no ondataavailable recently
@@ -532,7 +529,6 @@ export class SimpleIOSTranscriber {
           intervalId = setInterval(() => {
             self.postMessage({ type: 'tick', timestamp: Date.now() });
           }, intervalMs);
-          // Send initial tick
           self.postMessage({ type: 'tick', timestamp: Date.now(), isInitial: true });
         } else if (type === 'stop') {
           if (intervalId) {
@@ -559,10 +555,9 @@ export class SimpleIOSTranscriber {
         intervalMs: this.HEARTBEAT_INTERVAL_MS 
       });
       
-      console.log('📱 EnhancedIOS: Web Worker heartbeat started');
+      console.log('📱 FixedIOS: Web Worker heartbeat started');
     } catch (error) {
-      // Fallback to setInterval if Web Worker fails
-      console.warn('📱 EnhancedIOS: Web Worker failed, using setInterval fallback:', error);
+      console.warn('📱 FixedIOS: Web Worker failed, using setInterval fallback:', error);
       this.startHeartbeatFallback();
     }
   }
@@ -581,15 +576,21 @@ export class SimpleIOSTranscriber {
     const timeSinceLastData = Date.now() - this.lastOndataavailableTime;
     
     if (timeSinceLastData > this.HEARTBEAT_INTERVAL_MS) {
-      console.log(`📱 EnhancedIOS: Heartbeat - forcing requestData (${Math.round(timeSinceLastData / 1000)}s since last)`);
+      console.log(`📱 FixedIOS: Heartbeat - forcing requestData (${Math.round(timeSinceLastData / 1000)}s since last)`);
       
       if (this.mediaRecorder.state === 'recording') {
         try {
           this.mediaRecorder.requestData();
         } catch (e) {
-          console.warn('📱 EnhancedIOS: requestData failed:', e);
+          console.warn('📱 FixedIOS: requestData failed:', e);
         }
       }
+    }
+    
+    // Also check if we should emit buffered text
+    const timeSinceLastEmit = Date.now() - this.lastEmitTime;
+    if (this.pendingTexts.length > 0 && timeSinceLastEmit >= this.TEXT_EMIT_INTERVAL_MS) {
+      this.emitBufferedText(false);
     }
   }
 
@@ -611,18 +612,16 @@ export class SimpleIOSTranscriber {
   private setupVisibilityHandler(): void {
     this.visibilityHandler = () => {
       if (document.visibilityState === 'visible' && this.isRecording) {
-        console.log('📱 EnhancedIOS: Tab visible - forcing immediate data request');
+        console.log('📱 FixedIOS: Tab visible - forcing immediate data request');
         
-        // Force request current data when returning to tab
         if (this.mediaRecorder?.state === 'recording') {
           try {
             this.mediaRecorder.requestData();
           } catch (e) {
-            console.warn('📱 EnhancedIOS: requestData on visibility failed:', e);
+            console.warn('📱 FixedIOS: requestData on visibility failed:', e);
           }
         }
         
-        // Process any queued chunks immediately
         if (this.queue.length > 0 && !this.uploadInFlight) {
           this.drainQueue();
         }
@@ -652,7 +651,7 @@ export class SimpleIOSTranscriber {
       isRecording: this.isRecording,
       totalTranscribedChars: this.totalTranscribedChars,
       lastOndataavailableTime: this.lastOndataavailableTime,
-      bufferedDurationMs: this.bufferedDurationMs
+      bufferedTextCount: this.pendingTexts.length
     };
 
     this.callbacks.onStatsUpdate?.(stats);
@@ -671,7 +670,7 @@ export class SimpleIOSTranscriber {
       isRecording: this.isRecording,
       totalTranscribedChars: this.totalTranscribedChars,
       lastOndataavailableTime: this.lastOndataavailableTime,
-      bufferedDurationMs: this.bufferedDurationMs
+      bufferedTextCount: this.pendingTexts.length
     };
   }
 
