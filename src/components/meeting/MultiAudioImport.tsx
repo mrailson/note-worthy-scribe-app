@@ -596,8 +596,39 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
                     }}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
+                    onPaste={async (e) => {
+                      e.preventDefault();
+                      const items = e.clipboardData?.items;
+                      if (!items) return;
+                      
+                      // Check for files (images)
+                      const files: File[] = [];
+                      for (const item of Array.from(items)) {
+                        if (item.kind === 'file') {
+                          const file = item.getAsFile();
+                          if (file) files.push(file);
+                        }
+                      }
+                      
+                      if (files.length > 0) {
+                        const dataTransfer = new DataTransfer();
+                        files.forEach(f => dataTransfer.items.add(f));
+                        handleDocumentSelected(dataTransfer.files);
+                        return;
+                      }
+                      
+                      // Check for text
+                      const text = e.clipboardData?.getData('text');
+                      if (text?.trim()) {
+                        const parsedText = parseTeamsTranscript(text);
+                        setDocumentTranscript(parsedText);
+                        setCombinedTranscript(parsedText);
+                        showToast.success('Text pasted successfully', { section: 'meeting_manager' });
+                      }
+                    }}
+                    tabIndex={0}
                     className={cn(
-                      "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
+                      "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
                       isDragOver && "border-primary bg-primary/5",
                       !isDragOver && "border-muted-foreground/25 hover:border-muted-foreground/50"
                     )}
@@ -617,7 +648,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
                       <Image className="h-8 w-8 text-muted-foreground" />
                     </div>
                     <p className="text-sm font-medium mb-1">
-                      Drag & drop documents or images here, or click to browse
+                      Drag & drop, click to browse, or paste (Ctrl+V)
                     </p>
                     <p className="text-xs text-muted-foreground">
                       TXT, DOC, DOCX, VTT • Images with text (JPG, PNG) will be OCR processed
@@ -627,7 +658,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
                   {isProcessingDocument && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Processing document...
+                      Processing...
                     </div>
                   )}
 
@@ -635,7 +666,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-green-600">
                         <CheckCircle2 className="h-4 w-4" />
-                        Document loaded successfully
+                        Content loaded successfully
                       </div>
                     </div>
                   )}
