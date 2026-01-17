@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 import { TranscriptContextDialog } from '@/components/meeting/TranscriptContextDialog';
 import { formatTranscriptContext, extractCleanContent } from '@/utils/meeting/formatTranscriptContext';
 import { UploadedFile } from '@/types/ai4gp';
-import { Document, Paragraph, TextRun, Packer } from 'docx';
+import { Document, Paragraph, TextRun, Packer, Table, TableRow, TableCell, WidthType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 
 interface TranscriptionChunk {
@@ -571,6 +571,106 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     await audioFocusManager.resumeAll();
     
     showToast.info('Playback stopped', { section: 'meeting_manager' });
+  };
+
+  // Export Chunk Analysis Report to Word
+  const exportChunkAnalysisToWord = async () => {
+    if (chunks.length === 0) {
+      showToast.error('No chunks available for analysis');
+      return;
+    }
+
+    const formatTime = (seconds: number | undefined): string => {
+      if (seconds === undefined) return 'N/A';
+      const mins = Math.floor(seconds / 60);
+      const secs = (seconds % 60).toFixed(1);
+      return `${mins}m ${secs}s`;
+    };
+
+    // Build table rows with chunk data
+    const tableRows: TableRow[] = [
+      // Header row
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '#', bold: true })] })], width: { size: 5, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Start', bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'End', bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Words', bold: true })] })], width: { size: 8, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Conf', bold: true })] })], width: { size: 8, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Text', bold: true })] })], width: { size: 59, type: WidthType.PERCENTAGE } }),
+        ],
+      }),
+    ];
+
+    // Add data rows for each chunk
+    chunks.forEach((chunk) => {
+      const chunkText = chunk.cleaned_text || chunk.transcription_text;
+      tableRows.push(
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph(String(chunk.chunk_number))] }),
+            new TableCell({ children: [new Paragraph(formatTime(chunk.start_time))] }),
+            new TableCell({ children: [new Paragraph(formatTime(chunk.end_time))] }),
+            new TableCell({ children: [new Paragraph(String(chunk.word_count))] }),
+            new TableCell({ children: [new Paragraph(`${Math.round(chunk.confidence * 100)}%`)] }),
+            new TableCell({ children: [new Paragraph(chunkText.trim().substring(0, 200) + (chunkText.length > 200 ? '...' : ''))] }),
+          ],
+        })
+      );
+    });
+
+    // Calculate totals
+    const totalWords = chunks.reduce((sum, c) => sum + (c.word_count || 0), 0);
+    const avgConfidence = chunks.length > 0 
+      ? chunks.reduce((sum, c) => sum + c.confidence, 0) / chunks.length 
+      : 0;
+    const transcriptWords = transcript.trim().split(/\s+/).filter(w => w.length > 0).length;
+
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            text: 'Chunk Analysis Report',
+            heading: HeadingLevel.HEADING_1,
+          }),
+          new Paragraph({
+            text: `Generated: ${new Date().toLocaleString('en-GB')}`,
+          }),
+          new Paragraph({ text: '' }),
+          new Paragraph({
+            text: 'Summary',
+            heading: HeadingLevel.HEADING_2,
+          }),
+          new Paragraph({ text: `Total Chunks: ${chunks.length}` }),
+          new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
+          new Paragraph({ text: `Net Words (merged transcript): ${transcriptWords}` }),
+          new Paragraph({ text: `Words Filtered: ${totalWords - transcriptWords}` }),
+          new Paragraph({ text: `Average Confidence: ${Math.round(avgConfidence * 100)}%` }),
+          new Paragraph({ text: '' }),
+          new Paragraph({
+            text: 'Chunk Details',
+            heading: HeadingLevel.HEADING_2,
+          }),
+          new Table({
+            rows: tableRows,
+            width: { size: 100, type: WidthType.PERCENTAGE },
+          }),
+          new Paragraph({ text: '' }),
+          new Paragraph({
+            text: 'Consolidated Transcript',
+            heading: HeadingLevel.HEADING_2,
+          }),
+          new Paragraph({ text: `Word Count: ${transcriptWords}` }),
+          new Paragraph({ text: '' }),
+          new Paragraph({ text: transcript || '(No transcript text)' }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `chunk-analysis-${new Date().toISOString().slice(0, 10)}.docx`);
+    showToast.success('Chunk Analysis Report downloaded', { section: 'meeting_manager' });
   };
 
   const handleDownloadWord = async () => {
@@ -1188,6 +1288,22 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           >
             <FileText className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-primary mr-2")} />
             {isIPhone ? "Add Context" : "Add Meeting Context"}
+          </Button>
+
+          {/* Chunk Analysis Report Button */}
+          <Button 
+            variant="outline" 
+            size={isIPhone ? "sm" : "sm"}
+            className={cn(
+              "gap-2",
+              isIPhone && "w-full justify-start"
+            )}
+            onClick={exportChunkAnalysisToWord}
+            disabled={chunks.length === 0}
+            title="Download detailed chunk analysis as Word document"
+          >
+            <Download className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-emerald-600 mr-2")} />
+            {isIPhone ? "Chunk Report" : "Chunk Analysis Report"}
           </Button>
 
           {/* Transcript Actions Dropdown */}
