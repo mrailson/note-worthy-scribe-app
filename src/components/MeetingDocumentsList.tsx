@@ -423,8 +423,8 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
     }
   };
 
-  // Shared upload dialog content
-  const UploadDialogContent = () => (
+  // Shared upload dialog content - as JSX variable, not component
+  const uploadDialogContent = (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Upload Meeting Documents</DialogTitle>
@@ -447,9 +447,9 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
               const IconComponent = type.icon;
               return (
                 <div key={type.value} className="flex items-center space-x-2">
-                  <RadioGroupItem value={type.value} id={type.value} />
+                  <RadioGroupItem value={type.value} id={`doctype-${type.value}`} />
                   <Label 
-                    htmlFor={type.value} 
+                    htmlFor={`doctype-${type.value}`} 
                     className="flex items-center gap-2 cursor-pointer text-sm"
                   >
                     <IconComponent className="h-4 w-4 text-muted-foreground" />
@@ -508,11 +508,11 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
 
         {/* Description */}
         <div className="space-y-2">
-          <Label htmlFor="description" className="text-sm font-medium">
+          <Label htmlFor="upload-description" className="text-sm font-medium">
             Description (optional)
           </Label>
           <Textarea
-            id="description"
+            id="upload-description"
             placeholder="Add a brief description of the document(s)..."
             value={uploadDescription}
             onChange={(e) => setUploadDescription(e.target.value)}
@@ -587,7 +587,7 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
                   Upload Document
                 </Button>
               </DialogTrigger>
-              <UploadDialogContent />
+              {uploadDialogContent}
             </Dialog>
             <p className="text-xs text-muted-foreground">
               PDF, Word, Excel, PowerPoint, Images, Audio, Video (max {MAX_FILE_SIZE_MB}MB)
@@ -632,7 +632,7 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
                   Add Document
                 </Button>
               </DialogTrigger>
-              <UploadDialogContent />
+              {uploadDialogContent}
             </Dialog>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
