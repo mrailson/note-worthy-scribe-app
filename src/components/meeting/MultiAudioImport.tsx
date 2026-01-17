@@ -6,13 +6,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Upload, FileAudio, Loader2, Play, X } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Upload, FileAudio, Loader2, Play, X, FileText, Clipboard, CheckCircle2 } from 'lucide-react';
 import { AudioFileList, AudioFileItem } from './AudioFileList';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { showToast } from '@/utils/toastWrapper';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import mammoth from 'mammoth';
 
 interface MultiAudioImportProps {
   open: boolean;
@@ -54,6 +56,66 @@ const getAudioDuration = (file: File): Promise<number> => {
   });
 };
 
+// Parse Teams VTT transcript format
+const parseTeamsTranscript = (content: string): string => {
+  // Check if it's VTT format
+  if (content.trim().startsWith('WEBVTT')) {
+    const lines = content.split('\n');
+    const textLines: string[] = [];
+    let currentSpeaker = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Skip VTT header, timestamps, and empty lines
+      if (line === 'WEBVTT' || line === '' || /^\d{2}:\d{2}/.test(line) || /^-->/.test(line)) {
+        continue;
+      }
+      
+      // Check for speaker format: "<v Speaker Name>text"
+      const speakerMatch = line.match(/^<v\s+([^>]+)>(.*)$/);
+      if (speakerMatch) {
+        const speaker = speakerMatch[1];
+        const text = speakerMatch[2].replace(/<\/v>$/, '').trim();
+        
+        if (speaker !== currentSpeaker) {
+          currentSpeaker = speaker;
+          if (text) {
+            textLines.push(`\n${speaker}: ${text}`);
+          }
+        } else if (text) {
+          textLines.push(text);
+        }
+      } else if (line && !line.match(/^\d+$/)) {
+        // Regular text line (not a cue number)
+        textLines.push(line);
+      }
+    }
+    
+    return textLines.join(' ').replace(/\s+/g, ' ').trim();
+  }
+  
+  // Not VTT, return as-is
+  return content;
+};
+
+// Read Word document
+const readWordDocument = async (file: File): Promise<string> => {
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
+};
+
+// Read text file
+const readTextFile = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsText(file);
+  });
+};
+
 export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
   open,
   onOpenChange
@@ -61,26 +123,39 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
   const { user } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
   
+  // Audio state
   const [files, setFiles] = useState<AudioFileItem[]>([]);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [isCreatingMeeting, setIsCreatingMeeting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentFileIndex, setCurrentFileIndex] = useState(0);
+  const [isDragOver, setIsDragOver] = useState(false);
+  
+  // Document state
+  const [documentTranscript, setDocumentTranscript] = useState('');
+  const [isProcessingDocument, setIsProcessingDocument] = useState(false);
+  
+  // Paste state
+  const [pastedTranscript, setPastedTranscript] = useState('');
+  
+  // Shared state
+  const [activeTab, setActiveTab] = useState<string>('audio');
   const [combinedTranscript, setCombinedTranscript] = useState('');
   const [meetingTitle, setMeetingTitle] = useState('');
   const [meetingAgenda, setMeetingAgenda] = useState('');
-  const [isDragOver, setIsDragOver] = useState(false);
+  const [isCreatingMeeting, setIsCreatingMeeting] = useState(false);
 
-  const isProcessing = isTranscribing || isCreatingMeeting;
-  const hasCompletedTranscription = files.length > 0 && files.every(f => f.status === 'completed');
+  const isProcessing = isTranscribing || isCreatingMeeting || isProcessingDocument;
+  const hasCompletedTranscription = combinedTranscript.length > 0;
   const hasPendingFiles = files.some(f => f.status === 'pending');
 
+  // Audio file handling
   const handleFilesSelected = useCallback(async (selectedFiles: FileList | null) => {
     if (!selectedFiles) return;
 
     const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/wave', 'audio/x-wav', 'audio/m4a', 'audio/x-m4a', 'audio/mp4', ''];
-    const maxSize = 20 * 1024 * 1024; // 20MB
+    const maxSize = 25 * 1024 * 1024; // 25MB for audio
 
     const newFiles: AudioFileItem[] = [];
     
@@ -94,7 +169,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
       }
       
       if (file.size > maxSize) {
-        showToast.error(`${file.name}: File too large. Maximum 20MB.`, { section: 'meeting_manager' });
+        showToast.error(`${file.name}: File too large. Maximum 25MB.`, { section: 'meeting_manager' });
         continue;
       }
 
@@ -114,11 +189,71 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
     }
   }, []);
 
+  // Document file handling
+  const handleDocumentSelected = useCallback(async (selectedFiles: FileList | null) => {
+    if (!selectedFiles || selectedFiles.length === 0) return;
+    
+    setIsProcessingDocument(true);
+    const allTranscripts: string[] = [];
+    
+    try {
+      for (const file of Array.from(selectedFiles)) {
+        const extension = file.name.split('.').pop()?.toLowerCase();
+        let content = '';
+        
+        if (extension === 'txt' || extension === 'vtt') {
+          content = await readTextFile(file);
+          // Parse VTT format if applicable
+          if (extension === 'vtt') {
+            content = parseTeamsTranscript(content);
+          }
+        } else if (extension === 'doc' || extension === 'docx') {
+          content = await readWordDocument(file);
+        } else {
+          showToast.error(`${file.name}: Unsupported format. Use TXT, VTT, DOC, or DOCX.`, { section: 'meeting_manager' });
+          continue;
+        }
+        
+        if (content.trim()) {
+          allTranscripts.push(content.trim());
+        }
+      }
+      
+      if (allTranscripts.length > 0) {
+        const combined = allTranscripts.join('\n\n---\n\n');
+        setDocumentTranscript(combined);
+        setCombinedTranscript(combined);
+        showToast.success(`Loaded ${allTranscripts.length} document(s) successfully`, { section: 'meeting_manager' });
+      }
+    } catch (error: any) {
+      console.error('Document processing error:', error);
+      showToast.error(error.message || 'Failed to process document', { section: 'meeting_manager' });
+    } finally {
+      setIsProcessingDocument(false);
+    }
+  }, []);
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    handleFilesSelected(e.dataTransfer.files);
-  }, [handleFilesSelected]);
+    
+    const droppedFiles = e.dataTransfer.files;
+    if (!droppedFiles.length) return;
+    
+    // Check first file to determine type
+    const firstFile = droppedFiles[0];
+    const extension = firstFile.name.split('.').pop()?.toLowerCase();
+    
+    if (['mp3', 'wav', 'm4a'].includes(extension || '')) {
+      handleFilesSelected(droppedFiles);
+      setActiveTab('audio');
+    } else if (['txt', 'doc', 'docx', 'vtt'].includes(extension || '')) {
+      handleDocumentSelected(droppedFiles);
+      setActiveTab('document');
+    } else {
+      showToast.error('Unsupported file type', { section: 'meeting_manager' });
+    }
+  }, [handleFilesSelected, handleDocumentSelected]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -160,7 +295,6 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
       const fileItem = updatedFiles[i];
       setCurrentFileIndex(i);
       
-      // Update status to transcribing
       updatedFiles[i] = { ...fileItem, status: 'transcribing' };
       setFiles([...updatedFiles]);
 
@@ -200,7 +334,6 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
       setProgress(((i + 1) / files.length) * 100);
     }
 
-    // Combine transcripts with file markers if multiple files
     if (transcripts.length > 0) {
       if (transcripts.length === 1) {
         setCombinedTranscript(transcripts[0]);
@@ -225,6 +358,30 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
     }
   };
 
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        showToast.error('No text found in clipboard', { section: 'meeting_manager' });
+        return;
+      }
+      
+      // Check if it's VTT format and parse it
+      const parsedText = parseTeamsTranscript(text);
+      setPastedTranscript(parsedText);
+      setCombinedTranscript(parsedText);
+      showToast.success('Transcript pasted from clipboard', { section: 'meeting_manager' });
+    } catch (error) {
+      console.error('Failed to read clipboard:', error);
+      showToast.error('Failed to read clipboard. Please paste manually.', { section: 'meeting_manager' });
+    }
+  };
+
+  const handlePastedTextChange = (text: string) => {
+    setPastedTranscript(text);
+    setCombinedTranscript(text);
+  };
+
   const handleCreateMeeting = async () => {
     if (!combinedTranscript || !user) {
       showToast.error('Missing transcript or user', { section: 'meeting_manager' });
@@ -234,29 +391,28 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
     setIsCreatingMeeting(true);
 
     try {
-      // Calculate total duration from all files
       const totalDuration = files.reduce((sum, f) => sum + (f.duration || 0), 0);
-      const title = meetingTitle.trim() || `Imported Recording - ${new Date().toLocaleDateString('en-GB')}`;
+      const title = meetingTitle.trim() || `Imported Content - ${new Date().toLocaleDateString('en-GB')}`;
+      const source = activeTab === 'audio' ? 'audio import' : activeTab === 'document' ? 'document import' : 'pasted transcript';
 
-      // Create meeting record
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
         .insert({
           title,
-          description: meetingAgenda || `Meeting created from ${files.length} imported audio file(s)`,
+          description: meetingAgenda || `Meeting created from ${source}`,
           meeting_type: 'general',
           start_time: new Date().toISOString(),
-          end_time: new Date(Date.now() + totalDuration * 1000).toISOString(),
+          end_time: new Date(Date.now() + Math.max(totalDuration * 1000, 60000)).toISOString(),
           duration_minutes: Math.round(totalDuration / 60) || 1,
           status: 'completed',
-          user_id: user.id
+          user_id: user.id,
+          live_transcript_text: combinedTranscript
         })
         .select()
         .single();
 
       if (meetingError) throw new Error(`Failed to create meeting: ${meetingError.message}`);
 
-      // Store transcript
       const { error: transcriptError } = await supabase
         .from('meeting_transcripts')
         .insert({
@@ -270,7 +426,6 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
         console.error('Error saving transcript:', transcriptError);
       }
 
-      // Trigger note generation in background
       supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: combinedTranscript,
@@ -284,13 +439,9 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
       showToast.success('Meeting created successfully!', { section: 'meeting_manager' });
       
       // Reset and close
-      setFiles([]);
-      setCombinedTranscript('');
-      setMeetingTitle('');
-      setMeetingAgenda('');
+      handleClearAll();
       onOpenChange(false);
       
-      // Navigate to meeting history
       navigate('/meetings');
 
     } catch (error: any) {
@@ -303,107 +454,209 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
 
   const handleClearAll = () => {
     setFiles([]);
+    setDocumentTranscript('');
+    setPastedTranscript('');
     setCombinedTranscript('');
     setMeetingTitle('');
     setMeetingAgenda('');
     setProgress(0);
   };
 
+  const wordCount = combinedTranscript.split(/\s+/).filter(w => w.length > 0).length;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] max-w-4xl h-[90vh] max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
-            <FileAudio className="h-5 w-5" />
-            Import Audio Recording(s)
+            <Upload className="h-5 w-5" />
+            Import Content
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col">
           <ScrollArea className="flex-1 px-6">
             <div className="py-4 space-y-6">
-              {/* Drop Zone */}
+              {/* Unified Drop Zone */}
               <div
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 className={cn(
-                  "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
+                  "border-2 border-dashed rounded-lg p-6 text-center transition-colors",
                   isDragOver && "border-primary bg-primary/5",
                   !isDragOver && "border-muted-foreground/25 hover:border-muted-foreground/50"
                 )}
               >
-                <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                 <p className="text-sm font-medium mb-1">
-                  Drag & drop audio files here
+                  Drag & drop files here
                 </p>
-                <p className="text-xs text-muted-foreground mb-4">
-                  MP3, WAV, M4A • Max 20MB each
+                <p className="text-xs text-muted-foreground">
+                  Audio (MP3, WAV, M4A) • Documents (TXT, DOC, DOCX) • Teams Transcripts (VTT)
                 </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".mp3,.wav,.m4a,audio/*"
-                  multiple
-                  onChange={(e) => handleFilesSelected(e.target.files)}
-                  className="hidden"
-                  disabled={isProcessing}
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isProcessing}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Choose Files
-                </Button>
               </div>
 
-              {/* File List */}
-              <AudioFileList
-                files={files}
-                onRemove={handleRemoveFile}
-                onReorder={handleReorderFiles}
-                disabled={isProcessing}
-              />
+              {/* Tab Interface */}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="audio" className="flex items-center gap-2">
+                    <FileAudio className="h-4 w-4" />
+                    Audio
+                  </TabsTrigger>
+                  <TabsTrigger value="document" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Document
+                  </TabsTrigger>
+                  <TabsTrigger value="paste" className="flex items-center gap-2">
+                    <Clipboard className="h-4 w-4" />
+                    Paste
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Progress */}
-              {isTranscribing && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">
-                      Transcribing file {currentFileIndex + 1} of {files.length}...
+                {/* Audio Tab */}
+                <TabsContent value="audio" className="mt-4 space-y-4">
+                  <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".mp3,.wav,.m4a,audio/*"
+                      multiple
+                      onChange={(e) => handleFilesSelected(e.target.files)}
+                      className="hidden"
+                      disabled={isProcessing}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isProcessing}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choose Audio Files
+                    </Button>
+                    <span className="text-xs text-muted-foreground self-center">
+                      MP3, WAV, M4A • Max 25MB each
                     </span>
-                    <span className="text-muted-foreground">{Math.round(progress)}%</span>
                   </div>
-                  <Progress value={progress} className="h-2" />
-                </div>
-              )}
 
-              {/* Transcribe Button */}
-              {hasPendingFiles && !isTranscribing && (
-                <Button
-                  onClick={handleTranscribeAll}
-                  disabled={isProcessing}
-                  className="w-full"
-                  size="lg"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Transcribe {files.filter(f => f.status === 'pending').length} File(s)
-                </Button>
-              )}
+                  <AudioFileList
+                    files={files}
+                    onRemove={handleRemoveFile}
+                    onReorder={handleReorderFiles}
+                    disabled={isProcessing}
+                  />
+
+                  {isTranscribing && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">
+                          Transcribing file {currentFileIndex + 1} of {files.length}...
+                        </span>
+                        <span className="text-muted-foreground">{Math.round(progress)}%</span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                    </div>
+                  )}
+
+                  {hasPendingFiles && !isTranscribing && (
+                    <Button
+                      onClick={handleTranscribeAll}
+                      disabled={isProcessing}
+                      className="w-full"
+                      size="lg"
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Transcribe {files.filter(f => f.status === 'pending').length} File(s)
+                    </Button>
+                  )}
+                </TabsContent>
+
+                {/* Document Tab */}
+                <TabsContent value="document" className="mt-4 space-y-4">
+                  <div className="flex gap-2 flex-wrap">
+                    <input
+                      ref={docInputRef}
+                      type="file"
+                      accept=".txt,.doc,.docx,.vtt,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      multiple
+                      onChange={(e) => handleDocumentSelected(e.target.files)}
+                      className="hidden"
+                      disabled={isProcessing}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => docInputRef.current?.click()}
+                      disabled={isProcessing}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choose Document Files
+                    </Button>
+                    <span className="text-xs text-muted-foreground self-center">
+                      TXT, DOC, DOCX, VTT (Teams transcript)
+                    </span>
+                  </div>
+
+                  {isProcessingDocument && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Processing document...
+                    </div>
+                  )}
+
+                  {documentTranscript && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-green-600">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Document loaded successfully
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Paste Tab */}
+                <TabsContent value="paste" className="mt-4 space-y-4">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={handlePasteFromClipboard}
+                      disabled={isProcessing}
+                    >
+                      <Clipboard className="h-4 w-4 mr-2" />
+                      Paste from Clipboard
+                    </Button>
+                    <span className="text-xs text-muted-foreground self-center">
+                      Supports Teams transcripts, VTT format, and plain text
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="paste-transcript">Paste Transcript</Label>
+                    <Textarea
+                      id="paste-transcript"
+                      placeholder="Paste your meeting transcript here... Supports Teams VTT format, speaker labels, and plain text."
+                      value={pastedTranscript}
+                      onChange={(e) => handlePastedTextChange(e.target.value)}
+                      className="min-h-[200px] resize-vertical font-mono text-sm"
+                      disabled={isProcessing}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
 
               {/* Combined Transcript Preview */}
               {combinedTranscript && (
                 <div className="space-y-4 border-t pt-4">
-                  <div className="text-sm font-medium">Combined Transcript Preview</div>
-                  <div className="bg-muted p-4 rounded-lg max-h-48 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap">
-                    {combinedTranscript.substring(0, 1000)}
-                    {combinedTranscript.length > 1000 && '...'}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium">Transcript Preview</div>
+                    <div className="text-xs text-muted-foreground">
+                      {wordCount.toLocaleString()} words • {combinedTranscript.length.toLocaleString()} characters
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {combinedTranscript.split(' ').filter(w => w).length} words total
-                  </div>
+                  <ScrollArea className="h-48 border rounded-lg">
+                    <div className="p-4 text-sm leading-relaxed whitespace-pre-wrap">
+                      {combinedTranscript}
+                    </div>
+                  </ScrollArea>
                 </div>
               )}
 
@@ -444,7 +697,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
             <Button
               variant="ghost"
               onClick={handleClearAll}
-              disabled={isProcessing || files.length === 0}
+              disabled={isProcessing || (!files.length && !documentTranscript && !pastedTranscript)}
             >
               <X className="h-4 w-4 mr-2" />
               Clear All
@@ -471,7 +724,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
                     </>
                   ) : (
                     <>
-                      <FileAudio className="h-4 w-4 mr-2" />
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
                       Create Meeting
                     </>
                   )}
