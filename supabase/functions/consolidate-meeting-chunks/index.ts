@@ -7,6 +7,54 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// HARD CONFIDENCE GATE - chunks below this are filtered out
+const CONFIDENCE_THRESHOLD = 0.30;
+
+// Hallucination patterns to detect and filter
+const HALLUCINATION_PATTERNS = [
+  /thank you (very much )?for (your )?attention/gi,
+  /thank you for watching/gi,
+  /please (like and )?subscribe/gi,
+  /this (video|webinar) (has been|is now)/gi,
+  /if you have any questions/gi,
+  /i (hope|will be happy to)/gi,
+  /all of the above are in the description/gi,
+  /this is the end of the (webinar|video|meeting)/gi,
+];
+
+function isLikelyHallucination(text: string, confidence: number): { isHallucination: boolean; reason: string } {
+  // Hard confidence gate
+  if (confidence < CONFIDENCE_THRESHOLD) {
+    return { isHallucination: true, reason: `Confidence ${(confidence * 100).toFixed(1)}% below ${CONFIDENCE_THRESHOLD * 100}% threshold` };
+  }
+
+  // Check for hallucination patterns
+  let matchCount = 0;
+  for (const pattern of HALLUCINATION_PATTERNS) {
+    const matches = text.match(pattern);
+    if (matches) {
+      matchCount += matches.length;
+    }
+  }
+
+  // If more than 2 hallucination pattern matches, likely hallucinated
+  if (matchCount > 2) {
+    return { isHallucination: true, reason: `${matchCount} hallucination patterns detected` };
+  }
+
+  // Check for excessive repetition within the text
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  if (sentences.length > 3) {
+    const uniqueSentences = new Set(sentences.map(s => s.trim().toLowerCase()));
+    const repetitionRatio = 1 - (uniqueSentences.size / sentences.length);
+    if (repetitionRatio > 0.5) {
+      return { isHallucination: true, reason: `${(repetitionRatio * 100).toFixed(0)}% sentence repetition detected` };
+    }
+  }
+
+  return { isHallucination: false, reason: '' };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -28,7 +76,7 @@ serve(async (req) => {
     // Fetch all chunks for this meeting
     const { data: chunks, error: chunkError } = await supabase
       .from('meeting_transcription_chunks')
-      .select('cleaned_text, chunk_number, cleaning_status, transcription_text, word_count')
+      .select('cleaned_text, chunk_number, cleaning_status, transcription_text, word_count, confidence')
       .eq('meeting_id', meetingId)
       .order('chunk_number');
 
@@ -48,15 +96,75 @@ serve(async (req) => {
 
     console.log(`📊 Found ${chunks.length} chunks to consolidate`);
 
-    // Consolidate chunks: prefer cleaned_text, fallback to raw transcription
-    const consolidatedTranscript = chunks
+    // FILTER chunks before consolidation - apply hallucination detection
+    const filteredChunks: typeof chunks = [];
+    const rejectedChunks: { chunkNumber: number; reason: string }[] = [];
+
+    for (const chunk of chunks) {
+      const chunkText = chunk.cleaned_text || chunk.transcription_text || '';
+      const confidence = chunk.confidence || 0;
+
+      // Parse JSON if needed
+      let textToCheck = chunkText;
+      try {
+        const parsed = JSON.parse(chunkText);
+        if (Array.isArray(parsed)) {
+          textToCheck = parsed.map(seg => seg.text || '').join(' ');
+        }
+      } catch {
+        // Not JSON, use as-is
+      }
+
+      const hallucinationCheck = isLikelyHallucination(textToCheck, confidence);
+      
+      if (hallucinationCheck.isHallucination) {
+        console.log(`🚫 Chunk ${chunk.chunk_number} filtered: ${hallucinationCheck.reason}`);
+        rejectedChunks.push({ chunkNumber: chunk.chunk_number, reason: hallucinationCheck.reason });
+        
+        // Update chunk with rejection reason
+        await supabase
+          .from('meeting_transcription_chunks')
+          .update({ merge_rejection_reason: hallucinationCheck.reason })
+          .eq('meeting_id', meetingId)
+          .eq('chunk_number', chunk.chunk_number);
+      } else {
+        filteredChunks.push(chunk);
+      }
+    }
+
+    console.log(`✅ ${filteredChunks.length}/${chunks.length} chunks passed hallucination filter`);
+
+    if (filteredChunks.length === 0) {
+      // All chunks were filtered - this is a complete hallucination scenario
+      const { error: updateError } = await supabase
+        .from('meetings')
+        .update({
+          live_transcript_text: '[Transcript unavailable - audio quality insufficient for reliable transcription]',
+          whisper_transcript_text: '[Transcript unavailable - audio quality insufficient for reliable transcription]',
+          word_count: 0,
+          primary_transcript_source: 'hallucination_filtered',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', meetingId);
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'All chunks filtered as hallucinations - transcript marked as unavailable',
+        chunksProcessed: chunks.length,
+        chunksFiltered: rejectedChunks.length,
+        rejectedChunks
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Consolidate FILTERED chunks only
+    const consolidatedTranscript = filteredChunks
       .map(chunk => {
-        // Use cleaned text if available and status is completed
         if (chunk.cleaned_text && chunk.cleaning_status === 'completed') {
           return chunk.cleaned_text;
         }
         
-        // Fallback to parsing raw transcription_text
         try {
           const parsed = JSON.parse(chunk.transcription_text);
           if (Array.isArray(parsed)) {
@@ -70,39 +178,14 @@ serve(async (req) => {
       .join(' ')
       .trim();
 
-    const totalWords = chunks.reduce((sum, chunk) => sum + (chunk.word_count || 0), 0);
-    const cleanedCount = chunks.filter(c => c.cleaning_status === 'completed').length;
-    const pendingCount = chunks.filter(c => c.cleaning_status === 'pending').length;
+    const totalWords = consolidatedTranscript.split(/\s+/).filter(w => w.length > 0).length;
+    const cleanedCount = filteredChunks.filter(c => c.cleaning_status === 'completed').length;
+    const pendingCount = filteredChunks.filter(c => c.cleaning_status === 'pending').length;
 
     console.log(`✅ Consolidated: ${consolidatedTranscript.length} chars, ${totalWords} words`);
-    console.log(`📈 Breakdown: ${cleanedCount} cleaned, ${pendingCount} pending`);
+    console.log(`📈 Breakdown: ${cleanedCount} cleaned, ${pendingCount} pending, ${rejectedChunks.length} filtered`);
 
-    // VERIFICATION: Check if all chunks are adequately represented in consolidated transcript
-    // This helps detect merge issues where clinically important content might be under-represented
-    const consolidatedWordsSet = new Set(
-      consolidatedTranscript.toLowerCase().split(/\s+/).filter(w => w.length > 3)
-    );
-    
-    const underRepresentedChunks: number[] = [];
-    for (const chunk of chunks) {
-      const chunkText = chunk.cleaned_text || chunk.transcription_text || '';
-      const chunkWords = chunkText.toLowerCase().split(/\s+/).filter((w: string) => w.length > 4);
-      if (chunkWords.length < 5) continue; // Skip very short chunks
-      
-      const matchedWords = chunkWords.filter((w: string) => consolidatedWordsSet.has(w));
-      const matchRatio = matchedWords.length / chunkWords.length;
-      
-      if (matchRatio < 0.5) {
-        underRepresentedChunks.push(chunk.chunk_number);
-        console.warn(`⚠️ Chunk ${chunk.chunk_number} may be under-represented (${(matchRatio * 100).toFixed(0)}% words matched)`);
-      }
-    }
-    
-    if (underRepresentedChunks.length > 0) {
-      console.warn(`🚨 VERIFICATION WARNING: ${underRepresentedChunks.length} chunks may be under-represented: [${underRepresentedChunks.join(', ')}]`);
-    }
-
-    // Update the meeting's transcript (use live_transcript_text as it's what the UI reads)
+    // Update the meeting's transcript
     const { error: updateError } = await supabase
       .from('meetings')
       .update({
@@ -122,10 +205,12 @@ serve(async (req) => {
       success: true,
       message: 'Chunks consolidated successfully',
       chunksProcessed: chunks.length,
+      chunksFiltered: rejectedChunks.length,
       cleanedChunks: cleanedCount,
       pendingChunks: pendingCount,
       totalWords,
-      transcriptLength: consolidatedTranscript.length
+      transcriptLength: consolidatedTranscript.length,
+      rejectedChunks
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
