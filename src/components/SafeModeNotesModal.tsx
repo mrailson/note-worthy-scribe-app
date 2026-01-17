@@ -3272,7 +3272,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           title="Download detailed chunk analysis as Word document"
                         >
                           <Download className="h-4 w-4 text-emerald-600" />
-                          Chunk Report
+                          Transcription Quality Summary
                         </Button>
                         <Button
                           variant={showTranscriptFindReplace ? 'default' : 'outline'}

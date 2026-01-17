@@ -1354,7 +1354,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             title="Download detailed chunk analysis as Word document"
           >
             <Download className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "text-emerald-600 mr-2")} />
-            {isIPhone ? "Chunk Report" : "Chunk Analysis Report"}
+            Transcription Quality Summary
           </Button>
 
           {/* Transcript Actions Dropdown */}
