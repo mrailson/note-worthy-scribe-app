@@ -150,16 +150,8 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
             onAutoRecoveryAttempt?.();
           }
           
-          showToast.error(
-            'Transcription appears to have stopped. Check your recording.',
-            {
-              section: 'meeting_manager',
-              duration: Infinity,
-              description: isMobile 
-                ? 'Attempting automatic recovery...' 
-                : 'No transcription activity for over 2 minutes'
-            }
-          );
+          // Removed toast - status now shown in TranscriptionHealthIndicator only
+          console.log('🚨 Critical transcription stall detected');
         } else if (healthStatus === 'warning' && !warningShownRef.current) {
           warningShownRef.current = true;
           
@@ -168,16 +160,8 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
             iOSAudioAlert.playWarningBeep();
           }
           
-          showToast.warning(
-            isMobile 
-              ? 'Transcription may be paused - keep app in foreground'
-              : 'Transcription may be stalled - checking...',
-            {
-              section: 'meeting_manager',
-              duration: 10000,
-              description: `No new text for ${Math.round(timeSinceLastChunk / 1000)}s`
-            }
-          );
+          // Removed toast - status now shown in TranscriptionHealthIndicator only
+          console.log('⚠️ Warning: transcription may be stalled');
         }
       } else if (!isStalled && wasStalled.current) {
         // Recovered from stall
@@ -192,7 +176,7 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
           iOSAudioAlert.playRecoveryChime();
         }
         
-        showToast.success('Transcription resumed', { section: 'meeting_manager', duration: 3000 });
+        // Removed toast - recovery shown via health indicator
       }
 
       setState({
@@ -264,14 +248,8 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
     if (timeSinceLastChunk > warningThresholdMs) {
       console.warn(`🐕 Tab restored after ${Math.round(timeSinceLastChunk / 1000)}s - transcription may have stalled`);
       
-      showToast.warning(
-        'Checking transcription status...',
-        {
-          section: 'meeting_manager',
-          duration: 5000,
-          description: `Tab was in background for ${Math.round(timeSinceLastChunk / 1000)}s`
-        }
-      );
+      // Removed toast - status check logged only
+      console.log(`🔍 Checking transcription after ${Math.round(timeSinceLastChunk / 1000)}s background`);
       
       return true; // Indicates possible stall
     }
