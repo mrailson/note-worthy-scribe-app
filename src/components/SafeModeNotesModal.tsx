@@ -3176,30 +3176,32 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <ScrollArea className="h-full rounded-lg border bg-card">
                 <div className="p-6 space-y-4">
                   {/* Find & Replace toggle and Chunk Report for transcript */}
-                  {transcript && !isLoadingTranscript && !transcriptError && (
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={exportChunkAnalysisToWord}
-                        disabled={transcriptChunks.length === 0 || isLoadingChunks}
-                        className="gap-2"
-                        title="Download detailed chunk analysis as Word document"
-                      >
-                        <Download className="h-4 w-4 text-emerald-600" />
-                        Chunk Report
-                      </Button>
-                      <Button
-                        variant={showTranscriptFindReplace ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setShowTranscriptFindReplace(!showTranscriptFindReplace)}
-                        className="gap-2"
-                      >
-                        <Search className="h-4 w-4" />
-                        Find & Replace
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex justify-end gap-2 min-h-[36px]">
+                    {transcript && !isLoadingTranscript && !transcriptError ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={exportChunkAnalysisToWord}
+                          disabled={transcriptChunks.length === 0 || isLoadingChunks}
+                          className="gap-2"
+                          title="Download detailed chunk analysis as Word document"
+                        >
+                          <Download className="h-4 w-4 text-emerald-600" />
+                          Chunk Report
+                        </Button>
+                        <Button
+                          variant={showTranscriptFindReplace ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setShowTranscriptFindReplace(!showTranscriptFindReplace)}
+                          className="gap-2"
+                        >
+                          <Search className="h-4 w-4" />
+                          Find & Replace
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
 
                   {/* Find & Replace Panel */}
                   {showTranscriptFindReplace && transcript && (

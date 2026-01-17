@@ -121,5 +121,26 @@ export function useTextSelection(
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selection.isValid, clearSelection]);
 
+  // Clear selection on scroll/resize to avoid stale DOMRect causing "jumping" popups
+  useEffect(() => {
+    if (!selection.isValid) return;
+
+    const container = containerRef.current;
+    const scrollContainer = (container?.closest?.('[data-radix-scroll-area-viewport]') as HTMLElement | null) || null;
+
+    const clear = () => {
+      clearSelection();
+      window.getSelection()?.removeAllRanges();
+    };
+
+    scrollContainer?.addEventListener('scroll', clear, { passive: true });
+    window.addEventListener('resize', clear);
+
+    return () => {
+      scrollContainer?.removeEventListener('scroll', clear);
+      window.removeEventListener('resize', clear);
+    };
+  }, [selection.isValid, containerRef, clearSelection]);
+
   return { selection, clearSelection };
 }
