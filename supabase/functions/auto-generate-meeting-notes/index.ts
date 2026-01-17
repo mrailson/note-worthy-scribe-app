@@ -762,6 +762,29 @@ ${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${attendeeWithOrg.length
 **IMPORTANT: Use the exact attendee names provided above. Do not modify spellings.**
 ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` : ''}`;
 
+    // Format meeting date for title context
+    const formattedMeetingDate = meeting.start_time 
+      ? new Date(meeting.start_time).toLocaleDateString('en-GB', { 
+          weekday: 'long', 
+          day: 'numeric', 
+          month: 'long', 
+          year: 'numeric' 
+        })
+      : undefined;
+
+    // Get document names for title context
+    let uploadedDocuments: Array<{ file_name: string }> | undefined;
+    try {
+      const { data: docs } = await supabase
+        .from('meeting_documents')
+        .select('file_name')
+        .eq('meeting_id', meetingId)
+        .limit(5);
+      uploadedDocuments = docs || undefined;
+    } catch (docErr) {
+      console.warn('⚠️ Could not fetch document names for title:', docErr);
+    }
+
     // Generate descriptive meeting title FIRST using the transcript so we can use it in the notes
     let generatedTitle = meeting.title;
     try {
@@ -771,7 +794,12 @@ ${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` :
         {
           body: { 
             transcript: cleanedTranscript,
-            currentTitle: meeting.title
+            currentTitle: meeting.title,
+            attendees: attendeeWithOrg,
+            agenda: meeting.agenda,
+            meetingFormat: meeting.meeting_format,
+            meetingDate: formattedMeetingDate,
+            documentNames: uploadedDocuments?.map(d => d.file_name)
           }
         }
       );
