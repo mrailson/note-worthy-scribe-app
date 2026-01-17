@@ -1579,7 +1579,8 @@ export const MeetingRecorder = ({
                         saveStatus: 'saved' as const,
                         saveTimestamp: new Date().toISOString(),
                         originalFileSize: originalSize,
-                        transcodedFileSize: transcodedSize
+                        transcodedFileSize: transcodedSize,
+                        fileType: chunkBlob.type || 'audio/webm'
                       }
                     : chunk
                 ));
@@ -2942,6 +2943,7 @@ export const MeetingRecorder = ({
         
         // Update word count tracking by adding proper ChunkSaveStatus object
         const chunkTime = Date.now();
+        const wavSize = wavBuffer.byteLength;
         setChunkSaveStatuses(prev => [...prev, {
           id: `system-audio-${chunkNumber}-${chunkTime}`,
           chunkNumber: chunkNumber,
@@ -2952,7 +2954,10 @@ export const MeetingRecorder = ({
           retryCount: 0,
           confidence: result.confidence || 0.85,
           startTime: (chunkTime - 15000) / 1000, // 15 seconds ago in seconds
-          endTime: chunkTime / 1000 // now in seconds
+          endTime: chunkTime / 1000, // now in seconds
+          originalFileSize: wavSize,
+          transcodedFileSize: wavSize,
+          fileType: 'audio/wav'
         }]);
         
         // Also save as a database chunk 
