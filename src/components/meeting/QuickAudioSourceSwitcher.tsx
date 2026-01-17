@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Mic, Monitor, Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
 export type AudioSourceMode = 'microphone' | 'microphone_and_system' | 'system_only';
 
 interface QuickAudioSourceSwitcherProps {
@@ -25,7 +25,8 @@ export const QuickAudioSourceSwitcher = ({
   disabled = false
 }: QuickAudioSourceSwitcherProps) => {
   const isMobile = useIsMobile();
-  
+  const isIPhone = useIsIPhone();
+  const hideSystemAudio = isMobile || isIPhone;
   if (!isRecording) return null;
 
   // On mobile, only show microphone option (system audio not supported)
@@ -34,7 +35,7 @@ export const QuickAudioSourceSwitcher = ({
     { mode: 'microphone_and_system', icon: Monitor, label: 'Mic + System Audio', shortLabel: 'Mic+Sys' },
   ];
   
-  const modes = isMobile 
+  const modes = hideSystemAudio 
     ? allModes.filter(m => m.mode === 'microphone')
     : allModes;
 
