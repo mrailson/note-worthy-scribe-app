@@ -212,14 +212,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   
   // Refs for selection-based find/replace
   const notesContentRef = useRef<HTMLDivElement>(null);
-  const transcriptContentRef = useRef<HTMLDivElement>(null);
   
   // Track when a local edit is in progress to prevent auto-sync from overwriting
   const isLocalEditInProgressRef = useRef(false);
   
-  // Text selection hooks for inline find/replace
+  // Text selection hook for inline find/replace (Notes tab only)
   const { selection: notesSelection, clearSelection: clearNotesSelection } = useTextSelection(notesContentRef, { maxWords: 3 });
-  const { selection: transcriptSelection, clearSelection: clearTranscriptSelection } = useTextSelection(transcriptContentRef, { maxWords: 3 });
   const [isSavingMeetingType, setIsSavingMeetingType] = useState(false);
   
   // Location/Venue editing state
@@ -2095,17 +2093,24 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       processedSentences.push(sentence);
     }
     
-    // Group sentences into paragraphs (roughly 3-5 sentences each)
+    // Group sentences into paragraphs (deterministic: roughly 3-5 sentences each)
     const paragraphs: string[] = [];
     let currentParagraph: string[] = [];
+
+    const MAX_SENTENCES = 4;
+    const MIN_SENTENCES = 3;
+    const MAX_CHARS = 520;
     
     for (const sentence of processedSentences) {
       currentParagraph.push(sentence);
-      
-      // Create new paragraph after 4-5 sentences or at natural breaks
-      if (currentParagraph.length >= 4 || 
-          (currentParagraph.length >= 3 && /[.!?]$/.test(sentence) && Math.random() > 0.5)) {
-        paragraphs.push(currentParagraph.join(' '));
+
+      const paragraphText = currentParagraph.join(' ');
+      const shouldBreak =
+        currentParagraph.length >= MAX_SENTENCES ||
+        (currentParagraph.length >= MIN_SENTENCES && paragraphText.length >= MAX_CHARS);
+
+      if (shouldBreak) {
+        paragraphs.push(paragraphText);
         currentParagraph = [];
       }
     }
@@ -3236,7 +3241,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                       </Button>
                     </div>
                   ) : transcript ? (
-                    <div ref={transcriptContentRef} className="relative">
+                    <div className="relative">
                       {viewMode === 'plain' ? (
                         <pre 
                           className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
