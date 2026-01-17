@@ -1583,6 +1583,31 @@ export const MeetingRecorder = ({
                       }
                     : chunk
                 ));
+                
+                // Save audio chunk metadata with file sizes for analytics
+                const transcodedSize = chunkBlob.size;
+                const compressionRatio = originalSize > 0 ? parseFloat((1 - transcodedSize / originalSize).toFixed(2)) : 0;
+                
+                const { error: audioChunkError } = await supabase
+                  .from('audio_chunks')
+                  .insert({
+                    meeting_id: meetingId,
+                    chunk_number: currentChunkNumber,
+                    start_time: startTime.toISOString(),
+                    end_time: endTime.toISOString(),
+                    processing_status: 'completed',
+                    chunk_duration_ms: 30000,
+                    file_size: transcodedSize,
+                    original_file_size: originalSize,
+                    transcoded_file_size: transcodedSize,
+                    compression_ratio: compressionRatio
+                  });
+                
+                if (audioChunkError) {
+                  console.warn('⚠️ Failed to save audio chunk metadata:', audioChunkError.message);
+                } else {
+                  console.log(`📊 Chunk ${currentChunkNumber} metadata saved: ${(originalSize/1024).toFixed(1)}KB → ${(transcodedSize/1024).toFixed(1)}KB (${(compressionRatio*100).toFixed(0)}% reduction)`);
+                }
               }
             } catch (saveError) {
               console.error('Database save error:', saveError);
