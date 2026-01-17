@@ -333,6 +333,7 @@ export const MeetingRecorder = ({
   const [meetings, setMeetings] = useState<any[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [totalTranscriptWords, setTotalTranscriptWords] = useState<number>(0);
   
   // Layout view mode for meeting history (persisted)
   const [layoutViewMode, setLayoutViewMode] = useState<HistoryViewMode>(() => {
@@ -4871,7 +4872,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       // Batch lightweight counts to avoid heavy per-meeting queries
       const meetingIds = (meetingsData || []).map(m => m.id);
 
-      const [transcriptCounts, summaryExists, documentCounts] = await Promise.all([
+      const [transcriptCounts, summaryExists, documentCounts, wordCountResult] = await Promise.all([
         // Transcript chunk counts per meeting
         supabase
           .from('meeting_transcription_chunks')
@@ -4909,8 +4910,26 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
             });
             return counts;
+          }),
+
+        // Total word count from whisper transcripts (lightweight - just count characters and estimate)
+        supabase
+          .from('meetings')
+          .select('whisper_transcript_text')
+          .in('id', meetingIds)
+          .then(({ data }) => {
+            let totalWords = 0;
+            data?.forEach((row: any) => {
+              if (row.whisper_transcript_text) {
+                totalWords += row.whisper_transcript_text.split(/\s+/).filter((w: string) => w.length > 0).length;
+              }
+            });
+            return totalWords;
           })
       ]);
+
+      // Update total transcript words state
+      setTotalTranscriptWords(wordCountResult);
 
       // Build enriched objects without fetching heavy transcript contents
       const meetingsWithCounts = (meetingsData || []).map((meeting: any) => ({
@@ -6214,15 +6233,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               <Type className="h-3.5 w-3.5 text-orange-500" />
               <span className="font-semibold text-orange-500">
                 {(() => {
-                  const totalWords = meetings.reduce((acc, m) => {
-                    // Use meeting_summary (from notes_style_3) or overview for word count
-                    const notes = m.meeting_summary || m.notes_style_3 || m.overview || '';
-                    const wordCount = notes.split(/\s+/).filter((w: string) => w.length > 0).length;
-                    return acc + wordCount;
-                  }, 0);
-                  if (totalWords >= 1000000) return `${(totalWords / 1000000).toFixed(1)}M`;
-                  if (totalWords >= 1000) return `${(totalWords / 1000).toFixed(1)}k`;
-                  return totalWords.toString();
+                  if (totalTranscriptWords >= 1000000) return `${(totalTranscriptWords / 1000000).toFixed(1)}M`;
+                  if (totalTranscriptWords >= 1000) return `${(totalTranscriptWords / 1000).toFixed(1)}k`;
+                  return totalTranscriptWords.toString();
                 })()}
               </span>
               <span className="text-muted-foreground">words</span>
