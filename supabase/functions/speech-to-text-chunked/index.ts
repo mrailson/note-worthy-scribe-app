@@ -165,16 +165,28 @@ serve(async (req) => {
 
         // Calculate real confidence from segments
         let confidence = 0.5; // Default fallback
+        let audioQualityWarning: string | null = null;
+        let avgNoSpeech = 0;
+        
         if (result.segments && result.segments.length > 0) {
           const avgLogProb = result.segments.reduce((sum: number, seg: any) => 
             sum + (seg.avg_logprob || -2), 0) / result.segments.length;
-          const avgNoSpeech = result.segments.reduce((sum: number, seg: any) => 
+          avgNoSpeech = result.segments.reduce((sum: number, seg: any) => 
             sum + (seg.no_speech_prob || 0.5), 0) / result.segments.length;
           
           // Convert log probability and no-speech probability to confidence score
           confidence = Math.max(0, Math.min(1, 
             (avgLogProb + 1) / 1 * (1 - avgNoSpeech)
           ));
+          
+          // Early audio quality detection - warn if mostly silence/music
+          if (avgNoSpeech > 0.8) {
+            audioQualityWarning = 'Audio contains insufficient speech for reliable transcription';
+            console.log(`⚠️ [${requestId}] High no-speech probability: ${(avgNoSpeech * 100).toFixed(1)}%`);
+          } else if (avgNoSpeech > 0.6 && confidence < 0.3) {
+            audioQualityWarning = 'Audio quality may be too low for reliable transcription';
+            console.log(`⚠️ [${requestId}] Low confidence with high no-speech: conf=${(confidence * 100).toFixed(1)}%, noSpeech=${(avgNoSpeech * 100).toFixed(1)}%`);
+          }
         }
 
         // Return the transcription result with segments for timestamp-based deduplication
@@ -184,6 +196,9 @@ serve(async (req) => {
             segments: result.segments || []
           },
           confidence: confidence, // Real confidence from Whisper segments
+          audioQuality: audioQualityWarning ? 'poor' : (confidence >= 0.6 ? 'good' : 'acceptable'),
+          audioQualityWarning: audioQualityWarning,
+          noSpeechProbability: avgNoSpeech,
           chunkIndex,
           isFinal,
           sessionId,
