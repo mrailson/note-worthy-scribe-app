@@ -5276,8 +5276,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" align="end" className="max-w-xs">
-                      <p className="font-medium">Import Audio Files</p>
-                      <p className="text-xs text-muted-foreground">Upload pre-recorded audio files (MP3, WAV, M4A) to transcribe instead of recording live</p>
+                      <p className="font-medium">Import Content</p>
+                      <p className="text-xs text-muted-foreground">Import audio files, documents (TXT, DOC, DOCX), or paste transcripts including Teams format</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>

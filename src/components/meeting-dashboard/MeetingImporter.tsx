@@ -49,9 +49,9 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Check file size (1MB limit)
-    if (file.size > 1024 * 1024) {
-      showToast.error('File too large. Maximum size is 1MB.', { section: 'meeting_manager' });
+    // Check file size (50MB limit for documents)
+    if (file.size > 50 * 1024 * 1024) {
+      showToast.error('File too large. Maximum size is 50MB.', { section: 'meeting_manager' });
       return;
     }
 
