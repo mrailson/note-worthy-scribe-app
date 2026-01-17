@@ -2224,15 +2224,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           onClose();
         }}
       >
-        {/* Custom close button that marks intent before closing */}
-        <button
-          type="button"
-          onClick={handleClose}
-          className="absolute right-4 top-4 h-8 w-8 rounded-full flex items-center justify-center bg-muted/50 text-muted-foreground ring-offset-background transition-all hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-50"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
         <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -2248,6 +2239,15 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 </p>
               </div>
             </div>
+            {/* Close button inside header - always visible and accessible */}
+            <button
+              type="button"
+              onClick={handleClose}
+              className="h-10 w-10 rounded-full flex items-center justify-center bg-muted/80 text-foreground ring-offset-background transition-all hover:bg-muted active:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 flex-shrink-0"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
         </DialogHeader>
 
