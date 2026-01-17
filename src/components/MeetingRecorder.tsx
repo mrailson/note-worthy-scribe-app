@@ -174,16 +174,13 @@ export const MeetingRecorder = ({
   // Auto-start recording ref (effect added after user declaration)
   const autoStartTriggeredRef = useRef(false);
 
-  // Calculate word count from all chunks
+  // Calculate word count from the actual merged transcript (net words)
   useEffect(() => {
-    const totalWords = chunkSaveStatuses.reduce((total, chunk) => {
-      const chunkWordCount = chunk.text.trim().split(/\s+/).filter(word => word.length > 0).length;
-      return total + chunkWordCount;
-    }, 0);
+    const netWords = transcript.trim().split(/\s+/).filter(word => word.length > 0).length;
     
-    setWordCount(totalWords);
-    onWordCountUpdate(totalWords);
-  }, [chunkSaveStatuses, onWordCountUpdate]);
+    setWordCount(netWords);
+    onWordCountUpdate(netWords);
+  }, [transcript, onWordCountUpdate]);
 
   const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
   const [speakerCount, setSpeakerCount] = useState(0);
