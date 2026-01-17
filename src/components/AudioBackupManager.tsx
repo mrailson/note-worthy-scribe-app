@@ -194,7 +194,7 @@ export const AudioBackupManager = () => {
   };
 
   const deleteOldAudioBackups = async () => {
-    if (!confirm('Are you sure you want to delete all audio backups older than 24 hours? This action cannot be undone.')) {
+    if (!confirm('Are you sure you want to delete all audio backups and chunks older than 24 hours? This action cannot be undone.')) {
       return;
     }
 
@@ -210,15 +210,22 @@ export const AudioBackupManager = () => {
       setBackups([]);
       await fetchAudioBackups();
       
-      const deletedCount = data.deleted_count || 0;
-      if (deletedCount > 0) {
-        toast.success(`Successfully deleted ${deletedCount} old audio backup${deletedCount > 1 ? 's' : ''} and removed from display`);
+      const deletedBackups = data.deleted_backups || 0;
+      const deletedChunks = data.deleted_chunks || 0;
+      const deletedFiles = data.deleted_files || 0;
+      const totalDeleted = data.deleted_count || 0;
+      
+      if (totalDeleted > 0) {
+        const parts = [];
+        if (deletedBackups > 0) parts.push(`${deletedBackups} backup${deletedBackups > 1 ? 's' : ''}`);
+        if (deletedChunks > 0) parts.push(`${deletedChunks} chunk${deletedChunks > 1 ? 's' : ''}`);
+        toast.success(`Deleted ${parts.join(' and ')} (${deletedFiles} files removed from storage)`);
       } else {
-        toast.info('No audio backups older than 24 hours found');
+        toast.info('No audio files older than 24 hours found');
       }
     } catch (error) {
-      console.error('Error deleting old audio backups:', error);
-      toast.error('Failed to delete old audio backups');
+      console.error('Error deleting old audio files:', error);
+      toast.error('Failed to delete old audio files');
     } finally {
       setDeletingOld(false);
     }
