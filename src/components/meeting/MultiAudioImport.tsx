@@ -573,7 +573,21 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
 
                 {/* Document Tab */}
                 <TabsContent value="document" className="mt-4 space-y-4">
-                  <div className="flex gap-2 flex-wrap">
+                  <div
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDragOver(false);
+                      handleDocumentSelected(e.dataTransfer.files);
+                    }}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    className={cn(
+                      "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
+                      isDragOver && "border-primary bg-primary/5",
+                      !isDragOver && "border-muted-foreground/25 hover:border-muted-foreground/50"
+                    )}
+                    onClick={() => docInputRef.current?.click()}
+                  >
                     <input
                       ref={docInputRef}
                       type="file"
@@ -583,17 +597,13 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
                       className="hidden"
                       disabled={isProcessing}
                     />
-                    <Button
-                      variant="outline"
-                      onClick={() => docInputRef.current?.click()}
-                      disabled={isProcessing}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      Choose Document Files
-                    </Button>
-                    <span className="text-xs text-muted-foreground self-center">
+                    <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-sm font-medium mb-1">
+                      Drag & drop documents here, or click to browse
+                    </p>
+                    <p className="text-xs text-muted-foreground">
                       TXT, DOC, DOCX, VTT (Teams transcript)
-                    </span>
+                    </p>
                   </div>
 
                   {isProcessingDocument && (
