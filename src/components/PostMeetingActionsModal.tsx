@@ -607,11 +607,12 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     }
     
     onOpenChange(false);
-    // Navigate to meeting history and trigger SafeModeNotesModal (the new better version)
-    navigate('/meeting-history', { 
+    // Navigate to home page and trigger SafeModeNotesModal in the History tab (the new better version)
+    navigate('/', { 
       state: { 
         openSafeModeModal: true,
-        safeModeModalMeetingId: meetingId 
+        safeModeModalMeetingId: meetingId,
+        switchToHistoryTab: true
       } 
     });
   };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { format, startOfDay, addMinutes } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -580,7 +580,35 @@ export const MeetingRecorder = ({
   };
   
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+  
+  // State for auto-opening SafeModeNotesModal when navigated from PostMeetingActionsModal
+  const [autoOpenSafeModeForMeetingId, setAutoOpenSafeModeForMeetingId] = useState<string | null>(null);
+  
+  // Handle navigation state for opening SafeModeNotesModal
+  useEffect(() => {
+    const state = location.state as { 
+      openSafeModeModal?: boolean; 
+      safeModeModalMeetingId?: string;
+      switchToHistoryTab?: boolean;
+    } | null;
+    
+    if (state?.openSafeModeModal && state?.safeModeModalMeetingId) {
+      console.log('🛡️ Navigation state detected - switching to History tab and opening SafeModeNotesModal');
+      
+      // Switch to history tab
+      if (state.switchToHistoryTab) {
+        setActiveTab('history');
+      }
+      
+      // Set the meeting ID to auto-open
+      setAutoOpenSafeModeForMeetingId(state.safeModeModalMeetingId);
+      
+      // Clear the navigation state to prevent re-opening on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const latestCompleteTranscriptRef = useRef<string>('');
@@ -5507,7 +5535,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                     
                     
                       {/* Recording Audio Player - Show after recording stops */}
-                      {recordingAudioUrl && !isRecording && (
+                      {recordingAudioUrl && !isRecording && !isStoppingRecording && (
                         <>
                           {/* On iPhone, show a button to reveal the player instead of auto-showing */}
                           {isIOS && !showRecordingPlayer ? (
@@ -6217,6 +6245,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               ));
             }}
             showRecordingPlayback={false}
+            autoOpenSafeModeForMeetingId={autoOpenSafeModeForMeetingId}
+            onAutoOpenSafeModeProcessed={() => setAutoOpenSafeModeForMeetingId(null)}
           />
         </TabsContent>
 
