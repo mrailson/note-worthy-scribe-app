@@ -63,8 +63,20 @@ serve(async (req) => {
       )
     }
 
-    // Calculate cutoff date (24 hours ago)
-    const cutoffDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    // Parse request body for cutoff hours (default 24 hours)
+    let cutoffHours = 24
+    try {
+      const body = await req.json()
+      if (body.cutoffHours && typeof body.cutoffHours === 'number' && body.cutoffHours > 0) {
+        cutoffHours = body.cutoffHours
+      }
+    } catch {
+      // No body or invalid JSON, use default
+    }
+
+    // Calculate cutoff date
+    const cutoffDate = new Date(Date.now() - cutoffHours * 60 * 60 * 1000).toISOString()
+    console.log(`Deleting audio files older than ${cutoffHours} hours (cutoff: ${cutoffDate})`)
 
     let totalDeletedBackups = 0
     let totalDeletedChunks = 0
@@ -174,15 +186,18 @@ serve(async (req) => {
 
     const totalDeleted = totalDeletedBackups + totalDeletedChunks
 
+    const cutoffLabel = cutoffHours === 24 ? '24 hours' : `${Math.round(cutoffHours / 24)} days`
+
     if (totalDeleted === 0) {
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'No audio files older than 24 hours found',
+          message: `No audio files older than ${cutoffLabel} found`,
           deleted_count: 0,
           deleted_backups: 0,
           deleted_chunks: 0,
-          deleted_files: 0
+          deleted_files: 0,
+          cutoff_hours: cutoffHours
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -195,7 +210,8 @@ serve(async (req) => {
         deleted_count: totalDeleted,
         deleted_backups: totalDeletedBackups,
         deleted_chunks: totalDeletedChunks,
-        deleted_files: totalDeletedFiles
+        deleted_files: totalDeletedFiles,
+        cutoff_hours: cutoffHours
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
