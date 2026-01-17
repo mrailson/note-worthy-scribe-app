@@ -23,6 +23,7 @@ interface ChunkSaveStatus {
   mergeRejectionReason?: string; // Reason why chunk wasn't merged into transcript
   originalFileSize?: number; // Original file size in bytes before transcoding
   transcodedFileSize?: number; // Transcoded file size in bytes
+  fileType?: string; // Audio file type (e.g., 'audio/webm', 'audio/wav')
 }
 
 interface ChunkSaveStatusProps {
@@ -416,9 +417,11 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
                                   {Math.floor(chunk.startTime / 60)}m {(chunk.startTime % 60).toFixed(1)}s → {Math.floor(chunk.endTime / 60)}m {(chunk.endTime % 60).toFixed(1)}s ({(chunk.endTime - chunk.startTime).toFixed(1)}s) ({chunkWords} words) {Math.round(chunk.confidence * 100)}% conf
                                 </span>
                               )}
-                              {chunk.originalFileSize !== undefined && chunk.transcodedFileSize !== undefined && (
+                              {(chunk.originalFileSize !== undefined || chunk.transcodedFileSize !== undefined || chunk.fileType) && (
                                 <span className="text-xs text-muted-foreground font-mono ml-1">
-                                  📦 {(chunk.originalFileSize / 1024).toFixed(0)}KB → {(chunk.transcodedFileSize / 1024).toFixed(0)}KB ({Math.round((1 - chunk.transcodedFileSize / chunk.originalFileSize) * 100)}% saved)
+                                  📦 {chunk.originalFileSize ? `${(chunk.originalFileSize / 1024).toFixed(0)}KB` : '—'}
+                                  {chunk.transcodedFileSize && chunk.originalFileSize ? ` → ${(chunk.transcodedFileSize / 1024).toFixed(0)}KB (${Math.round((1 - chunk.transcodedFileSize / chunk.originalFileSize) * 100)}% saved)` : ''}
+                                  {chunk.fileType && <span className="ml-1 text-primary/70">[{chunk.fileType.replace('audio/', '')}]</span>}
                                 </span>
                               )}
                             </div>
