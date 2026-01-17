@@ -30,7 +30,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
 import { useRecordingProtection } from "@/hooks/useRecordingProtection";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check, Folder, Loader2, MoreVertical, ChevronDown, CheckCircle, Timer, Type } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check, Folder, Loader2, MoreVertical, ChevronDown, CheckCircle, Timer, Type, ChevronLeft, ChevronRight } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
@@ -334,6 +334,10 @@ export const MeetingRecorder = ({
   const [filteredMeetings, setFilteredMeetings] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [totalTranscriptWords, setTotalTranscriptWords] = useState<number>(0);
+  
+  // Pagination state for meeting history
+  const [currentPage, setCurrentPage] = useState(1);
+  const meetingsPerPage = 10;
   
   // Layout view mode for meeting history (persisted)
   const [layoutViewMode, setLayoutViewMode] = useState<HistoryViewMode>(() => {
@@ -5030,6 +5034,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     }
     
     setFilteredMeetings(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [meetings, searchQuery, selectedFolderId]);
 
   // Meeting history handlers
@@ -6517,107 +6522,156 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           </div>
 
           {/* Meetings List - Conditional rendering based on view mode */}
-          {layoutViewMode === 'compact' ? (
-            <CompactMeetingList
-              meetings={filteredMeetings}
-              isSelectMode={isSelectMode}
-              selectedMeetings={selectedMeetings}
-              onSelectMeeting={(meetingId, isSelected) => {
-                if (isSelected) {
-                  setSelectedMeetings(prev => [...prev, meetingId]);
-                } else {
-                  setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
-                }
-              }}
-              onViewNotes={handleSafeModeNotesClick}
-              onDelete={handleDeleteMeeting}
-              loading={loadingHistory}
-            />
-          ) : layoutViewMode === 'grid' ? (
-            <MeetingGridView
-              meetings={filteredMeetings}
-              isSelectMode={isSelectMode}
-              selectedMeetings={selectedMeetings}
-              onSelectMeeting={(meetingId, isSelected) => {
-                if (isSelected) {
-                  setSelectedMeetings(prev => [...prev, meetingId]);
-                } else {
-                  setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
-                }
-              }}
-              onViewNotes={handleSafeModeNotesClick}
-              onDelete={handleDeleteMeeting}
-              loading={loadingHistory}
-            />
-          ) : layoutViewMode === 'table' ? (
-            <MeetingTableView
-              meetings={filteredMeetings}
-              isSelectMode={isSelectMode}
-              selectedMeetings={selectedMeetings}
-              onSelectMeeting={(meetingId, isSelected) => {
-                if (isSelected) {
-                  setSelectedMeetings(prev => [...prev, meetingId]);
-                } else {
-                  setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
-                }
-              }}
-              onSelectAll={() => {
-                if (selectedMeetings.length === filteredMeetings.length) {
-                  setSelectedMeetings([]);
-                } else {
-                  setSelectedMeetings(filteredMeetings.map(m => m.id));
-                }
-              }}
-              onViewNotes={handleSafeModeNotesClick}
-              onDelete={handleDeleteMeeting}
-              loading={loadingHistory}
-            />
-          ) : layoutViewMode === 'timeline' ? (
-            <MeetingTimelineView
-              meetings={filteredMeetings}
-              isSelectMode={isSelectMode}
-              selectedMeetings={selectedMeetings}
-              onSelectMeeting={(meetingId, isSelected) => {
-                if (isSelected) {
-                  setSelectedMeetings(prev => [...prev, meetingId]);
-                } else {
-                  setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
-                }
-              }}
-              onViewNotes={handleSafeModeNotesClick}
-              onDelete={handleDeleteMeeting}
-              loading={loadingHistory}
-            />
-          ) : (
-            <MeetingHistoryList 
-              meetings={filteredMeetings}
-              onEdit={(meetingId) => navigate(`/meeting-summary`, { state: { id: meetingId } })}
-              onViewSummary={handleViewSummary}
-              onViewTranscript={handleViewTranscript}
-              onDelete={handleDeleteMeeting}
-              onRefresh={loadMeetingHistory}
-              loading={loadingHistory}
-              isSelectMode={isSelectMode}
-              selectedMeetings={selectedMeetings}
-              onSelectMeeting={(meetingId, isSelected) => {
-                if (isSelected) {
-                  setSelectedMeetings(prev => [...prev, meetingId]);
-                } else {
-                  setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
-                }
-              }}
-              onMeetingUpdate={(meetingId, updatedTitle) => {
-                setMeetings(prev => prev.map(meeting =>
-                  meeting.id === meetingId 
-                    ? { ...meeting, title: updatedTitle }
-                    : meeting
-                ));
-              }}
-              showRecordingPlayback={false}
-              autoOpenSafeModeForMeetingId={autoOpenSafeModeForMeetingId}
-              onAutoOpenSafeModeProcessed={() => setAutoOpenSafeModeForMeetingId(null)}
-            />
-          )}
+          {(() => {
+            // Calculate paginated meetings
+            const totalPages = Math.ceil(filteredMeetings.length / meetingsPerPage);
+            const startIndex = (currentPage - 1) * meetingsPerPage;
+            const paginatedMeetings = filteredMeetings.slice(startIndex, startIndex + meetingsPerPage);
+            
+            return (
+              <>
+                {layoutViewMode === 'compact' ? (
+                  <CompactMeetingList
+                    meetings={paginatedMeetings}
+                    isSelectMode={isSelectMode}
+                    selectedMeetings={selectedMeetings}
+                    onSelectMeeting={(meetingId, isSelected) => {
+                      if (isSelected) {
+                        setSelectedMeetings(prev => [...prev, meetingId]);
+                      } else {
+                        setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                      }
+                    }}
+                    onViewNotes={handleSafeModeNotesClick}
+                    onDelete={handleDeleteMeeting}
+                    loading={loadingHistory}
+                  />
+                ) : layoutViewMode === 'grid' ? (
+                  <MeetingGridView
+                    meetings={paginatedMeetings}
+                    isSelectMode={isSelectMode}
+                    selectedMeetings={selectedMeetings}
+                    onSelectMeeting={(meetingId, isSelected) => {
+                      if (isSelected) {
+                        setSelectedMeetings(prev => [...prev, meetingId]);
+                      } else {
+                        setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                      }
+                    }}
+                    onViewNotes={handleSafeModeNotesClick}
+                    onDelete={handleDeleteMeeting}
+                    loading={loadingHistory}
+                  />
+                ) : layoutViewMode === 'table' ? (
+                  <MeetingTableView
+                    meetings={paginatedMeetings}
+                    isSelectMode={isSelectMode}
+                    selectedMeetings={selectedMeetings}
+                    onSelectMeeting={(meetingId, isSelected) => {
+                      if (isSelected) {
+                        setSelectedMeetings(prev => [...prev, meetingId]);
+                      } else {
+                        setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                      }
+                    }}
+                    onSelectAll={() => {
+                      if (selectedMeetings.length === filteredMeetings.length) {
+                        setSelectedMeetings([]);
+                      } else {
+                        setSelectedMeetings(filteredMeetings.map(m => m.id));
+                      }
+                    }}
+                    onViewNotes={handleSafeModeNotesClick}
+                    onDelete={handleDeleteMeeting}
+                    loading={loadingHistory}
+                  />
+                ) : layoutViewMode === 'timeline' ? (
+                  <MeetingTimelineView
+                    meetings={paginatedMeetings}
+                    isSelectMode={isSelectMode}
+                    selectedMeetings={selectedMeetings}
+                    onSelectMeeting={(meetingId, isSelected) => {
+                      if (isSelected) {
+                        setSelectedMeetings(prev => [...prev, meetingId]);
+                      } else {
+                        setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                      }
+                    }}
+                    onViewNotes={handleSafeModeNotesClick}
+                    onDelete={handleDeleteMeeting}
+                    loading={loadingHistory}
+                  />
+                ) : (
+                  <MeetingHistoryList 
+                    meetings={paginatedMeetings}
+                    onEdit={(meetingId) => navigate(`/meeting-summary`, { state: { id: meetingId } })}
+                    onViewSummary={handleViewSummary}
+                    onViewTranscript={handleViewTranscript}
+                    onDelete={handleDeleteMeeting}
+                    onRefresh={loadMeetingHistory}
+                    loading={loadingHistory}
+                    isSelectMode={isSelectMode}
+                    selectedMeetings={selectedMeetings}
+                    onSelectMeeting={(meetingId, isSelected) => {
+                      if (isSelected) {
+                        setSelectedMeetings(prev => [...prev, meetingId]);
+                      } else {
+                        setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                      }
+                    }}
+                    onMeetingUpdate={(meetingId, updatedTitle) => {
+                      setMeetings(prev => prev.map(meeting =>
+                        meeting.id === meetingId 
+                          ? { ...meeting, title: updatedTitle }
+                          : meeting
+                      ));
+                    }}
+                    showRecordingPlayback={false}
+                    autoOpenSafeModeForMeetingId={autoOpenSafeModeForMeetingId}
+                    onAutoOpenSafeModeProcessed={() => setAutoOpenSafeModeForMeetingId(null)}
+                  />
+                )}
+                
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <Button
+                          key={page}
+                          variant={page === currentPage ? "default" : "outline"}
+                          size="sm"
+                          className="w-8 h-8 p-0"
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      {startIndex + 1}-{Math.min(startIndex + meetingsPerPage, filteredMeetings.length)} of {filteredMeetings.length}
+                    </span>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </TabsContent>
 
       </Tabs>
