@@ -2263,32 +2263,20 @@ export const MeetingRecorder = ({
       simpleIOSTranscriberRef.current = new SimpleIOSTranscriber(
         {
           onTranscription: (text: string, isFinal: boolean, confidence: number) => {
-            // Use same handler as browser transcriber
+            if (!text || !text.trim()) return;
+            
+            // Use handleBrowserTranscript as single source of truth
+            // It already handles: chunkSaveStatuses, watchdog.reportChunkProcessed(), audio activity
             const transcriptData = {
-              text,
+              text: text.trim(),
               speaker: 'Speaker',
               confidence,
               timestamp: new Date().toISOString(),
               isFinal,
-              is_final: isFinal
+              is_final: isFinal,
+              source: 'ios-simple' as const
             };
             handleBrowserTranscript(transcriptData);
-            watchdog.reportChunkProcessed();
-            
-            // Update word count tracking
-            if (text.trim()) {
-              const chunkTime = Date.now();
-              setChunkSaveStatuses(prev => [...prev, {
-                id: `ios-${chunkTime}`,
-                chunkNumber: prev.length + 1,
-                text: text,
-                chunkLength: text.length,
-                saveStatus: 'saved' as const,
-                saveTimestamp: new Date().toISOString(),
-                retryCount: 0,
-                confidence: confidence
-              }]);
-            }
           },
           onError: (error: string) => {
             console.error('📱 SimpleIOS error:', error);
