@@ -332,11 +332,12 @@ export function EmailMeetingMinutesModal({
           }
         }
         
-        // Fetch action items
+        // Fetch action items - only Open and In Progress (exclude Completed to match UI)
         const { data: actionItemsData } = await supabase
           .from('meeting_action_items')
           .select('*')
           .eq('meeting_id', meetingId)
+          .not('status', 'in', '("Completed","completed")')
           .order('sort_order', { ascending: true });
         
         if (actionItemsData) {
