@@ -6196,14 +6196,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               <span className="text-muted-foreground">this month</span>
             </div>
             
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-green-500/10 to-green-500/5 border border-green-500/20 text-sm transition-all hover:shadow-sm hover:border-green-500/30">
-              <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-              <span className="font-semibold text-green-500">
-                {meetings.filter(m => m.summary_exists || m.generatedNotes).length}
-              </span>
-              <span className="text-muted-foreground">with summaries</span>
-            </div>
-            
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500/10 to-purple-500/5 border border-purple-500/20 text-sm transition-all hover:shadow-sm hover:border-purple-500/30">
               <Timer className="h-3.5 w-3.5 text-purple-500" />
               <span className="font-semibold text-purple-500">
