@@ -40,6 +40,7 @@ import { MeetingGridView } from "@/components/meeting-history/MeetingGridView";
 import { MeetingTableView } from "@/components/meeting-history/MeetingTableView";
 import { MeetingTimelineView } from "@/components/meeting-history/MeetingTimelineView";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
+import { SafeModeNotesModal } from "@/components/SafeModeNotesModal";
 import { useRecording } from "@/contexts/RecordingContext";
 import { detectDevice } from "@/utils/DeviceDetection";
 import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucinationTestSuite";
@@ -351,6 +352,65 @@ export const MeetingRecorder = ({
       // Ignore localStorage errors
     }
   }, [layoutViewMode]);
+  
+  // SafeModeNotesModal state for new view components
+  const [safeModeModalOpen, setSafeModeModalOpen] = useState(false);
+  const [safeModeSelectedMeeting, setSafeModeSelectedMeeting] = useState<any | null>(null);
+  const [safeModeNotes, setSafeModeNotes] = useState('');
+  const safeModeModalOpenRef = useRef(false);
+  
+  // Handler for opening SafeModeNotesModal from new view components
+  const handleSafeModeNotesClick = useCallback(async (meetingId: string) => {
+    if (!isResourceOperationSafe()) {
+      showToast.error("Cannot view notes while recording is active.", { section: 'meeting_manager' });
+      return;
+    }
+    
+    // Find meeting in current list first
+    const meeting = meetings.find(m => m.id === meetingId);
+    if (meeting) {
+      console.log('🛡️ Opening Safe Mode notes for:', meeting.title);
+      setSafeModeNotes(meeting.meeting_summary || meeting.notes_style_3 || '');
+      setSafeModeSelectedMeeting(meeting);
+      safeModeModalOpenRef.current = true;
+      setSafeModeModalOpen(true);
+      return;
+    }
+    
+    // If not in list, fetch from database
+    try {
+      const { data: meetingData, error } = await supabase
+        .from('meetings')
+        .select('id, title, start_time, end_time, created_at, duration_minutes, notes_style_3')
+        .eq('id', meetingId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (!meetingData) {
+        showToast.error("Meeting not found", { section: 'meeting_manager' });
+        return;
+      }
+      
+      // Also fetch summary if notes_style_3 is empty
+      let notes = meetingData.notes_style_3 || '';
+      if (!notes) {
+        const { data: summaryData } = await supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+        notes = summaryData?.summary || '';
+      }
+      
+      setSafeModeNotes(notes);
+      setSafeModeSelectedMeeting(meetingData);
+      safeModeModalOpenRef.current = true;
+      setSafeModeModalOpen(true);
+    } catch (error: any) {
+      console.error('Error fetching meeting for SafeModeNotesModal:', error);
+      showToast.error("Failed to load meeting notes", { section: 'meeting_manager' });
+    }
+  }, [meetings, isResourceOperationSafe]);
 
   // Signal to Meeting History that a new meeting was saved
   const signalMeetingHistoryRefresh = () => {
@@ -6433,7 +6493,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
                 }
               }}
-              onViewNotes={handleViewSummary}
+              onViewNotes={handleSafeModeNotesClick}
               onDelete={handleDeleteMeeting}
               loading={loadingHistory}
             />
@@ -6449,7 +6509,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
                 }
               }}
-              onViewNotes={handleViewSummary}
+              onViewNotes={handleSafeModeNotesClick}
               onDelete={handleDeleteMeeting}
               loading={loadingHistory}
             />
@@ -6472,7 +6532,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   setSelectedMeetings(filteredMeetings.map(m => m.id));
                 }
               }}
-              onViewNotes={handleViewSummary}
+              onViewNotes={handleSafeModeNotesClick}
               onDelete={handleDeleteMeeting}
               loading={loadingHistory}
             />
@@ -6488,7 +6548,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
                 }
               }}
-              onViewNotes={handleViewSummary}
+              onViewNotes={handleSafeModeNotesClick}
               onDelete={handleDeleteMeeting}
               loading={loadingHistory}
             />
@@ -6574,6 +6634,19 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               />
             )
           )}
+      
+      {/* SafeModeNotesModal for new view components */}
+      <SafeModeNotesModal
+        isOpen={safeModeModalOpen}
+        onClose={() => {
+          safeModeModalOpenRef.current = false;
+          setSafeModeModalOpen(false);
+          setSafeModeSelectedMeeting(null);
+          setSafeModeNotes('');
+        }}
+        meeting={safeModeSelectedMeeting}
+        notes={safeModeNotes}
+      />
 
       {/* Transcript Modal */}
       {transcriptModalOpen && currentMeetingForTranscript && (
