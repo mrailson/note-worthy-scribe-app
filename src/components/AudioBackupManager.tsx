@@ -51,6 +51,7 @@ export const AudioBackupManager = () => {
   const [loading, setLoading] = useState(true);
   const [reprocessing, setReprocessing] = useState<string | null>(null);
   const [deletingOld, setDeletingOld] = useState(false);
+  const [deletingOld14Days, setDeletingOld14Days] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [autoDeleteEnabled, setAutoDeleteEnabled] = useState(false);
@@ -193,22 +194,26 @@ export const AudioBackupManager = () => {
     }
   };
 
-  const deleteOldAudioBackups = async () => {
-    if (!confirm('Are you sure you want to delete all audio backups and chunks older than 24 hours? This action cannot be undone.')) {
+  const deleteOldAudioBackups = async (cutoffHours: number = 24) => {
+    const label = cutoffHours === 24 ? '24 hours' : `${Math.round(cutoffHours / 24)} days`;
+    if (!confirm(`Are you sure you want to delete all audio backups and chunks older than ${label}? This action cannot be undone.`)) {
       return;
     }
 
-    const currentCount = backups.length;
-    setDeletingOld(true);
+    const setLoading = cutoffHours === 24 ? setDeletingOld : setDeletingOld14Days;
+    setLoading(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('delete-old-audio-backups');
+      const { data, error } = await supabase.functions.invoke('delete-old-audio-backups', {
+        body: { cutoffHours }
+      });
 
       if (error) throw error;
 
       // Force refresh the list to ensure UI updates
       setBackups([]);
       await fetchAudioBackups();
+      await fetchStorageStats();
       
       const deletedBackups = data.deleted_backups || 0;
       const deletedChunks = data.deleted_chunks || 0;
@@ -221,13 +226,13 @@ export const AudioBackupManager = () => {
         if (deletedChunks > 0) parts.push(`${deletedChunks} chunk${deletedChunks > 1 ? 's' : ''}`);
         toast.success(`Deleted ${parts.join(' and ')} (${deletedFiles} files removed from storage)`);
       } else {
-        toast.info('No audio files older than 24 hours found');
+        toast.info(`No audio files older than ${label} found`);
       }
     } catch (error) {
       console.error('Error deleting old audio files:', error);
       toast.error('Failed to delete old audio files');
     } finally {
-      setDeletingOld(false);
+      setLoading(false);
     }
   };
 
@@ -384,12 +389,12 @@ export const AudioBackupManager = () => {
                 Database records for audio backups with quality metadata.
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant="destructive"
                 size="sm"
-                onClick={deleteOldAudioBackups}
-                disabled={deletingOld || loading}
+                onClick={() => deleteOldAudioBackups(24)}
+                disabled={deletingOld || deletingOld14Days || loading}
                 className="flex items-center gap-2"
               >
                 {deletingOld ? (
@@ -397,7 +402,21 @@ export const AudioBackupManager = () => {
                 ) : (
                   <Trash2 className="h-4 w-4" />
                 )}
-                Delete Old Files (24h+)
+                Delete 24h+
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => deleteOldAudioBackups(14 * 24)}
+                disabled={deletingOld || deletingOld14Days || loading}
+                className="flex items-center gap-2"
+              >
+                {deletingOld14Days ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Delete 14 days+
               </Button>
               <Button
                 variant="destructive"
@@ -411,7 +430,7 @@ export const AudioBackupManager = () => {
                 ) : (
                   <Trash2 className="h-4 w-4" />
                 )}
-                Delete All Audio
+                Delete All
               </Button>
             </div>
           </div>
