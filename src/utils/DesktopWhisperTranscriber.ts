@@ -48,6 +48,13 @@ export class DesktopWhisperTranscriber {
   private readonly SILENCE_THRESHOLD = 0.015; // RMS threshold for speech detection
   private readonly SILENCE_DURATION_MS = 1500; // 1.5 seconds of silence triggers flush
   private readonly MIN_CHUNK_DURATION_MS = 2000; // Minimum 2 seconds before flushing
+  
+  // Web Worker-based chunk timing (resistant to background throttling)
+  private chunkTimerWorker: Worker | null = null;
+  private chunkTimerWorkerBlobUrl: string | null = null;
+  
+  // Visibility handler for tab switching
+  private visibilityHandler: (() => void) | null = null;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -381,6 +388,9 @@ export class DesktopWhisperTranscriber {
       this.chunkCount = 0;
       this.startChunkedRecording();
       
+      // Setup visibility handler for tab switching recovery
+      this.setupVisibilityHandler();
+      
       this.onStatusChange('Recording...');
       console.log('✅ Desktop Whisper transcription started');
 
@@ -418,24 +428,123 @@ export class DesktopWhisperTranscriber {
     const nextInterval = getOptimalChunkInterval(elapsed, this.earlyTranscriptionMode);
     
     console.log(`⚡ Chunk interval: ${nextInterval/1000}s (elapsed: ${elapsed/1000}s, early: ${this.earlyTranscriptionMode})`);
-
     console.log(`🖥️ Scheduling chunk ${this.chunkCount + 1} in ${nextInterval/1000} seconds`);
 
-    this.transcriptionTimeout = setTimeout(() => {
-      if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
-        this.mediaRecorder.stop();
+    // Use Web Worker for background-resistant timing
+    this.scheduleChunkWithWorker(nextInterval);
+  }
+  
+  /**
+   * Schedule chunk processing using Web Worker (resistant to browser throttling)
+   */
+  private scheduleChunkWithWorker(intervalMs: number): void {
+    // Clean up any existing worker
+    this.cleanupChunkTimerWorker();
+    
+    const workerCode = `
+      let timeoutId = null;
+      
+      self.onmessage = (event) => {
+        const { type, delayMs } = event.data;
         
-        // Start new recording immediately after a brief pause
-        setTimeout(() => {
-          if (this.mediaRecorder && this.isRecording) {
-            this.chunkStartTime = Date.now(); // Reset chunk start time
-            this.lastSpeechTime = Date.now(); // Reset speech time
-            this.mediaRecorder.start();
-            this.scheduleNextChunk();
+        if (type === 'schedule') {
+          if (timeoutId) clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            self.postMessage({ type: 'tick', timestamp: Date.now() });
+          }, delayMs);
+        } else if (type === 'cancel') {
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
           }
-        }, 100);
+        }
+      };
+    `;
+    
+    try {
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      this.chunkTimerWorkerBlobUrl = URL.createObjectURL(blob);
+      this.chunkTimerWorker = new Worker(this.chunkTimerWorkerBlobUrl);
+      
+      this.chunkTimerWorker.onmessage = (event) => {
+        if (event.data.type === 'tick' && this.isRecording) {
+          this.handleChunkTick();
+        }
+      };
+      
+      this.chunkTimerWorker.postMessage({ type: 'schedule', delayMs: intervalMs });
+      console.log(`🖥️ Web Worker chunk timer scheduled for ${intervalMs}ms`);
+    } catch (error) {
+      // Fallback to setTimeout if Web Worker fails
+      console.warn('🖥️ Web Worker failed, using setTimeout fallback:', error);
+      this.scheduleChunkFallback(intervalMs);
+    }
+  }
+  
+  private scheduleChunkFallback(intervalMs: number): void {
+    if (this.transcriptionTimeout) {
+      clearTimeout(this.transcriptionTimeout);
+    }
+    
+    this.transcriptionTimeout = setTimeout(() => {
+      if (this.isRecording) {
+        this.handleChunkTick();
       }
-    }, nextInterval);
+    }, intervalMs);
+  }
+  
+  private handleChunkTick(): void {
+    if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
+      this.mediaRecorder.stop();
+      
+      // Start new recording immediately after a brief pause
+      setTimeout(() => {
+        if (this.mediaRecorder && this.isRecording) {
+          this.chunkStartTime = Date.now(); // Reset chunk start time
+          this.lastSpeechTime = Date.now(); // Reset speech time
+          this.mediaRecorder.start();
+          this.scheduleNextChunk();
+        }
+      }, 100);
+    }
+  }
+  
+  private cleanupChunkTimerWorker(): void {
+    if (this.chunkTimerWorker) {
+      this.chunkTimerWorker.postMessage({ type: 'cancel' });
+      this.chunkTimerWorker.terminate();
+      this.chunkTimerWorker = null;
+    }
+    if (this.chunkTimerWorkerBlobUrl) {
+      URL.revokeObjectURL(this.chunkTimerWorkerBlobUrl);
+      this.chunkTimerWorkerBlobUrl = null;
+    }
+  }
+  
+  /**
+   * Setup visibility handler to recover when tab becomes visible
+   */
+  private setupVisibilityHandler(): void {
+    this.visibilityHandler = () => {
+      if (document.visibilityState === 'visible' && this.isRecording) {
+        console.log('🖥️ Desktop: Tab visible - checking for pending audio');
+        
+        // Force process any buffered audio when returning to tab
+        if (this.audioChunks.length > 0 && this.mediaRecorder?.state === 'recording') {
+          console.log('🖥️ Desktop: Flushing buffered audio after tab switch');
+          this.flushCurrentChunk();
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+  }
+  
+  private removeVisibilityHandler(): void {
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
   }
 
   private async processAudioChunks(chunkNumber?: number) {
@@ -695,6 +804,10 @@ export class DesktopWhisperTranscriber {
     
     // Stop audio activity monitoring
     this.stopActivityMonitoring();
+    
+    // Cleanup Web Worker and visibility handler
+    this.cleanupChunkTimerWorker();
+    this.removeVisibilityHandler();
     
     if (this.transcriptionTimeout) {
       clearTimeout(this.transcriptionTimeout);
