@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Upload, FileAudio, Loader2, Play, X, FileText, Clipboard, CheckCircle2 } from 'lucide-react';
+import { Upload, FileAudio, Loader2, Play, X, FileText, Clipboard, CheckCircle2, Image } from 'lucide-react';
 import { AudioFileList, AudioFileItem } from './AudioFileList';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +15,7 @@ import { showToast } from '@/utils/toastWrapper';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import mammoth from 'mammoth';
+import { ImageProcessor } from '@/utils/fileProcessors/ImageProcessor';
 
 interface MultiAudioImportProps {
   open: boolean;
@@ -189,7 +190,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
     }
   }, []);
 
-  // Document file handling
+  // Document and image file handling
   const handleDocumentSelected = useCallback(async (selectedFiles: FileList | null) => {
     if (!selectedFiles || selectedFiles.length === 0) return;
     
@@ -201,16 +202,30 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
         const extension = file.name.split('.').pop()?.toLowerCase();
         let content = '';
         
+        // Text-based files
         if (extension === 'txt' || extension === 'vtt') {
           content = await readTextFile(file);
-          // Parse VTT format if applicable
           if (extension === 'vtt') {
             content = parseTeamsTranscript(content);
           }
-        } else if (extension === 'doc' || extension === 'docx') {
+        } 
+        // Word documents
+        else if (extension === 'doc' || extension === 'docx') {
           content = await readWordDocument(file);
-        } else {
-          showToast.error(`${file.name}: Unsupported format. Use TXT, VTT, DOC, or DOCX.`, { section: 'meeting_manager' });
+        }
+        // Image files - use OCR
+        else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'tif'].includes(extension || '')) {
+          showToast.info(`Extracting text from ${file.name}...`, { section: 'meeting_manager' });
+          content = await ImageProcessor.processImage(file);
+          
+          // Check if OCR failed or found no text
+          if (content.includes('OCR failed') || content.includes('No text found')) {
+            showToast.warning(`${file.name}: ${content}`, { section: 'meeting_manager' });
+            continue;
+          }
+        }
+        else {
+          showToast.error(`${file.name}: Unsupported format.`, { section: 'meeting_manager' });
           continue;
         }
         
@@ -223,11 +238,11 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
         const combined = allTranscripts.join('\n\n---\n\n');
         setDocumentTranscript(combined);
         setCombinedTranscript(combined);
-        showToast.success(`Loaded ${allTranscripts.length} document(s) successfully`, { section: 'meeting_manager' });
+        showToast.success(`Loaded ${allTranscripts.length} file(s) successfully`, { section: 'meeting_manager' });
       }
     } catch (error: any) {
       console.error('Document processing error:', error);
-      showToast.error(error.message || 'Failed to process document', { section: 'meeting_manager' });
+      showToast.error(error.message || 'Failed to process file', { section: 'meeting_manager' });
     } finally {
       setIsProcessingDocument(false);
     }
@@ -247,7 +262,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
     if (['mp3', 'wav', 'm4a'].includes(extension || '')) {
       handleFilesSelected(droppedFiles);
       setActiveTab('audio');
-    } else if (['txt', 'doc', 'docx', 'vtt'].includes(extension || '')) {
+    } else if (['txt', 'doc', 'docx', 'vtt', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'tif'].includes(extension || '')) {
       handleDocumentSelected(droppedFiles);
       setActiveTab('document');
     } else {
@@ -493,7 +508,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
                   Drag & drop files here
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Audio (MP3, WAV, M4A) • Documents (TXT, DOC, DOCX) • Teams Transcripts (VTT)
+                  Audio (MP3, WAV, M4A) • Documents (TXT, DOC, DOCX, VTT) • Images (JPG, PNG)
                 </p>
               </div>
 
@@ -591,18 +606,21 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
                     <input
                       ref={docInputRef}
                       type="file"
-                      accept=".txt,.doc,.docx,.vtt,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      accept=".txt,.doc,.docx,.vtt,.jpg,.jpeg,.png,.gif,.webp,.bmp,.tiff,.tif,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*"
                       multiple
                       onChange={(e) => handleDocumentSelected(e.target.files)}
                       className="hidden"
                       disabled={isProcessing}
                     />
-                    <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <div className="flex justify-center gap-2 mb-3">
+                      <FileText className="h-8 w-8 text-muted-foreground" />
+                      <Image className="h-8 w-8 text-muted-foreground" />
+                    </div>
                     <p className="text-sm font-medium mb-1">
-                      Drag & drop documents here, or click to browse
+                      Drag & drop documents or images here, or click to browse
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      TXT, DOC, DOCX, VTT (Teams transcript)
+                      TXT, DOC, DOCX, VTT • Images with text (JPG, PNG) will be OCR processed
                     </p>
                   </div>
 
