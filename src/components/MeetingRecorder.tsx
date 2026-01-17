@@ -4225,6 +4225,22 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       try {
         console.log('🔄 Safety Net 1: Consolidating transcript chunks for meeting:', meetingId);
         
+        // CRITICAL: Capture the live transcript BEFORE consolidation can overwrite it
+        // This is what the user actually saw during the recording
+        const liveTranscriptFromRef = liveTranscriptRef.current?.getCurrentTranscript() || '';
+        const inMemoryTranscript = transcript || '';
+        
+        // Use the longer/better one as our "live" source
+        const liveTranscriptToPreserve = liveTranscriptFromRef.length > inMemoryTranscript.length 
+          ? liveTranscriptFromRef 
+          : inMemoryTranscript;
+        
+        console.log('📝 Live transcript lengths:', {
+          fromRef: liveTranscriptFromRef.length,
+          inMemory: inMemoryTranscript.length,
+          preserved: liveTranscriptToPreserve.length
+        });
+        
         // Get chunk count first
         const { count: chunkCount, error: countError } = await supabase
           .from('meeting_transcription_chunks')
@@ -4233,21 +4249,36 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         
         if (countError) {
           console.error('Error counting chunks:', countError);
-        } else if (chunkCount && chunkCount > 0) {
-          console.log(`📊 Found ${chunkCount} chunks to consolidate`);
+        }
+        
+        // Always call consolidation, passing the live transcript as a fallback/comparison
+        // The edge function will now compare and choose the best source
+        console.log(`📊 Calling consolidation with ${chunkCount || 0} chunks and live transcript`);
+        
+        const { data: consolidationData, error: consolidationError } = await supabase.functions.invoke('consolidate-meeting-chunks', {
+          body: { 
+            meetingId,
+            liveTranscript: liveTranscriptToPreserve 
+          }
+        });
+        
+        if (consolidationError) {
+          console.error('❌ Consolidation failed:', consolidationError);
           
-          // Call consolidation edge function
-          const { data: consolidationData, error: consolidationError } = await supabase.functions.invoke('consolidate-meeting-chunks', {
-            body: { meetingId }
-          });
-          
-          if (consolidationError) {
-            console.error('❌ Consolidation failed:', consolidationError);
-          } else {
-            console.log('✅ Consolidation result:', consolidationData);
+          // If consolidation fails, save the live transcript directly
+          if (liveTranscriptToPreserve.length > 50) {
+            console.log('🔄 Fallback: Saving live transcript directly');
+            await supabase
+              .from('meetings')
+              .update({
+                live_transcript_text: liveTranscriptToPreserve,
+                word_count: liveTranscriptToPreserve.split(/\s+/).filter(w => w.length > 0).length,
+                primary_transcript_source: 'browser_live_fallback'
+              })
+              .eq('id', meetingId);
           }
         } else {
-          console.log('ℹ️ No chunks to consolidate');
+          console.log('✅ Consolidation result:', consolidationData);
         }
       } catch (error) {
         console.error('❌ Exception during chunk consolidation:', error);
