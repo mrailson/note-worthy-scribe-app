@@ -361,7 +361,7 @@ export const MinimalRecordingState = ({
                   )}
                 </div>
                 <ScrollArea className="h-32">
-                  <div className="p-4 pt-2">
+                  <div className="px-4 pt-2 pb-4">
                     {livePreviewFullTranscript ? (
                       <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
                         {livePreviewFullTranscript}
