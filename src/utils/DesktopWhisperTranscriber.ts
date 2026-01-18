@@ -19,6 +19,10 @@ export interface ChunkMetadata {
   audioSizeBytes?: number;
   processingTimeMs?: number;
   speaker?: string;
+  // New fields for timing and format
+  startTimeSeconds?: number;
+  endTimeSeconds?: number;
+  mimeType?: string;
 }
 
 export class DesktopWhisperTranscriber {
@@ -587,19 +591,39 @@ export class DesktopWhisperTranscriber {
   private async processAudioChunks(chunkNumber?: number) {
     if (this.audioChunks.length === 0) return;
 
+    const chunkProcessingStartTime = Date.now();
+
     try {
       const currentChunkNumber = chunkNumber ?? this.chunkCount;
       console.log(`🖥️ Processing audio chunk ${currentChunkNumber} - audioChunks: ${this.audioChunks.length}, meetingId: ${this.meetingId}`);
       
       // No overlap buffer - process chunks as-is for timestamp-based deduplication
       const audioBlob = new Blob(this.audioChunks, { type: this.audioChunks[0].type });
-      console.log(`🖥️ Audio blob size: ${audioBlob.size} bytes`);
+      const blobMimeType = audioBlob.type || 'audio/webm';
+      const blobSizeBytes = audioBlob.size;
+      
+      // Calculate chunk timing relative to recording start
+      const chunkStartTimeSeconds = Math.round(this.totalProcessedDuration);
+      const estimatedChunkDurationSeconds = Math.round(this.chunkIntervalMs / 1000);
+      const chunkEndTimeSeconds = chunkStartTimeSeconds + estimatedChunkDurationSeconds;
+      
+      console.log(`🖥️ Audio blob size: ${blobSizeBytes} bytes, type: ${blobMimeType}`);
       
       this.audioChunks = []; // Clear current chunks after processing
 
       // Skip very small audio chunks - but don't increment chunk count
       if (audioBlob.size < 20000) {
         console.log(`🖥️ Skipping small audio chunk (${audioBlob.size} bytes) - no increment`);
+        this.onChunkFiltered?.({
+          text: '[too small]',
+          confidence: 0,
+          reason: `Audio too small: ${(blobSizeBytes / 1024).toFixed(1)}KB`,
+          audioSizeBytes: blobSizeBytes,
+          mimeType: blobMimeType,
+          startTimeSeconds: chunkStartTimeSeconds,
+          endTimeSeconds: chunkEndTimeSeconds,
+          processingTimeMs: Date.now() - chunkProcessingStartTime
+        });
         return;
       }
 
@@ -610,6 +634,16 @@ export class DesktopWhisperTranscriber {
       // Check audio quality before sending
       if (!this.checkAudioQuality(uint8Array)) {
         console.log(`🔇 Skipping low-quality audio chunk ${currentChunkNumber}`);
+        this.onChunkFiltered?.({
+          text: '[low quality audio]',
+          confidence: 0,
+          reason: 'Audio quality too low (silence/noise)',
+          audioSizeBytes: blobSizeBytes,
+          mimeType: blobMimeType,
+          startTimeSeconds: chunkStartTimeSeconds,
+          endTimeSeconds: chunkEndTimeSeconds,
+          processingTimeMs: Date.now() - chunkProcessingStartTime
+        });
         return;
       }
       
@@ -670,7 +704,12 @@ export class DesktopWhisperTranscriber {
             confidence: chunkConfidence,
             noSpeechProb,
             avgLogprob,
-            reason: `High no_speech_prob: ${(noSpeechProb * 100).toFixed(1)}% (likely silence/noise)`
+            reason: `High no_speech_prob: ${(noSpeechProb * 100).toFixed(1)}% (likely silence/noise)`,
+            audioSizeBytes: blobSizeBytes,
+            mimeType: blobMimeType,
+            startTimeSeconds: chunkStartTimeSeconds,
+            endTimeSeconds: chunkEndTimeSeconds,
+            processingTimeMs: Date.now() - chunkProcessingStartTime
           });
           return;
         }
@@ -684,7 +723,12 @@ export class DesktopWhisperTranscriber {
             confidence: chunkConfidence,
             noSpeechProb,
             avgLogprob,
-            reason: `Extremely low confidence: ${(chunkConfidence * 100).toFixed(1)}%`
+            reason: `Extremely low confidence: ${(chunkConfidence * 100).toFixed(1)}%`,
+            audioSizeBytes: blobSizeBytes,
+            mimeType: blobMimeType,
+            startTimeSeconds: chunkStartTimeSeconds,
+            endTimeSeconds: chunkEndTimeSeconds,
+            processingTimeMs: Date.now() - chunkProcessingStartTime
           });
           return;
         }
@@ -705,7 +749,12 @@ export class DesktopWhisperTranscriber {
             confidence: chunkConfidence,
             noSpeechProb,
             avgLogprob,
-            reason: 'Hallucination detected (repetitive/noise pattern)'
+            reason: 'Hallucination detected (repetitive/noise pattern)',
+            audioSizeBytes: blobSizeBytes,
+            mimeType: blobMimeType,
+            startTimeSeconds: chunkStartTimeSeconds,
+            endTimeSeconds: chunkEndTimeSeconds,
+            processingTimeMs: Date.now() - chunkProcessingStartTime
           });
           return;
         }
@@ -724,7 +773,12 @@ export class DesktopWhisperTranscriber {
               confidence: chunkConfidence,
               noSpeechProb,
               avgLogprob,
-              reason: `Suspicious phrase + low confidence (${(chunkConfidence * 100).toFixed(1)}%)`
+              reason: `Suspicious phrase + low confidence (${(chunkConfidence * 100).toFixed(1)}%)`,
+              audioSizeBytes: blobSizeBytes,
+              mimeType: blobMimeType,
+              startTimeSeconds: chunkStartTimeSeconds,
+              endTimeSeconds: chunkEndTimeSeconds,
+              processingTimeMs: Date.now() - chunkProcessingStartTime
             });
             return;
           }
@@ -843,7 +897,12 @@ export class DesktopWhisperTranscriber {
           this.onChunkProcessed({
             text: cleanText,
             confidence: transcriptData.confidence,
-            speaker: transcriptData.speaker
+            speaker: transcriptData.speaker,
+            audioSizeBytes: blobSizeBytes,
+            mimeType: blobMimeType,
+            startTimeSeconds: chunkStartTimeSeconds,
+            endTimeSeconds: chunkEndTimeSeconds,
+            processingTimeMs: Date.now() - chunkProcessingStartTime
           });
         }
 

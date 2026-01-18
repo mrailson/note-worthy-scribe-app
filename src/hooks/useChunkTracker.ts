@@ -12,6 +12,12 @@ export interface ChunkStatus {
   isFinal: boolean;
   mergeRejectionReason?: string;
   wasMerged?: boolean;
+  // New fields for enhanced debugging
+  startTimeSeconds?: number; // Chunk start time relative to recording start
+  endTimeSeconds?: number;   // Chunk end time relative to recording start
+  audioSizeBytes?: number;   // Size of the audio chunk in bytes
+  mimeType?: string;         // Audio MIME type (e.g., 'audio/webm', 'audio/mp3')
+  processingTimeMs?: number; // Time taken to process this chunk
 }
 
 export function useChunkTracker() {

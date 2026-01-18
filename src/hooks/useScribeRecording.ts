@@ -128,7 +128,12 @@ export const useScribeRecording = () => {
       status: metadata.confidence && metadata.confidence < 0.3 ? 'low_confidence' : 'success',
       speaker: metadata.speaker,
       isFinal: true,
-      reason: undefined
+      reason: undefined,
+      startTimeSeconds: metadata.startTimeSeconds,
+      endTimeSeconds: metadata.endTimeSeconds,
+      audioSizeBytes: metadata.audioSizeBytes,
+      mimeType: metadata.mimeType,
+      processingTimeMs: metadata.processingTimeMs
     });
   }, [addChunk]);
 
@@ -140,7 +145,12 @@ export const useScribeRecording = () => {
       status: 'filtered',
       speaker: undefined,
       isFinal: false,
-      reason: metadata.reason || 'Unknown filter reason'
+      reason: metadata.reason || 'Unknown filter reason',
+      startTimeSeconds: metadata.startTimeSeconds,
+      endTimeSeconds: metadata.endTimeSeconds,
+      audioSizeBytes: metadata.audioSizeBytes,
+      mimeType: metadata.mimeType,
+      processingTimeMs: metadata.processingTimeMs
     });
   }, [addChunk]);
 

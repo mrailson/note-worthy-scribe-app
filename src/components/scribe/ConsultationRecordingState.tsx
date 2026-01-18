@@ -578,7 +578,7 @@ export const ConsultationRecordingState = ({
                           `}
                         >
                           <div className="flex items-start justify-between gap-2 mb-1">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {chunk.status === 'success' ? (
                                 <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
                               ) : chunk.status === 'low_confidence' ? (
@@ -586,9 +586,12 @@ export const ConsultationRecordingState = ({
                               ) : (
                                 <XCircle className="h-4 w-4 text-red-500 shrink-0" />
                               )}
-                              <span className="text-xs font-mono text-muted-foreground">
-                                {format(chunk.timestamp, 'HH:mm:ss')}
-                              </span>
+                              {/* Chunk timing: start - end seconds */}
+                              {(chunk.startTimeSeconds !== undefined || chunk.endTimeSeconds !== undefined) && (
+                                <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                                  {formatElapsed(chunk.startTimeSeconds ?? 0)} → {formatElapsed(chunk.endTimeSeconds ?? 0)}
+                                </span>
+                              )}
                               <Badge 
                                 variant={chunk.status === 'success' ? 'default' : chunk.status === 'low_confidence' ? 'secondary' : 'destructive'}
                                 className="text-xs"
@@ -596,7 +599,7 @@ export const ConsultationRecordingState = ({
                                 {chunk.status === 'success' ? 'Success' : chunk.status === 'low_confidence' ? 'Low Confidence' : 'Filtered'}
                               </Badge>
                             </div>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
                               {(chunk.confidence * 100).toFixed(0)}% conf
                             </span>
                           </div>
@@ -613,8 +616,24 @@ export const ConsultationRecordingState = ({
                             </p>
                           )}
                           
-                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
                             <span>{chunk.wordCount} words</span>
+                            {/* File size */}
+                            {chunk.audioSizeBytes !== undefined && (
+                              <span className="flex items-center gap-1">
+                                📦 {(chunk.audioSizeBytes / 1024).toFixed(1)}KB
+                              </span>
+                            )}
+                            {/* MIME type */}
+                            {chunk.mimeType && (
+                              <span className="font-mono text-[10px] bg-muted px-1 py-0.5 rounded">
+                                {chunk.mimeType.replace('audio/', '')}
+                              </span>
+                            )}
+                            {/* Processing time */}
+                            {chunk.processingTimeMs !== undefined && (
+                              <span>⏱️ {chunk.processingTimeMs}ms</span>
+                            )}
                             {chunk.speaker && <span>Speaker: {chunk.speaker}</span>}
                           </div>
                         </div>
