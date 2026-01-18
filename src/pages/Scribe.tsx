@@ -20,7 +20,7 @@ import { ScribeHistoryPanel } from "@/components/scribe/ScribeHistoryPanel";
 import { ScribeImportPanel } from "@/components/scribe/ScribeImportPanel";
 
 import { ScribeTab, SOAPNote, ConsultationNote } from "@/types/scribe";
-import { Stethoscope, History, Settings, Upload } from "lucide-react";
+import { Stethoscope, History, Settings, Upload, ScrollText } from "lucide-react";
 import jsPDF from 'jspdf';
 import { generateScribeWordDocument } from "@/utils/documentGenerators";
 import { showToast } from "@/utils/toastWrapper";
@@ -181,7 +181,7 @@ const Scribe = () => {
         {/* Show tabs only when in ready or review state */}
         {showMainTabs ? (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ScribeTab)} className="w-full">
-            <TabsList className={`grid w-full max-w-lg mx-auto grid-cols-4 mb-6 ${isMobile ? 'h-14' : ''}`}>
+            <TabsList className={`grid w-full max-w-xl mx-auto grid-cols-5 mb-6 ${isMobile ? 'h-14' : ''}`}>
               <TabsTrigger value="consultation" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
                 <Stethoscope className={isMobile ? "h-5 w-5 shrink-0" : "h-5 w-5 shrink-0"} strokeWidth={2} />
                 <span className={isMobile ? "text-xs" : "hidden sm:inline"}>
@@ -195,6 +195,10 @@ const Scribe = () => {
               <TabsTrigger value="import" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
                 <Upload className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
                 <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Import</span>
+              </TabsTrigger>
+              <TabsTrigger value="transcript" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
+                <ScrollText className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
+                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Transcript</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
                 <Settings className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
@@ -295,6 +299,26 @@ const Scribe = () => {
                 onCategoryFilterChange={history.setCategoryFilter}
                 userId={user?.id}
               />
+            </TabsContent>
+
+            <TabsContent value="transcript">
+              <div className="bg-card border rounded-lg p-6">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <ScrollText className="h-5 w-5" />
+                  Transcript
+                </h2>
+                {consultation.transcript ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                      {consultation.transcript}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    No transcript available. Start a consultation or select one from history to view its transcript.
+                  </p>
+                )}
+              </div>
             </TabsContent>
 
             <TabsContent value="settings">

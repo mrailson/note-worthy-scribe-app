@@ -8,7 +8,8 @@ import {
   Settings, 
   History,
   BookOpen,
-  Mail
+  Mail,
+  ScrollText
 } from "lucide-react";
 
 interface TabNavigationProps {
@@ -24,12 +25,13 @@ export const TabNavigation = ({ activeTab, onTabChange, isMobile }: TabNavigatio
     { id: "examples" as ActiveTab, label: "Examples", icon: BookOpen },
     { id: "ai4gp" as ActiveTab, label: "Document & Email Translation", icon: Mail },
     { id: "history" as ActiveTab, label: "History", icon: History },
+    { id: "transcript" as ActiveTab, label: "Transcript", icon: ScrollText },
     { id: "settings" as ActiveTab, label: "Settings", icon: Settings }
   ];
 
   return (
     <div className="w-full">
-      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-6'} gap-1 ${isMobile ? 'h-auto' : ''}`}>
+      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-4' : 'grid-cols-7'} gap-1 ${isMobile ? 'h-auto' : ''}`}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
