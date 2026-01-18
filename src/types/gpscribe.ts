@@ -60,5 +60,5 @@ export interface AudioQueueItem {
 }
 
 export type ConsultationType = "face-to-face" | "telephone" | "video";
-export type ActiveTab = "consultation" | "summary" | "examples" | "history" | "chat" | "ai4gp" | "settings";
+export type ActiveTab = "consultation" | "summary" | "examples" | "history" | "chat" | "ai4gp" | "transcript" | "settings";
 export type AudioCaptureMode = "mic-only" | "mic-browser";
