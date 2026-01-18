@@ -228,8 +228,8 @@ export const MinimalRecordingState = ({
 
       {/* Main content - centered */}
       <div className="flex flex-col items-center justify-center flex-1 -mt-8 w-full max-w-xl">
-        {/* Recording indicator with audio waveform */}
-        <div className="flex items-center gap-3 mb-4">
+        {/* Recording indicator with audio waveform, timer, and word count - all inline */}
+        <div className="flex items-center gap-3 mb-4 flex-wrap justify-center">
           <div className={`
             w-3 h-3 rounded-full 
             ${isPaused 
@@ -247,6 +247,10 @@ export const MinimalRecordingState = ({
               barCount={5}
             />
           )}
+          <span className="text-sm text-muted-foreground">•</span>
+          <span className="text-sm font-mono">{formatDuration(duration)}</span>
+          <span className="text-sm text-muted-foreground">•</span>
+          <span className="text-sm text-muted-foreground">{wordCount.toLocaleString()} words</span>
         </div>
 
         {/* Audio Mode Guidance Card */}
@@ -327,16 +331,6 @@ export const MinimalRecordingState = ({
             </CardContent>
           </Card>
         )}
-
-        {/* Timer */}
-        <div className="font-mono text-3xl sm:text-4xl font-semibold tracking-tight mb-3">
-          {formatDuration(duration)}
-        </div>
-
-        {/* Word count */}
-        <div className="text-xl text-muted-foreground mb-6">
-          {wordCount.toLocaleString()} words
-        </div>
 
         {/* Patient Information Card - Collapsible */}
         <Collapsible 
