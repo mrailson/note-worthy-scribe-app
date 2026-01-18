@@ -10,6 +10,7 @@ import { SoFarReviewPanel } from "./SoFarReviewPanel";
 import { ContextUploadPanel } from "./ContextUploadPanel";
 import { MinimalRecordingState } from "./MinimalRecordingState";
 import { AudioWaveform } from "./AudioWaveform";
+import { QuickAudioSourceSwitcher, AudioSourceMode } from "@/components/meeting/QuickAudioSourceSwitcher";
 import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip, Loader2, Minimize2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -42,6 +43,12 @@ interface ConsultationRecordingStateProps {
   onClearPatientContext?: () => void;
   onAddContextFile: (file: ConsultationContextFile) => void;
   onRemoveContextFile: (fileId: string) => void;
+  // Audio source switching props
+  audioSourceMode?: AudioSourceMode;
+  onAudioSourceChange?: (mode: AudioSourceMode) => Promise<void>;
+  isSwitchingAudioSource?: boolean;
+  micCaptured?: boolean;
+  systemAudioCaptured?: boolean;
 }
 
 interface TimestampedSegment {
@@ -72,7 +79,13 @@ export const ConsultationRecordingState = ({
   onCancel,
   onClearPatientContext,
   onAddContextFile,
-  onRemoveContextFile
+  onRemoveContextFile,
+  // Audio source props with defaults
+  audioSourceMode = 'microphone',
+  onAudioSourceChange,
+  isSwitchingAudioSource = false,
+  micCaptured = false,
+  systemAudioCaptured = false
 }: ConsultationRecordingStateProps) => {
   const isMobile = useIsMobile();
   const [showTranscript, setShowTranscript] = useState(initialShowTranscript);
@@ -255,7 +268,20 @@ export const ConsultationRecordingState = ({
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Quick Audio Source Switcher */}
+          {onAudioSourceChange && (
+            <QuickAudioSourceSwitcher
+              currentMode={audioSourceMode}
+              onModeChange={onAudioSourceChange}
+              isRecording={true}
+              isSwitching={isSwitchingAudioSource}
+              micCaptured={micCaptured}
+              systemAudioCaptured={systemAudioCaptured}
+              disabled={isFinishing}
+            />
+          )}
+          
           {/* Microphone Selector */}
           {microphones.length > 0 && (
             <Select value={selectedMicId} onValueChange={setSelectedMicId}>

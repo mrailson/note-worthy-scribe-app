@@ -330,6 +330,12 @@ const Scribe = () => {
                 onClearPatientContext={consultation.clearPatientContext}
                 onAddContextFile={consultation.addContextFile}
                 onRemoveContextFile={consultation.removeContextFile}
+                // Audio source switching
+                audioSourceMode={consultation.audioSourceMode}
+                onAudioSourceChange={consultation.switchAudioSourceLive}
+                isSwitchingAudioSource={consultation.isSwitchingAudioSource}
+                micCaptured={consultation.micCaptured}
+                systemAudioCaptured={consultation.systemAudioCaptured}
               />
             )}
             

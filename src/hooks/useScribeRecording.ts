@@ -7,6 +7,8 @@ import { mergeLive } from "@/utils/TranscriptMerge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+export type AudioSourceMode = 'microphone' | 'microphone_and_system';
+
 export const useScribeRecording = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -18,6 +20,12 @@ export const useScribeRecording = () => {
   const [currentConfidence, setCurrentConfidence] = useState<number | undefined>(undefined);
   const [cleanedTranscript, setCleanedTranscript] = useState("");
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
+  
+  // Audio source mode states
+  const [audioSourceMode, setAudioSourceMode] = useState<AudioSourceMode>('microphone');
+  const [isSwitchingAudioSource, setIsSwitchingAudioSource] = useState(false);
+  const [micCaptured, setMicCaptured] = useState(false);
+  const [systemAudioCaptured, setSystemAudioCaptured] = useState(false);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
@@ -25,6 +33,8 @@ export const useScribeRecording = () => {
   const chromiumTranscriberRef = useRef<ChromiumMicTranscriber | null>(null);
   const wakeLockRef = useRef<any>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const systemStreamRef = useRef<MediaStream | null>(null);
+  const currentMicIdRef = useRef<string | undefined>(undefined);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -104,12 +114,14 @@ export const useScribeRecording = () => {
     });
   }, []);
 
-  const startRecording = useCallback(async (selectedMicrophoneId?: string) => {
+  const startRecording = useCallback(async (selectedMicrophoneId?: string, mode: AudioSourceMode = 'microphone') => {
     try {
       setIsRecording(true);
       setIsPaused(false);
       setDuration(0);
       setConnectionStatus("Connecting...");
+      setAudioSourceMode(mode);
+      currentMicIdRef.current = selectedMicrophoneId;
       
       // Generate session ID
       sessionIdRef.current = `scribe_${Date.now()}`;
@@ -129,9 +141,57 @@ export const useScribeRecording = () => {
 
       console.log('🎯 Scribe device detection:', { isIOS, isChromium, isMobile });
       console.log('🎤 Selected microphone ID:', selectedMicrophoneId || 'default');
+      console.log('🔊 Audio source mode:', mode);
+
+      // For system audio capture (if requested and not on mobile/iOS)
+      let combinedStream: MediaStream | undefined;
+      if (mode === 'microphone_and_system' && !isMobile && !isIOS) {
+        try {
+          console.log('📺 Requesting system audio capture...');
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true, // Required by some browsers, we won't use it
+            audio: true
+          });
+          
+          // Stop video tracks - we only want audio
+          displayStream.getVideoTracks().forEach(track => track.stop());
+          
+          const audioTracks = displayStream.getAudioTracks();
+          if (audioTracks.length > 0) {
+            systemStreamRef.current = new MediaStream(audioTracks);
+            setSystemAudioCaptured(true);
+            console.log('✅ System audio captured successfully');
+            
+            // Get microphone stream
+            const micStream = await navigator.mediaDevices.getUserMedia({
+              audio: selectedMicrophoneId 
+                ? { deviceId: { exact: selectedMicrophoneId } }
+                : true
+            });
+            setMicCaptured(true);
+            
+            // Combine streams using AudioContext
+            const audioContext = new AudioContext();
+            const destination = audioContext.createMediaStreamDestination();
+            
+            const micSource = audioContext.createMediaStreamSource(micStream);
+            const systemSource = audioContext.createMediaStreamSource(systemStreamRef.current);
+            
+            micSource.connect(destination);
+            systemSource.connect(destination);
+            
+            combinedStream = destination.stream;
+          }
+        } catch (error) {
+          console.warn('⚠️ System audio capture failed, falling back to mic only:', error);
+          toast.info("System audio unavailable, using microphone only");
+          setAudioSourceMode('microphone');
+        }
+      }
 
       if (isIOS) {
         console.log('📱 Starting iPhone Whisper transcription for Scribe...');
+        setMicCaptured(true);
         iPhoneTranscriberRef.current = new iPhoneWhisperTranscriber(
           (data: IPhoneTranscriptData) => {
             handleTranscriptUpdate({
@@ -160,6 +220,7 @@ export const useScribeRecording = () => {
         await iPhoneTranscriberRef.current.startTranscription();
       } else {
         console.log('🖥️ Starting Desktop Whisper transcription for Scribe...');
+        setMicCaptured(true);
         desktopTranscriberRef.current = new DesktopWhisperTranscriber(
           (data: DesktopTranscriptData) => {
             handleTranscriptUpdate({
@@ -178,11 +239,13 @@ export const useScribeRecording = () => {
           (status: string) => {
             setConnectionStatus(status);
           },
-          { 
-            transcriberService: 'whisper', 
-            transcriberThresholds: { whisper: 0.30, deepgram: 0.30 },
-            selectedDeviceId: selectedMicrophoneId
-          }
+          { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } }, // meetingSettings
+          undefined, // meetingId
+          undefined, // onAudioActivity
+          undefined, // onChunkProcessed
+          undefined, // onChunkFiltered
+          selectedMicrophoneId, // selectedDeviceId
+          combinedStream // externalStream
         );
         
         await desktopTranscriberRef.current.startTranscription();
@@ -195,6 +258,8 @@ export const useScribeRecording = () => {
       toast.error("Failed to start recording");
       setIsRecording(false);
       setConnectionStatus("Error");
+      setMicCaptured(false);
+      setSystemAudioCaptured(false);
     }
   }, [handleTranscriptUpdate]);
 
@@ -278,7 +343,17 @@ export const useScribeRecording = () => {
     setCurrentConfidence(undefined);
     setCleanedTranscript("");
     setIsCleaningTranscript(false);
+    setAudioSourceMode('microphone');
+    setMicCaptured(false);
+    setSystemAudioCaptured(false);
     sessionIdRef.current = null;
+    currentMicIdRef.current = undefined;
+
+    // Stop system audio stream if active
+    if (systemStreamRef.current) {
+      systemStreamRef.current.getTracks().forEach(track => track.stop());
+      systemStreamRef.current = null;
+    }
 
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -288,6 +363,146 @@ export const useScribeRecording = () => {
     releaseWakeLock();
     console.log("Scribe: Recording state reset complete");
   }, []);
+
+  // Switch audio source mode while recording
+  const switchAudioSourceLive = useCallback(async (newMode: AudioSourceMode): Promise<void> => {
+    if (!isRecording || isSwitchingAudioSource) return;
+    
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    // Can't switch to system audio on mobile/iOS
+    if (newMode === 'microphone_and_system' && (isMobile || isIOS)) {
+      toast.error("System audio is not supported on mobile devices");
+      return;
+    }
+    
+    if (newMode === audioSourceMode) return;
+    
+    try {
+      setIsSwitchingAudioSource(true);
+      setConnectionStatus("Switching audio...");
+      
+      console.log(`🔄 Switching audio source from ${audioSourceMode} to ${newMode}`);
+      
+      // Stop current transcribers
+      if (iPhoneTranscriberRef.current) {
+        await iPhoneTranscriberRef.current.stopTranscription();
+        iPhoneTranscriberRef.current = null;
+      }
+      if (desktopTranscriberRef.current) {
+        await desktopTranscriberRef.current.stopTranscription();
+        desktopTranscriberRef.current = null;
+      }
+      if (chromiumTranscriberRef.current) {
+        await chromiumTranscriberRef.current.stopTranscription();
+        chromiumTranscriberRef.current = null;
+      }
+      
+      // Stop system audio if switching away from it
+      if (systemStreamRef.current) {
+        systemStreamRef.current.getTracks().forEach(track => track.stop());
+        systemStreamRef.current = null;
+        setSystemAudioCaptured(false);
+      }
+      
+      // Update mode
+      setAudioSourceMode(newMode);
+      
+      // Prepare new streams
+      let combinedStream: MediaStream | undefined;
+      
+      if (newMode === 'microphone_and_system') {
+        try {
+          console.log('📺 Requesting system audio capture...');
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true
+          });
+          
+          // Stop video tracks
+          displayStream.getVideoTracks().forEach(track => track.stop());
+          
+          const audioTracks = displayStream.getAudioTracks();
+          if (audioTracks.length > 0) {
+            systemStreamRef.current = new MediaStream(audioTracks);
+            setSystemAudioCaptured(true);
+            console.log('✅ System audio captured successfully');
+            
+            // Get microphone stream
+            const micStream = await navigator.mediaDevices.getUserMedia({
+              audio: currentMicIdRef.current 
+                ? { deviceId: { exact: currentMicIdRef.current } }
+                : true
+            });
+            
+            // Combine streams
+            const audioContext = new AudioContext();
+            const destination = audioContext.createMediaStreamDestination();
+            
+            const micSource = audioContext.createMediaStreamSource(micStream);
+            const systemSource = audioContext.createMediaStreamSource(systemStreamRef.current);
+            
+            micSource.connect(destination);
+            systemSource.connect(destination);
+            
+            combinedStream = destination.stream;
+          } else {
+            throw new Error("No system audio available");
+          }
+        } catch (error) {
+          console.warn('⚠️ System audio capture failed:', error);
+          toast.error("Failed to capture system audio");
+          setAudioSourceMode('microphone');
+          setSystemAudioCaptured(false);
+        }
+      }
+      
+      // Restart transcription with new audio source
+      console.log('🖥️ Restarting Desktop Whisper transcription...');
+      desktopTranscriberRef.current = new DesktopWhisperTranscriber(
+        (data: DesktopTranscriptData) => {
+          handleTranscriptUpdate({
+            text: data.text,
+            speaker: data.speaker || "Speaker",
+            confidence: data.confidence || 0.8,
+            timestamp: new Date().toISOString(),
+            isFinal: data.is_final || false
+          });
+        },
+        (error: string) => {
+          console.error("Desktop transcriber error:", error);
+          toast.error(`Transcription error: ${error}`);
+          setConnectionStatus("Error");
+        },
+        (status: string) => {
+          setConnectionStatus(status);
+        },
+        { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } }, // meetingSettings
+        undefined, // meetingId
+        undefined, // onAudioActivity
+        undefined, // onChunkProcessed
+        undefined, // onChunkFiltered
+        currentMicIdRef.current, // selectedDeviceId
+        combinedStream // externalStream
+      );
+      
+      await desktopTranscriberRef.current.startTranscription();
+      
+      setConnectionStatus("Connected");
+      toast.success(newMode === 'microphone_and_system' 
+        ? "Now capturing microphone + system audio"
+        : "Switched to microphone only"
+      );
+      
+    } catch (error) {
+      console.error("Failed to switch audio source:", error);
+      toast.error("Failed to switch audio source");
+      setConnectionStatus("Error");
+    } finally {
+      setIsSwitchingAudioSource(false);
+    }
+  }, [isRecording, isSwitchingAudioSource, audioSourceMode, handleTranscriptUpdate]);
 
   const cleanTranscript = useCallback(async () => {
     if (!transcript.trim()) {
@@ -327,6 +542,12 @@ export const useScribeRecording = () => {
     cleanedTranscript,
     isCleaningTranscript,
     sessionId: sessionIdRef.current,
+    
+    // Audio source states
+    audioSourceMode,
+    isSwitchingAudioSource,
+    micCaptured,
+    systemAudioCaptured,
 
     // Actions
     startRecording,
@@ -339,5 +560,6 @@ export const useScribeRecording = () => {
     setCleanedTranscript,
     setIsCleaningTranscript,
     formatDuration,
+    switchAudioSourceLive,
   };
 };
