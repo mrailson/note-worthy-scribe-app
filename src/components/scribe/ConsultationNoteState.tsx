@@ -196,6 +196,7 @@ export const ConsultationNoteState = ({
                   <>
                     <span className="text-muted-foreground/40">|</span>
                     <div className="flex items-center gap-0.5">
+                      {/* Narrative Clinical (TPP SystmOne) */}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
@@ -206,30 +207,14 @@ export const ConsultationNoteState = ({
                                 ? "text-primary bg-primary/10" 
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
                             )}
-                            aria-label="Narrative Clinical (H/E/A/I/P)"
+                            aria-label="Narrative Clinical (TPP SystmOne)"
                           >
                             <ClipboardList className="h-3.5 w-3.5" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom">Narrative Clinical (H/E/A/I/P)</TooltipContent>
+                        <TooltipContent side="bottom">Narrative Clinical (TPP SystmOne)</TooltipContent>
                       </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => onViewModeChange('soap')}
-                            className={cn(
-                              "p-1.5 rounded-md transition-colors",
-                              viewMode === 'soap' 
-                                ? "text-primary bg-primary/10" 
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                            )}
-                            aria-label="Structured (SOAP)"
-                          >
-                            <List className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">Structured (SOAP)</TooltipContent>
-                      </Tooltip>
+                      {/* EMIS View */}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
@@ -247,39 +232,49 @@ export const ConsultationNoteState = ({
                         </TooltipTrigger>
                         <TooltipContent side="bottom">EMIS View</TooltipContent>
                       </Tooltip>
+                      
+                      {/* Spacer */}
+                      <span className="w-2" />
+                      
+                      {/* Structured View (SOAP) */}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
-                            onClick={() => onViewModeChange('referral')}
+                            onClick={() => onViewModeChange('soap')}
                             className={cn(
                               "p-1.5 rounded-md transition-colors",
-                              viewMode === 'referral' 
+                              viewMode === 'soap' 
                                 ? "text-primary bg-primary/10" 
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
                             )}
-                            aria-label="Referrals"
+                            aria-label="Structured View (SOAP)"
                           >
-                            <Send className="h-3.5 w-3.5" />
+                            <List className="h-3.5 w-3.5" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom">Referrals</TooltipContent>
+                        <TooltipContent side="bottom">Structured View (SOAP)</TooltipContent>
                       </Tooltip>
+                      
+                      {/* Spacer */}
+                      <span className="w-2" />
+                      
+                      {/* Patient Letter */}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
-                            onClick={() => onViewModeChange('transcript')}
+                            onClick={() => onViewModeChange('patient')}
                             className={cn(
                               "p-1.5 rounded-md transition-colors",
-                              viewMode === 'transcript' 
+                              viewMode === 'patient' 
                                 ? "text-primary bg-primary/10" 
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
                             )}
-                            aria-label="Transcript"
+                            aria-label="Patient Letter"
                           >
-                            <FileText className="h-3.5 w-3.5" />
+                            <User className="h-3.5 w-3.5" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom">Transcript</TooltipContent>
+                        <TooltipContent side="bottom">Patient Letter</TooltipContent>
                       </Tooltip>
                     </div>
                   </>
