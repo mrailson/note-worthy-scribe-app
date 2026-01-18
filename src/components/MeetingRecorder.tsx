@@ -2179,7 +2179,13 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Initialize transcript handler
+  // Ref for ticker enabled state (to avoid recreating handler when ticker toggle changes)
+  const tickerEnabledRef = useRef(tickerEnabled);
+  useEffect(() => {
+    tickerEnabledRef.current = tickerEnabled;
+  }, [tickerEnabled]);
+
+  // Initialize transcript handler ONCE on mount - stable lifecycle
   useEffect(() => {
     transcriptHandler.current = new IncrementalTranscriptHandler(
       (fullTranscript: string) => {
@@ -2198,8 +2204,8 @@ export const MeetingRecorder = ({
         console.log('📝 Transcript updated:', fullTranscript.length, 'chars');
       },
       (interimText: string) => {
-        // Handle interim updates for ticker
-        if (interimText.trim() && tickerEnabled) {
+        // Handle interim updates for ticker - read from ref to avoid recreating handler
+        if (interimText.trim() && tickerEnabledRef.current) {
           const truncatedText = interimText.length > 100 
             ? interimText.substring(0, 100) + "..." 
             : interimText;
@@ -2215,6 +2221,8 @@ export const MeetingRecorder = ({
       }
     );
     
+    console.log('📝 Transcript handler initialised (stable lifecycle)');
+    
     // CRITICAL: Replay any chunks that arrived before handler was ready
     if (pendingTranscriptsRef.current.length > 0) {
       console.log(`📥 Replaying ${pendingTranscriptsRef.current.length} pending transcript(s) that arrived before handler init`);
@@ -2223,7 +2231,8 @@ export const MeetingRecorder = ({
       }
       pendingTranscriptsRef.current = [];
     }
-  }, [onTranscriptUpdate, onWordCountUpdate, tickerEnabled]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onTranscriptUpdate, onWordCountUpdate]); // Removed tickerEnabled - use ref instead
 
   const handleTranscript = (transcriptData: TranscriptData) => {
     // Convert to incremental transcript format
@@ -2348,8 +2357,16 @@ export const MeetingRecorder = ({
     const chunkStartSeconds = Math.min(proposedStart, chunkEndSeconds);
     
     // Extract iOS blob metadata if provided
+    // CRITICAL: Log to verify meta is arriving correctly
     const iosBlobSize = data.iosMeta?.blobSize;
-    const iosBlobType = data.iosMeta?.blobType || 'audio/ios';
+    const iosBlobType = data.iosMeta?.blobType;
+    
+    console.log(`📱 iOS chunk #${currentChunkNumber} meta:`, {
+      hasIosMeta: !!data.iosMeta,
+      blobSize: iosBlobSize,
+      blobType: iosBlobType,
+      rawMeta: data.iosMeta
+    });
     
     const newChunkStatus: ChunkSaveStatus = {
       id: uniqueChunkId,
@@ -2363,7 +2380,7 @@ export const MeetingRecorder = ({
       endTime: chunkEndSeconds,
       originalFileSize: iosBlobSize,
       transcodedFileSize: iosBlobSize, // iOS sends raw MP4 blobs, no transcoding
-      fileType: iosBlobType
+      fileType: iosBlobType // Don't use a fake fallback - undefined is better than 'audio/ios'
     };
     
     // Update last chunk end time for iPhone chunks
@@ -2555,6 +2572,13 @@ export const MeetingRecorder = ({
         {
           onTranscription: (text: string, isFinal: boolean, confidence: number, meta?: IOSTranscriptionMeta) => {
             if (!text || !text.trim()) return;
+            
+            // Debug: Log the meta received from SimpleIOSTranscriber
+            console.log('📱 iOS onTranscription callback received meta:', {
+              hasMeta: !!meta,
+              blobSize: meta?.blobSize,
+              blobType: meta?.blobType
+            });
             
             // Use handleBrowserTranscript as single source of truth
             // It already handles: chunkSaveStatuses, watchdog.reportChunkProcessed(), audio activity
@@ -3897,9 +3921,22 @@ export const MeetingRecorder = ({
       const isEdgeCheck = /Edg/.test(navigator.userAgent);
       const useScreenShare = isChromeCheck || isEdgeCheck;
       
+      // CRITICAL FIX: Reset UI state BEFORE starting transcribers to prevent race condition
+      // where first chunk arrives and is immediately wiped by these resets
+      setRealtimeTranscripts([]);
+      setChunkSaveStatuses([]);
+      pendingTranscriptsRef.current = []; // Clear any stale pending transcripts
+      setSpeakerCount(1);
+      setStartTime(generateMeetingTimestamp());
+      
       // Reset audio capture status
       setMicCaptured(false);
       setSystemAudioCaptured(false);
+      
+      // Set recording state BEFORE starting transcribers so handlers are ready
+      setIsRecording(true);
+      isRecordingRef.current = true;
+      setConnectionStatus("Connected");
       
       if (recordingMode === 'mic-only') {
         // Microphone only mode
@@ -3925,15 +3962,6 @@ export const MeetingRecorder = ({
           setSystemAudioCaptured(true);
         }
       }
-      
-      setIsRecording(true);
-      isRecordingRef.current = true;
-      // Recording start time already set earlier - don't reset it here
-      setRealtimeTranscripts([]);
-      setChunkSaveStatuses([]);
-      setSpeakerCount(1);
-      setStartTime(generateMeetingTimestamp());
-      setConnectionStatus("Connected");
 
       // Start overlapping chunk recording for system audio (only if not microphone-only and not using screen share)
       if (recordingMode === 'mic-and-system' && !useScreenShare) {
