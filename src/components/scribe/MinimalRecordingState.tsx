@@ -465,7 +465,7 @@ export const MinimalRecordingState = ({
                     </span>
                   )}
                 </div>
-                <ScrollArea className="h-32">
+                <div ref={liveTranscriptRef} className="h-32 overflow-y-auto">
                   <div className="px-4 pt-2 pb-4">
                     {livePreviewFullTranscript ? (
                       <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
@@ -477,7 +477,7 @@ export const MinimalRecordingState = ({
                       </p>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
           </CollapsibleContent>

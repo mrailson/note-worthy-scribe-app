@@ -582,7 +582,7 @@ export const ConsultationRecordingState = ({
                 </div>
                 
                 {/* Transcript Content */}
-                <ScrollArea className="flex-1">
+                <div ref={liveTranscriptScrollRef} className="flex-1 overflow-y-auto max-h-[300px]">
                   <div className="pr-4">
                     {livePreviewError ? (
                       <div className="flex items-center gap-2 text-destructive text-sm">
