@@ -366,6 +366,11 @@ const Scribe = () => {
                 chunks={consultation.chunks}
                 chunkStats={consultation.chunkStats}
                 onClearChunks={consultation.clearChunks}
+                // Live preview (AssemblyAI real-time)
+                livePreviewTranscript={consultation.livePreviewTranscript}
+                livePreviewStatus={consultation.livePreviewStatus}
+                livePreviewActive={consultation.livePreviewActive}
+                livePreviewError={consultation.livePreviewError}
               />
             )}
             
