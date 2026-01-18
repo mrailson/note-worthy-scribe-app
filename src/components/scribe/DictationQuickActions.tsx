@@ -1,8 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Copy, Trash2, Save, Clock, Type, Sparkles, Loader2 } from 'lucide-react';
+import { Copy, Trash2, Save, Clock, Type, Sparkles, Loader2, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface DictationQuickActionsProps {
   content: string;
@@ -34,6 +36,91 @@ export function DictationQuickActions({
   currentSessionId,
 }: DictationQuickActionsProps) {
   const hasContent = content.trim().length > 0;
+
+  const handleDownloadWord = async () => {
+    if (!hasContent) return;
+
+    const lines = content.split('\n');
+    const children: Paragraph[] = [];
+
+    lines.forEach((line) => {
+      const trimmedLine = line.trim();
+      
+      // Check if it's a header (starts with ## or is all caps and short)
+      if (trimmedLine.startsWith('## ')) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: trimmedLine.replace('## ', ''),
+                bold: true,
+                size: 28,
+              }),
+            ],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 240, after: 120 },
+          })
+        );
+      } else if (trimmedLine.startsWith('# ')) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: trimmedLine.replace('# ', ''),
+                bold: true,
+                size: 32,
+              }),
+            ],
+            heading: HeadingLevel.HEADING_1,
+            spacing: { before: 300, after: 150 },
+          })
+        );
+      } else if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
+        // Bold text (like section headers)
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: trimmedLine.replace(/\*\*/g, ''),
+                bold: true,
+                size: 24,
+              }),
+            ],
+            spacing: { before: 200, after: 100 },
+          })
+        );
+      } else if (trimmedLine === '') {
+        // Empty line
+        children.push(new Paragraph({ children: [] }));
+      } else {
+        // Regular paragraph
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: trimmedLine,
+                size: 24,
+              }),
+            ],
+            spacing: { after: 120 },
+          })
+        );
+      }
+    });
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children,
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const timestamp = new Date().toISOString().slice(0, 10);
+    saveAs(blob, `dictation-${timestamp}.docx`);
+  };
 
   return (
     <div className={cn(
@@ -88,6 +175,24 @@ export function DictationQuickActions({
           <Copy className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Copy All</span>
         </Button>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadWord}
+              disabled={!hasContent}
+              className="gap-1.5"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Word</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Download as Word document</p>
+          </TooltipContent>
+        </Tooltip>
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
