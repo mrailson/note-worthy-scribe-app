@@ -109,7 +109,7 @@ export const NarrativeClinicalNoteView = ({
             <div className="flex items-center gap-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <ClipboardList className="h-4 w-4" />
-                Narrative Clinical Note
+                TPP SystmOne View
               </CardTitle>
               <Badge variant="secondary" className="text-xs font-normal gap-1">
                 <Shield className="h-3 w-3" />
