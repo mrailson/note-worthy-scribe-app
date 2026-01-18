@@ -87,6 +87,31 @@ export const QuickActionsBar = ({
         flex items-center gap-2 flex-wrap
         ${isMobile ? 'justify-center' : 'justify-end'}
       `}>
+        {/* Save Button - shown when not saved */}
+        {!isSaved && !isSaving && (
+          <Button
+            variant="default"
+            onClick={onSave}
+            disabled={disabled}
+            className="gap-2"
+          >
+            <Save className="h-4 w-4" />
+            {!isMobile && 'Save'}
+          </Button>
+        )}
+        
+        {/* Saving indicator */}
+        {isSaving && (
+          <Button
+            variant="secondary"
+            disabled
+            className="gap-2"
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {!isMobile && 'Saving...'}
+          </Button>
+        )}
+
         {/* New Consultation */}
         <Button
           variant="ghost"

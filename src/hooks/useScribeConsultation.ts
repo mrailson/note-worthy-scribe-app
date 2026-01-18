@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/toastWrapper";
 import { formatSoapNote, formatHeidiNote } from "@/utils/emrFormatters";
 
-export const useScribeConsultation = () => {
+export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
   const [consultationState, setConsultationState] = useState<ConsultationState>('ready');
   const [consultationType, setConsultationType] = useState<ConsultationType>('f2f');
   const [f2fAccompanied, setF2fAccompanied] = useState(false);
@@ -221,19 +221,24 @@ export const useScribeConsultation = () => {
     return true;
   }, [consultationType, consultationCategory, patientConsent, consentTimestamp, settings.noteFormat, contextFiles, patientContext]);
 
-  // Auto-save with silent background retry
+  // Auto-save with retry - now returns success/failure and notifies parent
   const autoSaveWithRetry = useCallback(async (
     noteToSave: ConsultationNote,
     transcriptToSave: string,
     wordCountToSave: number,
     durationToSave: number,
     maxRetries = 3
-  ) => {
+  ): Promise<boolean> => {
+    setIsSaving(true);
+    
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await saveConsultationInternal(noteToSave, transcriptToSave, wordCountToSave, durationToSave);
         setIsSaved(true);
+        setIsSaving(false);
         console.log('✅ Consultation auto-saved successfully');
+        // Notify parent to refresh history
+        onAutoSaveComplete?.();
         return true;
       } catch (error) {
         console.error(`Auto-save attempt ${attempt} failed:`, error);
@@ -243,10 +248,12 @@ export const useScribeConsultation = () => {
         }
       }
     }
-    // All retries failed - show subtle error, allow manual retry
+    // All retries failed - show error, allow manual retry
+    setIsSaving(false);
     console.error('❌ All auto-save attempts failed');
+    showToast.error('Auto-save failed. Click Save to retry.', { section: 'gpscribe' });
     return false;
-  }, [saveConsultationInternal]);
+  }, [saveConsultationInternal, onAutoSaveComplete]);
 
   // Finish consultation and generate notes (with auto-save)
   const finishConsultation = useCallback(async () => {
@@ -335,8 +342,8 @@ export const useScribeConsultation = () => {
       // Go directly to review state
       setConsultationState('review');
       
-      // Auto-save in background (silent retry on failure)
-      autoSaveWithRetry(note, transcriptForSave, wordCountForSave, durationForSave);
+      // Auto-save immediately (awaited with status feedback)
+      await autoSaveWithRetry(note, transcriptForSave, wordCountForSave, durationForSave);
       
     } catch (error) {
       console.error('Error generating notes:', error);
