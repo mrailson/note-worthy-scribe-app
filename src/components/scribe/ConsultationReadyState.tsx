@@ -216,24 +216,24 @@ export const ConsultationReadyState = ({
 
       {/* Patient Explainer Modal */}
       <Dialog open={showExplainer} onOpenChange={setShowExplainer}>
-        <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] p-0 border-0 flex flex-col bg-background/95 backdrop-blur-sm">
+        <DialogContent className="max-w-3xl w-[90vw] max-h-[90vh] p-4 flex flex-col bg-background">
           <DialogTitle className="sr-only">How the Scribing Service Works</DialogTitle>
           
           {/* Image container - takes maximum space */}
-          <div className="flex-1 flex items-center justify-center overflow-hidden p-1">
+          <div className="flex-1 flex items-center justify-center overflow-hidden">
             <img 
               src={scribeExplainer} 
               alt="How the scribing service works - Real-time transcription helps the GP take notes, no recordings are kept, and the clinician verifies everything at the end"
-              className="w-full h-full object-contain"
+              className="w-full h-auto max-h-[calc(90vh-80px)] object-contain rounded-md"
             />
           </div>
           
           {/* Footer with Close button */}
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2">
+          <div className="flex justify-center pt-3">
             <Button
               variant="outline"
               onClick={() => setShowExplainer(false)}
-              className="min-w-[100px] bg-background/90 backdrop-blur-sm shadow-lg"
+              className="min-w-[100px]"
             >
               Close
             </Button>
