@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, Square, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Mic, Square, Loader2, Monitor } from 'lucide-react';
 import type { DictationStatus } from '@/hooks/useDictation';
 
 interface DictationControlsProps {
@@ -10,6 +12,8 @@ interface DictationControlsProps {
   onStart: () => void;
   onStop: () => void;
   hasContent: boolean;
+  systemAudioEnabled?: boolean;
+  onSystemAudioChange?: (enabled: boolean) => void;
 }
 
 export function DictationControls({
@@ -19,6 +23,8 @@ export function DictationControls({
   onStart,
   onStop,
   hasContent,
+  systemAudioEnabled = false,
+  onSystemAudioChange,
 }: DictationControlsProps) {
   const [countdown, setCountdown] = useState<number | null>(null);
 
@@ -99,42 +105,60 @@ export function DictationControls({
   }
 
   return (
-    <div className="flex items-center justify-center gap-4 pt-2">
-      {isRecording ? (
-        <Button
-          size="lg"
-          variant="destructive"
-          onClick={onStop}
-          className="gap-2 h-14 px-8 text-lg font-medium"
-        >
-          <Square className="h-5 w-5 fill-current" />
-          Stop Dictation
-        </Button>
-      ) : (
-        <Button
-          size="lg"
-          onClick={handleStartClick}
-          disabled={isConnecting || countdown !== null}
-          className="gap-2 h-14 px-8 text-lg font-medium bg-primary hover:bg-primary/90"
-        >
-          {isConnecting ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Connecting...
-            </>
-          ) : (
-            <>
-              <Mic className="h-5 w-5" />
-              {hasContent ? 'Continue Dictation' : 'Start Dictation'}
-            </>
-          )}
-        </Button>
-      )}
+    <div className="flex flex-col items-center gap-4 pt-2">
+      <div className="flex items-center justify-center gap-4">
+        {isRecording ? (
+          <Button
+            size="lg"
+            variant="destructive"
+            onClick={onStop}
+            className="gap-2 h-14 px-8 text-lg font-medium"
+          >
+            <Square className="h-5 w-5 fill-current" />
+            Stop Dictation
+          </Button>
+        ) : (
+          <Button
+            size="lg"
+            onClick={handleStartClick}
+            disabled={isConnecting || countdown !== null}
+            className="gap-2 h-14 px-8 text-lg font-medium bg-primary hover:bg-primary/90"
+          >
+            {isConnecting ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <Mic className="h-5 w-5" />
+                {hasContent ? 'Continue Dictation' : 'Start Dictation'}
+              </>
+            )}
+          </Button>
+        )}
 
-      {isRecording && (
-        <div className="flex items-center gap-2 text-destructive animate-pulse">
-          <div className="w-3 h-3 rounded-full bg-destructive" />
-          <span className="text-sm font-medium">Recording</span>
+        {isRecording && (
+          <div className="flex items-center gap-2 text-destructive animate-pulse">
+            <div className="w-3 h-3 rounded-full bg-destructive" />
+            <span className="text-sm font-medium">Recording</span>
+          </div>
+        )}
+      </div>
+
+      {/* PC Audio Toggle - only show when not recording */}
+      {!isRecording && onSystemAudioChange && (
+        <div className="flex items-center gap-2">
+          <Switch
+            id="system-audio-control"
+            checked={systemAudioEnabled}
+            onCheckedChange={onSystemAudioChange}
+          />
+          <Label htmlFor="system-audio-control" className="flex items-center gap-1.5 text-sm cursor-pointer">
+            <Mic className="h-4 w-4" />
+            Capture PC Audio
+            <Monitor className="h-4 w-4 text-muted-foreground" />
+          </Label>
         </div>
       )}
     </div>
