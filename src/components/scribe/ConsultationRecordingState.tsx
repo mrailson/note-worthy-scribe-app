@@ -130,6 +130,7 @@ export const ConsultationRecordingState = ({
   const [selectedMicId, setSelectedMicId] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const chunksScrollRef = useRef<HTMLDivElement>(null);
+  const liveTranscriptScrollRef = useRef<HTMLDivElement>(null);
   const lastTranscriptCount = useRef(0);
 
   // Load available microphones
@@ -182,6 +183,13 @@ export const ConsultationRecordingState = ({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [timestampedSegments]);
+
+  // Auto-scroll live transcript to bottom when new text arrives
+  useEffect(() => {
+    if (liveTranscriptScrollRef.current && livePreviewFullTranscript) {
+      liveTranscriptScrollRef.current.scrollTop = liveTranscriptScrollRef.current.scrollHeight;
+    }
+  }, [livePreviewFullTranscript]);
 
   // Format elapsed time as MM:SS
   const formatElapsed = (seconds: number) => {
@@ -557,7 +565,7 @@ export const ConsultationRecordingState = ({
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Radio className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm font-medium">AssemblyAI Real-time Transcript</h3>
+                    <h3 className="text-sm font-medium">Notewell Transcription Service</h3>
                     {livePreviewActive && (
                       <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700 text-xs">
                         <span className="relative flex h-1.5 w-1.5">
@@ -574,7 +582,7 @@ export const ConsultationRecordingState = ({
                 </div>
                 
                 {/* Transcript Content */}
-                <ScrollArea className="flex-1">
+                <div ref={liveTranscriptScrollRef} className="flex-1 overflow-y-auto max-h-[300px]">
                   <div className="pr-4">
                     {livePreviewError ? (
                       <div className="flex items-center gap-2 text-destructive text-sm">
@@ -596,7 +604,7 @@ export const ConsultationRecordingState = ({
                             Listening... Start speaking to see real-time transcription.
                           </p>
                           <p className="text-muted-foreground/70 text-xs mt-1">
-                            AssemblyAI provides ~200ms latency transcription
+                            Live transcription with ~200ms latency
                           </p>
                         </div>
                       </div>
@@ -610,7 +618,7 @@ export const ConsultationRecordingState = ({
                       </div>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
 
                 {/* Footer */}
                 <div className="pt-3 mt-3 border-t text-xs text-muted-foreground flex items-center gap-1">

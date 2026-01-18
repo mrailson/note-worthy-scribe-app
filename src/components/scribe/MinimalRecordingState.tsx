@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -95,6 +95,14 @@ export const MinimalRecordingState = ({
   const [showRealtimeTranscript, setShowRealtimeTranscript] = useState(false);
   const [microphones, setMicrophones] = useState<MicrophoneDevice[]>([]);
   const [isButtonPressed, setIsButtonPressed] = useState(false);
+  const liveTranscriptRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll live transcript to bottom when new text arrives
+  useEffect(() => {
+    if (liveTranscriptRef.current && livePreviewFullTranscript) {
+      liveTranscriptRef.current.scrollTop = liveTranscriptRef.current.scrollHeight;
+    }
+  }, [livePreviewFullTranscript]);
 
   // Handle finish with immediate feedback
   const handleFinish = () => {
@@ -450,14 +458,14 @@ export const MinimalRecordingState = ({
                       Live
                     </span>
                   )}
-                  <span className="text-xs text-muted-foreground">AssemblyAI Real-time</span>
+                  <span className="text-xs text-muted-foreground">Notewell Transcription Service</span>
                   {livePreviewFullTranscript && (
                     <span className="text-xs text-muted-foreground ml-auto">
                       {livePreviewFullTranscript.split(/\s+/).filter(Boolean).length} words
                     </span>
                   )}
                 </div>
-                <ScrollArea className="h-32">
+                <div ref={liveTranscriptRef} className="h-32 overflow-y-auto">
                   <div className="px-4 pt-2 pb-4">
                     {livePreviewFullTranscript ? (
                       <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
@@ -469,7 +477,7 @@ export const MinimalRecordingState = ({
                       </p>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               </CardContent>
             </Card>
           </CollapsibleContent>
