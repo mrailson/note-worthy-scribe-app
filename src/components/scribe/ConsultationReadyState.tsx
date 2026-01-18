@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -10,7 +11,7 @@ import { PatientConsentBanner } from "./PatientConsentBanner";
 import { ScribeDevDisclaimer } from "./ScribeDevDisclaimer";
 import { PatientContextCapture } from "./PatientContextCapture";
 import { ConsultationType, ConsultationCategory, ScribeSettings, PatientContext } from "@/types/scribe";
-import { Mic, Info, Monitor, Phone } from "lucide-react";
+import { Mic, Info, Monitor, Phone, ChevronDown, ChevronUp } from "lucide-react";
 import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
 import scribeExplainer from "@/assets/scribe-explainer.png";
 
@@ -51,6 +52,7 @@ export const ConsultationReadyState = ({
   const isIPhone = useIsIPhone();
   const hideSystemAudio = isMobile || isIPhone;
   const [showExplainer, setShowExplainer] = useState(false);
+  const [showAudioSource, setShowAudioSource] = useState(false);
   const [selectedAudioMode, setSelectedAudioMode] = useState<AudioSourceMode>('microphone');
   
   // Auto-switch audio mode based on consultation type
@@ -129,36 +131,55 @@ export const ConsultationReadyState = ({
             />
           )}
 
-          {/* Audio Source Selection - Desktop only */}
+          {/* Audio Source Selection - Desktop only, collapsible */}
           {!hideSystemAudio && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-muted-foreground">Audio Source</Label>
-              <RadioGroup 
-                value={selectedAudioMode} 
-                onValueChange={(value) => setSelectedAudioMode(value as AudioSourceMode)}
-                className="grid grid-cols-2 gap-3"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="microphone" id="mic-only" />
-                  <Label htmlFor="mic-only" className="flex items-center gap-2 cursor-pointer text-sm">
-                    <Mic className="h-4 w-4 text-muted-foreground" />
-                    Microphone Only
-                  </Label>
+            <Collapsible open={showAudioSource} onOpenChange={setShowAudioSource}>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-center text-muted-foreground hover:text-foreground gap-1.5 text-xs"
+                >
+                  <Mic className="h-3.5 w-3.5" />
+                  <span>{showAudioSource ? 'Hide audio source' : 'Show audio source'}</span>
+                  {showAudioSource ? (
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="space-y-2 pt-3">
+                  <Label className="text-sm font-medium text-muted-foreground">Audio Source</Label>
+                  <RadioGroup 
+                    value={selectedAudioMode} 
+                    onValueChange={(value) => setSelectedAudioMode(value as AudioSourceMode)}
+                    className="grid grid-cols-2 gap-3"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="microphone" id="mic-only" />
+                      <Label htmlFor="mic-only" className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Mic className="h-4 w-4 text-muted-foreground" />
+                        Microphone Only
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="microphone_and_system" id="mic-softphone" />
+                      <Label htmlFor="mic-softphone" className="flex items-center gap-2 cursor-pointer text-sm">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        Mic + SoftPhone
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                  {selectedAudioMode === 'microphone_and_system' && (
+                    <p className="text-xs text-muted-foreground">
+                      You'll be prompted to share a browser tab (e.g. Surgery Connect, Teams, Zoom)
+                    </p>
+                  )}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="microphone_and_system" id="mic-softphone" />
-                  <Label htmlFor="mic-softphone" className="flex items-center gap-2 cursor-pointer text-sm">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    Mic + SoftPhone
-                  </Label>
-                </div>
-              </RadioGroup>
-              {selectedAudioMode === 'microphone_and_system' && (
-                <p className="text-xs text-muted-foreground">
-                  You'll be prompted to share a browser tab (e.g. Surgery Connect, Teams, Zoom)
-                </p>
-              )}
-            </div>
+              </CollapsibleContent>
+            </Collapsible>
           )}
 
           {/* Start Button */}
