@@ -13,6 +13,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { ConsultationType } from "@/types/scribe";
+import { QuickAudioSourceSwitcher, AudioSourceMode } from "@/components/meeting/QuickAudioSourceSwitcher";
 import { 
   Pause, 
   Play, 
@@ -51,6 +52,12 @@ interface MinimalRecordingStateProps {
   transcript?: string;
   selectedMicrophoneId?: string;
   onMicrophoneChange?: (deviceId: string) => void;
+  // Audio source switching props
+  audioSourceMode?: AudioSourceMode;
+  onAudioSourceChange?: (mode: AudioSourceMode) => Promise<void>;
+  isSwitchingAudioSource?: boolean;
+  micCaptured?: boolean;
+  systemAudioCaptured?: boolean;
 }
 
 export const MinimalRecordingState = ({
@@ -66,6 +73,12 @@ export const MinimalRecordingState = ({
   transcript,
   selectedMicrophoneId,
   onMicrophoneChange,
+  // Audio source props with defaults
+  audioSourceMode = 'microphone',
+  onAudioSourceChange,
+  isSwitchingAudioSource = false,
+  micCaptured = false,
+  systemAudioCaptured = false,
 }: MinimalRecordingStateProps) => {
   const [showPatientInfo, setShowPatientInfo] = useState(true);
   const [showTranscript, setShowTranscript] = useState(false);
@@ -206,7 +219,7 @@ export const MinimalRecordingState = ({
       {/* Main content - centered */}
       <div className="flex flex-col items-center justify-center flex-1 -mt-8 w-full max-w-xl">
         {/* Recording indicator with audio waveform */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <div className={`
             w-3 h-3 rounded-full 
             ${isPaused 
@@ -225,6 +238,21 @@ export const MinimalRecordingState = ({
             />
           )}
         </div>
+
+        {/* Audio Source Switcher */}
+        {onAudioSourceChange && (
+          <div className="mb-4">
+            <QuickAudioSourceSwitcher
+              currentMode={audioSourceMode}
+              onModeChange={onAudioSourceChange}
+              isRecording={true}
+              isSwitching={isSwitchingAudioSource}
+              micCaptured={micCaptured}
+              systemAudioCaptured={systemAudioCaptured}
+              disabled={isFinishing}
+            />
+          </div>
+        )}
 
         {/* Timer */}
         <div className="font-mono text-3xl sm:text-4xl font-semibold tracking-tight mb-3">

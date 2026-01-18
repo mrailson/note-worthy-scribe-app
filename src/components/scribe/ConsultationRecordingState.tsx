@@ -182,6 +182,11 @@ export const ConsultationRecordingState = ({
         transcript={transcript}
         selectedMicrophoneId={selectedMicId}
         onMicrophoneChange={setSelectedMicId}
+        audioSourceMode={audioSourceMode}
+        onAudioSourceChange={onAudioSourceChange}
+        isSwitchingAudioSource={isSwitchingAudioSource}
+        micCaptured={micCaptured}
+        systemAudioCaptured={systemAudioCaptured}
       />
     );
   }

@@ -3,14 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ConsultationTypeSelector } from "./ConsultationTypeSelector";
 import { PatientConsentBanner } from "./PatientConsentBanner";
 import { ScribeDevDisclaimer } from "./ScribeDevDisclaimer";
 import { PatientContextCapture } from "./PatientContextCapture";
 import { ConsultationType, ConsultationCategory, ScribeSettings, PatientContext } from "@/types/scribe";
-import { Mic, Info } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Mic, Info, Monitor, Phone } from "lucide-react";
+import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
 import scribeExplainer from "@/assets/scribe-explainer.png";
+
+export type AudioSourceMode = 'microphone' | 'microphone_and_system';
 
 interface ConsultationReadyStateProps {
   consultationType: ConsultationType;
@@ -22,7 +26,7 @@ interface ConsultationReadyStateProps {
   onCategoryChange: (category: ConsultationCategory) => void;
   onConsentChange: (consent: boolean) => void;
   onPatientContextChange: (context: PatientContext | null) => void;
-  onStart: () => void;
+  onStart: (audioMode?: AudioSourceMode) => void;
   onOpenSettings: () => void;
 }
 
@@ -40,7 +44,10 @@ export const ConsultationReadyState = ({
   onOpenSettings
 }: ConsultationReadyStateProps) => {
   const isMobile = useIsMobile();
+  const isIPhone = useIsIPhone();
+  const hideSystemAudio = isMobile || isIPhone;
   const [showExplainer, setShowExplainer] = useState(false);
+  const [selectedAudioMode, setSelectedAudioMode] = useState<AudioSourceMode>('microphone');
   
   const canStart = !settings.showConsentReminder || patientConsent;
 
@@ -106,9 +113,41 @@ export const ConsultationReadyState = ({
             />
           )}
 
+          {/* Audio Source Selection - Desktop only */}
+          {!hideSystemAudio && (
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-muted-foreground">Audio Source</Label>
+              <RadioGroup 
+                value={selectedAudioMode} 
+                onValueChange={(value) => setSelectedAudioMode(value as AudioSourceMode)}
+                className="grid grid-cols-2 gap-3"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="microphone" id="mic-only" />
+                  <Label htmlFor="mic-only" className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Mic className="h-4 w-4 text-muted-foreground" />
+                    Microphone Only
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="microphone_and_system" id="mic-softphone" />
+                  <Label htmlFor="mic-softphone" className="flex items-center gap-2 cursor-pointer text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    Mic + SoftPhone
+                  </Label>
+                </div>
+              </RadioGroup>
+              {selectedAudioMode === 'microphone_and_system' && (
+                <p className="text-xs text-muted-foreground">
+                  You'll be prompted to share a browser tab (e.g. Surgery Connect, Teams, Zoom)
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Start Button */}
           <Button
-            onClick={onStart}
+            onClick={() => onStart(selectedAudioMode)}
             disabled={!canStart}
             size="lg"
             className={`
