@@ -4,10 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS, HistoryRetention, HISTORY_RETENTION_LABELS } from "@/types/scribe";
-import { Save, RotateCcw, Stethoscope, Shield, ChevronDown } from "lucide-react";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Phone, ScrollText, Users } from "lucide-react";
+import { ScribeSettings, HistoryRetention, HISTORY_RETENTION_LABELS } from "@/types/scribe";
+import { Save, RotateCcw, Shield, ChevronDown } from "lucide-react";
 import { ScribeMicrophoneSettings } from "./ScribeMicrophoneSettings";
 import { useState } from "react";
 
@@ -19,19 +17,12 @@ interface ScribeSettingsPanelProps {
   onMicrophoneChange?: (deviceId: string | null) => void;
 }
 
-const typeIcons: Record<ConsultationType, React.ReactNode> = {
-  f2f: <Users className="h-4 w-4" />,
-  telephone: <Phone className="h-4 w-4" />,
-  dictate: <ScrollText className="h-4 w-4" />
-};
-
 export const ScribeSettingsPanel = ({
   settings,
   onUpdateSetting,
   onSaveSettings,
   onResetSettings,
 }: ScribeSettingsPanelProps) => {
-  const [consultationOpen, setConsultationOpen] = useState(false);
   const [consentOpen, setConsentOpen] = useState(false);
 
   return (
@@ -48,67 +39,6 @@ export const ScribeSettingsPanel = ({
         systemAudioEnabled={settings.systemAudioEnabled}
         onSystemAudioChange={(enabled) => onUpdateSetting('systemAudioEnabled', enabled)}
       />
-
-      {/* Consultation Defaults - Collapsible */}
-      <Card>
-        <Collapsible open={consultationOpen} onOpenChange={setConsultationOpen}>
-          <CollapsibleTrigger className="w-full">
-            <div className="flex items-center justify-between p-6">
-              <div className="flex items-center gap-2 font-semibold">
-                <Stethoscope className="h-5 w-5" />
-                Consultation Defaults
-              </div>
-              <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${consultationOpen ? 'rotate-180' : ''}`} />
-            </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="space-y-4 pt-0">
-              <div className="space-y-2">
-                <Label>Default Consultation Method</Label>
-                <ToggleGroup 
-                  type="single" 
-                  value={settings.defaultConsultationType} 
-                  onValueChange={(v) => v && onUpdateSetting('defaultConsultationType', v as ConsultationType)}
-                  className="justify-start"
-                >
-                  {(Object.keys(CONSULTATION_TYPE_LABELS) as ConsultationType[]).map((type) => (
-                    <ToggleGroupItem
-                      key={type}
-                      value={type}
-                      aria-label={CONSULTATION_TYPE_LABELS[type]}
-                      className="flex items-center gap-2 px-4 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                    >
-                      {typeIcons[type]}
-                      <span className="hidden sm:inline">{CONSULTATION_TYPE_LABELS[type]}</span>
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="emrFormat">EMR System</Label>
-                <Select
-                  value={settings.emrFormat}
-                  onValueChange={(value: 'emis' | 'systmone') => 
-                    onUpdateSetting('emrFormat', value)
-                  }
-                >
-                  <SelectTrigger id="emrFormat">
-                    <SelectValue placeholder="Select EMR system" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="emis">EMIS Web</SelectItem>
-                    <SelectItem value="systmone">SystmOne (TPP)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Notes will be formatted for easy copy-paste into your EMR
-                </p>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
-      </Card>
 
       {/* Consent, Privacy & History Settings - Collapsible */}
       <Card>

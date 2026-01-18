@@ -45,6 +45,9 @@ export const ScribeMicrophoneSettings = ({
   const [isLoading, setIsLoading] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<'unknown' | 'granted' | 'denied'>('unknown');
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Selected mic type for testing (independent of current consultation type)
+  const [selectedTestType, setSelectedTestType] = useState<ConsultationType>(currentConsultationType);
 
   // Mic test state
   const [isTestingMic, setIsTestingMic] = useState(false);
@@ -122,16 +125,16 @@ export const ScribeMicrophoneSettings = ({
   };
 
   const getActiveTypeLabel = () => {
-    switch (currentConsultationType) {
+    switch (selectedTestType) {
       case 'f2f': return 'Face-to-Face';
       case 'telephone': return 'Telephone';
       case 'dictate': return 'Dictate';
-      default: return currentConsultationType;
+      default: return selectedTestType;
     }
   };
 
-  const getCurrentMicrophoneId = () => {
-    switch (currentConsultationType) {
+  const getSelectedMicrophoneId = () => {
+    switch (selectedTestType) {
       case 'f2f': return f2fMicrophoneId;
       case 'telephone': return telephoneMicrophoneId;
       case 'dictate': return dictateMicrophoneId;
@@ -185,7 +188,7 @@ export const ScribeMicrophoneSettings = ({
     setIsPlayingBack(false);
 
     try {
-      const deviceId = getCurrentMicrophoneId();
+      const deviceId = getSelectedMicrophoneId();
       
       const constraints: MediaStreamConstraints = {
         audio: deviceId ? { deviceId: { exact: deviceId } } : true,
@@ -288,7 +291,7 @@ export const ScribeMicrophoneSettings = ({
       setIsTestingMic(false);
       setTestStatus('error');
     }
-  }, [cleanupTest, recordedAudioUrl, getCurrentMicrophoneId, micGain]);
+  }, [cleanupTest, recordedAudioUrl, getSelectedMicrophoneId, micGain]);
 
   // Update gain in real-time when slider changes during test
   useEffect(() => {
@@ -403,10 +406,7 @@ export const ScribeMicrophoneSettings = ({
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="text-xs">
-                {getActiveTypeLabel()}: {getDeviceLabel(
-                  currentConsultationType === 'f2f' ? f2fMicrophoneId :
-                  currentConsultationType === 'telephone' ? telephoneMicrophoneId : dictateMicrophoneId
-                )}
+                {getActiveTypeLabel()}: {getDeviceLabel(getSelectedMicrophoneId())}
               </Badge>
               <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </div>
@@ -415,14 +415,14 @@ export const ScribeMicrophoneSettings = ({
         <CollapsibleContent>
           <CardContent className="space-y-4 pt-0">
             <CardDescription>
-              Configure different microphones for each consultation type. The microphone will automatically switch when you change consultation type.
+              Configure different microphones for each consultation type. Click on a service to select it for testing.
             </CardDescription>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 <span>
-                  Currently using <strong className="text-foreground">{getActiveTypeLabel()}</strong> microphone
+                  Testing <strong className="text-foreground">{getActiveTypeLabel()}</strong> microphone
                 </span>
               </div>
               <Button
@@ -436,37 +436,45 @@ export const ScribeMicrophoneSettings = ({
               </Button>
             </div>
 
-            {/* Microphone selectors for each consultation type */}
+            {/* Microphone selectors for each consultation type - click to select for testing */}
             <div className="space-y-3">
               {microphoneConfigs.map((config) => {
                 const Icon = config.icon;
-                const isActive = currentConsultationType === config.type;
+                const isSelectedForTest = selectedTestType === config.type;
                 
                 return (
                   <div
                     key={config.type}
-                    className={`p-3 rounded-lg border transition-colors ${
-                      isActive ? 'border-primary bg-primary/5' : 'border-border'
-                    }`}
+                    onClick={() => setSelectedTestType(config.type)}
+                    className={cn(
+                      "p-3 rounded-lg border transition-colors cursor-pointer",
+                      isSelectedForTest 
+                        ? 'border-primary bg-primary/5 ring-1 ring-primary' 
+                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                    )}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${isActive ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                      <div className={cn(
+                        "p-2 rounded-lg",
+                        isSelectedForTest ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                      )}>
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-medium text-sm">{config.label}</span>
-                          {isActive && (
+                          {isSelectedForTest && (
                             <Badge variant="default" className="text-xs">
-                              Active
+                              Active for Test
                             </Badge>
                           )}
                         </div>
+                        <p className="text-xs text-muted-foreground mb-2">{config.description}</p>
                         <Select
                           value={config.value || "default"}
                           onValueChange={(value) => config.onChange(value === "default" ? null : value)}
                         >
-                          <SelectTrigger className="h-8 text-sm">
+                          <SelectTrigger className="h-8 text-sm" onClick={(e) => e.stopPropagation()}>
                             <SelectValue placeholder="Select microphone" />
                           </SelectTrigger>
                           <SelectContent>
