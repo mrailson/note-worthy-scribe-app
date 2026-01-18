@@ -41,6 +41,7 @@ import { AIResponsePanel } from "@/components/AIResponsePanel";
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { SMSSendButton } from "@/components/scribe/SMSSendButton";
 import jsPDF from "jspdf";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
@@ -1406,14 +1407,21 @@ P: Plan discussed with patient`;
                         <h4 className="text-md font-semibold text-primary">SMS Short Summary</h4>
                         <p className="text-sm text-muted-foreground">Maximum 50 words for text message</p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleCopy(generateSMSVersion(content.patientCopy), "SMS Summary")}
-                      >
-                        <Copy className="h-4 w-4 mr-1" />
-                        Copy
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCopy(generateSMSVersion(content.patientCopy), "SMS Summary")}
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </Button>
+                        <SMSSendButton
+                          message={generateSMSVersion(content.patientCopy)}
+                          consultationId={consultationData?.id}
+                          size="sm"
+                        />
+                      </div>
                     </div>
                     
                     <div className="bg-muted/30 rounded-lg p-4 border">
