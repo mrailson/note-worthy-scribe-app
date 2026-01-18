@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Mic, MicOff, RefreshCw, Users, Phone, ScrollText, CheckCircle2, AlertCircle, ChevronDown, Play, Square, MonitorSpeaker, Loader2, Volume2 } from "lucide-react";
+import { Mic, MicOff, RefreshCw, Users, Phone, ScrollText, CheckCircle2, AlertCircle, ChevronDown, Play, Square, MonitorSpeaker, Loader2, Volume2, Save } from "lucide-react";
 import { ConsultationType } from "@/types/scribe";
 import { cn } from "@/lib/utils";
 interface MicrophoneDevice {
@@ -26,6 +26,7 @@ interface ScribeMicrophoneSettingsProps {
   onDictateMicrophoneChange: (deviceId: string | null) => void;
   systemAudioEnabled?: boolean;
   onSystemAudioChange?: (enabled: boolean) => void;
+  onSaveMicSettings?: () => void;
 }
 
 const WAVEFORM_BARS = 32;
@@ -40,6 +41,7 @@ export const ScribeMicrophoneSettings = ({
   onDictateMicrophoneChange,
   systemAudioEnabled = false,
   onSystemAudioChange,
+  onSaveMicSettings,
 }: ScribeMicrophoneSettingsProps) => {
   const [availableDevices, setAvailableDevices] = useState<MicrophoneDevice[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -657,6 +659,16 @@ export const ScribeMicrophoneSettings = ({
                   </Button>
                 )}
               </div>
+
+              {/* Save Mic Settings Button */}
+              {onSaveMicSettings && (
+                <div className="pt-3 border-t">
+                  <Button onClick={onSaveMicSettings} className="w-full" size="sm">
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Mic Settings
+                  </Button>
+                </div>
+              )}
             </div>
 
             {availableDevices.length === 0 && !isLoading && (
