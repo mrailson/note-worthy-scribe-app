@@ -750,6 +750,9 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     batchTranscript={currentSession.transcript}
                     realtimeTranscript={currentSession.realtimeTranscript}
                     createdAt={currentSession.createdAt}
+                    consultationType={currentSession.consultationType}
+                    patientName={currentSession.patientName}
+                    patientNhsNumber={currentSession.patientNhsNumber}
                     copyToClipboard={copyToClipboard}
                   />
                 ) : (
