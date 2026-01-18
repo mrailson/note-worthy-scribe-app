@@ -442,7 +442,29 @@ export const ConsultationRecordingState = ({
                   <CardContent className="p-0 h-full">
                     <ScrollArea className="h-full">
                       <div ref={scrollRef} className="p-4 space-y-4">
-                        {groupedSegments.length > 0 ? (
+                        {/* Use AssemblyAI real-time for instant feedback during recording */}
+                        {livePreviewFullTranscript ? (
+                          <>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs bg-green-500/20 text-green-600 px-2 py-0.5 rounded-full animate-pulse">
+                                Real-time
+                              </span>
+                              <span className="text-xs text-muted-foreground">AssemblyAI</span>
+                            </div>
+                            <div className="flex gap-3">
+                              <div className="flex-shrink-0 w-16 pt-0.5">
+                                <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                                  {formatElapsed(duration)}
+                                </span>
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                  {livePreviewFullTranscript}
+                                </p>
+                              </div>
+                            </div>
+                          </>
+                        ) : groupedSegments.length > 0 ? (
                           groupedSegments.map((group, groupIdx) => (
                             <div key={groupIdx} className="flex gap-3">
                               {/* Timestamp Column */}
