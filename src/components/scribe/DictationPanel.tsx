@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollText, History, Mic } from 'lucide-react';
+import { ScrollText, History, Mic, Home } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useDictation } from '@/hooks/useDictation';
 import { DictationControls } from './DictationControls';
 import { DictationTextArea } from './DictationTextArea';
@@ -43,13 +44,31 @@ export function DictationPanel() {
         <CardContent className="space-y-4">
           {activeTab === 'dictate' ? (
             <>
-              {/* Template Selection - only show when not recording */}
+              {/* Template Selection - only show when not recording and no content */}
               {dictation.status === 'idle' && !dictation.content && (
                 <DictationTemplates
                   templates={dictation.templates}
                   selectedTemplate={dictation.selectedTemplate}
                   onSelectTemplate={dictation.setSelectedTemplate}
                 />
+              )}
+
+              {/* Back to Templates button - show when there's content */}
+              {dictation.status === 'idle' && dictation.content && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={dictation.newDictation}
+                    className="gap-1.5"
+                  >
+                    <Home className="h-4 w-4" />
+                    New Dictation
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Start a new dictation with template options
+                  </span>
+                </div>
               )}
 
               {/* Quick Actions Bar */}
