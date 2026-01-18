@@ -94,7 +94,7 @@ export const ConsultationTypeSelector = ({
           disabled={disabled}
           className={`justify-center ${isMobile ? 'w-full' : ''}`}
         >
-          {(Object.keys(CONSULTATION_TYPE_LABELS) as ConsultationType[]).map((type) => (
+          {(Object.keys(CONSULTATION_TYPE_LABELS) as ConsultationType[]).filter(type => type !== 'dictate').map((type) => (
             <ToggleGroupItem
               key={type}
               value={type}
