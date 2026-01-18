@@ -55,6 +55,7 @@ export interface ScribeSession {
   id: string;
   title: string;
   transcript: string;
+  realtimeTranscript?: string; // AssemblyAI/Notewell real-time transcript for comparison
   summary?: string;
   actionItems?: string;
   keyPoints?: string;

@@ -143,7 +143,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     noteToSave: ConsultationNote,
     transcriptToSave: string,
     wordCountToSave: number,
-    durationToSave: number
+    durationToSave: number,
+    realtimeTranscriptToSave?: string
   ): Promise<boolean> => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) {
@@ -175,14 +176,15 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
 
     const consultationId = consultationData.id;
 
-    // 2. Insert transcript
+    // 2. Insert transcript (including realtime transcript if available)
     const { error: transcriptError } = await supabase
       .from('gp_consultation_transcripts')
       .insert([{
         consultation_id: consultationId,
         transcript_text: transcriptToSave,
         cleaned_transcript: transcriptToSave,
-        transcription_service: 'whisper'
+        transcription_service: 'whisper',
+        realtime_transcript: realtimeTranscriptToSave || null
       }]);
 
     if (transcriptError) throw transcriptError;
@@ -227,13 +229,14 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     transcriptToSave: string,
     wordCountToSave: number,
     durationToSave: number,
+    realtimeTranscriptToSave?: string,
     maxRetries = 3
   ): Promise<boolean> => {
     setIsSaving(true);
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        await saveConsultationInternal(noteToSave, transcriptToSave, wordCountToSave, durationToSave);
+        await saveConsultationInternal(noteToSave, transcriptToSave, wordCountToSave, durationToSave, realtimeTranscriptToSave);
         setIsSaved(true);
         setIsSaving(false);
         console.log('✅ Consultation auto-saved successfully');
@@ -272,6 +275,7 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
 
       // Capture recording data before state changes
       const transcriptForSave = result.transcript;
+      const realtimeTranscriptForSave = recording.livePreviewFullTranscript || '';
       const wordCountForSave = result.transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
       const durationForSave = recording.duration;
 
@@ -342,8 +346,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
       // Go directly to review state
       setConsultationState('review');
       
-      // Auto-save immediately (awaited with status feedback)
-      await autoSaveWithRetry(note, transcriptForSave, wordCountForSave, durationForSave);
+      // Auto-save immediately (awaited with status feedback) - include realtime transcript
+      await autoSaveWithRetry(note, transcriptForSave, wordCountForSave, durationForSave, realtimeTranscriptForSave);
       
     } catch (error) {
       console.error('Error generating notes:', error);

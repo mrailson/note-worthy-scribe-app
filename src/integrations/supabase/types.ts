@@ -3374,6 +3374,7 @@ export type Database = {
           consultation_id: string
           created_at: string
           id: string
+          realtime_transcript: string | null
           transcript_text: string | null
           transcription_service: string | null
         }
@@ -3383,6 +3384,7 @@ export type Database = {
           consultation_id: string
           created_at?: string
           id?: string
+          realtime_transcript?: string | null
           transcript_text?: string | null
           transcription_service?: string | null
         }
@@ -3392,6 +3394,7 @@ export type Database = {
           consultation_id?: string
           created_at?: string
           id?: string
+          realtime_transcript?: string | null
           transcript_text?: string | null
           transcription_service?: string | null
         }
