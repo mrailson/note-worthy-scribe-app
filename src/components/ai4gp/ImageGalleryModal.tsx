@@ -58,7 +58,6 @@ interface ImageGalleryModalProps {
 }
 
 const SOURCE_LABELS: Record<string, { label: string; icon: React.ReactNode }> = {
-  'quick-pick': { label: 'Quick Pick', icon: <FileImage className="h-3 w-3" /> },
   'image-studio': { label: 'Image Studio', icon: <Sparkles className="h-3 w-3" /> },
   'infographic': { label: 'Infographic', icon: <BarChart3 className="h-3 w-3" /> },
 };
