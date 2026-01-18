@@ -49,7 +49,12 @@ Deno.serve(async (req: Request) => {
         }
 
         console.log('🔗 Creating AssemblyAI WebSocket connection with enhanced quality settings...');
-        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&speech_model=best&language_code=en_us&punctuate=true&format_text=true&boost_param=high&word_confidence=true`;
+
+        // AssemblyAI Streaming v3 expects:
+        // - language_code: en|fr|de|es|it|pt|multi
+        // - speech_model: universal-streaming-english|universal-streaming-multilingual|whisper-streaming
+        // Ref: errors shown in AssemblyAI dashboard when invalid values are provided.
+        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&speech_model=universal-streaming-english&language_code=en&punctuate=true&format_text=true&word_confidence=true`;
         
         // Get token from AssemblyAI (9 minutes expiry)
         const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=540', {
@@ -95,18 +100,27 @@ Deno.serve(async (req: Request) => {
         
         assemblySocket.onclose = (closeEvent) => {
           console.log('🔌 AssemblyAI WebSocket closed:', closeEvent.code, closeEvent.reason);
-          if (closeEvent.code === 1006) {
-            socket.send(JSON.stringify({ 
-              type: 'error', 
-              error: 'Connection lost unexpectedly. This may be due to token expiry or network issues.' 
+
+          // Surface close reasons to the client so the UI can show actionable errors.
+          // When connection params are invalid, AssemblyAI closes quickly with a validation message.
+          const reason = (closeEvent.reason || '').trim();
+          const isClean = closeEvent.code === 1000;
+
+          if (!isClean) {
+            socket.send(JSON.stringify({
+              type: 'error',
+              error: reason
+                ? `AssemblyAI closed (${closeEvent.code}): ${reason}`
+                : `AssemblyAI closed (${closeEvent.code}).`
             }));
-          } else {
-            socket.send(JSON.stringify({ 
-              type: 'session_terminated',
-              code: closeEvent.code,
-              reason: closeEvent.reason
-            }));
+            return;
           }
+
+          socket.send(JSON.stringify({
+            type: 'session_terminated',
+            code: closeEvent.code,
+            reason: closeEvent.reason
+          }));
         };
       } catch (error) {
         console.error('❌ Failed to initialize AssemblyAI connection:', error);
