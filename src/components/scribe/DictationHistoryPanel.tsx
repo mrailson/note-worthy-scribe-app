@@ -6,6 +6,51 @@ import { RefreshCw, Trash2, Clock, Type, FileText, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
+// Helper to get ordinal suffix (1st, 2nd, 3rd, etc.)
+function getOrdinalSuffix(day: number): string {
+  if (day > 3 && day < 21) return 'th';
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
+// Generate a brief summary from content (max 30 words)
+function generateSummary(content: string, maxWords: number = 30): string {
+  if (!content) return '';
+  
+  // Clean up the content and get first portion
+  const cleaned = content.trim().replace(/\s+/g, ' ');
+  const words = cleaned.split(' ');
+  
+  if (words.length <= maxWords) {
+    return cleaned;
+  }
+  
+  return words.slice(0, maxWords).join(' ') + '...';
+}
+
+// Format the session title with day, ordinal date, time, and summary
+function formatSessionTitle(createdAt: string, content: string): string {
+  const date = new Date(createdAt);
+  const day = format(date, 'EEEE'); // Saturday
+  const dayNum = date.getDate();
+  const ordinal = getOrdinalSuffix(dayNum);
+  const monthYear = format(date, 'MMM yyyy'); // Jan 2026
+  const time = format(date, 'HH:mm'); // 18:35
+  
+  const summary = generateSummary(content);
+  const datePart = `${day}, ${dayNum}${ordinal} ${monthYear}, ${time}`;
+  
+  if (summary) {
+    return `${datePart} - ${summary}`;
+  }
+  
+  return datePart;
+}
+
 interface DictationSession {
   id: string;
   content: string;
@@ -85,8 +130,8 @@ export function DictationHistoryPanel({
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm truncate">
-                        {session.title || format(new Date(session.created_at), 'dd MMM yyyy, HH:mm')}
+                      <span className="font-medium text-sm">
+                        {session.title || formatSessionTitle(session.created_at, session.content)}
                       </span>
                       {session.is_draft && (
                         <Badge variant="secondary" className="text-xs">Draft</Badge>
