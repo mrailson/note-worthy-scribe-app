@@ -234,7 +234,7 @@ export const MinimalRecordingState = ({
             w-3 h-3 rounded-full 
             ${isPaused 
               ? 'bg-amber-500' 
-              : 'bg-destructive animate-pulse'
+              : 'bg-green-500 animate-pulse'
             }
           `} />
           <span className="text-sm text-muted-foreground">
