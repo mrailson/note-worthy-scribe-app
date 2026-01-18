@@ -1,6 +1,6 @@
 export type ConsultationState = 'ready' | 'recording' | 'generating' | 'review';
 
-export type ConsultationType = 'f2f' | 'telephone' | 'video';
+export type ConsultationType = 'f2f' | 'telephone' | 'dictate';
 
 export type ConsultationCategory = 'general' | 'agewell' | 'social_prescriber';
 
@@ -176,8 +176,8 @@ export interface ScribeSettings {
   // Per-consultation-type microphone settings
   f2fMicrophoneId?: string | null;
   telephoneMicrophoneId?: string | null;
-  videoMicrophoneId?: string | null;
-  systemAudioEnabled?: boolean; // Capture system audio for telephone/video software
+  dictateMicrophoneId?: string | null;
+  systemAudioEnabled?: boolean; // Capture system audio for telephone software
   // Audio recording settings
   audioFormat?: AudioRecordingFormat; // Audio encoding format (webm or mp3)
   chunkDurationSeconds?: number; // Audio chunk duration for transcription (15-60s)
@@ -226,7 +226,7 @@ export type ScribeTab = 'consultation' | 'import' | 'history' | 'transcript' | '
 export const CONSULTATION_TYPE_LABELS: Record<ConsultationType, string> = {
   f2f: 'Face to Face',
   telephone: 'Telephone',
-  video: 'Video'
+  dictate: 'Dictate'
 };
 
 export const F2F_ACCOMPANIED_LABELS = {
@@ -237,7 +237,7 @@ export const F2F_ACCOMPANIED_LABELS = {
 export const CONSULTATION_TYPE_SHORT: Record<ConsultationType, string> = {
   f2f: 'F2F',
   telephone: 'T/C',
-  video: 'Video'
+  dictate: 'Dictate'
 };
 
 export const CONSULTATION_CATEGORY_LABELS: Record<ConsultationCategory, string> = {
@@ -267,7 +267,7 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   // Per-consultation-type microphone settings (null = use system default)
   f2fMicrophoneId: null,
   telephoneMicrophoneId: null,
-  videoMicrophoneId: null,
+  dictateMicrophoneId: null,
   // Audio recording settings
   audioFormat: 'webm', // Default to WebM (best compatibility)
   chunkDurationSeconds: 25, // Default 25 seconds per chunk

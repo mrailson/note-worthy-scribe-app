@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Mic, MicOff, RefreshCw, Users, Phone, Video, CheckCircle2, AlertCircle, ChevronDown, Play, Square, MonitorSpeaker, Loader2, Volume2 } from "lucide-react";
+import { Mic, MicOff, RefreshCw, Users, Phone, ScrollText, CheckCircle2, AlertCircle, ChevronDown, Play, Square, MonitorSpeaker, Loader2, Volume2 } from "lucide-react";
 import { ConsultationType } from "@/types/scribe";
 import { cn } from "@/lib/utils";
 interface MicrophoneDevice {
@@ -20,10 +20,10 @@ interface ScribeMicrophoneSettingsProps {
   currentConsultationType: ConsultationType;
   f2fMicrophoneId: string | null | undefined;
   telephoneMicrophoneId: string | null | undefined;
-  videoMicrophoneId: string | null | undefined;
+  dictateMicrophoneId: string | null | undefined;
   onF2FMicrophoneChange: (deviceId: string | null) => void;
   onTelephoneMicrophoneChange: (deviceId: string | null) => void;
-  onVideoMicrophoneChange: (deviceId: string | null) => void;
+  onDictateMicrophoneChange: (deviceId: string | null) => void;
   systemAudioEnabled?: boolean;
   onSystemAudioChange?: (enabled: boolean) => void;
 }
@@ -34,10 +34,10 @@ export const ScribeMicrophoneSettings = ({
   currentConsultationType,
   f2fMicrophoneId,
   telephoneMicrophoneId,
-  videoMicrophoneId,
+  dictateMicrophoneId,
   onF2FMicrophoneChange,
   onTelephoneMicrophoneChange,
-  onVideoMicrophoneChange,
+  onDictateMicrophoneChange,
   systemAudioEnabled = false,
   onSystemAudioChange,
 }: ScribeMicrophoneSettingsProps) => {
@@ -125,7 +125,7 @@ export const ScribeMicrophoneSettings = ({
     switch (currentConsultationType) {
       case 'f2f': return 'Face-to-Face';
       case 'telephone': return 'Telephone';
-      case 'video': return 'Video';
+      case 'dictate': return 'Dictate';
       default: return currentConsultationType;
     }
   };
@@ -134,7 +134,7 @@ export const ScribeMicrophoneSettings = ({
     switch (currentConsultationType) {
       case 'f2f': return f2fMicrophoneId;
       case 'telephone': return telephoneMicrophoneId;
-      case 'video': return videoMicrophoneId;
+      case 'dictate': return dictateMicrophoneId;
       default: return null;
     }
   };
@@ -362,12 +362,12 @@ export const ScribeMicrophoneSettings = ({
       description: 'For phone consultations',
     },
     {
-      type: 'video' as ConsultationType,
-      label: 'Video',
-      icon: Video,
-      value: videoMicrophoneId,
-      onChange: onVideoMicrophoneChange,
-      description: 'For video consultations',
+      type: 'dictate' as ConsultationType,
+      label: 'Dictate',
+      icon: ScrollText,
+      value: dictateMicrophoneId,
+      onChange: onDictateMicrophoneChange,
+      description: 'For GP dictation service',
     },
   ];
   if (permissionStatus === 'denied') {
@@ -405,7 +405,7 @@ export const ScribeMicrophoneSettings = ({
               <Badge variant="outline" className="text-xs">
                 {getActiveTypeLabel()}: {getDeviceLabel(
                   currentConsultationType === 'f2f' ? f2fMicrophoneId :
-                  currentConsultationType === 'telephone' ? telephoneMicrophoneId : videoMicrophoneId
+                  currentConsultationType === 'telephone' ? telephoneMicrophoneId : dictateMicrophoneId
                 )}
               </Badge>
               <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -485,8 +485,8 @@ export const ScribeMicrophoneSettings = ({
               })}
             </div>
 
-            {/* System Audio Option for Telephone/Video */}
-            {(currentConsultationType === 'telephone' || currentConsultationType === 'video') && onSystemAudioChange && (
+            {/* System Audio Option for Telephone */}
+            {currentConsultationType === 'telephone' && onSystemAudioChange && (
               <div className="p-3 rounded-lg border border-border bg-muted/30">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">

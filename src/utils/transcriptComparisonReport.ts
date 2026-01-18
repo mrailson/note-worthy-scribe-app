@@ -9,7 +9,7 @@ export interface TranscriptComparisonDetails {
   consultationDate: string;
   consultationStartTime: string;
   consultationEndTime?: string;
-  consultationType: 'f2f' | 'telephone' | 'video';
+  consultationType: 'f2f' | 'telephone' | 'dictate';
   gpUserName: string;
   gpQualifications?: string;
   practiceName?: string;
@@ -146,11 +146,11 @@ const analyseTranscripts = (live: string, batch: string): ComparisonResult => {
   };
 };
 
-const getConsultationTypeLabel = (type: 'f2f' | 'telephone' | 'video'): string => {
+const getConsultationTypeLabel = (type: 'f2f' | 'telephone' | 'dictate'): string => {
   switch (type) {
     case 'f2f': return 'Face to Face';
     case 'telephone': return 'Telephone';
-    case 'video': return 'Video';
+    case 'dictate': return 'Dictate';
   }
 };
 

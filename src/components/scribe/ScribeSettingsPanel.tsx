@@ -8,7 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS, HistoryRetention, HISTORY_RETENTION_LABELS, AudioRecordingFormat, AUDIO_FORMAT_LABELS, CHUNK_DURATION_OPTIONS } from "@/types/scribe";
 import { Save, RotateCcw, Stethoscope, Mic, Shield, Clock, AlertTriangle, ChevronDown } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Phone, Video, Users } from "lucide-react";
+import { Phone, ScrollText, Users } from "lucide-react";
 import { ScribeMicrophoneSettings } from "./ScribeMicrophoneSettings";
 import { useState } from "react";
 
@@ -23,7 +23,7 @@ interface ScribeSettingsPanelProps {
 const typeIcons: Record<ConsultationType, React.ReactNode> = {
   f2f: <Users className="h-4 w-4" />,
   telephone: <Phone className="h-4 w-4" />,
-  video: <Video className="h-4 w-4" />
+  dictate: <ScrollText className="h-4 w-4" />
 };
 
 export const ScribeSettingsPanel = ({
@@ -44,10 +44,10 @@ export const ScribeSettingsPanel = ({
         currentConsultationType={settings.defaultConsultationType}
         f2fMicrophoneId={settings.f2fMicrophoneId}
         telephoneMicrophoneId={settings.telephoneMicrophoneId}
-        videoMicrophoneId={settings.videoMicrophoneId}
+        dictateMicrophoneId={settings.dictateMicrophoneId}
         onF2FMicrophoneChange={(deviceId) => onUpdateSetting('f2fMicrophoneId', deviceId)}
         onTelephoneMicrophoneChange={(deviceId) => onUpdateSetting('telephoneMicrophoneId', deviceId)}
-        onVideoMicrophoneChange={(deviceId) => onUpdateSetting('videoMicrophoneId', deviceId)}
+        onDictateMicrophoneChange={(deviceId) => onUpdateSetting('dictateMicrophoneId', deviceId)}
         systemAudioEnabled={settings.systemAudioEnabled}
         onSystemAudioChange={(enabled) => onUpdateSetting('systemAudioEnabled', enabled)}
       />

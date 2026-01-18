@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ConsultationType, ConsultationCategory, CONSULTATION_TYPE_LABELS, CONSULTATION_CATEGORY_LABELS, F2F_ACCOMPANIED_LABELS } from "@/types/scribe";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Phone, Video, Users, Stethoscope, Heart, HandHeart, ChevronDown } from "lucide-react";
+import { Phone, ScrollText, Users, Stethoscope, Heart, HandHeart, ChevronDown } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 
@@ -19,7 +19,7 @@ interface ConsultationTypeSelectorProps {
 const typeIcons: Record<ConsultationType, React.ReactNode> = {
   f2f: <Users className="h-4 w-4" />,
   telephone: <Phone className="h-4 w-4" />,
-  video: <Video className="h-4 w-4" />
+  dictate: <ScrollText className="h-4 w-4" />
 };
 
 const categoryIcons: Record<ConsultationCategory, React.ReactNode> = {
