@@ -162,10 +162,10 @@ Generate a JSON response with exactly these fields:
 ⚠️ DO NOT include Drug History (DH) here - DH belongs in History section ONLY as the FINAL item.
 ⚠️ If no examination took place, leave this section BLANK - do not state 'no examination performed'.",
 
-  "problemsDiscussed": "[1. Problem/issue raised by patient or discussed]
-[2. Second problem/issue if applicable]
-[3. Third problem/issue if applicable]
-(ONLY list the problems, complaints, or issues that the patient mentioned or that were discussed. Use problem-based or symptom-based wording. Only include diagnoses if explicitly stated by the clinician.)",
+  "problemsDiscussed": "1. Problem/issue raised by patient or discussed
+2. Second problem/issue if applicable
+3. Third problem/issue if applicable
+(ONLY list the problems, complaints, or issues that the patient mentioned or that were discussed. Use problem-based or symptom-based wording. Only include diagnoses if explicitly stated by the clinician. Do NOT use square brackets around the numbered items.)",
 
   "plan": "Format as bullet points:
 - Ix: [Investigations planned - bloods, imaging, referrals for tests]

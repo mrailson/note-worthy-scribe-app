@@ -172,11 +172,11 @@ ${formattedConsultationType} [specify whether anyone else is present e.g. "seen 
 - [Investigations with results (include only if applicable and if mentioned)]
 
 **Impression:**
-[1. Issue, problem or request 1 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 1 (condition name only) (include only if mentioned)]
-- [Differential diagnosis for Issue 1 (include only if applicable and if mentioned)]
-[2. Issue, problem or request 2 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 2 (condition name only) (include only if mentioned)]
-- [Differential diagnosis for Issue 2 (include only if applicable and if mentioned)]
-[Continue for additional issues as needed]
+1. Issue, problem or request 1 (issue, request or condition name only). Assessment, likely diagnosis for Issue 1 (condition name only) (include only if mentioned)
+- Differential diagnosis for Issue 1 (include only if applicable and if mentioned)
+2. Issue, problem or request 2 (issue, request or condition name only). Assessment, likely diagnosis for Issue 2 (condition name only) (include only if mentioned)
+- Differential diagnosis for Issue 2 (include only if applicable and if mentioned)
+Continue for additional issues as needed. Do NOT use square brackets around numbered items.
 
 **Plan:**
 - [Investigations planned for Issue 1 (include only if applicable and if mentioned)]
@@ -252,11 +252,11 @@ ${formattedConsultationType} [specify whether anyone else is present e.g. "seen 
 - [Investigations with results (include only if applicable and if mentioned)]
 
 **Impression:**
-[1. Issue, problem or request 1 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 1 (condition name only) (include only if mentioned)]
-- [Differential diagnosis for Issue 1 (include only if applicable and if mentioned)]
-[2. Issue, problem or request 2 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 2 (condition name only) (include only if mentioned)]
-- [Differential diagnosis for Issue 2 (include only if applicable and if mentioned)]
-[Continue for additional issues as needed]
+1. Issue, problem or request 1 (issue, request or condition name only). Assessment, likely diagnosis for Issue 1 (condition name only) (include only if mentioned)
+- Differential diagnosis for Issue 1 (include only if applicable and if mentioned)
+2. Issue, problem or request 2 (issue, request or condition name only). Assessment, likely diagnosis for Issue 2 (condition name only) (include only if mentioned)
+- Differential diagnosis for Issue 2 (include only if applicable and if mentioned)
+Continue for additional issues as needed. Do NOT use square brackets around numbered items.
 
 **Plan:**
 - [Investigations planned for Issue 1 (include only if applicable and if mentioned)]
