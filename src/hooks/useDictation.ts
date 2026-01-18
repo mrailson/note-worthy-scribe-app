@@ -48,6 +48,7 @@ export function useDictation() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFormatting, setIsFormatting] = useState(false);
+  const [systemAudioEnabled, setSystemAudioEnabled] = useState(false);
   
   // Refs
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
@@ -264,6 +265,57 @@ export function useDictation() {
     lastFinalAtRef.current = 0;
 
     try {
+      // If system audio is enabled, capture it
+      let externalStream: MediaStream | undefined;
+      if (systemAudioEnabled) {
+        try {
+          // Request display media with audio only (for capturing system audio)
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true, // Required by most browsers
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+            }
+          });
+          
+          // Get the audio track from display media
+          const systemAudioTrack = displayStream.getAudioTracks()[0];
+          
+          // Stop the video track as we only need audio
+          displayStream.getVideoTracks().forEach(track => track.stop());
+          
+          if (systemAudioTrack) {
+            // Get microphone stream
+            const micStream = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+              }
+            });
+            
+            // Create combined stream with both mic and system audio
+            const audioContext = new AudioContext();
+            const destination = audioContext.createMediaStreamDestination();
+            
+            const micSource = audioContext.createMediaStreamSource(micStream);
+            const systemSource = audioContext.createMediaStreamSource(new MediaStream([systemAudioTrack]));
+            
+            micSource.connect(destination);
+            systemSource.connect(destination);
+            
+            externalStream = destination.stream;
+            console.log('🔊 System audio capture enabled - combined mic + system audio');
+          } else {
+            showToast.error('No system audio track found. Make sure to select a source with audio.');
+          }
+        } catch (err) {
+          console.warn('Failed to capture system audio, falling back to mic only:', err);
+          showToast.error('Could not capture system audio. Using microphone only.');
+        }
+      }
+
       const client = new AssemblyRealtimeClient({
         onOpen: () => {
           console.log('🎙️ Dictation: AssemblyAI session started');
@@ -329,13 +381,13 @@ export function useDictation() {
       });
 
       clientRef.current = client;
-      await client.start();
+      await client.start(externalStream);
     } catch (err) {
       console.error('Failed to start dictation:', err);
       setError(err instanceof Error ? err.message : 'Failed to start dictation');
       setStatus('error');
     }
-  }, [user, selectedTemplate, content, saveDraft, status]);
+  }, [user, selectedTemplate, content, saveDraft, status, systemAudioEnabled]);
 
   // Stop dictation
   const stopDictation = useCallback(async () => {
@@ -522,6 +574,8 @@ export function useDictation() {
     currentSessionId,
     error,
     isFormatting,
+    systemAudioEnabled,
+    setSystemAudioEnabled,
     
     // Computed
     formatDuration,
