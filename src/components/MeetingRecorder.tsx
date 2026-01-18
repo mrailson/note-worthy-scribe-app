@@ -85,7 +85,8 @@ import { mergeLive } from '@/utils/liveMerge';
 import { mergeByTimestamps, segmentsToPlainText, type Segment } from '@/lib/segmentMerge';
 import { useMeetingData } from "@/hooks/useMeetingData";
 import { trimSilence } from '@/utils/audioSilenceTrimmer';
-import { transcodeToWhisperFormat, shouldTranscode } from '@/utils/audioTranscoder';
+import { transcodeToWhisperFormat, shouldTranscode, Mp3Bitrate } from '@/utils/audioTranscoder';
+import { useTranscriptionAudioFormat } from '@/hooks/useTranscriptionAudioFormat';
 
 interface TranscriptData {
   text: string;
@@ -156,6 +157,7 @@ export const MeetingRecorder = ({
   const [isRecording, setIsRecording] = useState(false);
   const { isResourceOperationSafe } = useRecording();
   const isIOS = detectDevice().isIOS;
+  const { format: audioFormat, mp3Bitrate } = useTranscriptionAudioFormat();
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [stopRecordingStep, setStopRecordingStep] = useState<string>('');
   const [duration, setDuration] = useState(0);
@@ -1364,12 +1366,14 @@ export const MeetingRecorder = ({
       console.log(`✂️ Trimming silence from chunk ${chunkId}...`);
       chunkBlob = await trimSilence(chunkBlob, { thresholdMs: 500, silenceLevel: -40 });
       
-      // Step 2: Transcode to 16kHz mono WAV for Whisper optimisation (10-20× smaller)
+      // Step 2: Transcode to 16kHz mono (WAV or MP3 based on system setting)
       if (shouldTranscode(chunkBlob)) {
-        console.log(`🎵 Transcoding chunk ${chunkId} to 16kHz mono...`);
+        console.log(`🎵 Transcoding chunk ${chunkId} to 16kHz mono ${audioFormat.toUpperCase()}${audioFormat === 'mp3' ? ` ${mp3Bitrate}kbps` : ''}...`);
         chunkBlob = await transcodeToWhisperFormat(chunkBlob, { 
           targetSampleRate: 16000, 
-          channels: 1 
+          channels: 1,
+          format: audioFormat,
+          mp3Bitrate: mp3Bitrate
         });
         console.log(`📉 Chunk ${chunkId}: ${(originalSize / 1024).toFixed(1)}KB → ${(chunkBlob.size / 1024).toFixed(1)}KB (${((1 - chunkBlob.size / originalSize) * 100).toFixed(0)}% reduction)`);
       }
