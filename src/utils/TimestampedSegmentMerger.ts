@@ -55,9 +55,14 @@ export class TimestampedSegmentMerger {
   processChunk(chunk: TimestampedChunk): ChunkProcessResult {
     const hasRealTs = chunk.start_ms !== undefined && chunk.start_ms > 0;
     console.log(`🔍 [Merger] Processing chunk: confidence=${((chunk.confidence ?? 0) * 100).toFixed(0)}%, length=${chunk.text?.length ?? 0}, id=${chunk.id}, hasRealTimestamps=${hasRealTs}, start_ms=${chunk.start_ms}, end_ms=${chunk.end_ms}`);
-    
-    if (!chunk.text?.trim() || chunk.text.trim().length < TimestampedSegmentMerger.MIN_SEGMENT_LENGTH) {
-      console.log(`🚫 [Merger] Rejected: too short (${chunk.text?.length ?? 0} chars, min ${TimestampedSegmentMerger.MIN_SEGMENT_LENGTH})`);
+
+    const trimmed = chunk.text?.trim() ?? '';
+    // CRITICAL: allow very short first chunk so "Hello" / first phrase isn't silently dropped
+    const isFirstChunk = this.state.finalizedSegments.length === 0 && !this.state.lastText;
+    const minLen = isFirstChunk ? 1 : TimestampedSegmentMerger.MIN_SEGMENT_LENGTH;
+
+    if (!trimmed || trimmed.length < minLen) {
+      console.log(`🚫 [Merger] Rejected: too short (${chunk.text?.length ?? 0} chars, min ${minLen})`);
       return { text: this.state.lastText, wasProcessed: false, reason: 'Chunk too short or empty' };
     }
 

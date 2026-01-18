@@ -431,6 +431,73 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
     subscribedRef.current = true;
     console.log('🔄 Setting up transcription chunks subscription for meeting:', currentMeetingId, 'subscription-id:', Math.random().toString(36).substr(2, 9));
 
+    // CRITICAL: load existing chunks so we don't miss early inserts (e.g. chunk #1)
+    // This also prevents the "first chunk is only in chunking view" symptom.
+    const loadExistingChunks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('meeting_transcription_chunks')
+          .select('seq, chunk_number, transcription_text, is_final, confidence, session_id')
+          .eq('meeting_id', currentMeetingId)
+          .order('chunk_number', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching existing transcription chunks:', error);
+          return;
+        }
+
+        if (!data || data.length === 0) return;
+
+        // Pre-mark seq values as processed to avoid replay on reconnect
+        for (const r of data) {
+          if (typeof (r as any).seq === 'number') {
+            processedSeqRef.current.add((r as any).seq);
+          }
+        }
+
+        const textParts: string[] = [];
+        const cleanedFinalParts: string[] = [];
+
+        for (const r of data) {
+          if (!(r as any)?.transcription_text) continue;
+
+          // Parse segment JSON if available, otherwise use plain text
+          let textForDisplay = (r as any).transcription_text as string;
+          try {
+            const parsed = JSON.parse(textForDisplay);
+            if (Array.isArray(parsed) && parsed.length > 0 && (parsed as any)[0]?.text) {
+              textForDisplay = segmentsToPlainText(parsed as any);
+            }
+          } catch {
+            // Not JSON
+          }
+
+          if (!textForDisplay?.trim()) continue;
+
+          textParts.push(textForDisplay);
+
+          const cleanedChunk = lightCleanChunk(textForDisplay);
+          if ((r as any).is_final && cleanedChunk) {
+            cleanedFinalParts.push(cleanedChunk);
+          }
+        }
+
+        if (textParts.length) {
+          setLiveTranscriptText(textParts.join(' '));
+          setTotalChunksProcessed(textParts.length);
+        }
+
+        if (cleanedFinalParts.length) {
+          setCleanedTranscript(cleanedFinalParts.join(' '));
+        }
+      } catch (e) {
+        console.error('Error fetching existing transcription chunks:', e);
+      }
+    };
+
+    // Fire and forget
+    loadExistingChunks();
+
     const channel = supabase
       .channel('transcription-chunks')
       .on(
@@ -468,7 +535,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
 
           // Parse segment JSON if available, otherwise use plain text
           let textForDisplay = r.transcription_text;
-          
+
           try {
             // Try to parse as JSON segments
             const parsed = JSON.parse(r.transcription_text);
@@ -481,7 +548,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
             // Not JSON, use as-is (legacy plain text chunks)
             console.log("📝 Using plain text chunk");
           }
-          
+
           // Always show latest raw text (interim or final) in the live box - accumulate chunks
           console.log("🔗 Accumulating transcript chunk:", textForDisplay?.substring(0, 50) + "...", 'previous_length:', liveTranscriptText.length);
           setLiveTranscriptText(prev => {
@@ -489,7 +556,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
             console.log("📈 Raw transcript updated:", prev.length, "->", appended.length, "chars");
             return appended;
           });
-          
+
           setTotalChunksProcessed(prev => prev + 1);
 
           const cleanedChunk = lightCleanChunk(textForDisplay);
@@ -498,7 +565,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
           // Enhanced final chunk handling with better deduplication (Phase 1 fix)
           if (typeof r.is_final === "boolean") {
             console.log("✅ Chunk has is_final field:", r.is_final);
-          if (r.is_final && dedupedChunk) {
+            if (r.is_final && dedupedChunk) {
               console.log("🔥 Processing FINAL chunk immediately into cleaned transcript");
               setCleanedTranscript(prev => {
                 const appended = (prev ? prev + ' ' : '') + dedupedChunk;
@@ -522,7 +589,7 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
       processedSeqRef.current.clear();
       supabase.removeChannel(channel);
     };
-  }, [user?.id, isMedicalCorrectionsLoaded, meetingSettings, cleanedTranscript]);
+  }, [user?.id, isMedicalCorrectionsLoaded, meetingSettings]);
 
   // Subscribe to live meeting notes updates
   useEffect(() => {
