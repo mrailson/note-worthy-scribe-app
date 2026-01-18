@@ -18,6 +18,7 @@ import { ConsultationNoteState } from "@/components/scribe/ConsultationNoteState
 import { ScribeSettingsPanel } from "@/components/scribe/ScribeSettingsPanel";
 import { ScribeHistoryPanel } from "@/components/scribe/ScribeHistoryPanel";
 import { ScribeImportPanel } from "@/components/scribe/ScribeImportPanel";
+import { DictationPanel } from "@/components/scribe/DictationPanel";
 
 import { ScribeTab, SOAPNote, ConsultationNote } from "@/types/scribe";
 import { Stethoscope, History, Settings, Upload, ScrollText } from "lucide-react";
@@ -305,23 +306,7 @@ const Scribe = () => {
             </TabsContent>
 
             <TabsContent value="transcript">
-              <div className="bg-card border rounded-lg p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <ScrollText className="h-5 w-5" />
-                  Transcript
-                </h2>
-                {consultation.transcript ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {consultation.transcript}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    No transcript available. Start a consultation or select one from history to view its transcript.
-                  </p>
-                )}
-              </div>
+              <DictationPanel />
             </TabsContent>
 
             <TabsContent value="settings">
