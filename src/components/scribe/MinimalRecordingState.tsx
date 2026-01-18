@@ -95,6 +95,14 @@ export const MinimalRecordingState = ({
   const [showRealtimeTranscript, setShowRealtimeTranscript] = useState(false);
   const [microphones, setMicrophones] = useState<MicrophoneDevice[]>([]);
   const [isButtonPressed, setIsButtonPressed] = useState(false);
+  const liveTranscriptRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll live transcript to bottom when new text arrives
+  useEffect(() => {
+    if (liveTranscriptRef.current && livePreviewFullTranscript) {
+      liveTranscriptRef.current.scrollTop = liveTranscriptRef.current.scrollHeight;
+    }
+  }, [livePreviewFullTranscript]);
 
   // Handle finish with immediate feedback
   const handleFinish = () => {
