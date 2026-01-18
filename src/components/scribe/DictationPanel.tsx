@@ -59,7 +59,6 @@ export function DictationPanel() {
                 duration={dictation.duration}
                 formatDuration={dictation.formatDuration}
                 onCopyAll={() => dictation.copyToClipboard()}
-                onCopyLastParagraph={dictation.copyLastParagraph}
                 onClear={dictation.newDictation}
                 onSave={() => dictation.finalizeDictation()}
                 onFormatAndClean={dictation.formatAndClean}

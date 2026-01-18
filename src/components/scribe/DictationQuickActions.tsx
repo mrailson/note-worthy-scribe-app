@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Copy, FileText, Trash2, Save, Clock, Type, Sparkles, Loader2 } from 'lucide-react';
+import { Copy, Trash2, Save, Clock, Type, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DictationQuickActionsProps {
@@ -10,7 +10,7 @@ interface DictationQuickActionsProps {
   duration: number;
   formatDuration: (secs: number) => string;
   onCopyAll: () => void;
-  onCopyLastParagraph: () => void;
+  
   onClear: () => void;
   onSave: () => void;
   onFormatAndClean: () => Promise<void>;
@@ -25,7 +25,7 @@ export function DictationQuickActions({
   duration,
   formatDuration,
   onCopyAll,
-  onCopyLastParagraph,
+  
   onClear,
   onSave,
   onFormatAndClean,
@@ -34,7 +34,6 @@ export function DictationQuickActions({
   currentSessionId,
 }: DictationQuickActionsProps) {
   const hasContent = content.trim().length > 0;
-  const hasParagraphs = content.includes('\n\n');
 
   return (
     <div className={cn(
@@ -89,19 +88,6 @@ export function DictationQuickActions({
           <Copy className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Copy All</span>
         </Button>
-
-        {hasParagraphs && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onCopyLastParagraph}
-            disabled={!hasContent}
-            className="gap-1.5"
-          >
-            <FileText className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Copy Last Para</span>
-          </Button>
-        )}
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
