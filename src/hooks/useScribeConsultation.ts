@@ -715,6 +715,11 @@ export const useScribeConsultation = () => {
     systemAudioCaptured: recording.systemAudioCaptured,
     switchAudioSourceLive: recording.switchAudioSourceLive,
     
+    // Chunk tracking
+    chunks: recording.chunks,
+    chunkStats: recording.chunkStats,
+    clearChunks: recording.clearChunks,
+    
     // Actions
     setConsultationType,
     setConsultationCategory,

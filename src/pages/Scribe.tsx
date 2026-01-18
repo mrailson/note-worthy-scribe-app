@@ -338,6 +338,10 @@ const Scribe = () => {
                 isSwitchingAudioSource={consultation.isSwitchingAudioSource}
                 micCaptured={consultation.micCaptured}
                 systemAudioCaptured={consultation.systemAudioCaptured}
+                // Chunk tracking
+                chunks={consultation.chunks}
+                chunkStats={consultation.chunkStats}
+                onClearChunks={consultation.clearChunks}
               />
             )}
             

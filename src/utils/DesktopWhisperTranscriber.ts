@@ -10,6 +10,17 @@ export interface TranscriptData {
   speaker: string;
 }
 
+export interface ChunkMetadata {
+  text?: string;
+  confidence?: number;
+  noSpeechProb?: number;
+  avgLogprob?: number;
+  reason?: string;
+  audioSizeBytes?: number;
+  processingTimeMs?: number;
+  speaker?: string;
+}
+
 export class DesktopWhisperTranscriber {
   private mediaRecorder: MediaRecorder | null = null;
   private stream: MediaStream | null = null;
@@ -63,8 +74,8 @@ export class DesktopWhisperTranscriber {
     meetingSettings?: any,
     meetingId?: string,
     private onAudioActivity?: (hasActivity: boolean) => void,
-    private onChunkProcessed?: () => void,
-    private onChunkFiltered?: () => void, // NEW: Called when chunk is filtered (not stalled, just low quality)
+    private onChunkProcessed?: (metadata: ChunkMetadata) => void,
+    private onChunkFiltered?: (metadata: ChunkMetadata) => void,
     private selectedDeviceId?: string | null,
     private externalStream?: MediaStream | null // Allow passing pre-configured stream (e.g., mixed mic + browser audio)
   ) {
@@ -628,7 +639,13 @@ export class DesktopWhisperTranscriber {
         if (noSpeechProb > 0.85) {
           console.log(`🚫 Rejecting chunk: high no_speech_prob (${(noSpeechProb * 100).toFixed(1)}%) - likely silence/noise`);
           // Notify watchdog that we're still processing (not stalled), just filtering
-          this.onChunkFiltered?.();
+          this.onChunkFiltered?.({
+            text: data.text?.trim() || '[silence/noise]',
+            confidence: chunkConfidence,
+            noSpeechProb,
+            avgLogprob,
+            reason: `High no_speech_prob: ${(noSpeechProb * 100).toFixed(1)}% (likely silence/noise)`
+          });
           return;
         }
         
@@ -636,7 +653,13 @@ export class DesktopWhisperTranscriber {
         if (chunkConfidence < 0.12) {
           console.log(`🚫 Rejecting chunk: extremely low confidence (${(chunkConfidence * 100).toFixed(1)}%)`);
           // Notify watchdog that we're still processing (not stalled), just filtering
-          this.onChunkFiltered?.();
+          this.onChunkFiltered?.({
+            text: data.text?.trim() || '[low confidence audio]',
+            confidence: chunkConfidence,
+            noSpeechProb,
+            avgLogprob,
+            reason: `Extremely low confidence: ${(chunkConfidence * 100).toFixed(1)}%`
+          });
           return;
         }
         
@@ -651,7 +674,13 @@ export class DesktopWhisperTranscriber {
         if (this.isLikelyRepetitiveNoise(cleanText, chunkConfidence)) {
           console.log('🚫 Skipping likely hallucinated/repetitive chunk');
           // Notify watchdog that we're still processing (not stalled), just filtering
-          this.onChunkFiltered?.();
+          this.onChunkFiltered?.({
+            text: cleanText,
+            confidence: chunkConfidence,
+            noSpeechProb,
+            avgLogprob,
+            reason: 'Hallucination detected (repetitive/noise pattern)'
+          });
           return;
         }
         
@@ -664,7 +693,13 @@ export class DesktopWhisperTranscriber {
           if (hasSuspicious) {
             console.log(`🚫 Rejecting low-confidence chunk with suspicious phrase: "${cleanText.substring(0, 50)}..."`);
             // Notify watchdog that we're still processing (not stalled), just filtering
-            this.onChunkFiltered?.();
+            this.onChunkFiltered?.({
+              text: cleanText,
+              confidence: chunkConfidence,
+              noSpeechProb,
+              avgLogprob,
+              reason: `Suspicious phrase + low confidence (${(chunkConfidence * 100).toFixed(1)}%)`
+            });
             return;
           }
         }
@@ -779,7 +814,11 @@ export class DesktopWhisperTranscriber {
         
         // Notify watchdog that a chunk was successfully processed
         if (this.onChunkProcessed) {
-          this.onChunkProcessed();
+          this.onChunkProcessed({
+            text: cleanText,
+            confidence: transcriptData.confidence,
+            speaker: transcriptData.speaker
+          });
         }
 
         // Log quality for analysis but don't block user interface
