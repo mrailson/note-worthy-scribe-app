@@ -90,6 +90,7 @@ export const MinimalRecordingState = ({
   livePreviewActive = false,
 }: MinimalRecordingStateProps) => {
   const [showPatientInfo, setShowPatientInfo] = useState(true);
+  const [showAudioModeInfo, setShowAudioModeInfo] = useState(true);
   const [showTranscript, setShowTranscript] = useState(false);
   const [showRealtimeTranscript, setShowRealtimeTranscript] = useState(false);
   const [microphones, setMicrophones] = useState<MicrophoneDevice[]>([]);
@@ -253,83 +254,106 @@ export const MinimalRecordingState = ({
           <span className="text-sm text-muted-foreground">{wordCount.toLocaleString()} words</span>
         </div>
 
-        {/* Audio Mode Guidance Card */}
+        {/* Audio Mode Guidance - Collapsible */}
         {onAudioSourceChange && (
-          <Card className="bg-muted/40 border-muted mb-4 w-full">
-            <CardContent className="p-4">
-              {isSwitchingAudioSource ? (
-                <div className="flex items-center justify-center gap-3 py-2">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">Switching audio source...</span>
-                </div>
-              ) : audioSourceMode === 'microphone' ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Mic className="h-4 w-4 text-primary" />
+          <Collapsible 
+            open={showAudioModeInfo} 
+            onOpenChange={setShowAudioModeInfo}
+            className="w-full mb-4"
+          >
+            <CollapsibleContent>
+              <Card className="bg-muted/40 border-muted">
+                <CardContent className="p-4">
+                  {isSwitchingAudioSource ? (
+                    <div className="flex items-center justify-center gap-3 py-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      <span className="text-sm text-muted-foreground">Switching audio source...</span>
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">You are using Microphone only</p>
-                      <p className="text-xs text-muted-foreground">For face-to-face consultations</p>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-muted pt-3">
-                    <p className="text-xs text-muted-foreground mb-2">
-                      If you are on Surgery Connect phonebar, switch to:
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onAudioSourceChange('microphone_and_system')}
-                      disabled={isFinishing}
-                      className="w-full justify-center gap-2 h-9"
-                    >
-                      <Mic className="h-3.5 w-3.5" />
-                      <span>+</span>
-                      <Monitor className="h-3.5 w-3.5" />
-                      <span>Mic + SoftPhone</span>
-                    </Button>
-                    <div className="flex items-start gap-1.5 mt-2 text-xs text-amber-600 dark:text-amber-500">
-                      <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                      <span>You will need to share your screen/tab audio when prompted</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <div className="flex items-center gap-0.5">
-                        <Mic className="h-3 w-3 text-primary" />
-                        <Monitor className="h-3 w-3 text-primary" />
+                  ) : audioSourceMode === 'microphone' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Mic className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">You are using Microphone only</p>
+                          <p className="text-xs text-muted-foreground">For face-to-face consultations</p>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t border-muted pt-3">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          If you are on Surgery Connect phonebar, switch to:
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onAudioSourceChange('microphone_and_system')}
+                          disabled={isFinishing}
+                          className="w-full justify-center gap-2 h-9"
+                        >
+                          <Mic className="h-3.5 w-3.5" />
+                          <span>+</span>
+                          <Monitor className="h-3.5 w-3.5" />
+                          <span>Mic + SoftPhone</span>
+                        </Button>
+                        <div className="flex items-start gap-1.5 mt-2 text-xs text-amber-600 dark:text-amber-500">
+                          <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                          <span>You will need to share your screen/tab audio when prompted</span>
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">You are using Mic + SoftPhone</p>
-                      <p className="text-xs text-muted-foreground">Captures your computer sound (Surgery Connect, Teams, Zoom)</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <div className="flex items-center gap-0.5">
+                            <Mic className="h-3 w-3 text-primary" />
+                            <Monitor className="h-3 w-3 text-primary" />
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">You are using Mic + SoftPhone</p>
+                          <p className="text-xs text-muted-foreground">Captures your computer sound (Surgery Connect, Teams, Zoom)</p>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t border-muted pt-3">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          If you are face-to-face with the patient, switch to:
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onAudioSourceChange('microphone')}
+                          disabled={isFinishing}
+                          className="w-full justify-center gap-2 h-9"
+                        >
+                          <Mic className="h-3.5 w-3.5" />
+                          <span>Microphone only</span>
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="border-t border-muted pt-3">
-                    <p className="text-xs text-muted-foreground mb-2">
-                      If you are face-to-face with the patient, switch to:
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onAudioSourceChange('microphone')}
-                      disabled={isFinishing}
-                      className="w-full justify-center gap-2 h-9"
-                    >
-                      <Mic className="h-3.5 w-3.5" />
-                      <span>Microphone only</span>
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  )}
+                </CardContent>
+              </Card>
+            </CollapsibleContent>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full justify-center text-muted-foreground hover:text-foreground gap-1.5 text-xs mt-1"
+              >
+                <Mic className="h-3.5 w-3.5" />
+                <span>{showAudioModeInfo ? 'Hide audio settings' : 'Show audio settings'}</span>
+                {showAudioModeInfo ? (
+                  <ChevronUp className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+          </Collapsible>
         )}
 
         {/* Patient Information Card - Collapsible - Large and patient-friendly */}
