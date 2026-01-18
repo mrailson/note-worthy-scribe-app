@@ -134,6 +134,49 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
     }
   };
 
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+  const handleOpenFullSize = (image: UserGeneratedImage) => {
+    if (!image?.image_url) return;
+
+    // Browsers can fail to open very long data URLs directly.
+    // Rendering the <img> inside an about:blank document is more reliable.
+    const newWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!newWindow) return;
+
+    const title = escapeHtml(image.title ? `${image.title} — Image` : 'Image');
+
+    newWindow.document.open();
+    newWindow.document.write(
+      `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>${title}</title></head><body></body></html>`
+    );
+    newWindow.document.close();
+
+    const body = newWindow.document.body;
+    if (!body) return;
+
+    body.style.margin = '0';
+    body.style.display = 'flex';
+    body.style.alignItems = 'center';
+    body.style.justifyContent = 'center';
+    body.style.minHeight = '100vh';
+
+    const img = newWindow.document.createElement('img');
+    img.src = image.image_url;
+    img.alt = image.alt_text || 'Image';
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '100vh';
+    img.style.objectFit = 'contain';
+
+    body.appendChild(img);
+  };
+
   const handleSaveTitle = async (imageId: string) => {
     if (newTitle.trim()) {
       await updateTitle(imageId, newTitle.trim());
@@ -495,7 +538,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                       <Button
                         variant="outline"
                         className="w-full justify-start"
-                        onClick={() => window.open(selectedImage.image_url, '_blank')}
+                        onClick={() => handleOpenFullSize(selectedImage)}
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
                         Open Full Size
