@@ -128,7 +128,7 @@ export const AssemblyRealtimeTicker: React.FC<AssemblyRealtimeTickerProps> = ({
             <div className="bg-muted/30 border-2 border-dashed rounded-lg p-3 min-h-[60px] flex items-center justify-center">
               <p className="text-sm text-muted-foreground">
                 {status === 'recording' ? 'Listening for speech...' : 
-                 status === 'connecting' ? 'Connecting to Assembly AI...' :
+                 status === 'connecting' ? 'Connecting to Notewell Transcription Service...' :
                  status === 'error' ? 'Transcription error occurred' :
                  'Real-time transcription will appear here'}
               </p>

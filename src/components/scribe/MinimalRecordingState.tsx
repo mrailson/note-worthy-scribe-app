@@ -450,7 +450,7 @@ export const MinimalRecordingState = ({
                       Live
                     </span>
                   )}
-                  <span className="text-xs text-muted-foreground">AssemblyAI Real-time</span>
+                  <span className="text-xs text-muted-foreground">Notewell Transcription Service</span>
                   {livePreviewFullTranscript && (
                     <span className="text-xs text-muted-foreground ml-auto">
                       {livePreviewFullTranscript.split(/\s+/).filter(Boolean).length} words

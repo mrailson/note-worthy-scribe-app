@@ -557,7 +557,7 @@ export const ConsultationRecordingState = ({
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Radio className="h-4 w-4 text-primary" />
-                    <h3 className="text-sm font-medium">AssemblyAI Real-time Transcript</h3>
+                    <h3 className="text-sm font-medium">Notewell Transcription Service</h3>
                     {livePreviewActive && (
                       <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700 text-xs">
                         <span className="relative flex h-1.5 w-1.5">
