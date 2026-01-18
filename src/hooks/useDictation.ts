@@ -62,13 +62,67 @@ export function useDictation() {
   const lastFinalSegmentRef = useRef<string>(''); // Last final segment for dedup
   const lastFinalAtRef = useRef<number>(0);
   
-  // Normalise text for comparison (strip punctuation, lowercase)
-  const normalise = useCallback((t: string) =>
-    t.toLowerCase()
+  // Convert spoken number words to digits for comparison
+  const wordsToNumbers = useCallback((text: string): string => {
+    const ones: Record<string, number> = {
+      zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5,
+      six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+      eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
+      sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19
+    };
+    const tens: Record<string, number> = {
+      twenty: 20, thirty: 30, forty: 40, fifty: 50,
+      sixty: 60, seventy: 70, eighty: 80, ninety: 90
+    };
+
+    // Parse a compound number phrase like "one hundred and thirty six"
+    const parseNumberPhrase = (phrase: string): number | null => {
+      const words = phrase.toLowerCase().replace(/\band\b/g, '').trim().split(/\s+/);
+      let total = 0;
+      let current = 0;
+
+      for (const word of words) {
+        if (ones[word] !== undefined) {
+          current += ones[word];
+        } else if (tens[word] !== undefined) {
+          current += tens[word];
+        } else if (word === 'hundred') {
+          current = current === 0 ? 100 : current * 100;
+        } else {
+          return null; // Unknown word
+        }
+      }
+      total += current;
+      return total > 0 ? total : null;
+    };
+
+    // Match patterns like "one hundred and thirty six" or "seventy four"
+    const numberWordPattern = /\b((?:(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\s+hundred(?:\s+and)?)?(?:\s*(?:twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety))?(?:[\s-]*(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen))?)\b/gi;
+
+    return text.replace(numberWordPattern, (match) => {
+      const trimmed = match.trim();
+      if (!trimmed || trimmed.split(/\s+/).length < 1) return match;
+      
+      // Skip single common words that aren't numbers in context
+      const lowerMatch = trimmed.toLowerCase();
+      if (['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'].includes(lowerMatch)) {
+        // Only convert if it looks like a BP reading context
+        return match;
+      }
+      
+      const num = parseNumberPhrase(trimmed);
+      return num !== null ? String(num) : match;
+    });
+  }, []);
+
+  // Normalise text for comparison (strip punctuation, lowercase, convert word numbers to digits)
+  const normalise = useCallback((t: string) => {
+    const withDigits = wordsToNumbers(t);
+    return withDigits.toLowerCase()
       .replace(/[^\p{L}\p{N}\s]+/gu, " ")
       .replace(/\s+/g, " ")
-      .trim()
-  , []);
+      .trim();
+  }, [wordsToNumbers]);
   
   // Replace trailing segment (for when AssemblyAI sends formatted after raw)
   const replaceTrailingSegment = useCallback((full: string, oldSeg: string, newSeg: string) => {
