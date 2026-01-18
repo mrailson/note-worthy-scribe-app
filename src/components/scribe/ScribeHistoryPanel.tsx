@@ -25,6 +25,7 @@ import { ReferralWorkspace } from "./ReferralWorkspace";
 import { ConsultationAskAI } from "./ConsultationAskAI";
 import { NarrativeClinicalNoteView } from "./NarrativeClinicalNoteView";
 import { EmisNoteView } from "./EmisNoteView";
+import { AgeingWellView } from "./AgeingWellView";
 import { getNarrativeClinicalText, transformToNarrativeClinical } from "@/utils/narrativeClinicalFormatter";
 import { supabase } from "@/integrations/supabase/client";
 import { maskPatientName, maskDateOfBirth, maskPatientData } from "@/utils/patientDataMasking";
@@ -502,6 +503,24 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     </TooltipTrigger>
                     <TooltipContent side="bottom">EMIS View</TooltipContent>
                   </Tooltip>
+                  {/* Ageing Well */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleViewModeChange('ageingWell')}
+                        className={cn(
+                          "p-1.5 rounded-md transition-colors",
+                          settings.consultationViewMode === 'ageingWell' 
+                            ? "text-primary bg-primary/10" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        aria-label="Ageing Well MDT"
+                      >
+                        <Heart className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Ageing Well MDT (SystmOne)</TooltipContent>
+                  </Tooltip>
                   
                   {/* Spacer */}
                   <span className="w-2" />
@@ -668,6 +687,16 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         soapNote={currentSoapNote}
                         heidiNote={currentSession.heidiNote}
                         consultationType={currentSession.consultationType}
+                        showNotMentioned={settings.showNotMentioned}
+                        onShowNotMentionedChange={handleShowNotMentionedChange}
+                      />
+                    )}
+
+                    {/* Ageing Well View Mode */}
+                    {settings.consultationViewMode === 'ageingWell' && (
+                      <AgeingWellView
+                        soapNote={currentSoapNote}
+                        heidiNote={currentSession.heidiNote}
                         showNotMentioned={settings.showNotMentioned}
                         onShowNotMentionedChange={handleShowNotMentionedChange}
                       />

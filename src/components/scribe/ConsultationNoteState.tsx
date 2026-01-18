@@ -4,10 +4,11 @@ import { SOAPNoteEditor } from "./SOAPNoteEditor";
 import { HeidiNoteEditor } from "./HeidiNoteEditor";
 import { NarrativeClinicalNoteView } from "./NarrativeClinicalNoteView";
 import { EmisNoteView } from "./EmisNoteView";
+import { AgeingWellView } from "./AgeingWellView";
 import { ReferralWorkspace } from "./ReferralWorkspace";
 import { TranscriptDisplay } from "./TranscriptDisplay";
 import { QuickActionsBar } from "./QuickActionsBar";
-import { Clock, FileCheck, Stethoscope, Shield, List, Monitor, Send, ClipboardList, FileText, User, Loader2, Check, AlertCircle } from "lucide-react";
+import { Clock, FileCheck, Stethoscope, Shield, List, Monitor, Send, ClipboardList, FileText, User, Loader2, Check, AlertCircle, Heart } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
@@ -232,6 +233,24 @@ export const ConsultationNoteState = ({
                         </TooltipTrigger>
                         <TooltipContent side="bottom">EMIS View</TooltipContent>
                       </Tooltip>
+                      {/* Ageing Well */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => onViewModeChange('ageingWell')}
+                            className={cn(
+                              "p-1.5 rounded-md transition-colors",
+                              viewMode === 'ageingWell' 
+                                ? "text-primary bg-primary/10" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            aria-label="Ageing Well MDT"
+                          >
+                            <Heart className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Ageing Well MDT (SystmOne)</TooltipContent>
+                      </Tooltip>
                       
                       {/* Spacer */}
                       <span className="w-2" />
@@ -349,6 +368,16 @@ export const ConsultationNoteState = ({
               consultationType={consultationType}
               showNotMentioned={settings.showNotMentioned}
               onShowNotMentionedChange={onShowNotMentionedChange}
+            />
+          ) : viewMode === 'ageingWell' ? (
+            <AgeingWellView
+              soapNote={consultationNote.soapNote}
+              heidiNote={consultationNote.heidiNote}
+              showNotMentioned={settings.showNotMentioned}
+              onShowNotMentionedChange={onShowNotMentionedChange}
+              editable={true}
+              onSectionChange={onNarrativeSectionChange}
+              consultationId={consultationId}
             />
           ) : useHeidiFormat ? (
             <HeidiNoteEditor

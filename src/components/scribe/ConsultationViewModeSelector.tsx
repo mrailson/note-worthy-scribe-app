@@ -1,7 +1,7 @@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { LayoutList, Monitor, ClipboardList } from "lucide-react";
+import { LayoutList, Monitor, ClipboardList, Heart } from "lucide-react";
 
-export type ViewMode = 'soap' | 'narrativeClinical' | 'emis';
+export type ViewMode = 'soap' | 'narrativeClinical' | 'emis' | 'ageingWell';
 
 interface ConsultationViewModeSelectorProps {
   value: ViewMode;
@@ -12,6 +12,7 @@ const viewModes = [
   { value: 'soap' as ViewMode, label: 'SOAP', icon: LayoutList, description: 'S/O/A/P sections' },
   { value: 'narrativeClinical' as ViewMode, label: 'Clinical', icon: ClipboardList, description: 'H/E/A/I/P layout' },
   { value: 'emis' as ViewMode, label: 'EMIS', icon: Monitor, description: 'EMIS-optimised' },
+  { value: 'ageingWell' as ViewMode, label: 'Ageing Well', icon: Heart, description: 'MDT Review' },
 ];
 
 export const ConsultationViewModeSelector = ({ value, onChange }: ConsultationViewModeSelectorProps) => {
