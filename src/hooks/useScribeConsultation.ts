@@ -16,7 +16,7 @@ import {
   PatientContext,
   ConsultationContextFile
 } from "@/types/scribe";
-import { useScribeRecording } from "./useScribeRecording";
+import { useScribeRecording, AudioSourceMode } from "./useScribeRecording";
 import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/toastWrapper";
 import { formatSoapNote, formatHeidiNote } from "@/utils/emrFormatters";
@@ -102,7 +102,7 @@ export const useScribeConsultation = () => {
   }, [settings.f2fMicrophoneId, settings.telephoneMicrophoneId, settings.videoMicrophoneId]);
 
   // Start consultation
-  const startConsultation = useCallback(async () => {
+  const startConsultation = useCallback(async (audioMode?: AudioSourceMode) => {
     if (settings.showConsentReminder && !patientConsent) {
       showToast.error("Please confirm patient consent before starting", { section: 'gpscribe' });
       return false;
@@ -118,8 +118,9 @@ export const useScribeConsultation = () => {
       // Get the microphone ID for the current consultation type
       const selectedMicrophoneId = getMicrophoneForType(consultationType);
       console.log(`🎤 Starting consultation with microphone: ${selectedMicrophoneId || 'default'} for type: ${consultationType}`);
+      console.log(`🔊 Audio source mode: ${audioMode || 'microphone'}`);
       
-      await recording.startRecording(selectedMicrophoneId);
+      await recording.startRecording(selectedMicrophoneId, audioMode || 'microphone');
       setConsultationState('recording');
       
       return true;

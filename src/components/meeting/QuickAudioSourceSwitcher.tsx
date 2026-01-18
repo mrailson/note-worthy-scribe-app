@@ -32,7 +32,7 @@ export const QuickAudioSourceSwitcher = ({
   // On mobile, only show microphone option (system audio not supported)
   const allModes: { mode: AudioSourceMode; icon: typeof Mic; label: string; shortLabel: string }[] = [
     { mode: 'microphone', icon: Mic, label: 'Microphone Only', shortLabel: 'Mic' },
-    { mode: 'microphone_and_system', icon: Monitor, label: 'Mic + System Audio', shortLabel: 'Mic+Sys' },
+    { mode: 'microphone_and_system', icon: Monitor, label: 'Mic + SoftPhone (e.g. Surgery Connect)', shortLabel: 'Mic+SoftPhone' },
   ];
   
   const modes = hideSystemAudio 
@@ -91,7 +91,7 @@ export const QuickAudioSourceSwitcher = ({
                 <p>{label}</p>
                 {mode === 'microphone_and_system' && currentMode !== mode && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    You'll be prompted to share a tab/window
+                    Share a tab/window to capture Teams, Zoom, or SoftPhone audio
                   </p>
                 )}
                 {currentMode === mode && (
