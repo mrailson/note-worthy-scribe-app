@@ -221,6 +221,8 @@ export const ConsultationRecordingState = ({
         isSwitchingAudioSource={isSwitchingAudioSource}
         micCaptured={micCaptured}
         systemAudioCaptured={systemAudioCaptured}
+        livePreviewFullTranscript={livePreviewFullTranscript}
+        livePreviewActive={livePreviewActive}
       />
     );
   }

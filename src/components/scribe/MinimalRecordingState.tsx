@@ -30,7 +30,8 @@ import {
   Eye,
   EyeOff,
   Info,
-  Clock
+  Clock,
+  Radio
 } from "lucide-react";
 import { AudioWaveform } from "./AudioWaveform";
 
@@ -58,6 +59,9 @@ interface MinimalRecordingStateProps {
   isSwitchingAudioSource?: boolean;
   micCaptured?: boolean;
   systemAudioCaptured?: boolean;
+  // Live preview props (AssemblyAI real-time)
+  livePreviewFullTranscript?: string;
+  livePreviewActive?: boolean;
 }
 
 export const MinimalRecordingState = ({
@@ -79,9 +83,13 @@ export const MinimalRecordingState = ({
   isSwitchingAudioSource = false,
   micCaptured = false,
   systemAudioCaptured = false,
+  // Live preview props
+  livePreviewFullTranscript = '',
+  livePreviewActive = false,
 }: MinimalRecordingStateProps) => {
   const [showPatientInfo, setShowPatientInfo] = useState(true);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [showRealtimeTranscript, setShowRealtimeTranscript] = useState(false);
   const [microphones, setMicrophones] = useState<MicrophoneDevice[]>([]);
 
   // Load available microphones
@@ -311,6 +319,63 @@ export const MinimalRecordingState = ({
               )}
             </Button>
           </CollapsibleTrigger>
+        </Collapsible>
+
+        {/* Real-time Transcript Toggle (AssemblyAI) */}
+        <Collapsible open={showRealtimeTranscript} onOpenChange={setShowRealtimeTranscript}>
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full justify-center text-muted-foreground hover:text-foreground gap-1.5 text-xs mt-2"
+            >
+              <Radio className="h-3.5 w-3.5" />
+              <span>{showRealtimeTranscript ? 'Hide real-time transcript' : 'Show real-time transcript'}</span>
+              {livePreviewActive && (
+                <span className="flex h-2 w-2 ml-1">
+                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+              )}
+              {showRealtimeTranscript ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <Card className="bg-muted/30 mt-2 w-full">
+              <CardContent className="p-0">
+                <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+                  {livePreviewActive && (
+                    <span className="text-xs bg-green-500/20 text-green-600 px-2 py-0.5 rounded-full animate-pulse">
+                      Live
+                    </span>
+                  )}
+                  <span className="text-xs text-muted-foreground">AssemblyAI Real-time</span>
+                  {livePreviewFullTranscript && (
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {livePreviewFullTranscript.split(/\s+/).filter(Boolean).length} words
+                    </span>
+                  )}
+                </div>
+                <ScrollArea className="h-32">
+                  <div className="p-4 pt-2">
+                    {livePreviewFullTranscript ? (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
+                        {livePreviewFullTranscript}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic text-center">
+                        Real-time transcript will appear here as you speak...
+                      </p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </CollapsibleContent>
         </Collapsible>
 
         {/* Transcript Panel (hidden by default, clinician-controlled) */}
