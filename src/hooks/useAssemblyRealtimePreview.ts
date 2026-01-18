@@ -23,7 +23,9 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   const [error, setError] = useState<string | null>(null);
   
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
-  const lastPartialRef = useRef<string>("");
+  // Track the base text (all confirmed finals) and current partial separately
+  const baseTranscriptRef = useRef<string>("");
+  const currentPartialRef = useRef<string>("");
 
   // Update transcripts - rolling for live preview, full accumulation for tab
   const updateTranscript = useCallback((newText: string, isFinal: boolean) => {
@@ -32,29 +34,24 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     console.log(`🎤 AssemblyAI ${isFinal ? 'FINAL' : 'partial'}: "${newText.substring(0, 50)}..."`);
     
     if (isFinal) {
-      // For final transcripts, append to full transcript
+      // Append final to full transcript
       setFullTranscript(prev => (prev + ' ' + newText).trim());
       
-      // For live preview, append and trim to max words
-      setLiveTranscript(prev => {
-        const combined = (prev + ' ' + newText).trim();
-        const words = combined.split(/\s+/);
-        return words.slice(-MAX_WORDS).join(' ');
-      });
+      // Append final to base transcript and clear partial
+      baseTranscriptRef.current = (baseTranscriptRef.current + ' ' + newText).trim();
+      currentPartialRef.current = "";
       
-      // Clear partial ref
-      lastPartialRef.current = "";
+      // Update live preview with base only (no partial pending)
+      const words = baseTranscriptRef.current.split(/\s+/).slice(-MAX_WORDS);
+      setLiveTranscript(words.join(' '));
     } else {
-      // For partial transcripts, store the latest partial
-      lastPartialRef.current = newText;
+      // Replace the current partial (don't accumulate partials)
+      currentPartialRef.current = newText;
       
-      // Update live preview with current full + partial
-      setLiveTranscript(prev => {
-        // Remove any previous partial (rough estimate - last few words)
-        const words = prev.split(/\s+/).slice(-MAX_WORDS);
-        const baseText = words.join(' ');
-        return (baseText + ' ' + newText).trim();
-      });
+      // Live preview = base + current partial
+      const combined = (baseTranscriptRef.current + ' ' + newText).trim();
+      const words = combined.split(/\s+/).slice(-MAX_WORDS);
+      setLiveTranscript(words.join(' '));
     }
   }, []);
 
@@ -69,7 +66,8 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       setError(null);
       setLiveTranscript("");
       setFullTranscript("");
-      lastPartialRef.current = "";
+      baseTranscriptRef.current = "";
+      currentPartialRef.current = "";
       
       console.log('🎤 Starting AssemblyAI real-time preview...');
       
