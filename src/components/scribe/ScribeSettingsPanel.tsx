@@ -38,6 +38,7 @@ export const ScribeSettingsPanel = ({
         onDictateMicrophoneChange={(deviceId) => onUpdateSetting('dictateMicrophoneId', deviceId)}
         systemAudioEnabled={settings.systemAudioEnabled}
         onSystemAudioChange={(enabled) => onUpdateSetting('systemAudioEnabled', enabled)}
+        onSaveMicSettings={onSaveSettings}
       />
 
       {/* Consent, Privacy & History Settings - Collapsible */}
