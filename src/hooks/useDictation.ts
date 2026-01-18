@@ -54,8 +54,55 @@ export function useDictation() {
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const contentRef = useRef(content);
   const startTimeRef = useRef<number>(0);
-  const lastFinalTextRef = useRef<string>(''); // Track last final to avoid duplicates
-  const baseContentRef = useRef<string>(''); // Content before this recording session started
+  
+  // Deduplication refs (like useAssemblyRealtimePreview)
+  const baseContentRef = useRef<string>(''); // Content when recording started
+  const recordingTranscriptRef = useRef<string>(''); // Transcript accumulated during this recording session
+  const lastFinalSegmentRef = useRef<string>(''); // Last final segment for dedup
+  const lastFinalAtRef = useRef<number>(0);
+  
+  // Normalise text for comparison (strip punctuation, lowercase)
+  const normalise = useCallback((t: string) =>
+    t.toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]+/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  , []);
+  
+  // Replace trailing segment (for when AssemblyAI sends formatted after raw)
+  const replaceTrailingSegment = useCallback((full: string, oldSeg: string, newSeg: string) => {
+    const t = full.trim();
+    const oldT = oldSeg.trim();
+    const newT = newSeg.trim();
+
+    if (!oldT) return (t + ' ' + newT).trim();
+    if (t === oldT) return newT;
+
+    if (t.endsWith(' ' + oldT)) {
+      return (t.slice(0, -(oldT.length + 1)) + ' ' + newT).trim();
+    }
+
+    if (t.endsWith(oldT)) {
+      return (t.slice(0, -oldT.length) + newT).trim();
+    }
+
+    return (t + ' ' + newT).trim();
+  }, []);
+  
+  // Check if new final should replace the last one (duplicate detection)
+  const shouldReplaceLastFinal = useCallback((newText: string) => {
+    const last = lastFinalSegmentRef.current;
+    if (!last) return false;
+
+    const withinWindow = Date.now() - lastFinalAtRef.current < 2000;
+    if (!withinWindow) return false;
+
+    const a = normalise(last);
+    const b = normalise(newText);
+    if (!a || !b) return false;
+
+    return a === b || a.startsWith(b) || b.startsWith(a);
+  }, [normalise]);
   
   // Keep contentRef in sync
   useEffect(() => {
@@ -157,7 +204,9 @@ export function useDictation() {
     }
     
     // Reset tracking refs for new session
-    lastFinalTextRef.current = '';
+    recordingTranscriptRef.current = '';
+    lastFinalSegmentRef.current = '';
+    lastFinalAtRef.current = 0;
 
     try {
       const client = new AssemblyRealtimeClient({
@@ -176,32 +225,30 @@ export function useDictation() {
           }, 30000);
         },
         onPartial: (text) => {
-          // Show partial as a preview (optional - could add live preview state)
+          // Could show live partial preview here if needed
+          console.log('🎤 Dictation partial:', text.substring(0, 30) + '...');
         },
         onFinal: (text) => {
-          // AssemblyAI v3 sends cumulative transcripts, so we need to deduplicate
-          // Only add the new portion that wasn't in the last final
-          const lastFinal = lastFinalTextRef.current;
+          console.log('🎤 Dictation FINAL:', text.substring(0, 50) + '...');
           
-          let newText = text;
-          if (lastFinal && text.startsWith(lastFinal)) {
-            // Text is cumulative, extract only the new part
-            newText = text.slice(lastFinal.length).trim();
-          } else if (lastFinal && text.includes(lastFinal)) {
-            // Partial overlap - find where new content starts
-            const idx = text.lastIndexOf(lastFinal);
-            newText = text.slice(idx + lastFinal.length).trim();
+          const now = Date.now();
+          
+          if (shouldReplaceLastFinal(text)) {
+            // Replace the last final segment (AssemblyAI often sends formatted after raw)
+            const prevSeg = lastFinalSegmentRef.current;
+            recordingTranscriptRef.current = replaceTrailingSegment(recordingTranscriptRef.current, prevSeg, text);
+            console.log('🔁 Replaced duplicate final segment');
+          } else {
+            // Append brand new final segment
+            recordingTranscriptRef.current = (recordingTranscriptRef.current + ' ' + text).trim();
           }
           
-          // Update last final reference
-          lastFinalTextRef.current = text;
+          lastFinalSegmentRef.current = text;
+          lastFinalAtRef.current = now;
           
-          if (newText) {
-            setContent(prev => {
-              const separator = prev.trim() ? ' ' : '';
-              return prev + separator + newText;
-            });
-          }
+          // Update content: base + recording transcript
+          const newContent = (baseContentRef.current + ' ' + recordingTranscriptRef.current).trim();
+          setContent(newContent);
         },
         onError: (err) => {
           console.error('Dictation error:', err);
