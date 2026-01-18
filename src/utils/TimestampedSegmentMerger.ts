@@ -55,14 +55,9 @@ export class TimestampedSegmentMerger {
   processChunk(chunk: TimestampedChunk): ChunkProcessResult {
     const hasRealTs = chunk.start_ms !== undefined && chunk.start_ms > 0;
     console.log(`🔍 [Merger] Processing chunk: confidence=${((chunk.confidence ?? 0) * 100).toFixed(0)}%, length=${chunk.text?.length ?? 0}, id=${chunk.id}, hasRealTimestamps=${hasRealTs}, start_ms=${chunk.start_ms}, end_ms=${chunk.end_ms}`);
-
-    const trimmed = chunk.text?.trim() ?? '';
-    // CRITICAL: always allow the very first chunk even if very short
-    const isFirstChunk = this.state.finalizedSegments.length === 0 && !this.state.lastText;
-    const minLen = isFirstChunk ? 1 : TimestampedSegmentMerger.MIN_SEGMENT_LENGTH;
-
-    if (!trimmed || trimmed.length < minLen) {
-      console.log(`🚫 [Merger] Rejected: too short (${chunk.text?.length ?? 0} chars, min ${minLen})`);
+    
+    if (!chunk.text?.trim() || chunk.text.trim().length < TimestampedSegmentMerger.MIN_SEGMENT_LENGTH) {
+      console.log(`🚫 [Merger] Rejected: too short (${chunk.text?.length ?? 0} chars, min ${TimestampedSegmentMerger.MIN_SEGMENT_LENGTH})`);
       return { text: this.state.lastText, wasProcessed: false, reason: 'Chunk too short or empty' };
     }
 
@@ -101,9 +96,11 @@ export class TimestampedSegmentMerger {
     const startTime = this.getChunkStartTime(chunk);
     const endTime = this.getChunkEndTime(chunk, startTime);
 
-    // CRITICAL FIX: For the first chunk, always accept it regardless of timing
-    // After that, apply timing checks
-    if (!isFirstChunk && hasRealTimestamps) {
+    // For real timestamps: Accept chunks that either:
+    // 1. Start after the last processed time (sequential)
+    // 2. Have end_ms greater than lastProcessedTimestamp (progressive audio windows)
+    // This handles overlapping audio chunking windows where chunks share audio data
+    if (hasRealTimestamps) {
       const chunkEndTime = chunk.end_ms ?? endTime;
       const isProgressive = chunkEndTime > this.state.lastProcessedTimestamp;
       const isSequential = startTime > this.state.lastProcessedTimestamp - TimestampedSegmentMerger.GRACE_MS;
@@ -114,8 +111,6 @@ export class TimestampedSegmentMerger {
         return { text: this.state.lastText, wasProcessed: false, reason: 'Temporal overlap detected' };
       }
       console.log(`✅ Temporal check passed: progressive=${isProgressive}, sequential=${isSequential}`);
-    } else if (isFirstChunk) {
-      console.log(`✅ First chunk - accepting without temporal checks`);
     }
 
     // Content fingerprinting for exact duplicate detection

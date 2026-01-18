@@ -75,7 +75,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
-import { SimpleIOSTranscriber, IOSTranscriberStats, IOSTranscriptionMeta } from '@/utils/SimpleIOSTranscriber';
+import { SimpleIOSTranscriber, IOSTranscriberStats } from '@/utils/SimpleIOSTranscriber';
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 import { IncrementalTranscriptHandler, IncrementalTranscriptData, ProcessTranscriptResult } from '@/utils/IncrementalTranscriptHandler';
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
@@ -85,8 +85,7 @@ import { mergeLive } from '@/utils/liveMerge';
 import { mergeByTimestamps, segmentsToPlainText, type Segment } from '@/lib/segmentMerge';
 import { useMeetingData } from "@/hooks/useMeetingData";
 import { trimSilence } from '@/utils/audioSilenceTrimmer';
-import { transcodeToWhisperFormat, shouldTranscode, Mp3Bitrate } from '@/utils/audioTranscoder';
-import { useTranscriptionAudioFormat } from '@/hooks/useTranscriptionAudioFormat';
+import { transcodeToWhisperFormat, shouldTranscode } from '@/utils/audioTranscoder';
 
 interface TranscriptData {
   text: string;
@@ -108,7 +107,7 @@ interface ChunkSaveStatus {
   chunkNumber: number;
   text: string;
   chunkLength: number;
-  saveStatus: 'saving' | 'saved' | 'failed' | 'retrying' | 'rejected';
+  saveStatus: 'saving' | 'saved' | 'failed' | 'retrying';
   saveTimestamp?: string;
   retryCount: number;
   confidence: number;
@@ -116,10 +115,6 @@ interface ChunkSaveStatus {
   endTime?: number; // in seconds
   wasMerged?: boolean; // True if merger actually processed this chunk
   mergeRejectionReason?: string; // Reason why chunk wasn't merged into transcript
-  originalFileSize?: number; // Original blob size in bytes
-  transcodedFileSize?: number; // Transcoded file size in bytes
-  fileType?: string; // MIME type of transcoded audio
-  rejectionReason?: string; // Reason why chunk was rejected before transcription
 }
 
 interface MeetingRecorderProps {
@@ -161,7 +156,6 @@ export const MeetingRecorder = ({
   const [isRecording, setIsRecording] = useState(false);
   const { isResourceOperationSafe } = useRecording();
   const isIOS = detectDevice().isIOS;
-  const { format: audioFormat, mp3Bitrate } = useTranscriptionAudioFormat();
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [stopRecordingStep, setStopRecordingStep] = useState<string>('');
   const [duration, setDuration] = useState(0);
@@ -182,9 +176,6 @@ export const MeetingRecorder = ({
   // React setState is async, so using state alone results in all chunks being numbered 0
   // This ref is incremented synchronously and always has the correct current value
   const chunkCounterRef = useRef(0);
-  
-  // Buffer for chunks that arrive before transcriptHandler is ready
-  const pendingTranscriptsRef = useRef<TranscriptData[]>([]);
   
   // Synchronous guard to prevent duplicate stop flows
   const stopInProgressRef = useRef(false);
@@ -1368,19 +1359,17 @@ export const MeetingRecorder = ({
       let chunkBlob = new Blob(chunks, { type: 'audio/webm' });
       const originalSize = chunkBlob.size;
       const endTime = new Date();
-      const endTimeMonotonic = performance.now();
+      
       // Step 1: Trim leading/trailing silence (>500ms) to improve last-word confidence
       console.log(`✂️ Trimming silence from chunk ${chunkId}...`);
       chunkBlob = await trimSilence(chunkBlob, { thresholdMs: 500, silenceLevel: -40 });
       
-      // Step 2: Transcode to 16kHz mono (WAV or MP3 based on system setting)
+      // Step 2: Transcode to 16kHz mono WAV for Whisper optimisation (10-20× smaller)
       if (shouldTranscode(chunkBlob)) {
-        console.log(`🎵 Transcoding chunk ${chunkId} to 16kHz mono ${audioFormat.toUpperCase()}${audioFormat === 'mp3' ? ` ${mp3Bitrate}kbps` : ''}...`);
+        console.log(`🎵 Transcoding chunk ${chunkId} to 16kHz mono...`);
         chunkBlob = await transcodeToWhisperFormat(chunkBlob, { 
           targetSampleRate: 16000, 
-          channels: 1,
-          format: audioFormat,
-          mp3Bitrate: mp3Bitrate
+          channels: 1 
         });
         console.log(`📉 Chunk ${chunkId}: ${(originalSize / 1024).toFixed(1)}KB → ${(chunkBlob.size / 1024).toFixed(1)}KB (${((1 - chunkBlob.size / originalSize) * 100).toFixed(0)}% reduction)`);
       }
@@ -1457,7 +1446,7 @@ export const MeetingRecorder = ({
           ? (endTime.getTime() - recordingStart.getTime()) / 1000 
           : 0;
         const monotonicEndSeconds = recordingStartMonotonicRef.current != null
-          ? (endTimeMonotonic - recordingStartMonotonicRef.current) / 1000
+          ? (performance.now() - recordingStartMonotonicRef.current) / 1000
           : null;
         const chunkEndSeconds = (monotonicEndSeconds ?? wallClockEndSeconds);
         
@@ -1475,20 +1464,6 @@ export const MeetingRecorder = ({
           savedForNextChunk: lastChunkEndTime.current
         });
         
-        // Calculate actual chunk duration (should be ~30s for normal chunks)
-        // Use the difference between start and end, which is based on monotonic timing
-        const actualChunkDuration = chunkEndSeconds - chunkStartSeconds;
-        const transcodedSize = chunkBlob.size;
-        const transcodedType = chunkBlob.type || (audioFormat === 'mp3' ? 'audio/mp3' : 'audio/wav');
-        
-        console.log(`📦 Chunk ${chunkId} file info:`, {
-          originalSize: (originalSize / 1024).toFixed(1) + 'KB',
-          transcodedSize: (transcodedSize / 1024).toFixed(1) + 'KB',
-          fileType: transcodedType,
-          format: audioFormat,
-          duration: actualChunkDuration.toFixed(1) + 's'
-        });
-        
         setChunkSaveStatuses(prev => prev.map(chunk => 
           chunk.id === uniqueChunkId 
             ? { 
@@ -1496,10 +1471,7 @@ export const MeetingRecorder = ({
                 text: transcriptionText, 
                 chunkLength: transcriptionText.length,
                 confidence: confidence,
-                endTime: chunkEndSeconds,
-                originalFileSize: originalSize,
-                transcodedFileSize: transcodedSize,
-                fileType: transcodedType
+                endTime: chunkEndSeconds
               }
             : chunk
         ));
@@ -1577,10 +1549,7 @@ export const MeetingRecorder = ({
                             ? { 
                                 ...chunk, 
                                 saveStatus: 'saved' as const,
-                                saveTimestamp: new Date().toISOString(),
-                                originalFileSize: originalSize,
-                                transcodedFileSize: chunkBlob.size,
-                                fileType: chunkBlob.type || 'audio/webm'
+                                saveTimestamp: new Date().toISOString()
                               }
                             : chunk
                         ));
@@ -2180,13 +2149,7 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Ref for ticker enabled state (to avoid recreating handler when ticker toggle changes)
-  const tickerEnabledRef = useRef(tickerEnabled);
-  useEffect(() => {
-    tickerEnabledRef.current = tickerEnabled;
-  }, [tickerEnabled]);
-
-  // Initialize transcript handler ONCE on mount - stable lifecycle
+  // Initialize transcript handler
   useEffect(() => {
     transcriptHandler.current = new IncrementalTranscriptHandler(
       (fullTranscript: string) => {
@@ -2205,8 +2168,8 @@ export const MeetingRecorder = ({
         console.log('📝 Transcript updated:', fullTranscript.length, 'chars');
       },
       (interimText: string) => {
-        // Handle interim updates for ticker - read from ref to avoid recreating handler
-        if (interimText.trim() && tickerEnabledRef.current) {
+        // Handle interim updates for ticker
+        if (interimText.trim() && tickerEnabled) {
           const truncatedText = interimText.length > 100 
             ? interimText.substring(0, 100) + "..." 
             : interimText;
@@ -2221,19 +2184,7 @@ export const MeetingRecorder = ({
         }
       }
     );
-    
-    console.log('📝 Transcript handler initialised (stable lifecycle)');
-    
-    // CRITICAL: Replay any chunks that arrived before handler was ready
-    if (pendingTranscriptsRef.current.length > 0) {
-      console.log(`📥 Replaying ${pendingTranscriptsRef.current.length} pending transcript(s) that arrived before handler init`);
-      for (const pending of pendingTranscriptsRef.current) {
-        handleTranscript(pending);
-      }
-      pendingTranscriptsRef.current = [];
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onTranscriptUpdate, onWordCountUpdate]); // Removed tickerEnabled - use ref instead
+  }, [onTranscriptUpdate, onWordCountUpdate, tickerEnabled]);
 
   const handleTranscript = (transcriptData: TranscriptData) => {
     // Convert to incremental transcript format
@@ -2268,10 +2219,6 @@ export const MeetingRecorder = ({
         );
         console.log(`📊 Chunk #${transcriptData.chunkNumber} merge result: wasProcessed=${result.wasProcessed}, reason=${result.reason || 'none'}`);
       }
-    } else {
-      // Handler not ready yet - buffer for later replay
-      console.log(`📥 Buffering chunk #${transcriptData.chunkNumber ?? '?'} until transcript handler is ready`);
-      pendingTranscriptsRef.current.push(transcriptData);
     }
 
     // Progressive pre-summaries: ingest transcript chunks for long sessions
@@ -2333,78 +2280,24 @@ export const MeetingRecorder = ({
       return trimmed;
     });
   };
-  const handleBrowserTranscript = (data: BrowserTranscriptData & { 
-    iosMeta?: IOSTranscriptionMeta;
-    // Desktop transcriber metadata (new)
-    originalFileSize?: number;
-    transcodedFileSize?: number;
-    fileType?: string;
-    start_ms?: number;
-    end_ms?: number;
-    chunkNumber?: number;
-  }) => {
+  const handleBrowserTranscript = (data: BrowserTranscriptData) => {
     // Skip empty transcripts
     if (!data.text || !data.text.trim()) return;
     
-    // Check if this is a desktop transcriber chunk (has metadata) or iOS/browser chunk
-    const isDesktopChunk = typeof data.originalFileSize === 'number' || typeof data.start_ms === 'number';
-    
+    // Add chunk status tracking for iPhone/mobile transcription with timestamps
     // CRITICAL: Use synchronous ref for correct chunk numbering (setState is async)
-    // For desktop chunks, use their provided chunk number if available to avoid double-counting
-    let currentChunkNumber: number;
-    if (isDesktopChunk && typeof data.chunkNumber === 'number') {
-      // Desktop transcriber already tracked this chunk number - use it but update our counter if needed
-      currentChunkNumber = data.chunkNumber;
-      if (currentChunkNumber >= chunkCounterRef.current) {
-        chunkCounterRef.current = currentChunkNumber;
-      }
-    } else {
-      // iOS/browser chunks - increment counter
-      chunkCounterRef.current += 1;
-      currentChunkNumber = chunkCounterRef.current;
-    }
+    chunkCounterRef.current += 1;
+    const currentChunkNumber = chunkCounterRef.current;
     setChunkCounter(currentChunkNumber); // Update state for UI display
     
-    console.log(`📊 Chunk counter: ${currentChunkNumber} (ref: ${chunkCounterRef.current}, isDesktop: ${isDesktopChunk})`);
+    console.log(`📊 Chunk counter: ${currentChunkNumber} (ref: ${chunkCounterRef.current})`);
     
     const chunkLength = data.text.trim().length;
     const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
     const approxNowSeconds = recordingStartMonotonicRef.current != null
       ? (performance.now() - recordingStartMonotonicRef.current) / 1000
       : duration;
-
-    // Determine timing - desktop transcriber provides accurate timing, iOS uses fallback
-    let chunkStartSeconds: number;
-    let chunkEndSeconds: number;
-    
-    if (isDesktopChunk && typeof data.start_ms === 'number' && typeof data.end_ms === 'number') {
-      // Desktop transcriber provided accurate timestamps
-      chunkStartSeconds = data.start_ms / 1000;
-      chunkEndSeconds = data.end_ms / 1000;
-      console.log(`🖥️ Desktop chunk #${currentChunkNumber}: timing from transcriber: ${chunkStartSeconds.toFixed(1)}s → ${chunkEndSeconds.toFixed(1)}s`);
-    } else {
-      // iOS/browser chunks - use fallback timing
-      chunkEndSeconds = approxNowSeconds;
-      const proposedStart = lastChunkEndTime.current ?? 0;
-      chunkStartSeconds = Math.min(proposedStart, chunkEndSeconds);
-    }
-    
-    // Extract file metadata - prefer desktop transcriber data, fallback to iOS meta
-    const iosBlobSize = data.iosMeta?.blobSize;
-    const iosBlobType = data.iosMeta?.blobType;
-    
-    const fileSize = data.originalFileSize ?? data.transcodedFileSize ?? iosBlobSize;
-    const fileType = data.fileType ?? iosBlobType;
-    
-    console.log(`📱 Chunk #${currentChunkNumber} meta:`, {
-      isDesktop: isDesktopChunk,
-      hasDesktopMeta: typeof data.originalFileSize === 'number',
-      hasIosMeta: !!data.iosMeta,
-      fileSize,
-      fileType,
-      startMs: data.start_ms,
-      endMs: data.end_ms
-    });
+    const chunkStartSeconds = approxNowSeconds;
     
     const newChunkStatus: ChunkSaveStatus = {
       id: uniqueChunkId,
@@ -2414,110 +2307,97 @@ export const MeetingRecorder = ({
       saveStatus: 'saving',
       retryCount: 0,
       confidence: data.confidence || 0.9,
-      startTime: chunkStartSeconds,
-      endTime: chunkEndSeconds,
-      originalFileSize: data.originalFileSize ?? iosBlobSize,
-      transcodedFileSize: data.transcodedFileSize ?? iosBlobSize,
-      fileType: fileType
+      startTime: lastChunkEndTime.current || Math.max(0, chunkStartSeconds - 2), // Use previous end or approximate
+      endTime: chunkStartSeconds // End time is when chunk arrives
     };
     
-    // Update last chunk end time
-    lastChunkEndTime.current = chunkEndSeconds;
+    // Update last chunk end time for iPhone chunks
+    lastChunkEndTime.current = chunkStartSeconds;
     
     setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
     
-    // Desktop chunks are saved by the transcriber itself, iOS chunks need manual save
-    if (!isDesktopChunk) {
-      // CRITICAL FIX: Actually persist iOS chunks to database (was previously simulated)
-      const persistIOSChunk = async () => {
-        const currentMeetingId = sessionStorage.getItem('currentMeetingId');
-        const currentSessionId = sessionStorage.getItem('currentSessionId');
+    // CRITICAL FIX: Actually persist iOS chunks to database (was previously simulated)
+    // This enables consolidation to work and meeting transcript to be saved
+    const persistIOSChunk = async () => {
+      const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+      const currentSessionId = sessionStorage.getItem('currentSessionId');
+      
+      if (!currentMeetingId) {
+        console.log('📱 iOS chunk: No meetingId yet, skipping DB save');
+        // Update UI status anyway
+        setTimeout(() => {
+          setChunkSaveStatuses(prev => prev.map(chunk => 
+            chunk.id === uniqueChunkId 
+              ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
+              : chunk
+          ));
+        }, 500);
+        return;
+      }
+      
+      try {
+        console.log(`📱 iOS chunk #${currentChunkNumber}: Saving to meeting_transcription_chunks...`);
         
-        if (!currentMeetingId) {
-          console.log('📱 iOS chunk: No meetingId yet, skipping DB save');
-          // Update UI status anyway
-          setTimeout(() => {
-            setChunkSaveStatuses(prev => prev.map(chunk => 
-              chunk.id === uniqueChunkId 
-                ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
-                : chunk
-            ));
-          }, 500);
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) {
+          console.error('📱 iOS chunk: No authenticated user');
           return;
         }
         
-        try {
-          console.log(`📱 iOS chunk #${currentChunkNumber}: Saving to meeting_transcription_chunks...`);
-          
-          const { data: { user: currentUser } } = await supabase.auth.getUser();
-          if (!currentUser) {
-            console.error('📱 iOS chunk: No authenticated user');
-            return;
-          }
-          
-          const { error } = await supabase
-            .from('meeting_transcription_chunks')
-            .insert({
-              meeting_id: currentMeetingId,
-              user_id: currentUser.id,
-              chunk_number: currentChunkNumber,
-              transcription_text: data.text.trim(),
-              confidence: data.confidence || 0.9,
-              is_final: true,
-              transcriber_type: 'ios-simple',
-              start_time: newChunkStatus.startTime || 0,
-              end_time: newChunkStatus.endTime || approxNowSeconds,
-              session_id: currentSessionId || currentMeetingId
-            });
-          
-          if (error) {
-            console.error(`📱 iOS chunk #${currentChunkNumber}: DB save failed:`, error.message);
-            setChunkSaveStatuses(prev => prev.map(chunk => 
-              chunk.id === uniqueChunkId 
-                ? { ...chunk, saveStatus: 'failed' as const }
-                : chunk
-            ));
-          } else {
-            console.log(`📱 iOS chunk #${currentChunkNumber}: Saved successfully`);
-            setChunkSaveStatuses(prev => prev.map(chunk => 
-              chunk.id === uniqueChunkId 
-                ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
-                : chunk
-            ));
-          }
-        } catch (err) {
-          console.error(`📱 iOS chunk #${currentChunkNumber}: DB save exception:`, err);
+        const { error } = await supabase
+          .from('meeting_transcription_chunks')
+          .insert({
+            meeting_id: currentMeetingId,
+            user_id: currentUser.id,
+            chunk_number: currentChunkNumber,
+            transcription_text: data.text.trim(),
+            confidence: data.confidence || 0.9,
+            is_final: true,
+            transcriber_type: 'ios-simple',
+            start_time: newChunkStatus.startTime || 0,
+            end_time: newChunkStatus.endTime || approxNowSeconds,
+            session_id: currentSessionId || currentMeetingId
+          });
+        
+        if (error) {
+          console.error(`📱 iOS chunk #${currentChunkNumber}: DB save failed:`, error.message);
           setChunkSaveStatuses(prev => prev.map(chunk => 
             chunk.id === uniqueChunkId 
               ? { ...chunk, saveStatus: 'failed' as const }
               : chunk
           ));
+        } else {
+          console.log(`📱 iOS chunk #${currentChunkNumber}: Saved successfully`);
+          setChunkSaveStatuses(prev => prev.map(chunk => 
+            chunk.id === uniqueChunkId 
+              ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
+              : chunk
+          ));
         }
-      };
-      
-      // Execute the async save for iOS chunks
-      persistIOSChunk();
-    } else {
-      // Desktop chunks - transcriber saves to DB, mark as saved after brief delay
-      setTimeout(() => {
+      } catch (err) {
+        console.error(`📱 iOS chunk #${currentChunkNumber}: DB save exception:`, err);
         setChunkSaveStatuses(prev => prev.map(chunk => 
           chunk.id === uniqueChunkId 
-            ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
+            ? { ...chunk, saveStatus: 'failed' as const }
             : chunk
         ));
-      }, 500);
-    }
+      }
+    };
     
+    // Execute the async save
+    persistIOSChunk();
+    
+    // CRITICAL FIX: Force isFinal=true for iOS chunks so they're merged correctly
     // Calculate monotonic timestamps in milliseconds for accurate merge timing
-    const startMs = Math.round(chunkStartSeconds * 1000);
-    const endMs = Math.round(chunkEndSeconds * 1000);
+    const startMs = Math.round((newChunkStatus.startTime || 0) * 1000);
+    const endMs = Math.round((newChunkStatus.endTime || approxNowSeconds) * 1000);
     
     const transcriptData: TranscriptData = {
       text: data.text.trim(),
       speaker: data.speaker || 'Speaker',
       confidence: data.confidence || 0.9,
       timestamp: new Date().toISOString(),
-      isFinal: true, // CRITICAL FIX: Always true so chunks are merged
+      isFinal: true, // CRITICAL FIX: Always true for iOS chunks so they're merged
       chunkNumber: currentChunkNumber,
       chunkLength: chunkLength,
       dbSaveStatus: 'saving',
@@ -2538,36 +2418,6 @@ export const MeetingRecorder = ({
     console.error("Transcription Error:", error);
     setConnectionStatus("Error");
     addDebugLog(`❌ Error: ${error}`);
-  };
-
-  // Handle rejected chunks for UI visibility
-  const handleChunkRejected = (data: { 
-    chunkNumber: number; 
-    reason: string; 
-    originalText?: string;
-    confidence?: number;
-    noSpeechProb?: number;
-    fileSize?: number;
-  }) => {
-    console.log(`🚫 Chunk ${data.chunkNumber} rejected: ${data.reason}`);
-    addDebugLog(`🚫 Chunk ${data.chunkNumber} rejected: ${data.reason}`);
-    
-    // Add rejected chunk to the list with a distinct status
-    const rejectedChunkStatus: ChunkSaveStatus = {
-      id: `rejected_${Date.now()}_${data.chunkNumber}`,
-      chunkNumber: data.chunkNumber,
-      text: data.originalText || '[No text]',
-      chunkLength: data.originalText?.length || 0,
-      saveStatus: 'rejected',
-      retryCount: 0,
-      confidence: data.confidence || 0,
-      startTime: 0,
-      endTime: 0,
-      originalFileSize: data.fileSize,
-      rejectionReason: data.reason
-    };
-    
-    setChunkSaveStatuses(prev => [...prev, rejectedChunkStatus]);
   };
 
 
@@ -2648,15 +2498,8 @@ export const MeetingRecorder = ({
       
       simpleIOSTranscriberRef.current = new SimpleIOSTranscriber(
         {
-          onTranscription: (text: string, isFinal: boolean, confidence: number, meta?: IOSTranscriptionMeta) => {
+          onTranscription: (text: string, isFinal: boolean, confidence: number) => {
             if (!text || !text.trim()) return;
-            
-            // Debug: Log the meta received from SimpleIOSTranscriber
-            console.log('📱 iOS onTranscription callback received meta:', {
-              hasMeta: !!meta,
-              blobSize: meta?.blobSize,
-              blobType: meta?.blobType
-            });
             
             // Use handleBrowserTranscript as single source of truth
             // It already handles: chunkSaveStatuses, watchdog.reportChunkProcessed(), audio activity
@@ -2667,8 +2510,7 @@ export const MeetingRecorder = ({
               timestamp: new Date().toISOString(),
               isFinal,
               is_final: isFinal,
-              source: 'ios-simple' as const,
-              iosMeta: meta // Pass blob metadata for UI display
+              source: 'ios-simple' as const
             };
             handleBrowserTranscript(transcriptData);
           },
@@ -2706,7 +2548,6 @@ export const MeetingRecorder = ({
   // Desktop Whisper transcription for better accuracy
   const startDesktopWhisperTranscription = async (meetingId: string) => {
     addDebugLog('🖥️ Starting Desktop Whisper transcription...');
-    addDebugLog(`🎵 Audio format: ${audioFormat}${audioFormat === 'mp3' ? ` @ ${mp3Bitrate}kbps` : ''}`);
     
     const transcriber = new DesktopWhisperTranscriber(
       handleBrowserTranscript,
@@ -2717,10 +2558,7 @@ export const MeetingRecorder = ({
       (hasActivity: boolean) => setAudioActivity(hasActivity), // Callback for audio activity
       () => watchdog.reportChunkProcessed(), // Callback when chunk is processed
       () => watchdog.reportChunkFiltered(), // Callback when chunk is filtered (not stalled, just low quality)
-      selectedMicrophoneId, // Pass selected microphone device
-      null, // No external stream
-      handleChunkRejected, // NEW: Callback for rejected chunks
-      { format: audioFormat, mp3Bitrate: mp3Bitrate as Mp3Bitrate } // NEW: Audio format settings
+      selectedMicrophoneId // Pass selected microphone device
     );
 
     await transcriber.startTranscription();
@@ -4003,23 +3841,9 @@ export const MeetingRecorder = ({
       const isEdgeCheck = /Edg/.test(navigator.userAgent);
       const useScreenShare = isChromeCheck || isEdgeCheck;
       
-      // CRITICAL FIX: Reset UI state BEFORE starting transcribers to prevent race condition
-      // where first chunk arrives and is immediately wiped by these resets
-      setRealtimeTranscripts([]);
-      setChunkSaveStatuses([]);
-      pendingTranscriptsRef.current = []; // Clear any stale pending transcripts
-      lastChunkEndTime.current = null; // CRITICAL: Reset chunk timing for accurate first chunk
-      setSpeakerCount(1);
-      setStartTime(generateMeetingTimestamp());
-      
       // Reset audio capture status
       setMicCaptured(false);
       setSystemAudioCaptured(false);
-      
-      // Set recording state BEFORE starting transcribers so handlers are ready
-      setIsRecording(true);
-      isRecordingRef.current = true;
-      setConnectionStatus("Connected");
       
       if (recordingMode === 'mic-only') {
         // Microphone only mode
@@ -4045,6 +3869,15 @@ export const MeetingRecorder = ({
           setSystemAudioCaptured(true);
         }
       }
+      
+      setIsRecording(true);
+      isRecordingRef.current = true;
+      // Recording start time already set earlier - don't reset it here
+      setRealtimeTranscripts([]);
+      setChunkSaveStatuses([]);
+      setSpeakerCount(1);
+      setStartTime(generateMeetingTimestamp());
+      setConnectionStatus("Connected");
 
       // Start overlapping chunk recording for system audio (only if not microphone-only and not using screen share)
       if (recordingMode === 'mic-and-system' && !useScreenShare) {

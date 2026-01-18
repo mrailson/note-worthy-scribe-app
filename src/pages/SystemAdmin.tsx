@@ -62,7 +62,6 @@ import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboar
 import { AdminMeetingControls } from '@/components/AdminMeetingControls';
 import { DCB0129Panel } from '@/components/admin/DCB0129Panel';
 import { ConsultationVisibilitySettings } from '@/components/admin/ConsultationVisibilitySettings';
-import { TranscriptionAudioSettings } from '@/components/admin/TranscriptionAudioSettings';
 import { MeetingStatsByUser } from '@/components/admin/MeetingStatsByUser';
 import { MeetingUsageReport } from '@/components/admin/MeetingUsageReport';
 import { LiveAndRecentMeetings } from '@/components/admin/LiveAndRecentMeetings';
@@ -4370,8 +4369,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
             <ConsultationVisibilitySettings />
-            
-            <TranscriptionAudioSettings />
             
             <AdminVideoUpload />
             
