@@ -47,6 +47,7 @@ export function useDictation() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isFormatting, setIsFormatting] = useState(false);
   
   // Refs
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
@@ -409,6 +410,35 @@ export function useDictation() {
     }
   }, [currentSessionId, fetchHistory]);
 
+  // Format and clean content using AI
+  const formatAndClean = useCallback(async () => {
+    if (!content.trim() || status === 'recording' || isFormatting) return;
+    
+    setIsFormatting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('format-dictation', {
+        body: { 
+          content: content.trim(), 
+          templateType: selectedTemplate 
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.formattedContent) {
+        setContent(data.formattedContent);
+        showToast.success('Text formatted and cleaned');
+      } else if (data?.error) {
+        throw new Error(data.error);
+      }
+    } catch (err) {
+      console.error('Format and clean failed:', err);
+      showToast.error(err instanceof Error ? err.message : 'Failed to format text');
+    } finally {
+      setIsFormatting(false);
+    }
+  }, [content, selectedTemplate, status, isFormatting]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -437,6 +467,7 @@ export function useDictation() {
     isLoadingHistory,
     currentSessionId,
     error,
+    isFormatting,
     
     // Computed
     formatDuration,
@@ -454,5 +485,6 @@ export function useDictation() {
     deleteSession,
     finalizeDictation,
     fetchHistory,
+    formatAndClean,
   };
 }

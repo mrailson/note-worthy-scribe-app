@@ -395,3 +395,6 @@ verify_jwt = true
 
 [functions.consultation-qa-chat]
 verify_jwt = true
+
+[functions.format-dictation]
+verify_jwt = true
