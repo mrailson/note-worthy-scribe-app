@@ -21,38 +21,101 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
   const [status, setStatus] = useState<PreviewStatus>('idle');
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
-  // Track the base text (all confirmed finals) and current partial separately
+
+  // Track the base text (all confirmed finals) and current partial separately.
+  // NOTE: AssemblyAI v3 can emit *two* final turns for the same utterance
+  // (e.g. raw + formatted), so we also track the last final segment to replace
+  // rather than append when that happens.
   const baseTranscriptRef = useRef<string>("");
   const currentPartialRef = useRef<string>("");
+  const lastFinalSegmentRef = useRef<string>("");
+  const lastFinalAtRef = useRef<number>(0);
+
+  const normalise = (t: string) =>
+    t
+      .toLowerCase()
+      // remove punctuation/case differences so we can detect duplicate finals
+      .replace(/[^\p{L}\p{N}\s]+/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const replaceTrailingSegment = (full: string, oldSeg: string, newSeg: string) => {
+    const t = full.trim();
+    const oldT = oldSeg.trim();
+    const newT = newSeg.trim();
+
+    if (!oldT) return (t + ' ' + newT).trim();
+    if (t === oldT) return newT;
+
+    if (t.endsWith(' ' + oldT)) {
+      return (t.slice(0, -(oldT.length + 1)) + ' ' + newT).trim();
+    }
+
+    if (t.endsWith(oldT)) {
+      return (t.slice(0, -oldT.length) + newT).trim();
+    }
+
+    return (t + ' ' + newT).trim();
+  };
+
+  const shouldReplaceLastFinal = (newText: string) => {
+    const last = lastFinalSegmentRef.current;
+    if (!last) return false;
+
+    const withinWindow = Date.now() - lastFinalAtRef.current < 2000;
+    if (!withinWindow) return false;
+
+    const a = normalise(last);
+    const b = normalise(newText);
+    if (!a || !b) return false;
+
+    return a === b || a.startsWith(b) || b.startsWith(a);
+  };
 
   // Update transcripts - rolling for live preview, full accumulation for tab
   const updateTranscript = useCallback((newText: string, isFinal: boolean) => {
     if (!newText.trim()) return;
-    
+
     console.log(`🎤 AssemblyAI ${isFinal ? 'FINAL' : 'partial'}: "${newText.substring(0, 50)}..."`);
-    
+
     if (isFinal) {
-      // Append final to full transcript
-      setFullTranscript(prev => (prev + ' ' + newText).trim());
-      
-      // Append final to base transcript and clear partial
-      baseTranscriptRef.current = (baseTranscriptRef.current + ' ' + newText).trim();
+      const now = Date.now();
+
+      if (shouldReplaceLastFinal(newText)) {
+        // Replace the last final segment (AssemblyAI often sends a formatted final after a raw final)
+        const prevSeg = lastFinalSegmentRef.current;
+
+        setFullTranscript((prev) => replaceTrailingSegment(prev, prevSeg, newText));
+        baseTranscriptRef.current = replaceTrailingSegment(baseTranscriptRef.current, prevSeg, newText);
+
+        console.log('🔁 Replaced duplicate final segment instead of appending');
+      } else {
+        // Append brand new final segment
+        setFullTranscript((prev) => (prev + ' ' + newText).trim());
+        baseTranscriptRef.current = (baseTranscriptRef.current + ' ' + newText).trim();
+      }
+
+      lastFinalSegmentRef.current = newText;
+      lastFinalAtRef.current = now;
+
+      // Clear partial
       currentPartialRef.current = "";
-      
+
       // Update live preview with base only (no partial pending)
       const words = baseTranscriptRef.current.split(/\s+/).slice(-MAX_WORDS);
       setLiveTranscript(words.join(' '));
-    } else {
-      // Replace the current partial (don't accumulate partials)
-      currentPartialRef.current = newText;
-      
-      // Live preview = base + current partial
-      const combined = (baseTranscriptRef.current + ' ' + newText).trim();
-      const words = combined.split(/\s+/).slice(-MAX_WORDS);
-      setLiveTranscript(words.join(' '));
+      return;
     }
+
+    // Partial - replace the current partial (don't accumulate partials)
+    currentPartialRef.current = newText;
+
+    // Live preview = base + current partial
+    const combined = (baseTranscriptRef.current + ' ' + newText).trim();
+    const words = combined.split(/\s+/).slice(-MAX_WORDS);
+    setLiveTranscript(words.join(' '));
   }, []);
 
   const startPreview = useCallback(async () => {
