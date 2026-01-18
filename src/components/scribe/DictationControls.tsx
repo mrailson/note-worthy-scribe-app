@@ -23,11 +23,12 @@ export function DictationControls({
   const [countdown, setCountdown] = useState<number | null>(null);
 
   const handleStartClick = useCallback(() => {
-    // Start 2-second countdown
+    // Start connection immediately AND start countdown in parallel
+    onStart();
     setCountdown(2);
-  }, []);
+  }, [onStart]);
 
-  // Handle countdown timer
+  // Handle countdown timer - purely visual, connection already started
   useEffect(() => {
     if (countdown === null) return;
 
@@ -37,11 +38,10 @@ export function DictationControls({
       }, 1000);
       return () => clearTimeout(timer);
     } else {
-      // Countdown finished, actually start
+      // Countdown finished
       setCountdown(null);
-      onStart();
     }
-  }, [countdown, onStart]);
+  }, [countdown]);
 
   // Render countdown animation
   if (countdown !== null) {
