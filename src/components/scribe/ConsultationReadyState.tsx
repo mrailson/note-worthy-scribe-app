@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -52,6 +52,16 @@ export const ConsultationReadyState = ({
   const hideSystemAudio = isMobile || isIPhone;
   const [showExplainer, setShowExplainer] = useState(false);
   const [selectedAudioMode, setSelectedAudioMode] = useState<AudioSourceMode>('microphone');
+  
+  // Auto-switch audio mode based on consultation type
+  useEffect(() => {
+    if (consultationType === 'f2f') {
+      setSelectedAudioMode('microphone');
+    } else {
+      // telephone or video - use mic + softphone
+      setSelectedAudioMode('microphone_and_system');
+    }
+  }, [consultationType]);
   
   const canStart = !settings.showConsentReminder || patientConsent;
 
