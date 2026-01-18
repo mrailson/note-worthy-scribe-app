@@ -111,7 +111,7 @@ export const ConsultationTypeSelector = ({
               {typeIcons[type]}
               <span className={isMobile ? "text-xs" : "hidden sm:inline"}>
                 {type === 'f2f' 
-                  ? `${CONSULTATION_TYPE_LABELS[type]} (${f2fAccompanied ? F2F_ACCOMPANIED_LABELS.accompanied : F2F_ACCOMPANIED_LABELS.alone})`
+                  ? `${CONSULTATION_TYPE_LABELS[type]}${f2fAccompanied ? ' ' + F2F_ACCOMPANIED_LABELS.accompanied : ''}`
                   : CONSULTATION_TYPE_LABELS[type]
                 }
               </span>
