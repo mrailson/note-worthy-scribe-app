@@ -1364,7 +1364,7 @@ export const MeetingRecorder = ({
       let chunkBlob = new Blob(chunks, { type: 'audio/webm' });
       const originalSize = chunkBlob.size;
       const endTime = new Date();
-      
+      const endTimeMonotonic = performance.now();
       // Step 1: Trim leading/trailing silence (>500ms) to improve last-word confidence
       console.log(`✂️ Trimming silence from chunk ${chunkId}...`);
       chunkBlob = await trimSilence(chunkBlob, { thresholdMs: 500, silenceLevel: -40 });
@@ -1453,7 +1453,7 @@ export const MeetingRecorder = ({
           ? (endTime.getTime() - recordingStart.getTime()) / 1000 
           : 0;
         const monotonicEndSeconds = recordingStartMonotonicRef.current != null
-          ? (performance.now() - recordingStartMonotonicRef.current) / 1000
+          ? (endTimeMonotonic - recordingStartMonotonicRef.current) / 1000
           : null;
         const chunkEndSeconds = (monotonicEndSeconds ?? wallClockEndSeconds);
         
@@ -2324,7 +2324,12 @@ export const MeetingRecorder = ({
     const approxNowSeconds = recordingStartMonotonicRef.current != null
       ? (performance.now() - recordingStartMonotonicRef.current) / 1000
       : duration;
-    const chunkStartSeconds = approxNowSeconds;
+
+    // iOS chunks don't have an audio file blob available client-side, so file size is unknown.
+    // For timing, treat each recognised "chunk" as spanning from the previous chunk end to now.
+    const chunkEndSeconds = approxNowSeconds;
+    const proposedStart = lastChunkEndTime.current ?? 0;
+    const chunkStartSeconds = Math.min(proposedStart, chunkEndSeconds);
     
     const newChunkStatus: ChunkSaveStatus = {
       id: uniqueChunkId,
@@ -2334,12 +2339,13 @@ export const MeetingRecorder = ({
       saveStatus: 'saving',
       retryCount: 0,
       confidence: data.confidence || 0.9,
-      startTime: lastChunkEndTime.current || Math.max(0, chunkStartSeconds - 2), // Use previous end or approximate
-      endTime: chunkStartSeconds // End time is when chunk arrives
+      startTime: chunkStartSeconds,
+      endTime: chunkEndSeconds,
+      fileType: 'audio/ios'
     };
     
     // Update last chunk end time for iPhone chunks
-    lastChunkEndTime.current = chunkStartSeconds;
+    lastChunkEndTime.current = chunkEndSeconds;
     
     setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
     
