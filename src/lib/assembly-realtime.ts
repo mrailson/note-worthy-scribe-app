@@ -25,6 +25,8 @@ export class AssemblyRealtimeClient {
   private ws?: WebSocket;
 
   private stream?: MediaStream;
+  private externalStream?: MediaStream; // Optional external stream (e.g., combined mic+system)
+  private ownsStream = true; // Whether we created the stream (and should stop it on cleanup)
   private audioCtx?: AudioContext;
   private source?: MediaStreamAudioSourceNode;
   private processor?: ScriptProcessorNode;
@@ -35,8 +37,15 @@ export class AssemblyRealtimeClient {
 
   constructor(private cb: Callbacks = {}) {}
 
-  async start() {
-    console.log("🎧 AssemblyRealtimeClient: connecting to proxy", PROXY_WS_URL);
+  /**
+   * Start the real-time transcription session.
+   * @param externalStream Optional MediaStream to use instead of capturing mic directly.
+   *                       Useful for combined mic+system audio streams.
+   */
+  async start(externalStream?: MediaStream) {
+    this.externalStream = externalStream;
+    console.log("🎧 AssemblyRealtimeClient: connecting to proxy", PROXY_WS_URL, 
+      externalStream ? "(using external stream)" : "(capturing mic)");
 
     this.ws = new WebSocket(PROXY_WS_URL);
     this.ws.binaryType = "arraybuffer";
@@ -217,9 +226,17 @@ export class AssemblyRealtimeClient {
   }
 
   private async startAudioCapture() {
-    console.log("🎙️ AssemblyRealtimeClient: starting mic capture");
+    // Use external stream if provided, otherwise capture mic directly
+    if (this.externalStream) {
+      console.log("🎙️ AssemblyRealtimeClient: using external stream (mic+system)");
+      this.stream = this.externalStream;
+      this.ownsStream = false; // Don't stop this stream on cleanup - it's managed externally
+    } else {
+      console.log("🎙️ AssemblyRealtimeClient: capturing mic directly");
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.ownsStream = true;
+    }
 
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     this.source = this.audioCtx.createMediaStreamSource(this.stream);
 
@@ -269,9 +286,12 @@ export class AssemblyRealtimeClient {
       this.audioCtx?.close();
     } catch {}
 
-    try {
-      this.stream?.getTracks().forEach((t) => t.stop());
-    } catch {}
+    // Only stop stream tracks if we created the stream ourselves
+    if (this.ownsStream) {
+      try {
+        this.stream?.getTracks().forEach((t) => t.stop());
+      } catch {}
+    }
 
     this.processor = undefined;
     this.source = undefined;

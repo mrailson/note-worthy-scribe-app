@@ -9,7 +9,7 @@ interface UseAssemblyRealtimePreviewReturn {
   status: PreviewStatus;
   isActive: boolean;
   error: string | null;
-  startPreview: () => Promise<void>;
+  startPreview: (externalStream?: MediaStream) => Promise<void>;
   stopPreview: () => void;
 }
 
@@ -118,7 +118,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     setLiveTranscript(words.join(' '));
   }, []);
 
-  const startPreview = useCallback(async () => {
+  const startPreview = useCallback(async (externalStream?: MediaStream) => {
     if (clientRef.current || isActive) {
       console.log('🎤 Preview already active, skipping start');
       return;
@@ -131,8 +131,11 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       setFullTranscript("");
       baseTranscriptRef.current = "";
       currentPartialRef.current = "";
+      lastFinalSegmentRef.current = "";
+      lastFinalAtRef.current = 0;
       
-      console.log('🎤 Starting AssemblyAI real-time preview...');
+      console.log('🎤 Starting AssemblyAI real-time preview...', 
+        externalStream ? '(with external stream)' : '(mic only)');
       
       clientRef.current = new AssemblyRealtimeClient({
         onOpen: () => {
@@ -159,7 +162,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
         }
       });
 
-      await clientRef.current.start();
+      await clientRef.current.start(externalStream);
       console.log('🎤 AssemblyAI client started successfully');
       
     } catch (err) {
