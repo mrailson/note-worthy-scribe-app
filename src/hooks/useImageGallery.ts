@@ -60,6 +60,7 @@ export const useImageGallery = (): UseImageGallery => {
         .from('user_generated_images')
         .select('*')
         .eq('user_id', user.id)
+        .in('source', ['image-studio', 'infographic']) // Only show Image Studio and Infographic images
         .order('created_at', { ascending: false });
 
       if (filters?.source) {
