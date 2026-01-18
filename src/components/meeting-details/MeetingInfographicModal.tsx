@@ -19,8 +19,7 @@ interface ActionItem {
 
 interface InfographicOptions {
   style: string;
-  detailLevel: string;
-  focusArea: string;
+  customStyle?: string;
 }
 
 interface MeetingInfographicModalProps {

@@ -29,37 +29,31 @@ interface GenerationResult {
 
 interface InfographicOptions {
   style: string;
-  detailLevel: string;
-  focusArea: string;
+  customStyle?: string;
 }
 
-// Style prompt mappings
-const STYLE_PROMPTS: Record<string, string> = {
-  'clean-minimal': 'Minimalist design with clean lines, ample white space, simple iconography, and a refined monochromatic palette with subtle accent colours',
-  'bold-colourful': 'Bold, vibrant colours with striking visual elements, high contrast design, dynamic shapes, and eye-catching graphics',
-  'corporate': 'Corporate executive style with formal layout, muted professional colours (navy, grey, burgundy), structured grid, and understated elegance',
-  'nhs-clinical': 'NHS-branded clinical style using NHS blue (#005EB8) palette, healthcare iconography, medical professional aesthetic, and accessible design',
-  'modern-gradient': 'Modern design with smooth gradients, rounded corners, subtle shadows, glass morphism effects, and contemporary colour transitions',
-  'professional': 'Professional business design with balanced layout, clean typography, and appropriate use of colour to highlight key information',
-};
-
-// Detail level prompt mappings
-const DETAIL_PROMPTS: Record<string, string> = {
-  'light': 'Brief overview with only the most essential 3-5 key points, ideal for a quick one-glance reference. Minimal text, maximum visual impact.',
-  'standard': 'Balanced level of detail covering all main topics, key decisions, and primary action items in a clear, scannable format.',
-  'comprehensive': 'Detailed infographic including all discussion points, decisions made, action items with full context, and supporting information.',
-  'key-points': 'Focus exclusively on bullet points, key decisions, and action items presented as a clear checklist without narrative explanations.',
-  'executive': 'C-suite focused summary highlighting only strategic outcomes, high-level decisions, and critical next steps. Board-ready presentation.',
-};
-
-// Focus area prompt mappings
-const FOCUS_PROMPTS: Record<string, string> = {
-  'balanced': 'Equal emphasis across all meeting elements including discussions, decisions, and action items.',
-  'actions': 'Emphasise action items prominently with clear owner names, deadline dates, priority indicators, and status tracking visuals.',
-  'decisions': 'Highlight key decisions made during the meeting with supporting context, rationale, and implications visualised clearly.',
-  'timeline': 'Show meeting flow and action item timeline with visual chronology, due dates on a timeline, and milestone markers.',
-  'attendees': 'Emphasise participant contributions, action item ownership distribution, and role-based responsibilities with people-focused visuals.',
-  'next-steps': 'Focus on forward-looking elements: next steps, follow-up actions, future meeting dates, and pending items requiring attention.',
+// Simplified infographic style presets
+const INFOGRAPHIC_STYLES: Record<string, { name: string; prompt: string }> = {
+  'clean-professional': {
+    name: 'Clean Professional',
+    prompt: 'Minimalist professional design with clean white space, subtle grey and blue tones, modern sans-serif typography, simple geometric shapes, and clear visual hierarchy. Business-appropriate with elegant simplicity.'
+  },
+  'bold-visual': {
+    name: 'Bold Visual',
+    prompt: 'High-impact data visualisation with bold colours (teal, orange, purple), striking infographic charts, large numbers and statistics prominently displayed, dynamic visual flow, and modern iconography. Eye-catching and memorable.'
+  },
+  'nhs-clinical': {
+    name: 'NHS Clinical',
+    prompt: 'NHS-branded professional style using NHS blue (#005EB8) as primary colour, healthcare and medical iconography, clean clinical aesthetic, trust-inspiring design, accessible and clear typography. Suitable for healthcare settings.'
+  },
+  'creative-illustrated': {
+    name: 'Creative Illustrated',
+    prompt: 'Hand-drawn illustration style with friendly icons, soft pastel colours, sketched elements, playful but professional aesthetic, warm and approachable feeling. Organic shapes and gentle visual flow.'
+  },
+  'timeline-view': {
+    name: 'Timeline View',
+    prompt: 'Horizontal or vertical timeline-focused design with clear chronological flow, milestone markers, connecting lines and arrows, date/time emphasis, journey-style presentation showing progression of meeting topics and outcomes.'
+  }
 };
 
 export const useMeetingInfographic = () => {
@@ -83,9 +77,8 @@ export const useMeetingInfographic = () => {
       sections.push(metadata.join(' | '));
     }
 
-    // Key statistics
+    // Key statistics (without attendee count)
     sections.push('\nKEY STATISTICS:');
-    sections.push(`• ${data.attendees.length} Attendees`);
     sections.push(`• ${data.actionItems.length} Action Items`);
     
     // Count key decisions if present in notes
@@ -93,15 +86,6 @@ export const useMeetingInfographic = () => {
     if (decisionsMatch) {
       const decisions = decisionsMatch[1].trim().split('\n').filter(l => l.trim().match(/^[-•*\d]/));
       sections.push(`• ${decisions.length} Key Decisions`);
-    }
-
-    // Attendees list
-    if (data.attendees.length > 0) {
-      sections.push('\nATTENDEES:');
-      sections.push(data.attendees.slice(0, 10).join(', '));
-      if (data.attendees.length > 10) {
-        sections.push(`... and ${data.attendees.length - 10} more`);
-      }
     }
 
     // Executive summary
@@ -162,15 +146,17 @@ export const useMeetingInfographic = () => {
       // Log options received
       console.log('[useMeetingInfographic] Options received:', options);
       
-      // Build dynamic prompt based on options
-      const stylePrompt = options?.style ? STYLE_PROMPTS[options.style] || STYLE_PROMPTS['professional'] : STYLE_PROMPTS['professional'];
-      const detailPrompt = options?.detailLevel ? DETAIL_PROMPTS[options.detailLevel] || DETAIL_PROMPTS['standard'] : DETAIL_PROMPTS['standard'];
-      const focusPrompt = options?.focusArea ? FOCUS_PROMPTS[options.focusArea] || FOCUS_PROMPTS['balanced'] : FOCUS_PROMPTS['balanced'];
-      
-      // Log the prompts being used
-      console.log('[useMeetingInfographic] Style prompt:', stylePrompt);
-      console.log('[useMeetingInfographic] Detail prompt:', detailPrompt);
-      console.log('[useMeetingInfographic] Focus prompt:', focusPrompt);
+      // Build style instruction based on preset or custom style
+      let styleInstruction: string;
+      if (options?.customStyle?.trim()) {
+        styleInstruction = `Custom visual style requested: "${options.customStyle}". 
+Apply this creative direction while maintaining readability and professional presentation of the meeting content.`;
+        console.log('[useMeetingInfographic] Using custom style:', options.customStyle);
+      } else {
+        const styleData = INFOGRAPHIC_STYLES[options?.style || 'clean-professional'];
+        styleInstruction = styleData?.prompt || INFOGRAPHIC_STYLES['clean-professional'].prompt;
+        console.log('[useMeetingInfographic] Using preset style:', options?.style || 'clean-professional');
+      }
       
       setCurrentPhase('generating');
 
@@ -180,21 +166,24 @@ export const useMeetingInfographic = () => {
         setTimeout(() => reject(new Error('Image generation timed out after 120 seconds. Please try again.')), 120000);
       });
 
-      const customPrompt = `Create a professional, visually appealing meeting summary infographic for: "${data.meetingTitle}".
+      const customPrompt = `Create a visually striking meeting summary infographic for: "${data.meetingTitle}".
 
-VISUAL STYLE: ${stylePrompt}
+VISUAL STYLE:
+${styleInstruction}
 
-DETAIL LEVEL: ${detailPrompt}
+CONTENT TO VISUALISE:
+- Meeting title and date
+- Key decisions made
+- Action items with owners and deadlines (${data.actionItems.length} items)
+- Main discussion points and outcomes
 
-CONTENT FOCUS: ${focusPrompt}
-
-Additional requirements:
+REQUIREMENTS:
 - Clear visual hierarchy with the meeting title prominently displayed
-- Use icons and visual elements to represent key statistics
-- Display attendee count (${data.attendees.length}), action items count (${data.actionItems.length}), and key decisions
-- Use British English spelling throughout
-- Make it suitable for printing on A4 or sharing digitally
-- Ensure excellent readability and professional appearance`;
+- Use icons and visual elements to represent concepts
+- British English spelling throughout
+- Make it suitable for A4 printing or digital sharing
+- Excellent readability and visual appeal
+- NO attendee counts or participant numbers`;
 
       const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
@@ -202,7 +191,7 @@ Additional requirements:
           conversationContext: '',
           documentContent: documentContent,
           requestType: 'infographic',
-          imageModel: 'google/gemini-2.5-flash-image-preview',
+          imageModel: 'google/gemini-3-pro-image-preview',
           practiceContext: {
             brandingLevel: 'none'
           }
