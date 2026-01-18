@@ -9,7 +9,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScribeSession, CONSULTATION_TYPE_SHORT, ConsultationCategory } from "@/types/scribe";
-import { ChevronDown, ChevronRight, Eye, Pencil, Trash2, MoreVertical, User, Check, X, Stethoscope, Heart, HandHeart, Copy } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, Pencil, Trash2, MoreVertical, User, Check, X, Stethoscope, Heart, HandHeart, Copy, ClipboardList, Monitor, List, Save } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { maskPatientName, maskDateOfBirth } from "@/utils/patientDataMasking";
@@ -236,6 +237,61 @@ export function SessionHistoryRow({
             <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 capitalize">
               {wordCountCategory}
             </Badge>
+            
+            {/* Separator */}
+            <span className="text-muted-foreground/40">|</span>
+            
+            {/* View Mode Icons */}
+            <div className="flex items-center gap-0.5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <Save className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Saved</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <ClipboardList className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">TPP SystmOne</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <Monitor className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">EMIS View</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <Heart className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Ageing Well</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <List className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">SOAP View</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <User className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Patient Letter</TooltipContent>
+              </Tooltip>
+            </div>
             
             {/* Patient Details - shown when toggle is on */}
             {showPatientDetails && session.patientName && (
