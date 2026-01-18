@@ -48,13 +48,49 @@ Deno.serve(async (req: Request) => {
           return;
         }
 
-        console.log('🔗 Creating AssemblyAI WebSocket connection with enhanced quality settings...');
+        console.log('🔗 Creating AssemblyAI WebSocket connection with enhanced quality settings and medical keyterms...');
+
+        // Medical keyterms for GP dictation - helps AssemblyAI recognise medical vocabulary
+        const medicalKeyterms = [
+          // Blood pressure and vitals
+          "over", "blood pressure", "BP", "systolic", "diastolic",
+          "heart rate", "pulse", "oxygen saturation", "SpO2", "temperature",
+          "respiratory rate", "BMI", "weight", "height", "HR", "bpm",
+          
+          // Common measurements and units
+          "milligrams", "mg", "micrograms", "mcg", "millilitres", "ml",
+          "units", "percent", "per cent", "mmol", "mmHg", "kilograms", "kg",
+          
+          // Medical terms
+          "diagnosis", "prognosis", "symptoms", "examination",
+          "history", "presenting complaint", "on examination",
+          "impression", "plan", "referral", "follow-up", "review",
+          
+          // Common drugs
+          "paracetamol", "ibuprofen", "amoxicillin", "metformin",
+          "omeprazole", "simvastatin", "ramipril", "amlodipine",
+          "aspirin", "codeine", "tramadol", "lansoprazole",
+          "atorvastatin", "bisoprolol", "lisinopril", "losartan",
+          "sertraline", "citalopram", "fluoxetine", "amitriptyline",
+          "gabapentin", "pregabalin", "naproxen", "diclofenac",
+          
+          // Body systems
+          "cardiovascular", "respiratory", "gastrointestinal",
+          "musculoskeletal", "neurological", "dermatological",
+          "urological", "gynaecological", "psychiatric",
+          
+          // Common conditions
+          "hypertension", "diabetes", "asthma", "COPD",
+          "arthritis", "depression", "anxiety", "infection"
+        ];
 
         // AssemblyAI Streaming v3 expects:
         // - language_code: en|fr|de|es|it|pt|multi
         // - speech_model: universal-streaming-english|universal-streaming-multilingual|whisper-streaming
+        // - keyterms_prompt: JSON array of terms to boost recognition
         // Ref: errors shown in AssemblyAI dashboard when invalid values are provided.
-        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&speech_model=universal-streaming-english&language_code=en&punctuate=true&format_text=true&word_confidence=true`;
+        const keytermsParam = encodeURIComponent(JSON.stringify(medicalKeyterms));
+        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&speech_model=universal-streaming-english&language_code=en&punctuate=true&format_text=true&word_confidence=true&keyterms_prompt=${keytermsParam}`;
         
         // Get token from AssemblyAI (9 minutes expiry)
         const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=540', {

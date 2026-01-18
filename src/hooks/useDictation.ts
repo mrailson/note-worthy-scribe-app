@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AssemblyRealtimeClient } from '@/lib/assembly-realtime';
 import { showToast } from '@/utils/toastWrapper';
-
+import { processMedicalText } from '@/utils/medicalTextProcessor';
 export type DictationStatus = 'idle' | 'connecting' | 'recording' | 'paused' | 'processing' | 'error';
 export type TemplateType = 'free' | 'consultation' | 'referral' | 'patient-letter' | 'clinical-note' | 'sick-note';
 
@@ -229,21 +229,25 @@ export function useDictation() {
           console.log('🎤 Dictation partial:', text.substring(0, 30) + '...');
         },
         onFinal: (text) => {
-          console.log('🎤 Dictation FINAL:', text.substring(0, 50) + '...');
+          console.log('🎤 Dictation FINAL (raw):', text.substring(0, 50) + '...');
+          
+          // Apply medical text processing to correct common transcription errors
+          const processedText = processMedicalText(text);
+          console.log('🏥 Dictation FINAL (processed):', processedText.substring(0, 50) + '...');
           
           const now = Date.now();
           
-          if (shouldReplaceLastFinal(text)) {
+          if (shouldReplaceLastFinal(processedText)) {
             // Replace the last final segment (AssemblyAI often sends formatted after raw)
             const prevSeg = lastFinalSegmentRef.current;
-            recordingTranscriptRef.current = replaceTrailingSegment(recordingTranscriptRef.current, prevSeg, text);
+            recordingTranscriptRef.current = replaceTrailingSegment(recordingTranscriptRef.current, prevSeg, processedText);
             console.log('🔁 Replaced duplicate final segment');
           } else {
             // Append brand new final segment
-            recordingTranscriptRef.current = (recordingTranscriptRef.current + ' ' + text).trim();
+            recordingTranscriptRef.current = (recordingTranscriptRef.current + ' ' + processedText).trim();
           }
           
-          lastFinalSegmentRef.current = text;
+          lastFinalSegmentRef.current = processedText;
           lastFinalAtRef.current = now;
           
           // Update content: base + recording transcript
