@@ -453,7 +453,7 @@ export const MinimalRecordingState = ({
                       onClick={() => setTranscriptSource('realtime')}
                     >
                       <Radio className="h-3 w-3 mr-1" />
-                      Notewell
+                      Notewell Live
                     </Button>
                     <Button
                       variant={transcriptSource === 'batch' ? 'secondary' : 'ghost'}
@@ -462,7 +462,7 @@ export const MinimalRecordingState = ({
                       onClick={() => setTranscriptSource('batch')}
                     >
                       <FileText className="h-3 w-3 mr-1" />
-                      Whisper
+                      Notewell Batch
                     </Button>
                   </div>
                   {transcriptSource === 'realtime' && livePreviewActive && (
@@ -495,7 +495,7 @@ export const MinimalRecordingState = ({
                   </div>
                 )}
 
-                {/* Batch (Whisper) transcript */}
+                {/* Batch (Notewell Batch) transcript */}
                 {transcriptSource === 'batch' && (
                   <div ref={batchTranscriptRef} className="h-32 overflow-y-auto">
                     <div className="px-4 pt-2 pb-4">
@@ -505,7 +505,7 @@ export const MinimalRecordingState = ({
                         </p>
                       ) : (
                         <p className="text-sm text-muted-foreground italic text-center">
-                          Whisper transcript appears after each chunk is processed...
+                          Notewell Batch transcript appears after each chunk is processed...
                         </p>
                       )}
                     </div>
