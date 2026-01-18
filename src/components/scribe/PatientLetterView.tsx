@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Mail, Printer, FileText, Copy, RefreshCw } from "lucide-react";
+import { Loader2, Mail, Printer, FileText, Copy, RefreshCw, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { SMSSendButton } from "@/components/scribe/SMSSendButton";
 
 interface GPDetails {
   name: string;
@@ -36,6 +37,37 @@ interface PatientLetterViewProps {
 
 const normaliseNewlines = (text: string) =>
   text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+/**
+ * Generate a short SMS version (max ~50 words) from letter content
+ */
+const generateSMSFromLetter = (letterContent: string): string => {
+  if (!letterContent || letterContent.trim() === "") {
+    return "Thank you for attending your consultation today. We've discussed next steps for your care. Please take any prescribed medications as directed and contact us if you have concerns.";
+  }
+
+  // Clean and extract key points
+  let cleaned = letterContent.replace(/\*\*/g, '').trim();
+  const sentences = cleaned.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  
+  // Build SMS from first few meaningful sentences, targeting ~50 words
+  let sms = "";
+  let wordCount = 0;
+  
+  for (const sentence of sentences) {
+    const trimmed = sentence.trim();
+    const words = trimmed.split(/\s+/).length;
+    
+    if (wordCount + words <= 55) {
+      sms += (sms ? ". " : "") + trimmed;
+      wordCount += words;
+    } else {
+      break;
+    }
+  }
+  
+  return sms ? sms + "." : "Thank you for your consultation today. Please contact the surgery if you have any questions.";
+};
 
 /**
  * The edge function returns a full email-style output (greeting + body + closing + disclaimers).
@@ -474,7 +506,12 @@ ${letterContent}</div>
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-2">
-        <Button onClick={handleEmail} className="flex-1 min-w-[120px]">
+        <SMSSendButton
+          message={generateSMSFromLetter(letterContent)}
+          variant="default"
+          className="flex-1 min-w-[120px]"
+        />
+        <Button onClick={handleEmail} variant="outline" className="flex-1 min-w-[120px]">
           <Mail className="h-4 w-4 mr-2" />
           Email
         </Button>
