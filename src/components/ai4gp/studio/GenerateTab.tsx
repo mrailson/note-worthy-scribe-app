@@ -48,6 +48,31 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
     document.body.removeChild(link);
   };
 
+  const handleOpenFullSize = () => {
+    if (!currentResult?.url) return;
+    
+    // Create a new window with the image - handles base64 URLs properly
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Image - Full Size</title>
+            <style>
+              body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #1a1a1a; }
+              img { max-width: 100%; max-height: 100vh; object-fit: contain; }
+            </style>
+          </head>
+          <body>
+            <img src="${currentResult.url}" alt="${currentResult.alt || 'Generated image'}" />
+          </body>
+        </html>
+      `);
+      newWindow.document.close();
+    }
+  };
+
   const handleSaveToGallery = async () => {
     if (!currentResult || !onSaveToGallery) return;
     
@@ -145,7 +170,7 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
                   {savedImageId ? 'Saved to Gallery' : 'Save to Gallery'}
                 </Button>
               )}
-              <Button variant="outline" onClick={() => window.open(currentResult.url, '_blank')}>
+              <Button variant="outline" onClick={handleOpenFullSize}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 Open Full Size
               </Button>
