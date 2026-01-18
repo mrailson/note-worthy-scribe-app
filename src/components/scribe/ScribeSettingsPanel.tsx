@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS, HistoryRetention, HISTORY_RETENTION_LABELS } from "@/types/scribe";
+import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS, HistoryRetention, HISTORY_RETENTION_LABELS, AudioRecordingFormat, AUDIO_FORMAT_LABELS, CHUNK_DURATION_OPTIONS } from "@/types/scribe";
 import { Save, RotateCcw, Stethoscope, Mic, Shield, Clock, AlertTriangle, ChevronDown } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Phone, Video, Users } from "lucide-react";
@@ -185,6 +186,55 @@ export const ScribeSettingsPanel = ({
                   checked={settings.minimalRecordingView}
                   onCheckedChange={(checked) => onUpdateSetting('minimalRecordingView', checked)}
                 />
+              </div>
+
+              <div className="border-t pt-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="audioFormat">Audio Format</Label>
+                  <Select
+                    value={settings.audioFormat || 'webm'}
+                    onValueChange={(value: AudioRecordingFormat) => 
+                      onUpdateSetting('audioFormat', value)
+                    }
+                  >
+                    <SelectTrigger id="audioFormat">
+                      <SelectValue placeholder="Select audio format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(AUDIO_FORMAT_LABELS) as AudioRecordingFormat[]).map((format) => (
+                        <SelectItem key={format} value={format}>
+                          {AUDIO_FORMAT_LABELS[format]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Audio encoding format for recording. WebM is recommended for best compatibility.
+                  </p>
+                </div>
+
+                <div className="space-y-2 mt-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="chunkDuration">Chunk Duration</Label>
+                    <span className="text-sm font-medium">{settings.chunkDurationSeconds || CHUNK_DURATION_OPTIONS.default}s</span>
+                  </div>
+                  <Slider
+                    id="chunkDuration"
+                    value={[settings.chunkDurationSeconds || CHUNK_DURATION_OPTIONS.default]}
+                    onValueChange={(value) => onUpdateSetting('chunkDurationSeconds', value[0])}
+                    min={CHUNK_DURATION_OPTIONS.min}
+                    max={CHUNK_DURATION_OPTIONS.max}
+                    step={CHUNK_DURATION_OPTIONS.step}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{CHUNK_DURATION_OPTIONS.min}s</span>
+                    <span>{CHUNK_DURATION_OPTIONS.max}s</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Audio is processed in chunks. Longer chunks may improve accuracy but increase latency.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </CollapsibleContent>

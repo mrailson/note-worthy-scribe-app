@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { ScribeTranscriptData } from "@/types/scribe";
+import { ScribeTranscriptData, ScribeSettings, AudioRecordingFormat, CHUNK_DURATION_OPTIONS } from "@/types/scribe";
 import { iPhoneWhisperTranscriber, TranscriptData as IPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData, ChunkMetadata } from '@/utils/DesktopWhisperTranscriber';
 import { ChromiumMicTranscriber, ChromiumTranscriptData } from '@/utils/ChromiumMicTranscriber';
@@ -144,7 +144,12 @@ export const useScribeRecording = () => {
     });
   }, [addChunk]);
 
-  const startRecording = useCallback(async (selectedMicrophoneId?: string, mode: AudioSourceMode = 'microphone') => {
+  const startRecording = useCallback(async (
+    selectedMicrophoneId?: string, 
+    mode: AudioSourceMode = 'microphone',
+    audioFormat?: AudioRecordingFormat,
+    chunkDurationSeconds?: number
+  ) => {
     try {
       setIsRecording(true);
       setIsPaused(false);
@@ -174,6 +179,8 @@ export const useScribeRecording = () => {
       console.log('🎯 Scribe device detection:', { isIOS, isChromium, isMobile });
       console.log('🎤 Selected microphone ID:', selectedMicrophoneId || 'default');
       console.log('🔊 Audio source mode:', mode);
+      console.log('🎵 Audio format:', audioFormat || 'webm (default)');
+      console.log('⏱️ Chunk duration:', chunkDurationSeconds || CHUNK_DURATION_OPTIONS.default, 'seconds');
 
       // For system audio capture (if requested and not on mobile/iOS)
       let combinedStream: MediaStream | undefined;
@@ -253,6 +260,12 @@ export const useScribeRecording = () => {
       } else {
         console.log('🖥️ Starting Desktop Whisper transcription for Scribe...');
         setMicCaptured(true);
+        
+        // Convert chunk duration to milliseconds
+        const chunkDurationMs = chunkDurationSeconds 
+          ? chunkDurationSeconds * 1000 
+          : CHUNK_DURATION_OPTIONS.default * 1000;
+        
         desktopTranscriberRef.current = new DesktopWhisperTranscriber(
           (data: DesktopTranscriptData) => {
             handleTranscriptUpdate({
@@ -277,7 +290,9 @@ export const useScribeRecording = () => {
           handleChunkProcessed, // onChunkProcessed - now passing actual callback
           handleChunkFiltered, // onChunkFiltered - now passing actual callback
           selectedMicrophoneId, // selectedDeviceId
-          combinedStream // externalStream
+          combinedStream, // externalStream
+          audioFormat, // audioFormat - user preference
+          chunkDurationMs // customChunkDurationMs - user preference
         );
         
         await desktopTranscriberRef.current.startTranscription();
