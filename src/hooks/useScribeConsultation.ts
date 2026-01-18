@@ -95,12 +95,12 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
         return settings.f2fMicrophoneId;
       case 'telephone':
         return settings.telephoneMicrophoneId;
-      case 'video':
-        return settings.videoMicrophoneId;
+      case 'dictate':
+        return settings.dictateMicrophoneId;
       default:
         return undefined;
     }
-  }, [settings.f2fMicrophoneId, settings.telephoneMicrophoneId, settings.videoMicrophoneId]);
+  }, [settings.f2fMicrophoneId, settings.telephoneMicrophoneId, settings.dictateMicrophoneId]);
 
   // Start consultation
   const startConsultation = useCallback(async (audioMode?: AudioSourceMode) => {
