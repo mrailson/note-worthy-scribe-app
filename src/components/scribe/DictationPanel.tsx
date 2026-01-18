@@ -21,7 +21,7 @@ export function DictationPanel() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Mic className="h-5 w-5 text-primary" />
-              GP Dictation
+              Notewell Dictate
             </CardTitle>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'dictate' | 'history')}>
               <TabsList className="h-9">

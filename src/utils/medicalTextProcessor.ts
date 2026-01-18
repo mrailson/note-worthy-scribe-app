@@ -1,5 +1,5 @@
 /**
- * Medical Text Processor for GP Dictation
+ * Medical Text Processor for Notewell Dictate
  * Corrects common transcription errors and standardises medical terminology
  * Uses British English spelling throughout
  */

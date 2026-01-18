@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
 
         console.log('🔗 Creating AssemblyAI WebSocket connection with enhanced quality settings and medical keyterms...');
 
-        // Medical keyterms for GP dictation - helps AssemblyAI recognise medical vocabulary
+        // Medical keyterms for Notewell Dictate - helps AssemblyAI recognise medical vocabulary
         const medicalKeyterms = [
           // Blood pressure and vitals
           "over", "blood pressure", "BP", "systolic", "diastolic",
