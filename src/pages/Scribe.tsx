@@ -208,7 +208,7 @@ const Scribe = () => {
               </TabsTrigger>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <div className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'} ${activeTab === 'settings' || activeTab === 'import' ? 'bg-background text-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}>
+                  <div className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer gap-1.5 touch-manipulation min-h-[44px] min-w-[44px] sm:min-h-[40px] sm:min-w-[auto] sm:px-4 ${isMobile ? 'flex-col py-2' : 'gap-2'} ${activeTab === 'settings' || activeTab === 'import' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100/50 dark:hover:bg-blue-900/50'}`}>
                     <Settings className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
                     <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Settings</span>
                     <ChevronDown className="h-3 w-3" />
