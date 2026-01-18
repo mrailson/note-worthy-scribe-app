@@ -16,10 +16,18 @@ type Callbacks = {
   onFinal?: (text: string) => void;
   onClose?: (code: number, reason: string) => void;
   onError?: (err: Error) => void;
+  /** Fired when attempting to reconnect after a disconnect */
+  onReconnecting?: () => void;
+  /** Fired when reconnection succeeds */
+  onReconnected?: () => void;
 };
 
 const PROXY_WS_URL =
   "wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-realtime";
+
+// Edge functions timeout after ~150-400 seconds, so we need to reconnect
+const RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 export class AssemblyRealtimeClient {
   private ws?: WebSocket;
@@ -34,6 +42,12 @@ export class AssemblyRealtimeClient {
 
   private sending = false;
   private readonly sampleRateTarget = 16000;
+  
+  // Reconnection state
+  private shouldReconnect = false;
+  private reconnectAttempts = 0;
+  private isReconnecting = false;
+  private manualStop = false;
 
   constructor(private cb: Callbacks = {}) {}
 
@@ -193,24 +207,233 @@ export class AssemblyRealtimeClient {
     this.ws!.onclose = (ev) => {
       console.log("🔌 AssemblyRealtimeClient: proxy WS closed", ev.code, ev.reason);
       this.sending = false;
+      
+      // If this wasn't a manual stop and we should reconnect, attempt reconnection
+      if (!this.manualStop && this.shouldReconnect && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        console.log(`🔄 AssemblyRealtimeClient: will attempt reconnect (attempt ${this.reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+        this.attemptReconnect();
+        return;
+      }
+      
       this.cleanupAudio();
       this.cb.onClose?.(ev.code, ev.reason || "");
     };
 
     this.ws!.onerror = (e) => {
       console.error("❌ AssemblyRealtimeClient: proxy WS error", e);
-      this.cb.onError?.(new Error("AssemblyAI proxy WebSocket error"));
+      // Don't call onError if we're going to reconnect
+      if (!this.shouldReconnect || this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        this.cb.onError?.(new Error("AssemblyAI proxy WebSocket error"));
+      }
     };
 
-    // Start microphone capture AFTER proxy session is ready
-    await this.startAudioCapture();
+    // Start microphone capture AFTER proxy session is ready (only on first connect)
+    if (!this.audioCtx) {
+      await this.startAudioCapture();
+    }
     this.sending = true;
-    this.cb.onOpen?.();
+    this.shouldReconnect = true;
+    this.reconnectAttempts = 0; // Reset on successful connection
+    this.isReconnecting = false;
+    
+    if (this.isReconnecting) {
+      this.cb.onReconnected?.();
+    } else {
+      this.cb.onOpen?.();
+    }
     console.log("✅ AssemblyRealtimeClient: sending audio");
+  }
+
+  private async attemptReconnect() {
+    if (this.isReconnecting || this.manualStop) return;
+    
+    this.isReconnecting = true;
+    this.reconnectAttempts++;
+    
+    console.log(`🔄 AssemblyRealtimeClient: reconnecting (attempt ${this.reconnectAttempts})...`);
+    this.cb.onReconnecting?.();
+    
+    // Wait before reconnecting
+    await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+    
+    if (this.manualStop) {
+      console.log("🛑 AssemblyRealtimeClient: manual stop during reconnect, aborting");
+      return;
+    }
+    
+    try {
+      // Reconnect WebSocket only (audio capture is still running)
+      await this.reconnectWebSocket();
+    } catch (err) {
+      console.error("❌ AssemblyRealtimeClient: reconnect failed", err);
+      
+      if (this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS && !this.manualStop) {
+        // Try again
+        this.isReconnecting = false;
+        this.attemptReconnect();
+      } else {
+        this.isReconnecting = false;
+        this.cleanupAudio();
+        this.cb.onError?.(new Error(`Failed to reconnect after ${MAX_RECONNECT_ATTEMPTS} attempts`));
+      }
+    }
+  }
+
+  private async reconnectWebSocket() {
+    console.log("🔗 AssemblyRealtimeClient: reconnecting WebSocket...");
+    
+    this.ws = new WebSocket(PROXY_WS_URL);
+    this.ws.binaryType = "arraybuffer";
+
+    // Wait for proxy socket to open
+    await new Promise<void>((resolve, reject) => {
+      const ws = this.ws;
+      if (!ws) return reject(new Error("WebSocket not initialised"));
+
+      const onOpen = () => {
+        cleanup();
+        console.log("✅ AssemblyRealtimeClient: reconnect - proxy WebSocket open");
+        resolve();
+      };
+      const onError = (e: Event) => {
+        cleanup();
+        reject(new Error("Failed to reconnect to AssemblyAI proxy"));
+      };
+      const onClose = (ev: CloseEvent) => {
+        cleanup();
+        reject(new Error(`AssemblyAI proxy closed during reconnect (${ev.code})`));
+      };
+      const cleanup = () => {
+        ws.removeEventListener("open", onOpen);
+        ws.removeEventListener("error", onError);
+        ws.removeEventListener("close", onClose);
+      };
+
+      ws.addEventListener("open", onOpen);
+      ws.addEventListener("error", onError);
+      ws.addEventListener("close", onClose);
+    });
+
+    // Wait for session to be ready
+    await new Promise<void>((resolve, reject) => {
+      const ws = this.ws!;
+      let resolved = false;
+
+      const timeoutId = window.setTimeout(() => {
+        if (!resolved) {
+          reject(new Error("AssemblyAI session did not start in time during reconnect"));
+        }
+      }, 10000);
+
+      const handleMessage = (evt: MessageEvent) => {
+        try {
+          const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
+          const data = JSON.parse(raw);
+
+          if (data?.type === "error") {
+            cleanup();
+            reject(new Error(data?.error || "AssemblyAI error during reconnect"));
+            return;
+          }
+
+          if (data?.type === "session_begins" || data?.message_type === "SessionBegins") {
+            console.log("✅ AssemblyRealtimeClient: reconnect - session_begins received");
+            resolved = true;
+            cleanup();
+            resolve();
+            return;
+          }
+        } catch {}
+      };
+
+      const handleClose = (ev: CloseEvent) => {
+        cleanup();
+        reject(new Error("AssemblyAI proxy closed during reconnect session init"));
+      };
+
+      const handleError = () => {
+        cleanup();
+        reject(new Error("AssemblyAI proxy error during reconnect"));
+      };
+
+      const cleanup = () => {
+        window.clearTimeout(timeoutId);
+        ws.removeEventListener("message", handleMessage);
+        ws.removeEventListener("close", handleClose);
+        ws.removeEventListener("error", handleError);
+      };
+
+      ws.addEventListener("message", handleMessage);
+      ws.addEventListener("close", handleClose);
+      ws.addEventListener("error", handleError);
+    });
+
+    // Re-attach handlers for ongoing transcription
+    this.ws!.onmessage = (evt) => {
+      try {
+        const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
+        const data = JSON.parse(raw);
+
+        if (data?.type === "error") {
+          const msg = data?.error || "AssemblyAI error";
+          this.cb.onError?.(new Error(msg));
+          return;
+        }
+
+        if (data?.type === "Turn") {
+          const text = String(data?.transcript ?? data?.formatted?.text ?? data?.text ?? "").trim();
+          if (!text) return;
+
+          const isFinal = Boolean(data?.end_of_turn ?? false);
+          if (isFinal) this.cb.onFinal?.(text);
+          else this.cb.onPartial?.(text);
+          return;
+        }
+
+        if (data?.message_type === "PartialTranscript") {
+          const text = String(data?.text ?? "").trim();
+          if (text) this.cb.onPartial?.(text);
+          return;
+        }
+        if (data?.message_type === "FinalTranscript") {
+          const text = String(data?.text ?? "").trim();
+          if (text) this.cb.onFinal?.(text);
+          return;
+        }
+      } catch {}
+    };
+
+    this.ws!.onclose = (ev) => {
+      console.log("🔌 AssemblyRealtimeClient: proxy WS closed after reconnect", ev.code, ev.reason);
+      this.sending = false;
+      
+      if (!this.manualStop && this.shouldReconnect && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        console.log(`🔄 AssemblyRealtimeClient: will attempt reconnect again`);
+        this.isReconnecting = false;
+        this.attemptReconnect();
+        return;
+      }
+      
+      this.cleanupAudio();
+      this.cb.onClose?.(ev.code, ev.reason || "");
+    };
+
+    this.ws!.onerror = (e) => {
+      console.error("❌ AssemblyRealtimeClient: proxy WS error after reconnect", e);
+    };
+
+    this.sending = true;
+    this.isReconnecting = false;
+    this.reconnectAttempts = 0;
+    this.cb.onReconnected?.();
+    console.log("✅ AssemblyRealtimeClient: reconnected and sending audio");
   }
 
   stop() {
     console.log("🛑 AssemblyRealtimeClient: stop");
+    
+    this.manualStop = true;
+    this.shouldReconnect = false;
 
     try {
       this.sending = false;

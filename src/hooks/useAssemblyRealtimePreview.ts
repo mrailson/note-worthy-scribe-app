@@ -159,6 +159,14 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
           setError(err.message);
           setStatus('error');
           setIsActive(false);
+        },
+        onReconnecting: () => {
+          console.log('🔄 AssemblyAI preview reconnecting...');
+          setStatus('connecting');
+        },
+        onReconnected: () => {
+          console.log('✅ AssemblyAI preview reconnected');
+          setStatus('recording');
         }
       });
 
