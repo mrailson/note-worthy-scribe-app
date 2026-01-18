@@ -415,7 +415,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
                               {chunk.startTime !== undefined && chunk.endTime !== undefined && (
                                 <span className="text-xs text-primary font-mono">
                                   {Math.floor(chunk.startTime / 60)}:{(chunk.startTime % 60).toFixed(0).padStart(2, '0')} → {Math.floor(chunk.endTime / 60)}:{(chunk.endTime % 60).toFixed(0).padStart(2, '0')} ({(chunk.endTime - chunk.startTime).toFixed(1)}s) • {chunkWords} words • {Math.round(chunk.confidence * 100)}%
-                                  {chunk.originalFileSize && <span className="ml-1">• 📦 {(chunk.originalFileSize / 1024).toFixed(0)}KB {chunk.fileType && `[${chunk.fileType.replace('audio/', '')}]`}</span>}
+                                  {chunk.transcodedFileSize && <span className="ml-1">• 📦 {(chunk.transcodedFileSize / 1024).toFixed(0)}KB {chunk.fileType && `[${chunk.fileType.replace('audio/', '')}]`}</span>}
                                 </span>
                               )}
                             </div>
