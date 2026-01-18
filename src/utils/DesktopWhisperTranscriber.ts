@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { hasAudioActivity, getOptimalChunkInterval, OPTIMAL_CHUNK_DURATION } from './audioLevelDetection';
 import { meetsConfidenceThreshold, withDefaultThresholds, type MeetingSettingsWithThresholds } from './confidenceGating';
 import { isLikelyHallucination, isLaughterNoise } from './whisperHallucinationPatterns';
+import { transcodeToWhisperFormat, Mp3Bitrate } from './audioTranscoder';
 
 export interface TranscriptData {
   text: string;
@@ -16,6 +17,20 @@ export interface TranscriptData {
   start_ms?: number;
   end_ms?: number;
   chunkNumber?: number;
+}
+
+export interface RejectedChunkData {
+  chunkNumber: number;
+  reason: string;
+  originalText?: string;
+  confidence?: number;
+  noSpeechProb?: number;
+  fileSize?: number;
+}
+
+export interface AudioFormatSettings {
+  format: 'wav' | 'mp3';
+  mp3Bitrate: Mp3Bitrate;
 }
 
 export class DesktopWhisperTranscriber {
@@ -64,6 +79,10 @@ export class DesktopWhisperTranscriber {
   // Visibility handler for tab switching
   private visibilityHandler: (() => void) | null = null;
 
+  // Audio format settings for transcoding
+  private audioFormat: 'wav' | 'mp3' = 'mp3';
+  private mp3Bitrate: Mp3Bitrate = 64;
+
   constructor(
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
@@ -72,14 +91,23 @@ export class DesktopWhisperTranscriber {
     meetingId?: string,
     private onAudioActivity?: (hasActivity: boolean) => void,
     private onChunkProcessed?: () => void,
-    private onChunkFiltered?: () => void, // NEW: Called when chunk is filtered (not stalled, just low quality)
+    private onChunkFiltered?: () => void, // Called when chunk is filtered (not stalled, just low quality)
     private selectedDeviceId?: string | null,
-    private externalStream?: MediaStream | null // Allow passing pre-configured stream (e.g., mixed mic + browser audio)
+    private externalStream?: MediaStream | null, // Allow passing pre-configured stream (e.g., mixed mic + browser audio)
+    private onChunkRejected?: (data: RejectedChunkData) => void, // NEW: Called with rejection details for UI display
+    audioFormatSettings?: AudioFormatSettings // NEW: Audio format settings for transcoding
   ) {
     this.sessionId = meetingId || this.generateSessionId();
     this.meetingId = meetingId || null;
     this.chunkIntervalMs = 25000; // Phase 2: Optimized chunk duration for better transcription
     this.meetingSettings = withDefaultThresholds(meetingSettings);
+    
+    // Apply audio format settings if provided
+    if (audioFormatSettings) {
+      this.audioFormat = audioFormatSettings.format;
+      this.mp3Bitrate = audioFormatSettings.mp3Bitrate;
+      console.log(`🎵 Audio format configured: ${this.audioFormat}${this.audioFormat === 'mp3' ? ` @ ${this.mp3Bitrate}kbps` : ''}`);
+    }
   }
 
   private generateSessionId(): string {
@@ -571,23 +599,59 @@ export class DesktopWhisperTranscriber {
       const audioBlob = new Blob(this.audioChunks, { type: this.audioChunks[0].type });
       const originalFileSize = audioBlob.size;
       const originalFileType = audioBlob.type;
-      console.log(`🖥️ Audio blob size: ${originalFileSize} bytes, type: ${originalFileType}`);
+      console.log(`🖥️ Original audio blob size: ${originalFileSize} bytes, type: ${originalFileType}`);
       
       this.audioChunks = []; // Clear current chunks after processing
 
-      // Skip very small audio chunks - but don't increment chunk count
-      if (audioBlob.size < 20000) {
-        console.log(`🖥️ Skipping small audio chunk (${audioBlob.size} bytes) - no increment`);
+      // Skip very small audio chunks (lowered from 20KB to 10KB to capture more speech)
+      if (audioBlob.size < 10000) {
+        const reason = `Too small (${(audioBlob.size / 1024).toFixed(1)}KB < 10KB)`;
+        console.log(`🖥️ Skipping small audio chunk: ${reason}`);
+        this.onChunkRejected?.({
+          chunkNumber: currentChunkNumber,
+          reason,
+          fileSize: audioBlob.size
+        });
         return;
       }
 
+      // TRANSCODING: Apply admin audio format settings (MP3/WAV)
+      let transcodedBlob = audioBlob;
+      let transcodedFileSize = originalFileSize;
+      let finalFileType = originalFileType;
+      
+      try {
+        console.log(`🎵 Transcoding to ${this.audioFormat}${this.audioFormat === 'mp3' ? ` @ ${this.mp3Bitrate}kbps` : ''}...`);
+        transcodedBlob = await transcodeToWhisperFormat(audioBlob, {
+          format: this.audioFormat,
+          mp3Bitrate: this.mp3Bitrate
+        });
+        transcodedFileSize = transcodedBlob.size;
+        finalFileType = this.audioFormat === 'mp3' ? 'audio/mp3' : 'audio/wav';
+        console.log(`✅ Transcoded: ${originalFileSize} bytes → ${transcodedFileSize} bytes (${finalFileType})`);
+      } catch (transcodeError) {
+        console.warn(`⚠️ Transcoding failed, using original:`, transcodeError);
+        // Fall back to original blob
+        transcodedBlob = audioBlob;
+        transcodedFileSize = originalFileSize;
+        finalFileType = originalFileType;
+      }
+
       // Convert blob to base64
-      const arrayBuffer = await audioBlob.arrayBuffer();
+      const arrayBuffer = await transcodedBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Check audio quality before sending
-      if (!this.checkAudioQuality(uint8Array)) {
+      // Check audio quality before sending (use original blob for quality check)
+      const originalArrayBuffer = await audioBlob.arrayBuffer();
+      const originalUint8Array = new Uint8Array(originalArrayBuffer);
+      if (!this.checkAudioQuality(originalUint8Array)) {
+        const reason = 'Low audio quality (silence/noise)';
         console.log(`🔇 Skipping low-quality audio chunk ${currentChunkNumber}`);
+        this.onChunkRejected?.({
+          chunkNumber: currentChunkNumber,
+          reason,
+          fileSize: originalFileSize
+        });
         return;
       }
       
@@ -639,19 +703,35 @@ export class DesktopWhisperTranscriber {
         
         console.log(`📊 Quality metrics - confidence: ${(chunkConfidence * 100).toFixed(1)}%, avg_logprob: ${avgLogprob.toFixed(3)}, no_speech_prob: ${noSpeechProb.toFixed(3)}`);
         
-        // CRITICAL: Reject chunks with very high no_speech_prob (>0.85) - likely silence/noise
-        if (noSpeechProb > 0.85) {
-          console.log(`🚫 Rejecting chunk: high no_speech_prob (${(noSpeechProb * 100).toFixed(1)}%) - likely silence/noise`);
-          // Notify watchdog that we're still processing (not stalled), just filtering
+        // RELAXED: Reject chunks with very high no_speech_prob (>0.92) - only obvious silence/noise
+        if (noSpeechProb > 0.92) {
+          const reason = `High no_speech_prob (${(noSpeechProb * 100).toFixed(1)}%)`;
+          console.log(`🚫 Rejecting chunk: ${reason} - likely silence/noise`);
           this.onChunkFiltered?.();
+          this.onChunkRejected?.({
+            chunkNumber: currentChunkNumber,
+            reason,
+            originalText: data.text.trim().substring(0, 100),
+            confidence: chunkConfidence,
+            noSpeechProb,
+            fileSize: originalFileSize
+          });
           return;
         }
         
-        // CRITICAL: Reject chunks with extremely low confidence (<0.12)
-        if (chunkConfidence < 0.12) {
-          console.log(`🚫 Rejecting chunk: extremely low confidence (${(chunkConfidence * 100).toFixed(1)}%)`);
-          // Notify watchdog that we're still processing (not stalled), just filtering
+        // RELAXED: Reject chunks with extremely low confidence (<0.10)
+        if (chunkConfidence < 0.10) {
+          const reason = `Low confidence (${(chunkConfidence * 100).toFixed(1)}%)`;
+          console.log(`🚫 Rejecting chunk: ${reason}`);
           this.onChunkFiltered?.();
+          this.onChunkRejected?.({
+            chunkNumber: currentChunkNumber,
+            reason,
+            originalText: data.text.trim().substring(0, 100),
+            confidence: chunkConfidence,
+            noSpeechProb,
+            fileSize: originalFileSize
+          });
           return;
         }
         
@@ -664,12 +744,20 @@ export class DesktopWhisperTranscriber {
         
         // ENHANCED: Use comprehensive hallucination detection with confidence scoring
         if (this.isLikelyRepetitiveNoise(cleanText, chunkConfidence)) {
-          console.log('🚫 Skipping likely hallucinated/repetitive chunk');
-          // Notify watchdog that we're still processing (not stalled), just filtering
+          const reason = 'Hallucination/repetitive pattern detected';
+          console.log(`🚫 Skipping likely hallucinated/repetitive chunk`);
           this.onChunkFiltered?.();
+          this.onChunkRejected?.({
+            chunkNumber: currentChunkNumber,
+            reason,
+            originalText: cleanText.substring(0, 100),
+            confidence: chunkConfidence,
+            noSpeechProb,
+            fileSize: originalFileSize
+          });
           return;
         }
-        
+
         // Additional check: if low confidence + low logprob, be extra cautious
         if (chunkConfidence < 0.25 && avgLogprob < -1.0) {
           // Double-check for hallucination phrases even with partial matches
@@ -781,10 +869,10 @@ export class DesktopWhisperTranscriber {
           is_final: true,
           confidence: data.confidence || 0.9, // Use actual confidence from API
           speaker: 'Speaker',
-          // Include audio metadata for chunk display
+          // Include audio metadata for chunk display - use transcoded values
           originalFileSize: originalFileSize,
-          transcodedFileSize: originalFileSize, // Desktop doesn't transcode
-          fileType: originalFileType,
+          transcodedFileSize: transcodedFileSize,
+          fileType: finalFileType,
           // Include timing for accurate merge
           start_ms: chunkProcessStartMs,
           end_ms: chunkEndMs,
@@ -797,8 +885,9 @@ export class DesktopWhisperTranscriber {
           confidence: transcriptData.confidence,
           threshold: this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService],
           meetsThreshold: meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings),
-          fileSize: originalFileSize,
-          fileType: originalFileType,
+          originalSize: originalFileSize,
+          transcodedSize: transcodedFileSize,
+          fileType: finalFileType,
           start_ms: chunkProcessStartMs,
           end_ms: chunkEndMs
         });

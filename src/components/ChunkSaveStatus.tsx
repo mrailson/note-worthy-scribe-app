@@ -13,7 +13,7 @@ interface ChunkSaveStatus {
   chunkNumber: number;
   text: string;
   chunkLength: number;
-  saveStatus: 'saving' | 'saved' | 'failed' | 'retrying';
+  saveStatus: 'saving' | 'saved' | 'failed' | 'retrying' | 'rejected';
   saveTimestamp?: string;
   retryCount: number;
   confidence: number;
@@ -24,6 +24,7 @@ interface ChunkSaveStatus {
   originalFileSize?: number; // Original file size in bytes before transcoding
   transcodedFileSize?: number; // Transcoded file size in bytes
   fileType?: string; // Audio file type (e.g., 'audio/webm', 'audio/wav')
+  rejectionReason?: string; // Reason why chunk was rejected before transcription
 }
 
 interface ChunkSaveStatusProps {
