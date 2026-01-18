@@ -85,7 +85,7 @@ export interface ScribeSession {
   isCopied?: boolean;             // Note has been copied to clinical system
 }
 
-export type ConsultationViewMode = 'soap' | 'narrativeClinical' | 'summary' | 'patient' | 'referral' | 'transcript';
+export type ConsultationViewMode = 'soap' | 'narrativeClinical' | 'emis' | 'patient' | 'referral' | 'transcript';
 
 export type NoteStyle = 'shorthand' | 'standard';
 

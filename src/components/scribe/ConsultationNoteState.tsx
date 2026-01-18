@@ -3,10 +3,11 @@ import { ConsultationNote, ConsultationType, ConsultationViewMode, CONSULTATION_
 import { SOAPNoteEditor } from "./SOAPNoteEditor";
 import { HeidiNoteEditor } from "./HeidiNoteEditor";
 import { NarrativeClinicalNoteView } from "./NarrativeClinicalNoteView";
+import { EmisNoteView } from "./EmisNoteView";
 import { ReferralWorkspace } from "./ReferralWorkspace";
 import { TranscriptDisplay } from "./TranscriptDisplay";
 import { QuickActionsBar } from "./QuickActionsBar";
-import { Clock, FileCheck, Stethoscope, Shield, List, Zap, Send, ClipboardList, FileText, User, Loader2, Check, AlertCircle } from "lucide-react";
+import { Clock, FileCheck, Stethoscope, Shield, List, Monitor, Send, ClipboardList, FileText, User, Loader2, Check, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
@@ -229,22 +230,22 @@ export const ConsultationNoteState = ({
                         </TooltipTrigger>
                         <TooltipContent side="bottom">Structured (SOAP)</TooltipContent>
                       </Tooltip>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <button
-                                            onClick={() => onViewModeChange('summary')}
-                                            className={cn(
-                                              "p-1.5 rounded-md transition-colors",
-                                              viewMode === 'summary' 
-                                                ? "text-primary bg-primary/10" 
-                                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                                            )}
-                                            aria-label="Quick Summary"
-                                          >
-                                            <Zap className="h-3.5 w-3.5" />
-                                          </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="bottom">Quick Summary</TooltipContent>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => onViewModeChange('emis')}
+                            className={cn(
+                              "p-1.5 rounded-md transition-colors",
+                              viewMode === 'emis' 
+                                ? "text-primary bg-primary/10" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            aria-label="EMIS View"
+                          >
+                            <Monitor className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">EMIS View</TooltipContent>
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -345,6 +346,14 @@ export const ConsultationNoteState = ({
               editable={true}
               onSectionChange={onNarrativeSectionChange}
               consultationId={consultationId}
+            />
+          ) : viewMode === 'emis' ? (
+            <EmisNoteView
+              soapNote={consultationNote.soapNote}
+              heidiNote={consultationNote.heidiNote}
+              consultationType={consultationType}
+              showNotMentioned={settings.showNotMentioned}
+              onShowNotMentionedChange={onShowNotMentionedChange}
             />
           ) : useHeidiFormat ? (
             <HeidiNoteEditor

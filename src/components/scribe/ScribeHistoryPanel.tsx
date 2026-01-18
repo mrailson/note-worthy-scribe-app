@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle, CONSULTATION_CATEGORY_LABELS, ConsultationCategory } from "@/types/scribe";
-import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft, Send, Sparkles, Pencil, ClipboardList } from "lucide-react";
+import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Monitor, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft, Send, Sparkles, Pencil, ClipboardList } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ import { SessionHistorySearch, DateFilter, CategoryFilter } from "./SessionHisto
 import { ReferralWorkspace } from "./ReferralWorkspace";
 import { ConsultationAskAI } from "./ConsultationAskAI";
 import { NarrativeClinicalNoteView } from "./NarrativeClinicalNoteView";
+import { EmisNoteView } from "./EmisNoteView";
 import { getNarrativeClinicalText, transformToNarrativeClinical } from "@/utils/narrativeClinicalFormatter";
 import { supabase } from "@/integrations/supabase/client";
 import { maskPatientName, maskDateOfBirth, maskPatientData } from "@/utils/patientDataMasking";
@@ -502,19 +503,19 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        onClick={() => handleViewModeChange('summary')}
+                        onClick={() => handleViewModeChange('emis')}
                         className={cn(
                           "p-1.5 rounded-md transition-colors",
-                          settings.consultationViewMode === 'summary' 
+                          settings.consultationViewMode === 'emis' 
                             ? "text-primary bg-primary/10" 
                             : "text-muted-foreground hover:text-foreground hover:bg-muted"
                         )}
-                        aria-label="Quick Summary"
+                        aria-label="EMIS View"
                       >
-                        <Zap className="h-3.5 w-3.5" />
+                        <Monitor className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Quick Summary</TooltipContent>
+                    <TooltipContent side="bottom">EMIS View</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -679,42 +680,15 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     )}
 
 
-                    {/* Summary View Mode */}
-                    {settings.consultationViewMode === 'summary' && (
-                      <Card className={cn(
-                        "border-2 bg-gradient-to-br to-transparent",
-                        settings.noteStyle === 'shorthand' 
-                          ? "from-amber-500/10 border-amber-500/30" 
-                          : "from-primary/5"
-                      )}>
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <CardTitle className="text-base">
-                                {settings.noteStyle === 'shorthand' ? 'GP Shorthand' : 'Quick Summary'}
-                              </CardTitle>
-                              {settings.noteStyle === 'shorthand' && (
-                                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30">
-                                  &lt;100 words
-                                </Badge>
-                              )}
-                            </div>
-                            <Button variant="ghost" size="sm" onClick={() => copyToClipboard(getSummaryText(), 'Summary')}>
-                              <Copy className="h-3 w-3 mr-1" /> Copy
-                            </Button>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <pre className={cn(
-                            "whitespace-pre-wrap font-sans leading-relaxed",
-                            settings.noteStyle === 'shorthand' 
-                              ? "text-base font-medium tracking-tight" 
-                              : "text-sm"
-                          )}>
-                            {getSummaryText()}
-                          </pre>
-                        </CardContent>
-                      </Card>
+                    {/* EMIS View Mode */}
+                    {settings.consultationViewMode === 'emis' && (
+                      <EmisNoteView
+                        soapNote={currentSoapNote}
+                        heidiNote={currentSession.heidiNote}
+                        consultationType={currentSession.consultationType}
+                        showNotMentioned={settings.showNotMentioned}
+                        onShowNotMentionedChange={handleShowNotMentionedChange}
+                      />
                     )}
 
                     {/* Patient Letter View Mode */}
