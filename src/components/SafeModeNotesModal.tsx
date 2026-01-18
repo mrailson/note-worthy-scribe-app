@@ -208,9 +208,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [showInfographicModal, setShowInfographicModal] = useState(false);
   const [infographicOptions, setInfographicOptions] = useState<{
     style: string;
-    detailLevel: string;
-    focusArea: string;
+    customStyle?: string;
   } | null>(null);
+  const [customInfographicStyle, setCustomInfographicStyle] = useState('');
   const [showQuickAudioModal, setShowQuickAudioModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
@@ -2849,124 +2849,74 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 </TooltipTrigger>
                 <TooltipContent>Generate Summary Infographic</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent className="w-72 bg-background border shadow-lg z-50" align="end">
-                {/* Style Category */}
-                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Visual Style</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'clean-minimal', detailLevel: 'standard', focusArea: 'balanced' }); setShowInfographicModal(true); }}>
+              <DropdownMenuContent className="w-80 bg-background border shadow-lg z-50" align="end">
+                {/* Preset Styles */}
+                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Choose Style</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'clean-professional' }); setShowInfographicModal(true); }}>
                   <Sparkles className="h-4 w-4 mr-2 text-primary" />
                   <div className="flex flex-col">
-                    <span>Clean & Minimal</span>
-                    <span className="text-xs text-muted-foreground">Ample white space, simple icons</span>
+                    <span>Clean Professional</span>
+                    <span className="text-xs text-muted-foreground">Minimalist business style</span>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'bold-colourful', detailLevel: 'standard', focusArea: 'balanced' }); setShowInfographicModal(true); }}>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'bold-visual' }); setShowInfographicModal(true); }}>
                   <Palette className="h-4 w-4 mr-2 text-orange-500" />
                   <div className="flex flex-col">
-                    <span>Bold & Colourful</span>
-                    <span className="text-xs text-muted-foreground">High contrast, striking visuals</span>
+                    <span>Bold Visual</span>
+                    <span className="text-xs text-muted-foreground">High-impact data visualisation</span>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'corporate', detailLevel: 'standard', focusArea: 'balanced' }); setShowInfographicModal(true); }}>
-                  <Layout className="h-4 w-4 mr-2 text-slate-600" />
-                  <div className="flex flex-col">
-                    <span>Professional Corporate</span>
-                    <span className="text-xs text-muted-foreground">Formal layout, muted colours</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'nhs-clinical', detailLevel: 'standard', focusArea: 'balanced' }); setShowInfographicModal(true); }}>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'nhs-clinical' }); setShowInfographicModal(true); }}>
                   <Target className="h-4 w-4 mr-2 text-blue-600" />
                   <div className="flex flex-col">
                     <span>NHS Clinical</span>
-                    <span className="text-xs text-muted-foreground">NHS blue palette, healthcare icons</span>
+                    <span className="text-xs text-muted-foreground">Healthcare-themed with NHS blue</span>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'modern-gradient', detailLevel: 'standard', focusArea: 'balanced' }); setShowInfographicModal(true); }}>
-                  <Zap className="h-4 w-4 mr-2 text-purple-500" />
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'creative-illustrated' }); setShowInfographicModal(true); }}>
+                  <Lightbulb className="h-4 w-4 mr-2 text-amber-500" />
                   <div className="flex flex-col">
-                    <span>Modern Gradient</span>
-                    <span className="text-xs text-muted-foreground">Smooth gradients, contemporary feel</span>
+                    <span>Creative Illustrated</span>
+                    <span className="text-xs text-muted-foreground">Hand-drawn friendly style</span>
                   </div>
                 </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                {/* Detail Level Category */}
-                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Detail Level</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'professional', detailLevel: 'light', focusArea: 'balanced' }); setShowInfographicModal(true); }}>
-                  <Eye className="h-4 w-4 mr-2 text-green-500" />
-                  <div className="flex flex-col">
-                    <span>Light Summary</span>
-                    <span className="text-xs text-muted-foreground">Essential points only, quick reference</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'professional', detailLevel: 'standard', focusArea: 'balanced' }); setShowInfographicModal(true); }}>
-                  <FileText className="h-4 w-4 mr-2 text-blue-500" />
-                  <div className="flex flex-col">
-                    <span>Standard</span>
-                    <span className="text-xs text-muted-foreground">Balanced coverage of main topics</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'professional', detailLevel: 'comprehensive', focusArea: 'balanced' }); setShowInfographicModal(true); }}>
-                  <BarChart3 className="h-4 w-4 mr-2 text-indigo-500" />
-                  <div className="flex flex-col">
-                    <span>Comprehensive</span>
-                    <span className="text-xs text-muted-foreground">All discussion points and decisions</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'professional', detailLevel: 'key-points', focusArea: 'balanced' }); setShowInfographicModal(true); }}>
-                  <ListChecks className="h-4 w-4 mr-2 text-amber-500" />
-                  <div className="flex flex-col">
-                    <span>Key Points Only</span>
-                    <span className="text-xs text-muted-foreground">Bullet points, decisions, actions</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'professional', detailLevel: 'executive', focusArea: 'balanced' }); setShowInfographicModal(true); }}>
-                  <Lightbulb className="h-4 w-4 mr-2 text-yellow-500" />
-                  <div className="flex flex-col">
-                    <span>Executive Brief</span>
-                    <span className="text-xs text-muted-foreground">C-suite strategic highlights</span>
-                  </div>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                {/* Focus Area Category */}
-                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Focus Area</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'professional', detailLevel: 'standard', focusArea: 'actions' }); setShowInfographicModal(true); }}>
-                  <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
-                  <div className="flex flex-col">
-                    <span>Action Items Focus</span>
-                    <span className="text-xs text-muted-foreground">Owners, deadlines, priorities</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'professional', detailLevel: 'standard', focusArea: 'decisions' }); setShowInfographicModal(true); }}>
-                  <Target className="h-4 w-4 mr-2 text-blue-600" />
-                  <div className="flex flex-col">
-                    <span>Decisions Focus</span>
-                    <span className="text-xs text-muted-foreground">Key decisions with context</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'professional', detailLevel: 'standard', focusArea: 'timeline' }); setShowInfographicModal(true); }}>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'timeline-view' }); setShowInfographicModal(true); }}>
                   <CalendarDays className="h-4 w-4 mr-2 text-purple-600" />
                   <div className="flex flex-col">
-                    <span>Timeline Focus</span>
-                    <span className="text-xs text-muted-foreground">Visual chronology and flow</span>
+                    <span>Timeline View</span>
+                    <span className="text-xs text-muted-foreground">Chronological flow layout</span>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'professional', detailLevel: 'standard', focusArea: 'attendees' }); setShowInfographicModal(true); }}>
-                  <Users className="h-4 w-4 mr-2 text-teal-600" />
-                  <div className="flex flex-col">
-                    <span>Attendees & Owners</span>
-                    <span className="text-xs text-muted-foreground">Participant contributions</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'professional', detailLevel: 'standard', focusArea: 'next-steps' }); setShowInfographicModal(true); }}>
-                  <ArrowRight className="h-4 w-4 mr-2 text-rose-600" />
-                  <div className="flex flex-col">
-                    <span>Next Steps Focus</span>
-                    <span className="text-xs text-muted-foreground">Follow-ups and future actions</span>
-                  </div>
-                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                {/* Custom Style Section */}
+                <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Custom Style</DropdownMenuLabel>
+                <div className="px-2 py-2">
+                  <Input 
+                    placeholder="e.g., 'Star Wars theme', 'retro 80s neon'"
+                    value={customInfographicStyle}
+                    onChange={(e) => setCustomInfographicStyle(e.target.value)}
+                    className="mb-2 text-sm"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                  <Button 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => {
+                      if (customInfographicStyle.trim()) {
+                        setInfographicOptions({ style: 'custom', customStyle: customInfographicStyle.trim() });
+                        setShowInfographicModal(true);
+                        setCustomInfographicStyle('');
+                      }
+                    }}
+                    disabled={!customInfographicStyle.trim()}
+                  >
+                    <Palette className="h-4 w-4 mr-2" />
+                    Generate with Custom Style
+                  </Button>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
 
