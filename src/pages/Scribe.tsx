@@ -21,7 +21,13 @@ import { ScribeImportPanel } from "@/components/scribe/ScribeImportPanel";
 import { DictationPanel } from "@/components/scribe/DictationPanel";
 
 import { ScribeTab, SOAPNote, ConsultationNote } from "@/types/scribe";
-import { Stethoscope, History, Settings, Upload, ScrollText } from "lucide-react";
+import { Stethoscope, History, Settings, Upload, ScrollText, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import jsPDF from 'jspdf';
 import { generateScribeWordDocument } from "@/utils/documentGenerators";
 import { showToast } from "@/utils/toastWrapper";
@@ -185,29 +191,40 @@ const Scribe = () => {
         {/* Show tabs only when in ready or review state */}
         {showMainTabs ? (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ScribeTab)} className="w-full">
-            <TabsList className={`grid w-full max-w-xl mx-auto grid-cols-5 mb-6 ${isMobile ? 'h-14' : ''}`}>
+            <TabsList className={`grid w-full max-w-md mx-auto grid-cols-4 mb-6 ${isMobile ? 'h-14' : ''}`}>
               <TabsTrigger value="consultation" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
                 <Stethoscope className={isMobile ? "h-5 w-5 shrink-0" : "h-5 w-5 shrink-0"} strokeWidth={2} />
                 <span className={isMobile ? "text-xs" : "hidden sm:inline"}>
                   {isMobile ? "Consult" : "Consultation"}
                 </span>
               </TabsTrigger>
-              <TabsTrigger value="transcript" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
-                <ScrollText className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
-                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Dictate</span>
-              </TabsTrigger>
               <TabsTrigger value="history" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
                 <History className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
                 <span className={isMobile ? "text-xs" : "hidden sm:inline"}>History</span>
               </TabsTrigger>
-              <TabsTrigger value="import" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
-                <Upload className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
-                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Import</span>
+              <TabsTrigger value="transcript" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
+                <ScrollText className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
+                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Dictate</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
-                <Settings className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
-                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Settings</span>
-              </TabsTrigger>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'} ${activeTab === 'settings' || activeTab === 'import' ? 'bg-background text-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}>
+                    <Settings className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
+                    <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Settings</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="z-50 bg-popover">
+                  <DropdownMenuItem onClick={() => setActiveTab('settings')} className="gap-2 cursor-pointer">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveTab('import')} className="gap-2 cursor-pointer">
+                    <Upload className="h-4 w-4" />
+                    Import
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </TabsList>
 
             <TabsContent value="consultation">
