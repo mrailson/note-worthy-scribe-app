@@ -130,6 +130,7 @@ export const ConsultationRecordingState = ({
   const [selectedMicId, setSelectedMicId] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const chunksScrollRef = useRef<HTMLDivElement>(null);
+  const liveTranscriptScrollRef = useRef<HTMLDivElement>(null);
   const lastTranscriptCount = useRef(0);
 
   // Load available microphones
@@ -182,6 +183,13 @@ export const ConsultationRecordingState = ({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [timestampedSegments]);
+
+  // Auto-scroll live transcript to bottom when new text arrives
+  useEffect(() => {
+    if (liveTranscriptScrollRef.current && livePreviewFullTranscript) {
+      liveTranscriptScrollRef.current.scrollTop = liveTranscriptScrollRef.current.scrollHeight;
+    }
+  }, [livePreviewFullTranscript]);
 
   // Format elapsed time as MM:SS
   const formatElapsed = (seconds: number) => {
