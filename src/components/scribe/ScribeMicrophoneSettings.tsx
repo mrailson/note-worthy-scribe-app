@@ -359,7 +359,7 @@ export const ScribeMicrophoneSettings = ({
       icon: Phone,
       value: telephoneMicrophoneId,
       onChange: onTelephoneMicrophoneChange,
-      description: 'For phone consultations',
+      description: 'Select headset mic if used, or normal mic if on loudspeaker',
     },
     {
       type: 'dictate' as ConsultationType,
@@ -367,7 +367,7 @@ export const ScribeMicrophoneSettings = ({
       icon: ScrollText,
       value: dictateMicrophoneId,
       onChange: onDictateMicrophoneChange,
-      description: 'For GP dictation service',
+      description: 'Choose same mic as Face-to-Face',
     },
   ];
   if (permissionStatus === 'denied') {
