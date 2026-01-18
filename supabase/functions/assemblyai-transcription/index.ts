@@ -87,7 +87,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         audio_url: audioUrl,
-        language_code: 'en_us',
+        language_code: 'en_gb',
         speech_model: 'best',
         // Enable useful features
         punctuate: true,
