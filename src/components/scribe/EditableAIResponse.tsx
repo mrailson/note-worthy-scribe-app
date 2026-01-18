@@ -222,9 +222,10 @@ export function EditableAIResponse({
           class: 'max-w-full h-auto rounded-lg my-2'
         }
       }),
+      // Cast to any to fix tiptap version mismatch between placeholder extension and core
       Placeholder.configure({
         placeholder: 'Click to edit...'
-      })
+      }) as any
     ],
     content: sanitizedHtml,
     editable: isEditing,
