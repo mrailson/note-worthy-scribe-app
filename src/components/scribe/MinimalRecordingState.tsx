@@ -190,7 +190,7 @@ export const MinimalRecordingState = ({
               <span className="hidden sm:inline">Controls</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64 bg-background border shadow-lg z-50">
+          <DropdownMenuContent align="end" className="w-80 bg-background border shadow-lg z-50">
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Clinician Controls
             </DropdownMenuLabel>
@@ -200,24 +200,6 @@ export const MinimalRecordingState = ({
             <DropdownMenuItem onClick={onExpandView} className="gap-2 cursor-pointer">
               <LayoutList className="h-4 w-4" />
               Switch to Full View
-            </DropdownMenuItem>
-            
-            {/* Transcript Toggle */}
-            <DropdownMenuItem 
-              onClick={() => setShowTranscript(!showTranscript)} 
-              className="gap-2 cursor-pointer"
-            >
-              {showTranscript ? (
-                <>
-                  <EyeOff className="h-4 w-4" />
-                  Hide Transcript
-                </>
-              ) : (
-                <>
-                  <Eye className="h-4 w-4" />
-                  Show Transcript
-                </>
-              )}
             </DropdownMenuItem>
             
             {/* Microphone Selector */}
@@ -236,10 +218,10 @@ export const MinimalRecordingState = ({
                     <SelectTrigger className="w-full h-8 text-xs">
                       <SelectValue placeholder="Select microphone" />
                     </SelectTrigger>
-                    <SelectContent className="bg-background border shadow-lg z-50">
+                    <SelectContent className="bg-background border shadow-lg z-50 min-w-[280px]">
                       {microphones.map((mic) => (
                         <SelectItem key={mic.deviceId} value={mic.deviceId} className="text-xs">
-                          {mic.label.length > 28 ? mic.label.substring(0, 28) + '...' : mic.label}
+                          {mic.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
