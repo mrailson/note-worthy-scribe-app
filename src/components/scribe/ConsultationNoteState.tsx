@@ -6,7 +6,7 @@ import { NarrativeClinicalNoteView } from "./NarrativeClinicalNoteView";
 import { ReferralWorkspace } from "./ReferralWorkspace";
 import { TranscriptDisplay } from "./TranscriptDisplay";
 import { QuickActionsBar } from "./QuickActionsBar";
-import { Clock, FileCheck, Stethoscope, Shield, List, Zap, Send, ClipboardList, FileText, User } from "lucide-react";
+import { Clock, FileCheck, Stethoscope, Shield, List, Zap, Send, ClipboardList, FileText, User, Loader2, Check, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
@@ -121,8 +121,27 @@ export const ConsultationNoteState = ({
                 <FileCheck className={`text-green-600 dark:text-green-400 ${isMobile ? 'h-5 w-5' : 'h-6 w-6'}`} />
               </div>
               <div>
-                <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
+                <CardTitle className={`flex items-center gap-2 flex-wrap ${isMobile ? 'text-base' : 'text-lg'}`}>
                   {isMobile ? 'Complete' : 'Consultation Complete'}
+                  {/* Save Status Badge */}
+                  {isSaving && (
+                    <Badge variant="secondary" className="text-xs font-normal gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Saving...
+                    </Badge>
+                  )}
+                  {isSaved && !isSaving && (
+                    <Badge className="text-xs font-normal gap-1 bg-green-600 hover:bg-green-600">
+                      <Check className="h-3 w-3" />
+                      Saved
+                    </Badge>
+                  )}
+                  {!isSaved && !isSaving && (
+                    <Badge variant="destructive" className="text-xs font-normal gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Not Saved
+                    </Badge>
+                  )}
                   {useHeidiFormat && (
                     <Badge variant="secondary" className="text-xs font-normal gap-1">
                       <Shield className="h-3 w-3" />

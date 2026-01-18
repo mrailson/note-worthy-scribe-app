@@ -31,8 +31,11 @@ const Scribe = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   
-  const consultation = useScribeConsultation();
   const history = useScribeHistory();
+  const consultation = useScribeConsultation(() => {
+    // Callback when auto-save completes - refresh history
+    history.fetchSessions();
+  });
   const settingsHook = useScribeSettings();
   
   const [activeTab, setActiveTab] = useState<ScribeTab>("consultation");
