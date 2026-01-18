@@ -5,6 +5,7 @@ export type PreviewStatus = 'idle' | 'connecting' | 'connected' | 'recording' | 
 
 interface UseAssemblyRealtimePreviewReturn {
   liveTranscript: string;
+  fullTranscript: string;
   status: PreviewStatus;
   isActive: boolean;
   error: string | null;
@@ -12,33 +13,49 @@ interface UseAssemblyRealtimePreviewReturn {
   stopPreview: () => void;
 }
 
-const MAX_WORDS = 100; // Keep last 100 words to prevent memory bloat
+const MAX_WORDS = 100; // Keep last 100 words for live preview
 
 export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn => {
   const [liveTranscript, setLiveTranscript] = useState<string>("");
+  const [fullTranscript, setFullTranscript] = useState<string>("");
   const [status, setStatus] = useState<PreviewStatus>('idle');
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
+  const lastPartialRef = useRef<string>("");
 
-  // Rolling transcript update - keeps only last N words
+  // Update transcripts - rolling for live preview, full accumulation for tab
   const updateTranscript = useCallback((newText: string, isFinal: boolean) => {
     if (!newText.trim()) return;
     
-    setLiveTranscript(prev => {
-      if (isFinal) {
-        // For final transcripts, append and trim to max words
+    console.log(`🎤 AssemblyAI ${isFinal ? 'FINAL' : 'partial'}: "${newText.substring(0, 50)}..."`);
+    
+    if (isFinal) {
+      // For final transcripts, append to full transcript
+      setFullTranscript(prev => (prev + ' ' + newText).trim());
+      
+      // For live preview, append and trim to max words
+      setLiveTranscript(prev => {
         const combined = (prev + ' ' + newText).trim();
         const words = combined.split(/\s+/);
         return words.slice(-MAX_WORDS).join(' ');
-      } else {
-        // For partial transcripts, replace the last partial segment
-        // Find the last final segment and append the partial
+      });
+      
+      // Clear partial ref
+      lastPartialRef.current = "";
+    } else {
+      // For partial transcripts, store the latest partial
+      lastPartialRef.current = newText;
+      
+      // Update live preview with current full + partial
+      setLiveTranscript(prev => {
+        // Remove any previous partial (rough estimate - last few words)
         const words = prev.split(/\s+/).slice(-MAX_WORDS);
-        return words.join(' ') + (prev ? ' ' : '') + newText;
-      }
-    });
+        const baseText = words.join(' ');
+        return (baseText + ' ' + newText).trim();
+      });
+    }
   }, []);
 
   const startPreview = useCallback(async () => {
@@ -51,21 +68,21 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       setStatus('connecting');
       setError(null);
       setLiveTranscript("");
+      setFullTranscript("");
+      lastPartialRef.current = "";
       
       console.log('🎤 Starting AssemblyAI real-time preview...');
       
       clientRef.current = new AssemblyRealtimeClient({
         onOpen: () => {
-          console.log('✅ AssemblyAI preview connected');
+          console.log('✅ AssemblyAI preview WebSocket connected');
           setStatus('recording');
           setIsActive(true);
         },
         onPartial: (text: string) => {
-          // Partial transcripts - real-time feedback
           updateTranscript(text, false);
         },
         onFinal: (text: string) => {
-          // Final transcripts - confirmed text
           updateTranscript(text, true);
         },
         onClose: () => {
@@ -82,6 +99,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       });
 
       await clientRef.current.start();
+      console.log('🎤 AssemblyAI client started successfully');
       
     } catch (err) {
       console.error('❌ Failed to start AssemblyAI preview:', err);
@@ -116,6 +134,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
 
   return {
     liveTranscript,
+    fullTranscript,
     status,
     isActive,
     error,
