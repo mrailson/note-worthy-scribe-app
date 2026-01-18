@@ -116,6 +116,9 @@ interface ChunkSaveStatus {
   endTime?: number; // in seconds
   wasMerged?: boolean; // True if merger actually processed this chunk
   mergeRejectionReason?: string; // Reason why chunk wasn't merged into transcript
+  originalFileSize?: number; // Original blob size in bytes
+  transcodedFileSize?: number; // Transcoded file size in bytes
+  fileType?: string; // MIME type of transcoded audio
 }
 
 interface MeetingRecorderProps {
@@ -1468,6 +1471,20 @@ export const MeetingRecorder = ({
           savedForNextChunk: lastChunkEndTime.current
         });
         
+        // Calculate actual chunk duration (should be ~30s for normal chunks)
+        // Use the difference between start and end, which is based on monotonic timing
+        const actualChunkDuration = chunkEndSeconds - chunkStartSeconds;
+        const transcodedSize = chunkBlob.size;
+        const transcodedType = chunkBlob.type || (audioFormat === 'mp3' ? 'audio/mp3' : 'audio/wav');
+        
+        console.log(`📦 Chunk ${chunkId} file info:`, {
+          originalSize: (originalSize / 1024).toFixed(1) + 'KB',
+          transcodedSize: (transcodedSize / 1024).toFixed(1) + 'KB',
+          fileType: transcodedType,
+          format: audioFormat,
+          duration: actualChunkDuration.toFixed(1) + 's'
+        });
+        
         setChunkSaveStatuses(prev => prev.map(chunk => 
           chunk.id === uniqueChunkId 
             ? { 
@@ -1475,7 +1492,10 @@ export const MeetingRecorder = ({
                 text: transcriptionText, 
                 chunkLength: transcriptionText.length,
                 confidence: confidence,
-                endTime: chunkEndSeconds
+                endTime: chunkEndSeconds,
+                originalFileSize: originalSize,
+                transcodedFileSize: transcodedSize,
+                fileType: transcodedType
               }
             : chunk
         ));
