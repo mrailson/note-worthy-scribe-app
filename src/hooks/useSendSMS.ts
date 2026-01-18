@@ -35,10 +35,22 @@ export function useSendSMS() {
     setIsSending(true);
 
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      if (!accessToken) {
+        toast({
+          title: "Sign in required",
+          description: "Please sign in to send SMS messages.",
+          variant: "destructive",
+        });
+        return { success: false, error: "Unauthorised" };
+      }
+
       const { data, error } = await supabase.functions.invoke('send-sms-notify', {
         body: { phoneNumber, message, consultationId },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
-
       if (error) {
         console.error('SMS send error:', error);
         toast({

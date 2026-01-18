@@ -48,32 +48,44 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    const requestId = crypto.randomUUID();
+
     // Validate authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const scheme = authHeader.split(' ')[0] ?? '';
+    console.log(`[send-sms-notify] ${requestId} request received`, {
+      method: req.method,
+      hasAuth: !!authHeader,
+      scheme,
+    });
+
+    const match = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (!match) {
       return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
+        JSON.stringify({ success: false, error: "Unauthorized: Bearer token must be used" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
+
+    const token = match[1].trim();
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: `Bearer ${token}` } } }
     );
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getUser(token);
-    if (claimsError || !claimsData?.user) {
-      console.error("Auth error:", claimsError);
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      console.error(`[send-sms-notify] ${requestId} auth claims error:`, claimsError);
       return new Response(
         JSON.stringify({ success: false, error: "Unauthorized" }),
         { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    console.log("Authenticated user:", claimsData.user.id);
+    const userId = claimsData.claims.sub;
+    console.log(`[send-sms-notify] ${requestId} authenticated user:`, userId);
 
     const apiKey = Deno.env.get("GOV_UK_NOTIFY_API_KEY");
     if (!apiKey) {
