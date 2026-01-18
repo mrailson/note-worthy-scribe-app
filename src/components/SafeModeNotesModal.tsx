@@ -92,7 +92,8 @@ import {
   Layers,
   PieChart,
   Hash,
-  Stethoscope
+  Stethoscope,
+  Shield
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
@@ -2850,41 +2851,41 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 <TooltipContent>Generate Summary Infographic</TooltipContent>
               </Tooltip>
               <DropdownMenuContent className="w-80 bg-background border shadow-lg z-50" align="end">
-                {/* Preset Styles */}
+                {/* Preset Styles - GP Practice focused */}
                 <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Choose Style</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'clean-professional' }); setShowInfographicModal(true); }}>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'practice-professional' }); setShowInfographicModal(true); }}>
                   <Sparkles className="h-4 w-4 mr-2 text-primary" />
                   <div className="flex flex-col">
-                    <span>Clean Professional</span>
-                    <span className="text-xs text-muted-foreground">Minimalist business style</span>
+                    <span>Practice Professional</span>
+                    <span className="text-xs text-muted-foreground">Clean GP practice meeting style</span>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'bold-visual' }); setShowInfographicModal(true); }}>
-                  <Palette className="h-4 w-4 mr-2 text-orange-500" />
-                  <div className="flex flex-col">
-                    <span>Bold Visual</span>
-                    <span className="text-xs text-muted-foreground">High-impact data visualisation</span>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'nhs-clinical' }); setShowInfographicModal(true); }}>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'clinical-governance' }); setShowInfographicModal(true); }}>
                   <Target className="h-4 w-4 mr-2 text-blue-600" />
                   <div className="flex flex-col">
-                    <span>NHS Clinical</span>
-                    <span className="text-xs text-muted-foreground">Healthcare-themed with NHS blue</span>
+                    <span>Clinical Governance</span>
+                    <span className="text-xs text-muted-foreground">Compliance & audit focused</span>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'creative-illustrated' }); setShowInfographicModal(true); }}>
-                  <Lightbulb className="h-4 w-4 mr-2 text-amber-500" />
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'patient-safety' }); setShowInfographicModal(true); }}>
+                  <Shield className="h-4 w-4 mr-2 text-green-600" />
                   <div className="flex flex-col">
-                    <span>Creative Illustrated</span>
-                    <span className="text-xs text-muted-foreground">Hand-drawn friendly style</span>
+                    <span>Patient Safety Focus</span>
+                    <span className="text-xs text-muted-foreground">Safety & incident tracking themed</span>
                   </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'timeline-view' }); setShowInfographicModal(true); }}>
-                  <CalendarDays className="h-4 w-4 mr-2 text-purple-600" />
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'team-engagement' }); setShowInfographicModal(true); }}>
+                  <Users className="h-4 w-4 mr-2 text-purple-500" />
                   <div className="flex flex-col">
-                    <span>Timeline View</span>
-                    <span className="text-xs text-muted-foreground">Chronological flow layout</span>
+                    <span>Team Engagement</span>
+                    <span className="text-xs text-muted-foreground">Staff wellbeing & team focus</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setInfographicOptions({ style: 'qof-targets' }); setShowInfographicModal(true); }}>
+                  <TrendingUp className="h-4 w-4 mr-2 text-orange-500" />
+                  <div className="flex flex-col">
+                    <span>QOF & Targets</span>
+                    <span className="text-xs text-muted-foreground">Performance metrics & KPIs</span>
                   </div>
                 </DropdownMenuItem>
 

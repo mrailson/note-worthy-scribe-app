@@ -32,27 +32,27 @@ interface InfographicOptions {
   customStyle?: string;
 }
 
-// Simplified infographic style presets
+// GP Practice-focused infographic style presets
 const INFOGRAPHIC_STYLES: Record<string, { name: string; prompt: string }> = {
-  'clean-professional': {
-    name: 'Clean Professional',
-    prompt: 'Minimalist professional design with clean white space, subtle grey and blue tones, modern sans-serif typography, simple geometric shapes, and clear visual hierarchy. Business-appropriate with elegant simplicity.'
+  'practice-professional': {
+    name: 'Practice Professional',
+    prompt: 'Clean GP practice meeting style with calming blue and green tones, stethoscope and primary care icons, professional medical typography (Calibri/Arial), structured sections for clinical governance, patient safety items, and practice management. Trust-inspiring and NHS-aligned.'
   },
-  'bold-visual': {
-    name: 'Bold Visual',
-    prompt: 'High-impact data visualisation with bold colours (teal, orange, purple), striking infographic charts, large numbers and statistics prominently displayed, dynamic visual flow, and modern iconography. Eye-catching and memorable.'
+  'clinical-governance': {
+    name: 'Clinical Governance',
+    prompt: 'Formal clinical governance style using NHS blue (#005EB8) with red/amber/green RAG rating indicators, checklist icons, compliance and audit focused layout, structured risk assessment sections, clear action tracking visual elements, and regulatory compliance theming.'
   },
-  'nhs-clinical': {
-    name: 'NHS Clinical',
-    prompt: 'NHS-branded professional style using NHS blue (#005EB8) as primary colour, healthcare and medical iconography, clean clinical aesthetic, trust-inspiring design, accessible and clear typography. Suitable for healthcare settings.'
+  'patient-safety': {
+    name: 'Patient Safety Focus',
+    prompt: 'Patient safety themed design with protective healthcare imagery, amber and green accents on white, shield and safety icons, prominent incident tracking sections, clear escalation pathways visualised, and compassionate professional aesthetic.'
   },
-  'creative-illustrated': {
-    name: 'Creative Illustrated',
-    prompt: 'Hand-drawn illustration style with friendly icons, soft pastel colours, sketched elements, playful but professional aesthetic, warm and approachable feeling. Organic shapes and gentle visual flow.'
+  'team-engagement': {
+    name: 'Team Engagement',
+    prompt: 'Warm and engaging team-focused style with friendly people icons, collaborative imagery, soft purple and teal colours, celebration of achievements, staff wellbeing focus, and approachable modern design that feels supportive and team-oriented.'
   },
-  'timeline-view': {
-    name: 'Timeline View',
-    prompt: 'Horizontal or vertical timeline-focused design with clear chronological flow, milestone markers, connecting lines and arrows, date/time emphasis, journey-style presentation showing progression of meeting topics and outcomes.'
+  'qof-targets': {
+    name: 'QOF & Targets',
+    prompt: 'Data-driven QOF and targets style with progress bars, pie charts, percentage indicators, green for achieved targets, performance dashboard aesthetic, KPI visualisation, and clear metric tracking focused on practice performance outcomes.'
   }
 };
 
@@ -166,24 +166,27 @@ Apply this creative direction while maintaining readability and professional pre
         setTimeout(() => reject(new Error('Image generation timed out after 120 seconds. Please try again.')), 120000);
       });
 
-      const customPrompt = `Create a visually striking meeting summary infographic for: "${data.meetingTitle}".
+      const customPrompt = `Create a visually striking GP Practice meeting summary infographic.
 
-VISUAL STYLE:
+MEETING: "${data.meetingTitle}"
+
+VISUAL STYLE INSTRUCTIONS (APPLY THESE CAREFULLY):
 ${styleInstruction}
 
-CONTENT TO VISUALISE:
-- Meeting title and date
-- Key decisions made
-- Action items with owners and deadlines (${data.actionItems.length} items)
+CONTENT TO INCLUDE:
+- Meeting title and date prominently displayed
+- Key decisions made during the meeting
+- ${data.actionItems.length} action items with owners and deadlines
 - Main discussion points and outcomes
 
-REQUIREMENTS:
-- Clear visual hierarchy with the meeting title prominently displayed
-- Use icons and visual elements to represent concepts
+DESIGN REQUIREMENTS:
+- Apply the visual style described above throughout the entire design
+- Clear visual hierarchy with sections clearly separated
+- Use relevant icons (medical, practice management, team icons as appropriate)
 - British English spelling throughout
-- Make it suitable for A4 printing or digital sharing
-- Excellent readability and visual appeal
-- NO attendee counts or participant numbers`;
+- A4 portrait format suitable for printing or digital sharing
+- Professional healthcare practice aesthetic
+- NO attendee counts or participant numbers - focus on content only`;
 
       const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
