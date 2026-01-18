@@ -332,33 +332,39 @@ export const MinimalRecordingState = ({
           </Card>
         )}
 
-        {/* Patient Information Card - Collapsible */}
+        {/* Patient Information Card - Collapsible - Large and patient-friendly */}
         <Collapsible 
           open={showPatientInfo} 
           onOpenChange={setShowPatientInfo}
           className="w-full"
         >
           <CollapsibleContent>
-            <Card className="bg-muted/30 border-muted mb-2">
-              <CardContent className="p-4 sm:p-5">
-                <h3 className="font-semibold text-base mb-3 text-foreground">
+            <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-2 border-primary/20 shadow-lg mb-3">
+              <CardContent className="p-6 sm:p-8">
+                <h3 className="font-semibold text-xl sm:text-2xl mb-5 text-foreground text-center">
                   Supporting your consultation
                 </h3>
-                <ul className="space-y-2.5 text-sm text-foreground/80">
-                  <li className="flex items-start gap-2.5">
-                    <Ear className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                    <span>Listening in real time to create written notes</span>
+                <ul className="space-y-4 text-base sm:text-lg text-foreground/90">
+                  <li className="flex items-start gap-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <Ear className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="pt-2">Listening in real time to create written notes</span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <FileText className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                    <span>Notes are checked and confirmed by your clinician</span>
+                  <li className="flex items-start gap-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="pt-2">Notes are checked and confirmed by your clinician</span>
                   </li>
-                  <li className="flex items-start gap-2.5">
-                    <ShieldCheck className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                    <span>No audio recordings are saved or stored</span>
+                  <li className="flex items-start gap-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <ShieldCheck className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="pt-2">No audio recordings are saved or stored</span>
                   </li>
                 </ul>
-                <p className="text-xs text-muted-foreground mt-4 italic">
+                <p className="text-sm text-muted-foreground mt-6 italic text-center">
                   (You may ask for this tool not to be used)
                 </p>
               </CardContent>
