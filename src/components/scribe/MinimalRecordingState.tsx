@@ -94,6 +94,13 @@ export const MinimalRecordingState = ({
   const [showTranscript, setShowTranscript] = useState(false);
   const [showRealtimeTranscript, setShowRealtimeTranscript] = useState(false);
   const [microphones, setMicrophones] = useState<MicrophoneDevice[]>([]);
+  const [isButtonPressed, setIsButtonPressed] = useState(false);
+
+  // Handle finish with immediate feedback
+  const handleFinish = () => {
+    setIsButtonPressed(true);
+    onFinish();
+  };
 
   // Load available microphones
   useEffect(() => {
@@ -515,11 +522,15 @@ export const MinimalRecordingState = ({
           
           {/* Finish button */}
           <Button
-            onClick={onFinish}
-            disabled={isFinishing}
-            className="h-14 px-8 gap-2 bg-primary hover:bg-primary/90 text-lg"
+            onClick={handleFinish}
+            disabled={isFinishing || isButtonPressed}
+            className={`h-14 px-8 gap-2 text-lg transition-all duration-150 ${
+              isButtonPressed || isFinishing 
+                ? 'bg-primary/70 scale-95' 
+                : 'bg-primary hover:bg-primary/90 active:scale-95'
+            }`}
           >
-            {isFinishing ? (
+            {isFinishing || isButtonPressed ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin" />
                 Ending...
