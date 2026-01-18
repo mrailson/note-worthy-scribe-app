@@ -360,15 +360,6 @@ export const ConsultationRecordingState = ({
         </div>
       </div>
 
-      {/* Live Preview - AssemblyAI real-time for mic verification */}
-      <LiveTranscriptPreview
-        transcript={livePreviewTranscript}
-        status={livePreviewStatus}
-        isActive={livePreviewActive}
-        error={livePreviewError}
-        className="mb-3"
-      />
-
       {/* Session Info Bar */}
       <div className="flex items-center justify-between text-xs text-muted-foreground pb-2 border-b mb-3">
         <div className="flex items-center gap-4">
