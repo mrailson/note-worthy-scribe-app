@@ -209,6 +209,11 @@ export const CONSULTATION_TYPE_LABELS: Record<ConsultationType, string> = {
   video: 'Video'
 };
 
+export const F2F_ACCOMPANIED_LABELS = {
+  alone: 'Alone',
+  accompanied: 'Patient +1'
+} as const;
+
 export const CONSULTATION_TYPE_SHORT: Record<ConsultationType, string> = {
   f2f: 'F2F',
   telephone: 'T/C',

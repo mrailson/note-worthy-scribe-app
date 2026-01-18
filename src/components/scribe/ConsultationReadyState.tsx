@@ -22,8 +22,10 @@ interface ConsultationReadyStateProps {
   patientConsent: boolean;
   settings: ScribeSettings;
   patientContext: PatientContext | null;
+  f2fAccompanied?: boolean;
   onTypeChange: (type: ConsultationType) => void;
   onCategoryChange: (category: ConsultationCategory) => void;
+  onF2fAccompaniedChange?: (accompanied: boolean) => void;
   onConsentChange: (consent: boolean) => void;
   onPatientContextChange: (context: PatientContext | null) => void;
   onStart: (audioMode?: AudioSourceMode) => void;
@@ -36,8 +38,10 @@ export const ConsultationReadyState = ({
   patientConsent,
   settings,
   patientContext,
+  f2fAccompanied = false,
   onTypeChange,
   onCategoryChange,
+  onF2fAccompaniedChange,
   onConsentChange,
   onPatientContextChange,
   onStart,
@@ -101,6 +105,8 @@ export const ConsultationReadyState = ({
                 category={consultationCategory}
                 onChange={onTypeChange}
                 onCategoryChange={onCategoryChange}
+                f2fAccompanied={f2fAccompanied}
+                onF2fAccompaniedChange={onF2fAccompaniedChange}
               />
             </div>
           </div>
