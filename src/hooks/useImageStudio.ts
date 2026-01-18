@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import type { 
   ImageStudioSettings, 
   ImageStudioState, 
@@ -81,6 +82,7 @@ const DEFAULT_SETTINGS: ImageStudioSettings = {
 
 export function useImageStudio() {
   const { practiceContext } = usePracticeContext();
+  const { user } = useAuth();
   
   const [state, setState] = useState<ImageStudioState>(() => ({
     settings: DEFAULT_SETTINGS,
@@ -339,6 +341,40 @@ export function useImageStudio() {
     }));
   }, []);
 
+  // Save current result to gallery database
+  const saveToGallery = useCallback(async (result: GeneratedImage): Promise<string | null> => {
+    if (!user?.id || !result?.url) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('user_generated_images')
+        .insert({
+          user_id: user.id,
+          image_url: result.url,
+          prompt: result.prompt || state.settings.description,
+          detailed_prompt: JSON.stringify(state.settings),
+          alt_text: result.alt,
+          image_settings: JSON.parse(JSON.stringify({
+            purpose: state.settings.purpose,
+            style: state.settings.stylePreset,
+            layout: state.settings.layoutPreference,
+          })),
+          source: 'image-studio',
+          title: generateImageTitle(state.settings.description),
+          is_favourite: false,
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      return data?.id || null;
+    } catch (err) {
+      console.error('Failed to save image to gallery:', err);
+      toast.error('Failed to save image to gallery');
+      return null;
+    }
+  }, [user?.id, state.settings]);
+
   return {
     ...state,
     updateSettings,
@@ -351,5 +387,13 @@ export function useImageStudio() {
     resetSettings,
     editCurrentResult,
     selectHistoryItem,
+    saveToGallery,
   };
+}
+
+// Helper to generate a title from description
+function generateImageTitle(description: string): string {
+  if (!description) return 'Untitled Image';
+  const words = description.trim().split(/\s+/).slice(0, 6);
+  return words.join(' ') + (description.split(/\s+/).length > 6 ? '...' : '');
 }

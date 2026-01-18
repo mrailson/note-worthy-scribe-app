@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
-import { Download, Pencil, RefreshCw, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { Download, Pencil, RefreshCw, Loader2, Sparkles, AlertCircle, Star, Check } from 'lucide-react';
 import type { GeneratedImage } from '@/types/ai4gp';
 import type { GenerationHistoryItem } from '@/types/imageStudio';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface GenerateTabProps {
   isGenerating: boolean;
@@ -18,6 +19,7 @@ interface GenerateTabProps {
   onEditResult: () => void;
   onSelectHistoryItem: (item: GenerationHistoryItem) => void;
   descriptionProvided: boolean;
+  onSaveToGallery?: (result: GeneratedImage) => Promise<string | null>;
 }
 
 export const GenerateTab: React.FC<GenerateTabProps> = ({
@@ -31,7 +33,10 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
   onEditResult,
   onSelectHistoryItem,
   descriptionProvided,
+  onSaveToGallery,
 }) => {
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedImageId, setSavedImageId] = useState<string | null>(null);
   const handleDownload = () => {
     if (!currentResult?.url) return;
     
@@ -42,6 +47,26 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
     link.click();
     document.body.removeChild(link);
   };
+
+  const handleSaveToGallery = async () => {
+    if (!currentResult || !onSaveToGallery) return;
+    
+    setIsSaving(true);
+    try {
+      const imageId = await onSaveToGallery(currentResult);
+      if (imageId) {
+        setSavedImageId(imageId);
+        toast.success('Image saved to gallery');
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Reset saved state when currentResult changes
+  React.useEffect(() => {
+    setSavedImageId(null);
+  }, [currentResult?.url]);
 
   return (
     <div className="space-y-6">
@@ -104,6 +129,22 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </Button>
+              {onSaveToGallery && (
+                <Button 
+                  variant={savedImageId ? "default" : "outline"} 
+                  onClick={handleSaveToGallery}
+                  disabled={isSaving || !!savedImageId}
+                >
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : savedImageId ? (
+                    <Check className="h-4 w-4 mr-2" />
+                  ) : (
+                    <Star className="h-4 w-4 mr-2" />
+                  )}
+                  {savedImageId ? 'Saved to Gallery' : 'Save to Gallery'}
+                </Button>
+              )}
               <Button variant="outline" onClick={() => window.open(currentResult.url, '_blank')}>
                 <Sparkles className="h-4 w-4 mr-2" />
                 Open Full Size

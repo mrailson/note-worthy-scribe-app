@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,7 @@ import {
   Building2, 
   Image as ImageIcon, 
   Sparkles,
-  X
+  Images
 } from 'lucide-react';
 import { useImageStudio } from '@/hooks/useImageStudio';
 import { ContextTab } from './studio/ContextTab';
@@ -22,6 +22,7 @@ import { BrandingTab } from './studio/BrandingTab';
 import { ReferenceTab } from './studio/ReferenceTab';
 import { GenerateTab } from './studio/GenerateTab';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ImageGalleryModal } from './ImageGalleryModal';
 
 interface ImageStudioModalProps {
   open: boolean;
@@ -34,6 +35,8 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   onOpenChange,
   imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
 }) => {
+  const [showGallery, setShowGallery] = useState(false);
+  
   const {
     settings,
     activeTab,
@@ -52,6 +55,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
     resetSettings,
     editCurrentResult,
     selectHistoryItem,
+    saveToGallery,
   } = useImageStudio();
 
   const handleGenerate = () => {
@@ -75,14 +79,24 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
               <Sparkles className="h-5 w-5 text-primary" />
               Image Studio
             </DialogTitle>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={resetSettings}
-              className="text-muted-foreground"
-            >
-              Reset All
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowGallery(true)}
+              >
+                <Images className="h-4 w-4 mr-2" />
+                My Gallery
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={resetSettings}
+                className="text-muted-foreground"
+              >
+                Reset All
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -136,6 +150,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
                 onEditResult={editCurrentResult}
                 onSelectHistoryItem={selectHistoryItem}
                 descriptionProvided={!!settings.description.trim()}
+                onSaveToGallery={saveToGallery}
               />
             </TabsContent>
           </div>
@@ -163,6 +178,12 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
           </div>
         </div>
       </DialogContent>
+      
+      {/* Image Gallery Modal */}
+      <ImageGalleryModal
+        open={showGallery}
+        onOpenChange={setShowGallery}
+      />
     </Dialog>
   );
 };

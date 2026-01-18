@@ -8045,38 +8045,85 @@ export type Database = {
       user_generated_images: {
         Row: {
           alt_text: string | null
+          category: string | null
           created_at: string | null
           detailed_prompt: string | null
           id: string
           image_settings: Json | null
           image_url: string
+          is_favourite: boolean | null
           prompt: string
           quick_pick_id: string | null
+          source: string | null
+          title: string | null
           user_id: string
         }
         Insert: {
           alt_text?: string | null
+          category?: string | null
           created_at?: string | null
           detailed_prompt?: string | null
           id?: string
           image_settings?: Json | null
           image_url: string
+          is_favourite?: boolean | null
           prompt: string
           quick_pick_id?: string | null
+          source?: string | null
+          title?: string | null
           user_id: string
         }
         Update: {
           alt_text?: string | null
+          category?: string | null
           created_at?: string | null
           detailed_prompt?: string | null
           id?: string
           image_settings?: Json | null
           image_url?: string
+          is_favourite?: boolean | null
           prompt?: string
           quick_pick_id?: string | null
+          source?: string | null
+          title?: string | null
           user_id?: string
         }
         Relationships: []
+      }
+      user_image_defaults: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_id: string | null
+          template_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_id?: string | null
+          template_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_id?: string | null
+          template_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_image_defaults_image_id_fkey"
+            columns: ["image_id"]
+            isOneToOne: false
+            referencedRelation: "user_generated_images"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_modules: {
         Row: {
