@@ -420,22 +420,11 @@ export const ScribeMicrophoneSettings = ({
               Configure different microphones for each consultation type. Click on a service to select it for testing.
             </CardDescription>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                <span>
-                  Testing <strong className="text-foreground">{getActiveTypeLabel()}</strong> microphone
-                </span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={enumerateDevices}
-                disabled={isLoading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <span>
+                Testing <strong className="text-foreground">{getActiveTypeLabel()}</strong> microphone
+              </span>
             </div>
 
             {/* Microphone selectors for each consultation type - click to select for testing */}
