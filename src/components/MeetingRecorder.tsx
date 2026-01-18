@@ -108,7 +108,7 @@ interface ChunkSaveStatus {
   chunkNumber: number;
   text: string;
   chunkLength: number;
-  saveStatus: 'saving' | 'saved' | 'failed' | 'retrying';
+  saveStatus: 'saving' | 'saved' | 'failed' | 'retrying' | 'rejected';
   saveTimestamp?: string;
   retryCount: number;
   confidence: number;
@@ -119,6 +119,7 @@ interface ChunkSaveStatus {
   originalFileSize?: number; // Original blob size in bytes
   transcodedFileSize?: number; // Transcoded file size in bytes
   fileType?: string; // MIME type of transcoded audio
+  rejectionReason?: string; // Reason why chunk was rejected before transcription
 }
 
 interface MeetingRecorderProps {
@@ -2539,6 +2540,36 @@ export const MeetingRecorder = ({
     addDebugLog(`❌ Error: ${error}`);
   };
 
+  // Handle rejected chunks for UI visibility
+  const handleChunkRejected = (data: { 
+    chunkNumber: number; 
+    reason: string; 
+    originalText?: string;
+    confidence?: number;
+    noSpeechProb?: number;
+    fileSize?: number;
+  }) => {
+    console.log(`🚫 Chunk ${data.chunkNumber} rejected: ${data.reason}`);
+    addDebugLog(`🚫 Chunk ${data.chunkNumber} rejected: ${data.reason}`);
+    
+    // Add rejected chunk to the list with a distinct status
+    const rejectedChunkStatus: ChunkSaveStatus = {
+      id: `rejected_${Date.now()}_${data.chunkNumber}`,
+      chunkNumber: data.chunkNumber,
+      text: data.originalText || '[No text]',
+      chunkLength: data.originalText?.length || 0,
+      saveStatus: 'rejected',
+      retryCount: 0,
+      confidence: data.confidence || 0,
+      startTime: 0,
+      endTime: 0,
+      originalFileSize: data.fileSize,
+      rejectionReason: data.reason
+    };
+    
+    setChunkSaveStatuses(prev => [...prev, rejectedChunkStatus]);
+  };
+
 
   const handleStatusChange = (status: string) => {
     // Use a more robust approach to avoid state updates during render
@@ -2675,6 +2706,7 @@ export const MeetingRecorder = ({
   // Desktop Whisper transcription for better accuracy
   const startDesktopWhisperTranscription = async (meetingId: string) => {
     addDebugLog('🖥️ Starting Desktop Whisper transcription...');
+    addDebugLog(`🎵 Audio format: ${audioFormat}${audioFormat === 'mp3' ? ` @ ${mp3Bitrate}kbps` : ''}`);
     
     const transcriber = new DesktopWhisperTranscriber(
       handleBrowserTranscript,
@@ -2685,7 +2717,10 @@ export const MeetingRecorder = ({
       (hasActivity: boolean) => setAudioActivity(hasActivity), // Callback for audio activity
       () => watchdog.reportChunkProcessed(), // Callback when chunk is processed
       () => watchdog.reportChunkFiltered(), // Callback when chunk is filtered (not stalled, just low quality)
-      selectedMicrophoneId // Pass selected microphone device
+      selectedMicrophoneId, // Pass selected microphone device
+      null, // No external stream
+      handleChunkRejected, // NEW: Callback for rejected chunks
+      { format: audioFormat, mp3Bitrate: mp3Bitrate as Mp3Bitrate } // NEW: Audio format settings
     );
 
     await transcriber.startTranscription();
