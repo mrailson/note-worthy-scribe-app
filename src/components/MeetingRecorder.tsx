@@ -1553,7 +1553,10 @@ export const MeetingRecorder = ({
                             ? { 
                                 ...chunk, 
                                 saveStatus: 'saved' as const,
-                                saveTimestamp: new Date().toISOString()
+                                saveTimestamp: new Date().toISOString(),
+                                originalFileSize: originalSize,
+                                transcodedFileSize: chunkBlob.size,
+                                fileType: chunkBlob.type || 'audio/webm'
                               }
                             : chunk
                         ));
