@@ -75,7 +75,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
-import { SimpleIOSTranscriber, IOSTranscriberStats } from '@/utils/SimpleIOSTranscriber';
+import { SimpleIOSTranscriber, IOSTranscriberStats, IOSTranscriptionMeta } from '@/utils/SimpleIOSTranscriber';
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 import { IncrementalTranscriptHandler, IncrementalTranscriptData, ProcessTranscriptResult } from '@/utils/IncrementalTranscriptHandler';
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
@@ -181,6 +181,9 @@ export const MeetingRecorder = ({
   // React setState is async, so using state alone results in all chunks being numbered 0
   // This ref is incremented synchronously and always has the correct current value
   const chunkCounterRef = useRef(0);
+  
+  // Buffer for chunks that arrive before transcriptHandler is ready
+  const pendingTranscriptsRef = useRef<TranscriptData[]>([]);
   
   // Synchronous guard to prevent duplicate stop flows
   const stopInProgressRef = useRef(false);
@@ -2211,6 +2214,15 @@ export const MeetingRecorder = ({
         }
       }
     );
+    
+    // CRITICAL: Replay any chunks that arrived before handler was ready
+    if (pendingTranscriptsRef.current.length > 0) {
+      console.log(`📥 Replaying ${pendingTranscriptsRef.current.length} pending transcript(s) that arrived before handler init`);
+      for (const pending of pendingTranscriptsRef.current) {
+        handleTranscript(pending);
+      }
+      pendingTranscriptsRef.current = [];
+    }
   }, [onTranscriptUpdate, onWordCountUpdate, tickerEnabled]);
 
   const handleTranscript = (transcriptData: TranscriptData) => {
@@ -2246,6 +2258,10 @@ export const MeetingRecorder = ({
         );
         console.log(`📊 Chunk #${transcriptData.chunkNumber} merge result: wasProcessed=${result.wasProcessed}, reason=${result.reason || 'none'}`);
       }
+    } else {
+      // Handler not ready yet - buffer for later replay
+      console.log(`📥 Buffering chunk #${transcriptData.chunkNumber ?? '?'} until transcript handler is ready`);
+      pendingTranscriptsRef.current.push(transcriptData);
     }
 
     // Progressive pre-summaries: ingest transcript chunks for long sessions
@@ -2307,7 +2323,7 @@ export const MeetingRecorder = ({
       return trimmed;
     });
   };
-  const handleBrowserTranscript = (data: BrowserTranscriptData) => {
+  const handleBrowserTranscript = (data: BrowserTranscriptData & { iosMeta?: IOSTranscriptionMeta }) => {
     // Skip empty transcripts
     if (!data.text || !data.text.trim()) return;
     
@@ -2331,6 +2347,10 @@ export const MeetingRecorder = ({
     const proposedStart = lastChunkEndTime.current ?? 0;
     const chunkStartSeconds = Math.min(proposedStart, chunkEndSeconds);
     
+    // Extract iOS blob metadata if provided
+    const iosBlobSize = data.iosMeta?.blobSize;
+    const iosBlobType = data.iosMeta?.blobType || 'audio/ios';
+    
     const newChunkStatus: ChunkSaveStatus = {
       id: uniqueChunkId,
       chunkNumber: currentChunkNumber,
@@ -2341,7 +2361,9 @@ export const MeetingRecorder = ({
       confidence: data.confidence || 0.9,
       startTime: chunkStartSeconds,
       endTime: chunkEndSeconds,
-      fileType: 'audio/ios'
+      originalFileSize: iosBlobSize,
+      transcodedFileSize: iosBlobSize, // iOS sends raw MP4 blobs, no transcoding
+      fileType: iosBlobType
     };
     
     // Update last chunk end time for iPhone chunks
@@ -2531,7 +2553,7 @@ export const MeetingRecorder = ({
       
       simpleIOSTranscriberRef.current = new SimpleIOSTranscriber(
         {
-          onTranscription: (text: string, isFinal: boolean, confidence: number) => {
+          onTranscription: (text: string, isFinal: boolean, confidence: number, meta?: IOSTranscriptionMeta) => {
             if (!text || !text.trim()) return;
             
             // Use handleBrowserTranscript as single source of truth
@@ -2543,7 +2565,8 @@ export const MeetingRecorder = ({
               timestamp: new Date().toISOString(),
               isFinal,
               is_final: isFinal,
-              source: 'ios-simple' as const
+              source: 'ios-simple' as const,
+              iosMeta: meta // Pass blob metadata for UI display
             };
             handleBrowserTranscript(transcriptData);
           },
