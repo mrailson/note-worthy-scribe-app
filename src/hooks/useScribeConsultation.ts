@@ -120,8 +120,14 @@ export const useScribeConsultation = () => {
       const selectedMicrophoneId = getMicrophoneForType(consultationType);
       console.log(`🎤 Starting consultation with microphone: ${selectedMicrophoneId || 'default'} for type: ${consultationType}`);
       console.log(`🔊 Audio source mode: ${audioMode || 'microphone'}`);
+      console.log(`🎵 Audio format: ${settings.audioFormat || 'webm'}, Chunk duration: ${settings.chunkDurationSeconds || 25}s`);
       
-      await recording.startRecording(selectedMicrophoneId, audioMode || 'microphone');
+      await recording.startRecording(
+        selectedMicrophoneId, 
+        audioMode || 'microphone',
+        settings.audioFormat,
+        settings.chunkDurationSeconds
+      );
       setConsultationState('recording');
       
       return true;
@@ -130,7 +136,7 @@ export const useScribeConsultation = () => {
       showToast.error('Failed to start consultation', { section: 'gpscribe' });
       return false;
     }
-  }, [patientConsent, recording, settings.showConsentReminder, consultationType, getMicrophoneForType]);
+  }, [patientConsent, recording, settings.showConsentReminder, settings.audioFormat, settings.chunkDurationSeconds, consultationType, getMicrophoneForType]);
 
   // Internal save function for auto-save (returns promise, no toast on success)
   const saveConsultationInternal = useCallback(async (

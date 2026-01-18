@@ -77,12 +77,16 @@ export class DesktopWhisperTranscriber {
     private onChunkProcessed?: (metadata: ChunkMetadata) => void,
     private onChunkFiltered?: (metadata: ChunkMetadata) => void,
     private selectedDeviceId?: string | null,
-    private externalStream?: MediaStream | null // Allow passing pre-configured stream (e.g., mixed mic + browser audio)
+    private externalStream?: MediaStream | null, // Allow passing pre-configured stream (e.g., mixed mic + browser audio)
+    private audioFormat?: 'webm' | 'mp3',
+    private customChunkDurationMs?: number
   ) {
     this.sessionId = meetingId || this.generateSessionId();
     this.meetingId = meetingId || null;
-    this.chunkIntervalMs = 25000; // Phase 2: Optimized chunk duration for better transcription
+    // Use custom chunk duration if provided, otherwise default to 25 seconds
+    this.chunkIntervalMs = customChunkDurationMs || 25000;
     this.meetingSettings = withDefaultThresholds(meetingSettings);
+    console.log(`🎙️ DesktopWhisperTranscriber initialized with audioFormat: ${audioFormat || 'webm'}, chunkDuration: ${this.chunkIntervalMs}ms`);
   }
 
   private generateSessionId(): string {
@@ -351,14 +355,31 @@ export class DesktopWhisperTranscriber {
       // Start checking for audio activity (VAD + optional callback)
       this.startActivityMonitoring();
 
-      // Check supported MIME types for desktop
-      const mimeTypes = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/mp4',
-        'audio/mp4;codecs=mp4a.40.2',
-        'audio/aac'
-      ];
+      // Check supported MIME types for desktop based on user preference
+      let mimeTypes: string[];
+      
+      if (this.audioFormat === 'mp3') {
+        // MP3 preferred - try MP3/MPEG formats first
+        mimeTypes = [
+          'audio/mp3',
+          'audio/mpeg',
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/mp4',
+          'audio/mp4;codecs=mp4a.40.2'
+        ];
+        console.log('🎵 User preference: MP3 format');
+      } else {
+        // WebM preferred (default) - best compatibility
+        mimeTypes = [
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/mp4',
+          'audio/mp4;codecs=mp4a.40.2',
+          'audio/aac'
+        ];
+        console.log('🎵 User preference: WebM format');
+      }
 
       let selectedMimeType = 'audio/webm'; // fallback
       for (const mimeType of mimeTypes) {
@@ -367,6 +388,11 @@ export class DesktopWhisperTranscriber {
           console.log('🖥️ Using MIME type:', mimeType);
           break;
         }
+      }
+      
+      // Warn if preferred format wasn't available
+      if (this.audioFormat === 'mp3' && !selectedMimeType.includes('mp3') && !selectedMimeType.includes('mpeg')) {
+        console.warn('⚠️ MP3 format not supported by browser, falling back to:', selectedMimeType);
       }
 
       this.mediaRecorder = new MediaRecorder(this.stream, {

@@ -97,6 +97,22 @@ export const HISTORY_RETENTION_LABELS: Record<HistoryRetention, string> = {
   '1month': '1 Month'
 };
 
+// Audio recording format options
+export type AudioRecordingFormat = 'webm' | 'mp3';
+
+export const AUDIO_FORMAT_LABELS: Record<AudioRecordingFormat, string> = {
+  'webm': 'WebM (Opus) - Default',
+  'mp3': 'MP3 - Alternative'
+};
+
+// Chunk duration configuration
+export const CHUNK_DURATION_OPTIONS = {
+  min: 15,
+  max: 60,
+  default: 25,
+  step: 5
+} as const;
+
 // Patient context extracted from clinical system screenshot
 export interface PatientContext {
   name: string;
@@ -161,6 +177,9 @@ export interface ScribeSettings {
   telephoneMicrophoneId?: string | null;
   videoMicrophoneId?: string | null;
   systemAudioEnabled?: boolean; // Capture system audio for telephone/video software
+  // Audio recording settings
+  audioFormat?: AudioRecordingFormat; // Audio encoding format (webm or mp3)
+  chunkDurationSeconds?: number; // Audio chunk duration for transcription (15-60s)
 }
 
 export interface ScribeTranscriptData {
@@ -248,4 +267,7 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   f2fMicrophoneId: null,
   telephoneMicrophoneId: null,
   videoMicrophoneId: null,
+  // Audio recording settings
+  audioFormat: 'webm', // Default to WebM (best compatibility)
+  chunkDurationSeconds: 25, // Default 25 seconds per chunk
 };
