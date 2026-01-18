@@ -596,7 +596,7 @@ export const ConsultationRecordingState = ({
                             Listening... Start speaking to see real-time transcription.
                           </p>
                           <p className="text-muted-foreground/70 text-xs mt-1">
-                            AssemblyAI provides ~200ms latency transcription
+                            Live transcription with ~200ms latency
                           </p>
                         </div>
                       </div>
