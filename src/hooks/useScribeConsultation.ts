@@ -706,6 +706,13 @@ export const useScribeConsultation = () => {
     formatDuration: recording.formatDuration,
     isFinishing: isFinishing,
     
+    // Audio source states
+    audioSourceMode: recording.audioSourceMode,
+    isSwitchingAudioSource: recording.isSwitchingAudioSource,
+    micCaptured: recording.micCaptured,
+    systemAudioCaptured: recording.systemAudioCaptured,
+    switchAudioSourceLive: recording.switchAudioSourceLive,
+    
     // Actions
     setConsultationType,
     setConsultationCategory,
