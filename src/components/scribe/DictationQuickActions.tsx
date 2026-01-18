@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Copy, FileText, Trash2, Save, Clock, Type } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Copy, FileText, Trash2, Save, Clock, Type, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DictationQuickActionsProps {
@@ -12,7 +13,9 @@ interface DictationQuickActionsProps {
   onCopyLastParagraph: () => void;
   onClear: () => void;
   onSave: () => void;
+  onFormatAndClean: () => Promise<void>;
   isRecording: boolean;
+  isFormatting: boolean;
   currentSessionId: string | null;
 }
 
@@ -25,7 +28,9 @@ export function DictationQuickActions({
   onCopyLastParagraph,
   onClear,
   onSave,
+  onFormatAndClean,
   isRecording,
+  isFormatting,
   currentSessionId,
 }: DictationQuickActionsProps) {
   const hasContent = content.trim().length > 0;
@@ -46,6 +51,28 @@ export function DictationQuickActions({
           <Clock className="h-3.5 w-3.5" />
           <span>{formatDuration(duration)}</span>
         </div>
+        
+        {/* Format & Clean Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onFormatAndClean}
+              disabled={!hasContent || isRecording || isFormatting}
+              className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+            >
+              {isFormatting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Format & Clean (AI)</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       <Separator orientation="vertical" className="h-6 hidden sm:block" />

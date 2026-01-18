@@ -62,7 +62,9 @@ export function DictationPanel() {
                 onCopyLastParagraph={dictation.copyLastParagraph}
                 onClear={dictation.newDictation}
                 onSave={() => dictation.finalizeDictation()}
+                onFormatAndClean={dictation.formatAndClean}
                 isRecording={dictation.isRecording}
+                isFormatting={dictation.isFormatting}
                 currentSessionId={dictation.currentSessionId}
               />
 
