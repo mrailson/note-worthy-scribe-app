@@ -13,7 +13,7 @@ import { AudioWaveform } from "./AudioWaveform";
 import { LiveTranscriptPreview } from "./LiveTranscriptPreview";
 import { QuickAudioSourceSwitcher, AudioSourceMode } from "@/components/meeting/QuickAudioSourceSwitcher";
 import { PreviewStatus } from "@/hooks/useScribeRecording";
-import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip, Loader2, Minimize2, BarChart3, CheckCircle, XCircle, AlertCircle, Trash2 } from "lucide-react";
+import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip, Loader2, Minimize2, BarChart3, CheckCircle, XCircle, AlertCircle, Trash2, Radio } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
@@ -68,6 +68,7 @@ interface ConsultationRecordingStateProps {
   onClearChunks?: () => void;
   // Live preview props (AssemblyAI real-time for mic verification)
   livePreviewTranscript?: string;
+  livePreviewFullTranscript?: string;
   livePreviewStatus?: PreviewStatus;
   livePreviewActive?: boolean;
   livePreviewError?: string | null;
@@ -114,6 +115,7 @@ export const ConsultationRecordingState = ({
   onClearChunks,
   // Live preview props
   livePreviewTranscript = '',
+  livePreviewFullTranscript = '',
   livePreviewStatus = 'idle',
   livePreviewActive = false,
   livePreviewError = null
@@ -381,7 +383,7 @@ export const ConsultationRecordingState = ({
       {/* Tabbed Content Area */}
       <div className="flex-1 min-h-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-          <TabsList className={`grid w-full grid-cols-4 mb-3 ${isMobile ? 'h-12' : ''}`}>
+          <TabsList className={`grid w-full grid-cols-5 mb-3 ${isMobile ? 'h-12' : ''}`}>
             <TabsTrigger value="transcript" className={`touch-manipulation ${isMobile ? 'flex-col py-1.5 gap-0.5' : 'gap-2'}`}>
               <FileText className={isMobile ? "h-4 w-4" : "h-4 w-4"} />
               <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Transcript</span>
@@ -389,6 +391,16 @@ export const ConsultationRecordingState = ({
             <TabsTrigger value="sofar" className={`touch-manipulation ${isMobile ? 'flex-col py-1.5 gap-0.5' : 'gap-2'}`}>
               <Brain className={isMobile ? "h-4 w-4" : "h-4 w-4"} />
               <span className={isMobile ? "text-xs" : "hidden sm:inline"}>So Far</span>
+            </TabsTrigger>
+            <TabsTrigger value="assemblyai" className={`touch-manipulation relative ${isMobile ? 'flex-col py-1.5 gap-0.5' : 'gap-2'}`}>
+              <Radio className={isMobile ? "h-4 w-4" : "h-4 w-4"} />
+              <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Real-time</span>
+              {livePreviewActive && (
+                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="chunks" className={`touch-manipulation relative ${isMobile ? 'flex-col py-1.5 gap-0.5' : 'gap-2'}`}>
               <BarChart3 className={isMobile ? "h-4 w-4" : "h-4 w-4"} />
@@ -519,6 +531,78 @@ export const ConsultationRecordingState = ({
                 transcript={transcript}
                 contextFiles={contextFiles}
               />
+            </Card>
+          </TabsContent>
+
+          {/* AssemblyAI Real-time Tab */}
+          <TabsContent value="assemblyai" className="flex-1 min-h-0 mt-0">
+            <Card className="h-full">
+              <CardContent className="p-4 h-full flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Radio className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-medium">AssemblyAI Real-time Transcript</h3>
+                    {livePreviewActive && (
+                      <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700 text-xs">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                        </span>
+                        Live
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{livePreviewFullTranscript.split(/\s+/).filter(w => w.length > 0).length} words</span>
+                  </div>
+                </div>
+                
+                {/* Transcript Content */}
+                <ScrollArea className="flex-1">
+                  <div className="pr-4">
+                    {livePreviewError ? (
+                      <div className="flex items-center gap-2 text-destructive text-sm">
+                        <AlertCircle className="h-4 w-4" />
+                        {livePreviewError}
+                      </div>
+                    ) : livePreviewFullTranscript ? (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                        {livePreviewFullTranscript}
+                        {livePreviewActive && (
+                          <span className="inline-block w-1.5 h-4 bg-primary ml-1 animate-pulse" />
+                        )}
+                      </p>
+                    ) : livePreviewActive ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                          <Mic className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3 animate-pulse" />
+                          <p className="text-muted-foreground text-sm">
+                            Listening... Start speaking to see real-time transcription.
+                          </p>
+                          <p className="text-muted-foreground/70 text-xs mt-1">
+                            AssemblyAI provides ~200ms latency transcription
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="text-center text-muted-foreground">
+                          <Radio className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                          <p className="text-sm">Real-time transcription not active</p>
+                          <p className="text-xs mt-1">Starts automatically when recording begins</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+
+                {/* Footer */}
+                <div className="pt-3 mt-3 border-t text-xs text-muted-foreground flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  Separate from Whisper batch transcription — for real-time feedback
+                </div>
+              </CardContent>
             </Card>
           </TabsContent>
 

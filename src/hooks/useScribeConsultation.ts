@@ -728,6 +728,7 @@ export const useScribeConsultation = () => {
     
     // Live preview (AssemblyAI real-time for mic verification)
     livePreviewTranscript: recording.livePreviewTranscript,
+    livePreviewFullTranscript: recording.livePreviewFullTranscript,
     livePreviewStatus: recording.livePreviewStatus,
     livePreviewActive: recording.livePreviewActive,
     livePreviewError: recording.livePreviewError,

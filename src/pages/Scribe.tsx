@@ -368,6 +368,7 @@ const Scribe = () => {
                 onClearChunks={consultation.clearChunks}
                 // Live preview (AssemblyAI real-time)
                 livePreviewTranscript={consultation.livePreviewTranscript}
+                livePreviewFullTranscript={consultation.livePreviewFullTranscript}
                 livePreviewStatus={consultation.livePreviewStatus}
                 livePreviewActive={consultation.livePreviewActive}
                 livePreviewError={consultation.livePreviewError}
