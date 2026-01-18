@@ -210,8 +210,8 @@ export const CONSULTATION_TYPE_LABELS: Record<ConsultationType, string> = {
 };
 
 export const F2F_ACCOMPANIED_LABELS = {
-  alone: 'Alone',
-  accompanied: 'Patient +1'
+  alone: '',
+  accompanied: '(Accompanied)'
 } as const;
 
 export const CONSULTATION_TYPE_SHORT: Record<ConsultationType, string> = {
