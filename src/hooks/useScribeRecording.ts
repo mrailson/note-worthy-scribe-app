@@ -316,9 +316,26 @@ export const useScribeRecording = () => {
       setConnectionStatus("Connected");
       toast.success("Recording started");
       
-      // Start AssemblyAI real-time preview for mic verification
-      console.log('🎤 Starting AssemblyAI live preview for mic verification...');
-      assemblyPreview.startPreview().catch(err => {
+      // Start AssemblyAI real-time preview - use same audio source as main transcription
+      console.log('🎤 Starting AssemblyAI live preview...', 
+        combinedStream ? '(using combined mic+system stream)' : '(mic only)');
+      
+      // Create a stream for AssemblyAI that matches the user's audio selection
+      let assemblyStream: MediaStream | undefined = combinedStream;
+      
+      // If no combined stream but specific mic selected, create a mic stream for AssemblyAI
+      if (!assemblyStream && selectedMicrophoneId) {
+        try {
+          assemblyStream = await navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: { exact: selectedMicrophoneId } }
+          });
+          console.log('🎤 Created specific mic stream for AssemblyAI preview');
+        } catch (err) {
+          console.warn('⚠️ Could not create specific mic stream for AssemblyAI, will use default');
+        }
+      }
+      
+      assemblyPreview.startPreview(assemblyStream).catch(err => {
         console.warn('⚠️ AssemblyAI preview failed to start (non-critical):', err);
       });
     } catch (error) {
@@ -566,6 +583,26 @@ export const useScribeRecording = () => {
       
       await desktopTranscriberRef.current.startTranscription();
       
+      // Also restart AssemblyAI preview with the new audio source
+      console.log('🎤 Restarting AssemblyAI preview with new audio source...');
+      assemblyPreview.stopPreview();
+      
+      // Create stream for AssemblyAI that matches the new audio mode
+      let assemblyStream: MediaStream | undefined = combinedStream;
+      if (!assemblyStream && currentMicIdRef.current) {
+        try {
+          assemblyStream = await navigator.mediaDevices.getUserMedia({
+            audio: { deviceId: { exact: currentMicIdRef.current } }
+          });
+        } catch (err) {
+          console.warn('⚠️ Could not create specific mic stream for AssemblyAI');
+        }
+      }
+      
+      assemblyPreview.startPreview(assemblyStream).catch(err => {
+        console.warn('⚠️ AssemblyAI preview failed to restart (non-critical):', err);
+      });
+      
       setConnectionStatus("Connected");
       toast.success(newMode === 'microphone_and_system' 
         ? "Now capturing microphone + system audio"
@@ -579,7 +616,7 @@ export const useScribeRecording = () => {
     } finally {
       setIsSwitchingAudioSource(false);
     }
-  }, [isRecording, isSwitchingAudioSource, audioSourceMode, handleTranscriptUpdate]);
+  }, [isRecording, isSwitchingAudioSource, audioSourceMode, handleTranscriptUpdate, assemblyPreview]);
 
   const cleanTranscript = useCallback(async () => {
     if (!transcript.trim()) {
