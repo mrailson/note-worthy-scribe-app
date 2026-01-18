@@ -7,8 +7,10 @@ import { mergeLive } from "@/utils/TranscriptMerge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useChunkTracker, ChunkStatus } from "./useChunkTracker";
+import { useAssemblyRealtimePreview, PreviewStatus } from "./useAssemblyRealtimePreview";
 
 export type AudioSourceMode = 'microphone' | 'microphone_and_system';
+export type { PreviewStatus };
 
 export const useScribeRecording = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -31,6 +33,9 @@ export const useScribeRecording = () => {
   // Chunk tracking for debugging
   const { chunks, addChunk, clearChunks, getStats } = useChunkTracker();
   const recordingStartTimeRef = useRef<number>(0);
+
+  // AssemblyAI real-time preview for mic verification
+  const assemblyPreview = useAssemblyRealtimePreview();
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
@@ -310,6 +315,12 @@ export const useScribeRecording = () => {
 
       setConnectionStatus("Connected");
       toast.success("Recording started");
+      
+      // Start AssemblyAI real-time preview for mic verification
+      console.log('🎤 Starting AssemblyAI live preview for mic verification...');
+      assemblyPreview.startPreview().catch(err => {
+        console.warn('⚠️ AssemblyAI preview failed to start (non-critical):', err);
+      });
     } catch (error) {
       console.error("Failed to start recording:", error);
       toast.error("Failed to start recording");
@@ -348,6 +359,10 @@ export const useScribeRecording = () => {
         await chromiumTranscriberRef.current.stopTranscription();
         chromiumTranscriberRef.current = null;
       }
+
+      // Stop AssemblyAI preview
+      console.log('🛑 Stopping AssemblyAI live preview...');
+      assemblyPreview.stopPreview();
 
       releaseWakeLock();
 
@@ -407,6 +422,9 @@ export const useScribeRecording = () => {
     currentMicIdRef.current = undefined;
     recordingStartTimeRef.current = 0;
     clearChunks();
+    
+    // Stop AssemblyAI preview if active
+    assemblyPreview.stopPreview();
 
     // Stop system audio stream if active
     if (systemStreamRef.current) {
@@ -612,6 +630,12 @@ export const useScribeRecording = () => {
     chunks,
     chunkStats: getStats(),
     clearChunks,
+
+    // Live preview (AssemblyAI real-time for mic verification)
+    livePreviewTranscript: assemblyPreview.liveTranscript,
+    livePreviewStatus: assemblyPreview.status,
+    livePreviewActive: assemblyPreview.isActive,
+    livePreviewError: assemblyPreview.error,
 
     // Actions
     startRecording,

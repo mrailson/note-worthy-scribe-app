@@ -10,7 +10,9 @@ import { SoFarReviewPanel } from "./SoFarReviewPanel";
 import { ContextUploadPanel } from "./ContextUploadPanel";
 import { MinimalRecordingState } from "./MinimalRecordingState";
 import { AudioWaveform } from "./AudioWaveform";
+import { LiveTranscriptPreview } from "./LiveTranscriptPreview";
 import { QuickAudioSourceSwitcher, AudioSourceMode } from "@/components/meeting/QuickAudioSourceSwitcher";
+import { PreviewStatus } from "@/hooks/useScribeRecording";
 import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip, Loader2, Minimize2, BarChart3, CheckCircle, XCircle, AlertCircle, Trash2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -64,6 +66,11 @@ interface ConsultationRecordingStateProps {
   chunks?: ChunkStatus[];
   chunkStats?: ChunkStats;
   onClearChunks?: () => void;
+  // Live preview props (AssemblyAI real-time for mic verification)
+  livePreviewTranscript?: string;
+  livePreviewStatus?: PreviewStatus;
+  livePreviewActive?: boolean;
+  livePreviewError?: string | null;
 }
 
 interface TimestampedSegment {
@@ -104,7 +111,12 @@ export const ConsultationRecordingState = ({
   // Chunk tracking props
   chunks = [],
   chunkStats,
-  onClearChunks
+  onClearChunks,
+  // Live preview props
+  livePreviewTranscript = '',
+  livePreviewStatus = 'idle',
+  livePreviewActive = false,
+  livePreviewError = null
 }: ConsultationRecordingStateProps) => {
   const isMobile = useIsMobile();
   const [showTranscript, setShowTranscript] = useState(initialShowTranscript);
@@ -343,6 +355,15 @@ export const ConsultationRecordingState = ({
           </Button>
         </div>
       </div>
+
+      {/* Live Preview - AssemblyAI real-time for mic verification */}
+      <LiveTranscriptPreview
+        transcript={livePreviewTranscript}
+        status={livePreviewStatus}
+        isActive={livePreviewActive}
+        error={livePreviewError}
+        className="mb-3"
+      />
 
       {/* Session Info Bar */}
       <div className="flex items-center justify-between text-xs text-muted-foreground pb-2 border-b mb-3">

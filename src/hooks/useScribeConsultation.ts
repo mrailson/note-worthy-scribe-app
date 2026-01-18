@@ -726,6 +726,12 @@ export const useScribeConsultation = () => {
     chunkStats: recording.chunkStats,
     clearChunks: recording.clearChunks,
     
+    // Live preview (AssemblyAI real-time for mic verification)
+    livePreviewTranscript: recording.livePreviewTranscript,
+    livePreviewStatus: recording.livePreviewStatus,
+    livePreviewActive: recording.livePreviewActive,
+    livePreviewError: recording.livePreviewError,
+    
     // Actions
     setConsultationType,
     setConsultationCategory,
