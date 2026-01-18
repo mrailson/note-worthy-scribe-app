@@ -2813,6 +2813,45 @@ export type Database = {
         }
         Relationships: []
       }
+      dictations: {
+        Row: {
+          content: string
+          created_at: string | null
+          duration_seconds: number | null
+          id: string
+          is_draft: boolean | null
+          template_type: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          content?: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_draft?: boolean | null
+          template_type?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          is_draft?: boolean | null
+          template_type?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       distribution_list_members: {
         Row: {
           attendee_id: string
