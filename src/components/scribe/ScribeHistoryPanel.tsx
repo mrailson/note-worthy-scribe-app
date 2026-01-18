@@ -466,23 +466,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                 />
                 <span className="text-muted-foreground/40">|</span>
                 <div className="flex items-center gap-0.5">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => handleViewModeChange('soap')}
-                        className={cn(
-                          "p-1.5 rounded-md transition-colors",
-                          settings.consultationViewMode === 'soap' 
-                            ? "text-primary bg-primary/10" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
-                        aria-label="Structured (SOAP)"
-                      >
-                        <List className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Structured (SOAP)</TooltipContent>
-                  </Tooltip>
+                  {/* Narrative Clinical (TPP SystmOne) */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -493,13 +477,14 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                             ? "text-primary bg-primary/10" 
                             : "text-muted-foreground hover:text-foreground hover:bg-muted"
                         )}
-                        aria-label="Narrative Clinical"
+                        aria-label="Narrative Clinical (TPP SystmOne)"
                       >
                         <ClipboardList className="h-3.5 w-3.5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Narrative Clinical (H/E/A/I/P)</TooltipContent>
+                    <TooltipContent side="bottom">Narrative Clinical (TPP SystmOne)</TooltipContent>
                   </Tooltip>
+                  {/* EMIS View */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -517,6 +502,33 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     </TooltipTrigger>
                     <TooltipContent side="bottom">EMIS View</TooltipContent>
                   </Tooltip>
+                  
+                  {/* Spacer */}
+                  <span className="w-2" />
+                  
+                  {/* Structured View (SOAP) */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleViewModeChange('soap')}
+                        className={cn(
+                          "p-1.5 rounded-md transition-colors",
+                          settings.consultationViewMode === 'soap' 
+                            ? "text-primary bg-primary/10" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        aria-label="Structured View (SOAP)"
+                      >
+                        <List className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Structured View (SOAP)</TooltipContent>
+                  </Tooltip>
+                  
+                  {/* Spacer */}
+                  <span className="w-2" />
+                  
+                  {/* Patient Letter */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -533,36 +545,6 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                       </button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">Patient Letter</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => handleViewModeChange('referral')}
-                        className={cn(
-                          "p-1.5 rounded-md transition-colors",
-                          settings.consultationViewMode === 'referral' 
-                            ? "text-primary bg-primary/10" 
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
-                        aria-label="Referral"
-                      >
-                        <Send className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Referral</TooltipContent>
-                  </Tooltip>
-                  <div className="w-px h-4 bg-border mx-1" />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setDisplaySettingsOpen(true)}
-                        className="p-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
-                        aria-label="Display Settings"
-                      >
-                        <Settings2 className="h-3.5 w-3.5" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Display Settings</TooltipContent>
                   </Tooltip>
                 </div>
               </div>
