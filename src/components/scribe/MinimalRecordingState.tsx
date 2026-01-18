@@ -93,9 +93,11 @@ export const MinimalRecordingState = ({
   const [showAudioModeInfo, setShowAudioModeInfo] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const [showRealtimeTranscript, setShowRealtimeTranscript] = useState(false);
+  const [transcriptSource, setTranscriptSource] = useState<'realtime' | 'batch'>('realtime');
   const [microphones, setMicrophones] = useState<MicrophoneDevice[]>([]);
   const [isButtonPressed, setIsButtonPressed] = useState(false);
   const liveTranscriptRef = useRef<HTMLDivElement>(null);
+  const batchTranscriptRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll live transcript to bottom when new text arrives
   useEffect(() => {
@@ -103,6 +105,13 @@ export const MinimalRecordingState = ({
       liveTranscriptRef.current.scrollTop = liveTranscriptRef.current.scrollHeight;
     }
   }, [livePreviewFullTranscript]);
+
+  // Auto-scroll batch transcript to bottom when new text arrives
+  useEffect(() => {
+    if (batchTranscriptRef.current && transcript) {
+      batchTranscriptRef.current.scrollTop = batchTranscriptRef.current.scrollHeight;
+    }
+  }, [transcript]);
 
   // Handle finish with immediate feedback
   const handleFinish = () => {
@@ -426,7 +435,7 @@ export const MinimalRecordingState = ({
           </CollapsibleTrigger>
         </Collapsible>
 
-        {/* Real-time Transcript Toggle (AssemblyAI) */}
+        {/* Real-time Transcript Toggle with source switcher */}
         <Collapsible open={showRealtimeTranscript} onOpenChange={setShowRealtimeTranscript}>
           <CollapsibleTrigger asChild>
             <Button 
@@ -435,7 +444,7 @@ export const MinimalRecordingState = ({
               className="w-full justify-center text-muted-foreground hover:text-foreground gap-1.5 text-xs mt-2"
             >
               <Radio className="h-3.5 w-3.5" />
-              <span>{showRealtimeTranscript ? 'Hide real-time transcript' : 'Show real-time transcript'}</span>
+              <span>{showRealtimeTranscript ? 'Hide transcripts' : 'Show transcripts'}</span>
               {livePreviewActive && (
                 <span className="flex h-2 w-2 ml-1">
                   <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-green-400 opacity-75"></span>
@@ -452,32 +461,74 @@ export const MinimalRecordingState = ({
           <CollapsibleContent>
             <Card className="bg-muted/30 mt-2 w-full">
               <CardContent className="p-0">
-                <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-                  {livePreviewActive && (
+                {/* Transcript source toggle */}
+                <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b border-border/50">
+                  <div className="flex gap-1 bg-muted rounded-md p-0.5">
+                    <Button
+                      variant={transcriptSource === 'realtime' ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setTranscriptSource('realtime')}
+                    >
+                      <Radio className="h-3 w-3 mr-1" />
+                      Notewell
+                    </Button>
+                    <Button
+                      variant={transcriptSource === 'batch' ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setTranscriptSource('batch')}
+                    >
+                      <FileText className="h-3 w-3 mr-1" />
+                      Whisper
+                    </Button>
+                  </div>
+                  {transcriptSource === 'realtime' && livePreviewActive && (
                     <span className="text-xs bg-green-500/20 text-green-600 px-2 py-0.5 rounded-full animate-pulse">
                       Live
                     </span>
                   )}
-                  <span className="text-xs text-muted-foreground">Notewell Transcription Service</span>
-                  {livePreviewFullTranscript && (
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      {livePreviewFullTranscript.split(/\s+/).filter(Boolean).length} words
-                    </span>
-                  )}
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {transcriptSource === 'realtime' 
+                      ? `${livePreviewFullTranscript?.split(/\s+/).filter(Boolean).length || 0} words`
+                      : `${transcript?.split(/\s+/).filter(Boolean).length || 0} words`
+                    }
+                  </span>
                 </div>
-                <div ref={liveTranscriptRef} className="h-32 overflow-y-auto">
-                  <div className="px-4 pt-2 pb-4">
-                    {livePreviewFullTranscript ? (
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
-                        {livePreviewFullTranscript}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic text-center">
-                        Real-time transcript will appear here as you speak...
-                      </p>
-                    )}
+
+                {/* Realtime transcript */}
+                {transcriptSource === 'realtime' && (
+                  <div ref={liveTranscriptRef} className="h-32 overflow-y-auto">
+                    <div className="px-4 pt-2 pb-4">
+                      {livePreviewFullTranscript ? (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
+                          {livePreviewFullTranscript}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic text-center">
+                          Real-time transcript will appear here as you speak...
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Batch (Whisper) transcript */}
+                {transcriptSource === 'batch' && (
+                  <div ref={batchTranscriptRef} className="h-32 overflow-y-auto">
+                    <div className="px-4 pt-2 pb-4">
+                      {transcript ? (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
+                          {transcript}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic text-center">
+                          Whisper transcript appears after each chunk is processed...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </CollapsibleContent>
