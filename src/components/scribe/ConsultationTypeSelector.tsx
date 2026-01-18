@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ConsultationType, ConsultationCategory, CONSULTATION_TYPE_LABELS, CONSULTATION_CATEGORY_LABELS } from "@/types/scribe";
+import { ConsultationType, ConsultationCategory, CONSULTATION_TYPE_LABELS, CONSULTATION_CATEGORY_LABELS, F2F_ACCOMPANIED_LABELS } from "@/types/scribe";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Phone, Video, Users, Stethoscope, Heart, HandHeart, ChevronDown } from "lucide-react";
@@ -11,6 +11,8 @@ interface ConsultationTypeSelectorProps {
   category: ConsultationCategory;
   onChange: (type: ConsultationType) => void;
   onCategoryChange: (category: ConsultationCategory) => void;
+  f2fAccompanied?: boolean;
+  onF2fAccompaniedChange?: (accompanied: boolean) => void;
   disabled?: boolean;
 }
 
@@ -31,6 +33,8 @@ export const ConsultationTypeSelector = ({
   category,
   onChange,
   onCategoryChange,
+  f2fAccompanied = false,
+  onF2fAccompaniedChange,
   disabled = false
 }: ConsultationTypeSelectorProps) => {
   const isMobile = useIsMobile();
@@ -96,9 +100,21 @@ export const ConsultationTypeSelector = ({
               value={type}
               aria-label={CONSULTATION_TYPE_LABELS[type]}
               className={`flex items-center gap-1.5 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground touch-manipulation ${isMobile ? 'flex-1 px-2 py-2.5 h-auto flex-col' : 'px-4 gap-2'}`}
+              onClick={(e) => {
+                // If clicking on F2F and it's already selected, toggle accompanied state
+                if (type === 'f2f' && value === 'f2f' && onF2fAccompaniedChange) {
+                  e.preventDefault();
+                  onF2fAccompaniedChange(!f2fAccompanied);
+                }
+              }}
             >
               {typeIcons[type]}
-              <span className={isMobile ? "text-xs" : "hidden sm:inline"}>{CONSULTATION_TYPE_LABELS[type]}</span>
+              <span className={isMobile ? "text-xs" : "hidden sm:inline"}>
+                {type === 'f2f' 
+                  ? `${CONSULTATION_TYPE_LABELS[type]} (${f2fAccompanied ? F2F_ACCOMPANIED_LABELS.accompanied : F2F_ACCOMPANIED_LABELS.alone})`
+                  : CONSULTATION_TYPE_LABELS[type]
+                }
+              </span>
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
