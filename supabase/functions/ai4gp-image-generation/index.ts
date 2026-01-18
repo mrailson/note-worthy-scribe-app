@@ -1075,7 +1075,20 @@ Content guidelines:
         throw new Error(`Image generation failed: ${response.status}`);
       }
 
-      const data = await response.json();
+      // Safely parse JSON response - handle empty or malformed responses
+      const responseText = await response.text();
+      if (!responseText || responseText.trim() === '') {
+        console.error('Empty response from AI Gateway');
+        throw new Error('Image generation returned an empty response. Please try again.');
+      }
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse AI Gateway response:', responseText.substring(0, 500));
+        throw new Error('Image generation returned an invalid response. Please try again.');
+      }
       textContent = data.choices?.[0]?.message?.content || '';
       imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
