@@ -81,8 +81,8 @@ const DEFAULT_SETTINGS: ImageStudioSettings = {
 };
 
 export function useImageStudio() {
-  const { practiceContext } = usePracticeContext();
   const { user } = useAuth();
+  const { practiceContext } = usePracticeContext();
   
   const [state, setState] = useState<ImageStudioState>(() => ({
     settings: DEFAULT_SETTINGS,
