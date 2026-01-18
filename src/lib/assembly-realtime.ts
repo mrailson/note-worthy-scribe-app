@@ -1,118 +1,296 @@
 // src/lib/assembly-realtime.ts
-import { getAssemblyToken } from "./getAssemblyToken";
+
+/**
+ * AssemblyAI real-time client used for the on-screen “Live Preview / Mic Check”.
+ *
+ * IMPORTANT:
+ * - The browser connects ONLY to our Supabase Edge Function WebSocket proxy.
+ * - The proxy connects to AssemblyAI and forwards messages back.
+ * - This avoids CSP issues and keeps secrets server-side.
+ */
 
 type Callbacks = {
+  /** Fired when the proxy reports the AssemblyAI session has begun and we start sending audio */
   onOpen?: () => void;
-  onPartial?: (text: string) => void;  // use for live/ongoing text (if you prefer)
-  onFinal?: (text: string) => void;    // end-of-turn text
+  onPartial?: (text: string) => void;
+  onFinal?: (text: string) => void;
   onClose?: (code: number, reason: string) => void;
-  onError?: (err: any) => void;
+  onError?: (err: Error) => void;
 };
+
+const PROXY_WS_URL =
+  "wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-realtime";
 
 export class AssemblyRealtimeClient {
   private ws?: WebSocket;
+
+  private stream?: MediaStream;
   private audioCtx?: AudioContext;
   private source?: MediaStreamAudioSourceNode;
   private processor?: ScriptProcessorNode;
+  private muteGain?: GainNode;
+
   private sending = false;
-  private sampleRateTarget = 16000;
+  private readonly sampleRateTarget = 16000;
 
   constructor(private cb: Callbacks = {}) {}
 
   async start() {
-    // 1) Get temp token (server → AAI /v3/token)
-    const token = await getAssemblyToken();
+    console.log("🎧 AssemblyRealtimeClient: connecting to proxy", PROXY_WS_URL);
 
-    // 2) Open v3 websocket
-    const wsUrl =
-      `wss://streaming.assemblyai.com/v3/ws?sample_rate=${this.sampleRateTarget}` +
-      `&token=${encodeURIComponent(token)}` +
-      `&format_turns=true`; // optional nicer formatting
-    this.ws = new WebSocket(wsUrl);
+    this.ws = new WebSocket(PROXY_WS_URL);
     this.ws.binaryType = "arraybuffer";
 
-    this.ws.onopen = () => { this.cb.onOpen?.(); this.sending = true; };
-    this.ws.onerror = (e) => this.cb.onError?.(e as any);
-    this.ws.onclose = (ev) => { this.sending = false; this.cleanupAudio(); this.cb.onClose?.(ev.code, ev.reason || ""); };
+    // Wait for proxy socket to open
+    await new Promise<void>((resolve, reject) => {
+      const ws = this.ws;
+      if (!ws) return reject(new Error("WebSocket not initialised"));
 
-    // 3) Handle v3 messages (session + turns)
-    this.ws.onmessage = (evt) => {
-      try {
-        const data = JSON.parse(typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data));
-        // Common shapes:
-        // { type: "SessionBegins", id, expires_at }
-        // { type: "Turn", text, formatted?: { text }, is_final?: boolean, ... }
-        if (data?.type === "Turn") {
-          const text = data?.formatted?.text ?? data?.text ?? "";
-          if (!text) return;
-          if (data?.is_final === false) this.cb.onPartial?.(text);
-          else this.cb.onFinal?.(text);
+      const onOpen = () => {
+        cleanup();
+        console.log("✅ AssemblyRealtimeClient: proxy WebSocket open");
+        resolve();
+      };
+      const onError = (e: Event) => {
+        cleanup();
+        console.error("❌ AssemblyRealtimeClient: proxy WS error before open", e);
+        reject(new Error("Failed to connect to AssemblyAI proxy"));
+      };
+      const onClose = (ev: CloseEvent) => {
+        cleanup();
+        console.error(
+          "❌ AssemblyRealtimeClient: proxy WS closed before open",
+          ev.code,
+          ev.reason
+        );
+        reject(new Error(`AssemblyAI proxy closed (${ev.code})`));
+      };
+      const cleanup = () => {
+        ws.removeEventListener("open", onOpen);
+        ws.removeEventListener("error", onError);
+        ws.removeEventListener("close", onClose);
+      };
+
+      ws.addEventListener("open", onOpen);
+      ws.addEventListener("error", onError);
+      ws.addEventListener("close", onClose);
+    });
+
+    // Wait for proxy to signal the AssemblyAI session is ready
+    await new Promise<void>((resolve, reject) => {
+      const ws = this.ws!;
+      let resolved = false;
+
+      const timeoutId = window.setTimeout(() => {
+        if (!resolved) {
+          console.error("⏰ AssemblyRealtimeClient: timed out waiting for session");
+          reject(new Error("AssemblyAI session did not start in time"));
         }
-      } catch (_) {
-        // Ignore non-JSON frames (shouldn't receive binary from server)
+      }, 10000);
+
+      const handleMessage = (evt: MessageEvent) => {
+        try {
+          const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
+          const data = JSON.parse(raw);
+
+          if (data?.type === "error") {
+            const msg = data?.error || "AssemblyAI error";
+            console.error("❌ AssemblyRealtimeClient: proxy error", msg);
+            cleanup();
+            reject(new Error(msg));
+            return;
+          }
+
+          if (data?.type === "session_begins" || data?.message_type === "SessionBegins") {
+            console.log("✅ AssemblyRealtimeClient: session_begins received");
+            resolved = true;
+            cleanup();
+            resolve();
+            return;
+          }
+
+          // If we receive actual Turn messages before session_begins, that's also fine.
+          if (data?.type === "Turn") {
+            console.log("ℹ️ AssemblyRealtimeClient: received Turn before session_begins (continuing)");
+          }
+        } catch {
+          // ignore
+        }
+      };
+
+      const handleClose = (ev: CloseEvent) => {
+        console.error("❌ AssemblyRealtimeClient: proxy closed while waiting for session", ev.code);
+        cleanup();
+        reject(new Error("AssemblyAI proxy closed"));
+      };
+
+      const handleError = () => {
+        console.error("❌ AssemblyRealtimeClient: proxy error while waiting for session");
+        cleanup();
+        reject(new Error("AssemblyAI proxy error"));
+      };
+
+      const cleanup = () => {
+        window.clearTimeout(timeoutId);
+        ws.removeEventListener("message", handleMessage);
+        ws.removeEventListener("close", handleClose);
+        ws.removeEventListener("error", handleError);
+      };
+
+      ws.addEventListener("message", handleMessage);
+      ws.addEventListener("close", handleClose);
+      ws.addEventListener("error", handleError);
+    });
+
+    // After session is ready, attach handlers for ongoing transcription
+    this.ws!.onmessage = (evt) => {
+      try {
+        const raw = typeof evt.data === "string" ? evt.data : new TextDecoder().decode(evt.data);
+        const data = JSON.parse(raw);
+
+        if (data?.type === "error") {
+          const msg = data?.error || "AssemblyAI error";
+          this.cb.onError?.(new Error(msg));
+          return;
+        }
+
+        // AssemblyAI v3 Turn format (via proxy)
+        if (data?.type === "Turn") {
+          const text = String(data?.transcript ?? data?.formatted?.text ?? data?.text ?? "").trim();
+          if (!text) return;
+
+          const isFinal = Boolean(data?.end_of_turn ?? false);
+          if (isFinal) this.cb.onFinal?.(text);
+          else this.cb.onPartial?.(text);
+          return;
+        }
+
+        // Legacy compatibility (if any)
+        if (data?.message_type === "PartialTranscript") {
+          const text = String(data?.text ?? "").trim();
+          if (text) this.cb.onPartial?.(text);
+          return;
+        }
+        if (data?.message_type === "FinalTranscript") {
+          const text = String(data?.text ?? "").trim();
+          if (text) this.cb.onFinal?.(text);
+          return;
+        }
+      } catch {
+        // ignore non-json
       }
     };
 
-    // 4) Capture mic, downsample to 16 kHz PCM_s16le, send 50–1000 ms chunks
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    this.source = this.audioCtx.createMediaStreamSource(stream);
-    this.processor = this.audioCtx.createScriptProcessor(4096, 1, 1);
-    this.source.connect(this.processor);
-    this.processor.connect(this.audioCtx.destination);
+    this.ws!.onclose = (ev) => {
+      console.log("🔌 AssemblyRealtimeClient: proxy WS closed", ev.code, ev.reason);
+      this.sending = false;
+      this.cleanupAudio();
+      this.cb.onClose?.(ev.code, ev.reason || "");
+    };
 
-    // We'll accumulate ~100 ms of audio before sending (≈3200 bytes)
-    let buffer16: Int16Array[] = [];
+    this.ws!.onerror = (e) => {
+      console.error("❌ AssemblyRealtimeClient: proxy WS error", e);
+      this.cb.onError?.(new Error("AssemblyAI proxy WebSocket error"));
+    };
+
+    // Start microphone capture AFTER proxy session is ready
+    await this.startAudioCapture();
+    this.sending = true;
+    this.cb.onOpen?.();
+    console.log("✅ AssemblyRealtimeClient: sending audio");
+  }
+
+  stop() {
+    console.log("🛑 AssemblyRealtimeClient: stop");
+
+    try {
+      this.sending = false;
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify({ type: "terminate" }));
+      }
+      this.ws?.close();
+    } catch (err) {
+      console.warn("⚠️ AssemblyRealtimeClient: stop error", err);
+    }
+
+    this.cleanupAudio();
+  }
+
+  private async startAudioCapture() {
+    console.log("🎙️ AssemblyRealtimeClient: starting mic capture");
+
+    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    this.source = this.audioCtx.createMediaStreamSource(this.stream);
+
+    // Deprecated but OK for this simple preview.
+    this.processor = this.audioCtx.createScriptProcessor(4096, 1, 1);
+
+    // Avoid feedback by routing via a muted gain node.
+    this.muteGain = this.audioCtx.createGain();
+    this.muteGain.gain.value = 0;
+
+    this.source.connect(this.processor);
+    this.processor.connect(this.muteGain);
+    this.muteGain.connect(this.audioCtx.destination);
+
+    const buffer16: Int16Array[] = [];
     let accLen = 0;
+
     const targetChunkMs = 100;
-    const samplesPerChunk = Math.round(this.sampleRateTarget * (targetChunkMs / 1000)); // 1600 samples
-    const bytesPerChunk = samplesPerChunk * 2; // 3200 bytes
+    const samplesPerChunk = Math.round(this.sampleRateTarget * (targetChunkMs / 1000));
+    const bytesPerChunk = samplesPerChunk * 2;
 
     this.processor.onaudioprocess = (e) => {
       if (!this.sending || this.ws?.readyState !== WebSocket.OPEN) return;
-      const input = e.inputBuffer.getChannelData(0); // Float32 at device rate
-      const resampled = this.resampleTo16k(input, this.audioCtx!.sampleRate);
+
+      const input = e.inputBuffer.getChannelData(0);
+      const resampled = this.resampleToTarget(input, this.audioCtx!.sampleRate);
       const pcm16 = this.floatToPCM16(resampled);
 
       buffer16.push(pcm16);
       accLen += pcm16.byteLength;
 
-      // Send in ~100ms slices (50–1000ms allowed by API)
       while (accLen >= bytesPerChunk) {
         const payload = this.spliceBytes(buffer16, bytesPerChunk);
-        if (payload) this.ws!.send(payload.buffer); // send ArrayBuffer (binary)
+        if (payload) this.ws!.send(payload.buffer);
         accLen -= bytesPerChunk;
       }
     };
-  }
 
-  stop() {
-    try {
-      this.sending = false;
-      // Optional: you can also send a termination message, but closing the socket is fine
-      this.ws?.close();
-    } catch {}
-    this.cleanupAudio();
+    console.log("✅ AssemblyRealtimeClient: mic capture started");
   }
 
   private cleanupAudio() {
     try {
       this.processor?.disconnect();
       this.source?.disconnect();
+      this.muteGain?.disconnect();
       this.audioCtx?.close();
     } catch {}
-    this.processor = undefined; this.source = undefined; this.audioCtx = undefined;
+
+    try {
+      this.stream?.getTracks().forEach((t) => t.stop());
+    } catch {}
+
+    this.processor = undefined;
+    this.source = undefined;
+    this.muteGain = undefined;
+    this.audioCtx = undefined;
+    this.stream = undefined;
   }
 
-  private resampleTo16k(input: Float32Array, srcRate: number): Float32Array {
+  private resampleToTarget(input: Float32Array, srcRate: number): Float32Array {
     if (srcRate === this.sampleRateTarget) return input;
     const ratio = srcRate / this.sampleRateTarget;
     const newLen = Math.round(input.length / ratio);
     const out = new Float32Array(newLen);
     let pos = 0;
-    for (let i = 0; i < newLen; i++) { out[i] = input[Math.floor(pos)] || 0; pos += ratio; }
+    for (let i = 0; i < newLen; i++) {
+      out[i] = input[Math.floor(pos)] || 0;
+      pos += ratio;
+    }
     return out;
-    // (If you want nicer quality, swap to a proper low-pass + resampler later.)
   }
 
   private floatToPCM16(f32: Float32Array): Int16Array {
@@ -124,24 +302,33 @@ export class AssemblyRealtimeClient {
     return out;
   }
 
-  // spliceBytes pulls ~bytesNeeded from the accumulated Int16 chunks
   private spliceBytes(chunks: Int16Array[], bytesNeeded: number): Int16Array | null {
     const samplesNeeded = bytesNeeded / 2;
     let need = samplesNeeded;
     const toConcat: Int16Array[] = [];
+
     while (need > 0 && chunks.length) {
       const head = chunks[0];
-      if (head.length <= need) { toConcat.push(head); chunks.shift(); need -= head.length; }
-      else {
+      if (head.length <= need) {
+        toConcat.push(head);
+        chunks.shift();
+        need -= head.length;
+      } else {
         toConcat.push(head.subarray(0, need));
         chunks[0] = head.subarray(need);
         need = 0;
       }
     }
+
     if (need > 0) return null;
+
     const total = toConcat.reduce((a, c) => a + c.length, 0);
     const out = new Int16Array(total);
-    let off = 0; for (const c of toConcat) { out.set(c, off); off += c.length; }
+    let off = 0;
+    for (const c of toConcat) {
+      out.set(c, off);
+      off += c.length;
+    }
     return out;
   }
 }
