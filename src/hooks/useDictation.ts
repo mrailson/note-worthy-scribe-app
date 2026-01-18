@@ -60,6 +60,7 @@ export function useDictation() {
   // Deduplication refs (like useAssemblyRealtimePreview)
   const baseContentRef = useRef<string>(''); // Content when recording started
   const recordingTranscriptRef = useRef<string>(''); // Transcript accumulated during this recording session
+  const currentPartialRef = useRef<string>(''); // Current partial transcript for live display
   const lastFinalSegmentRef = useRef<string>(''); // Last final segment for dedup
   const lastFinalAtRef = useRef<number>(0);
   
@@ -261,6 +262,7 @@ export function useDictation() {
     
     // Reset tracking refs for new session
     recordingTranscriptRef.current = '';
+    currentPartialRef.current = '';
     lastFinalSegmentRef.current = '';
     lastFinalAtRef.current = 0;
 
@@ -331,12 +333,25 @@ export function useDictation() {
             saveDraft();
           }, 30000);
         },
-        onPartial: (text) => {
-          // Could show live partial preview here if needed
-          console.log('🎤 Dictation partial:', text.substring(0, 30) + '...');
-        },
+      onPartial: (text) => {
+        console.log('🎤 Dictation partial:', text.substring(0, 30) + '...');
+        
+        // Store current partial for live display
+        currentPartialRef.current = text;
+        
+        // Update content immediately: base + recording transcript + current partial
+        const newContent = (
+          baseContentRef.current + ' ' + 
+          recordingTranscriptRef.current + ' ' + 
+          text
+        ).trim();
+        setContent(newContent);
+      },
         onFinal: (text) => {
           console.log('🎤 Dictation FINAL (raw):', text.substring(0, 50) + '...');
+          
+          // Clear partial since we now have final
+          currentPartialRef.current = '';
           
           // Apply medical text processing to correct common transcription errors
           const processedText = processMedicalText(text);
@@ -357,7 +372,7 @@ export function useDictation() {
           lastFinalSegmentRef.current = processedText;
           lastFinalAtRef.current = now;
           
-          // Update content: base + recording transcript
+          // Update content: base + recording transcript (no partial now)
           const newContent = (baseContentRef.current + ' ' + recordingTranscriptRef.current).trim();
           setContent(newContent);
         },
