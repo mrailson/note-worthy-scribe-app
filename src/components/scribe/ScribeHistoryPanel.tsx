@@ -16,6 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { TranscriptDisplay } from "./TranscriptDisplay";
+import { TranscriptComparisonView } from "./TranscriptComparisonView";
 import { ConsultationViewControls } from "./ConsultationViewControls";
 import { NoteStyleToggle } from "./NoteStyleToggle";
 import { PatientLetterView } from "./PatientLetterView";
@@ -745,24 +746,12 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
               
               <TabsContent value="transcript" className="mt-4">
                 {currentSession.transcript ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-muted-foreground">
-                        Recorded on {format(new Date(currentSession.createdAt), "EEEE, d MMMM yyyy 'at' HH:mm")}
-                      </p>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => copyToClipboard(currentSession.transcript, 'Transcript')}
-                      >
-                        <Copy className="h-4 w-4 mr-1" />
-                        Copy
-                      </Button>
-                    </div>
-                    <ScrollArea className="h-[400px] rounded-xl border bg-gradient-to-b from-amber-50/50 to-white dark:from-slate-900/50 dark:to-slate-950 shadow-inner">
-                      <TranscriptDisplay transcript={currentSession.transcript} />
-                    </ScrollArea>
-                  </div>
+                  <TranscriptComparisonView 
+                    batchTranscript={currentSession.transcript}
+                    realtimeTranscript={currentSession.realtimeTranscript}
+                    createdAt={currentSession.createdAt}
+                    copyToClipboard={copyToClipboard}
+                  />
                 ) : (
                   <p className="text-muted-foreground text-center py-8">No transcript available</p>
                 )}

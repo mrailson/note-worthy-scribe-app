@@ -110,6 +110,7 @@ export const useScribeHistory = () => {
           ? item.gp_consultation_transcripts[0] 
           : item.gp_consultation_transcripts;
         const transcript = transcriptData?.transcript_text || '';
+        const realtimeTranscript = transcriptData?.realtime_transcript || '';
         
         // Get notes from joined table (1:1 relationship)
         const notesData = Array.isArray(item.gp_consultation_notes) 
@@ -122,6 +123,7 @@ export const useScribeHistory = () => {
           id: item.id,
           title: item.title || 'Untitled Consultation',
           transcript,
+          realtimeTranscript: realtimeTranscript || undefined,
           summary: '',
           actionItems: '',
           keyPoints: '',
