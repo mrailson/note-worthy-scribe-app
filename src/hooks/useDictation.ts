@@ -54,6 +54,8 @@ export function useDictation() {
   const autoSaveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const contentRef = useRef(content);
   const startTimeRef = useRef<number>(0);
+  const lastFinalTextRef = useRef<string>(''); // Track last final to avoid duplicates
+  const baseContentRef = useRef<string>(''); // Content before this recording session started
   
   // Keep contentRef in sync
   useEffect(() => {
@@ -149,7 +151,13 @@ export function useDictation() {
     const template = DICTATION_TEMPLATES.find(t => t.id === selectedTemplate);
     if (template?.prefix && !content) {
       setContent(template.prefix);
+      baseContentRef.current = template.prefix;
+    } else {
+      baseContentRef.current = content;
     }
+    
+    // Reset tracking refs for new session
+    lastFinalTextRef.current = '';
 
     try {
       const client = new AssemblyRealtimeClient({
@@ -168,13 +176,32 @@ export function useDictation() {
           }, 30000);
         },
         onPartial: (text) => {
-          // For dictation, we show partial in real-time (could add a preview area)
+          // Show partial as a preview (optional - could add live preview state)
         },
         onFinal: (text) => {
-          setContent(prev => {
-            const separator = prev.trim() ? ' ' : '';
-            return prev + separator + text;
-          });
+          // AssemblyAI v3 sends cumulative transcripts, so we need to deduplicate
+          // Only add the new portion that wasn't in the last final
+          const lastFinal = lastFinalTextRef.current;
+          
+          let newText = text;
+          if (lastFinal && text.startsWith(lastFinal)) {
+            // Text is cumulative, extract only the new part
+            newText = text.slice(lastFinal.length).trim();
+          } else if (lastFinal && text.includes(lastFinal)) {
+            // Partial overlap - find where new content starts
+            const idx = text.lastIndexOf(lastFinal);
+            newText = text.slice(idx + lastFinal.length).trim();
+          }
+          
+          // Update last final reference
+          lastFinalTextRef.current = text;
+          
+          if (newText) {
+            setContent(prev => {
+              const separator = prev.trim() ? ' ' : '';
+              return prev + separator + newText;
+            });
+          }
         },
         onError: (err) => {
           console.error('Dictation error:', err);
