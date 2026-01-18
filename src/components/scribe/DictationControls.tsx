@@ -2,7 +2,19 @@ import { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Mic, Square, Loader2, Monitor } from 'lucide-react';
+import { Mic, Square, Loader2, Monitor, Settings } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { DictationStatus } from '@/hooks/useDictation';
 
 interface DictationControlsProps {
@@ -27,6 +39,7 @@ export function DictationControls({
   onSystemAudioChange,
 }: DictationControlsProps) {
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleStartClick = useCallback(() => {
     // Start connection immediately AND start countdown in parallel
@@ -144,23 +157,52 @@ export function DictationControls({
             <span className="text-sm font-medium">Recording</span>
           </div>
         )}
-      </div>
 
-      {/* PC Audio Toggle - only show when not recording */}
-      {!isRecording && onSystemAudioChange && (
-        <div className="flex items-center gap-2">
-          <Switch
-            id="system-audio-control"
-            checked={systemAudioEnabled}
-            onCheckedChange={onSystemAudioChange}
-          />
-          <Label htmlFor="system-audio-control" className="flex items-center gap-1.5 text-sm cursor-pointer">
-            <Mic className="h-4 w-4" />
-            Capture PC Audio
-            <Monitor className="h-4 w-4 text-muted-foreground" />
-          </Label>
-        </div>
-      )}
+        {/* Settings button - only show when not recording */}
+        {!isRecording && onSystemAudioChange && (
+          <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Recording settings</p>
+              </TooltipContent>
+            </Tooltip>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Recording Settings</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="system-audio-modal" className="flex items-center gap-2 cursor-pointer">
+                    <Monitor className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex flex-col">
+                      <span>Capture PC Audio</span>
+                      <span className="text-xs text-muted-foreground font-normal">
+                        Include system audio in recording
+                      </span>
+                    </div>
+                  </Label>
+                  <Switch
+                    id="system-audio-modal"
+                    checked={systemAudioEnabled}
+                    onCheckedChange={onSystemAudioChange}
+                  />
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
     </div>
   );
 }
