@@ -11,14 +11,25 @@ import { ContextUploadPanel } from "./ContextUploadPanel";
 import { MinimalRecordingState } from "./MinimalRecordingState";
 import { AudioWaveform } from "./AudioWaveform";
 import { QuickAudioSourceSwitcher, AudioSourceMode } from "@/components/meeting/QuickAudioSourceSwitcher";
-import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip, Loader2, Minimize2 } from "lucide-react";
+import { Mic, Pause, Play, Square, Eye, EyeOff, Clock, FileText, Brain, Paperclip, Loader2, Minimize2, BarChart3, CheckCircle, XCircle, AlertCircle, Trash2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
+import { ChunkStatus } from "@/hooks/useChunkTracker";
 
 interface MicrophoneDevice {
   deviceId: string;
   label: string;
+}
+
+interface ChunkStats {
+  total: number;
+  successful: number;
+  lowConfidence: number;
+  filtered: number;
+  totalWords: number;
+  avgConfidence: number;
+  successRate: number;
 }
 
 interface ConsultationRecordingStateProps {
@@ -49,6 +60,10 @@ interface ConsultationRecordingStateProps {
   isSwitchingAudioSource?: boolean;
   micCaptured?: boolean;
   systemAudioCaptured?: boolean;
+  // Chunk tracking props
+  chunks?: ChunkStatus[];
+  chunkStats?: ChunkStats;
+  onClearChunks?: () => void;
 }
 
 interface TimestampedSegment {
@@ -85,7 +100,11 @@ export const ConsultationRecordingState = ({
   onAudioSourceChange,
   isSwitchingAudioSource = false,
   micCaptured = false,
-  systemAudioCaptured = false
+  systemAudioCaptured = false,
+  // Chunk tracking props
+  chunks = [],
+  chunkStats,
+  onClearChunks
 }: ConsultationRecordingStateProps) => {
   const isMobile = useIsMobile();
   const [showTranscript, setShowTranscript] = useState(initialShowTranscript);
@@ -96,6 +115,7 @@ export const ConsultationRecordingState = ({
   const [microphones, setMicrophones] = useState<MicrophoneDevice[]>([]);
   const [selectedMicId, setSelectedMicId] = useState<string>('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const chunksScrollRef = useRef<HTMLDivElement>(null);
   const lastTranscriptCount = useRef(0);
 
   // Load available microphones
@@ -340,7 +360,7 @@ export const ConsultationRecordingState = ({
       {/* Tabbed Content Area */}
       <div className="flex-1 min-h-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-          <TabsList className={`grid w-full grid-cols-3 mb-3 ${isMobile ? 'h-12' : ''}`}>
+          <TabsList className={`grid w-full grid-cols-4 mb-3 ${isMobile ? 'h-12' : ''}`}>
             <TabsTrigger value="transcript" className={`touch-manipulation ${isMobile ? 'flex-col py-1.5 gap-0.5' : 'gap-2'}`}>
               <FileText className={isMobile ? "h-4 w-4" : "h-4 w-4"} />
               <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Transcript</span>
@@ -349,7 +369,16 @@ export const ConsultationRecordingState = ({
               <Brain className={isMobile ? "h-4 w-4" : "h-4 w-4"} />
               <span className={isMobile ? "text-xs" : "hidden sm:inline"}>So Far</span>
             </TabsTrigger>
-            <TabsTrigger value="context" className={`touch-manipulation ${isMobile ? 'flex-col py-1.5 gap-0.5' : 'gap-2'}`}>
+            <TabsTrigger value="chunks" className={`touch-manipulation relative ${isMobile ? 'flex-col py-1.5 gap-0.5' : 'gap-2'}`}>
+              <BarChart3 className={isMobile ? "h-4 w-4" : "h-4 w-4"} />
+              <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Chunks</span>
+              {chunks.length > 0 && (
+                <Badge variant="secondary" className={`h-5 px-1.5 text-xs ${isMobile ? 'absolute -top-1 -right-1' : 'ml-1'}`}>
+                  {chunks.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="context" className={`touch-manipulation relative ${isMobile ? 'flex-col py-1.5 gap-0.5' : 'gap-2'}`}>
               <Paperclip className={isMobile ? "h-4 w-4" : "h-4 w-4"} />
               <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Context</span>
               {contextFiles.length > 0 && (
@@ -469,6 +498,131 @@ export const ConsultationRecordingState = ({
                 transcript={transcript}
                 contextFiles={contextFiles}
               />
+            </Card>
+          </TabsContent>
+
+          {/* Chunks Debug Tab */}
+          <TabsContent value="chunks" className="flex-1 min-h-0 mt-0">
+            <Card className="h-full">
+              <CardContent className="p-4 h-full flex flex-col">
+                {/* Stats Overview */}
+                {chunkStats && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                    <div className="bg-muted/50 rounded-lg p-2 text-center">
+                      <p className="text-2xl font-bold">{chunkStats.total}</p>
+                      <p className="text-xs text-muted-foreground">Total Chunks</p>
+                    </div>
+                    <div className="bg-green-500/10 rounded-lg p-2 text-center">
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {chunkStats.successRate.toFixed(0)}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">Success Rate</p>
+                    </div>
+                    <div className="bg-blue-500/10 rounded-lg p-2 text-center">
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {(chunkStats.avgConfidence * 100).toFixed(0)}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">Avg Confidence</p>
+                    </div>
+                    <div className="bg-red-500/10 rounded-lg p-2 text-center">
+                      <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                        {chunkStats.filtered}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Filtered</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Clear Button */}
+                {chunks.length > 0 && onClearChunks && (
+                  <div className="flex justify-end mb-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onClearChunks}
+                      className="text-muted-foreground gap-1.5"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Clear All
+                    </Button>
+                  </div>
+                )}
+
+                {/* Chunks Timeline */}
+                <ScrollArea className="flex-1">
+                  <div ref={chunksScrollRef} className="space-y-2 pr-2">
+                    {chunks.length === 0 ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="text-center">
+                          <BarChart3 className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
+                          <p className="text-muted-foreground text-sm">
+                            No chunks processed yet
+                          </p>
+                          <p className="text-muted-foreground/70 text-xs mt-1">
+                            Chunks will appear as audio is transcribed
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      [...chunks].reverse().map((chunk) => (
+                        <div
+                          key={chunk.id}
+                          className={`
+                            p-3 rounded-lg border text-sm
+                            ${chunk.status === 'success' 
+                              ? 'bg-green-500/5 border-green-500/20' 
+                              : chunk.status === 'low_confidence'
+                              ? 'bg-amber-500/5 border-amber-500/20'
+                              : 'bg-red-500/5 border-red-500/20'
+                            }
+                          `}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <div className="flex items-center gap-2">
+                              {chunk.status === 'success' ? (
+                                <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
+                              ) : chunk.status === 'low_confidence' ? (
+                                <AlertCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-500 shrink-0" />
+                              )}
+                              <span className="text-xs font-mono text-muted-foreground">
+                                {format(chunk.timestamp, 'HH:mm:ss')}
+                              </span>
+                              <Badge 
+                                variant={chunk.status === 'success' ? 'default' : chunk.status === 'low_confidence' ? 'secondary' : 'destructive'}
+                                className="text-xs"
+                              >
+                                {chunk.status === 'success' ? 'Success' : chunk.status === 'low_confidence' ? 'Low Confidence' : 'Filtered'}
+                              </Badge>
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {(chunk.confidence * 100).toFixed(0)}% conf
+                            </span>
+                          </div>
+                          
+                          {chunk.text && (
+                            <p className="text-xs text-foreground/80 line-clamp-2 mt-1">
+                              {chunk.text}
+                            </p>
+                          )}
+                          
+                          {chunk.reason && (
+                            <p className="text-xs text-red-600 dark:text-red-400 mt-1 italic">
+                              {chunk.reason}
+                            </p>
+                          )}
+                          
+                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                            <span>{chunk.wordCount} words</span>
+                            {chunk.speaker && <span>Speaker: {chunk.speaker}</span>}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
             </Card>
           </TabsContent>
 

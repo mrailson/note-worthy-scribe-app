@@ -1,11 +1,12 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { ScribeTranscriptData } from "@/types/scribe";
 import { iPhoneWhisperTranscriber, TranscriptData as IPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
-import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
+import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData, ChunkMetadata } from '@/utils/DesktopWhisperTranscriber';
 import { ChromiumMicTranscriber, ChromiumTranscriptData } from '@/utils/ChromiumMicTranscriber';
 import { mergeLive } from "@/utils/TranscriptMerge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useChunkTracker, ChunkStatus } from "./useChunkTracker";
 
 export type AudioSourceMode = 'microphone' | 'microphone_and_system';
 
@@ -26,6 +27,10 @@ export const useScribeRecording = () => {
   const [isSwitchingAudioSource, setIsSwitchingAudioSource] = useState(false);
   const [micCaptured, setMicCaptured] = useState(false);
   const [systemAudioCaptured, setSystemAudioCaptured] = useState(false);
+
+  // Chunk tracking for debugging
+  const { chunks, addChunk, clearChunks, getStats } = useChunkTracker();
+  const recordingStartTimeRef = useRef<number>(0);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
@@ -114,6 +119,31 @@ export const useScribeRecording = () => {
     });
   }, []);
 
+  // Chunk tracking callbacks
+  const handleChunkProcessed = useCallback((metadata: ChunkMetadata) => {
+    addChunk({
+      timestamp: new Date(),
+      text: metadata.text || '',
+      confidence: metadata.confidence || 0,
+      status: metadata.confidence && metadata.confidence < 0.3 ? 'low_confidence' : 'success',
+      speaker: metadata.speaker,
+      isFinal: true,
+      reason: undefined
+    });
+  }, [addChunk]);
+
+  const handleChunkFiltered = useCallback((metadata: ChunkMetadata) => {
+    addChunk({
+      timestamp: new Date(),
+      text: metadata.text || '[audio chunk]',
+      confidence: metadata.confidence || 0,
+      status: 'filtered',
+      speaker: undefined,
+      isFinal: false,
+      reason: metadata.reason || 'Unknown filter reason'
+    });
+  }, [addChunk]);
+
   const startRecording = useCallback(async (selectedMicrophoneId?: string, mode: AudioSourceMode = 'microphone') => {
     try {
       setIsRecording(true);
@@ -123,8 +153,10 @@ export const useScribeRecording = () => {
       setAudioSourceMode(mode);
       currentMicIdRef.current = selectedMicrophoneId;
       
-      // Generate session ID
+      // Generate session ID and clear previous chunks
       sessionIdRef.current = `scribe_${Date.now()}`;
+      recordingStartTimeRef.current = Date.now();
+      clearChunks();
       
       // Request wake lock to prevent device sleep
       await requestWakeLock();
@@ -242,8 +274,8 @@ export const useScribeRecording = () => {
           { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } }, // meetingSettings
           undefined, // meetingId
           undefined, // onAudioActivity
-          undefined, // onChunkProcessed
-          undefined, // onChunkFiltered
+          handleChunkProcessed, // onChunkProcessed - now passing actual callback
+          handleChunkFiltered, // onChunkFiltered - now passing actual callback
           selectedMicrophoneId, // selectedDeviceId
           combinedStream // externalStream
         );
@@ -348,6 +380,8 @@ export const useScribeRecording = () => {
     setSystemAudioCaptured(false);
     sessionIdRef.current = null;
     currentMicIdRef.current = undefined;
+    recordingStartTimeRef.current = 0;
+    clearChunks();
 
     // Stop system audio stream if active
     if (systemStreamRef.current) {
@@ -362,7 +396,7 @@ export const useScribeRecording = () => {
 
     releaseWakeLock();
     console.log("Scribe: Recording state reset complete");
-  }, []);
+  }, [clearChunks]);
 
   // Switch audio source mode while recording
   const switchAudioSourceLive = useCallback(async (newMode: AudioSourceMode): Promise<void> => {
@@ -481,8 +515,8 @@ export const useScribeRecording = () => {
         { transcriberService: 'whisper', transcriberThresholds: { whisper: 0.30, deepgram: 0.30 } }, // meetingSettings
         undefined, // meetingId
         undefined, // onAudioActivity
-        undefined, // onChunkProcessed
-        undefined, // onChunkFiltered
+        handleChunkProcessed, // onChunkProcessed
+        handleChunkFiltered, // onChunkFiltered
         currentMicIdRef.current, // selectedDeviceId
         combinedStream // externalStream
       );
@@ -548,6 +582,11 @@ export const useScribeRecording = () => {
     isSwitchingAudioSource,
     micCaptured,
     systemAudioCaptured,
+
+    // Chunk tracking
+    chunks,
+    chunkStats: getStats(),
+    clearChunks,
 
     // Actions
     startRecording,
