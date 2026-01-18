@@ -618,7 +618,7 @@ export const ConsultationRecordingState = ({
                       </div>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
 
                 {/* Footer */}
                 <div className="pt-3 mt-3 border-t text-xs text-muted-foreground flex items-center gap-1">
