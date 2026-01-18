@@ -21,8 +21,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isLikelyHallucination } from './whisperHallucinationPatterns';
 
+export interface IOSTranscriptionMeta {
+  blobSize?: number;  // Size of the audio blob in bytes
+  blobType?: string;  // MIME type of the audio blob (e.g. 'audio/mp4')
+}
+
 export interface IOSTranscriberCallbacks {
-  onTranscription: (text: string, isFinal: boolean, confidence: number) => void;
+  onTranscription: (text: string, isFinal: boolean, confidence: number, meta?: IOSTranscriptionMeta) => void;
   onError: (error: string) => void;
   onStatusChange: (status: string) => void;
   onStatsUpdate?: (stats: IOSTranscriberStats) => void;
@@ -45,6 +50,8 @@ interface QueuedChunk {
   index: number;
   capturedAt: number;
   retryCount: number;
+  blobSize: number;
+  blobType: string;
 }
 
 export class SimpleIOSTranscriber {
@@ -65,6 +72,7 @@ export class SimpleIOSTranscriber {
   // TEXT buffering (not audio buffering!)
   private pendingTexts: string[] = [];
   private pendingConfidences: number[] = [];
+  private pendingBlobMeta: { size: number; type: string }[] = [];
   private lastEmitTime = 0;
   private readonly TEXT_EMIT_INTERVAL_MS = 12000; // Emit merged text every ~12s
   
@@ -158,6 +166,7 @@ export class SimpleIOSTranscriber {
       this.finalTranscript = '';
       this.pendingTexts = [];
       this.pendingConfidences = [];
+      this.pendingBlobMeta = [];
       this.lastEmitTime = Date.now();
       this.lastOndataavailableTime = Date.now();
       this.rotationInProgress = false;
@@ -333,7 +342,9 @@ export class SimpleIOSTranscriber {
       blob,
       index: this.capturedBlobCount,
       capturedAt: Date.now(),
-      retryCount: 0
+      retryCount: 0,
+      blobSize: blob.size,
+      blobType: blob.type || this.mimeType
     };
 
     this.queue.push(queuedChunk);
@@ -381,6 +392,7 @@ export class SimpleIOSTranscriber {
             // Buffer this text for later emission
             this.pendingTexts.push(cleanText);
             this.pendingConfidences.push(result.confidence || 0.8);
+            this.pendingBlobMeta.push({ size: item.blobSize, type: item.blobType });
             
             this.lastTextLength = cleanText.length;
             this.totalTranscribedChars += cleanText.length;
@@ -467,13 +479,18 @@ export class SimpleIOSTranscriber {
     // Calculate average confidence
     const avgConfidence = this.pendingConfidences.reduce((a, b) => a + b, 0) / this.pendingConfidences.length;
 
-    // Emit to UI
-    this.callbacks.onTranscription(mergedText, isFinal, avgConfidence);
-    console.log(`📱 iOS-Rotate: Emitted merged text (${mergedText.length} chars, ${(avgConfidence * 100).toFixed(0)}% conf)`);
+    // Calculate total blob size and pick type from last blob
+    const totalBlobSize = this.pendingBlobMeta.reduce((sum, m) => sum + m.size, 0);
+    const blobType = this.pendingBlobMeta.length > 0 ? this.pendingBlobMeta[this.pendingBlobMeta.length - 1].type : 'audio/mp4';
+
+    // Emit to UI with metadata
+    this.callbacks.onTranscription(mergedText, isFinal, avgConfidence, { blobSize: totalBlobSize, blobType });
+    console.log(`📱 iOS-Rotate: Emitted merged text (${mergedText.length} chars, ${(avgConfidence * 100).toFixed(0)}% conf, ${(totalBlobSize/1024).toFixed(1)}KB ${blobType})`);
 
     // Clear buffers
     this.pendingTexts = [];
     this.pendingConfidences = [];
+    this.pendingBlobMeta = [];
     this.lastEmitTime = Date.now();
   }
 
