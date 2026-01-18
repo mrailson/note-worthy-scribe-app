@@ -2332,17 +2332,39 @@ export const MeetingRecorder = ({
       return trimmed;
     });
   };
-  const handleBrowserTranscript = (data: BrowserTranscriptData & { iosMeta?: IOSTranscriptionMeta }) => {
+  const handleBrowserTranscript = (data: BrowserTranscriptData & { 
+    iosMeta?: IOSTranscriptionMeta;
+    // Desktop transcriber metadata (new)
+    originalFileSize?: number;
+    transcodedFileSize?: number;
+    fileType?: string;
+    start_ms?: number;
+    end_ms?: number;
+    chunkNumber?: number;
+  }) => {
     // Skip empty transcripts
     if (!data.text || !data.text.trim()) return;
     
-    // Add chunk status tracking for iPhone/mobile transcription with timestamps
+    // Check if this is a desktop transcriber chunk (has metadata) or iOS/browser chunk
+    const isDesktopChunk = typeof data.originalFileSize === 'number' || typeof data.start_ms === 'number';
+    
     // CRITICAL: Use synchronous ref for correct chunk numbering (setState is async)
-    chunkCounterRef.current += 1;
-    const currentChunkNumber = chunkCounterRef.current;
+    // For desktop chunks, use their provided chunk number if available to avoid double-counting
+    let currentChunkNumber: number;
+    if (isDesktopChunk && typeof data.chunkNumber === 'number') {
+      // Desktop transcriber already tracked this chunk number - use it but update our counter if needed
+      currentChunkNumber = data.chunkNumber;
+      if (currentChunkNumber >= chunkCounterRef.current) {
+        chunkCounterRef.current = currentChunkNumber;
+      }
+    } else {
+      // iOS/browser chunks - increment counter
+      chunkCounterRef.current += 1;
+      currentChunkNumber = chunkCounterRef.current;
+    }
     setChunkCounter(currentChunkNumber); // Update state for UI display
     
-    console.log(`📊 Chunk counter: ${currentChunkNumber} (ref: ${chunkCounterRef.current})`);
+    console.log(`📊 Chunk counter: ${currentChunkNumber} (ref: ${chunkCounterRef.current}, isDesktop: ${isDesktopChunk})`);
     
     const chunkLength = data.text.trim().length;
     const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
@@ -2350,22 +2372,37 @@ export const MeetingRecorder = ({
       ? (performance.now() - recordingStartMonotonicRef.current) / 1000
       : duration;
 
-    // iOS chunks don't have an audio file blob available client-side, so file size is unknown.
-    // For timing, treat each recognised "chunk" as spanning from the previous chunk end to now.
-    const chunkEndSeconds = approxNowSeconds;
-    const proposedStart = lastChunkEndTime.current ?? 0;
-    const chunkStartSeconds = Math.min(proposedStart, chunkEndSeconds);
+    // Determine timing - desktop transcriber provides accurate timing, iOS uses fallback
+    let chunkStartSeconds: number;
+    let chunkEndSeconds: number;
     
-    // Extract iOS blob metadata if provided
-    // CRITICAL: Log to verify meta is arriving correctly
+    if (isDesktopChunk && typeof data.start_ms === 'number' && typeof data.end_ms === 'number') {
+      // Desktop transcriber provided accurate timestamps
+      chunkStartSeconds = data.start_ms / 1000;
+      chunkEndSeconds = data.end_ms / 1000;
+      console.log(`🖥️ Desktop chunk #${currentChunkNumber}: timing from transcriber: ${chunkStartSeconds.toFixed(1)}s → ${chunkEndSeconds.toFixed(1)}s`);
+    } else {
+      // iOS/browser chunks - use fallback timing
+      chunkEndSeconds = approxNowSeconds;
+      const proposedStart = lastChunkEndTime.current ?? 0;
+      chunkStartSeconds = Math.min(proposedStart, chunkEndSeconds);
+    }
+    
+    // Extract file metadata - prefer desktop transcriber data, fallback to iOS meta
     const iosBlobSize = data.iosMeta?.blobSize;
     const iosBlobType = data.iosMeta?.blobType;
     
-    console.log(`📱 iOS chunk #${currentChunkNumber} meta:`, {
+    const fileSize = data.originalFileSize ?? data.transcodedFileSize ?? iosBlobSize;
+    const fileType = data.fileType ?? iosBlobType;
+    
+    console.log(`📱 Chunk #${currentChunkNumber} meta:`, {
+      isDesktop: isDesktopChunk,
+      hasDesktopMeta: typeof data.originalFileSize === 'number',
       hasIosMeta: !!data.iosMeta,
-      blobSize: iosBlobSize,
-      blobType: iosBlobType,
-      rawMeta: data.iosMeta
+      fileSize,
+      fileType,
+      startMs: data.start_ms,
+      endMs: data.end_ms
     });
     
     const newChunkStatus: ChunkSaveStatus = {
@@ -2378,98 +2415,108 @@ export const MeetingRecorder = ({
       confidence: data.confidence || 0.9,
       startTime: chunkStartSeconds,
       endTime: chunkEndSeconds,
-      originalFileSize: iosBlobSize,
-      transcodedFileSize: iosBlobSize, // iOS sends raw MP4 blobs, no transcoding
-      fileType: iosBlobType // Don't use a fake fallback - undefined is better than 'audio/ios'
+      originalFileSize: data.originalFileSize ?? iosBlobSize,
+      transcodedFileSize: data.transcodedFileSize ?? iosBlobSize,
+      fileType: fileType
     };
     
-    // Update last chunk end time for iPhone chunks
+    // Update last chunk end time
     lastChunkEndTime.current = chunkEndSeconds;
     
     setChunkSaveStatuses(prev => [...prev, newChunkStatus]);
     
-    // CRITICAL FIX: Actually persist iOS chunks to database (was previously simulated)
-    // This enables consolidation to work and meeting transcript to be saved
-    const persistIOSChunk = async () => {
-      const currentMeetingId = sessionStorage.getItem('currentMeetingId');
-      const currentSessionId = sessionStorage.getItem('currentSessionId');
-      
-      if (!currentMeetingId) {
-        console.log('📱 iOS chunk: No meetingId yet, skipping DB save');
-        // Update UI status anyway
-        setTimeout(() => {
-          setChunkSaveStatuses(prev => prev.map(chunk => 
-            chunk.id === uniqueChunkId 
-              ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
-              : chunk
-          ));
-        }, 500);
-        return;
-      }
-      
-      try {
-        console.log(`📱 iOS chunk #${currentChunkNumber}: Saving to meeting_transcription_chunks...`);
+    // Desktop chunks are saved by the transcriber itself, iOS chunks need manual save
+    if (!isDesktopChunk) {
+      // CRITICAL FIX: Actually persist iOS chunks to database (was previously simulated)
+      const persistIOSChunk = async () => {
+        const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+        const currentSessionId = sessionStorage.getItem('currentSessionId');
         
-        const { data: { user: currentUser } } = await supabase.auth.getUser();
-        if (!currentUser) {
-          console.error('📱 iOS chunk: No authenticated user');
+        if (!currentMeetingId) {
+          console.log('📱 iOS chunk: No meetingId yet, skipping DB save');
+          // Update UI status anyway
+          setTimeout(() => {
+            setChunkSaveStatuses(prev => prev.map(chunk => 
+              chunk.id === uniqueChunkId 
+                ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
+                : chunk
+            ));
+          }, 500);
           return;
         }
         
-        const { error } = await supabase
-          .from('meeting_transcription_chunks')
-          .insert({
-            meeting_id: currentMeetingId,
-            user_id: currentUser.id,
-            chunk_number: currentChunkNumber,
-            transcription_text: data.text.trim(),
-            confidence: data.confidence || 0.9,
-            is_final: true,
-            transcriber_type: 'ios-simple',
-            start_time: newChunkStatus.startTime || 0,
-            end_time: newChunkStatus.endTime || approxNowSeconds,
-            session_id: currentSessionId || currentMeetingId
-          });
-        
-        if (error) {
-          console.error(`📱 iOS chunk #${currentChunkNumber}: DB save failed:`, error.message);
+        try {
+          console.log(`📱 iOS chunk #${currentChunkNumber}: Saving to meeting_transcription_chunks...`);
+          
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          if (!currentUser) {
+            console.error('📱 iOS chunk: No authenticated user');
+            return;
+          }
+          
+          const { error } = await supabase
+            .from('meeting_transcription_chunks')
+            .insert({
+              meeting_id: currentMeetingId,
+              user_id: currentUser.id,
+              chunk_number: currentChunkNumber,
+              transcription_text: data.text.trim(),
+              confidence: data.confidence || 0.9,
+              is_final: true,
+              transcriber_type: 'ios-simple',
+              start_time: newChunkStatus.startTime || 0,
+              end_time: newChunkStatus.endTime || approxNowSeconds,
+              session_id: currentSessionId || currentMeetingId
+            });
+          
+          if (error) {
+            console.error(`📱 iOS chunk #${currentChunkNumber}: DB save failed:`, error.message);
+            setChunkSaveStatuses(prev => prev.map(chunk => 
+              chunk.id === uniqueChunkId 
+                ? { ...chunk, saveStatus: 'failed' as const }
+                : chunk
+            ));
+          } else {
+            console.log(`📱 iOS chunk #${currentChunkNumber}: Saved successfully`);
+            setChunkSaveStatuses(prev => prev.map(chunk => 
+              chunk.id === uniqueChunkId 
+                ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
+                : chunk
+            ));
+          }
+        } catch (err) {
+          console.error(`📱 iOS chunk #${currentChunkNumber}: DB save exception:`, err);
           setChunkSaveStatuses(prev => prev.map(chunk => 
             chunk.id === uniqueChunkId 
               ? { ...chunk, saveStatus: 'failed' as const }
               : chunk
           ));
-        } else {
-          console.log(`📱 iOS chunk #${currentChunkNumber}: Saved successfully`);
-          setChunkSaveStatuses(prev => prev.map(chunk => 
-            chunk.id === uniqueChunkId 
-              ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
-              : chunk
-          ));
         }
-      } catch (err) {
-        console.error(`📱 iOS chunk #${currentChunkNumber}: DB save exception:`, err);
+      };
+      
+      // Execute the async save for iOS chunks
+      persistIOSChunk();
+    } else {
+      // Desktop chunks - transcriber saves to DB, mark as saved after brief delay
+      setTimeout(() => {
         setChunkSaveStatuses(prev => prev.map(chunk => 
           chunk.id === uniqueChunkId 
-            ? { ...chunk, saveStatus: 'failed' as const }
+            ? { ...chunk, saveStatus: 'saved' as const, saveTimestamp: new Date().toISOString() }
             : chunk
         ));
-      }
-    };
+      }, 500);
+    }
     
-    // Execute the async save
-    persistIOSChunk();
-    
-    // CRITICAL FIX: Force isFinal=true for iOS chunks so they're merged correctly
     // Calculate monotonic timestamps in milliseconds for accurate merge timing
-    const startMs = Math.round((newChunkStatus.startTime || 0) * 1000);
-    const endMs = Math.round((newChunkStatus.endTime || approxNowSeconds) * 1000);
+    const startMs = Math.round(chunkStartSeconds * 1000);
+    const endMs = Math.round(chunkEndSeconds * 1000);
     
     const transcriptData: TranscriptData = {
       text: data.text.trim(),
       speaker: data.speaker || 'Speaker',
       confidence: data.confidence || 0.9,
       timestamp: new Date().toISOString(),
-      isFinal: true, // CRITICAL FIX: Always true for iOS chunks so they're merged
+      isFinal: true, // CRITICAL FIX: Always true so chunks are merged
       chunkNumber: currentChunkNumber,
       chunkLength: chunkLength,
       dbSaveStatus: 'saving',
@@ -3926,6 +3973,7 @@ export const MeetingRecorder = ({
       setRealtimeTranscripts([]);
       setChunkSaveStatuses([]);
       pendingTranscriptsRef.current = []; // Clear any stale pending transcripts
+      lastChunkEndTime.current = null; // CRITICAL: Reset chunk timing for accurate first chunk
       setSpeakerCount(1);
       setStartTime(generateMeetingTimestamp());
       

@@ -8,6 +8,14 @@ export interface TranscriptData {
   is_final: boolean;
   confidence: number;
   speaker: string;
+  // Audio metadata for chunk display
+  originalFileSize?: number;
+  transcodedFileSize?: number;
+  fileType?: string;
+  // Timing metadata for accurate merge
+  start_ms?: number;
+  end_ms?: number;
+  chunkNumber?: number;
 }
 
 export class DesktopWhisperTranscriber {
@@ -386,6 +394,8 @@ export class DesktopWhisperTranscriber {
       // Start recording and schedule first chunk
       this.isRecording = true;
       this.chunkCount = 0;
+      this.totalProcessedDuration = 0; // CRITICAL: Reset timing for new session
+      this.lastSegmentEndTime = 0; // CRITICAL: Reset segment timing for new session
       this.startChunkedRecording();
       
       // Setup visibility handler for tab switching recovery
@@ -554,9 +564,14 @@ export class DesktopWhisperTranscriber {
       const currentChunkNumber = chunkNumber ?? this.chunkCount;
       console.log(`🖥️ Processing audio chunk ${currentChunkNumber} - audioChunks: ${this.audioChunks.length}, meetingId: ${this.meetingId}`);
       
+      // Capture timing at start of chunk processing (before any async work)
+      const chunkProcessStartMs = this.totalProcessedDuration * 1000;
+      
       // No overlap buffer - process chunks as-is for timestamp-based deduplication
       const audioBlob = new Blob(this.audioChunks, { type: this.audioChunks[0].type });
-      console.log(`🖥️ Audio blob size: ${audioBlob.size} bytes`);
+      const originalFileSize = audioBlob.size;
+      const originalFileType = audioBlob.type;
+      console.log(`🖥️ Audio blob size: ${originalFileSize} bytes, type: ${originalFileType}`);
       
       this.audioChunks = []; // Clear current chunks after processing
 
@@ -758,11 +773,22 @@ export class DesktopWhisperTranscriber {
           }
         }
         
+        // Calculate chunk end time for proper timing
+        const chunkEndMs = this.totalProcessedDuration * 1000;
+        
         const transcriptData: TranscriptData = {
           text: cleanText,
           is_final: true,
           confidence: data.confidence || 0.9, // Use actual confidence from API
-          speaker: 'Speaker'
+          speaker: 'Speaker',
+          // Include audio metadata for chunk display
+          originalFileSize: originalFileSize,
+          transcodedFileSize: originalFileSize, // Desktop doesn't transcode
+          fileType: originalFileType,
+          // Include timing for accurate merge
+          start_ms: chunkProcessStartMs,
+          end_ms: chunkEndMs,
+          chunkNumber: currentChunkNumber
         };
 
         // Phase 3: Apply confidence gating but always send to UI for user feedback
@@ -770,7 +796,11 @@ export class DesktopWhisperTranscriber {
           text: cleanText.substring(0, 50) + '...',
           confidence: transcriptData.confidence,
           threshold: this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService],
-          meetsThreshold: meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)
+          meetsThreshold: meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings),
+          fileSize: originalFileSize,
+          fileType: originalFileType,
+          start_ms: chunkProcessStartMs,
+          end_ms: chunkEndMs
         });
 
         // Always send transcription to UI for better user experience

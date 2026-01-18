@@ -414,12 +414,15 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
                               )}
                               {chunk.startTime !== undefined && chunk.endTime !== undefined && (
                                 <span className="text-xs text-primary font-mono">
-                                  {Math.floor(chunk.startTime / 60)}:{(chunk.startTime % 60).toFixed(0).padStart(2, '0')} → {Math.floor(chunk.endTime / 60)}:{(chunk.endTime % 60).toFixed(0).padStart(2, '0')} ({(chunk.endTime - chunk.startTime).toFixed(1)}s) • {chunkWords} words • {Math.round(chunk.confidence * 100)}%
-                                  {(typeof chunk.transcodedFileSize === 'number' || chunk.fileType) && (
+                                  {Math.floor(chunk.startTime / 60)}:{Math.floor(chunk.startTime % 60).toString().padStart(2, '0')} → {Math.floor(chunk.endTime / 60)}:{Math.floor(chunk.endTime % 60).toString().padStart(2, '0')} ({(chunk.endTime - chunk.startTime).toFixed(1)}s) • {chunkWords} words • {Math.round(chunk.confidence * 100)}%
+                                  {/* Always show file info section if any metadata exists */}
+                                  {(typeof chunk.originalFileSize === 'number' || typeof chunk.transcodedFileSize === 'number' || chunk.fileType) && (
                                     <span className="ml-1">
                                       • 📦 {typeof chunk.transcodedFileSize === 'number' && chunk.transcodedFileSize > 0 
                                         ? `${(chunk.transcodedFileSize / 1024).toFixed(0)}KB` 
-                                        : '—'}
+                                        : typeof chunk.originalFileSize === 'number' && chunk.originalFileSize > 0
+                                          ? `${(chunk.originalFileSize / 1024).toFixed(0)}KB`
+                                          : '—'}
                                       {chunk.fileType ? ` [${chunk.fileType.replace('audio/', '')}]` : ''}
                                     </span>
                                   )}
