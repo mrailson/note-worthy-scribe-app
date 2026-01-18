@@ -166,27 +166,32 @@ Apply this creative direction while maintaining readability and professional pre
         setTimeout(() => reject(new Error('Image generation timed out after 120 seconds. Please try again.')), 120000);
       });
 
-      const customPrompt = `Create a visually striking GP Practice meeting summary infographic.
+      const customPrompt = `Create a HIGH QUALITY, visually stunning GP Practice meeting summary infographic with RICH VISUAL DESIGN.
 
 MEETING: "${data.meetingTitle}"
 
-VISUAL STYLE INSTRUCTIONS (APPLY THESE CAREFULLY):
+VISUAL STYLE INSTRUCTIONS (CRITICAL - APPLY THESE THROUGHOUT):
 ${styleInstruction}
 
 CONTENT TO INCLUDE:
-- Meeting title and date prominently displayed
-- Key decisions made during the meeting
-- ${data.actionItems.length} action items with owners and deadlines
+- Meeting title as a prominent header
+- Date and time displayed clearly
+- Key decisions made during the meeting  
+- ${data.actionItems.length} action items with owners and deadlines shown in visual cards or boxes
 - Main discussion points and outcomes
 
-DESIGN REQUIREMENTS:
-- Apply the visual style described above throughout the entire design
-- Clear visual hierarchy with sections clearly separated
-- Use relevant icons (medical, practice management, team icons as appropriate)
+DESIGN QUALITY REQUIREMENTS:
+- PREMIUM professional design quality - not basic or plain
+- Rich visual elements: gradients, shadows, depth, layered elements
+- Custom iconography relevant to the content (medical, meetings, tasks, calendar icons)
+- Modern infographic styling with visual hierarchy
+- Colour palette matching the style: use bold accent colours, not just basic blue
+- Data visualisation elements (progress rings, stat cards, visual indicators)
+- Clean typography with clear heading/body distinction
 - British English spelling throughout
-- A4 portrait format suitable for printing or digital sharing
-- Professional healthcare practice aesthetic
-- NO attendee counts or participant numbers - focus on content only`;
+- A4 portrait format, suitable for printing or digital sharing
+- NO attendee counts or participant numbers
+- Make it look like a PROFESSIONALLY DESIGNED infographic, not a basic template`;
 
       const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
@@ -194,7 +199,7 @@ DESIGN REQUIREMENTS:
           conversationContext: '',
           documentContent: documentContent,
           requestType: 'infographic',
-          imageModel: 'google/gemini-2.5-flash-image-preview',
+          imageModel: 'google/gemini-3-pro-image-preview',
           practiceContext: {
             brandingLevel: 'none'
           }
