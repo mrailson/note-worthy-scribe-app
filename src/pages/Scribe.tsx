@@ -202,7 +202,7 @@ const Scribe = () => {
               </TabsTrigger>
               <TabsTrigger value="transcript" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
                 <ScrollText className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
-                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Transcript</span>
+                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Dictate</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
                 <Settings className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
