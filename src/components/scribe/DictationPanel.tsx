@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { ScrollText, History, Mic, Home, MonitorSpeaker } from 'lucide-react';
+import { ScrollText, History, Mic, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDictation } from '@/hooks/useDictation';
 import { DictationControls } from './DictationControls';
@@ -97,30 +95,6 @@ export function DictationPanel() {
                 isRecording={dictation.isRecording}
               />
 
-              {/* System Audio Capture Toggle */}
-              {dictation.status === 'idle' && (
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-muted">
-                      <MonitorSpeaker className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <Label htmlFor="system-audio-dictate" className="font-medium text-sm cursor-pointer">
-                        Capture PC Audio
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Record audio playing on your computer (e.g., phone software, video calls)
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="system-audio-dictate"
-                    checked={dictation.systemAudioEnabled}
-                    onCheckedChange={dictation.setSystemAudioEnabled}
-                  />
-                </div>
-              )}
-
               {/* Recording Controls */}
               <DictationControls
                 status={dictation.status}
@@ -129,6 +103,8 @@ export function DictationPanel() {
                 onStart={dictation.startDictation}
                 onStop={dictation.stopDictation}
                 hasContent={!!dictation.content.trim()}
+                systemAudioEnabled={dictation.systemAudioEnabled}
+                onSystemAudioChange={dictation.setSystemAudioEnabled}
               />
             </>
           ) : (
