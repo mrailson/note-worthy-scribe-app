@@ -1,26 +1,34 @@
 /**
  * Audio Transcoder Utility
  * Converts audio to Whisper-optimised format: 16kHz mono
- * Reduces file size by ~10-20× while maintaining transcription accuracy
+ * Supports WAV (lossless) and MP3 (compressed) output
+ * Reduces file size significantly while maintaining transcription accuracy
  */
+
+// @ts-ignore - lamejs doesn't have TypeScript declarations
+import lamejs from 'lamejs';
+
+export type Mp3Bitrate = 16 | 32 | 64 | 128;
 
 export interface TranscodeOptions {
   targetSampleRate?: number;  // Default: 16000 (Whisper's internal rate)
   channels?: number;          // Default: 1 (mono)
-  format?: 'wav' | 'mp3';     // Default: 'wav' (browser-native, FLAC not supported in browsers)
+  format?: 'wav' | 'mp3';     // Default: 'wav'
+  mp3Bitrate?: Mp3Bitrate;    // Default: 64 (kbps) - only used for MP3
 }
 
 const DEFAULT_OPTIONS: Required<TranscodeOptions> = {
   targetSampleRate: 16000,
   channels: 1,
-  format: 'wav'
+  format: 'wav',
+  mp3Bitrate: 64
 };
 
 /**
  * Transcode audio blob to Whisper-optimised format
  * @param blob - Source audio blob (webm, opus, etc.)
  * @param options - Transcoding options
- * @returns Transcoded audio blob (16kHz mono WAV)
+ * @returns Transcoded audio blob (16kHz mono WAV or MP3)
  */
 export async function transcodeToWhisperFormat(
   blob: Blob,
@@ -70,20 +78,90 @@ export async function transcodeToWhisperFormat(
     // Render the audio
     const renderedBuffer = await offlineContext.startRendering();
     
-    // Convert to WAV format
-    const wavBlob = audioBufferToWav(renderedBuffer);
+    // Convert to selected format
+    let outputBlob: Blob;
+    if (opts.format === 'mp3') {
+      outputBlob = audioBufferToMp3(renderedBuffer, opts.mp3Bitrate);
+    } else {
+      outputBlob = audioBufferToWav(renderedBuffer);
+    }
     
     // Clean up
     await audioContext.close();
     
-    console.log(`🎵 Transcoded: ${(blob.size / 1024).toFixed(1)}KB → ${(wavBlob.size / 1024).toFixed(1)}KB (${((1 - wavBlob.size / blob.size) * 100).toFixed(0)}% reduction)`);
+    const formatLabel = opts.format === 'mp3' ? `MP3 ${opts.mp3Bitrate}kbps` : 'WAV';
+    console.log(`🎵 Transcoded to ${formatLabel}: ${(blob.size / 1024).toFixed(1)}KB → ${(outputBlob.size / 1024).toFixed(1)}KB (${((1 - outputBlob.size / blob.size) * 100).toFixed(0)}% reduction)`);
     
-    return wavBlob;
+    return outputBlob;
   } catch (error) {
     console.error('❌ Transcode failed, returning original:', error);
     // Return original blob if transcoding fails
     return blob;
   }
+}
+
+/**
+ * Convert AudioBuffer to MP3 Blob using lamejs
+ * @param buffer - AudioBuffer to convert
+ * @param bitrate - Target bitrate in kbps (16, 32, 64, or 128)
+ */
+function audioBufferToMp3(buffer: AudioBuffer, bitrate: Mp3Bitrate = 64): Blob {
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  
+  // Create MP3 encoder
+  const mp3encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, bitrate);
+  
+  // Get channel data
+  const channelData: Float32Array[] = [];
+  for (let i = 0; i < numChannels; i++) {
+    channelData.push(buffer.getChannelData(i));
+  }
+  
+  const samples = buffer.length;
+  const blockSize = 1152; // MP3 frame size
+  const mp3Data: ArrayBuffer[] = [];
+  
+  // Process samples in blocks
+  for (let i = 0; i < samples; i += blockSize) {
+    const blockLength = Math.min(blockSize, samples - i);
+    
+    if (numChannels === 1) {
+      // Mono
+      const monoSamples = new Int16Array(blockLength);
+      for (let j = 0; j < blockLength; j++) {
+        const sample = Math.max(-1, Math.min(1, channelData[0][i + j]));
+        monoSamples[j] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+      }
+      const mp3buf = mp3encoder.encodeBuffer(monoSamples);
+      if (mp3buf.length > 0) {
+        mp3Data.push(new Uint8Array(mp3buf).buffer);
+      }
+    } else {
+      // Stereo
+      const leftSamples = new Int16Array(blockLength);
+      const rightSamples = new Int16Array(blockLength);
+      for (let j = 0; j < blockLength; j++) {
+        const leftSample = Math.max(-1, Math.min(1, channelData[0][i + j]));
+        const rightSample = Math.max(-1, Math.min(1, channelData[1][i + j]));
+        leftSamples[j] = leftSample < 0 ? leftSample * 0x8000 : leftSample * 0x7FFF;
+        rightSamples[j] = rightSample < 0 ? rightSample * 0x8000 : rightSample * 0x7FFF;
+      }
+      const mp3buf = mp3encoder.encodeBuffer(leftSamples, rightSamples);
+      if (mp3buf.length > 0) {
+        mp3Data.push(new Uint8Array(mp3buf).buffer);
+      }
+    }
+  }
+  
+  // Flush remaining data
+  const mp3End = mp3encoder.flush();
+  if (mp3End.length > 0) {
+    mp3Data.push(new Uint8Array(mp3End).buffer);
+  }
+  
+  // Combine all MP3 data into a single blob
+  return new Blob(mp3Data, { type: 'audio/mp3' });
 }
 
 /**
@@ -160,4 +238,36 @@ export function shouldTranscode(blob: Blob): boolean {
   if (blob.type === 'audio/wav') return false;
   
   return true;
+}
+
+/**
+ * Get format label for display
+ */
+export function getFormatLabel(format: 'wav' | 'mp3', mp3Bitrate?: Mp3Bitrate): string {
+  if (format === 'mp3') {
+    return `MP3 ${mp3Bitrate || 64}kbps`;
+  }
+  return 'WAV (16-bit PCM)';
+}
+
+/**
+ * Estimate file size for a given duration and format
+ * @param durationSeconds - Duration in seconds
+ * @param format - Output format
+ * @param mp3Bitrate - MP3 bitrate (only used for MP3)
+ * @returns Estimated file size in bytes
+ */
+export function estimateFileSize(
+  durationSeconds: number,
+  format: 'wav' | 'mp3',
+  mp3Bitrate?: Mp3Bitrate
+): number {
+  if (format === 'wav') {
+    // 16kHz, 16-bit, mono = 32KB per second
+    return durationSeconds * 32 * 1024;
+  } else {
+    // MP3: bitrate in kbps / 8 = KB per second
+    const bitrate = mp3Bitrate || 64;
+    return durationSeconds * (bitrate / 8) * 1024;
+  }
 }
