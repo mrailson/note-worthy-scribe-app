@@ -69,6 +69,22 @@ export function DictationTextArea({
 
   return (
     <div className="space-y-2" ref={containerRef}>
+      {/* Recording indicator - positioned ABOVE the textarea */}
+      {isRecording && (
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-full">
+            <div className="relative">
+              <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+              <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-primary animate-ping" />
+            </div>
+            <span className="text-sm font-medium">Recording</span>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            Speak clearly • British English
+          </span>
+        </div>
+      )}
+      
       <div className="relative">
         <textarea
           ref={textareaRef}
@@ -101,28 +117,12 @@ export function DictationTextArea({
           }}
           disabled={status === 'connecting'}
         />
-        
-        {/* Recording indicator overlay - repositioned */}
-        {isRecording && (
-          <div className="absolute top-4 right-4 flex items-center gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-full">
-            <div className="relative">
-              <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
-              <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-primary animate-ping" />
-            </div>
-            <span className="text-sm font-medium">Recording</span>
-          </div>
-        )}
 
         {/* Live status indicator at bottom */}
         {isRecording && (
-          <div className="absolute bottom-4 left-6 right-6 flex items-center justify-between text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              Listening...
-            </span>
-            <span className="text-muted-foreground/70">
-              Speak clearly • British English
-            </span>
+          <div className="absolute bottom-4 left-6 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            Listening...
           </div>
         )}
       </div>
