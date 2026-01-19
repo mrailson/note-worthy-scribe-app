@@ -378,6 +378,8 @@ export const ConsultationNoteState = ({
               editable={true}
               onSectionChange={onNarrativeSectionChange}
               consultationId={consultationId}
+              transcript={transcript}
+              patientContext={patientContext}
             />
           ) : useHeidiFormat ? (
             <HeidiNoteEditor

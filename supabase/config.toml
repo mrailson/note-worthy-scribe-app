@@ -404,3 +404,6 @@ verify_jwt = false
 
 [functions.consolidate-dual-transcripts]
 verify_jwt = true
+
+[functions.generate-ageing-well-cga]
+verify_jwt = true
