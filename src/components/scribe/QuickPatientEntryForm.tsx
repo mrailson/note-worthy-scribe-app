@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, User, Hash, Calendar } from "lucide-react";
+import { Loader2, User, Hash, Calendar, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -152,9 +152,18 @@ export const QuickPatientEntryForm = ({
     <div className="space-y-3" onKeyDown={handleKeyDown}>
       <div className="flex items-center gap-2 mb-2">
         <User className="h-4 w-4 text-primary" />
-        <h4 className="font-medium text-sm">
+        <h4 className="font-medium text-sm flex-1">
           {isEditing ? 'Edit Patient Identifier' : 'Add Patient Identifier'}
         </h4>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onCancel}
+          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </div>
 
       <div className="space-y-2">
