@@ -301,7 +301,7 @@ export const MinimalRecordingState = ({
                           <Mic className="h-3.5 w-3.5" />
                           <span>+</span>
                           <Monitor className="h-3.5 w-3.5" />
-                          <span>Mic + SoftPhone</span>
+                          <span>Mic + System Audio</span>
                         </Button>
                         <div className="flex items-start gap-1.5 mt-2 text-xs text-amber-600 dark:text-amber-500">
                           <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
@@ -319,7 +319,7 @@ export const MinimalRecordingState = ({
                           </div>
                         </div>
                         <div>
-                          <p className="font-medium text-sm">You are using Mic + SoftPhone</p>
+                          <p className="font-medium text-sm">You are using Mic + System Audio</p>
                           <p className="text-xs text-muted-foreground">Captures your computer sound (Surgery Connect, Teams, Zoom)</p>
                         </div>
                       </div>
