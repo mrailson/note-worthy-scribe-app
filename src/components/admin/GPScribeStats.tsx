@@ -89,47 +89,13 @@ export function GPScribeStats() {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      // Get date boundaries
-      const now = new Date();
-      
-      // Today: start of current day (00:00)
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      
-      // Last 24 hours
-      const last24HoursStart = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-      
-      // Last 7 days
-      const last7DaysStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      // Use RPC function to get user stats (bypasses RLS for admin view)
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('get_gp_scribe_stats_by_user');
 
-      // Week start (Monday)
-      const dayOfWeek = now.getDay();
-      const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday).toISOString();
-      
-      // Month start
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      if (rpcError) throw rpcError;
 
-      // Fetch all completed consultations
-      const { data: consultations, error } = await supabase
-        .from('gp_consultations')
-        .select('id, user_id, word_count, duration_seconds, created_at, status')
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Fetch user profiles for names
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, email');
-
-      const profileMap = new Map<string, { name: string; email: string }>();
-      profiles?.forEach(p => profileMap.set(p.user_id, { 
-        name: p.full_name || 'Unknown', 
-        email: p.email || '' 
-      }));
-
-      // Calculate stats for each time period
+      // Calculate aggregate stats from RPC data
       const newStats: AllStats = {
         today: { count: 0, words: 0, durationSeconds: 0 },
         last24Hours: { count: 0, words: 0, durationSeconds: 0 },
@@ -137,89 +103,47 @@ export function GPScribeStats() {
         allTime: { count: 0, words: 0, durationSeconds: 0 }
       };
 
-      // User stats map
-      const userStatsMap = new Map<string, UserStats>();
+      const userStatsArray: UserStats[] = [];
 
-      consultations?.forEach(consultation => {
-        const consultationDate = new Date(consultation.created_at);
-        const words = consultation.word_count || 0;
-        const duration = consultation.duration_seconds || 0;
-        const userId = consultation.user_id;
+      rpcData?.forEach((row: {
+        user_id: string;
+        email: string;
+        full_name: string | null;
+        today_count: number;
+        this_week_count: number;
+        this_month_count: number;
+        all_time_count: number;
+        last_consultation_at: string | null;
+        total_duration_seconds: number;
+        total_words: number;
+      }) => {
+        // Aggregate totals
+        newStats.today.count += row.today_count || 0;
+        newStats.allTime.count += row.all_time_count || 0;
+        newStats.allTime.words += row.total_words || 0;
+        newStats.allTime.durationSeconds += row.total_duration_seconds || 0;
 
-        // All time
-        newStats.allTime.count += 1;
-        newStats.allTime.words += words;
-        newStats.allTime.durationSeconds += duration;
+        // For last 24 hours and 7 days, we'll use today and this_week as approximations
+        // since exact 24h/7d requires individual consultation timestamps
+        newStats.last24Hours.count += row.today_count || 0;
+        newStats.last7Days.count += row.this_week_count || 0;
 
-        // Today
-        if (consultationDate >= new Date(todayStart)) {
-          newStats.today.count += 1;
-          newStats.today.words += words;
-          newStats.today.durationSeconds += duration;
-        }
-
-        // Last 24 hours
-        if (consultationDate >= new Date(last24HoursStart)) {
-          newStats.last24Hours.count += 1;
-          newStats.last24Hours.words += words;
-          newStats.last24Hours.durationSeconds += duration;
-        }
-
-        // Last 7 days
-        if (consultationDate >= new Date(last7DaysStart)) {
-          newStats.last7Days.count += 1;
-          newStats.last7Days.words += words;
-          newStats.last7Days.durationSeconds += duration;
-        }
-
-        // User stats
-        if (userId) {
-          if (!userStatsMap.has(userId)) {
-            const profile = profileMap.get(userId);
-            userStatsMap.set(userId, {
-              user_id: userId,
-              user_name: profile?.name || 'Unknown',
-              user_email: profile?.email || '',
-              today: 0,
-              thisWeek: 0,
-              thisMonth: 0,
-              allTime: 0,
-              lastConsultationAt: null,
-              totalDurationSeconds: 0
-            });
-          }
-
-          const uStats = userStatsMap.get(userId)!;
-
-          // All time
-          uStats.allTime += 1;
-          uStats.totalDurationSeconds += duration;
-
-          // Track last consultation (consultations are ordered desc, so first one is latest)
-          if (!uStats.lastConsultationAt) {
-            uStats.lastConsultationAt = consultation.created_at;
-          }
-
-          // Today
-          if (consultationDate >= new Date(todayStart)) {
-            uStats.today += 1;
-          }
-
-          // This week
-          if (consultationDate >= new Date(weekStart)) {
-            uStats.thisWeek += 1;
-          }
-
-          // This month
-          if (consultationDate >= new Date(monthStart)) {
-            uStats.thisMonth += 1;
-          }
-        }
+        // Build user stats
+        userStatsArray.push({
+          user_id: row.user_id,
+          user_name: row.full_name || 'Unknown',
+          user_email: row.email || '',
+          today: row.today_count || 0,
+          thisWeek: row.this_week_count || 0,
+          thisMonth: row.this_month_count || 0,
+          allTime: row.all_time_count || 0,
+          lastConsultationAt: row.last_consultation_at,
+          totalDurationSeconds: row.total_duration_seconds || 0
+        });
       });
 
-      // Convert user stats to array and sort by all-time count
-      const userStatsArray = Array.from(userStatsMap.values())
-        .sort((a, b) => b.allTime - a.allTime);
+      // Sort by all-time count descending
+      userStatsArray.sort((a, b) => b.allTime - a.allTime);
 
       setStats(newStats);
       setUserStats(userStatsArray);

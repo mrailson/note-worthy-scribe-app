@@ -8780,6 +8780,21 @@ export type Database = {
           title: string
         }[]
       }
+      get_gp_scribe_stats_by_user: {
+        Args: never
+        Returns: {
+          all_time_count: number
+          email: string
+          full_name: string
+          last_consultation_at: string
+          this_month_count: number
+          this_week_count: number
+          today_count: number
+          total_duration_seconds: number
+          total_words: number
+          user_id: string
+        }[]
+      }
       get_large_ai4gp_searches: {
         Args: { min_size_mb?: number }
         Returns: {
