@@ -194,13 +194,7 @@ export const MeetingRecorder = ({
   // Auto-start recording ref (effect added after user declaration)
   const autoStartTriggeredRef = useRef(false);
 
-  // Calculate word count from the actual merged transcript (net words)
-  useEffect(() => {
-    const netWords = transcript.trim().split(/\s+/).filter(word => word.length > 0).length;
-    
-    setWordCount(netWords);
-    onWordCountUpdate(netWords);
-  }, [transcript, onWordCountUpdate]);
+  // Word count calculation moved after assemblyPreview declaration (line ~533)
 
   const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
   const [speakerCount, setSpeakerCount] = useState(0);
@@ -532,6 +526,13 @@ export const MeetingRecorder = ({
   // AssemblyAI real-time preview hook (runs alongside Whisper)
   const assemblyPreview = useAssemblyRealtimePreview();
 
+  // Calculate word count from the AssemblyAI transcript (primary source)
+  useEffect(() => {
+    const assemblyWords = assemblyPreview.fullTranscript.trim().split(/\s+/).filter(word => word.length > 0).length;
+    
+    setWordCount(assemblyWords);
+    onWordCountUpdate(assemblyWords);
+  }, [assemblyPreview.fullTranscript, onWordCountUpdate]);
 
   // Reset meeting function
   const resetMeeting = async () => {
@@ -5617,17 +5618,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                     <div className="text-xs font-medium text-muted-foreground">Duration</div>
                   </div>
                   
-                  {/* Word Count / Last Phrase Toggle */}
-                  <div 
-                    className="text-center p-3 bg-background/50 rounded-lg border border-border/50 cursor-pointer hover:bg-background/70 transition-colors"
-                    onClick={() => setShowLastPhrase(!showLastPhrase)}
-                  >
-                    <div className={`${showLastPhrase ? 'text-sm' : 'text-2xl'} font-bold text-primary mb-1`}>
-                      {showLastPhrase ? (lastPhrase || "No words yet") : wordCount}
+                  {/* Word Count */}
+                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
+                    <div className="text-2xl font-bold text-primary mb-1">
+                      {wordCount}
                     </div>
-                    <div className="text-xs font-medium text-muted-foreground">
-                      {showLastPhrase ? "Last Phrase (click for count)" : "Meeting Word Count"}
-                    </div>
+                    <div className="text-xs font-medium text-muted-foreground">Meeting Word Count</div>
                   </div>
                   
                   {/* Connection Status */}
