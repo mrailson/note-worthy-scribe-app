@@ -67,6 +67,7 @@ import { MultiAudioImport } from "@/components/meeting/MultiAudioImport";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
 import { useAssemblyRealtimePreview, PreviewStatus } from "@/hooks/useAssemblyRealtimePreview";
+import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -6224,13 +6225,27 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 </div>
               </CardHeader>
               <CardContent>
-                <ScrollArea className="h-[300px]">
+                <ScrollArea 
+                  className="h-[300px]"
+                  ref={(ref) => {
+                    // Auto-scroll to bottom when new content arrives
+                    if (ref && assemblyPreview.isActive) {
+                      const scrollContainer = ref.querySelector('[data-radix-scroll-area-viewport]');
+                      if (scrollContainer) {
+                        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                      }
+                    }
+                  }}
+                >
                   {assemblyPreview.error ? (
-                    <p className="text-sm text-destructive">{assemblyPreview.error}</p>
+                    <p className="text-sm text-destructive p-4">{assemblyPreview.error}</p>
                   ) : assemblyPreview.fullTranscript ? (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{assemblyPreview.fullTranscript}</p>
+                    <TranscriptDisplay 
+                      transcript={assemblyPreview.fullTranscript}
+                      isLoading={false}
+                    />
                   ) : (
-                    <p className="text-sm text-muted-foreground italic">
+                    <p className="text-sm text-muted-foreground italic p-6 text-center">
                       {isRecording ? "Listening for speech..." : "No live transcript available"}
                     </p>
                   )}
