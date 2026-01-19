@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -11,7 +12,8 @@ import {
   FileText,
   TrendingUp,
   Timer,
-  Hash
+  Hash,
+  Users
 } from 'lucide-react';
 
 interface ScribeStats {
@@ -25,6 +27,18 @@ interface AllStats {
   last24Hours: ScribeStats;
   last7Days: ScribeStats;
   allTime: ScribeStats;
+}
+
+interface UserStats {
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  today: number;
+  thisWeek: number;
+  thisMonth: number;
+  allTime: number;
+  lastConsultationAt: string | null;
+  totalDurationSeconds: number;
 }
 
 const formatDuration = (totalSeconds: number): string => {
@@ -42,6 +56,18 @@ const formatAverageDuration = (totalSeconds: number, count: number): string => {
   return `${mins}m ${secs}s`;
 };
 
+const formatDateTime = (dateStr: string | null): string => {
+  if (!dateStr) return '-';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-GB', { 
+    day: '2-digit', 
+    month: 'short', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
 export function GPScribeStats() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<AllStats>({
@@ -50,6 +76,7 @@ export function GPScribeStats() {
     last7Days: { count: 0, words: 0, durationSeconds: 0 },
     allTime: { count: 0, words: 0, durationSeconds: 0 }
   });
+  const [userStats, setUserStats] = useState<UserStats[]>([]);
 
   const fetchStats = async () => {
     setLoading(true);
@@ -66,14 +93,33 @@ export function GPScribeStats() {
       // Last 7 days
       const last7DaysStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
+      // Week start (Monday)
+      const dayOfWeek = now.getDay();
+      const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diffToMonday).toISOString();
+      
+      // Month start
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
       // Fetch all completed consultations
       const { data: consultations, error } = await supabase
         .from('gp_consultations')
-        .select('id, word_count, duration_seconds, created_at, status')
+        .select('id, user_id, word_count, duration_seconds, created_at, status')
         .eq('status', 'completed')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      // Fetch user profiles for names
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, email');
+
+      const profileMap = new Map<string, { name: string; email: string }>();
+      profiles?.forEach(p => profileMap.set(p.user_id, { 
+        name: p.full_name || 'Unknown', 
+        email: p.email || '' 
+      }));
 
       // Calculate stats for each time period
       const newStats: AllStats = {
@@ -83,10 +129,14 @@ export function GPScribeStats() {
         allTime: { count: 0, words: 0, durationSeconds: 0 }
       };
 
+      // User stats map
+      const userStatsMap = new Map<string, UserStats>();
+
       consultations?.forEach(consultation => {
         const consultationDate = new Date(consultation.created_at);
         const words = consultation.word_count || 0;
         const duration = consultation.duration_seconds || 0;
+        const userId = consultation.user_id;
 
         // All time
         newStats.allTime.count += 1;
@@ -113,9 +163,58 @@ export function GPScribeStats() {
           newStats.last7Days.words += words;
           newStats.last7Days.durationSeconds += duration;
         }
+
+        // User stats
+        if (userId) {
+          if (!userStatsMap.has(userId)) {
+            const profile = profileMap.get(userId);
+            userStatsMap.set(userId, {
+              user_id: userId,
+              user_name: profile?.name || 'Unknown',
+              user_email: profile?.email || '',
+              today: 0,
+              thisWeek: 0,
+              thisMonth: 0,
+              allTime: 0,
+              lastConsultationAt: null,
+              totalDurationSeconds: 0
+            });
+          }
+
+          const uStats = userStatsMap.get(userId)!;
+
+          // All time
+          uStats.allTime += 1;
+          uStats.totalDurationSeconds += duration;
+
+          // Track last consultation (consultations are ordered desc, so first one is latest)
+          if (!uStats.lastConsultationAt) {
+            uStats.lastConsultationAt = consultation.created_at;
+          }
+
+          // Today
+          if (consultationDate >= new Date(todayStart)) {
+            uStats.today += 1;
+          }
+
+          // This week
+          if (consultationDate >= new Date(weekStart)) {
+            uStats.thisWeek += 1;
+          }
+
+          // This month
+          if (consultationDate >= new Date(monthStart)) {
+            uStats.thisMonth += 1;
+          }
+        }
       });
 
+      // Convert user stats to array and sort by all-time count
+      const userStatsArray = Array.from(userStatsMap.values())
+        .sort((a, b) => b.allTime - a.allTime);
+
       setStats(newStats);
+      setUserStats(userStatsArray);
     } catch (error) {
       console.error('Error fetching GP Scribe stats:', error);
       toast.error('Failed to fetch GP Scribe statistics');
@@ -273,6 +372,64 @@ export function GPScribeStats() {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Users Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Consultations by User
+          </CardTitle>
+          <CardDescription>
+            Individual user statistics for scribe sessions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead className="text-right">Today</TableHead>
+                <TableHead className="text-right">This Week</TableHead>
+                <TableHead className="text-right">This Month</TableHead>
+                <TableHead className="text-right">All Time</TableHead>
+                <TableHead className="text-right">Last Consultation</TableHead>
+                <TableHead className="text-right">Avg Length</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {userStats.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    No consultation data available
+                  </TableCell>
+                </TableRow>
+              ) : (
+                userStats.map((user) => (
+                  <TableRow key={user.user_id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{user.user_name}</div>
+                        <div className="text-xs text-muted-foreground">{user.user_email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">{user.today}</TableCell>
+                    <TableCell className="text-right">{user.thisWeek}</TableCell>
+                    <TableCell className="text-right">{user.thisMonth}</TableCell>
+                    <TableCell className="text-right font-medium">{user.allTime}</TableCell>
+                    <TableCell className="text-right text-sm">
+                      {formatDateTime(user.lastConsultationAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatAverageDuration(user.totalDurationSeconds, user.allTime)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
