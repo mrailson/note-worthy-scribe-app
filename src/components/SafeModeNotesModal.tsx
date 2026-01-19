@@ -1027,14 +1027,21 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           : undefined,
       };
       
-      // Convert action items to the format expected by Word generator
-      const parsedActionItemsForWord: ParsedActionItemInput[] = actionItems.map(item => ({
-        action: item.action,
-        owner: item.owner,
-        deadline: item.deadline,
-        priority: item.priority,
-        status: item.status,
-        isCompleted: item.isCompleted,
+      // Fetch fresh action items from database to ensure exports match the live Actions tab
+      const { data: dbActionItems } = await supabase
+        .from('meeting_action_items')
+        .select('*')
+        .eq('meeting_id', meeting?.id)
+        .order('sort_order', { ascending: true });
+
+      // Convert database action items to the format expected by Word generator
+      const parsedActionItemsForWord: ParsedActionItemInput[] = (dbActionItems || []).map(item => ({
+        action: item.action_text,
+        owner: item.assignee_name || 'TBC',
+        deadline: item.due_date || '',
+        priority: (item.priority as 'High' | 'Medium' | 'Low') || 'Medium',
+        status: (item.status as 'Open' | 'In Progress' | 'Completed') || 'Open',
+        isCompleted: item.status === 'Completed',
       }));
       
       // Use the professional document generator with pre-parsed data
