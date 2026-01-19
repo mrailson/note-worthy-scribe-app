@@ -5815,6 +5815,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                            recordingMode={recordingMode}
                            isRecording={isRecording}
                            audioActivity={audioActivity}
+                           healthStatus={watchdog.healthStatus}
+                           timeSinceLastChunk={watchdog.timeSinceLastChunk}
+                           totalChunks={watchdog.totalChunks}
+                           actualChunksPerMinute={watchdog.actualChunksPerMinute}
                          />
                          
                          {/* Quick Audio Source Switcher - visible during recording */}
@@ -5825,15 +5829,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                            isSwitching={isSwitchingAudioSource}
                            micCaptured={micCaptured}
                            systemAudioCaptured={systemAudioCaptured}
-                         />
-                         
-                         {/* Transcription Health Indicator */}
-                         <TranscriptionHealthIndicator
-                           healthStatus={watchdog.healthStatus}
-                           timeSinceLastChunk={watchdog.timeSinceLastChunk}
-                           totalChunks={watchdog.totalChunks}
-                           actualChunksPerMinute={watchdog.actualChunksPerMinute}
-                           isVisible={isRecording}
                          />
                        </div>
                         {/* Ticker tape for live transcription - Hidden on Edge */}
