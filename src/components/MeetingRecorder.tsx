@@ -66,6 +66,7 @@ import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscript
 import { MultiAudioImport } from "@/components/meeting/MultiAudioImport";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
+import { useAssemblyRealtimePreview, PreviewStatus } from "@/hooks/useAssemblyRealtimePreview";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -522,6 +523,12 @@ export const MeetingRecorder = ({
   const handleTimestampsToggle = (show: boolean) => {
     setShowTimestamps(show);
   };
+
+  // Transcript view mode for switching between Batch (Whisper) and Live (Assembly AI)
+  const [transcriptViewMode, setTranscriptViewMode] = useState<'batch' | 'live'>('batch');
+
+  // AssemblyAI real-time preview hook (runs alongside Whisper)
+  const assemblyPreview = useAssemblyRealtimePreview();
 
 
   // Reset meeting function
@@ -3886,6 +3893,17 @@ export const MeetingRecorder = ({
       
       addDebugLog('✅ Recording started successfully');
       
+      // Start AssemblyAI real-time transcription alongside Whisper
+      // Uses same microphone stream for dual transcription
+      try {
+        console.log('🎤 Starting AssemblyAI real-time preview...');
+        await assemblyPreview.startPreview(micAudioStreamRef.current || undefined);
+        console.log('✅ AssemblyAI real-time preview started');
+      } catch (assemblyError) {
+        console.warn('⚠️ AssemblyAI preview failed to start (Whisper will continue):', assemblyError);
+        // Don't fail the recording - Whisper is the primary transcription
+      }
+      
       // Start duration timer
       intervalRef.current = setInterval(() => {
         setDuration(prev => {
@@ -4043,6 +4061,9 @@ export const MeetingRecorder = ({
         }, 0);
       }
       
+      // Stop AssemblyAI real-time preview
+      assemblyPreview.stopPreview();
+      
       setStopRecordingStep('Releasing audio…');
       
       // Stop microphone stream
@@ -4144,6 +4165,9 @@ export const MeetingRecorder = ({
        await new Promise(resolve => setTimeout(resolve, 200));
       desktopTranscriberRef.current = null;
     }
+    
+    // Stop AssemblyAI real-time preview
+    assemblyPreview.stopPreview();
     
     console.log('🚨 STOP RECORDING FUNCTION CALLED');
     
@@ -6136,14 +6160,84 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
 
 
         <TabsContent value="transcript" className="space-y-2 mt-6">
-          {/* Real-time Transcript Card - Always visible */}
-          <RealtimeTranscriptCard
-            transcriptText={transcript || (isRecording ? "Listening for speech..." : "")}
-            isRecording={isRecording}
-            wordCount={wordCount}
-            confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
-            className="border-accent/30"
-          />
+          {/* Transcript Source Switcher */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-sm text-muted-foreground">View:</span>
+            <div className="flex rounded-lg border bg-muted p-1">
+              <Button
+                variant={transcriptViewMode === 'batch' ? 'default' : 'ghost'}
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => setTranscriptViewMode('batch')}
+              >
+                Batch (Whisper)
+              </Button>
+              <Button
+                variant={transcriptViewMode === 'live' ? 'default' : 'ghost'}
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => setTranscriptViewMode('live')}
+              >
+                Live (Assembly AI)
+                {assemblyPreview.isActive && (
+                  <span className="ml-1.5 relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Batch (Whisper) Transcript View */}
+          {transcriptViewMode === 'batch' && (
+            <RealtimeTranscriptCard
+              transcriptText={transcript || (isRecording ? "Listening for speech..." : "")}
+              isRecording={isRecording}
+              wordCount={wordCount}
+              confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
+              className="border-accent/30"
+            />
+          )}
+
+          {/* Live (Assembly AI) Transcript View */}
+          {transcriptViewMode === 'live' && (
+            <Card className="border-accent/30">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Waves className="h-4 w-4" />
+                    Live Transcript (Assembly AI)
+                    {assemblyPreview.isActive && (
+                      <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700 text-xs">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                        </span>
+                        Live
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <span className="text-xs text-muted-foreground">
+                    {assemblyPreview.fullTranscript.split(/\s+/).filter(w => w.length > 0).length} words
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[300px]">
+                  {assemblyPreview.error ? (
+                    <p className="text-sm text-destructive">{assemblyPreview.error}</p>
+                  ) : assemblyPreview.fullTranscript ? (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{assemblyPreview.fullTranscript}</p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">
+                      {isRecording ? "Listening for speech..." : "No live transcript available"}
+                    </p>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
           
           {/* Live Transcript with Enhanced Two-Section Layout */}
           <LiveTranscript
