@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,59 @@ export const AgeingWellView = ({
   const [cgaNote, setCgaNote] = useState<AgeingWellNote | null>(null);
   const [hasGeneratedCGA, setHasGeneratedCGA] = useState(false);
 
+  // Load CGA notes from database on mount
+  useEffect(() => {
+    const loadCGANotes = async () => {
+      if (!consultationId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('gp_consultation_notes')
+          .select('cga_notes')
+          .eq('consultation_id', consultationId)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error loading CGA notes:', error);
+          return;
+        }
+        
+        if (data?.cga_notes) {
+          console.log('Loaded CGA notes from database');
+          setCgaNote(data.cga_notes as unknown as AgeingWellNote);
+          setHasGeneratedCGA(true);
+        }
+      } catch (err) {
+        console.error('Error loading CGA notes:', err);
+      }
+    };
+    
+    loadCGANotes();
+  }, [consultationId]);
+
+  // Save CGA notes to database
+  const saveCGANotes = useCallback(async (notes: AgeingWellNote) => {
+    if (!consultationId) {
+      console.warn('No consultationId, cannot save CGA notes');
+      return;
+    }
+    
+    try {
+      const { error } = await supabase
+        .from('gp_consultation_notes')
+        .update({ cga_notes: JSON.parse(JSON.stringify(notes)) })
+        .eq('consultation_id', consultationId);
+      
+      if (error) {
+        console.error('Error saving CGA notes:', error);
+      } else {
+        console.log('CGA notes saved to database');
+      }
+    } catch (err) {
+      console.error('Error saving CGA notes:', err);
+    }
+  }, [consultationId]);
+
   // Transform notes to Ageing Well format (fallback)
   const baseNote = useMemo(() => 
     transformToAgeingWell(soapNote || null, heidiNote, { showNotMentioned }),
@@ -88,6 +141,10 @@ export const AgeingWellView = ({
         setCgaNote(data.cgaNote);
         setHasGeneratedCGA(true);
         setLocalOverrides({});
+        
+        // Save to database
+        await saveCGANotes(data.cgaNote);
+        
         toast.success("Comprehensive Geriatric Assessment generated");
       }
     } catch (err) {
@@ -96,7 +153,7 @@ export const AgeingWellView = ({
     } finally {
       setIsGeneratingCGA(false);
     }
-  }, [transcript, patientContext]);
+  }, [transcript, patientContext, saveCGANotes]);
 
   const copySection = useCallback((sectionKey: string, content: string) => {
     navigator.clipboard.writeText(content);
@@ -161,17 +218,25 @@ export const AgeingWellView = ({
 
   // Handle section update (manual edit)
   const handleSectionUpdate = useCallback((sectionKey: string, newContent: string) => {
+    const updatedNote = {
+      ...ageingWellNote,
+      [sectionKey]: newContent
+    };
+    
     setLocalOverrides(prev => ({
       ...prev,
       [sectionKey]: newContent
     }));
+    
+    // Persist to database
+    saveCGANotes(updatedNote);
     
     if (onSectionChange) {
       onSectionChange(sectionKey, newContent);
     }
     
     toast.success("Section updated");
-  }, [onSectionChange]);
+  }, [ageingWellNote, saveCGANotes, onSectionChange]);
 
   // Handle section delete (clear content)
   const handleSectionDelete = useCallback((sectionKey: string) => {
