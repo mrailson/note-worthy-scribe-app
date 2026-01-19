@@ -117,7 +117,7 @@ export const EmisNoteView = ({
   showNotMentioned = false,
   onShowNotMentionedChange,
 }: EmisNoteViewProps) => {
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(true);
 
   // Extract content from notes
   const assessment = useMemo(() => {
@@ -167,25 +167,40 @@ export const EmisNoteView = ({
   const copyAll = useCallback(() => {
     const parts: string[] = [];
     
+    // History section
+    if (historyText.trim()) {
+      parts.push('History:');
+      parts.push(historyText.trim());
+      parts.push('');
+      parts.push('');
+    }
+    
+    // Assessment section
     parts.push('Assessment:');
     assessment.forEach(item => parts.push(`• ${item}`));
     parts.push('');
+    parts.push('');
     
+    // Plan section
     parts.push('Plan:');
     if (planGroups.investigations.length > 0) {
       parts.push('Investigations');
       planGroups.investigations.forEach(item => parts.push(`• ${item}`));
+      parts.push('');
     }
     if (planGroups.referral.length > 0) {
       parts.push('Referral');
       planGroups.referral.forEach(item => parts.push(`• ${item}`));
+      parts.push('');
     }
     if (planGroups.followUp.length > 0) {
       parts.push('Follow-up');
       planGroups.followUp.forEach(item => parts.push(`• ${item}`));
+      parts.push('');
     }
     if (planGroups.other.length > 0) {
       planGroups.other.forEach(item => parts.push(`• ${item}`));
+      parts.push('');
     }
     if (planGroups.safetyNetting.length > 0) {
       parts.push('Safety-netting');
@@ -193,8 +208,8 @@ export const EmisNoteView = ({
     }
     
     navigator.clipboard.writeText(parts.join('\n'));
-    toast.success("Full EMIS note copied");
-  }, [assessment, planGroups]);
+    toast.success("Full EMIS note copied (History + Assessment + Plan)");
+  }, [historyText, assessment, planGroups]);
 
   // Check if we have any content
   const hasContent = assessment.length > 0 || planText.trim();
@@ -232,33 +247,12 @@ export const EmisNoteView = ({
                 EMIS-optimised
               </Badge>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={copyForEmis}>
-                <Copy className="h-3.5 w-3.5 mr-1.5" />
-                Copy for EMIS
-              </Button>
-              <Button variant="ghost" size="sm" onClick={copyAll}>
-                <Copy className="h-3.5 w-3.5 mr-1.5" />
-                Copy All
-              </Button>
-            </div>
+            <Button variant="ghost" size="sm" onClick={copyAll}>
+              <Copy className="h-3.5 w-3.5 mr-1.5" />
+              Copy All
+            </Button>
           </div>
         </CardHeader>
-        <CardContent className="pt-2">
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="show-not-mentioned"
-                checked={showNotMentioned}
-                onCheckedChange={onShowNotMentionedChange}
-                className="scale-90"
-              />
-              <Label htmlFor="show-not-mentioned" className="text-xs cursor-pointer">
-                Show 'Not Discussed'
-              </Label>
-            </div>
-          </div>
-        </CardContent>
       </Card>
 
       {/* History Section - Collapsed by Default */}
