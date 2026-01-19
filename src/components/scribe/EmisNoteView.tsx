@@ -261,6 +261,49 @@ export const EmisNoteView = ({
         </CardContent>
       </Card>
 
+      {/* History Section - Collapsed by Default */}
+      {historyText.trim() && (
+        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="pb-2 cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {historyOpen ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-base">History</CardTitle>
+                    <span className="text-xs text-muted-foreground">
+                      (click to {historyOpen ? 'collapse' : 'expand'} – full history & risk factors)
+                    </span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyToClipboard(historyText, 'History');
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                  {historyText}
+                </pre>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      )}
+
       {/* Assessment Section - Always Expanded */}
       <Card>
         <CardHeader className="pb-2">
@@ -387,49 +430,6 @@ export const EmisNoteView = ({
           )}
         </CardContent>
       </Card>
-
-      {/* History Section - Collapsed by Default */}
-      {historyText.trim() && (
-        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
-          <Card>
-            <CollapsibleTrigger asChild>
-              <CardHeader className="pb-2 cursor-pointer hover:bg-muted/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {historyOpen ? (
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    )}
-                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                    <CardTitle className="text-base">History</CardTitle>
-                    <span className="text-xs text-muted-foreground">
-                      (click to {historyOpen ? 'collapse' : 'expand'} – full history & risk factors)
-                    </span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      copyToClipboard(historyText, 'History');
-                    }}
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="pt-0">
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                  {historyText}
-                </pre>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-      )}
 
       {/* Objective/Examination Section - Conditional */}
       {isTelephoneConsultation && !hasExamination ? (
