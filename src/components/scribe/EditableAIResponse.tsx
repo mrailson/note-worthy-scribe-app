@@ -509,6 +509,8 @@ export function EditableAIResponse({
                 Email
               </Button>
             )}
+          </div>
+          <div className="flex items-center gap-1">
             {onExpand && (
               <Button
                 variant="ghost"
@@ -518,14 +520,12 @@ export function EditableAIResponse({
                   e.stopPropagation();
                   onExpand(displayContent, messageId);
                 }}
-                title="View full screen"
+                title="Expand and edit in full screen"
               >
                 <Maximize2 className="h-3.5 w-3.5 mr-1" />
-                Expand
+                Expand and Edit
               </Button>
             )}
-          </div>
-          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
