@@ -1,13 +1,11 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { SOAPNote, HeidiNote } from "@/types/scribe";
-import { Heart, Copy, Check, Eye, EyeOff, Pencil, X, Save, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { Heart, Copy, Eye, EyeOff, Loader2, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { 
@@ -17,6 +15,7 @@ import {
   AgeingWellNote 
 } from "@/utils/ageingWellFormatter";
 import { supabase } from "@/integrations/supabase/client";
+import AgeingWellSectionEditor, { ClinicalAIAction } from "./AgeingWellSectionEditor";
 
 interface AgeingWellViewProps {
   soapNote?: SOAPNote | null;
@@ -46,8 +45,6 @@ export const AgeingWellView = ({
   patientContext
 }: AgeingWellViewProps) => {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
-  const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState<string>("");
   const [localOverrides, setLocalOverrides] = useState<Partial<AgeingWellNote>>({});
   const [isGeneratingCGA, setIsGeneratingCGA] = useState(false);
   const [cgaNote, setCgaNote] = useState<AgeingWellNote | null>(null);
@@ -114,30 +111,79 @@ export const AgeingWellView = ({
     toast.success("Full CGA note copied to clipboard");
   }, [ageingWellNote]);
 
-  const startEditing = useCallback((sectionKey: string, content: string) => {
-    setEditingSection(sectionKey);
-    setEditContent(content);
-  }, []);
+  // Handle AI action for a section
+  const handleSectionAIAction = useCallback(async (
+    sectionKey: string, 
+    action: ClinicalAIAction
+  ): Promise<string> => {
+    const content = ageingWellNote[sectionKey as keyof AgeingWellNote] || '';
+    
+    // Build context from adjacent sections for better AI understanding
+    const sectionIndex = AGEING_WELL_SECTIONS.findIndex(s => s.key === sectionKey);
+    const contextSections = AGEING_WELL_SECTIONS
+      .filter((_, idx) => Math.abs(idx - sectionIndex) <= 2 && idx !== sectionIndex)
+      .slice(0, 3)
+      .map(s => {
+        const sectionContent = ageingWellNote[s.key as keyof AgeingWellNote] || '';
+        return sectionContent ? `${s.title}: ${sectionContent}` : '';
+      })
+      .filter(Boolean)
+      .join('\n\n');
+    
+    const { data, error } = await supabase.functions.invoke('ai-line-transform', {
+      body: {
+        consultationId,
+        lineContent: content,
+        action,
+        context: contextSections,
+        contextType: 'clinical',
+      },
+    });
+    
+    if (error) throw error;
+    
+    const transformedContent = data?.transformedContent || data?.transformedText || '';
+    
+    // Update local state with the new content
+    if (transformedContent) {
+      setLocalOverrides(prev => ({
+        ...prev,
+        [sectionKey]: transformedContent
+      }));
+      
+      if (onSectionChange) {
+        onSectionChange(sectionKey, transformedContent);
+      }
+    }
+    
+    return transformedContent;
+  }, [ageingWellNote, consultationId, onSectionChange]);
 
-  const cancelEditing = useCallback(() => {
-    setEditingSection(null);
-    setEditContent("");
-  }, []);
-
-  const saveEditing = useCallback((sectionKey: string) => {
+  // Handle section update (manual edit)
+  const handleSectionUpdate = useCallback((sectionKey: string, newContent: string) => {
     setLocalOverrides(prev => ({
       ...prev,
-      [sectionKey]: editContent
+      [sectionKey]: newContent
     }));
     
     if (onSectionChange) {
-      onSectionChange(sectionKey, editContent);
+      onSectionChange(sectionKey, newContent);
     }
     
-    setEditingSection(null);
-    setEditContent("");
     toast.success("Section updated");
-  }, [editContent, onSectionChange]);
+  }, [onSectionChange]);
+
+  // Handle section delete (clear content)
+  const handleSectionDelete = useCallback((sectionKey: string) => {
+    setLocalOverrides(prev => ({
+      ...prev,
+      [sectionKey]: ''
+    }));
+    
+    if (onSectionChange) {
+      onSectionChange(sectionKey, '');
+    }
+  }, [onSectionChange]);
 
   // Check if section has content worth showing
   const hasContent = useCallback((content: string): boolean => {
@@ -257,93 +303,24 @@ export const AgeingWellView = ({
           <div className="space-y-4">
               {visibleSections.map((section) => {
                 const content = ageingWellNote[section.key as keyof AgeingWellNote] || '';
-                const isEditing = editingSection === section.key;
                 const isCopied = copiedSection === section.key;
                 
                 return (
-                  <div
+                  <AgeingWellSectionEditor
                     key={section.key}
-                    className={cn(
-                      "rounded-lg border p-4 transition-all",
-                      section.borderClass
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "px-2 py-1 rounded text-xs font-semibold",
-                          section.colorClass
-                        )}>
-                          {section.title}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        {isEditing ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={cancelEditing}
-                              className="h-7 px-2"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => saveEditing(section.key)}
-                              className="h-7 px-2 text-green-600"
-                            >
-                              <Save className="h-3 w-3" />
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            {editable && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => startEditing(section.key, content)}
-                                className="h-7 px-2"
-                              >
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => copySection(section.key, content)}
-                              className="h-7 px-2"
-                            >
-                              {isCopied ? (
-                                <Check className="h-3 w-3 text-green-500" />
-                              ) : (
-                                <Copy className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {isEditing ? (
-                      <Textarea
-                        value={editContent}
-                        onChange={(e) => setEditContent(e.target.value)}
-                        className="min-h-[100px] text-sm"
-                        placeholder={section.description}
-                      />
-                    ) : (
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
-                        {content || (
-                          <span className="text-muted-foreground italic">
-                            {section.description}
-                          </span>
-                        )}
-                      </p>
-                    )}
-                  </div>
+                    sectionKey={section.key}
+                    sectionTitle={section.title}
+                    content={content}
+                    colorClass={section.colorClass}
+                    borderClass={section.borderClass}
+                    description={section.description}
+                    editable={editable}
+                    onUpdate={(newContent) => handleSectionUpdate(section.key, newContent)}
+                    onDelete={() => handleSectionDelete(section.key)}
+                    onAIAction={(action) => handleSectionAIAction(section.key, action)}
+                    onCopy={() => copySection(section.key, content)}
+                    isCopied={isCopied}
+                  />
                 );
               })}
           </div>
