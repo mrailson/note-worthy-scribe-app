@@ -699,6 +699,8 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         heidiNote={currentSession.heidiNote}
                         showNotMentioned={settings.showNotMentioned}
                         onShowNotMentionedChange={handleShowNotMentionedChange}
+                        editable={true}
+                        consultationId={currentSession.id}
                         transcript={currentSession.transcript}
                         patientContext={currentSession.patientName ? {
                           name: currentSession.patientName,
