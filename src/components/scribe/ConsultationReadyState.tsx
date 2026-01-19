@@ -168,7 +168,7 @@ export const ConsultationReadyState = ({
                       <RadioGroupItem value="microphone_and_system" id="mic-softphone" />
                       <Label htmlFor="mic-softphone" className="flex items-center gap-2 cursor-pointer text-sm">
                         <Phone className="h-4 w-4 text-muted-foreground" />
-                        Mic + SoftPhone
+                        Mic + System Audio (For Teams/Surgery Connect)
                       </Label>
                     </div>
                   </RadioGroup>

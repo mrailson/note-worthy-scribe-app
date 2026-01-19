@@ -32,7 +32,7 @@ export const QuickAudioSourceSwitcher = ({
   // On mobile, only show microphone option (system audio not supported)
   const allModes: { mode: AudioSourceMode; icon: typeof Mic; label: string; shortLabel: string }[] = [
     { mode: 'microphone', icon: Mic, label: 'Microphone Only', shortLabel: 'Mic' },
-    { mode: 'microphone_and_system', icon: Monitor, label: 'Mic + SoftPhone (e.g. Surgery Connect)', shortLabel: 'Mic+SoftPhone' },
+    { mode: 'microphone_and_system', icon: Monitor, label: 'Mic + System Audio (For Teams/Surgery Connect)', shortLabel: 'Mic+System Audio' },
   ];
   
   const modes = hideSystemAudio 
