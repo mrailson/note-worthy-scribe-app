@@ -526,7 +526,8 @@ export const MeetingRecorder = ({
   };
 
   // Transcript view mode for switching between Batch (Whisper) and Live (Assembly AI)
-  const [transcriptViewMode, setTranscriptViewMode] = useState<'batch' | 'live'>('batch');
+  // Default to 'live' (AssemblyAI) during recording for real-time feedback
+  const [transcriptViewMode, setTranscriptViewMode] = useState<'batch' | 'live'>('live');
 
   // AssemblyAI real-time preview hook (runs alongside Whisper)
   const assemblyPreview = useAssemblyRealtimePreview();
@@ -4592,6 +4593,18 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           }
         } else {
           console.log('✅ Consolidation result:', consolidationData);
+        }
+        
+        // Save AssemblyAI transcript to assembly_transcript_text for SafeNote modal
+        const assemblyTranscript = assemblyPreview.fullTranscript;
+        if (assemblyTranscript && assemblyTranscript.trim().length > 0) {
+          console.log('📝 Saving AssemblyAI transcript:', assemblyTranscript.length, 'chars');
+          await supabase
+            .from('meetings')
+            .update({
+              assembly_transcript_text: assemblyTranscript.trim()
+            })
+            .eq('id', meetingId);
         }
       } catch (error) {
         console.error('❌ Exception during chunk consolidation:', error);
