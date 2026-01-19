@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -77,6 +84,7 @@ export function GPScribeStats() {
     allTime: { count: 0, words: 0, durationSeconds: 0 }
   });
   const [userStats, setUserStats] = useState<UserStats[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>('all');
 
   const fetchStats = async () => {
     setLoading(true);
@@ -378,13 +386,30 @@ export function GPScribeStats() {
       {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Consultations by User
-          </CardTitle>
-          <CardDescription>
-            Individual user statistics for scribe sessions
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Notewell AI Scribe - Consultations By User
+              </CardTitle>
+              <CardDescription>
+                Individual user statistics for scribe sessions
+              </CardDescription>
+            </div>
+            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+              <SelectTrigger className="w-full sm:w-[250px]">
+                <SelectValue placeholder="Filter by user..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                {userStats.map((user) => (
+                  <SelectItem key={user.user_id} value={user.user_id}>
+                    {user.user_name || user.user_email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -400,14 +425,19 @@ export function GPScribeStats() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {userStats.length === 0 ? (
+              {(() => {
+                const filteredUsers = selectedUserId === 'all' 
+                  ? userStats 
+                  : userStats.filter(u => u.user_id === selectedUserId);
+                
+                return filteredUsers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     No consultation data available
                   </TableCell>
                 </TableRow>
-              ) : (
-                userStats.map((user) => (
+                ) : (
+                  filteredUsers.map((user) => (
                   <TableRow key={user.user_id}>
                     <TableCell>
                       <div>
@@ -426,8 +456,9 @@ export function GPScribeStats() {
                       {formatAverageDuration(user.totalDurationSeconds, user.allTime)}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
+                  ))
+                );
+              })()}
             </TableBody>
           </Table>
         </CardContent>
