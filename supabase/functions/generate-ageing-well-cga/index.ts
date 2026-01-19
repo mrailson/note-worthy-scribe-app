@@ -231,7 +231,14 @@ ${patientContext.nhsNumber ? `NHS Number: ${patientContext.nhsNumber}` : ''}`;
 
     userPrompt += `
 
-Generate the 17-section CGA note following the exact JSON structure specified. Use full clinical narrative sentences. Over-document rather than summarise. Document clinical reasoning throughout.
+CRITICAL OUTPUT REQUIREMENTS:
+1. Generate the 17-section CGA note following the exact JSON structure specified
+2. Use FULL clinical narrative sentences - NOT bullet points
+3. Each section must contain AT LEAST 3-5 sentences of clinical narrative
+4. Over-document rather than summarise - this is a COMPREHENSIVE review
+5. Document clinical reasoning throughout
+6. If the transcript is detailed, the output should match that detail
+7. DO NOT abbreviate or shorten responses - length is NOT capped
 
 Return ONLY the JSON object with no additional text or markdown.`;
 
@@ -244,12 +251,13 @@ Return ONLY the JSON object with no additional text or markdown.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: CGA_SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.3,
+        temperature: 0.1,
+        max_tokens: 16000,
       }),
     });
 
