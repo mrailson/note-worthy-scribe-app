@@ -183,7 +183,7 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
         consultation_id: consultationId,
         transcript_text: transcriptToSave,
         cleaned_transcript: transcriptToSave,
-        transcription_service: 'whisper',
+        transcription_service: 'assemblyai',
         realtime_transcript: realtimeTranscriptToSave || null
       }]);
 
@@ -274,9 +274,16 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
       }
 
       // Capture recording data before state changes
-      const transcriptForSave = result.transcript;
-      const realtimeTranscriptForSave = recording.livePreviewFullTranscript || '';
-      const wordCountForSave = result.transcript.split(/\s+/).filter((w: string) => w.length > 0).length;
+      // Use AssemblyAI live transcript as primary source if available, fallback to Whisper
+      const assemblyTranscript = recording.livePreviewFullTranscript?.trim() || '';
+      const whisperTranscript = result.transcript?.trim() || '';
+      
+      // Prefer AssemblyAI transcript as primary source
+      const transcriptForSave = assemblyTranscript.length > 0 ? assemblyTranscript : whisperTranscript;
+      const realtimeTranscriptForSave = whisperTranscript; // Store Whisper as backup/realtime
+      const wordCountForSave = transcriptForSave.split(/\s+/).filter((w: string) => w.length > 0).length;
+      
+      console.log(`📝 Using ${assemblyTranscript.length > 0 ? 'AssemblyAI' : 'Whisper'} as primary transcript (${wordCountForSave} words)`);
       const durationForSave = recording.duration;
 
       setConsultationState('generating');
