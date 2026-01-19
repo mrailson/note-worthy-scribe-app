@@ -393,7 +393,7 @@ export const AgeingWellView = ({
               Generating Comprehensive Geriatric Assessment...
             </p>
             <p className="text-xs text-muted-foreground">
-              This may take up to 30 seconds for complex consultations
+              This may take up to 90 seconds for complex consultations
             </p>
           </div>
         ) : (
