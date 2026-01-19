@@ -689,7 +689,7 @@ const createActionItemsTable = async (items: ParsedActionItem[]) => {
             new TableCell({
               children: [new Paragraph({
                 children: [new TextRun({ 
-                  text: `@${item.owner}`,
+                  text: item.owner,
                   size: FONTS.size.body,
                   color: NHS_COLORS.headingBlue,
                   font: FONTS.default,
