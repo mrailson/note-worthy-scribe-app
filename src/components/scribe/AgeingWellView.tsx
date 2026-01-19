@@ -88,15 +88,47 @@ export const AgeingWellView = ({
     }
     
     try {
-      const { error } = await supabase
+      // First check if a notes record exists for this consultation
+      const { data: existingNote, error: fetchError } = await supabase
         .from('gp_consultation_notes')
-        .update({ cga_notes: JSON.parse(JSON.stringify(notes)) })
-        .eq('consultation_id', consultationId);
+        .select('id')
+        .eq('consultation_id', consultationId)
+        .maybeSingle();
       
-      if (error) {
-        console.error('Error saving CGA notes:', error);
+      if (fetchError) {
+        console.error('Error checking for existing notes:', fetchError);
+        return;
+      }
+      
+      const cgaData = JSON.parse(JSON.stringify(notes));
+      
+      if (existingNote) {
+        // Update existing record
+        const { error } = await supabase
+          .from('gp_consultation_notes')
+          .update({ cga_notes: cgaData })
+          .eq('consultation_id', consultationId);
+        
+        if (error) {
+          console.error('Error updating CGA notes:', error);
+        } else {
+          console.log('CGA notes updated in database');
+        }
       } else {
-        console.log('CGA notes saved to database');
+        // Insert new record
+        const { error } = await supabase
+          .from('gp_consultation_notes')
+          .insert({ 
+            consultation_id: consultationId,
+            note_format: 'cga',
+            cga_notes: cgaData
+          });
+        
+        if (error) {
+          console.error('Error inserting CGA notes:', error);
+        } else {
+          console.log('CGA notes inserted into database');
+        }
       }
     } catch (err) {
       console.error('Error saving CGA notes:', err);
