@@ -55,6 +55,7 @@ export function SessionHistoryRow({
   const [isEditingHeadline, setIsEditingHeadline] = useState(false);
   const [editedHeadline, setEditedHeadline] = useState('');
   const [isSavingHeadline, setIsSavingHeadline] = useState(false);
+  const [patientPopoverOpen, setPatientPopoverOpen] = useState(false);
   
   // Generate clinical headline data
   const headlineData = useMemo(() => getClinicalHeadlineData(session), [session]);
@@ -360,7 +361,7 @@ export function SessionHistoryRow({
                 <DropdownMenuContent align="end">
                   {/* Add Patient */}
                   {!session.patientName && (
-                    <Popover>
+                    <Popover open={patientPopoverOpen} onOpenChange={setPatientPopoverOpen}>
                       <PopoverTrigger asChild>
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                           <User className="h-4 w-4 mr-2" />
@@ -370,8 +371,11 @@ export function SessionHistoryRow({
                       <PopoverContent className="w-72" align="end">
                         <QuickPatientEntryForm
                           sessionId={session.id}
-                          onSave={onRefresh}
-                          onCancel={() => {}}
+                          onSave={() => {
+                            setPatientPopoverOpen(false);
+                            onRefresh();
+                          }}
+                          onCancel={() => setPatientPopoverOpen(false)}
                         />
                       </PopoverContent>
                     </Popover>
@@ -379,7 +383,7 @@ export function SessionHistoryRow({
                   
                   {/* Edit Patient */}
                   {session.patientName && (
-                    <Popover>
+                    <Popover open={patientPopoverOpen} onOpenChange={setPatientPopoverOpen}>
                       <PopoverTrigger asChild>
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                           <Pencil className="h-4 w-4 mr-2" />
@@ -392,8 +396,11 @@ export function SessionHistoryRow({
                           existingName={session.patientName}
                           existingNhsNumber={session.patientNhsNumber || ""}
                           existingDob={session.patientDob || ""}
-                          onSave={onRefresh}
-                          onCancel={() => {}}
+                          onSave={() => {
+                            setPatientPopoverOpen(false);
+                            onRefresh();
+                          }}
+                          onCancel={() => setPatientPopoverOpen(false)}
                         />
                       </PopoverContent>
                     </Popover>

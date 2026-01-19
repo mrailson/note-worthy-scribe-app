@@ -94,6 +94,9 @@ export const ScribeHistoryPanel = ({
   // Patient details toggle state
   const [showPatientDetails, setShowPatientDetails] = useState(false);
   
+  // Patient identifier popover state
+  const [patientPopoverOpen, setPatientPopoverOpen] = useState(false);
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
@@ -408,7 +411,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         </span>
                       </>
                     )}
-                    <Popover>
+                    <Popover open={patientPopoverOpen} onOpenChange={setPatientPopoverOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="ghost" size="sm" className="ml-auto h-6 px-2">
                           <Pencil className="h-3 w-3 mr-1" />
@@ -421,14 +424,17 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                           existingName={currentSession.patientName}
                           existingNhsNumber={currentSession.patientNhsNumber || ""}
                           existingDob={currentSession.patientDob || ""}
-                          onSave={() => onRefresh()}
-                          onCancel={() => {}}
+                          onSave={() => {
+                            setPatientPopoverOpen(false);
+                            onRefresh();
+                          }}
+                          onCancel={() => setPatientPopoverOpen(false)}
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
                 ) : (
-                  <Popover>
+                  <Popover open={patientPopoverOpen} onOpenChange={setPatientPopoverOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="sm" className="mt-2 h-7 text-xs">
                         <User className="h-3.5 w-3.5 mr-1.5" />
@@ -438,8 +444,11 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     <PopoverContent className="w-72" align="start">
                       <QuickPatientEntryForm
                         sessionId={currentSession.id}
-                        onSave={() => onRefresh()}
-                        onCancel={() => {}}
+                        onSave={() => {
+                          setPatientPopoverOpen(false);
+                          onRefresh();
+                        }}
+                        onCancel={() => setPatientPopoverOpen(false)}
                       />
                     </PopoverContent>
                   </Popover>
