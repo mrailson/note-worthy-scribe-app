@@ -538,18 +538,6 @@ export function EditableAIResponse({
             >
               {copied ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsEditing(true);
-              }}
-              title="Edit"
-            >
-              <Edit3 className="h-3.5 w-3.5" />
-            </Button>
           </div>
         </div>
       )}
