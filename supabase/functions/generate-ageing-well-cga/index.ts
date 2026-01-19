@@ -289,17 +289,45 @@ Return ONLY the JSON object with no additional text or markdown.`;
 
     console.log('Raw AI response received, parsing...');
 
-    // Parse JSON from response
+    // Parse JSON from response with robust error handling
     let cgaNote;
     try {
       // Try to extract JSON from response (handle markdown code blocks)
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
-      const jsonStr = jsonMatch[1] || content;
-      cgaNote = JSON.parse(jsonStr.trim());
+      let jsonStr = content;
+      
+      // Remove markdown code blocks if present
+      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1];
+      }
+      
+      // Clean up the string - remove any leading/trailing whitespace
+      jsonStr = jsonStr.trim();
+      
+      // Handle potential issues with special characters
+      // Remove any control characters except newlines and tabs
+      jsonStr = jsonStr.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+      
+      cgaNote = JSON.parse(jsonStr);
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
-      console.error('Raw content:', content);
-      throw new Error('Failed to parse CGA note from AI response');
+      console.error('Raw content (first 500 chars):', content.substring(0, 500));
+      
+      // Attempt a more aggressive cleanup and retry
+      try {
+        let cleanedContent = content;
+        // Extract just the JSON object using a more flexible pattern
+        const objectMatch = cleanedContent.match(/\{[\s\S]*\}/);
+        if (objectMatch) {
+          cgaNote = JSON.parse(objectMatch[0]);
+          console.log('Successfully parsed JSON after aggressive cleanup');
+        } else {
+          throw new Error('Could not find JSON object in response');
+        }
+      } catch (retryError) {
+        console.error('Retry parse also failed:', retryError);
+        throw new Error('Failed to parse CGA note from AI response');
+      }
     }
 
     // Validate all 17 keys exist
