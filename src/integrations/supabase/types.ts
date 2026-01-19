@@ -3355,6 +3355,7 @@ export type Database = {
       }
       gp_consultation_notes: {
         Row: {
+          cga_notes: Json | null
           consultation_id: string
           created_at: string
           heidi_notes: Json | null
@@ -3369,6 +3370,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cga_notes?: Json | null
           consultation_id: string
           created_at?: string
           heidi_notes?: Json | null
@@ -3383,6 +3385,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cga_notes?: Json | null
           consultation_id?: string
           created_at?: string
           heidi_notes?: Json | null
