@@ -274,7 +274,7 @@ const AgeingWellSectionEditor: React.FC<AgeingWellSectionEditorProps> = ({
         </div>
       ) : (
         <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">
-          {content || (
+          {content ? content.replace(/\*\*/g, '').replace(/\*/g, '') : (
             <span className="text-muted-foreground italic">
               {description}
             </span>
