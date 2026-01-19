@@ -254,7 +254,7 @@ export const AgeingWellView = ({
             </p>
           </div>
         ) : (
-          <ScrollArea className="max-h-[calc(100vh-350px)]">
+          <ScrollArea className="max-h-[calc(100vh-200px)]">
             <div className="space-y-4 pr-4">
               {visibleSections.map((section) => {
                 const content = ageingWellNote[section.key as keyof AgeingWellNote] || '';
