@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Mic, Monitor, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Mic, Monitor, CheckCircle2, XCircle, AlertCircle, CheckCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface AudioCaptureStatusIndicatorProps {
   micCaptured: boolean;
@@ -9,6 +10,11 @@ interface AudioCaptureStatusIndicatorProps {
   recordingMode: 'mic-only' | 'mic-and-system';
   isRecording: boolean;
   audioActivity: boolean;
+  // Transcription health props
+  healthStatus?: 'healthy' | 'warning' | 'critical' | 'inactive';
+  timeSinceLastChunk?: number;
+  totalChunks?: number;
+  actualChunksPerMinute?: number;
 }
 
 export const AudioCaptureStatusIndicator = ({
@@ -16,7 +22,11 @@ export const AudioCaptureStatusIndicator = ({
   systemAudioCaptured,
   recordingMode,
   isRecording,
-  audioActivity
+  audioActivity,
+  healthStatus = 'inactive',
+  timeSinceLastChunk = 0,
+  totalChunks = 0,
+  actualChunksPerMinute = 0
 }: AudioCaptureStatusIndicatorProps) => {
   const [showVoiceIndicator, setShowVoiceIndicator] = useState(true);
   const [hasAutoHidden, setHasAutoHidden] = useState(false);
@@ -70,8 +80,50 @@ export const AudioCaptureStatusIndicator = ({
     }
   };
 
+  const formatTimeSince = (ms: number): string => {
+    if (ms < 1000) return 'just now';
+    const seconds = Math.floor(ms / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}m ${seconds % 60}s ago`;
+  };
+
+  const getHealthConfig = () => {
+    switch (healthStatus) {
+      case 'healthy':
+        return {
+          color: 'text-green-500',
+          pulseColor: 'bg-green-500',
+          label: 'Transcription Active',
+          description: 'Audio is being processed normally'
+        };
+      case 'warning':
+        return {
+          color: 'text-yellow-500',
+          pulseColor: 'bg-yellow-500',
+          label: 'Checking Status',
+          description: 'No new transcription for a while'
+        };
+      case 'critical':
+        return {
+          color: 'text-red-500',
+          pulseColor: 'bg-red-500',
+          label: 'Transcription Stalled',
+          description: 'Check your recording - transcription may have stopped'
+        };
+      default:
+        return {
+          color: 'text-muted-foreground',
+          pulseColor: 'bg-muted',
+          label: 'Inactive',
+          description: 'Transcription not active'
+        };
+    }
+  };
+
   const micStatus = getMicStatus();
   const systemStatus = getSystemStatus();
+  const healthConfig = getHealthConfig();
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg border">
@@ -115,6 +167,64 @@ export const AudioCaptureStatusIndicator = ({
                 You may have selected a Window instead of a Browser Tab
               </p>
             )}
+          </TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Transcription Health Indicator - integrated into this container */}
+      {healthStatus !== 'inactive' && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge 
+              variant="outline" 
+              className={cn(
+                "flex items-center gap-1.5 cursor-help",
+                healthStatus === 'critical' && "animate-pulse"
+              )}
+            >
+              {/* Pulsing dot indicator */}
+              <span className="relative flex h-2.5 w-2.5">
+                {healthStatus === 'healthy' && (
+                  <span 
+                    className={cn(
+                      "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                      healthConfig.pulseColor
+                    )} 
+                  />
+                )}
+                <span 
+                  className={cn(
+                    "relative inline-flex rounded-full h-2.5 w-2.5",
+                    healthConfig.pulseColor
+                  )} 
+                />
+              </span>
+              
+              <CheckCircle className={cn("h-3.5 w-3.5", healthConfig.color)} />
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-xs">
+            <div className="space-y-1.5">
+              <div className="font-semibold flex items-center gap-2">
+                <CheckCircle className={cn("h-4 w-4", healthConfig.color)} />
+                {healthConfig.label}
+              </div>
+              <p className="text-xs text-muted-foreground">{healthConfig.description}</p>
+              <div className="text-xs space-y-1 pt-1 border-t border-border/50">
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Chunks processed:</span>
+                  <span className="font-medium">{totalChunks}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Last chunk:</span>
+                  <span>{formatTimeSince(timeSinceLastChunk)}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Chunks/min:</span>
+                  <span>{actualChunksPerMinute.toFixed(1)}</span>
+                </div>
+              </div>
+            </div>
           </TooltipContent>
         </Tooltip>
       )}
