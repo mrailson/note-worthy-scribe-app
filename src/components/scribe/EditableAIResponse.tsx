@@ -108,11 +108,11 @@ const convertMarkdownToHtml = (text: string): string => {
   // Escape HTML entities (but preserve our tags)
   html = html
     .replace(/&(?!amp;|lt;|gt;)/g, '&amp;')
-    .replace(/<(?!\/?(?:strong|em|h[1-3]|p|br|ul|ol|li|span)\b)/g, '&lt;')
-    .replace(/(?<!<\/?(?:strong|em|h[1-3]|p|br|ul|ol|li|span)[^>]*)>/g, (match, offset) => {
+    .replace(/<(?!\/?(?:strong|em|h[1-3]|p|br|ul|ol|li|span|div)\b)/g, '&lt;')
+    .replace(/(?<!<\/?(?:strong|em|h[1-3]|p|br|ul|ol|li|span|div)[^>]*)>/g, (match, offset) => {
       // Only escape > if it's not part of an HTML tag we created
       const before = html.substring(Math.max(0, offset - 50), offset);
-      if (/<(?:strong|em|h[1-3]|p|br|ul|ol|li|span)[^>]*$/.test(before)) {
+      if (/<(?:strong|em|h[1-3]|p|br|ul|ol|li|span|div)[^>]*$/.test(before)) {
         return match;
       }
       return '&gt;';
@@ -124,18 +124,29 @@ const convertMarkdownToHtml = (text: string): string => {
     .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-8 mb-4 text-foreground border-b border-border/50 pb-2">$1</h2>')
     .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-8 mb-5 text-foreground border-b border-border pb-3">$1</h1>');
   
-  // Detect clinical sub-headings (bold text followed by colon at start of line)
-  // e.g., "**History:** patient presents with..." or "Overall Impression:"
-  html = html.replace(/<strong[^>]*>([^<]+):<\/strong>/g, '<strong class="font-semibold text-foreground block mt-5 mb-2">$1:</strong>');
+  // Detect document title (first bold line without a colon - e.g., "Fit Note Supporting Text")
+  // This creates a prominent header at the top
+  html = html.replace(/^<strong[^>]*>([^<:]+)<\/strong>(?=\s*<br|\s*$)/m, 
+    '<div class="text-lg font-bold text-foreground mb-6 pb-3 border-b-2 border-primary/30">$1</div>');
+  
+  // Detect inline clinical field labels with values on same line
+  // e.g., "**Patient:** David Thompson" → proper two-column layout
+  html = html.replace(/<strong[^>]*>([^<]+):<\/strong>\s*([^<\n]+?)(?=<br|<\/p|$)/g, 
+    '<div class="flex flex-wrap gap-x-3 gap-y-1 my-3 py-1"><span class="font-semibold text-foreground whitespace-nowrap min-w-[120px]">$1:</span><span class="text-foreground/90">$2</span></div>');
+  
+  // Detect clinical section headings (bold text with colon at end, followed by content on next line)
+  // e.g., "**Functional effects of condition:**" followed by paragraph
+  html = html.replace(/<strong[^>]*>([^<]+):<\/strong>\s*(?=<br)/g, 
+    '<div class="font-semibold text-foreground mt-6 mb-3 pt-4 border-t border-border/40">$1:</div>');
   
   // Bullet lists with proper indentation and spacing
-  html = html.replace(/^[-•]\s+(.+)$/gm, '<li class="ml-6 pl-2 leading-relaxed">$1</li>');
+  html = html.replace(/^[-•]\s+(.+)$/gm, '<li class="ml-6 pl-2 leading-loose">$1</li>');
   
   // Numbered lists
-  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li class="ml-6 pl-2 list-decimal leading-relaxed">$1</li>');
+  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li class="ml-6 pl-2 list-decimal leading-loose">$1</li>');
   
   // Double line breaks to paragraphs with generous spacing
-  html = html.replace(/\n\n+/g, '</p><p class="mb-5 leading-relaxed text-foreground/90">');
+  html = html.replace(/\n\n+/g, '</p><p class="mb-6 leading-loose text-foreground/90">');
   
   // Single line breaks - handle carefully
   html = html.replace(/\n/g, '<br/>');
@@ -143,12 +154,12 @@ const convertMarkdownToHtml = (text: string): string => {
   // Wrap consecutive <li> elements in <ul> with proper spacing
   html = html.replace(/(<li[^>]*>.*?<\/li>(?:\s*<br\/>?\s*)?)+/gs, (match) => {
     const cleanedMatch = match.replace(/<br\s*\/?>/g, '');
-    return `<ul class="my-5 space-y-3 list-disc pl-2">${cleanedMatch}</ul>`;
+    return `<ul class="my-6 space-y-3 list-disc pl-2">${cleanedMatch}</ul>`;
   });
   
   // Wrap in paragraph if not already wrapped and doesn't start with a block element
-  if (!html.startsWith('<h') && !html.startsWith('<ul') && !html.startsWith('<ol') && !html.startsWith('<p')) {
-    html = `<p class="mb-5 leading-relaxed text-foreground/90">${html}</p>`;
+  if (!html.startsWith('<h') && !html.startsWith('<ul') && !html.startsWith('<ol') && !html.startsWith('<p') && !html.startsWith('<div')) {
+    html = `<p class="mb-6 leading-loose text-foreground/90">${html}</p>`;
   }
 
   return html;
@@ -203,8 +214,8 @@ export function EditableAIResponse({
   const initialHtml = convertMarkdownToHtml(displayContent);
 
   const sanitizedHtml = DOMPurify.sanitize(initialHtml, {
-    ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'span', 'img'],
-    ALLOWED_ATTR: ['style', 'src', 'alt', 'width', 'height']
+    ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'span', 'img', 'div'],
+    ALLOWED_ATTR: ['style', 'src', 'alt', 'width', 'height', 'class']
   });
 
   const editor = useEditor({
@@ -249,8 +260,8 @@ export function EditableAIResponse({
     if (editor && !isEditing) {
       const newHtml = convertMarkdownToHtml(editedContent || content);
       const sanitized = DOMPurify.sanitize(newHtml, {
-        ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'span', 'img'],
-        ALLOWED_ATTR: ['style', 'src', 'alt', 'width', 'height']
+        ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'span', 'img', 'div'],
+        ALLOWED_ATTR: ['style', 'src', 'alt', 'width', 'height', 'class']
       });
       editor.commands.setContent(sanitized);
     }
