@@ -18,6 +18,7 @@ interface RequestInformationPanelProps {
   disabled?: boolean;
 }
 
+// Uses the secure view which excludes access_token for security
 interface InvolvedParty {
   id: string;
   staff_name: string;
@@ -26,11 +27,13 @@ interface InvolvedParty {
   response_text: string | null;
   response_submitted_at: string | null;
   response_requested_at: string;
-  access_token: string;
   access_token_expires_at: string;
   access_token_last_used_at: string;
   complaint_id: string;
   created_at: string;
+  // From secure view - token status without exposing actual token
+  has_access_token: boolean;
+  token_status: string;
 }
 
 interface TeamMember {
@@ -124,8 +127,9 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
 
   const fetchInvolvedParties = async () => {
     try {
+      // Use secure view that excludes access_token to prevent token exposure
       const { data, error } = await supabase
-        .from('complaint_involved_parties')
+        .from('complaint_involved_parties_secure')
         .select('*')
         .eq('complaint_id', complaintId)
         .order('response_requested_at', { ascending: false });

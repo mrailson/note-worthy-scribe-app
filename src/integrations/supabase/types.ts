@@ -8468,6 +8468,62 @@ export type Database = {
       }
     }
     Views: {
+      complaint_involved_parties_secure: {
+        Row: {
+          access_token_expires_at: string | null
+          access_token_last_used_at: string | null
+          complaint_id: string | null
+          created_at: string | null
+          has_access_token: boolean | null
+          id: string | null
+          response_requested_at: string | null
+          response_submitted_at: string | null
+          response_text: string | null
+          staff_email: string | null
+          staff_name: string | null
+          staff_role: string | null
+          token_status: string | null
+        }
+        Insert: {
+          access_token_expires_at?: string | null
+          access_token_last_used_at?: string | null
+          complaint_id?: string | null
+          created_at?: string | null
+          has_access_token?: never
+          id?: string | null
+          response_requested_at?: string | null
+          response_submitted_at?: string | null
+          response_text?: string | null
+          staff_email?: string | null
+          staff_name?: string | null
+          staff_role?: string | null
+          token_status?: never
+        }
+        Update: {
+          access_token_expires_at?: string | null
+          access_token_last_used_at?: string | null
+          complaint_id?: string | null
+          created_at?: string | null
+          has_access_token?: never
+          id?: string | null
+          response_requested_at?: string | null
+          response_submitted_at?: string | null
+          response_text?: string | null
+          staff_email?: string | null
+          staff_name?: string | null
+          staff_role?: string | null
+          token_status?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_involved_parties_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       icn_tl_norm: {
         Row: {
           bnf_chapter: string | null
@@ -8797,6 +8853,10 @@ export type Database = {
           total_words: number
           user_id: string
         }[]
+      }
+      get_involved_party_access_url: {
+        Args: { party_id: string }
+        Returns: string
       }
       get_large_ai4gp_searches: {
         Args: { min_size_mb?: number }
