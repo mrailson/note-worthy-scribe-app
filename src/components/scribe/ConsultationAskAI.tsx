@@ -420,7 +420,7 @@ Include:
       ''
     ].filter(Boolean).join('\n');
     
-    await sendEmailAutomatically(headerParts + content, `Consultation Q&A - ${format(new Date(session.createdAt), 'dd/MM/yyyy')}`);
+    await sendEmailAutomatically(headerParts + content, `Consultation Q&A Summary - ${format(new Date(session.createdAt), 'd MMM yyyy')}`);
   };
 
   // Handle download single message with NHS letter format detection
@@ -446,7 +446,7 @@ Include:
 
   // Handle email single message
   const handleEmailMessage = useCallback(async (content: string) => {
-    await sendEmailAutomatically(content, `AI Response - ${format(new Date(), 'dd/MM/yyyy')}`);
+    await sendEmailAutomatically(content, `GP Scribe AI Response - ${format(new Date(), 'd MMM yyyy')}`);
   }, [sendEmailAutomatically]);
 
   // Handle expand single message (show in letter preview modal)
