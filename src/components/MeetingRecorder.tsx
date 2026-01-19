@@ -66,6 +66,8 @@ import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscript
 import { MultiAudioImport } from "@/components/meeting/MultiAudioImport";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
+import { useTeamsAudioDetection } from "@/hooks/useTeamsAudioDetection";
+import { TeamsAudioHint } from "@/components/meeting/TeamsAudioHint";
 import { useAssemblyRealtimePreview, PreviewStatus } from "@/hooks/useAssemblyRealtimePreview";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 
@@ -504,6 +506,17 @@ export const MeetingRecorder = ({
     onStallRecovered: () => {
       console.log('✅ Transcription recovered from stall');
     }
+  });
+  
+  // Teams audio detection - gentle hint for users who might be missing other participants
+  const teamsAudioDetection = useTeamsAudioDetection({
+    meetingType,
+    audioSourceMode,
+    isRecording,
+    duration,
+    wordCount,
+    actualChunksPerMinute: watchdog.actualChunksPerMinute,
+    healthStatus: watchdog.healthStatus
   });
   
   // Meeting settings - use from useMeetingData hook
@@ -2720,6 +2733,13 @@ export const MeetingRecorder = ({
       setIsSwitchingAudioSource(false);
     }
   };
+  
+  // Handler for switching to system audio from the TeamsAudioHint
+  // Placed after switchAudioSourceLive declaration to avoid hoisting issues
+  const handleSwitchToSystemAudioFromHint = useCallback(() => {
+    switchAudioSourceLive('microphone_and_system');
+    teamsAudioDetection.dismissHint();
+  }, [teamsAudioDetection]);
 
   const startComputerAudioTranscription = async (meetingId: string) => {
     addDebugLog('💻 Starting computer audio capture via screen share...');
@@ -5831,6 +5851,15 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                            systemAudioCaptured={systemAudioCaptured}
                          />
                        </div>
+                       
+                       {/* Teams Audio Hint - shows when mic-only might be missing other participants */}
+                       <TeamsAudioHint
+                         visible={teamsAudioDetection.shouldShowHint}
+                         onSwitchToSystemAudio={handleSwitchToSystemAudioFromHint}
+                         onDismiss={teamsAudioDetection.dismissHint}
+                         onAcknowledgeWorking={teamsAudioDetection.acknowledgeWorking}
+                       />
+                       
                         {/* Ticker tape for live transcription - Hidden on Edge */}
                       {!/Edg/.test(navigator.userAgent) && (
                         <div className={`transition-all duration-500 ${tickerEnabled ? (showTicker ? 'opacity-100 animate-fade-in' : 'hidden') : 'hidden'}`}>
