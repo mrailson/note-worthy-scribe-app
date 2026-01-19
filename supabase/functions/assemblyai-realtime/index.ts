@@ -50,57 +50,25 @@ Deno.serve(async (req: Request) => {
 
         console.log('🔗 Creating AssemblyAI WebSocket connection with OTEWELL verbatim settings...');
 
-        // OTEWELL NHS Governance & Clinical Terms for word boosting
+        // OTEWELL NHS Core Terms - reduced set to stay within URL limits
+        // Prioritising governance, clinical safety and high-value medical terms
         const medicalKeyterms = [
-          // OTEWELL Primary Care & Ageing Well
-          "Ageing Well", "Frailty", "frailty score", "LD", "Learning Disability",
-          "QOF", "DES", "Arden", "EMIS", "SystmOne", "NHFT", "PCN", "PCM",
-          // Clinical governance & safety
-          "CGA", "CQC", "clinical negligence", "indemnity", "safeguarding",
-          "ACP", "DNACPR", "ReSPECT", "coronial", "complaint",
-          "clinical negligence scheme", "liability",
-          // NHS organisations & roles
-          "ARRS", "ICS", "ICB", "HCA", "ANP", "SPLW", "NP", "PA",
-          "AccuRx", "Docman", "TeamNet", "eConsult", "NHS",
-          // Blood pressure and vitals
-          "over", "blood pressure", "BP", "systolic", "diastolic",
-          "heart rate", "pulse", "oxygen saturation", "SpO2", "temperature",
-          "respiratory rate", "BMI", "weight", "height", "HR", "bpm",
-          "eGFR", "HbA1c", "cholesterol", "LDL", "HDL", "NEWS", "NEWS2",
-          // Common measurements and units
-          "milligrams", "mg", "micrograms", "mcg", "millilitres", "ml",
-          "units", "percent", "per cent", "mmol", "mmHg", "kilograms", "kg",
-          // Medical terms
-          "diagnosis", "prognosis", "symptoms", "examination",
-          "history", "presenting complaint", "on examination",
-          "impression", "plan", "referral", "follow-up", "review",
-          // Common drugs
-          "paracetamol", "ibuprofen", "amoxicillin", "metformin",
-          "omeprazole", "simvastatin", "ramipril", "amlodipine",
-          "aspirin", "codeine", "tramadol", "lansoprazole",
-          "atorvastatin", "bisoprolol", "lisinopril", "losartan",
-          "sertraline", "citalopram", "fluoxetine", "amitriptyline",
-          "gabapentin", "pregabalin", "naproxen", "diclofenac",
-          "gliclazide", "sitagliptin", "empagliflozin", "semaglutide",
-          "warfarin", "apixaban", "rivaroxaban", "edoxaban",
-          "salbutamol", "Ventolin", "Fostair", "Seretide", "Symbicort",
-          // Body systems
-          "cardiovascular", "respiratory", "gastrointestinal",
-          "musculoskeletal", "neurological", "dermatological",
-          "urological", "gynaecological", "psychiatric",
+          // OTEWELL Primary Care & Governance (critical)
+          "Ageing Well", "Frailty", "LD", "Learning Disability",
+          "QOF", "DES", "EMIS", "SystmOne", "PCN", "CQC",
+          "safeguarding", "DNACPR", "ReSPECT", "ACP",
+          // Vitals
+          "BP", "systolic", "diastolic", "SpO2", "BMI", "eGFR", "HbA1c",
+          // High-frequency medications
+          "metformin", "ramipril", "amlodipine", "omeprazole",
+          "atorvastatin", "bisoprolol", "sertraline", "gabapentin",
+          "apixaban", "warfarin", "salbutamol", "Fostair",
           // Common conditions
-          "hypertension", "diabetes", "type 2 diabetes", "asthma", "COPD",
-          "arthritis", "depression", "anxiety", "infection",
-          "CKD", "chronic kidney disease", "atrial fibrillation", "AF",
-          "dementia", "Alzheimer's", "cognitive impairment", "MCI",
-          // Administrative
-          "fit note", "sick note", "DVLA", "prescription", "repeat prescription",
-          "home visit", "telephone consultation", "face to face",
-          "annual review", "medication review", "SMR", "2WW", "two week wait", "MDT"
+          "hypertension", "diabetes", "COPD", "asthma", "CKD",
+          "atrial fibrillation", "dementia", "depression"
         ];
 
         // AssemblyAI Streaming v3 with OTEWELL verbatim settings
-        // OTEWELL: Disable punctuate and format_text for verbatim capture
         const keytermsParam = encodeURIComponent(JSON.stringify(medicalKeyterms));
         const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&speech_model=universal-streaming-english&language_code=en&punctuate=false&format_text=false&word_confidence=true&keyterms_prompt=${keytermsParam}`;
         
