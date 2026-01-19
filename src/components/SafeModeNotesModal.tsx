@@ -194,6 +194,19 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [transcriptChunks, setTranscriptChunks] = useState<any[]>([]);
   const [isLoadingChunks, setIsLoadingChunks] = useState(false);
   
+  // Dual transcript state (Batch/Live/Consolidated)
+  const [batchTranscript, setBatchTranscript] = useState('');
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [consolidatedTranscript, setConsolidatedTranscript] = useState('');
+  const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live' | 'consolidated'>('batch');
+  const [isConsolidating, setIsConsolidating] = useState(false);
+  const [consolidationStats, setConsolidationStats] = useState<{
+    batchWords: number;
+    liveWords: number;
+    finalWords: number;
+    method?: string;
+  } | null>(null);
+  
   // Section-based editing state
   const [sections, setSections] = useState<Section[]>([]);
   const [isSavingSections, setIsSavingSections] = useState(false);
@@ -872,40 +885,50 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     checkAndSyncActionItems();
   }, [isOpen, meeting?.id, notesContent, isLoadingNotes]);
   const loadTranscript = useCallback(async () => {
-    if (!meeting?.id || transcript || isLoadingTranscript) return;
+    if (!meeting?.id || isLoadingTranscript) return;
     
     setIsLoadingTranscript(true);
     setTranscriptError(null);
 
     try {
-      // First try live_transcript_text from meetings table
+      // Fetch all transcript fields from meetings table
       const { data: meetingData } = await supabase
         .from('meetings')
-        .select('live_transcript_text')
+        .select('live_transcript_text, whisper_transcript_text, assembly_transcript_text')
         .eq('id', meeting.id)
         .maybeSingle();
 
-      if (meetingData?.live_transcript_text) {
-        setTranscript(meetingData.live_transcript_text);
-        setIsLoadingTranscript(false);
-        return;
-      }
+      // Set batch transcript (whisper or live_transcript_text fallback)
+      const batchText = meetingData?.whisper_transcript_text || meetingData?.live_transcript_text || '';
+      setBatchTranscript(batchText);
+      
+      // Set live transcript (AssemblyAI)
+      const liveText = meetingData?.assembly_transcript_text || '';
+      setLiveTranscript(liveText);
 
-      // Fallback to meeting_transcripts table
-      const { data: transcriptData } = await supabase
-        .from('meeting_transcripts')
-        .select('content')
-        .eq('meeting_id', meeting.id)
-        .order('created_at', { ascending: true });
-
-      if (transcriptData && transcriptData.length > 0) {
-        const combinedTranscript = transcriptData
-          .map(t => t.content)
-          .filter(Boolean)
-          .join('\n\n');
-        setTranscript(combinedTranscript);
+      // Set the main transcript (prefer batch, fallback to live)
+      if (batchText) {
+        setTranscript(batchText);
+      } else if (liveText) {
+        setTranscript(liveText);
       } else {
-        setTranscript('No transcript available for this meeting.');
+        // Fallback to meeting_transcripts table
+        const { data: transcriptData } = await supabase
+          .from('meeting_transcripts')
+          .select('content')
+          .eq('meeting_id', meeting.id)
+          .order('created_at', { ascending: true });
+
+        if (transcriptData && transcriptData.length > 0) {
+          const combinedTranscript = transcriptData
+            .map(t => t.content)
+            .filter(Boolean)
+            .join('\n\n');
+          setTranscript(combinedTranscript);
+          setBatchTranscript(combinedTranscript);
+        } else {
+          setTranscript('No transcript available for this meeting.');
+        }
       }
     } catch (error) {
       console.error('SafeMode: Error loading transcript:', error);
@@ -913,7 +936,62 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     } finally {
       setIsLoadingTranscript(false);
     }
-  }, [meeting?.id, transcript, isLoadingTranscript]);
+  }, [meeting?.id, isLoadingTranscript]);
+
+  // Generate consolidated transcript using AI
+  const generateConsolidatedTranscript = useCallback(async () => {
+    if (!batchTranscript && !liveTranscript) {
+      toast.error('No transcripts available to consolidate');
+      return;
+    }
+
+    // If only one source exists, use it directly
+    if (!batchTranscript || batchTranscript.trim().length === 0) {
+      setConsolidatedTranscript(liveTranscript);
+      setConsolidationStats({
+        batchWords: 0,
+        liveWords: liveTranscript.trim().split(/\s+/).filter(w => w.length > 0).length,
+        finalWords: liveTranscript.trim().split(/\s+/).filter(w => w.length > 0).length,
+        method: 'live_only'
+      });
+      toast.success('Using Live transcript (no Batch available)');
+      return;
+    }
+
+    if (!liveTranscript || liveTranscript.trim().length === 0) {
+      setConsolidatedTranscript(batchTranscript);
+      setConsolidationStats({
+        batchWords: batchTranscript.trim().split(/\s+/).filter(w => w.length > 0).length,
+        liveWords: 0,
+        finalWords: batchTranscript.trim().split(/\s+/).filter(w => w.length > 0).length,
+        method: 'batch_only'
+      });
+      toast.success('Using Batch transcript (no Live available)');
+      return;
+    }
+
+    setIsConsolidating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('consolidate-dual-transcripts', {
+        body: { batchTranscript, liveTranscript }
+      });
+
+      if (error) throw error;
+
+      if (data?.consolidatedTranscript) {
+        setConsolidatedTranscript(data.consolidatedTranscript);
+        setConsolidationStats(data.stats);
+        toast.success('Transcripts consolidated successfully');
+      } else {
+        throw new Error('No consolidated transcript returned');
+      }
+    } catch (error) {
+      console.error('Error consolidating transcripts:', error);
+      toast.error('Failed to consolidate transcripts');
+    } finally {
+      setIsConsolidating(false);
+    }
+  }, [batchTranscript, liveTranscript]);
 
   // Copy to clipboard
   const handleCopy = async () => {
@@ -1266,89 +1344,172 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     };
     const deviceLabel = getDeviceLabel();
 
-    const doc = new Document({
-      sections: [{
-        properties: {},
+    // Calculate batch (Whisper) and live (AssemblyAI) statistics
+    const batchWords = batchTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
+    const liveWords = liveTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
+    const hasBothSources = batchWords > 0 && liveWords > 0;
+    const wordDifference = Math.abs(batchWords - liveWords);
+    const wordDifferencePercent = hasBothSources 
+      ? Math.round(wordDifference / Math.max(batchWords, liveWords) * 100)
+      : 0;
+    const preferredSource = batchWords >= liveWords ? 'Batch (Whisper)' : 'Live (AssemblyAI)';
+
+    // Build document sections
+    const docSections: any[] = [
+      new Paragraph({ text: 'Transcription Quality Summary Report', heading: HeadingLevel.HEADING_1 }),
+      new Paragraph({ text: `Meeting: ${meeting?.title || 'Untitled'}` }),
+      new Paragraph({ text: `Date: ${meetingStartDate}${meetingStartTime ? ` at ${meetingStartTime}` : ''}` }),
+      new Paragraph({ text: `Recorded On: ${deviceLabel}` }),
+      new Paragraph({ text: '' }),
+      
+      // Dual Source Comparison
+      new Paragraph({ text: 'Transcript Source Comparison', heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ 
         children: [
-          new Paragraph({ text: 'Audio Chunk Analysis Report', heading: HeadingLevel.HEADING_1 }),
-          new Paragraph({ text: `Meeting: ${meeting?.title || 'Untitled'}` }),
-          new Paragraph({ text: `Date: ${meetingStartDate}${meetingStartTime ? ` at ${meetingStartTime}` : ''}` }),
-          new Paragraph({ text: `Recorded On: ${deviceLabel}` }),
-          new Paragraph({ text: '' }),
-          new Paragraph({ text: 'Summary', heading: HeadingLevel.HEADING_2 }),
-          new Paragraph({ text: `Total Chunks: ${transcriptChunks.length}` }),
-          new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
-          new Paragraph({ text: `Net Words (merged transcript): ${transcriptWords}` }),
-          new Paragraph({ text: `Words Filtered: ${totalWords - transcriptWords}` }),
-          new Paragraph({ text: `Average Confidence: ${Math.round(avgConfidence * 100)}%` }),
+          new TextRun({ text: 'Batch (Whisper) Words: ', bold: true }),
+          new TextRun({ text: String(batchWords) })
+        ]
+      }),
+      new Paragraph({ 
+        children: [
+          new TextRun({ text: 'Live (AssemblyAI) Words: ', bold: true }),
+          new TextRun({ text: String(liveWords) })
+        ]
+      }),
+    ];
+
+    if (hasBothSources) {
+      docSections.push(
+        new Paragraph({ 
+          children: [
+            new TextRun({ text: 'Word Count Difference: ', bold: true }),
+            new TextRun({ 
+              text: `${wordDifference} words (${wordDifferencePercent}%)`,
+              color: wordDifferencePercent > 20 ? 'DC143C' : '228B22'
+            })
+          ]
+        }),
+        new Paragraph({ 
+          children: [
+            new TextRun({ text: 'Primary Source: ', bold: true }),
+            new TextRun({ text: preferredSource })
+          ]
+        })
+      );
+      
+      if (wordDifferencePercent > 20) {
+        docSections.push(
           new Paragraph({ 
             children: [
               new TextRun({ 
-                text: `Chunks Merged: ${mergedCount}/${transcriptChunks.length}`,
-                color: mergedTextColor,
+                text: '⚠ Warning: Sources differ significantly (>20%). Review recommended.',
+                color: 'DC143C',
                 bold: true
               })
             ]
-          }),
-          new Paragraph({ text: '' }),
-          new Paragraph({ text: 'Chunk Details', heading: HeadingLevel.HEADING_2 }),
-          new DocxTable({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
-          new Paragraph({ text: '' }),
-          new Paragraph({ text: 'Consolidated Transcript', heading: HeadingLevel.HEADING_2 }),
-          new Paragraph({ text: `Word Count: ${transcriptWords}` }),
-          new Paragraph({ text: '' }),
-          new Paragraph({ text: transcript || '(No transcript text)' }),
-          new Paragraph({ text: '' }),
-          new Paragraph({ text: '' }),
-          new Paragraph({ 
-            children: [
-              new TextRun({ 
-                text: 'Disclaimer', 
-                bold: true,
-                size: 20
-              })
-            ]
-          }),
-          new Paragraph({ 
-            children: [
-              new TextRun({ 
-                text: 'This document is an AI-generated meeting transcript and may contain inaccuracies. It does not constitute a verbatim record, formal minutes, or a legally binding account of the meeting.',
-                italics: true,
-                size: 18,
-                color: '666666'
-              })
-            ]
-          }),
-          new Paragraph({ text: '' }),
-          new Paragraph({ 
-            children: [
-              new TextRun({ 
-                text: 'Responsibility for confirming accuracy, decisions, and agreed actions remains with the meeting participants.',
-                italics: true,
-                size: 18,
-                color: '666666'
-              })
-            ]
-          }),
-          new Paragraph({ text: '' }),
-          new Paragraph({ 
-            children: [
-              new TextRun({ 
-                text: 'No audio recordings are retained. Audio data is processed solely for real-time transcription and permanently deleted after processing.',
-                italics: true,
-                size: 18,
-                color: '666666'
-              })
-            ]
-          }),
-        ],
+          })
+        );
+      }
+    }
+
+    docSections.push(
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: 'Batch Processing Summary', heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: `Total Chunks: ${transcriptChunks.length}` }),
+      new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
+      new Paragraph({ text: `Net Words (merged transcript): ${transcriptWords}` }),
+      new Paragraph({ text: `Words Filtered: ${totalWords - transcriptWords}` }),
+      new Paragraph({ text: `Average Confidence: ${Math.round(avgConfidence * 100)}%` }),
+      new Paragraph({ 
+        children: [
+          new TextRun({ 
+            text: `Chunks Merged: ${mergedCount}/${transcriptChunks.length}`,
+            color: mergedTextColor,
+            bold: true
+          })
+        ]
+      }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: 'Chunk Details', heading: HeadingLevel.HEADING_2 }),
+      new DocxTable({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }),
+      new Paragraph({ text: '' }),
+      
+      // Batch Transcript Section
+      new Paragraph({ text: 'Batch Transcript (Whisper)', heading: HeadingLevel.HEADING_2 }),
+      new Paragraph({ text: `Word Count: ${batchWords}` }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ text: batchTranscript || '(No batch transcript available)' }),
+      new Paragraph({ text: '' }),
+    );
+
+    // Add Live Transcript Section if available
+    if (liveWords > 0) {
+      docSections.push(
+        new Paragraph({ text: 'Live Transcript (AssemblyAI)', heading: HeadingLevel.HEADING_2 }),
+        new Paragraph({ text: `Word Count: ${liveWords}` }),
+        new Paragraph({ text: '' }),
+        new Paragraph({ text: liveTranscript || '(No live transcript available)' }),
+        new Paragraph({ text: '' }),
+      );
+    }
+
+    // Add disclaimer
+    docSections.push(
+      new Paragraph({ text: '' }),
+      new Paragraph({ 
+        children: [
+          new TextRun({ 
+            text: 'Disclaimer', 
+            bold: true,
+            size: 20
+          })
+        ]
+      }),
+      new Paragraph({ 
+        children: [
+          new TextRun({ 
+            text: 'This document is an AI-generated meeting transcript and may contain inaccuracies. It does not constitute a verbatim record, formal minutes, or a legally binding account of the meeting.',
+            italics: true,
+            size: 18,
+            color: '666666'
+          })
+        ]
+      }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ 
+        children: [
+          new TextRun({ 
+            text: 'Responsibility for confirming accuracy, decisions, and agreed actions remains with the meeting participants.',
+            italics: true,
+            size: 18,
+            color: '666666'
+          })
+        ]
+      }),
+      new Paragraph({ text: '' }),
+      new Paragraph({ 
+        children: [
+          new TextRun({ 
+            text: 'No audio recordings are retained. Audio data is processed solely for real-time transcription and permanently deleted after processing.',
+            italics: true,
+            size: 18,
+            color: '666666'
+          })
+        ]
+      }),
+    );
+
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: docSections,
       }],
     });
 
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, `chunk-analysis-${new Date().toISOString().slice(0, 10)}.docx`);
-    toast.success('Audio Chunk Analysis Report downloaded');
-  }, [transcriptChunks, transcript, extractCleanChunkText, extractChunkTiming, isChunkInTranscript, meeting]);
+    saveAs(blob, `transcription-quality-summary-${new Date().toISOString().slice(0, 10)}.docx`);
+    toast.success('Transcription Quality Summary downloaded');
+  }, [transcriptChunks, transcript, batchTranscript, liveTranscript, extractCleanChunkText, extractChunkTiming, isChunkInTranscript, meeting]);
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -3279,39 +3440,90 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <TabsContent value="transcript" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card">
                 <div className="p-6 space-y-4">
-                  {/* Find & Replace toggle and Chunk Report for transcript */}
-                  <div className="flex justify-end gap-2 min-h-[36px]">
-                    {transcript && !isLoadingTranscript && !transcriptError ? (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={exportChunkAnalysisToWord}
-                          disabled={transcriptChunks.length === 0 || isLoadingChunks}
-                          className="gap-2"
-                          title="Download detailed chunk analysis as Word document"
-                        >
-                          <Download className="h-4 w-4 text-emerald-600" />
-                          Transcription Quality Summary
-                        </Button>
-                        <Button
-                          variant={showTranscriptFindReplace ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setShowTranscriptFindReplace(!showTranscriptFindReplace)}
-                          className="gap-2"
-                        >
-                          <Search className="h-4 w-4" />
-                          Find & Replace
-                        </Button>
-                      </>
-                    ) : null}
+                  {/* Toolbar: Quality Summary + Find & Replace */}
+                  <div className="flex justify-between items-center gap-2 min-h-[36px]">
+                    {/* Sub-tabs for Batch/Live/Consolidated */}
+                    <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                      <Button
+                        variant={transcriptSubTab === 'batch' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setTranscriptSubTab('batch')}
+                        className="h-7 text-xs"
+                      >
+                        Batch (Whisper)
+                        {batchTranscript && (
+                          <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                            {batchTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
+                          </Badge>
+                        )}
+                      </Button>
+                      <Button
+                        variant={transcriptSubTab === 'live' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setTranscriptSubTab('live')}
+                        className="h-7 text-xs"
+                      >
+                        Live (AssemblyAI)
+                        {liveTranscript && (
+                          <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                            {liveTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
+                          </Badge>
+                        )}
+                      </Button>
+                      <Button
+                        variant={transcriptSubTab === 'consolidated' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setTranscriptSubTab('consolidated')}
+                        className="h-7 text-xs"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Consolidated
+                        {consolidatedTranscript && (
+                          <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                            {consolidatedTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
+                          </Badge>
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Right side actions */}
+                    <div className="flex gap-2">
+                      {(batchTranscript || liveTranscript) && !isLoadingTranscript && !transcriptError ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={exportChunkAnalysisToWord}
+                            disabled={transcriptChunks.length === 0 || isLoadingChunks}
+                            className="gap-2"
+                            title="Download detailed chunk analysis as Word document"
+                          >
+                            <Download className="h-4 w-4 text-emerald-600" />
+                            <span className="hidden sm:inline">Quality Summary</span>
+                          </Button>
+                          <Button
+                            variant={showTranscriptFindReplace ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setShowTranscriptFindReplace(!showTranscriptFindReplace)}
+                            className="gap-2"
+                          >
+                            <Search className="h-4 w-4" />
+                            <span className="hidden sm:inline">Find & Replace</span>
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
 
                   {/* Find & Replace Panel */}
-                  {showTranscriptFindReplace && transcript && (
+                  {showTranscriptFindReplace && (batchTranscript || liveTranscript) && (
                     <EnhancedFindReplacePanel
-                      getCurrentText={() => transcript}
-                      onApply={(updatedText) => setTranscript(updatedText)}
+                      getCurrentText={() => transcriptSubTab === 'batch' ? batchTranscript : transcriptSubTab === 'live' ? liveTranscript : consolidatedTranscript}
+                      onApply={(updatedText) => {
+                        if (transcriptSubTab === 'batch') setBatchTranscript(updatedText);
+                        else if (transcriptSubTab === 'live') setLiveTranscript(updatedText);
+                        else setConsolidatedTranscript(updatedText);
+                      }}
                       meetingId={meeting?.id}
                       onTranscriptSync={async (finds, replaceWith) => {
                         if (meeting?.id) {
@@ -3324,7 +3536,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                   {isLoadingTranscript ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      <span className="ml-2 text-muted-foreground">Loading transcript...</span>
+                      <span className="ml-2 text-muted-foreground">Loading transcripts...</span>
                     </div>
                   ) : transcriptError ? (
                     <div className="text-center py-12">
@@ -3339,29 +3551,157 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         Retry
                       </Button>
                     </div>
-                  ) : transcript ? (
-                    <div className="relative">
-                      {viewMode === 'plain' ? (
-                        <pre 
-                          className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
-                          style={{ fontSize: `${fontSize}px` }}
-                        >
-                          {transcript}
-                        </pre>
-                      ) : (
-                        <div 
-                          className="prose prose-sm dark:prose-invert max-w-none text-justify"
-                          style={{ fontSize: `${fontSize}px` }}
-                          dangerouslySetInnerHTML={{ __html: formatTranscript(transcript) }}
-                        />
+                  ) : (
+                    <>
+                      {/* Batch Transcript View */}
+                      {transcriptSubTab === 'batch' && (
+                        batchTranscript ? (
+                          <div className="relative">
+                            {viewMode === 'plain' ? (
+                              <pre 
+                                className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                                style={{ fontSize: `${fontSize}px` }}
+                              >
+                                {batchTranscript}
+                              </pre>
+                            ) : (
+                              <div 
+                                className="prose prose-sm dark:prose-invert max-w-none text-justify"
+                                style={{ fontSize: `${fontSize}px` }}
+                                dangerouslySetInnerHTML={{ __html: formatTranscript(batchTranscript) }}
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No batch (Whisper) transcript available for this meeting.</p>
+                          </div>
+                        )
                       )}
 
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No transcript available for this meeting.</p>
-                    </div>
+                      {/* Live Transcript View */}
+                      {transcriptSubTab === 'live' && (
+                        liveTranscript ? (
+                          <div className="relative">
+                            {viewMode === 'plain' ? (
+                              <pre 
+                                className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                                style={{ fontSize: `${fontSize}px` }}
+                              >
+                                {liveTranscript}
+                              </pre>
+                            ) : (
+                              <div 
+                                className="prose prose-sm dark:prose-invert max-w-none text-justify"
+                                style={{ fontSize: `${fontSize}px` }}
+                                dangerouslySetInnerHTML={{ __html: formatTranscript(liveTranscript) }}
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No live (AssemblyAI) transcript available for this meeting.</p>
+                          </div>
+                        )
+                      )}
+
+                      {/* Consolidated Transcript View */}
+                      {transcriptSubTab === 'consolidated' && (
+                        <div className="space-y-4">
+                          {/* Generate button if not yet consolidated */}
+                          {!consolidatedTranscript && (batchTranscript || liveTranscript) && (
+                            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                              <div className="text-center space-y-2">
+                                <Sparkles className="h-10 w-10 mx-auto text-primary opacity-70" />
+                                <h3 className="font-medium">AI-Powered Transcript Consolidation</h3>
+                                <p className="text-sm text-muted-foreground max-w-md">
+                                  Merge both Batch and Live transcripts into a single, accurate version using AI to resolve discrepancies and choose the best content from each source.
+                                </p>
+                              </div>
+                              <Button
+                                onClick={generateConsolidatedTranscript}
+                                disabled={isConsolidating || (!batchTranscript && !liveTranscript)}
+                                className="gap-2"
+                              >
+                                {isConsolidating ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Consolidating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-4 w-4" />
+                                    Generate Consolidated Transcript
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Stats badge if consolidated */}
+                          {consolidatedTranscript && consolidationStats && (
+                            <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm">
+                              <Badge variant="outline" className="gap-1">
+                                <span className="text-muted-foreground">Batch:</span> {consolidationStats.batchWords} words
+                              </Badge>
+                              <Badge variant="outline" className="gap-1">
+                                <span className="text-muted-foreground">Live:</span> {consolidationStats.liveWords} words
+                              </Badge>
+                              <Badge variant="default" className="gap-1">
+                                <Sparkles className="h-3 w-3" />
+                                Final: {consolidationStats.finalWords} words
+                              </Badge>
+                              {consolidationStats.method === 'ai_merged' && (
+                                <Badge variant="secondary" className="gap-1">
+                                  <Check className="h-3 w-3" />
+                                  AI Merged
+                                </Badge>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={generateConsolidatedTranscript}
+                                disabled={isConsolidating}
+                                className="ml-auto h-7 text-xs"
+                              >
+                                {isConsolidating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                                Regenerate
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Consolidated content */}
+                          {consolidatedTranscript && (
+                            <div className="relative">
+                              {viewMode === 'plain' ? (
+                                <pre 
+                                  className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                                  style={{ fontSize: `${fontSize}px` }}
+                                >
+                                  {consolidatedTranscript}
+                                </pre>
+                              ) : (
+                                <div 
+                                  className="prose prose-sm dark:prose-invert max-w-none text-justify"
+                                  style={{ fontSize: `${fontSize}px` }}
+                                  dangerouslySetInnerHTML={{ __html: formatTranscript(consolidatedTranscript) }}
+                                />
+                              )}
+                            </div>
+                          )}
+
+                          {/* No transcripts available */}
+                          {!batchTranscript && !liveTranscript && (
+                            <div className="text-center py-12 text-muted-foreground">
+                              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p>No transcripts available to consolidate.</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </ScrollArea>
