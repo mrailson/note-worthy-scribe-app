@@ -49,7 +49,8 @@ import {
   ArrowUp,
   ArrowDown,
   LogIn,
-  Mail
+  Mail,
+  Mic
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -67,6 +68,7 @@ import { MeetingUsageReport } from '@/components/admin/MeetingUsageReport';
 import { LiveAndRecentMeetings } from '@/components/admin/LiveAndRecentMeetings';
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
 import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
+import { GPScribeStats } from '@/components/admin/GPScribeStats';
 import { StorageManagement } from '@/components/admin/StorageManagement';
 import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAccess';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
@@ -1953,6 +1955,11 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">LG Capture</span>
               <span className="sm:hidden">LG</span>
+            </TabsTrigger>
+            <TabsTrigger value="gp-scribe" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <Mic className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">GP Scribe</span>
+              <span className="sm:hidden">Scribe</span>
             </TabsTrigger>
             <TabsTrigger value="meeting-service" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
               <Database className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -4377,6 +4384,11 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* LG Capture Stats Tab */}
           <TabsContent value="lg-capture" className="space-y-6">
             <LGCaptureStats />
+          </TabsContent>
+
+          {/* GP Scribe Stats Tab */}
+          <TabsContent value="gp-scribe" className="space-y-6">
+            <GPScribeStats />
           </TabsContent>
         </Tabs>
       </div>
