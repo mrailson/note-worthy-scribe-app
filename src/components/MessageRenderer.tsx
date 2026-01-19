@@ -305,7 +305,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   };
 
   const handleEmailToMe = async () => {
-    await sendEmailAutomatically(message.content, "AI Generated Content");
+    await sendEmailAutomatically(message.content, `GP Scribe AI Content - ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`);
   };
 
   const handleEmailToOthers = () => {

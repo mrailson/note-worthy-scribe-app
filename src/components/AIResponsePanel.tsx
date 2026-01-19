@@ -109,7 +109,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
 
   // Handle email to patient
   const handleEmail = async () => {
-    await sendEmailAutomatically(response, "Medical Consultation Information");
+    await sendEmailAutomatically(response, `Medical Consultation Notes - ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`);
   };
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
