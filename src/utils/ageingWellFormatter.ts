@@ -1,21 +1,44 @@
 import { SOAPNote, HeidiNote } from "@/types/scribe";
 
 /**
- * Ageing Well MDT GP Consultation format for SystmOne
- * Follows NHS Ageing Well MDT review structure with narrative paragraphs
+ * Complex Ageing Well Review – Comprehensive Geriatric Assessment (CGA)
+ * 17-section format for UK GP consultations following NHS/CQC standards
  */
 export interface AgeingWellNote {
+  // 1. Reason for Review
   reasonForReview: string;
-  backgroundContext: string;
-  currentIssues: string;
-  frailtyFunction: string;
+  // 2. Patient Background
+  patientBackground: string;
+  // 3. Medical History Review (Comprehensive)
+  medicalHistoryReview: string;
+  // 4. Medication Review (Polypharmacy-Focused)
   medicationReview: string;
-  examinationObservations: string;
-  socialSafeguarding: string;
-  mdtInput: string;
-  plan: string;
-  followUp: string;
-  patientCarerCommunication: string;
+  // 5. Cognitive & Mental Health Assessment
+  cognitiveMentalHealth: string;
+  // 6. Functional Assessment
+  functionalAssessment: string;
+  // 7. Frailty, Falls & Safety Review
+  frailtyFallsSafety: string;
+  // 8. Nutrition & Hydration
+  nutritionHydration: string;
+  // 9. Social & Carer Review
+  socialCarerReview: string;
+  // 10. Advance Care Planning
+  advanceCarePlanning: string;
+  // 11. MDT Involvement & Coordination
+  mdtInvolvement: string;
+  // 12. Examination (If Performed / Observed)
+  examination: string;
+  // 13. Risk Assessment & Safeguarding
+  riskSafeguarding: string;
+  // 14. Clinical Impression
+  clinicalImpression: string;
+  // 15. Management Plan
+  managementPlan: string;
+  // 16. Patient & Carer Understanding
+  patientCarerUnderstanding: string;
+  // 17. Time & Complexity Statement
+  timeComplexityStatement: string;
 }
 
 // Patterns to filter out "not mentioned" type content
@@ -143,7 +166,8 @@ function extractFrailtyContent(text: string): string {
 }
 
 /**
- * Transform SOAP or Heidi notes into Ageing Well MDT format
+ * Transform SOAP or Heidi notes into Ageing Well CGA format
+ * This is a fallback transformation when AI-generated content is not available
  */
 export function transformToAgeingWell(
   soapNote: SOAPNote | null,
@@ -170,16 +194,22 @@ export function transformToAgeingWell(
   
   return {
     reasonForReview: cleanedAssessment ? `Ageing Well MDT review for ${cleanedAssessment.split('\n')[0]?.substring(0, 100) || 'frailty assessment'}.` : 'Ageing Well MDT review.',
-    backgroundContext: cleanedHistory || 'Background discussed with patient and MDT.',
-    currentIssues: cleanedAssessment || 'Issues discussed during MDT review.',
-    frailtyFunction: frailtyContent || 'Frailty and functional status assessed.',
+    patientBackground: cleanedHistory || 'Background discussed with patient and MDT.',
+    medicalHistoryReview: cleanedAssessment || 'Medical history reviewed during consultation.',
     medicationReview: medicationReview,
-    examinationObservations: cleanedExamination || 'No acute concerns identified on examination.',
-    socialSafeguarding: socialContent,
-    mdtInput: 'Case discussed with Ageing Well MDT. Agreed plan as documented below.',
-    plan: cleanedPlan || 'Plan agreed following MDT discussion.',
-    followUp: 'Review as needed. Ageing Well team to continue support.',
-    patientCarerCommunication: 'Plan discussed and understood by patient/carer.'
+    cognitiveMentalHealth: 'Cognitive and mental health status assessed.',
+    functionalAssessment: frailtyContent || 'Functional status assessed.',
+    frailtyFallsSafety: 'Falls risk and safety assessed.',
+    nutritionHydration: 'Nutrition and hydration status reviewed.',
+    socialCarerReview: socialContent,
+    advanceCarePlanning: 'Advance care planning discussed where appropriate.',
+    mdtInvolvement: 'Case discussed with Ageing Well MDT. Agreed plan as documented below.',
+    examination: cleanedExamination || 'No acute concerns identified on examination.',
+    riskSafeguarding: 'Safeguarding considered – no immediate concerns identified.',
+    clinicalImpression: cleanedAssessment || 'Clinical impression formed following comprehensive review.',
+    managementPlan: cleanedPlan || 'Plan agreed following MDT discussion.',
+    patientCarerUnderstanding: 'Plan discussed and understood by patient/carer.',
+    timeComplexityStatement: 'This was a prolonged and complex Ageing Well review involving multiple comorbidities, polypharmacy, functional assessment, and anticipatory care planning. Total clinician time exceeded standard consultation length.'
   };
 }
 
@@ -189,124 +219,184 @@ export function transformToAgeingWell(
 export function getAgeingWellText(note: AgeingWellNote): string {
   const sections: string[] = [];
   
-  sections.push('AGEING WELL – MDT REVIEW (GP)\n');
+  sections.push('COMPLEX AGEING WELL REVIEW – COMPREHENSIVE GERIATRIC ASSESSMENT\n');
   
   if (note.reasonForReview) {
-    sections.push(`REASON FOR REVIEW\n${note.reasonForReview}`);
+    sections.push(`1. REASON FOR REVIEW\n${note.reasonForReview}`);
   }
-  if (note.backgroundContext) {
-    sections.push(`BACKGROUND & CONTEXT\n${note.backgroundContext}`);
+  if (note.patientBackground) {
+    sections.push(`2. PATIENT BACKGROUND\n${note.patientBackground}`);
   }
-  if (note.currentIssues) {
-    sections.push(`CURRENT ISSUES DISCUSSED\n${note.currentIssues}`);
-  }
-  if (note.frailtyFunction) {
-    sections.push(`FRAILTY & FUNCTION\n${note.frailtyFunction}`);
+  if (note.medicalHistoryReview) {
+    sections.push(`3. MEDICAL HISTORY REVIEW\n${note.medicalHistoryReview}`);
   }
   if (note.medicationReview) {
-    sections.push(`MEDICATION REVIEW\n${note.medicationReview}`);
+    sections.push(`4. MEDICATION REVIEW\n${note.medicationReview}`);
   }
-  if (note.examinationObservations) {
-    sections.push(`EXAMINATION / OBSERVATIONS\n${note.examinationObservations}`);
+  if (note.cognitiveMentalHealth) {
+    sections.push(`5. COGNITIVE & MENTAL HEALTH ASSESSMENT\n${note.cognitiveMentalHealth}`);
   }
-  if (note.socialSafeguarding) {
-    sections.push(`SOCIAL & SAFEGUARDING CONSIDERATIONS\n${note.socialSafeguarding}`);
+  if (note.functionalAssessment) {
+    sections.push(`6. FUNCTIONAL ASSESSMENT\n${note.functionalAssessment}`);
   }
-  if (note.mdtInput) {
-    sections.push(`MDT INPUT\n${note.mdtInput}`);
+  if (note.frailtyFallsSafety) {
+    sections.push(`7. FRAILTY, FALLS & SAFETY REVIEW\n${note.frailtyFallsSafety}`);
   }
-  if (note.plan) {
-    sections.push(`PLAN\n${note.plan}`);
+  if (note.nutritionHydration) {
+    sections.push(`8. NUTRITION & HYDRATION\n${note.nutritionHydration}`);
   }
-  if (note.followUp) {
-    sections.push(`FOLLOW-UP\n${note.followUp}`);
+  if (note.socialCarerReview) {
+    sections.push(`9. SOCIAL & CARER REVIEW\n${note.socialCarerReview}`);
   }
-  if (note.patientCarerCommunication) {
-    sections.push(`PATIENT / CARER COMMUNICATION\n${note.patientCarerCommunication}`);
+  if (note.advanceCarePlanning) {
+    sections.push(`10. ADVANCE CARE PLANNING\n${note.advanceCarePlanning}`);
+  }
+  if (note.mdtInvolvement) {
+    sections.push(`11. MDT INVOLVEMENT & COORDINATION\n${note.mdtInvolvement}`);
+  }
+  if (note.examination) {
+    sections.push(`12. EXAMINATION\n${note.examination}`);
+  }
+  if (note.riskSafeguarding) {
+    sections.push(`13. RISK ASSESSMENT & SAFEGUARDING\n${note.riskSafeguarding}`);
+  }
+  if (note.clinicalImpression) {
+    sections.push(`14. CLINICAL IMPRESSION\n${note.clinicalImpression}`);
+  }
+  if (note.managementPlan) {
+    sections.push(`15. MANAGEMENT PLAN\n${note.managementPlan}`);
+  }
+  if (note.patientCarerUnderstanding) {
+    sections.push(`16. PATIENT & CARER UNDERSTANDING\n${note.patientCarerUnderstanding}`);
+  }
+  if (note.timeComplexityStatement) {
+    sections.push(`17. TIME & COMPLEXITY STATEMENT\n${note.timeComplexityStatement}`);
   }
   
   return sections.join('\n\n');
 }
 
 /**
- * Section configuration for the Ageing Well layout
+ * Section configuration for the Complex Ageing Well Review layout (17 sections)
  */
 export const AGEING_WELL_SECTIONS = [
   { 
     key: 'reasonForReview' as const, 
-    title: 'Reason for Review', 
-    description: 'Brief reason for Ageing Well review',
+    title: '1. Reason for Review', 
+    description: 'Trigger for review, recent deterioration, goals of review',
     colorClass: 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400',
     borderClass: 'border-rose-200 dark:border-rose-800'
   },
   { 
-    key: 'backgroundContext' as const, 
-    title: 'Background & Context', 
-    description: 'Living situation, support, known frailty issues',
+    key: 'patientBackground' as const, 
+    title: '2. Patient Background', 
+    description: 'Age, living situation, social context, baseline function, frailty status',
     colorClass: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
     borderClass: 'border-blue-200 dark:border-blue-800'
   },
   { 
-    key: 'currentIssues' as const, 
-    title: 'Current Issues Discussed', 
-    description: 'Key problems affecting function, safety, independence',
+    key: 'medicalHistoryReview' as const, 
+    title: '3. Medical History Review', 
+    description: 'Comprehensive review: CV, respiratory, neuro, endocrine, renal, MSK, mental health, sensory, continence',
     colorClass: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
     borderClass: 'border-amber-200 dark:border-amber-800'
   },
   { 
-    key: 'frailtyFunction' as const, 
-    title: 'Frailty & Function', 
-    description: 'Functional ability, mobility, falls risk, cognition',
-    colorClass: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
-    borderClass: 'border-orange-200 dark:border-orange-800'
-  },
-  { 
     key: 'medicationReview' as const, 
-    title: 'Medication Review', 
-    description: 'Medication burden, polypharmacy, adherence',
+    title: '4. Medication Review', 
+    description: 'Polypharmacy, adherence, anticholinergic burden, falls risk, PRN, OTC, changes',
     colorClass: 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400',
     borderClass: 'border-teal-200 dark:border-teal-800'
   },
   { 
-    key: 'examinationObservations' as const, 
-    title: 'Examination / Observations', 
-    description: 'Clinical findings if relevant',
-    colorClass: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-    borderClass: 'border-green-200 dark:border-green-800'
+    key: 'cognitiveMentalHealth' as const, 
+    title: '5. Cognitive & Mental Health', 
+    description: 'Memory, orientation, mood, anxiety, delirium risk, capacity, safeguarding',
+    colorClass: 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400',
+    borderClass: 'border-violet-200 dark:border-violet-800'
   },
   { 
-    key: 'socialSafeguarding' as const, 
-    title: 'Social & Safeguarding Considerations', 
-    description: 'Carer support, carer strain, social risks',
+    key: 'functionalAssessment' as const, 
+    title: '6. Functional Assessment', 
+    description: 'Mobility, transfers, stairs, falls, aids, ADLs, IADLs',
+    colorClass: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
+    borderClass: 'border-orange-200 dark:border-orange-800'
+  },
+  { 
+    key: 'frailtyFallsSafety' as const, 
+    title: '7. Frailty, Falls & Safety', 
+    description: 'Falls risk, postural symptoms, vision, footwear, home hazards, driving',
+    colorClass: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+    borderClass: 'border-red-200 dark:border-red-800'
+  },
+  { 
+    key: 'nutritionHydration' as const, 
+    title: '8. Nutrition & Hydration', 
+    description: 'Weight trends, appetite, swallowing, dentition, access to food, malnutrition risk',
+    colorClass: 'bg-lime-100 dark:bg-lime-900/30 text-lime-700 dark:text-lime-400',
+    borderClass: 'border-lime-200 dark:border-lime-800'
+  },
+  { 
+    key: 'socialCarerReview' as const, 
+    title: '9. Social & Carer Review', 
+    description: 'Carer identity and burden, support services, isolation, financial/housing',
     colorClass: 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400',
     borderClass: 'border-pink-200 dark:border-pink-800'
   },
   { 
-    key: 'mdtInput' as const, 
-    title: 'MDT Input', 
-    description: 'Ageing Well MDT discussion summary',
+    key: 'advanceCarePlanning' as const, 
+    title: '10. Advance Care Planning', 
+    description: 'DNACPR, ReSPECT, preferred place of care/death, LPA, patient values',
+    colorClass: 'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400',
+    borderClass: 'border-slate-200 dark:border-slate-800'
+  },
+  { 
+    key: 'mdtInvolvement' as const, 
+    title: '11. MDT Involvement & Coordination', 
+    description: 'Ageing Well team roles, community services, gaps, referrals',
     colorClass: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400',
     borderClass: 'border-indigo-200 dark:border-indigo-800'
   },
   { 
-    key: 'plan' as const, 
-    title: 'Plan', 
-    description: 'Clear, proportionate plan with GP role',
+    key: 'examination' as const, 
+    title: '12. Examination', 
+    description: 'General appearance, mobility observed, key system findings',
+    colorClass: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    borderClass: 'border-green-200 dark:border-green-800'
+  },
+  { 
+    key: 'riskSafeguarding' as const, 
+    title: '13. Risk Assessment & Safeguarding', 
+    description: 'Clinical risk summary, capacity, self-neglect, safeguarding outcome',
+    colorClass: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
+    borderClass: 'border-yellow-200 dark:border-yellow-800'
+  },
+  { 
+    key: 'clinicalImpression' as const, 
+    title: '14. Clinical Impression', 
+    description: 'Holistic GP synthesis, frailty trajectory, stability vs decline, prognosis',
     colorClass: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
     borderClass: 'border-purple-200 dark:border-purple-800'
   },
   { 
-    key: 'followUp' as const, 
-    title: 'Follow-up', 
-    description: 'Who will review and when',
+    key: 'managementPlan' as const, 
+    title: '15. Management Plan', 
+    description: 'Clear itemised plan with responsibility, timescales, monitoring, follow-up',
     colorClass: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400',
     borderClass: 'border-cyan-200 dark:border-cyan-800'
   },
   { 
-    key: 'patientCarerCommunication' as const, 
-    title: 'Patient / Carer Communication', 
-    description: 'Plan discussed and understood',
+    key: 'patientCarerUnderstanding' as const, 
+    title: '16. Patient & Carer Understanding', 
+    description: 'What was explained, level of understanding, agreement, concerns',
     colorClass: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
     borderClass: 'border-emerald-200 dark:border-emerald-800'
+  },
+  { 
+    key: 'timeComplexityStatement' as const, 
+    title: '17. Time & Complexity Statement', 
+    description: 'Documentation of prolonged/complex review duration',
+    colorClass: 'bg-stone-100 dark:bg-stone-900/30 text-stone-700 dark:text-stone-400',
+    borderClass: 'border-stone-200 dark:border-stone-800'
   },
 ] as const;
