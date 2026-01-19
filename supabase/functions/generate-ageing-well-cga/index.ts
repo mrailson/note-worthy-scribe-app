@@ -280,11 +280,26 @@ Return ONLY the JSON object with no additional text or markdown.`;
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
-    const aiResponse = await response.json();
+    // Handle potential empty response body
+    const responseText = await response.text();
+    if (!responseText || responseText.trim() === '') {
+      console.error('Empty response from AI gateway');
+      throw new Error('AI service returned empty response. Please try again.');
+    }
+
+    let aiResponse;
+    try {
+      aiResponse = JSON.parse(responseText);
+    } catch (jsonError) {
+      console.error('Failed to parse AI gateway response:', responseText.substring(0, 200));
+      throw new Error('AI service returned invalid response. Please try again.');
+    }
+
     const content = aiResponse.choices?.[0]?.message?.content;
     
     if (!content) {
-      throw new Error('No content in AI response');
+      console.error('No content in AI response. Full response:', JSON.stringify(aiResponse).substring(0, 500));
+      throw new Error('AI did not generate content. Please try again.');
     }
 
     console.log('Raw AI response received, parsing...');
