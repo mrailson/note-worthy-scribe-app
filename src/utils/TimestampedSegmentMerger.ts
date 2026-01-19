@@ -68,8 +68,9 @@ export class TimestampedSegmentMerger {
     }
 
     // HALLUCINATION CHECK - Defence in depth at merger level
+    // Only filter if confidence is below 15% to avoid removing legitimate speech
     const hallucinationCheck = isLikelyHallucination(chunk.text, chunk.confidence, {
-      confidenceThreshold: 0.30  // Match our hard gate threshold
+      confidenceThreshold: 0.15  // Lowered from 0.30 to prevent false positives
     });
     if (hallucinationCheck.isHallucination) {
       console.log(`🚫 Hallucination detected in merger: ${hallucinationCheck.reason}`);
