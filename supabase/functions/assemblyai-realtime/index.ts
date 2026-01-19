@@ -48,24 +48,32 @@ Deno.serve(async (req: Request) => {
           return;
         }
 
-        console.log('🔗 Creating AssemblyAI WebSocket connection with enhanced quality settings and medical keyterms...');
+        console.log('🔗 Creating AssemblyAI WebSocket connection with OTEWELL verbatim settings...');
 
-        // Medical keyterms for Notewell Dictate - helps AssemblyAI recognise medical vocabulary
+        // OTEWELL NHS Governance & Clinical Terms for word boosting
         const medicalKeyterms = [
+          // OTEWELL Primary Care & Ageing Well
+          "Ageing Well", "Frailty", "frailty score", "LD", "Learning Disability",
+          "QOF", "DES", "Arden", "EMIS", "SystmOne", "NHFT", "PCN", "PCM",
+          // Clinical governance & safety
+          "CGA", "CQC", "clinical negligence", "indemnity", "safeguarding",
+          "ACP", "DNACPR", "ReSPECT", "coronial", "complaint",
+          "clinical negligence scheme", "liability",
+          // NHS organisations & roles
+          "ARRS", "ICS", "ICB", "HCA", "ANP", "SPLW", "NP", "PA",
+          "AccuRx", "Docman", "TeamNet", "eConsult", "NHS",
           // Blood pressure and vitals
           "over", "blood pressure", "BP", "systolic", "diastolic",
           "heart rate", "pulse", "oxygen saturation", "SpO2", "temperature",
           "respiratory rate", "BMI", "weight", "height", "HR", "bpm",
-          
+          "eGFR", "HbA1c", "cholesterol", "LDL", "HDL", "NEWS", "NEWS2",
           // Common measurements and units
           "milligrams", "mg", "micrograms", "mcg", "millilitres", "ml",
           "units", "percent", "per cent", "mmol", "mmHg", "kilograms", "kg",
-          
           // Medical terms
           "diagnosis", "prognosis", "symptoms", "examination",
           "history", "presenting complaint", "on examination",
           "impression", "plan", "referral", "follow-up", "review",
-          
           // Common drugs
           "paracetamol", "ibuprofen", "amoxicillin", "metformin",
           "omeprazole", "simvastatin", "ramipril", "amlodipine",
@@ -73,24 +81,28 @@ Deno.serve(async (req: Request) => {
           "atorvastatin", "bisoprolol", "lisinopril", "losartan",
           "sertraline", "citalopram", "fluoxetine", "amitriptyline",
           "gabapentin", "pregabalin", "naproxen", "diclofenac",
-          
+          "gliclazide", "sitagliptin", "empagliflozin", "semaglutide",
+          "warfarin", "apixaban", "rivaroxaban", "edoxaban",
+          "salbutamol", "Ventolin", "Fostair", "Seretide", "Symbicort",
           // Body systems
           "cardiovascular", "respiratory", "gastrointestinal",
           "musculoskeletal", "neurological", "dermatological",
           "urological", "gynaecological", "psychiatric",
-          
           // Common conditions
-          "hypertension", "diabetes", "asthma", "COPD",
-          "arthritis", "depression", "anxiety", "infection"
+          "hypertension", "diabetes", "type 2 diabetes", "asthma", "COPD",
+          "arthritis", "depression", "anxiety", "infection",
+          "CKD", "chronic kidney disease", "atrial fibrillation", "AF",
+          "dementia", "Alzheimer's", "cognitive impairment", "MCI",
+          // Administrative
+          "fit note", "sick note", "DVLA", "prescription", "repeat prescription",
+          "home visit", "telephone consultation", "face to face",
+          "annual review", "medication review", "SMR", "2WW", "two week wait", "MDT"
         ];
 
-        // AssemblyAI Streaming v3 expects:
-        // - language_code: en|fr|de|es|it|pt|multi
-        // - speech_model: universal-streaming-english|universal-streaming-multilingual|whisper-streaming
-        // - keyterms_prompt: JSON array of terms to boost recognition
-        // Ref: errors shown in AssemblyAI dashboard when invalid values are provided.
+        // AssemblyAI Streaming v3 with OTEWELL verbatim settings
+        // OTEWELL: Disable punctuate and format_text for verbatim capture
         const keytermsParam = encodeURIComponent(JSON.stringify(medicalKeyterms));
-        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&speech_model=universal-streaming-english&language_code=en&punctuate=true&format_text=true&word_confidence=true&keyterms_prompt=${keytermsParam}`;
+        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&speech_model=universal-streaming-english&language_code=en&punctuate=false&format_text=false&word_confidence=true&keyterms_prompt=${keytermsParam}`;
         
         // Get token from AssemblyAI (9 minutes expiry)
         const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=540', {

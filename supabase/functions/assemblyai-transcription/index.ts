@@ -5,13 +5,50 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// OTEWELL NHS Governance & Clinical Terms for word boosting
+const nhsGovernanceTerms = [
+  // OTEWELL Primary Care & Ageing Well
+  "Ageing Well", "Frailty", "frailty score", "LD", "Learning Disability",
+  "QOF", "DES", "Arden", "EMIS", "SystmOne", "NHFT", "PCN", "PCM",
+  // Clinical governance & safety
+  "CGA", "CQC", "clinical negligence", "indemnity", "safeguarding",
+  "ACP", "DNACPR", "ReSPECT", "coronial", "complaint",
+  "clinical negligence scheme", "liability",
+  // NHS organisations & roles
+  "ARRS", "ICS", "ICB", "HCA", "ANP", "SPLW", "NP", "PA",
+  "AccuRx", "Docman", "TeamNet", "eConsult", "NHS",
+  // Clinical measurements
+  "BP", "blood pressure", "systolic", "diastolic", "pulse",
+  "SpO2", "oxygen saturation", "BMI", "weight", "height",
+  "eGFR", "HbA1c", "cholesterol", "LDL", "HDL", "NEWS", "NEWS2",
+  // Common medications
+  "metformin", "gliclazide", "sitagliptin", "empagliflozin", "semaglutide",
+  "ramipril", "lisinopril", "amlodipine", "atenolol", "bisoprolol",
+  "atorvastatin", "simvastatin", "omeprazole", "lansoprazole",
+  "sertraline", "citalopram", "fluoxetine", "mirtazapine", "amitriptyline",
+  "gabapentin", "pregabalin", "salbutamol", "Ventolin", "Fostair",
+  "warfarin", "apixaban", "rivaroxaban", "edoxaban",
+  // Clinical conditions
+  "diabetes", "type 2 diabetes", "hypertension", "COPD", "asthma",
+  "CKD", "chronic kidney disease", "atrial fibrillation", "AF",
+  "dementia", "Alzheimer's", "cognitive impairment", "MCI",
+  "depression", "anxiety", "osteoarthritis",
+  // Procedures & referrals
+  "phlebotomy", "ECG", "spirometry", "24-hour BP", "ABPM",
+  "urgent referral", "2WW", "two week wait", "MDT",
+  // Administrative
+  "fit note", "sick note", "DVLA", "prescription", "repeat prescription",
+  "home visit", "telephone consultation", "face to face",
+  "annual review", "medication review", "SMR",
+];
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('[AssemblyAI-Transcription] Processing request...');
+  console.log('[AssemblyAI-Transcription] OTEWELL mode - Processing request...');
 
   try {
     const { audio, mimeType, chunkIndex } = await req.json();
@@ -78,7 +115,7 @@ serve(async (req) => {
     const audioUrl = uploadResult.upload_url;
     console.log('[AssemblyAI-Transcription] Audio uploaded, URL:', audioUrl);
 
-    // Submit transcription job
+    // Submit transcription job with OTEWELL configuration
     const transcriptResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
       method: 'POST',
       headers: {
@@ -89,11 +126,24 @@ serve(async (req) => {
         audio_url: audioUrl,
         language_code: 'en_gb',
         speech_model: 'best',
-        // Enable useful features
-        punctuate: true,
-        format_text: true,
-        // Fast processing for chunks
-        boost_param: 'high'
+        
+        // OTEWELL: Disable all cleanup for verbatim capture
+        punctuate: false,
+        format_text: false,
+        
+        // OTEWELL: Enable speaker diarisation
+        speaker_labels: true,
+        speakers_expected: 3, // GP, Patient, possible companion
+        
+        // OTEWELL: Capture everything including profanity
+        filter_profanity: false,
+        
+        // OTEWELL: NHS governance vocabulary boosting
+        word_boost: nhsGovernanceTerms,
+        boost_param: 'high',
+        
+        // OTEWELL: Include confidence scores for transparency
+        word_confidence: true,
       }),
     });
 
@@ -132,12 +182,22 @@ serve(async (req) => {
       console.log(`[AssemblyAI-Transcription] Status: ${result.status}, attempt ${attempts + 1}`);
 
       if (result.status === 'completed') {
-        console.log('[AssemblyAI-Transcription] Transcription completed successfully');
+        console.log('[AssemblyAI-Transcription] OTEWELL transcription completed successfully');
+        
+        // OTEWELL: Include utterances with speaker labels if available
+        const utterances = result.utterances || [];
+        const speakerText = utterances.length > 0 
+          ? utterances.map((u: { speaker: string; text: string }) => `[Speaker ${u.speaker}]: ${u.text}`).join('\n')
+          : result.text || '';
+        
         return Response.json({
-          text: result.text || '',
+          text: speakerText,
           confidence: result.confidence || 0.9,
           chunkIndex,
-          processingTime: attempts + 1
+          processingTime: attempts + 1,
+          // OTEWELL: Include word-level data for clinical review
+          words: result.words || [],
+          utterances: utterances,
         }, { headers: corsHeaders });
       }
 

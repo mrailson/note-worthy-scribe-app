@@ -23,11 +23,13 @@ export class AssemblyRealtimeClientWorklet {
   async start() {
     const token = await getAssemblyToken();
 
-    // Open v3 websocket
+    // Open v3 websocket with OTEWELL verbatim settings
     const wsUrl =
       `wss://streaming.assemblyai.com/v3/ws?sample_rate=${this.sampleRateTarget}` +
       `&token=${encodeURIComponent(token)}` +
-      `&format_turns=true`;
+      `&format_turns=true` +
+      `&punctuate=false` +      // OTEWELL: verbatim capture
+      `&format_text=false`;     // OTEWELL: no text cleanup
     this.ws = new WebSocket(wsUrl);
     this.ws.binaryType = "arraybuffer";
 
