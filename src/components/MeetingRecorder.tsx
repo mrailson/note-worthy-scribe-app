@@ -4616,6 +4616,22 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           console.log('✅ Consolidation result:', consolidationData);
         }
         
+        // Also trigger batch (Whisper) transcript consolidation for SafeNotes Batch tab
+        try {
+          console.log('📝 Triggering batch transcript consolidation for Whisper chunks...');
+          const { data: batchResult, error: batchError } = await supabase.functions.invoke('consolidate-single-meeting-transcript', {
+            body: { meetingId }
+          });
+          
+          if (batchError) {
+            console.warn('⚠️ Batch transcript consolidation failed:', batchError);
+          } else {
+            console.log('✅ Batch transcript consolidation result:', batchResult);
+          }
+        } catch (batchConsolidateError) {
+          console.warn('⚠️ Batch transcript consolidation exception:', batchConsolidateError);
+        }
+        
         // Save AssemblyAI transcript to assembly_transcript_text for SafeNote modal
         const assemblyTranscript = assemblyPreview.fullTranscript;
         if (assemblyTranscript && assemblyTranscript.trim().length > 0) {
