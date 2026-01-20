@@ -1,18 +1,28 @@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { LayoutList, Monitor, ClipboardList, Heart } from "lucide-react";
+import { SystmOneIcon } from "@/components/icons/SystmOneIcon";
 
-export type ViewMode = 'soap' | 'narrativeClinical' | 'emis' | 'ageingWell';
+export type ViewMode = 'soap' | 'narrativeClinical' | 'systmone' | 'emis' | 'ageingWell';
 
 interface ConsultationViewModeSelectorProps {
   value: ViewMode;
   onChange: (value: ViewMode) => void;
 }
 
-const viewModes = [
-  { value: 'soap' as ViewMode, label: 'SOAP', icon: LayoutList, description: 'S/O/A/P sections' },
-  { value: 'narrativeClinical' as ViewMode, label: 'Clinical', icon: ClipboardList, description: 'H/E/A/I/P layout' },
-  { value: 'emis' as ViewMode, label: 'EMIS', icon: Monitor, description: 'EMIS-optimised' },
-  { value: 'ageingWell' as ViewMode, label: 'Ageing Well', icon: Heart, description: 'MDT Review' },
+interface ViewModeConfig {
+  value: ViewMode;
+  label: string;
+  icon: React.ComponentType<{ className?: string }> | null;
+  customIcon?: boolean;
+  description: string;
+}
+
+const viewModes: ViewModeConfig[] = [
+  { value: 'soap', label: 'SOAP', icon: LayoutList, description: 'S/O/A/P sections' },
+  { value: 'narrativeClinical', label: 'Clinical', icon: ClipboardList, description: 'H/E/A/I/P layout' },
+  { value: 'systmone', label: 'SystmOne', icon: null, customIcon: true, description: 'Auto-optimised for TPP' },
+  { value: 'emis', label: 'EMIS', icon: Monitor, description: 'EMIS-optimised' },
+  { value: 'ageingWell', label: 'Ageing Well', icon: Heart, description: 'MDT Review' },
 ];
 
 export const ConsultationViewModeSelector = ({ value, onChange }: ConsultationViewModeSelectorProps) => {
@@ -32,7 +42,11 @@ export const ConsultationViewModeSelector = ({ value, onChange }: ConsultationVi
             aria-label={mode.label}
             className="flex items-center gap-1.5 px-3 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
           >
-            <mode.icon className="h-3.5 w-3.5" />
+            {mode.customIcon ? (
+              <SystmOneIcon size="sm" />
+            ) : mode.icon ? (
+              <mode.icon className="h-3.5 w-3.5" />
+            ) : null}
             <span className="text-xs font-medium">{mode.label}</span>
           </ToggleGroupItem>
         ))}
