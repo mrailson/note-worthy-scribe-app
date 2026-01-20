@@ -508,7 +508,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
       </div>
       
       {/* Sticky Footer with Create Button */}
-      <div className="pt-4 border-t border-border/50 mt-auto bg-background">
+      <div className="pt-2 border-t border-border/50 mt-auto bg-background">
         <Button
           onClick={handleCreateMeeting}
           disabled={!hasContent || hasPendingFiles || isCreating}
