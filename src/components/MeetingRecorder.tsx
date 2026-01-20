@@ -5950,13 +5950,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                             <div className="flex items-center gap-2">
                               <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
                               <div className="flex-1 overflow-hidden">
-                                <div className="text-sm text-green-700 dark:text-green-300 font-medium">Most recent transcribed...</div>
-                                <div className="text-xs text-green-600 dark:text-green-400">
-                                {transcriptSnippet ? 
-                                  `“${transcriptSnippet.split(' ').slice(0, 20).join(' ')}${transcriptSnippet.split(' ').length > 20 ? '...' : ''}”`
-                                  : "No speech detected yet..."
-                                }
-                              </div>
+                                <div className="text-sm text-green-700 dark:text-green-300 font-medium">Live Speech</div>
+                                <div key={transcriptSnippet?.slice(-30) || 'empty'} className="text-xs text-green-600 dark:text-green-400 animate-fade-in transition-all duration-300 italic">
+                                  {transcriptSnippet ? `"${transcriptSnippet.split(' ').slice(-50).join(' ')}"` : <span className="text-green-500/70 not-italic">No speech detected yet...</span>}
+                                </div>
                               </div>
                             </div>
                           </div>
