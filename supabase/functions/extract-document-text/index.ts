@@ -1,23 +1,223 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import JSZip from "npm:jszip@3.10.1";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Helper to decode base64 to Uint8Array
+function parseDataUrl(dataUrl: string): { mimeType: string; base64Data: string } {
+  const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!matches) throw new Error("Invalid data URL format");
+  return { mimeType: matches[1], base64Data: matches[2] };
+}
+
 function base64ToUint8Array(base64: string): Uint8Array {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
+  for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
   return bytes;
 }
 
+function decodeXmlEntities(text: string): string {
+  return text
+    .replaceAll("&amp;", "&")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&apos;", "'");
+}
+
+function xmlToPlainText(
+  xml: string,
+  opts: { paragraphClose: RegExp; lineBreak: RegExp; tab: RegExp },
+): string {
+  const withMarkers = xml
+    .replace(opts.tab, "\t")
+    .replace(opts.lineBreak, "\n")
+    .replace(opts.paragraphClose, "\n")
+    .replace(/<[^>]+>/g, "");
+
+  return decodeXmlEntities(withMarkers)
+    .replace(/\r/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function colLettersToIndex(letters: string): number {
+  let n = 0;
+  for (let i = 0; i < letters.length; i++) {
+    n = n * 26 + (letters.charCodeAt(i) - 64);
+  }
+  return n - 1;
+}
+
+async function extractDocxText(zip: JSZip): Promise<string> {
+  const candidates = [
+    "word/document.xml",
+    ...Object.keys(zip.files).filter((p) => /^word\/header\d+\.xml$/.test(p)),
+    ...Object.keys(zip.files).filter((p) => /^word\/footer\d+\.xml$/.test(p)),
+  ];
+
+  const chunks: string[] = [];
+  for (const path of candidates) {
+    const f = zip.file(path);
+    if (!f) continue;
+    const xml = await f.async("string");
+    const text = xmlToPlainText(xml, {
+      paragraphClose: /<\/w:p>/g,
+      lineBreak: /<w:br[^>]*\/>/g,
+      tab: /<w:tab[^>]*\/>/g,
+    });
+    if (text) chunks.push(text);
+  }
+
+  if (chunks.length === 0) throw new Error("DOCX contained no readable XML parts");
+  return chunks.join("\n\n").trim();
+}
+
+async function extractPptxText(zip: JSZip): Promise<string> {
+  const slidePaths = Object.keys(zip.files)
+    .filter((p) => /^ppt\/slides\/slide\d+\.xml$/.test(p))
+    .sort((a, b) => {
+      const ai = Number(a.match(/slide(\d+)\.xml$/)?.[1] || 0);
+      const bi = Number(b.match(/slide(\d+)\.xml$/)?.[1] || 0);
+      return ai - bi;
+    });
+
+  const notePaths = Object.keys(zip.files)
+    .filter((p) => /^ppt\/notesSlides\/notesSlide\d+\.xml$/.test(p))
+    .sort((a, b) => {
+      const ai = Number(a.match(/notesSlide(\d+)\.xml$/)?.[1] || 0);
+      const bi = Number(b.match(/notesSlide(\d+)\.xml$/)?.[1] || 0);
+      return ai - bi;
+    });
+
+  const parts: string[] = [];
+
+  for (const path of slidePaths) {
+    const xml = await zip.file(path)!.async("string");
+    const text = xmlToPlainText(xml, {
+      paragraphClose: /<\/a:p>/g,
+      lineBreak: /<a:br[^>]*\/>/g,
+      tab: /<a:tab[^>]*\/>/g,
+    });
+    if (text) parts.push(`--- ${path.split("/").pop() ?? "slide"} ---\n${text}`);
+  }
+
+  for (const path of notePaths) {
+    const xml = await zip.file(path)!.async("string");
+    const text = xmlToPlainText(xml, {
+      paragraphClose: /<\/a:p>/g,
+      lineBreak: /<a:br[^>]*\/>/g,
+      tab: /<a:tab[^>]*\/>/g,
+    });
+    if (text) parts.push(`--- ${path.split("/").pop() ?? "notes"} ---\n${text}`);
+  }
+
+  if (parts.length === 0) throw new Error("PPTX contained no slide text");
+  return parts.join("\n\n").trim();
+}
+
+function extractSharedStrings(sharedStringsXml: string): string[] {
+  const strings: string[] = [];
+  const regex = /<t[^>]*>([\s\S]*?)<\/t>/g;
+  let m: RegExpExecArray | null;
+  while ((m = regex.exec(sharedStringsXml)) !== null) {
+    strings.push(decodeXmlEntities(m[1] ?? ""));
+  }
+  return strings;
+}
+
+function parseXlsxSheetXml(sheetXml: string, sharedStrings: string[]): string[] {
+  const rows: Record<number, Record<number, string>> = {};
+  const rowRegex = /<row[^>]* r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+  let rm: RegExpExecArray | null;
+
+  while ((rm = rowRegex.exec(sheetXml)) !== null) {
+    const rowIndex = Number(rm[1]);
+    const rowBody = rm[2] || "";
+
+    const cellRegex = /<c[^>]* r="([A-Z]+)(\d+)"[^>]*?(?: t="([^"]+)")?[^>]*>([\s\S]*?)<\/c>/g;
+    let cm: RegExpExecArray | null;
+
+    while ((cm = cellRegex.exec(rowBody)) !== null) {
+      const colLetters = cm[1];
+      const t = cm[3] || "";
+      const cellBody = cm[4] || "";
+
+      const colIndex = colLettersToIndex(colLetters);
+
+      const vMatch = cellBody.match(/<v[^>]*>([\s\S]*?)<\/v>/);
+      const tMatch = cellBody.match(/<t[^>]*>([\s\S]*?)<\/t>/);
+
+      let value = "";
+
+      if (t === "s") {
+        const idx = Number((vMatch?.[1] ?? "").trim());
+        value = sharedStrings[idx] ?? "";
+      } else if (t === "inlineStr") {
+        value = decodeXmlEntities((tMatch?.[1] ?? "").trim());
+      } else {
+        value = decodeXmlEntities((vMatch?.[1] ?? "").trim());
+      }
+
+      if (!rows[rowIndex]) rows[rowIndex] = {};
+      rows[rowIndex][colIndex] = value;
+    }
+  }
+
+  const rowNumbers = Object.keys(rows).map(Number).sort((a, b) => a - b);
+  const out: string[] = [];
+
+  for (const r of rowNumbers) {
+    const cols = rows[r];
+    const colIndexes = Object.keys(cols).map(Number);
+    const maxCol = colIndexes.length ? Math.max(...colIndexes) : -1;
+
+    const cells: string[] = [];
+    for (let c = 0; c <= maxCol; c++) {
+      cells.push((cols[c] ?? "").replace(/\s+/g, " ").trim());
+    }
+
+    // Trim trailing empties
+    while (cells.length && cells[cells.length - 1] === "") cells.pop();
+    if (cells.length) out.push(cells.join("\t"));
+  }
+
+  return out;
+}
+
+async function extractXlsxText(zip: JSZip): Promise<string> {
+  const sharedStringsXml = await zip.file("xl/sharedStrings.xml")?.async("string");
+  const sharedStrings = sharedStringsXml ? extractSharedStrings(sharedStringsXml) : [];
+
+  const sheetPaths = Object.keys(zip.files)
+    .filter((p) => /^xl\/worksheets\/sheet\d+\.xml$/.test(p))
+    .sort((a, b) => {
+      const ai = Number(a.match(/sheet(\d+)\.xml$/)?.[1] || 0);
+      const bi = Number(b.match(/sheet(\d+)\.xml$/)?.[1] || 0);
+      return ai - bi;
+    });
+
+  if (sheetPaths.length === 0) throw new Error("XLSX contained no worksheet XML");
+
+  const parts: string[] = [];
+  for (const path of sheetPaths) {
+    const xml = await zip.file(path)!.async("string");
+    const rows = parseXlsxSheetXml(xml, sharedStrings);
+    const label = path.split("/").pop()?.replace(".xml", "") || "sheet";
+    const body = rows.join("\n");
+    if (body.trim()) parts.push(`--- ${label} ---\n${body}`);
+  }
+
+  return parts.join("\n\n").trim();
+}
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -25,175 +225,124 @@ serve(async (req) => {
     const { fileType, dataUrl, fileName } = await req.json();
     console.log(`Processing ${fileType} file: ${fileName}`);
 
-    let extractedText = '';
-    
-    // Extract base64 data from data URL
-    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-    if (!matches) {
-      throw new Error('Invalid data URL format');
+    let extractedText = "";
+
+    if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:")) {
+      throw new Error("Missing or invalid dataUrl");
     }
-    const mimeType = matches[1];
-    const base64Data = matches[2];
-    
+
+    const { mimeType, base64Data } = parseDataUrl(dataUrl);
     console.log(`File MIME type: ${mimeType}, Base64 length: ${base64Data.length}`);
 
-    if (fileType === 'image') {
-      // Use Lovable AI for OCR on images
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (!LOVABLE_API_KEY) {
-        throw new Error('LOVABLE_API_KEY not configured');
-      }
+    if (fileType === "image") {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-      const ocrResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
+      const ocrResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: "google/gemini-2.5-flash",
           messages: [
             {
-              role: 'user',
+              role: "user",
               content: [
                 {
-                  type: 'text',
-                  text: 'Extract all text from this image. Return ONLY the extracted text, no other commentary. If there is no text, return "No text found in image".'
+                  type: "text",
+                  text:
+                    'Extract all text from this image. Return ONLY the extracted text, no other commentary. If there is no text, return "No text found in image".',
                 },
-                {
-                  type: 'image_url',
-                  image_url: { url: dataUrl }
-                }
-              ]
-            }
-          ]
-        })
+                { type: "image_url", image_url: { url: dataUrl } },
+              ],
+            },
+          ],
+        }),
       });
 
       if (!ocrResponse.ok) {
         const errorText = await ocrResponse.text();
-        console.error('OCR API error:', ocrResponse.status, errorText);
+        console.error("OCR API error:", ocrResponse.status, errorText);
         throw new Error(`OCR failed: ${ocrResponse.status}`);
       }
 
       const ocrData = await ocrResponse.json();
-      extractedText = ocrData.choices?.[0]?.message?.content || 'Failed to extract text from image';
-      console.log('OCR extracted text length:', extractedText.length);
+      extractedText = ocrData.choices?.[0]?.message?.content || "Failed to extract text from image";
 
-    } else if (fileType === 'pdf') {
-      // For PDFs, use Gemini which supports PDF natively
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (!LOVABLE_API_KEY) {
-        throw new Error('LOVABLE_API_KEY not configured');
-      }
+    } else if (fileType === "pdf") {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-      console.log('Extracting text from PDF using Gemini...');
-
-      const pdfResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
+      const docResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: "google/gemini-2.5-flash",
           messages: [
             {
-              role: 'user',
+              role: "user",
               content: [
                 {
-                  type: 'text',
-                  text: 'Extract ALL text content from this PDF document. Return ONLY the extracted text, preserving the structure, headings, bullet points, and formatting. Include all text from all pages. Do not add any commentary.'
+                  type: "text",
+                  text:
+                    "Extract ALL text content from this PDF document. Return ONLY the extracted text, preserving the structure, headings, bullet points, and formatting. Include all text from all pages. Do not add any commentary.",
                 },
                 {
-                  type: 'image_url',
-                  image_url: { url: `data:application/pdf;base64,${base64Data}` }
-                }
-              ]
-            }
-          ]
-        })
-      });
-
-      if (!pdfResponse.ok) {
-        const errorText = await pdfResponse.text();
-        console.error('PDF extraction API error:', pdfResponse.status, errorText);
-        throw new Error(`PDF extraction failed: ${pdfResponse.status}`);
-      }
-
-      const pdfData = await pdfResponse.json();
-      extractedText = pdfData.choices?.[0]?.message?.content || 'Failed to extract text from PDF';
-      console.log('PDF extracted text length:', extractedText.length);
-
-    } else if (fileType === 'word' || fileType === 'powerpoint' || fileType === 'excel') {
-      // For Office documents, use GPT-5 which can process document content
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      if (!LOVABLE_API_KEY) {
-        throw new Error('LOVABLE_API_KEY not configured');
-      }
-
-      const fileTypeDescriptions: Record<string, string> = {
-        'word': 'Word document (.docx)',
-        'powerpoint': 'PowerPoint presentation (.pptx)',
-        'excel': 'Excel spreadsheet (.xlsx)',
-      };
-
-      console.log(`Extracting text from ${fileType} using GPT-5...`);
-
-      // GPT-5 can process document content from base64
-      const docResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'openai/gpt-5',
-          messages: [
-            {
-              role: 'user',
-              content: `Extract ALL text content from this ${fileTypeDescriptions[fileType] || 'document'}. The file is base64 encoded below.
-
-IMPORTANT INSTRUCTIONS:
-- Extract EVERY piece of text from the document
-- Preserve the structure, headings, bullet points, and formatting
-- Include all text from all pages/slides/sections
-- Do not skip or summarize any content
-- Return ONLY the extracted text, no commentary
-
-Base64 encoded ${fileType} file (decode this to read the document):
-${base64Data}`
-            }
+                  type: "file",
+                  file: {
+                    filename: fileName || "document.pdf",
+                    file_data: dataUrl,
+                  },
+                },
+              ],
+            },
           ],
-          max_tokens: 16000
-        })
+        }),
       });
 
       if (!docResponse.ok) {
         const errorText = await docResponse.text();
-        console.error('Document extraction API error:', docResponse.status, errorText);
+        console.error("PDF extraction API error:", docResponse.status, errorText);
         throw new Error(`Document extraction failed: ${docResponse.status}`);
       }
 
       const docData = await docResponse.json();
-      extractedText = docData.choices?.[0]?.message?.content || 'Failed to extract text from document';
+      extractedText = docData.choices?.[0]?.message?.content || "Failed to extract text from PDF";
+
+    } else if (fileType === "word" || fileType === "powerpoint" || fileType === "excel") {
+      // Avoid sending base64 blobs to the AI gateway (often exceeds limits / unsupported).
+      // Office formats are zipped XML; extract deterministically.
+      const zipBytes = base64ToUint8Array(base64Data);
+      const zip = await JSZip.loadAsync(zipBytes);
+
+      if (fileType === "word") {
+        extractedText = await extractDocxText(zip);
+      } else if (fileType === "powerpoint") {
+        extractedText = await extractPptxText(zip);
+      } else {
+        extractedText = await extractXlsxText(zip);
+      }
+
       console.log(`${fileType} extracted text length:`, extractedText.length);
 
     } else {
       console.log(`Unknown file type: ${fileType}, returning empty text`);
-      extractedText = '';
+      extractedText = "";
     }
 
-    return new Response(
-      JSON.stringify({ extractedText }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+    return new Response(JSON.stringify({ extractedText }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error('Error in extract-document-text:', error);
+    console.error("Error in extract-document-text:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
