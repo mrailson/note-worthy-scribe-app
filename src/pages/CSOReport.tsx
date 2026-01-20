@@ -335,7 +335,7 @@ const CSOReport = () => {
                   The appropriate technical assurance route is a proportionate external web application penetration test, covering OWASP Top 10, authentication, access control, API endpoints and TLS configuration. Red-team, network-level, physical or social engineering testing is not required due to the system's risk profile, standalone architecture, and absence of NHS infrastructure integration.
                 </p>
                 <p className="text-base leading-relaxed">
-                  The DPIA is nearing completion and SIRO/Caldicott approvals will follow final review. Training materials for users will be completed before deployment. Subject to these, NoteWell is suitable for pilot deployment across GP practices and PCNs.
+                  The DPIA has been completed and SIRO/Caldicott approvals will follow final review. Training materials for users will be completed before deployment. Subject to these, NoteWell is suitable for pilot deployment across GP practices and PCNs.
                 </p>
               </div>
 
@@ -351,7 +351,7 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">Clinical Safety (DCB0129)</span>
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <p className="text-sm font-semibold mb-2">Draft Completed</p>
+                    <p className="text-sm font-semibold mb-2">Completed</p>
                     <div className="space-y-1">
                       <button
                         onClick={() => scrollToSection('hazard-log')}
@@ -389,9 +389,9 @@ const CSOReport = () => {
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
                       <span className="text-sm font-medium text-muted-foreground">DPIA</span>
-                      <Clock className="w-4 h-4 text-amber-600" />
+                      <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <p className="text-sm font-semibold mb-2">Near completion</p>
+                    <p className="text-sm font-semibold mb-2">Completed</p>
                     <button
                       onClick={() => scrollToSection('dpia-summary')}
                       className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
