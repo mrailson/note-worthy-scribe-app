@@ -128,21 +128,23 @@ export const CHUNK_DURATION_OPTIONS = {
 
 // Patient context extracted from clinical system screenshot
 export interface PatientContext {
-  name: string;
-  nhsNumber: string;      // Validated and formatted (XXX XXX XXXX)
-  dateOfBirth: string;    // UK format (DD/MM/YYYY)
-  extractedAt: string;    // ISO timestamp
-  confidence?: number;    // AI confidence score (0-1)
-  rawExtract?: string;    // Original text extracted for debugging
+  name?: string;
+  nhsNumber?: string;      // Validated and formatted (XXX XXX XXXX)
+  dateOfBirth?: string;    // UK format (DD/MM/YYYY) or ISO
+  extractedAt?: string;    // ISO timestamp
+  confidence?: number;     // AI confidence score (0-1)
+  rawExtract?: string;     // Original text extracted for debugging
   // Optional fields for letters/referrals
-  address?: string;       // Full postal address
+  address?: string;        // Full postal address
+  postcode?: string;       // UK postcode
+  contactNumber?: string;  // Primary contact number
   phoneNumbers?: {
     mobile?: string;
     home?: string;
     work?: string;
     preferred?: 'mobile' | 'home' | 'work';  // Which number is marked as preferred
   };
-  gender?: 'M' | 'F';     // Male or Female
+  gender?: 'M' | 'F';      // Male or Female
 }
 
 // Context file for consultation (blood results, screenshots, documents)
