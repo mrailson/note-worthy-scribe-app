@@ -85,6 +85,8 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     return null;
   };
 
+  const MAX_WHISPER_SIZE = 25 * 1024 * 1024; // 25MB Whisper limit
+
   const transcribeAudioFile = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -92,14 +94,33 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
         try {
           const base64Audio = (reader.result as string).split(',')[1];
           
-          const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-            body: { audio: base64Audio }
-          });
-          
-          if (error) throw error;
-          if (!data?.text) throw new Error('No transcript returned');
-          
-          resolve(data.text);
+          // Use AssemblyAI for files over 25MB, Whisper for smaller files
+          if (file.size > MAX_WHISPER_SIZE) {
+            console.log(`[CreateMeetingTab] File ${file.name} is ${(file.size / 1024 / 1024).toFixed(1)}MB - using AssemblyAI`);
+            
+            const { data, error } = await supabase.functions.invoke('assemblyai-transcription', {
+              body: { 
+                audio: base64Audio,
+                mimeType: file.type || 'audio/mpeg',
+                chunkIndex: 0
+              }
+            });
+            
+            if (error) throw error;
+            if (!data?.text) throw new Error('No transcript returned from AssemblyAI');
+            
+            resolve(data.text);
+          } else {
+            // Use Whisper for files under 25MB
+            const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+              body: { audio: base64Audio }
+            });
+            
+            if (error) throw error;
+            if (!data?.text) throw new Error('No transcript returned');
+            
+            resolve(data.text);
+          }
         } catch (err: any) {
           reject(err);
         }
