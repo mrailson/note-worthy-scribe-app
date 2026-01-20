@@ -107,30 +107,33 @@ export const AppointmentRow = ({
     requires_action: <AlertTriangle className="h-3 w-3" />
   };
 
+  const isCompleted = appointment.status === 'completed';
+  const strikethroughClass = isCompleted ? 'line-through text-muted-foreground' : '';
+
   return (
     <>
-      <TableRow className={isUpdating ? 'opacity-50' : ''}>
-        <TableCell className="font-medium whitespace-nowrap">
+      <TableRow className={`${isUpdating ? 'opacity-50' : ''} ${isCompleted ? 'bg-muted/30' : ''}`}>
+        <TableCell className={`font-medium whitespace-nowrap ${strikethroughClass}`}>
           {formatTime(appointment.appointment_time)}
         </TableCell>
-        <TableCell className="font-medium">{appointment.patient_name}</TableCell>
-        <TableCell className="font-mono text-sm">
+        <TableCell className={`font-medium ${strikethroughClass}`}>{appointment.patient_name}</TableCell>
+        <TableCell className={`font-mono text-sm ${strikethroughClass}`}>
           {appointment.nhs_number ? formatNHSNumber(appointment.nhs_number) : '-'}
         </TableCell>
-        <TableCell className="whitespace-nowrap">
+        <TableCell className={`whitespace-nowrap ${strikethroughClass}`}>
           {formatDOB(appointment.date_of_birth)}
           {age !== null && (
             <span className="ml-1 text-muted-foreground">({age}y)</span>
           )}
         </TableCell>
-        <TableCell className="max-w-[150px] truncate" title={appointment.address || undefined}>
+        <TableCell className={`max-w-[150px] truncate ${strikethroughClass}`} title={appointment.address || undefined}>
           {appointment.postcode || '-'}
         </TableCell>
-        <TableCell>
+        <TableCell className={strikethroughClass}>
           {appointment.contact_number ? (
             <a 
               href={`tel:${appointment.contact_number}`}
-              className="flex items-center gap-1 text-primary hover:underline"
+              className={`flex items-center gap-1 ${isCompleted ? 'text-muted-foreground' : 'text-primary'} hover:underline`}
             >
               <Phone className="h-3 w-3" />
               {appointment.contact_number}
