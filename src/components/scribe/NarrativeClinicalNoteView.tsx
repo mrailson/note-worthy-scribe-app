@@ -1,11 +1,11 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Copy, ClipboardList, Stethoscope, Brain, Activity, ListChecks, Shield, EyeOff } from "lucide-react";
+import { Copy, ClipboardList, Stethoscope, Brain, Activity, ListChecks, Shield, EyeOff, Wand2, Check, AlertTriangle, Loader2 } from "lucide-react";
 import { SOAPNote, HeidiNote } from "@/types/scribe";
 import { 
   transformToNarrativeClinical, 
@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { InteractiveClinicalContent } from "./InteractiveClinicalContent";
+import { useTightenSystmOneNotes } from "@/hooks/useTightenSystmOneNotes";
 
 interface NarrativeClinicalNoteViewProps {
   soapNote?: SOAPNote | null;
@@ -45,10 +46,43 @@ export const NarrativeClinicalNoteView = ({
   onSectionChange,
   consultationId,
 }: NarrativeClinicalNoteViewProps) => {
+  const { tightenNotes, isTightening, qualityGate, resetQualityGate } = useTightenSystmOneNotes();
+  const [optimisedNote, setOptimisedNote] = useState<NarrativeClinicalNote | null>(null);
+
   // Transform the notes to Narrative Clinical format
   const narrativeClinicalNote = useMemo(() => {
     return transformToNarrativeClinical(soapNote || null, heidiNote, { showNotMentioned });
   }, [soapNote, heidiNote, showNotMentioned]);
+
+  // Use optimised note if available, otherwise use original
+  const displayNote = optimisedNote || narrativeClinicalNote;
+
+  // Handle optimise for SystmOne
+  const handleOptimise = async () => {
+    const result = await tightenNotes({
+      history: narrativeClinicalNote.history || '',
+      examination: narrativeClinicalNote.examination || '',
+      assessment: narrativeClinicalNote.assessment || '',
+      plan: narrativeClinicalNote.plan || ''
+    });
+
+    if (result) {
+      setOptimisedNote({
+        history: result.history,
+        examination: result.examination,
+        assessment: result.assessment,
+        intervention: narrativeClinicalNote.intervention, // Keep intervention unchanged
+        plan: result.plan
+      });
+    }
+  };
+
+  // Revert to original
+  const handleRevert = () => {
+    setOptimisedNote(null);
+    resetQualityGate();
+    toast.info('Reverted to original notes');
+  };
 
   // Handler for section content changes
   const handleSectionChange = useCallback((sectionKey: string, newContent: string) => {
@@ -82,7 +116,7 @@ export const NarrativeClinicalNoteView = ({
   };
 
   const copyAll = () => {
-    const fullText = getNarrativeClinicalText(narrativeClinicalNote);
+    const fullText = getNarrativeClinicalText(displayNote);
     navigator.clipboard.writeText(fullText);
     toast.success("Full note copied to clipboard");
   };
@@ -115,8 +149,14 @@ export const NarrativeClinicalNoteView = ({
                 <Shield className="h-3 w-3" />
                 H/E/A/I/P
               </Badge>
+              {optimisedNote && (
+                <Badge variant="outline" className="text-xs font-normal gap-1 bg-green-50 text-green-700 border-green-200">
+                  <Wand2 className="h-3 w-3" />
+                  Optimised
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               {/* Show Not Discussed Toggle */}
               {onShowNotMentionedChange && (
                 <div className="flex items-center gap-2">
@@ -135,11 +175,82 @@ export const NarrativeClinicalNoteView = ({
                   </Label>
                 </div>
               )}
+              
+              {/* Optimise / Revert Buttons */}
+              {optimisedNote ? (
+                <Button variant="outline" size="sm" onClick={handleRevert} className="text-xs">
+                  Revert
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleOptimise}
+                  disabled={isTightening}
+                  className="text-xs"
+                >
+                  {isTightening ? (
+                    <>
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Optimising...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="h-3 w-3 mr-1" />
+                      Optimise for SystmOne
+                    </>
+                  )}
+                </Button>
+              )}
+              
               <Button variant="ghost" size="sm" onClick={copyAll}>
                 <Copy className="h-3 w-3 mr-1" /> Copy All
               </Button>
             </div>
           </div>
+          
+          {/* Quality Gate Badges */}
+          {qualityGate && (
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-xs gap-1",
+                  qualityGate.partnerSafe 
+                    ? "bg-green-50 text-green-700 border-green-200" 
+                    : "bg-amber-50 text-amber-700 border-amber-200"
+                )}
+              >
+                {qualityGate.partnerSafe ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                Partner Safe
+              </Badge>
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-xs gap-1",
+                  qualityGate.cqcReady 
+                    ? "bg-green-50 text-green-700 border-green-200" 
+                    : "bg-amber-50 text-amber-700 border-amber-200"
+                )}
+              >
+                {qualityGate.cqcReady ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                CQC Ready
+              </Badge>
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-xs gap-1",
+                  qualityGate.gpAuthored 
+                    ? "bg-green-50 text-green-700 border-green-200" 
+                    : "bg-amber-50 text-amber-700 border-amber-200"
+                )}
+              >
+                {qualityGate.gpAuthored ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                GP-Authored
+              </Badge>
+            </div>
+          )}
+          
           <p className="text-xs text-muted-foreground mt-1">
             Presentational layout only • Same underlying clinical data as SOAP
           </p>
@@ -149,7 +260,7 @@ export const NarrativeClinicalNoteView = ({
       {/* Sections */}
       <Accordion type="multiple" defaultValue={NARRATIVE_CLINICAL_SECTIONS.map(s => s.key)} className="space-y-3">
         {NARRATIVE_CLINICAL_SECTIONS.map((section) => {
-          const raw = narrativeClinicalNote[section.key] || '';
+          const raw = displayNote[section.key] || '';
           const content = filterContent(raw);
           const Icon = sectionIcons[section.key];
 
