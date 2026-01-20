@@ -126,7 +126,7 @@ serve(async (req) => {
       console.log('PDF extracted text length:', extractedText.length);
 
     } else if (fileType === 'word' || fileType === 'powerpoint' || fileType === 'excel') {
-      // For Office documents, use Claude which handles documents better
+      // For Office documents, use GPT-5 which can process document content
       const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
       if (!LOVABLE_API_KEY) {
         throw new Error('LOVABLE_API_KEY not configured');
@@ -138,9 +138,9 @@ serve(async (req) => {
         'excel': 'Excel spreadsheet (.xlsx)',
       };
 
-      console.log(`Extracting text from ${fileType} using Claude...`);
+      console.log(`Extracting text from ${fileType} using GPT-5...`);
 
-      // Claude can handle document files with base64 content
+      // GPT-5 can process document content from base64
       const docResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -148,14 +148,11 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-sonnet-4',
+          model: 'openai/gpt-5',
           messages: [
             {
               role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: `Extract ALL text content from this ${fileTypeDescriptions[fileType] || 'document'}. The file is base64 encoded below.
+              content: `Extract ALL text content from this ${fileTypeDescriptions[fileType] || 'document'}. The file is base64 encoded below.
 
 IMPORTANT INSTRUCTIONS:
 - Extract EVERY piece of text from the document
@@ -166,8 +163,6 @@ IMPORTANT INSTRUCTIONS:
 
 Base64 encoded ${fileType} file (decode this to read the document):
 ${base64Data}`
-                }
-              ]
             }
           ],
           max_tokens: 16000
