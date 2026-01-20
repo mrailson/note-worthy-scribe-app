@@ -342,82 +342,82 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Meeting Title */}
-      <div className="space-y-2">
-        <Label htmlFor="meeting-title">Meeting Title (optional)</Label>
-        <Input
-          id="meeting-title"
-          placeholder="e.g., Team Planning Session"
-          value={meetingTitle}
-          onChange={(e) => setMeetingTitle(e.target.value)}
-        />
-      </div>
-      
-      {/* Drop Zone */}
-      <Card
-        className={cn(
-          "border-2 border-dashed transition-colors cursor-pointer",
-          isDragOver 
-            ? "border-primary bg-primary/5" 
-            : "border-muted-foreground/25 hover:border-primary/50"
-        )}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        onPaste={async (e) => {
-          const items = e.clipboardData?.items;
-          if (!items) return;
-          
-          const files: File[] = [];
-          for (const item of items) {
-            if (item.kind === 'file') {
-              const file = item.getAsFile();
-              if (file) files.push(file);
-            }
-          }
-          
-          if (files.length > 0) {
-            e.preventDefault();
-            handleFilesAdded(files);
-          }
-        }}
-        tabIndex={0}
-      >
-        <CardContent className="py-8 flex flex-col items-center justify-center gap-3">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <FileAudio className="h-6 w-6" />
-            <FileText className="h-6 w-6" />
-          </div>
-          <div className="text-center">
-            <p className="font-medium">Drop audio, text or document files here</p>
-            <p className="text-sm text-muted-foreground">
-              MP3, WAV, M4A, PDF, DOCX, TXT — or paste/click to browse
-            </p>
-          </div>
-          <Button variant="outline" size="sm" className="mt-2">
-            <Upload className="h-4 w-4 mr-2" />
-            Choose Files
-          </Button>
-        </CardContent>
-      </Card>
-      
-      <input
-        ref={fileInputRef}
-        type="file"
-        className="hidden"
-        accept=".mp3,.wav,.webm,.ogg,.m4a,.txt,.md,.csv,.pdf,.docx,.doc"
-        multiple
-        onChange={handleFileSelect}
-      />
-      
-      {/* Uploaded Files List */}
-      {uploadedFiles.length > 0 && (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 space-y-4 overflow-y-auto pb-4">
+        {/* Meeting Title */}
         <div className="space-y-2">
-          <Label>Uploaded Files</Label>
-          <ScrollArea className="max-h-32">
-            <div className="space-y-2">
+          <Label htmlFor="meeting-title">Meeting Title (optional)</Label>
+          <Input
+            id="meeting-title"
+            placeholder="e.g., Team Planning Session"
+            value={meetingTitle}
+            onChange={(e) => setMeetingTitle(e.target.value)}
+          />
+        </div>
+        
+        {/* Drop Zone */}
+        <Card
+          className={cn(
+            "border-2 border-dashed transition-colors cursor-pointer",
+            isDragOver 
+              ? "border-primary bg-primary/5" 
+              : "border-muted-foreground/25 hover:border-primary/50"
+          )}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          onPaste={async (e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            
+            const files: File[] = [];
+            for (const item of items) {
+              if (item.kind === 'file') {
+                const file = item.getAsFile();
+                if (file) files.push(file);
+              }
+            }
+            
+            if (files.length > 0) {
+              e.preventDefault();
+              handleFilesAdded(files);
+            }
+          }}
+          tabIndex={0}
+        >
+          <CardContent className="py-6 flex flex-col items-center justify-center gap-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <FileAudio className="h-5 w-5" />
+              <FileText className="h-5 w-5" />
+            </div>
+            <div className="text-center">
+              <p className="font-medium text-sm">Drop audio, text or document files here</p>
+              <p className="text-xs text-muted-foreground">
+                MP3, WAV, M4A, PDF, DOCX, TXT — or paste/click to browse
+              </p>
+            </div>
+            <Button variant="outline" size="sm" className="mt-1">
+              <Upload className="h-4 w-4 mr-2" />
+              Choose Files
+            </Button>
+          </CardContent>
+        </Card>
+        
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".mp3,.wav,.webm,.ogg,.m4a,.txt,.md,.csv,.pdf,.docx,.doc"
+          multiple
+          onChange={handleFileSelect}
+        />
+        
+        {/* Uploaded Files List */}
+        {uploadedFiles.length > 0 && (
+          <div className="space-y-2">
+            <Label>Uploaded Files</Label>
+            <div className="max-h-24 overflow-y-auto space-y-2">
               {uploadedFiles.map((file) => (
                 <div 
                   key={file.name}
@@ -443,7 +443,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
                     {file.status === 'transcribing' && (
                       <Badge variant="secondary" className="text-xs">
                         <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        Transcribing
+                        Processing
                       </Badge>
                     )}
                     {file.status === 'done' && (
@@ -470,68 +470,70 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
                 </div>
               ))}
             </div>
-          </ScrollArea>
+          </div>
+        )}
+        
+        {/* Paste Transcript */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <ClipboardPaste className="h-4 w-4 text-muted-foreground" />
+            <Label>Or paste transcript text</Label>
+          </div>
+          <Textarea
+            placeholder="Paste your meeting transcript or notes here..."
+            value={pastedText}
+            onChange={(e) => setPastedText(e.target.value)}
+            className="min-h-[80px] resize-none"
+          />
+          {pastedText && (
+            <p className="text-xs text-muted-foreground">
+              {pastedText.split(/\s+/).filter(Boolean).length} words
+            </p>
+          )}
         </div>
-      )}
-      
-      {/* Paste Transcript */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <ClipboardPaste className="h-4 w-4 text-muted-foreground" />
-          <Label>Or paste transcript text</Label>
-        </div>
-        <Textarea
-          placeholder="Paste your meeting transcript or notes here..."
-          value={pastedText}
-          onChange={(e) => setPastedText(e.target.value)}
-          className="min-h-[120px] resize-none"
-        />
-        {pastedText && (
-          <p className="text-xs text-muted-foreground">
-            {pastedText.split(/\s+/).filter(Boolean).length} words
-          </p>
+        
+        {/* Preview Combined Content */}
+        {hasContent && (
+          <div className="p-3 bg-muted/30 rounded-md border border-border/50">
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Content Preview</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {getCombinedTranscript().split(/\s+/).filter(Boolean).length} total words from{' '}
+              {(pastedText.trim() ? 1 : 0) + uploadedFiles.filter(f => f.status === 'done').length} source(s)
+            </p>
+          </div>
         )}
       </div>
       
-      {/* Preview Combined Content */}
-      {hasContent && (
-        <div className="p-3 bg-muted/30 rounded-md border border-border/50">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Content Preview</span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {getCombinedTranscript().split(/\s+/).filter(Boolean).length} total words from{' '}
-            {(pastedText.trim() ? 1 : 0) + uploadedFiles.filter(f => f.status === 'done').length} source(s)
+      {/* Sticky Footer with Create Button */}
+      <div className="pt-4 border-t border-border/50 mt-auto bg-background">
+        <Button
+          onClick={handleCreateMeeting}
+          disabled={!hasContent || hasPendingFiles || isCreating}
+          className="w-full"
+          size="lg"
+        >
+          {isCreating ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Creating Meeting...
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Create Meeting & Generate Notes
+            </>
+          )}
+        </Button>
+        
+        {hasPendingFiles && (
+          <p className="text-xs text-center text-amber-600 mt-2">
+            Please wait for all files to finish processing
           </p>
-        </div>
-      )}
-      
-      {/* Create Button */}
-      <Button
-        onClick={handleCreateMeeting}
-        disabled={!hasContent || hasPendingFiles || isCreating}
-        className="w-full"
-        size="lg"
-      >
-        {isCreating ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            Creating Meeting...
-          </>
-        ) : (
-          <>
-            <Sparkles className="h-4 w-4 mr-2" />
-            Create Meeting & Generate Notes
-          </>
         )}
-      </Button>
-      
-      {hasPendingFiles && (
-        <p className="text-xs text-center text-amber-600">
-          Please wait for all files to finish processing
-        </p>
-      )}
+      </div>
     </div>
   );
 };
