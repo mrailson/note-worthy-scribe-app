@@ -11,6 +11,7 @@ interface UseAssemblyRealtimePreviewReturn {
   error: string | null;
   startPreview: (externalStream?: MediaStream, options?: { preserveTranscript?: boolean }) => Promise<void>;
   stopPreview: () => void;
+  clearTranscript: () => void;
 }
 
 const MAX_WORDS = 100; // Keep last 100 words for live preview
@@ -208,6 +209,18 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     setIsActive(false);
   }, []);
 
+  // Clear all transcript state (for meeting reset)
+  const clearTranscript = useCallback(() => {
+    console.log('🧹 Clearing AssemblyAI transcript state');
+    setLiveTranscript("");
+    setFullTranscript("");
+    baseTranscriptRef.current = "";
+    currentPartialRef.current = "";
+    lastFinalSegmentRef.current = "";
+    lastFinalAtRef.current = 0;
+    setError(null);
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -225,6 +238,7 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     isActive,
     error,
     startPreview,
-    stopPreview
+    stopPreview,
+    clearTranscript
   };
 };

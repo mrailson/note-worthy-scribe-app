@@ -574,6 +574,10 @@ export const MeetingRecorder = ({
     setShowTicker(false);
     setTranscriptSnippet("");
     setShowTranscriptSnippet(false);
+    
+    // Clear AssemblyAI live transcript state
+    assemblyPreview.clearTranscript();
+    
     setSelectedMeetings([]);
     setIsSelectMode(false);
     setDeleteConfirmation("");
