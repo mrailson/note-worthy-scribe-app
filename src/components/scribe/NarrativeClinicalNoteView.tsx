@@ -216,34 +216,7 @@ export const NarrativeClinicalNoteView = ({
                 </div>
               )}
               
-              {/* Optimise / Revert Buttons - only show in narrative mode, not in systmone mode */}
-              {!isSystmOneOptimised && (
-                optimisedNote ? (
-                  <Button variant="outline" size="sm" onClick={handleRevert} className="text-xs">
-                    Revert
-                  </Button>
-                ) : (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleOptimise}
-                    disabled={isTightening}
-                    className="text-xs"
-                  >
-                    {isTightening ? (
-                      <>
-                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        Optimising...
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 className="h-3 w-3 mr-1" />
-                        Optimise for SystmOne
-                      </>
-                    )}
-                  </Button>
-                )
-              )}
+              {/* Optimise / Revert Buttons - hidden since auto-optimisation is now automatic */}
               
               <Button variant="ghost" size="sm" onClick={copyAll}>
                 <Copy className="h-3 w-3 mr-1" /> Copy All
