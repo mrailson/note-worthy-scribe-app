@@ -74,15 +74,7 @@ export const ConsultationReadyState = ({
       
       <Card className="w-full max-w-xl">
         <CardContent className={`space-y-5 ${isMobile ? 'pt-4 px-3' : 'pt-6 space-y-6'}`}>
-          {/* Header */}
-          <div className="text-center space-y-2">
-            <h2 className={`font-semibold text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              Ready for Consultation
-            </h2>
-            <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
-              Select consultation type and confirm consent to begin
-            </p>
-          </div>
+
 
           {/* Patient Context Capture */}
           <PatientContextCapture
