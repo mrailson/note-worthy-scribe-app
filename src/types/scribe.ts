@@ -28,6 +28,8 @@ export interface ConsultationNote {
   soapNote: SOAPNote;
   // New Heidi format
   heidiNote?: HeidiNote;
+  // SystmOne-optimised version of heidiNote (auto-generated)
+  systmOneNote?: HeidiNote;
   // Which format is active
   noteFormat: NoteFormat;
   // Additional data
@@ -61,6 +63,7 @@ export interface ScribeSession {
   keyPoints?: string;
   soapNote?: SOAPNote;
   heidiNote?: HeidiNote;
+  systmOneNote?: HeidiNote; // Auto-optimised version for TPP SystmOne
   noteFormat?: NoteFormat;
   quickSummary?: string; // One-liner for quick clinical identification
   duration: number;

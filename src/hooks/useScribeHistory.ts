@@ -142,14 +142,22 @@ export const useScribeHistory = () => {
             A: soapNotes.A || '',
             P: soapNotes.P || ''
           } : undefined,
-          heidiNote: heidiNotes ? heidiNotes : undefined,
+          heidiNote: heidiNotes ? {
+            consultationHeader: heidiNotes.consultationHeader || '',
+            history: heidiNotes.history || '',
+            examination: heidiNotes.examination || '',
+            impression: heidiNotes.impression || '',
+            plan: heidiNotes.plan || ''
+          } : undefined,
+          // Extract SystmOne optimised note from nested data
+          systmOneNote: heidiNotes?.systmOneOptimised ? heidiNotes.systmOneOptimised : undefined,
           // Patient context for memory jogger
           patientName: item.patient_name || undefined,
           patientNhsNumber: item.patient_nhs_number || undefined,
           patientDob: item.patient_dob || undefined,
           patientContextConfidence: item.patient_context_confidence || undefined,
           // SystmOne optimisation status
-          isSystmOneOptimised: notesData?.is_systmone_optimised || false,
+          isSystmOneOptimised: notesData?.is_systmone_optimised || !!heidiNotes?.systmOneOptimised,
         };
       });
 
