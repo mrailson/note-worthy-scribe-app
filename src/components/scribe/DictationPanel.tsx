@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollText, History, Mic, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDictation } from '@/hooks/useDictation';
-import { DictationControls } from './DictationControls';
 import { DictationTextArea } from './DictationTextArea';
 import { DictationTemplates } from './DictationTemplates';
 import { DictationHistoryPanel } from './DictationHistoryPanel';
@@ -71,7 +70,7 @@ export function DictationPanel() {
                 </div>
               )}
 
-              {/* Quick Actions Bar */}
+              {/* Quick Actions Bar with integrated Start/Stop button */}
               <DictationQuickActions
                 content={dictation.content}
                 wordCount={dictation.wordCount}
@@ -84,6 +83,12 @@ export function DictationPanel() {
                 isRecording={dictation.isRecording}
                 isFormatting={dictation.isFormatting}
                 currentSessionId={dictation.currentSessionId}
+                status={dictation.status}
+                isConnecting={dictation.isConnecting}
+                onStart={dictation.startDictation}
+                onStop={dictation.stopDictation}
+                systemAudioEnabled={dictation.systemAudioEnabled}
+                onSystemAudioChange={dictation.setSystemAudioEnabled}
               />
 
               {/* Main Text Area */}
@@ -93,18 +98,6 @@ export function DictationPanel() {
                 status={dictation.status}
                 error={dictation.error}
                 isRecording={dictation.isRecording}
-              />
-
-              {/* Recording Controls */}
-              <DictationControls
-                status={dictation.status}
-                isRecording={dictation.isRecording}
-                isConnecting={dictation.isConnecting}
-                onStart={dictation.startDictation}
-                onStop={dictation.stopDictation}
-                hasContent={!!dictation.content.trim()}
-                systemAudioEnabled={dictation.systemAudioEnabled}
-                onSystemAudioChange={dictation.setSystemAudioEnabled}
               />
             </>
           ) : (
