@@ -407,3 +407,6 @@ verify_jwt = true
 
 [functions.generate-ageing-well-cga]
 verify_jwt = true
+
+[functions.generate-consolidated-meeting-notes]
+verify_jwt = true

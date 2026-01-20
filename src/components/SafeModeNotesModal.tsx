@@ -258,7 +258,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [isRegeneratingNotes, setIsRegeneratingNotes] = useState(false);
   
   // Notes transcript source selection (which transcript to use for generating notes)
-  const [notesTranscriptSource, setNotesTranscriptSource] = useState<'batch' | 'live'>('batch');
+  const [notesTranscriptSource, setNotesTranscriptSource] = useState<'batch' | 'live' | 'consolidated'>('batch');
   const [isRegeneratingFromTranscript, setIsRegeneratingFromTranscript] = useState(false);
 
   // Get icon for note type
@@ -273,10 +273,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   };
 
   // Save notes transcript source preference
-  const saveNotesTranscriptSource = useCallback(async (source: 'batch' | 'live') => {
+  const saveNotesTranscriptSource = useCallback(async (source: 'batch' | 'live' | 'consolidated') => {
     if (!meeting?.id) return;
     
-    const dbSource = source === 'batch' ? 'whisper' : 'assembly';
+    const dbSource = source === 'batch' ? 'whisper' : source === 'live' ? 'assembly' : 'consolidated';
     const { error } = await supabase
       .from('meetings')
       .update({ primary_transcript_source: dbSource })
@@ -286,7 +286,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       console.error('Error saving transcript source preference:', error);
       toast.error('Failed to save transcript source preference');
     } else {
-      toast.success(`Notes will now be generated from ${source === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)'} transcript`);
+      const label = source === 'consolidated' 
+        ? 'Best of Both (Batch + Live)' 
+        : source === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)';
+      toast.success(`Notes will now be generated from ${label}`);
     }
   }, [meeting?.id]);
 
@@ -300,11 +303,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     setIsRegeneratingFromTranscript(true);
     
     try {
-      const sourceLabel = notesTranscriptSource === 'batch' 
-        ? 'Batch (Whisper)' 
-        : 'Live (AssemblyAI)';
+      const sourceLabel = notesTranscriptSource === 'consolidated'
+        ? 'Best of Both (Batch + Live)'
+        : notesTranscriptSource === 'batch' 
+          ? 'Batch (Whisper)' 
+          : 'Live (AssemblyAI)';
       
-      toast.info(`Regenerating notes from ${sourceLabel} transcript...`);
+      toast.info(`Regenerating notes from ${sourceLabel}...`);
       
       const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: { 
@@ -312,7 +317,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           forceRegenerate: true,
           detailLevel: 'standard',
           noteType: noteType,
-          transcriptSource: notesTranscriptSource === 'batch' ? 'whisper' : 'assembly'
+          transcriptSource: notesTranscriptSource === 'consolidated' 
+            ? 'consolidated' 
+            : notesTranscriptSource === 'batch' ? 'whisper' : 'assembly'
         }
       });
       
@@ -321,7 +328,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       // Update notes content
       if (data?.content) {
         setNotesContent(data.content);
-        toast.success(`Notes regenerated from ${sourceLabel} transcript`);
+        toast.success(`Notes regenerated from ${sourceLabel}`);
       } else {
         // Fetch from database
         const { data: updated } = await supabase
@@ -332,7 +339,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         
         if (updated?.notes_style_3) {
           setNotesContent(sanitiseMeetingNotes(updated.notes_style_3));
-          toast.success(`Notes regenerated from ${sourceLabel} transcript`);
+          toast.success(`Notes regenerated from ${sourceLabel}`);
         }
       }
     } catch (error) {
@@ -358,8 +365,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       const typeToUse = newNoteType ?? noteType;
       const typeConfig = MEETING_NOTE_TYPES.find(t => t.id === typeToUse);
       
-      const sourceLabel = notesTranscriptSource === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)';
-      toast.info(`Regenerating ${typeConfig?.label || 'Standard'} notes at ${levelLabel} detail level using ${sourceLabel} transcript...`);
+      const sourceLabel = notesTranscriptSource === 'consolidated' 
+        ? 'Best of Both' 
+        : notesTranscriptSource === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)';
+      toast.info(`Regenerating ${typeConfig?.label || 'Standard'} notes at ${levelLabel} detail level using ${sourceLabel}...`);
       
       const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: { 
@@ -367,7 +376,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           forceRegenerate: true,
           detailLevel: levelLabel.toLowerCase(),
           noteType: typeToUse,
-          transcriptSource: notesTranscriptSource === 'batch' ? 'whisper' : 'assembly'
+          transcriptSource: notesTranscriptSource === 'consolidated' 
+            ? 'consolidated' 
+            : notesTranscriptSource === 'batch' ? 'whisper' : 'assembly'
         }
       });
       
@@ -3583,30 +3594,61 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-lg border border-border">
                         <span className="text-xs text-muted-foreground whitespace-nowrap">Notes from:</span>
                         <div className="flex items-center gap-1 bg-background rounded-md p-0.5">
-                          <Button
-                            variant={notesTranscriptSource === 'batch' ? 'default' : 'ghost'}
-                            size="sm"
-                            onClick={() => {
-                              setNotesTranscriptSource('batch');
-                              saveNotesTranscriptSource('batch');
-                            }}
-                            className="h-6 text-xs px-2"
-                            disabled={!batchTranscript}
-                          >
-                            Batch
-                          </Button>
-                          <Button
-                            variant={notesTranscriptSource === 'live' ? 'default' : 'ghost'}
-                            size="sm"
-                            onClick={() => {
-                              setNotesTranscriptSource('live');
-                              saveNotesTranscriptSource('live');
-                            }}
-                            className="h-6 text-xs px-2"
-                            disabled={!liveTranscript}
-                          >
-                            Live
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={notesTranscriptSource === 'batch' ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={() => {
+                                  setNotesTranscriptSource('batch');
+                                  saveNotesTranscriptSource('batch');
+                                }}
+                                className="h-6 text-xs px-2"
+                                disabled={!batchTranscript}
+                              >
+                                Batch
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Higher textual accuracy (Whisper)</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={notesTranscriptSource === 'live' ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={() => {
+                                  setNotesTranscriptSource('live');
+                                  saveNotesTranscriptSource('live');
+                                }}
+                                className="h-6 text-xs px-2"
+                                disabled={!liveTranscript}
+                              >
+                                Live
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Higher conversational nuance (AssemblyAI)</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={notesTranscriptSource === 'consolidated' ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={() => {
+                                  setNotesTranscriptSource('consolidated');
+                                  saveNotesTranscriptSource('consolidated');
+                                }}
+                                className={`h-6 text-xs px-2 gap-1 ${notesTranscriptSource === 'consolidated' ? 'bg-gradient-to-r from-primary to-purple-600' : ''}`}
+                                disabled={!batchTranscript || !liveTranscript}
+                              >
+                                <Sparkles className="h-3 w-3" />
+                                Best of Both
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p className="font-medium">NHS Governance-Ready Notes</p>
+                              <p className="text-xs mt-1">Uses Batch as primary source of fact, Live for nuance and intent. Includes confidence rating and clinical safety notes.</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                         {/* Regenerate Notes Button */}
                         <Button

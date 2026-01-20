@@ -251,7 +251,117 @@ serve(async (req) => {
     let actualTranscriptSource = 'unknown';
     let itemCount = 0;
 
-    if (transcriptSource === 'whisper') {
+    if (transcriptSource === 'consolidated') {
+      // Use BOTH transcripts for consolidated "Best of Both" notes generation
+      console.log('📄 User requested consolidated dual-transcript mode');
+      const { data: meetingTranscript } = await supabase
+        .from('meetings')
+        .select('whisper_transcript_text, assembly_transcript_text, live_transcript_text, title, meeting_location, meeting_format')
+        .eq('id', meetingId)
+        .single();
+      
+      const batchTranscript = meetingTranscript?.whisper_transcript_text || '';
+      const liveTranscript = meetingTranscript?.assembly_transcript_text || meetingTranscript?.live_transcript_text || '';
+      
+      if (batchTranscript.trim() && liveTranscript.trim()) {
+        // Call the consolidated notes edge function
+        console.log('🔀 Calling generate-consolidated-meeting-notes with both transcripts...');
+        console.log('📊 Batch:', batchTranscript.length, 'chars, Live:', liveTranscript.length, 'chars');
+        
+        // Fetch attendees for the consolidated notes
+        const { data: cardAttendees } = await supabase
+          .from('meeting_attendees')
+          .select(`
+            attendee:attendees (
+              name,
+              organization
+            )
+          `)
+          .eq('meeting_id', meetingId);
+        
+        const attendeeList = cardAttendees
+          ?.map(item => {
+            if (item.attendee?.organization) {
+              return `${item.attendee.name} (${item.attendee.organization})`;
+            }
+            return item.attendee?.name;
+          })
+          .filter(Boolean) || [];
+        
+        const consolidatedResponse = await fetch(`${supabaseUrl}/functions/v1/generate-consolidated-meeting-notes`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            batchTranscript,
+            liveTranscript,
+            meetingId,
+            meetingTitle: meeting.title,
+            meetingDate: meeting.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : null,
+            meetingTime: meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : null,
+            meetingLocation: meetingTranscript?.meeting_location,
+            attendees: attendeeList,
+            detailLevel
+          })
+        });
+        
+        if (consolidatedResponse.ok) {
+          const consolidatedResult = await consolidatedResponse.json();
+          
+          if (consolidatedResult.success && consolidatedResult.content) {
+            console.log('✅ Consolidated notes generated successfully');
+            console.log('📊 Stats:', consolidatedResult.stats);
+            
+            // Save the consolidated notes to database
+            const { error: updateError } = await supabase
+              .from('meetings')
+              .update({ 
+                notes_style_3: consolidatedResult.content,
+                notes_generation_status: 'completed',
+                primary_transcript_source: 'consolidated'
+              })
+              .eq('id', meetingId);
+            
+            if (updateError) {
+              console.error('❌ Failed to save consolidated notes:', updateError);
+            }
+            
+            // Also save to meeting_summaries
+            await supabase
+              .from('meeting_summaries')
+              .upsert({
+                meeting_id: meetingId,
+                summary: consolidatedResult.content,
+                summary_type: 'consolidated',
+                model_used: 'gemini-2.5-flash',
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'meeting_id' });
+            
+            return new Response(
+              JSON.stringify({ 
+                success: true, 
+                content: consolidatedResult.content,
+                source: 'consolidated',
+                stats: consolidatedResult.stats
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+        
+        // Fallback if consolidated generation failed
+        console.log('⚠️ Consolidated generation failed, falling back to batch transcript');
+        fullTranscript = batchTranscript;
+        actualTranscriptSource = 'whisper_fallback';
+      } else {
+        // Not enough transcripts for consolidated mode
+        console.log('⚠️ Both transcripts required for consolidated mode, falling back');
+        fullTranscript = batchTranscript || liveTranscript;
+        actualTranscriptSource = batchTranscript ? 'whisper_fallback' : 'assembly_fallback';
+      }
+    } else if (transcriptSource === 'whisper') {
       // Use Whisper (batch) transcript directly from meetings table
       console.log('📄 User requested Whisper (batch) transcript');
       const { data: meetingTranscript } = await supabase
