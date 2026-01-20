@@ -24,8 +24,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { parseLetter, cleanMarkdownText, isLetterFormat, reconstructLetter, ParsedLetter } from '@/utils/letterParser';
+import { parseLetter, isLetterFormat, reconstructLetter, ParsedLetter } from '@/utils/letterParser';
 import { cn } from '@/lib/utils';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { toast } from 'sonner';
 
 interface LetterPreviewModalProps {
@@ -448,18 +449,22 @@ export const LetterPreviewModal: React.FC<LetterPreviewModalProps> = ({
     </div>
   );
   
-  // Render plain text preview (for non-letter content)
-  const renderPlainPreview = () => (
-    <div className="bg-white rounded-lg shadow-lg max-w-3xl mx-auto px-8 py-6">
-      <div className="prose prose-sm max-w-none dark:prose-invert">
-        {content.split('\n\n').map((paragraph, idx) => (
-          <p key={idx} className="mb-4 leading-relaxed">
-            {cleanMarkdownText(paragraph)}
-          </p>
-        ))}
+  // Render plain text preview (for non-letter content) with full markdown support
+  const renderPlainPreview = () => {
+    const renderedHtml = renderNHSMarkdown(content, { 
+      enableNHSStyling: true, 
+      baseFontSize: 14 
+    });
+    
+    return (
+      <div className="bg-white rounded-lg shadow-lg max-w-3xl mx-auto px-8 py-6">
+        <div 
+          className="prose prose-sm max-w-none dark:prose-invert prose-p:mb-4 prose-p:leading-relaxed prose-headings:text-foreground prose-strong:text-foreground"
+          dangerouslySetInnerHTML={{ __html: renderedHtml }}
+        />
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
