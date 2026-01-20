@@ -151,7 +151,8 @@ export function useDictation() {
     const last = lastFinalSegmentRef.current;
     if (!last) return false;
 
-    const withinWindow = Date.now() - lastFinalAtRef.current < 2000;
+    // Extend time window to 10 seconds - AssemblyAI can send reformatted versions later
+    const withinWindow = Date.now() - lastFinalAtRef.current < 10000;
     if (!withinWindow) return false;
 
     const a = normalise(last);
@@ -159,6 +160,20 @@ export function useDictation() {
     if (!a || !b) return false;
 
     return a === b || a.startsWith(b) || b.startsWith(a);
+  }, [normalise]);
+  
+  // Check if text is already in the transcript (broader duplicate detection)
+  const isAlreadyInTranscript = useCallback((newText: string): boolean => {
+    const existing = recordingTranscriptRef.current;
+    if (!existing || !newText) return false;
+    
+    const normNew = normalise(newText);
+    const normExisting = normalise(existing);
+    
+    if (!normNew || normNew.length < 20) return false; // Too short to reliably detect
+    
+    // Check if the normalised new text is already contained in the existing transcript
+    return normExisting.includes(normNew);
   }, [normalise]);
   
   // Keep contentRef in sync
@@ -364,6 +379,9 @@ export function useDictation() {
             const prevSeg = lastFinalSegmentRef.current;
             recordingTranscriptRef.current = replaceTrailingSegment(recordingTranscriptRef.current, prevSeg, processedText);
             console.log('🔁 Replaced duplicate final segment');
+          } else if (isAlreadyInTranscript(processedText)) {
+            // Skip - this text already exists in the transcript (broader duplicate detection)
+            console.log('⏭️ Skipping duplicate text already in transcript');
           } else {
             // Append brand new final segment
             recordingTranscriptRef.current = (recordingTranscriptRef.current + ' ' + processedText).trim();
