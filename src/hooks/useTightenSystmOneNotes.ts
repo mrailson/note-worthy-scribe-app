@@ -28,6 +28,15 @@ export function useTightenSystmOneNotes() {
   const [qualityGate, setQualityGate] = useState<QualityGate | null>(null);
 
   const tightenNotes = useCallback(async (input: TightenInput): Promise<TightenResult | null> => {
+    // Guard: Check if at least one section has meaningful content
+    const hasContent = [input.history, input.examination, input.assessment, input.plan]
+      .some(section => section && section.trim().length > 0);
+
+    if (!hasContent) {
+      console.log('Skipping tighten - no content to optimise');
+      return null;
+    }
+
     setIsTightening(true);
     setQualityGate(null);
 
