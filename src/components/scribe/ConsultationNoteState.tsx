@@ -102,6 +102,15 @@ export const ConsultationNoteState = ({
 }: ConsultationNoteStateProps) => {
   const isMobile = useIsMobile();
 
+  // Debug: Log what we're rendering with
+  console.log('🖥️ ConsultationNoteState rendering:', {
+    viewMode,
+    hasHeidiNote: !!consultationNote?.heidiNote,
+    hasSystmOneNote: !!consultationNote?.systmOneNote,
+    systmOneHistory: consultationNote?.systmOneNote?.history?.substring(0, 80),
+    heidiHistory: consultationNote?.heidiNote?.history?.substring(0, 80)
+  });
+
   // Determine which format to display
   const useHeidiFormat = consultationNote.noteFormat === 'heidi' && 
     consultationNote.heidiNote && 

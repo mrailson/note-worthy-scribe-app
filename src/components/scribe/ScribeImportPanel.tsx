@@ -300,6 +300,14 @@ export const ScribeImportPanel = ({ settings, onNotesGenerated }: ScribeImportPa
       setProgress(100);
       showToast.success('Notes generated successfully', { section: 'gpscribe' });
       
+      // Debug: Log the note object being passed
+      console.log('📋 Import: Passing note to parent:', {
+        hasHeidiNote: !!note.heidiNote,
+        hasSystmOneNote: !!note.systmOneNote,
+        systmOneHistory: note.systmOneNote?.history?.substring(0, 80),
+        heidiHistory: note.heidiNote?.history?.substring(0, 80)
+      });
+      
       // Pass the generated notes back to parent
       onNotesGenerated(note, transcript);
       
