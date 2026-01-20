@@ -64,6 +64,11 @@ export function useDictation() {
   const lastFinalSegmentRef = useRef<string>(''); // Last final segment for dedup
   const lastFinalAtRef = useRef<number>(0);
   
+  // Enhanced: Track recent finals for sliding window deduplication
+  const recentFinalsRef = useRef<Array<{text: string; normText: string; timestamp: number}>>([]);
+  const RECENT_WINDOW_MS = 15000; // 15 second window for detecting reformatted duplicates
+  const MAX_RECENT_FINALS = 10;
+  
   // Convert spoken number words to digits for comparison
   const wordsToNumbers = useCallback((text: string): string => {
     const ones: Record<string, number> = {
@@ -126,6 +131,11 @@ export function useDictation() {
       .trim();
   }, [wordsToNumbers]);
   
+  // Extract words from text for overlap detection
+  const getWords = useCallback((text: string): string[] => {
+    return normalise(text).split(' ').filter(w => w.length > 0);
+  }, [normalise]);
+  
   // Replace trailing segment (for when AssemblyAI sends formatted after raw)
   const replaceTrailingSegment = useCallback((full: string, oldSeg: string, newSeg: string) => {
     const t = full.trim();
@@ -162,7 +172,42 @@ export function useDictation() {
     return a === b || a.startsWith(b) || b.startsWith(a);
   }, [normalise]);
   
-  // Check if text is already in the transcript (broader duplicate detection)
+  // Enhanced: Check if text has substantial word overlap with recent content
+  const hasSubstantialOverlap = useCallback((newText: string, existingText: string, threshold = 0.65): boolean => {
+    const newWords = getWords(newText);
+    const existingWords = getWords(existingText);
+    
+    if (newWords.length < 5 || existingWords.length < 5) return false;
+    
+    // Check if the tail of existing appears in new (reformatted continuation)
+    const checkWindow = Math.min(12, existingWords.length);
+    const tailOfExisting = existingWords.slice(-checkWindow);
+    const newWordStr = newWords.join(' ');
+    const tailStr = tailOfExisting.join(' ');
+    
+    if (newWordStr.includes(tailStr)) {
+      console.log('🔍 Overlap detected: tail of existing found in new');
+      return true;
+    }
+    
+    // Check word-by-word overlap percentage
+    const newSet = new Set(newWords);
+    let matchCount = 0;
+    const checkCount = Math.min(25, existingWords.length);
+    for (const word of existingWords.slice(-checkCount)) {
+      if (newSet.has(word)) matchCount++;
+    }
+    
+    const overlapRatio = matchCount / checkCount;
+    if (overlapRatio >= threshold) {
+      console.log(`🔍 High word overlap detected: ${(overlapRatio * 100).toFixed(0)}%`);
+      return true;
+    }
+    
+    return false;
+  }, [getWords]);
+  
+  // Enhanced: Check if text is already in the transcript (broader duplicate detection)
   const isAlreadyInTranscript = useCallback((newText: string): boolean => {
     const existing = recordingTranscriptRef.current;
     if (!existing || !newText) return false;
@@ -170,11 +215,43 @@ export function useDictation() {
     const normNew = normalise(newText);
     const normExisting = normalise(existing);
     
-    if (!normNew || normNew.length < 20) return false; // Too short to reliably detect
+    if (!normNew || normNew.length < 15) return false; // Too short to reliably detect
     
-    // Check if the normalised new text is already contained in the existing transcript
-    return normExisting.includes(normNew);
-  }, [normalise]);
+    // Direct containment check (either direction)
+    if (normExisting.includes(normNew)) {
+      console.log('⏭️ Duplicate: new text already in transcript (direct match)');
+      return true;
+    }
+    
+    // Check against recent finals sliding window
+    const now = Date.now();
+    const recentFinals = recentFinalsRef.current.filter(f => now - f.timestamp < RECENT_WINDOW_MS);
+    
+    // Concatenate recent finals for comparison
+    const recentNormConcat = recentFinals.map(f => f.normText).join(' ');
+    if (recentNormConcat && recentNormConcat.length > 20) {
+      // Check if new text overlaps substantially with recent finals
+      if (hasSubstantialOverlap(normNew, recentNormConcat, 0.6)) {
+        console.log('⏭️ Duplicate: substantial overlap with recent finals window');
+        return true;
+      }
+      
+      // Check if new text is contained in recent window
+      if (recentNormConcat.includes(normNew)) {
+        console.log('⏭️ Duplicate: new text found in recent finals window');
+        return true;
+      }
+    }
+    
+    // Check last ~500 chars of existing transcript for overlap
+    const tail500 = normExisting.slice(-500);
+    if (tail500.length > 50 && hasSubstantialOverlap(normNew, tail500, 0.65)) {
+      console.log('⏭️ Duplicate: substantial overlap with transcript tail');
+      return true;
+    }
+    
+    return false;
+  }, [normalise, hasSubstantialOverlap]);
   
   // Keep contentRef in sync
   useEffect(() => {
@@ -280,6 +357,7 @@ export function useDictation() {
     currentPartialRef.current = '';
     lastFinalSegmentRef.current = '';
     lastFinalAtRef.current = 0;
+    recentFinalsRef.current = []; // Clear recent finals window
 
     try {
       // If system audio is enabled, capture it
@@ -373,18 +451,42 @@ export function useDictation() {
           console.log('🏥 Dictation FINAL (processed):', processedText.substring(0, 50) + '...');
           
           const now = Date.now();
+          const normProcessed = normalise(processedText);
+          
+          // Prune old entries from recent finals window
+          recentFinalsRef.current = recentFinalsRef.current
+            .filter(f => now - f.timestamp < RECENT_WINDOW_MS)
+            .slice(-MAX_RECENT_FINALS);
           
           if (shouldReplaceLastFinal(processedText)) {
             // Replace the last final segment (AssemblyAI often sends formatted after raw)
             const prevSeg = lastFinalSegmentRef.current;
             recordingTranscriptRef.current = replaceTrailingSegment(recordingTranscriptRef.current, prevSeg, processedText);
             console.log('🔁 Replaced duplicate final segment');
+            
+            // Update the last entry in recent finals instead of adding new
+            if (recentFinalsRef.current.length > 0) {
+              recentFinalsRef.current[recentFinalsRef.current.length - 1] = {
+                text: processedText,
+                normText: normProcessed,
+                timestamp: now
+              };
+            }
           } else if (isAlreadyInTranscript(processedText)) {
             // Skip - this text already exists in the transcript (broader duplicate detection)
             console.log('⏭️ Skipping duplicate text already in transcript');
+            // Don't add to recent finals - it's a duplicate
           } else {
             // Append brand new final segment
             recordingTranscriptRef.current = (recordingTranscriptRef.current + ' ' + processedText).trim();
+            console.log('✅ Appended new final segment');
+            
+            // Track in recent finals window
+            recentFinalsRef.current.push({
+              text: processedText,
+              normText: normProcessed,
+              timestamp: now
+            });
           }
           
           lastFinalSegmentRef.current = processedText;
