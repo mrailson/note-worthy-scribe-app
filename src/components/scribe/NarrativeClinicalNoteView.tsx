@@ -74,6 +74,14 @@ export const NarrativeClinicalNoteView = ({
         intervention: narrativeClinicalNote.intervention, // Keep intervention unchanged
         plan: result.plan
       });
+
+      // Auto-save the optimised sections to persist changes
+      if (onSectionChange) {
+        onSectionChange('history', result.history);
+        onSectionChange('examination', result.examination);
+        onSectionChange('assessment', result.assessment);
+        onSectionChange('plan', result.plan);
+      }
     }
   };
 
