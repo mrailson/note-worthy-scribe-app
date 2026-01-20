@@ -69,6 +69,7 @@ import { TranscriptionHealthIndicator } from "@/components/meeting/Transcription
 import { useTeamsAudioDetection } from "@/hooks/useTeamsAudioDetection";
 import { TeamsAudioHint } from "@/components/meeting/TeamsAudioHint";
 import { useAssemblyRealtimePreview, PreviewStatus } from "@/hooks/useAssemblyRealtimePreview";
+import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 
 
@@ -5747,11 +5748,15 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                         </div>
                      </div>
                    ) : (
-                      <div className="space-y-1">
+                      <div className="space-y-3">
+                        {/* Prominent Paused Banner */}
+                        {isPaused && (
+                          <MeetingPausedBanner onResume={unpauseRecording} />
+                        )}
                         
-                       <div className="flex items-center justify-between gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
+                       <div className={`flex items-center justify-between gap-3 text-primary ${isPaused ? '' : 'animate-pulse'} bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20`}>
                          <div className="flex items-center gap-3">
-                           <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                           <div className={`w-3 h-3 ${isPaused ? 'bg-amber-500' : 'bg-red-500'} rounded-full ${isPaused ? '' : 'animate-pulse'}`}></div>
                            <span className="text-base font-semibold">
                              {isPaused ? "Recording paused..." : "Recording in progress..."}
                            </span>
