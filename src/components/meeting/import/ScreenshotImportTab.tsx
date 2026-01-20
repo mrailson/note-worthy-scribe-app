@@ -29,6 +29,7 @@ export const ScreenshotImportTab: React.FC<ScreenshotImportTabProps> = ({
   isImporting
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -38,6 +39,30 @@ export const ScreenshotImportTab: React.FC<ScreenshotImportTabProps> = ({
   const [selectedAttendees, setSelectedAttendees] = useState<Set<string>>(new Set());
   const [selectedActions, setSelectedActions] = useState<Set<string>>(new Set());
   const [selectedAgenda, setSelectedAgenda] = useState<Set<string>>(new Set());
+
+  // Handle paste events for images
+  React.useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (!dropZoneRef.current) return;
+      
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            processImage(file);
+          }
+          break;
+        }
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, []);
 
   const processImage = async (file: File) => {
     setIsProcessing(true);
@@ -248,12 +273,14 @@ export const ScreenshotImportTab: React.FC<ScreenshotImportTabProps> = ({
       
       {!selectedImage ? (
         <div
+          ref={dropZoneRef}
           onClick={() => fileInputRef.current?.click()}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          tabIndex={0}
           className={cn(
-            "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200",
+            "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
             isDragOver 
               ? "border-primary bg-primary/5 scale-[1.02]" 
               : "border-border/60 hover:border-primary/50 hover:bg-muted/30"
@@ -270,7 +297,7 @@ export const ScreenshotImportTab: React.FC<ScreenshotImportTabProps> = ({
               )} />
             </div>
             <div>
-              <p className="font-medium">Drop a screenshot here</p>
+              <p className="font-medium">Drop or paste a screenshot here</p>
               <p className="text-sm text-muted-foreground mt-1">
                 or click to browse • Supports JPG, PNG, WEBP
               </p>
