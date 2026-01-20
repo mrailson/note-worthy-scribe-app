@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useDropzone } from 'react-dropzone';
 import { format } from 'date-fns';
-import { CalendarIcon, Upload, FileText, Loader2, ClipboardPaste } from 'lucide-react';
+import { CalendarIcon, Upload, FileText, Loader2, ClipboardPaste, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
@@ -27,8 +27,50 @@ export const AppointmentImportModal = ({ isOpen, onClose, onImport }: Appointmen
   const [sessionName, setSessionName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const dropzoneRef = useRef<HTMLDivElement>(null);
+
+  // Handle image OCR extraction
+  const handleImageOCR = useCallback(async (file: File) => {
+    setIsProcessing(true);
+    setUploadedFileName(file.name);
+    
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      
+      const mimeType = file.type || 'image/png';
+      const dataUrl = `data:${mimeType};base64,${base64}`;
+      
+      // Use the extract-document-text edge function with image type
+      const { data, error } = await supabase.functions.invoke('extract-document-text', {
+        body: { dataUrl, fileType: 'image' }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.extractedText) {
+        setPastedText(data.extractedText);
+        setActiveTab('paste');
+        showToast.success('Screenshot processed via OCR');
+      } else {
+        throw new Error('No text extracted from image');
+      }
+    } catch (error) {
+      console.error('Image OCR error:', error);
+      showToast.error('Failed to extract text from screenshot');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, []);
 
   const handleFileUpload = useCallback(async (file: File) => {
+    // Check if it's an image file
+    if (file.type.startsWith('image/')) {
+      return handleImageOCR(file);
+    }
+    
     setIsProcessing(true);
     setUploadedFileName(file.name);
     
@@ -92,7 +134,31 @@ export const AppointmentImportModal = ({ isOpen, onClose, onImport }: Appointmen
     } finally {
       setIsProcessing(false);
     }
-  }, []);
+  }, [handleImageOCR]);
+
+  // Handle paste events for images
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      if (!isOpen || isProcessing) return;
+      
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            await handleImageOCR(file);
+          }
+          return;
+        }
+      }
+    };
+    
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [isOpen, isProcessing, handleImageOCR]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (files) => {
@@ -106,7 +172,11 @@ export const AppointmentImportModal = ({ isOpen, onClose, onImport }: Appointmen
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
       'application/vnd.ms-excel': ['.xls'],
       'text/plain': ['.txt'],
-      'text/csv': ['.csv']
+      'text/csv': ['.csv'],
+      'image/png': ['.png'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/webp': ['.webp'],
+      'image/gif': ['.gif']
     },
     maxFiles: 1,
     disabled: isProcessing
@@ -151,7 +221,7 @@ export const AppointmentImportModal = ({ isOpen, onClose, onImport }: Appointmen
         <DialogHeader>
           <DialogTitle>Import Appointments</DialogTitle>
           <DialogDescription>
-            Import your appointment list from a Word document, Excel file, or paste directly.
+            Import your appointment list from a Word document, Excel file, screenshot of your rota, or paste directly.
           </DialogDescription>
         </DialogHeader>
 
@@ -245,14 +315,20 @@ export const AppointmentImportModal = ({ isOpen, onClose, onImport }: Appointmen
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-2">
-                    <FileText className="h-10 w-10 text-muted-foreground" />
+                    <div className="flex gap-2">
+                      <FileText className="h-8 w-8 text-muted-foreground" />
+                      <Image className="h-8 w-8 text-muted-foreground" />
+                    </div>
                     {isDragActive ? (
                       <p className="text-primary">Drop the file here...</p>
                     ) : (
                       <>
-                        <p className="font-medium">Drag & drop a file here</p>
+                        <p className="font-medium">Drag & drop a file or paste a screenshot</p>
                         <p className="text-sm text-muted-foreground">
-                          or click to browse (Word, Excel, TXT, CSV)
+                          Word, Excel, TXT, CSV, or screenshots of your rota (PNG, JPG)
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Press Ctrl+V to paste a screenshot from clipboard
                         </p>
                       </>
                     )}
