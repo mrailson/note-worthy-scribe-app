@@ -3360,6 +3360,7 @@ export type Database = {
           created_at: string
           heidi_notes: Json | null
           id: string
+          is_systmone_optimised: boolean | null
           note_format: string | null
           note_style: string | null
           patient_letter: string | null
@@ -3375,6 +3376,7 @@ export type Database = {
           created_at?: string
           heidi_notes?: Json | null
           id?: string
+          is_systmone_optimised?: boolean | null
           note_format?: string | null
           note_style?: string | null
           patient_letter?: string | null
@@ -3390,6 +3392,7 @@ export type Database = {
           created_at?: string
           heidi_notes?: Json | null
           id?: string
+          is_systmone_optimised?: boolean | null
           note_format?: string | null
           note_style?: string | null
           patient_letter?: string | null

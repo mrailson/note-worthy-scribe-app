@@ -728,6 +728,122 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     }
   }, [consultationNote, settings.emrFormat]);
 
+  // Update narrative section in database (for SystmOne optimisation persistence)
+  const updateNarrativeSection = useCallback(async (
+    consultationId: string,
+    sectionKey: string,
+    newContent: string,
+    markAsSystmOneOptimised?: boolean
+  ) => {
+    try {
+      // Update local state first
+      setConsultationNote(prev => {
+        if (!prev?.heidiNote) return prev;
+        
+        // Map narrative sections to heidi note keys
+        const keyMap: Record<string, keyof HeidiNote> = {
+          'history': 'history',
+          'examination': 'examination',
+          'assessment': 'impression', // assessment maps to impression
+          'plan': 'plan'
+        };
+        
+        const heidiKey = keyMap[sectionKey];
+        if (!heidiKey) return prev;
+        
+        return {
+          ...prev,
+          heidiNote: {
+            ...prev.heidiNote,
+            [heidiKey]: newContent
+          }
+        };
+      });
+
+      // Check if notes record exists
+      const { data: existingNote, error: fetchError } = await supabase
+        .from('gp_consultation_notes')
+        .select('id, heidi_notes')
+        .eq('consultation_id', consultationId)
+        .maybeSingle();
+      
+      if (fetchError) {
+        console.error('Error checking for existing notes:', fetchError);
+        return;
+      }
+
+      if (!existingNote) {
+        console.warn('No notes record found for consultation:', consultationId);
+        return;
+      }
+
+      // Map narrative sections to heidi note keys
+      const keyMap: Record<string, string> = {
+        'history': 'history',
+        'examination': 'examination',
+        'assessment': 'impression',
+        'plan': 'plan'
+      };
+      
+      const heidiKey = keyMap[sectionKey];
+      if (!heidiKey) return;
+
+      // Update heidi_notes with the new section content
+      const currentHeidiNotes = (typeof existingNote.heidi_notes === 'object' && existingNote.heidi_notes !== null) 
+        ? existingNote.heidi_notes as Record<string, unknown>
+        : {};
+      const updatedHeidiNotes = {
+        ...currentHeidiNotes,
+        [heidiKey]: newContent
+      };
+
+      // Build update payload
+      const updatePayload: Record<string, unknown> = {
+        heidi_notes: updatedHeidiNotes,
+        updated_at: new Date().toISOString()
+      };
+
+      // Optionally mark as SystmOne optimised
+      if (markAsSystmOneOptimised !== undefined) {
+        updatePayload.is_systmone_optimised = markAsSystmOneOptimised;
+      }
+
+      const { error: updateError } = await supabase
+        .from('gp_consultation_notes')
+        .update(updatePayload)
+        .eq('consultation_id', consultationId);
+
+      if (updateError) {
+        console.error('Error updating narrative section:', updateError);
+      } else {
+        console.log(`✅ Narrative section '${sectionKey}' updated in database`);
+      }
+    } catch (error) {
+      console.error('Failed to update narrative section:', error);
+    }
+  }, []);
+
+  // Mark consultation as SystmOne optimised (called after all sections are updated)
+  const markAsSystmOneOptimised = useCallback(async (consultationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('gp_consultation_notes')
+        .update({ 
+          is_systmone_optimised: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('consultation_id', consultationId);
+
+      if (error) {
+        console.error('Error marking as SystmOne optimised:', error);
+      } else {
+        console.log('✅ Consultation marked as SystmOne optimised');
+      }
+    } catch (error) {
+      console.error('Failed to mark as SystmOne optimised:', error);
+    }
+  }, []);
+
   return {
     // State
     consultationState,
@@ -814,5 +930,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     removeContextFile,
     // Import
     setImportedConsultation,
+    // Narrative section updates (for SystmOne optimisation)
+    updateNarrativeSection,
+    markAsSystmOneOptimised,
   };
 };

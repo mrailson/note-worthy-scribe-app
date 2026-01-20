@@ -286,6 +286,20 @@ const Scribe = () => {
                   transcript={consultation.transcript}
                   userId={user?.id}
                   patientContext={consultation.patientContext}
+                  onNarrativeSectionChange={(sectionKey, content) => {
+                    // Get the most recent consultation ID from history
+                    const latestSession = history.sessions[0];
+                    if (latestSession?.id) {
+                      // Check if this is the optimisation complete signal
+                      const isOptimisationComplete = sectionKey === '__systmone_optimised__';
+                      if (isOptimisationComplete) {
+                        consultation.markAsSystmOneOptimised(latestSession.id);
+                      } else {
+                        consultation.updateNarrativeSection(latestSession.id, sectionKey, content);
+                      }
+                    }
+                  }}
+                  consultationId={history.sessions[0]?.id}
                 />
               )}
             </TabsContent>

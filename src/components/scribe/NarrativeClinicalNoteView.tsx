@@ -81,6 +81,8 @@ export const NarrativeClinicalNoteView = ({
         onSectionChange('examination', result.examination);
         onSectionChange('assessment', result.assessment);
         onSectionChange('plan', result.plan);
+        // Signal optimisation complete to mark consultation as SystmOne optimised
+        onSectionChange('__systmone_optimised__', 'true');
       }
     }
   };
