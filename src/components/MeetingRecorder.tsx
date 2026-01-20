@@ -63,7 +63,7 @@ import { QuickAudioSourceSwitcher, AudioSourceMode as QuickAudioSourceMode } fro
 import { QuickRecordQRLink } from "@/components/meeting/QuickRecordQRLink";
 import { MeetingMicrophoneSettings } from "@/components/meeting/MeetingMicrophoneSettings";
 import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscriptImportModal";
-import { MultiAudioImport } from "@/components/meeting/MultiAudioImport";
+import { LiveImportModal } from "@/components/meeting/import/LiveImportModal";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
 import { useTeamsAudioDetection } from "@/hooks/useTeamsAudioDetection";
@@ -5726,7 +5726,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                     </TooltipTrigger>
                     <TooltipContent side="bottom" align="end" className="max-w-xs">
                       <p className="font-medium">Import Content</p>
-                      <p className="text-xs text-muted-foreground">Import audio files, documents (TXT, DOC, DOCX), or paste transcripts including Teams format</p>
+                      <p className="text-xs text-muted-foreground">Import attendees, action items, or agenda via screenshot, paste, or file</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -7123,8 +7123,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         onOpenChange={setTeamsImportOpen}
       />
       
-      {/* Multi-Audio Import Modal */}
-      <MultiAudioImport
+      {/* Live Import Modal */}
+      <LiveImportModal
         open={audioImportOpen}
         onOpenChange={setAudioImportOpen}
       />
