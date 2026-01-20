@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Palette, Layout, Paintbrush } from 'lucide-react';
+import { Palette, Layout, Paintbrush, ChevronDown, ChevronRight } from 'lucide-react';
 import { 
   STYLE_PRESETS, 
   NHS_PALETTES, 
@@ -13,6 +13,7 @@ import type { ImageStudioSettings } from '@/types/imageStudio';
 import type { ColourPalette } from '@/utils/colourPalettes';
 import { ColourPicker } from './ColourPicker';
 import { cn } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface StyleTabProps {
   settings: ImageStudioSettings;
@@ -20,6 +21,9 @@ interface StyleTabProps {
 }
 
 export const StyleTab: React.FC<StyleTabProps> = ({ settings, onUpdate }) => {
+  const [stylePresetOpen, setStylePresetOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
   const handleStylePresetChange = (presetId: string) => {
     const preset = STYLE_PRESETS.find(p => p.id === presetId);
     if (!preset) return;
@@ -38,10 +42,12 @@ export const StyleTab: React.FC<StyleTabProps> = ({ settings, onUpdate }) => {
         colourPalette: CUSTOM_PALETTE_DEFAULTS
       });
     }
+    setStylePresetOpen(false);
   };
 
   const handlePaletteChange = (palette: ColourPalette) => {
     onUpdate({ colourPalette: palette });
+    setPaletteOpen(false);
   };
 
   const handleCustomColourChange = (key: keyof ColourPalette, value: string) => {
@@ -53,39 +59,82 @@ export const StyleTab: React.FC<StyleTabProps> = ({ settings, onUpdate }) => {
     });
   };
 
+  const selectedPreset = STYLE_PRESETS.find(p => p.id === settings.stylePreset);
+
   return (
     <div className="space-y-6">
-      {/* Style Presets */}
-      <div className="space-y-3">
-        <Label className="flex items-center gap-2">
-          <Paintbrush className="h-4 w-4" />
-          Style Preset
-        </Label>
-        <div className="grid grid-cols-2 gap-3">
-          {STYLE_PRESETS.map((preset) => (
-            <Card 
-              key={preset.id}
-              className={cn(
-                "cursor-pointer transition-all hover:border-primary/50",
-                settings.stylePreset === preset.id && "border-primary bg-primary/5 ring-1 ring-primary"
+      {/* Style Presets - Collapsible */}
+      <Collapsible open={stylePresetOpen} onOpenChange={setStylePresetOpen}>
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-2">
+              <Paintbrush className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Style Preset</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">{selectedPreset?.name || 'Select'}</span>
+              {stylePresetOpen ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
               )}
-              onClick={() => handleStylePresetChange(preset.id)}
-            >
-              <CardContent className="p-4">
-                <p className="font-medium">{preset.name}</p>
-                <p className="text-xs text-muted-foreground mt-1">{preset.description}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-3">
+          <div className="grid grid-cols-2 gap-3">
+            {STYLE_PRESETS.map((preset) => (
+              <Card 
+                key={preset.id}
+                className={cn(
+                  "cursor-pointer transition-all hover:border-primary/50",
+                  settings.stylePreset === preset.id && "border-primary bg-primary/5 ring-1 ring-primary"
+                )}
+                onClick={() => handleStylePresetChange(preset.id)}
+              >
+                <CardContent className="p-4">
+                  <p className="font-medium">{preset.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{preset.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
-      {/* Colour Palette Selection */}
-      <div className="space-y-3">
-        <Label className="flex items-center gap-2">
-          <Palette className="h-4 w-4" />
-          Colour Palette
-        </Label>
+      {/* Colour Palette Selection - Collapsible */}
+      <Collapsible open={paletteOpen} onOpenChange={setPaletteOpen}>
+        <CollapsibleTrigger className="w-full">
+          <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-2">
+              <Palette className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Colour Palette</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <div 
+                  className="w-4 h-4 rounded-full border shadow-sm" 
+                  style={{ backgroundColor: settings.colourPalette.primary }}
+                />
+                <div 
+                  className="w-4 h-4 rounded-full border shadow-sm" 
+                  style={{ backgroundColor: settings.colourPalette.secondary }}
+                />
+                <div 
+                  className="w-4 h-4 rounded-full border shadow-sm" 
+                  style={{ backgroundColor: settings.colourPalette.accent }}
+                />
+              </div>
+              <span className="text-sm text-muted-foreground">{settings.colourPalette.name}</span>
+              {paletteOpen ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-3">
         
         {settings.stylePreset !== 'custom' ? (
           <div className="grid grid-cols-2 gap-3">
@@ -152,35 +201,8 @@ export const StyleTab: React.FC<StyleTabProps> = ({ settings, onUpdate }) => {
             </div>
           </div>
         )}
-
-        {/* Current palette preview */}
-        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-          <span className="text-sm text-muted-foreground">Current:</span>
-          <div className="flex items-center gap-1">
-            <div 
-              className="w-6 h-6 rounded border shadow-sm" 
-              style={{ backgroundColor: settings.colourPalette.primary }}
-              title="Primary"
-            />
-            <div 
-              className="w-6 h-6 rounded border shadow-sm" 
-              style={{ backgroundColor: settings.colourPalette.secondary }}
-              title="Secondary"
-            />
-            <div 
-              className="w-6 h-6 rounded border shadow-sm" 
-              style={{ backgroundColor: settings.colourPalette.accent }}
-              title="Accent"
-            />
-            <div 
-              className="w-6 h-6 rounded border shadow-sm" 
-              style={{ backgroundColor: settings.colourPalette.background }}
-              title="Background"
-            />
-          </div>
-          <span className="text-sm font-medium ml-2">{settings.colourPalette.name}</span>
-        </div>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Layout Preference */}
       <div className="space-y-3">
