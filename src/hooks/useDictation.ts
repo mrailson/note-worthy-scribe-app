@@ -500,18 +500,42 @@ export function useDictation() {
           console.error('Dictation error:', err);
           setError(err.message);
           setStatus('error');
+          
+          // Clear intervals on error
+          if (durationIntervalRef.current) {
+            clearInterval(durationIntervalRef.current);
+            durationIntervalRef.current = null;
+          }
+          if (autoSaveIntervalRef.current) {
+            clearInterval(autoSaveIntervalRef.current);
+            autoSaveIntervalRef.current = null;
+          }
         },
         onClose: (code, reason) => {
           console.log('Dictation closed:', code, reason);
-          if (status === 'recording') {
-            setStatus('idle');
+          // Always set to idle on close - the status ref isn't needed here
+          // since we're reacting to the websocket close event
+          setStatus('idle');
+          
+          // Clear intervals on close
+          if (durationIntervalRef.current) {
+            clearInterval(durationIntervalRef.current);
+            durationIntervalRef.current = null;
+          }
+          if (autoSaveIntervalRef.current) {
+            clearInterval(autoSaveIntervalRef.current);
+            autoSaveIntervalRef.current = null;
           }
         },
         onReconnecting: () => {
           console.log('Dictation reconnecting...');
+          // Show connecting state during reconnect
+          setStatus('connecting');
         },
         onReconnected: () => {
           console.log('Dictation reconnected');
+          // Restore recording state after successful reconnect
+          setStatus('recording');
         },
       });
 
