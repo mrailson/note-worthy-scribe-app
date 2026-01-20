@@ -148,6 +148,8 @@ export const useScribeHistory = () => {
           patientNhsNumber: item.patient_nhs_number || undefined,
           patientDob: item.patient_dob || undefined,
           patientContextConfidence: item.patient_context_confidence || undefined,
+          // SystmOne optimisation status
+          isSystmOneOptimised: notesData?.is_systmone_optimised || false,
         };
       });
 

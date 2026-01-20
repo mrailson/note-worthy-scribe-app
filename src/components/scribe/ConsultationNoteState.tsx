@@ -9,6 +9,7 @@ import { ReferralWorkspace } from "./ReferralWorkspace";
 import { TranscriptDisplay } from "./TranscriptDisplay";
 import { QuickActionsBar } from "./QuickActionsBar";
 import { Clock, FileCheck, Stethoscope, Shield, List, Monitor, Send, ClipboardList, FileText, User, Loader2, Check, AlertCircle, Heart } from "lucide-react";
+import { SystmOneIcon } from "@/components/icons/SystmOneIcon";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
@@ -210,7 +211,7 @@ export const ConsultationNoteState = ({
                             )}
                             aria-label="Narrative Clinical (TPP SystmOne)"
                           >
-                            <ClipboardList className="h-3.5 w-3.5" />
+                            <SystmOneIcon size="sm" />
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="bottom">Narrative Clinical (TPP SystmOne)</TooltipContent>
@@ -360,6 +361,7 @@ export const ConsultationNoteState = ({
               editable={true}
               onSectionChange={onNarrativeSectionChange}
               consultationId={consultationId}
+              isSystmOneOptimised={true}
             />
           ) : viewMode === 'emis' ? (
             <EmisNoteView

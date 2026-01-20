@@ -144,7 +144,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     transcriptToSave: string,
     wordCountToSave: number,
     durationToSave: number,
-    realtimeTranscriptToSave?: string
+    realtimeTranscriptToSave?: string,
+    isSystmOneOptimised?: boolean
   ): Promise<boolean> => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) {
@@ -198,7 +199,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
         note_style: settings.noteFormat,
         soap_notes: JSON.parse(JSON.stringify(noteToSave.soapNote)),
         heidi_notes: noteToSave.heidiNote ? JSON.parse(JSON.stringify(noteToSave.heidiNote)) : null,
-        snomed_codes: noteToSave.snomedCodes || []
+        snomed_codes: noteToSave.snomedCodes || [],
+        is_systmone_optimised: isSystmOneOptimised || false
       }]);
 
     if (notesError) throw notesError;
@@ -230,13 +232,14 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     wordCountToSave: number,
     durationToSave: number,
     realtimeTranscriptToSave?: string,
+    isSystmOneOptimised?: boolean,
     maxRetries = 3
   ): Promise<boolean> => {
     setIsSaving(true);
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        await saveConsultationInternal(noteToSave, transcriptToSave, wordCountToSave, durationToSave, realtimeTranscriptToSave);
+        await saveConsultationInternal(noteToSave, transcriptToSave, wordCountToSave, durationToSave, realtimeTranscriptToSave, isSystmOneOptimised);
         setIsSaved(true);
         setIsSaving(false);
         console.log('✅ Consultation auto-saved successfully');
@@ -380,8 +383,53 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
       // Go directly to review state
       setConsultationState('review');
       
+      // Auto-optimise for SystmOne before saving
+      let optimisedNote = note;
+      if (note.heidiNote) {
+        console.log('🔧 Auto-optimising notes for SystmOne...');
+        try {
+          const optimiseResult = await supabase.functions.invoke('tighten-systmone-notes', {
+            body: {
+              history: note.heidiNote.history || '',
+              examination: note.heidiNote.examination || '',
+              assessment: note.heidiNote.impression || '',
+              plan: note.heidiNote.plan || ''
+            }
+          });
+
+          if (optimiseResult.data && !optimiseResult.error && !optimiseResult.data.error) {
+            console.log('✅ SystmOne optimisation complete');
+            optimisedNote = {
+              ...note,
+              heidiNote: {
+                ...note.heidiNote,
+                history: optimiseResult.data.history || note.heidiNote.history,
+                examination: optimiseResult.data.examination || note.heidiNote.examination,
+                impression: optimiseResult.data.assessment || note.heidiNote.impression,
+                plan: optimiseResult.data.plan || note.heidiNote.plan
+              }
+            };
+            setConsultationNote(optimisedNote);
+            
+            // Update edit content with optimised version
+            setHeidiEditContent({
+              consultationHeader: optimisedNote.heidiNote!.consultationHeader,
+              history: optimisedNote.heidiNote!.history,
+              examination: optimisedNote.heidiNote!.examination,
+              impression: optimisedNote.heidiNote!.impression,
+              plan: optimisedNote.heidiNote!.plan
+            });
+          } else {
+            console.warn('SystmOne optimisation returned error, using original notes:', optimiseResult.data?.error || optimiseResult.error);
+          }
+        } catch (optimiseError) {
+          console.warn('SystmOne optimisation failed, using original notes:', optimiseError);
+        }
+      }
+      
       // Auto-save immediately (awaited with status feedback) - include realtime transcript
-      await autoSaveWithRetry(note, transcriptForSave, wordCountForSave, durationForSave, realtimeTranscriptForSave);
+      // Pass true for isSystmOneOptimised if optimisation succeeded
+      await autoSaveWithRetry(optimisedNote, transcriptForSave, wordCountForSave, durationForSave, realtimeTranscriptForSave, optimisedNote !== note);
       
     } catch (error) {
       console.error('Error generating notes:', error);
@@ -437,28 +485,63 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
         snomedCodes: data.snomedCodes || []
       };
 
-      setConsultationNote(note);
+      let optimisedNote = note;
+      
+      // Auto-optimise for SystmOne
+      if (note.heidiNote) {
+        console.log('🔧 Auto-optimising regenerated notes for SystmOne...');
+        try {
+          const optimiseResult = await supabase.functions.invoke('tighten-systmone-notes', {
+            body: {
+              history: note.heidiNote.history || '',
+              examination: note.heidiNote.examination || '',
+              assessment: note.heidiNote.impression || '',
+              plan: note.heidiNote.plan || ''
+            }
+          });
+
+          if (optimiseResult.data && !optimiseResult.error && !optimiseResult.data.error) {
+            console.log('✅ SystmOne optimisation complete');
+            optimisedNote = {
+              ...note,
+              heidiNote: {
+                ...note.heidiNote,
+                history: optimiseResult.data.history || note.heidiNote.history,
+                examination: optimiseResult.data.examination || note.heidiNote.examination,
+                impression: optimiseResult.data.assessment || note.heidiNote.impression,
+                plan: optimiseResult.data.plan || note.heidiNote.plan
+              }
+            };
+          } else {
+            console.warn('SystmOne optimisation returned error:', optimiseResult.data?.error || optimiseResult.error);
+          }
+        } catch (optimiseError) {
+          console.warn('SystmOne optimisation failed:', optimiseError);
+        }
+      }
+
+      setConsultationNote(optimisedNote);
       
       // Set edit content for SOAP
       setEditContent({
-        S: note.soapNote.S,
-        O: note.soapNote.O,
-        A: note.soapNote.A,
-        P: note.soapNote.P
+        S: optimisedNote.soapNote.S,
+        O: optimisedNote.soapNote.O,
+        A: optimisedNote.soapNote.A,
+        P: optimisedNote.soapNote.P
       });
 
       // Set edit content for Heidi if available
-      if (note.heidiNote) {
+      if (optimisedNote.heidiNote) {
         setHeidiEditContent({
-          consultationHeader: note.heidiNote.consultationHeader,
-          history: note.heidiNote.history,
-          examination: note.heidiNote.examination,
-          impression: note.heidiNote.impression,
-          plan: note.heidiNote.plan
+          consultationHeader: optimisedNote.heidiNote.consultationHeader,
+          history: optimisedNote.heidiNote.history,
+          examination: optimisedNote.heidiNote.examination,
+          impression: optimisedNote.heidiNote.impression,
+          plan: optimisedNote.heidiNote.plan
         });
       }
       
-      showToast.success('Notes regenerated successfully', { section: 'gpscribe' });
+      showToast.success('Notes regenerated and optimised for SystmOne', { section: 'gpscribe' });
     } catch (error) {
       console.error('Error regenerating notes:', error);
       showToast.error('Failed to regenerate notes', { section: 'gpscribe' });
