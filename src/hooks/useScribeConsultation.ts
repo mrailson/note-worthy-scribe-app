@@ -603,20 +603,12 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
 
   // Set imported consultation from external source (Import tab)
   const setImportedConsultation = useCallback((notes: ConsultationNote, transcript: string) => {
-    // Debug: Log what we receive
-    console.log('📥 setImportedConsultation received:', {
-      hasHeidiNote: !!notes.heidiNote,
-      hasSystmOneNote: !!notes.systmOneNote,
-      systmOneHistory: notes.systmOneNote?.history?.substring(0, 80),
-      heidiHistory: notes.heidiNote?.history?.substring(0, 80)
-    });
-    
     setImportedTranscript(transcript);
     
-    // CRITICAL: Explicitly preserve systmOneNote in the state update
+    // Preserve systmOneNote in the state update
     setConsultationNote({
       ...notes,
-      systmOneNote: notes.systmOneNote // Ensure this is explicitly set
+      systmOneNote: notes.systmOneNote
     });
     
     // Set edit content for SOAP
