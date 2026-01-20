@@ -126,6 +126,7 @@ export interface PresentationStudioSettings {
   // Branding & Logo
   includeBranding: boolean;
   brandingLevel: BrandingLevel;
+  customPracticeName: string;
   logoImage: string | null;
   logoPlacement: LogoPlacementId;
   includeFooterDate: boolean;

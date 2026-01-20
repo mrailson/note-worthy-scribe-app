@@ -47,6 +47,7 @@ const DEFAULT_SETTINGS: PresentationStudioSettings = {
   // Branding & Logo
   includeBranding: true,
   brandingLevel: 'name-contact',
+  customPracticeName: '',
   logoImage: null,
   logoPlacement: 'header-right',
   includeFooterDate: true,
