@@ -175,14 +175,14 @@ export const EmisNoteView = ({
       parts.push('');
     }
     
-    // Assessment section
-    parts.push('Assessment:');
+    // Examination section
+    parts.push('Examination:');
     assessment.forEach(item => parts.push(`• ${item}`));
     parts.push('');
     parts.push('');
     
-    // Plan section
-    parts.push('Plan:');
+    // Comment (Plan) section
+    parts.push('Comment:');
     if (planGroups.investigations.length > 0) {
       parts.push('Investigations');
       planGroups.investigations.forEach(item => parts.push(`• ${item}`));
@@ -208,7 +208,7 @@ export const EmisNoteView = ({
     }
     
     navigator.clipboard.writeText(parts.join('\n'));
-    toast.success("Full EMIS note copied (History + Assessment + Plan)");
+    toast.success("Full EMIS note copied (History + Examination + Comment)");
   }, [historyText, assessment, planGroups]);
 
   // Check if we have any content
@@ -298,18 +298,18 @@ export const EmisNoteView = ({
         </Collapsible>
       )}
 
-      {/* Assessment Section - Always Expanded */}
+      {/* Examination Section - Always Expanded */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Brain className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-base">Assessment</CardTitle>
+              <CardTitle className="text-base">Examination</CardTitle>
             </div>
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => copyToClipboard(assessment.join('\n'), 'Assessment')}
+              onClick={() => copyToClipboard(assessment.join('\n'), 'Examination')}
             >
               <Copy className="h-3.5 w-3.5" />
             </Button>
@@ -327,18 +327,18 @@ export const EmisNoteView = ({
         </CardContent>
       </Card>
 
-      {/* Plan Section - Always Expanded */}
+      {/* Comment (Plan) Section - Always Expanded */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ListChecks className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-base">Plan</CardTitle>
+              <CardTitle className="text-base">Comment (Plan)</CardTitle>
             </div>
             <Button 
               variant="ghost" 
               size="sm" 
-              onClick={() => copyToClipboard(planText, 'Plan')}
+              onClick={() => copyToClipboard(planText, 'Comment (Plan)')}
             >
               <Copy className="h-3.5 w-3.5" />
             </Button>
