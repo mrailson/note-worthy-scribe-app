@@ -6,6 +6,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper to decode base64 to Uint8Array
+function base64ToUint8Array(base64: string): Uint8Array {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -16,6 +26,16 @@ serve(async (req) => {
     console.log(`Processing ${fileType} file: ${fileName}`);
 
     let extractedText = '';
+    
+    // Extract base64 data from data URL
+    const matches = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!matches) {
+      throw new Error('Invalid data URL format');
+    }
+    const mimeType = matches[1];
+    const base64Data = matches[2];
+    
+    console.log(`File MIME type: ${mimeType}, Base64 length: ${base64Data.length}`);
 
     if (fileType === 'image') {
       // Use Lovable AI for OCR on images
@@ -60,27 +80,16 @@ serve(async (req) => {
       extractedText = ocrData.choices?.[0]?.message?.content || 'Failed to extract text from image';
       console.log('OCR extracted text length:', extractedText.length);
 
-    } else if (fileType === 'pdf' || fileType === 'powerpoint' || fileType === 'word' || fileType === 'excel') {
-      // For PDFs, PowerPoint, Word docs, and Excel, use vision model to extract text
+    } else if (fileType === 'pdf') {
+      // For PDFs, use Gemini which supports PDF natively
       const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
       if (!LOVABLE_API_KEY) {
         throw new Error('LOVABLE_API_KEY not configured');
       }
 
-      const fileTypeDescriptions: Record<string, string> = {
-        'pdf': 'PDF document',
-        'powerpoint': 'PowerPoint presentation',
-        'word': 'Word document',
-        'excel': 'Excel spreadsheet',
-      };
+      console.log('Extracting text from PDF using Gemini...');
 
-      const extractionPrompt = fileType === 'excel' 
-        ? 'Extract ALL text and data from this Excel spreadsheet. Return the content in a readable format, preserving table structure where possible. Include all sheets, headers, and cell values. Do not add any commentary.'
-        : `Extract ALL text content from this ${fileTypeDescriptions[fileType] || 'document'}. Return ONLY the extracted text, preserving the structure, headings, bullet points, and formatting. Include all text from all pages/slides/sections. Do not add any commentary.`;
-
-      console.log(`Extracting text from ${fileType} using Gemini vision...`);
-
-      const docResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const pdfResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${LOVABLE_API_KEY}`,
@@ -94,18 +103,74 @@ serve(async (req) => {
               content: [
                 {
                   type: 'text',
-                  text: extractionPrompt
+                  text: 'Extract ALL text content from this PDF document. Return ONLY the extracted text, preserving the structure, headings, bullet points, and formatting. Include all text from all pages. Do not add any commentary.'
                 },
                 {
-                  type: 'file',
-                  file: { 
-                    filename: fileName,
-                    file_data: dataUrl 
-                  }
+                  type: 'image_url',
+                  image_url: { url: `data:application/pdf;base64,${base64Data}` }
                 }
               ]
             }
           ]
+        })
+      });
+
+      if (!pdfResponse.ok) {
+        const errorText = await pdfResponse.text();
+        console.error('PDF extraction API error:', pdfResponse.status, errorText);
+        throw new Error(`PDF extraction failed: ${pdfResponse.status}`);
+      }
+
+      const pdfData = await pdfResponse.json();
+      extractedText = pdfData.choices?.[0]?.message?.content || 'Failed to extract text from PDF';
+      console.log('PDF extracted text length:', extractedText.length);
+
+    } else if (fileType === 'word' || fileType === 'powerpoint' || fileType === 'excel') {
+      // For Office documents, use Claude which handles documents better
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      if (!LOVABLE_API_KEY) {
+        throw new Error('LOVABLE_API_KEY not configured');
+      }
+
+      const fileTypeDescriptions: Record<string, string> = {
+        'word': 'Word document (.docx)',
+        'powerpoint': 'PowerPoint presentation (.pptx)',
+        'excel': 'Excel spreadsheet (.xlsx)',
+      };
+
+      console.log(`Extracting text from ${fileType} using Claude...`);
+
+      // Claude can handle document files with base64 content
+      const docResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'anthropic/claude-sonnet-4',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: `Extract ALL text content from this ${fileTypeDescriptions[fileType] || 'document'}. The file is base64 encoded below.
+
+IMPORTANT INSTRUCTIONS:
+- Extract EVERY piece of text from the document
+- Preserve the structure, headings, bullet points, and formatting
+- Include all text from all pages/slides/sections
+- Do not skip or summarize any content
+- Return ONLY the extracted text, no commentary
+
+Base64 encoded ${fileType} file (decode this to read the document):
+${base64Data}`
+                }
+              ]
+            }
+          ],
+          max_tokens: 16000
         })
       });
 
@@ -118,6 +183,7 @@ serve(async (req) => {
       const docData = await docResponse.json();
       extractedText = docData.choices?.[0]?.message?.content || 'Failed to extract text from document';
       console.log(`${fileType} extracted text length:`, extractedText.length);
+
     } else {
       console.log(`Unknown file type: ${fileType}, returning empty text`);
       extractedText = '';
