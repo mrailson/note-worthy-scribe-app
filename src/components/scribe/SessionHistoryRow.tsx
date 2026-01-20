@@ -256,6 +256,14 @@ export function SessionHistoryRow({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <ClipboardList className="h-3 w-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Narrative Clinical</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                     <SystmOneIcon size="sm" className="h-3 w-3" />
                   </button>
                 </TooltipTrigger>

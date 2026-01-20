@@ -157,19 +157,39 @@ export const NarrativeClinicalNoteView = ({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+      <Card className={cn(
+        "border-2 bg-gradient-to-br",
+        isSystmOneOptimised 
+          ? "border-green-200 from-green-50/50 to-transparent" 
+          : "border-primary/20 from-primary/5 to-transparent"
+      )}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <SystmOneIcon size="md" />
-                TPP SystmOne View
+                {isSystmOneOptimised ? (
+                  <>
+                    <SystmOneIcon size="md" />
+                    TPP SystmOne View
+                  </>
+                ) : (
+                  <>
+                    <ClipboardList className="h-4 w-4" />
+                    Narrative Clinical View
+                  </>
+                )}
               </CardTitle>
               <Badge variant="secondary" className="text-xs font-normal gap-1">
                 <Shield className="h-3 w-3" />
                 H/E/A/I/P
               </Badge>
-              {optimisedNote && (
+              {isSystmOneOptimised && (
+                <Badge variant="outline" className="text-xs font-normal gap-1 bg-green-50 text-green-700 border-green-200">
+                  <Wand2 className="h-3 w-3" />
+                  Auto-Optimised
+                </Badge>
+              )}
+              {optimisedNote && !isSystmOneOptimised && (
                 <Badge variant="outline" className="text-xs font-normal gap-1 bg-green-50 text-green-700 border-green-200">
                   <Wand2 className="h-3 w-3" />
                   Optimised
@@ -196,31 +216,33 @@ export const NarrativeClinicalNoteView = ({
                 </div>
               )}
               
-              {/* Optimise / Revert Buttons */}
-              {optimisedNote ? (
-                <Button variant="outline" size="sm" onClick={handleRevert} className="text-xs">
-                  Revert
-                </Button>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleOptimise}
-                  disabled={isTightening}
-                  className="text-xs"
-                >
-                  {isTightening ? (
-                    <>
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                      Optimising...
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="h-3 w-3 mr-1" />
-                      Optimise for SystmOne
-                    </>
-                  )}
-                </Button>
+              {/* Optimise / Revert Buttons - only show in narrative mode, not in systmone mode */}
+              {!isSystmOneOptimised && (
+                optimisedNote ? (
+                  <Button variant="outline" size="sm" onClick={handleRevert} className="text-xs">
+                    Revert
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleOptimise}
+                    disabled={isTightening}
+                    className="text-xs"
+                  >
+                    {isTightening ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        Optimising...
+                      </>
+                    ) : (
+                      <>
+                        <Wand2 className="h-3 w-3 mr-1" />
+                        Optimise for SystmOne
+                      </>
+                    )}
+                  </Button>
+                )
               )}
               
               <Button variant="ghost" size="sm" onClick={copyAll}>

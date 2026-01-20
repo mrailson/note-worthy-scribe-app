@@ -198,7 +198,7 @@ export const ConsultationNoteState = ({
                   <>
                     <span className="text-muted-foreground/40">|</span>
                     <div className="flex items-center gap-0.5">
-                      {/* Narrative Clinical (TPP SystmOne) */}
+                      {/* Narrative Clinical View */}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
@@ -209,12 +209,30 @@ export const ConsultationNoteState = ({
                                 ? "text-primary bg-primary/10" 
                                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
                             )}
-                            aria-label="Narrative Clinical (TPP SystmOne)"
+                            aria-label="Narrative Clinical"
+                          >
+                            <ClipboardList className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Narrative Clinical</TooltipContent>
+                      </Tooltip>
+                      {/* TPP SystmOne (Auto-Optimised) */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => onViewModeChange('systmone')}
+                            className={cn(
+                              "p-1.5 rounded-md transition-colors",
+                              viewMode === 'systmone' 
+                                ? "text-primary bg-primary/10" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            )}
+                            aria-label="TPP SystmOne (Optimised)"
                           >
                             <SystmOneIcon size="sm" />
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="bottom">Narrative Clinical (TPP SystmOne)</TooltipContent>
+                        <TooltipContent side="bottom">TPP SystmOne (Auto-Optimised)</TooltipContent>
                       </Tooltip>
                       {/* EMIS View */}
                       <Tooltip>
@@ -353,6 +371,17 @@ export const ConsultationNoteState = ({
       ) : (
         <ScrollArea className={isMobile ? 'h-[calc(100vh-320px)]' : ''}>
           {viewMode === 'narrativeClinical' ? (
+            <NarrativeClinicalNoteView
+              soapNote={consultationNote.soapNote}
+              heidiNote={consultationNote.heidiNote}
+              showNotMentioned={settings.showNotMentioned}
+              onShowNotMentionedChange={onShowNotMentionedChange}
+              editable={true}
+              onSectionChange={onNarrativeSectionChange}
+              consultationId={consultationId}
+              isSystmOneOptimised={false}
+            />
+          ) : viewMode === 'systmone' ? (
             <NarrativeClinicalNoteView
               soapNote={consultationNote.soapNote}
               heidiNote={consultationNote.heidiNote}
