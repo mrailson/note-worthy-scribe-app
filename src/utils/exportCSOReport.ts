@@ -163,11 +163,11 @@ export const exportCSOReportToWord = async () => {
             spacing: { after: 100 },
           }),
           new Paragraph({
-            text: "Status: DRAFT FOR REVIEW",
+            text: "Status: MHRA CERTIFIED",
             spacing: { after: 100 },
           }),
           new Paragraph({
-            text: "Initial Classification: Non MHRA Medical Device with a view to MHRA Class 1 Medical Device",
+            text: "Classification: MHRA Class I Medical Device (UK MDR 2002) - Certified December 2025",
             spacing: { after: 100 },
           }),
           new Paragraph({

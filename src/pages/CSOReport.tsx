@@ -187,10 +187,10 @@ const CSOReport = () => {
           <h1 className="text-3xl font-bold mb-2">Clinical Safety Officer & Data Protection Officer Assessment Report</h1>
           <p className="text-xl text-muted-foreground mb-4">Notewell AI System Services</p>
           <div className="flex flex-wrap gap-4 text-sm">
-            <div><span className="font-semibold">Version:</span> 2.0</div>
+            <div><span className="font-semibold">Version:</span> 2.1</div>
             <div><span className="font-semibold">Date:</span> {new Date().toLocaleDateString('en-GB')}</div>
-            <div><span className="font-semibold">Status:</span> <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300">AWAITING SIGN-OFF</Badge></div>
-            <div><span className="font-semibold">Medical Device Classification:</span> MHRA Class 1 Medical Device (UK MDR 2002) - Confirmed 19th November 2025</div>
+            <div><span className="font-semibold">Status:</span> <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">MHRA CERTIFIED</Badge></div>
+            <div><span className="font-semibold">Medical Device Classification:</span> MHRA Class I Medical Device (UK MDR 2002) - Certified December 2025</div>
           </div>
         </div>
 
@@ -206,7 +206,7 @@ const CSOReport = () => {
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    <span><strong>Last updated:</strong> 19 November 2025</span>
+                    <span><strong>Last updated:</strong> {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
@@ -3092,7 +3092,7 @@ const CSOReport = () => {
                 <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                   <div>
                     <span className="font-semibold">System Safety Classification:</span>
-                    <p className="text-sm text-muted-foreground mt-1">Class I Medical Device Software (UK MDR 2002) - Confirmed 19th November 2025</p>
+                    <p className="text-sm text-muted-foreground mt-1">MHRA Class I Medical Device Software (UK MDR 2002) - Certified since December 2025</p>
                   </div>
                   <div>
                     <span className="font-semibold">Overall Safety Rating:</span>
