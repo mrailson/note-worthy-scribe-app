@@ -32,7 +32,7 @@ interface UploadedFile {
   file: File;
   name: string;
   size: number;
-  type: 'audio' | 'text';
+  type: 'audio' | 'text' | 'document';
   status: 'pending' | 'transcribing' | 'done' | 'error';
   transcript?: string;
   error?: string;
@@ -46,6 +46,12 @@ const SUPPORTED_AUDIO_TYPES = [
 const SUPPORTED_TEXT_TYPES = [
   'text/plain', 'text/csv', 'text/markdown',
   'application/json'
+];
+
+const SUPPORTED_DOCUMENT_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+  'application/msword' // .doc
 ];
 
 export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
@@ -63,7 +69,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   const [isCreating, setIsCreating] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const getFileType = (file: File): 'audio' | 'text' | null => {
+  const getFileType = (file: File): 'audio' | 'text' | 'document' | null => {
     if (SUPPORTED_AUDIO_TYPES.includes(file.type) || 
         file.name.match(/\.(mp3|wav|webm|ogg|m4a|mp4)$/i)) {
       return 'audio';
@@ -71,6 +77,10 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     if (SUPPORTED_TEXT_TYPES.includes(file.type) || 
         file.name.match(/\.(txt|md|csv|json)$/i)) {
       return 'text';
+    }
+    if (SUPPORTED_DOCUMENT_TYPES.includes(file.type) || 
+        file.name.match(/\.(pdf|docx|doc)$/i)) {
+      return 'document';
     }
     return null;
   };
@@ -103,9 +113,39 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     return file.text();
   };
 
+  const extractDocumentText = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = (reader.result as string).split(',')[1];
+          
+          const { data, error } = await supabase.functions.invoke('extract-document-text', {
+            body: { 
+              file: base64Data,
+              fileName: file.name,
+              mimeType: file.type
+            }
+          });
+          
+          if (error) throw error;
+          if (!data?.text) throw new Error('No text extracted');
+          
+          resolve(data.text);
+        } catch (err: any) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
   const processFile = async (uploadedFile: UploadedFile): Promise<string> => {
     if (uploadedFile.type === 'audio') {
       return transcribeAudioFile(uploadedFile.file);
+    } else if (uploadedFile.type === 'document') {
+      return extractDocumentText(uploadedFile.file);
     } else {
       return readTextFile(uploadedFile.file);
     }
@@ -320,6 +360,24 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
+        onPaste={async (e) => {
+          const items = e.clipboardData?.items;
+          if (!items) return;
+          
+          const files: File[] = [];
+          for (const item of items) {
+            if (item.kind === 'file') {
+              const file = item.getAsFile();
+              if (file) files.push(file);
+            }
+          }
+          
+          if (files.length > 0) {
+            e.preventDefault();
+            handleFilesAdded(files);
+          }
+        }}
+        tabIndex={0}
       >
         <CardContent className="py-8 flex flex-col items-center justify-center gap-3">
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -327,9 +385,9 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
             <FileText className="h-6 w-6" />
           </div>
           <div className="text-center">
-            <p className="font-medium">Drop audio or text files here</p>
+            <p className="font-medium">Drop audio, text or document files here</p>
             <p className="text-sm text-muted-foreground">
-              MP3, WAV, M4A, OGG, TXT, or click to browse
+              MP3, WAV, M4A, PDF, DOCX, TXT — or paste/click to browse
             </p>
           </div>
           <Button variant="outline" size="sm" className="mt-2">
@@ -343,7 +401,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
         ref={fileInputRef}
         type="file"
         className="hidden"
-        accept=".mp3,.wav,.webm,.ogg,.m4a,.txt,.md,.csv"
+        accept=".mp3,.wav,.webm,.ogg,.m4a,.txt,.md,.csv,.pdf,.docx,.doc"
         multiple
         onChange={handleFileSelect}
       />
@@ -362,6 +420,8 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     {file.type === 'audio' ? (
                       <Mic className="h-4 w-4 text-primary flex-shrink-0" />
+                    ) : file.type === 'document' ? (
+                      <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
                     ) : (
                       <FileText className="h-4 w-4 text-primary flex-shrink-0" />
                     )}
