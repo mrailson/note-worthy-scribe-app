@@ -259,6 +259,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   
   // Notes transcript source selection (which transcript to use for generating notes)
   const [notesTranscriptSource, setNotesTranscriptSource] = useState<'batch' | 'live'>('batch');
+  const [isRegeneratingFromTranscript, setIsRegeneratingFromTranscript] = useState(false);
 
   // Get icon for note type
   const getNoteTypeIcon = (iconName: string) => {
@@ -288,6 +289,59 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       toast.success(`Notes will now be generated from ${source === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)'} transcript`);
     }
   }, [meeting?.id]);
+
+  // Regenerate notes directly from transcript tab
+  const handleRegenerateFromTranscript = useCallback(async () => {
+    if (!meeting?.id) {
+      toast.error('No meeting available');
+      return;
+    }
+    
+    setIsRegeneratingFromTranscript(true);
+    
+    try {
+      const sourceLabel = notesTranscriptSource === 'batch' 
+        ? 'Batch (Whisper)' 
+        : 'Live (AssemblyAI)';
+      
+      toast.info(`Regenerating notes from ${sourceLabel} transcript...`);
+      
+      const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
+        body: { 
+          meetingId: meeting.id,
+          forceRegenerate: true,
+          detailLevel: 'standard',
+          noteType: noteType,
+          transcriptSource: notesTranscriptSource === 'batch' ? 'whisper' : 'assembly'
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Update notes content
+      if (data?.content) {
+        setNotesContent(data.content);
+        toast.success(`Notes regenerated from ${sourceLabel} transcript`);
+      } else {
+        // Fetch from database
+        const { data: updated } = await supabase
+          .from('meetings')
+          .select('notes_style_3')
+          .eq('id', meeting.id)
+          .single();
+        
+        if (updated?.notes_style_3) {
+          setNotesContent(sanitiseMeetingNotes(updated.notes_style_3));
+          toast.success(`Notes regenerated from ${sourceLabel} transcript`);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to regenerate:', error);
+      toast.error('Failed to regenerate notes');
+    } finally {
+      setIsRegeneratingFromTranscript(false);
+    }
+  }, [meeting?.id, notesTranscriptSource, noteType]);
 
   // Regenerate notes at a new detail level and/or note type
   const triggerRegeneration = useCallback(async (newLevel: number, newNoteType?: string) => {
@@ -3554,6 +3608,26 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                             Live
                           </Button>
                         </div>
+                        {/* Regenerate Notes Button */}
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={handleRegenerateFromTranscript}
+                          disabled={isRegeneratingFromTranscript || isRegeneratingNotes}
+                          className="h-7 text-xs gap-1.5 bg-primary hover:bg-primary/90"
+                        >
+                          {isRegeneratingFromTranscript ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              <span className="hidden sm:inline">Regenerating...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">Regenerate Notes</span>
+                            </>
+                          )}
+                        </Button>
                       </div>
                     )}
 
@@ -3602,6 +3676,56 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         }
                       }}
                     />
+                  )}
+
+                  {/* Regeneration Animation Overlay */}
+                  {isRegeneratingFromTranscript && (
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+                      <div className="bg-card rounded-xl p-8 shadow-xl border text-center max-w-sm">
+                        <div className="relative mb-6 w-20 h-20 mx-auto">
+                          {/* Outer spinning ring */}
+                          <div className="absolute inset-0 rounded-full border-4 border-primary/20 animate-pulse" />
+                          <div 
+                            className="absolute inset-0 rounded-full border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent animate-spin"
+                            style={{ animationDuration: '1.5s' }}
+                          />
+                          {/* Inner Bot icon */}
+                          <div className="absolute inset-3 flex items-center justify-center bg-primary rounded-full shadow-lg">
+                            <Sparkles className="h-7 w-7 text-primary-foreground animate-pulse" />
+                          </div>
+                          {/* Floating sparkles */}
+                          <div className="absolute -top-1 -right-1">
+                            <Sparkles 
+                              className="h-5 w-5 text-primary animate-bounce"
+                              style={{ animationDuration: '1s', animationDelay: '0.2s' }}
+                            />
+                          </div>
+                          <div className="absolute -bottom-1 -left-1">
+                            <Sparkles 
+                              className="h-4 w-4 text-primary animate-bounce"
+                              style={{ animationDuration: '1.2s', animationDelay: '0.5s' }}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-center gap-2 mb-3">
+                          <span className="font-semibold text-lg bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                            Notewell AI
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Regenerating notes from{' '}
+                          <span className="font-medium text-foreground">
+                            {notesTranscriptSource === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)'}
+                          </span>{' '}
+                          transcript...
+                        </p>
+                        <div className="mt-4 flex justify-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
+                    </div>
                   )}
 
                   {isLoadingTranscript ? (
