@@ -1285,12 +1285,13 @@ const DPIA: React.FC = () => {
                 <span>Full DPIA documentation available in project reports</span>
               </div>
               <Button
-                onClick={handleDownloadDPIA}
-                disabled={isGenerating}
+                asChild
                 className="inline-flex items-center gap-2"
               >
-                <Download className="h-4 w-4" />
-                {isGenerating ? "Generating..." : "Download Full DPIA"}
+                <a href="/documents/GP_Notewell_AI_DPIA_v2.docx" download="GP_Notewell_AI_DPIA_v2.docx">
+                  <Download className="h-4 w-4" />
+                  Download Full DPIA
+                </a>
               </Button>
             </div>
           </CardContent>
