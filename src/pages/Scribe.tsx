@@ -19,9 +19,10 @@ import { ScribeSettingsPanel } from "@/components/scribe/ScribeSettingsPanel";
 import { ScribeHistoryPanel } from "@/components/scribe/ScribeHistoryPanel";
 import { ScribeImportPanel } from "@/components/scribe/ScribeImportPanel";
 import { DictationPanel } from "@/components/scribe/DictationPanel";
+import { MyAppointmentsTab } from "@/components/scribe/MyAppointmentsTab";
 
-import { ScribeTab, SOAPNote, ConsultationNote } from "@/types/scribe";
-import { Stethoscope, History, Settings, Upload, ScrollText, ChevronDown } from "lucide-react";
+import { ScribeTab, SOAPNote, ConsultationNote, PatientContext } from "@/types/scribe";
+import { Stethoscope, History, Settings, Upload, ScrollText, ChevronDown, CalendarDays } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,

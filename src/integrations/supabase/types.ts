@@ -3282,6 +3282,80 @@ export type Database = {
         }
         Relationships: []
       }
+      gp_appointments: {
+        Row: {
+          address: string | null
+          appointment_time: string | null
+          appointment_type: string | null
+          contact_number: string | null
+          created_at: string
+          date_of_birth: string | null
+          id: string
+          linked_consultation_id: string | null
+          nhs_number: string | null
+          notes: string | null
+          patient_name: string
+          postcode: string | null
+          reason: string | null
+          reviewing_clinician: string | null
+          session_date: string
+          session_name: string | null
+          status: Database["public"]["Enums"]["appointment_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          appointment_time?: string | null
+          appointment_type?: string | null
+          contact_number?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          id?: string
+          linked_consultation_id?: string | null
+          nhs_number?: string | null
+          notes?: string | null
+          patient_name: string
+          postcode?: string | null
+          reason?: string | null
+          reviewing_clinician?: string | null
+          session_date?: string
+          session_name?: string | null
+          status?: Database["public"]["Enums"]["appointment_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          appointment_time?: string | null
+          appointment_type?: string | null
+          contact_number?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          id?: string
+          linked_consultation_id?: string | null
+          nhs_number?: string | null
+          notes?: string | null
+          patient_name?: string
+          postcode?: string | null
+          reason?: string | null
+          reviewing_clinician?: string | null
+          session_date?: string
+          session_name?: string | null
+          status?: Database["public"]["Enums"]["appointment_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gp_appointments_linked_consultation_id_fkey"
+            columns: ["linked_consultation_id"]
+            isOneToOne: false
+            referencedRelation: "gp_consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gp_consultation_ai_chats: {
         Row: {
           consultation_id: string
@@ -9426,6 +9500,11 @@ export type Database = {
         | "lmc_user"
         | "federation_user"
         | "icb_user"
+      appointment_status:
+        | "pending"
+        | "in_progress"
+        | "completed"
+        | "requires_action"
       communication_mode: "create" | "improve"
       communication_tone:
         | "friendly"
@@ -9648,6 +9727,12 @@ export const Constants = {
         "lmc_user",
         "federation_user",
         "icb_user",
+      ],
+      appointment_status: [
+        "pending",
+        "in_progress",
+        "completed",
+        "requires_action",
       ],
       communication_mode: ["create", "improve"],
       communication_tone: [
