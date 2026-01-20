@@ -257,7 +257,7 @@ serve(async (req) => {
           live_transcript_text: '[Transcript unavailable - audio quality insufficient for reliable transcription]',
           whisper_transcript_text: '[Transcript unavailable - audio quality insufficient for reliable transcription]',
           word_count: 0,
-          primary_transcript_source: 'hallucination_filtered',
+          primary_transcript_source: 'whisper',
           updated_at: new Date().toISOString()
         })
         .eq('id', meetingId);
@@ -302,7 +302,7 @@ serve(async (req) => {
 
     // NON-DESTRUCTIVE: Compare consolidated vs existing/live and pick the best
     let bestTranscript = consolidatedTranscript;
-    let bestSource = 'whisper_chunks_consolidated';
+    let bestSource = 'whisper';
     let bestWordCount = consolidatedWordCount;
 
     // Check if consolidated text is itself hallucinated
