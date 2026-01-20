@@ -31,6 +31,7 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate }) =>
   const [newMessage, setNewMessage] = useState('');
   const [audienceOpen, setAudienceOpen] = useState(false);
   const [purposeOpen, setPurposeOpen] = useState(false);
+  const [additionalOpen, setAdditionalOpen] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -166,121 +167,147 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate }) =>
         </p>
       </div>
 
-      {/* Key Messages with mic */}
-      <div className="space-y-2">
-        <Label className="flex items-center gap-2">
-          <Target className="h-4 w-4" />
-          Key Messages (optional)
-        </Label>
-        <div className="flex gap-2">
-          <Input
-            placeholder="Add a must-include message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyMessage())}
-            disabled={settings.keyMessages.length >= 5}
-            className="flex-1"
-          />
-          <CompactMicButton
-            currentValue={newMessage}
-            onTranscriptUpdate={setNewMessage}
-            disabled={settings.keyMessages.length >= 5}
-          />
-          <Button 
-            type="button" 
-            variant="outline" 
-            size="icon"
-            onClick={addKeyMessage}
-            disabled={!newMessage.trim() || settings.keyMessages.length >= 5}
+      {/* Key Messages & Supporting Info - Collapsible */}
+      <Collapsible open={additionalOpen} onOpenChange={setAdditionalOpen}>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex items-center justify-between w-full p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
           >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        {settings.keyMessages.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-2">
-            {settings.keyMessages.map((msg, idx) => (
-              <Badge key={idx} variant="secondary" className="gap-1 pr-1">
-                {msg}
-                <button
-                  type="button"
-                  onClick={() => removeKeyMessage(idx)}
-                  className="ml-1 rounded-full p-0.5 hover:bg-muted"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              <span className="font-medium">Key Messages & Supporting Info</span>
+              {(settings.keyMessages.length > 0 || uploadedFiles.length > 0) && (
+                <Badge variant="secondary" className="ml-2">
+                  {settings.keyMessages.length > 0 && `${settings.keyMessages.length} message${settings.keyMessages.length > 1 ? 's' : ''}`}
+                  {settings.keyMessages.length > 0 && uploadedFiles.length > 0 && ', '}
+                  {uploadedFiles.length > 0 && `${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''}`}
+                </Badge>
+              )}
+            </div>
+            <ChevronDown className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform",
+              additionalOpen && "rotate-180"
+            )} />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-3 space-y-4">
+          {/* Key Messages with mic */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-sm">
+              Key Messages (optional)
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Add a must-include message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyMessage())}
+                disabled={settings.keyMessages.length >= 5}
+                className="flex-1"
+              />
+              <CompactMicButton
+                currentValue={newMessage}
+                onTranscriptUpdate={setNewMessage}
+                disabled={settings.keyMessages.length >= 5}
+              />
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="icon"
+                onClick={addKeyMessage}
+                disabled={!newMessage.trim() || settings.keyMessages.length >= 5}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            {settings.keyMessages.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {settings.keyMessages.map((msg, idx) => (
+                  <Badge key={idx} variant="secondary" className="gap-1 pr-1">
+                    {msg}
+                    <button
+                      type="button"
+                      onClick={() => removeKeyMessage(idx)}
+                      className="ml-1 rounded-full p-0.5 hover:bg-muted"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Up to 5 key messages that must appear in the image.
+            </p>
           </div>
-        )}
-        <p className="text-xs text-muted-foreground">
-          Up to 5 key messages that must appear in the image.
-        </p>
-      </div>
 
-      {/* Supporting Content with file upload */}
-      <div className="space-y-2">
-        <Label htmlFor="supportingContent" className="flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          Supporting Information (optional)
-        </Label>
-        <Textarea
-          id="supportingContent"
-          placeholder="Paste any additional content, facts, statistics, or text you want incorporated..."
-          value={settings.supportingContent}
-          onChange={(e) => onUpdate({ supportingContent: e.target.value })}
-          className="min-h-[80px] resize-none"
-        />
-        
-        {/* File Upload Dropzone */}
-        <div
-          {...getRootProps()}
-          className={cn(
-            "border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors",
-            isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:border-primary/50",
-            isProcessing && "opacity-50 pointer-events-none"
-          )}
-        >
-          <input {...getInputProps()} />
-          <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-          <p className="text-sm text-muted-foreground">
-            {isDragActive ? "Drop files here..." : "Drag & drop files, or click to select"}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">PDF, Word, PowerPoint, Excel, Images (max 10MB)</p>
-        </div>
+          {/* Supporting Content with file upload */}
+          <div className="space-y-2">
+            <Label htmlFor="supportingContent" className="flex items-center gap-2 text-sm">
+              <FileText className="h-4 w-4" />
+              Supporting Information (optional)
+            </Label>
+            <Textarea
+              id="supportingContent"
+              placeholder="Paste any additional content, facts, statistics, or text you want incorporated..."
+              value={settings.supportingContent}
+              onChange={(e) => onUpdate({ supportingContent: e.target.value })}
+              className="min-h-[80px] resize-none"
+            />
+            
+            {/* File Upload Dropzone */}
+            <div
+              {...getRootProps()}
+              className={cn(
+                "border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors",
+                isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:border-primary/50",
+                isProcessing && "opacity-50 pointer-events-none"
+              )}
+            >
+              <input {...getInputProps()} />
+              <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
+              <p className="text-sm text-muted-foreground">
+                {isDragActive ? "Drop files here..." : "Drag & drop files, or click to select"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">PDF, Word, PowerPoint, Excel, Images (max 10MB)</p>
+            </div>
 
-        {/* Uploaded Files Preview */}
-        {uploadedFiles.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-2">
-            {uploadedFiles.map((file) => {
-              const FileIcon = getFileIcon(file.type);
-              return (
-                <div
-                  key={file.id}
-                  className="flex items-center gap-2 bg-muted rounded-md px-2 py-1 text-sm"
-                >
-                  {file.preview ? (
-                    <img src={file.preview} alt={file.name} className="h-6 w-6 object-cover rounded" />
-                  ) : (
-                    <FileIcon className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span className="truncate max-w-[120px]">{file.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(file.id)}
-                    className="rounded-full p-0.5 hover:bg-background"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              );
-            })}
+            {/* Uploaded Files Preview */}
+            {uploadedFiles.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {uploadedFiles.map((file) => {
+                  const FileIcon = getFileIcon(file.type);
+                  return (
+                    <div
+                      key={file.id}
+                      className="flex items-center gap-2 bg-muted rounded-md px-2 py-1 text-sm"
+                    >
+                      {file.preview ? (
+                        <img src={file.preview} alt={file.name} className="h-6 w-6 object-cover rounded" />
+                      ) : (
+                        <FileIcon className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span className="truncate max-w-[120px]">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(file.id)}
+                        className="rounded-full p-0.5 hover:bg-background"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
+            <p className="text-xs text-muted-foreground">
+              Include dates, statistics, contact details, or any specific text to appear.
+            </p>
           </div>
-        )}
-        
-        <p className="text-xs text-muted-foreground">
-          Include dates, statistics, contact details, or any specific text to appear.
-        </p>
-      </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Target Audience - Collapsible */}
       <Collapsible open={audienceOpen} onOpenChange={setAudienceOpen}>
