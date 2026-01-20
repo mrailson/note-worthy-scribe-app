@@ -72,18 +72,20 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
 
       {settings.includeBranding && (
         <>
-          {/* Practice Context Preview */}
-          {practiceContext?.practiceName && (
-            <Card className="bg-muted/30">
-              <CardContent className="p-4">
-                <p className="text-sm font-medium mb-1">Using practice details:</p>
-                <p className="text-sm text-muted-foreground">{practiceContext.practiceName}</p>
-                {practiceContext.practicePhone && (
-                  <p className="text-xs text-muted-foreground">{practiceContext.practicePhone}</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {/* Custom Practice Name */}
+          <div className="space-y-2">
+            <Label htmlFor="custom-practice-name">Custom Practice Name</Label>
+            <Input
+              id="custom-practice-name"
+              placeholder={practiceContext?.practiceName || "Enter practice name"}
+              value={settings.customPracticeName || ''}
+              onChange={(e) => onUpdate({ customPracticeName: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Leave blank to use your default practice name
+              {practiceContext?.practiceName && ` (${practiceContext.practiceName})`}
+            </p>
+          </div>
 
           {/* Branding Level */}
           <div className="space-y-3">
