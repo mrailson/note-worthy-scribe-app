@@ -34,6 +34,10 @@ export function useTightenSystmOneNotes() {
     try {
       console.log('Calling tighten-systmone-notes edge function...');
 
+      // Create AbortController with longer timeout for AI processing
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
       const { data, error } = await supabase.functions.invoke('tighten-systmone-notes', {
         body: {
           history: input.history,
@@ -43,9 +47,17 @@ export function useTightenSystmOneNotes() {
         }
       });
 
+      clearTimeout(timeoutId);
+
       if (error) {
         console.error('Edge function error:', error);
-        toast.error('Failed to optimise notes: ' + error.message);
+        
+        // Check for specific error types
+        if (error.message?.includes('Failed to fetch') || error.message?.includes('AbortError')) {
+          toast.error('Request timed out - please try again');
+        } else {
+          toast.error('Failed to optimise notes: ' + error.message);
+        }
         return null;
       }
 
