@@ -3523,31 +3523,27 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Start transcript snippet monitoring
+  // Start transcript snippet monitoring - now uses useEffect to react to transcript changes
   const startTranscriptSnippetMonitoring = () => {
-    if (transcriptSnippetIntervalRef.current) {
-      clearInterval(transcriptSnippetIntervalRef.current);
-    }
-    
-    transcriptSnippetIntervalRef.current = setInterval(() => {
-      // Get the last 50 words from the AssemblyAI live transcript
-      const liveText = assemblyPreview.fullTranscript || '';
-      const words = liveText.split(' ').filter(w => w.trim().length > 0);
-      const recentWords = words.slice(-50);
-      const snippet = recentWords.join(' ');
-      
-      if (snippet.trim().length > 0) {
-        setTranscriptSnippet(snippet);
-        setShowTranscriptSnippet(true);
-        console.log('📝 Live transcript snippet (AssemblyAI):', snippet);
-        
-        // Hide the snippet after 3 seconds
-        setTimeout(() => {
-          setShowTranscriptSnippet(false);
-        }, 3000);
-      }
-    }, 5000); // Every 5 seconds
+    // Just set a flag - the actual update happens in the useEffect below
+    setShowTranscriptSnippet(true);
   };
+
+  // React to AssemblyAI transcript changes for the Live Speech display
+  useEffect(() => {
+    if (!isRecording) return;
+    
+    const liveText = assemblyPreview.fullTranscript || '';
+    const words = liveText.split(' ').filter(w => w.trim().length > 0);
+    const recentWords = words.slice(-50);
+    const snippet = recentWords.join(' ');
+    
+    if (snippet.trim().length > 0) {
+      setTranscriptSnippet(snippet);
+      setShowTranscriptSnippet(true);
+      console.log('📝 Live transcript snippet (AssemblyAI):', snippet);
+    }
+  }, [assemblyPreview.fullTranscript, isRecording]);
 
   const startStereoRecording = async () => {
     try {
