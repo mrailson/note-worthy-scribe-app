@@ -198,7 +198,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [batchTranscript, setBatchTranscript] = useState('');
   const [liveTranscript, setLiveTranscript] = useState('');
   const [consolidatedTranscript, setConsolidatedTranscript] = useState('');
-  const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live' | 'consolidated'>('batch');
+  const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live'>('batch');
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [consolidationStats, setConsolidationStats] = useState<{
     batchWords: number;
@@ -841,13 +841,8 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           setMeetingLocation(meetingData.meeting_location);
         }
         
-        // Load notes transcript source preference
-        if (meetingData?.primary_transcript_source) {
-          const source = meetingData.primary_transcript_source === 'assembly' ? 'live' : 'batch';
-          setNotesTranscriptSource(source);
-        } else {
-          setNotesTranscriptSource('batch'); // Default to batch
-        }
+        // Note: notesTranscriptSource is auto-selected in a separate useEffect 
+        // based on transcript availability (Best of Both → Batch → Live)
 
         if (meetingData?.notes_style_3) {
           setNotesContent(sanitiseMeetingNotes(meetingData.notes_style_3));
@@ -1033,6 +1028,29 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       setIsLoadingTranscript(false);
     }
   }, [meeting?.id, isLoadingTranscript]);
+
+  // Auto-select best available transcript source for notes
+  // Priority: Best of Both (consolidated) → Batch → Live
+  useEffect(() => {
+    if (isLoadingTranscript) return;
+    
+    const hasBatch = batchTranscript && batchTranscript.trim().length > 0;
+    const hasLive = liveTranscript && liveTranscript.trim().length > 0;
+    
+    if (hasBatch && hasLive) {
+      // Both available - use Best of Both (consolidated)
+      setNotesTranscriptSource('consolidated');
+      console.log('📝 Auto-selected: Best of Both (both transcripts available)');
+    } else if (hasBatch) {
+      // Only batch available
+      setNotesTranscriptSource('batch');
+      console.log('📝 Auto-selected: Batch (only Whisper available)');
+    } else if (hasLive) {
+      // Only live available
+      setNotesTranscriptSource('live');
+      console.log('📝 Auto-selected: Live (only AssemblyAI available)');
+    }
+  }, [batchTranscript, liveTranscript, isLoadingTranscript]);
 
   // Generate consolidated transcript using AI
   const generateConsolidatedTranscript = useCallback(async () => {
@@ -3573,20 +3591,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           </Badge>
                         )}
                       </Button>
-                      <Button
-                        variant={transcriptSubTab === 'consolidated' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setTranscriptSubTab('consolidated')}
-                        className="h-7 text-xs"
-                      >
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        Consolidated
-                        {consolidatedTranscript && (
-                          <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
-                            {consolidatedTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
-                          </Badge>
-                        )}
-                      </Button>
                     </div>
 
                     {/* Notes Source Selector - which transcript to use for regenerating notes */}
@@ -3705,11 +3709,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                   {/* Find & Replace Panel */}
                   {showTranscriptFindReplace && (batchTranscript || liveTranscript) && (
                     <EnhancedFindReplacePanel
-                      getCurrentText={() => transcriptSubTab === 'batch' ? batchTranscript : transcriptSubTab === 'live' ? liveTranscript : consolidatedTranscript}
+                      getCurrentText={() => transcriptSubTab === 'batch' ? batchTranscript : liveTranscript}
                       onApply={(updatedText) => {
                         if (transcriptSubTab === 'batch') setBatchTranscript(updatedText);
-                        else if (transcriptSubTab === 'live') setLiveTranscript(updatedText);
-                        else setConsolidatedTranscript(updatedText);
+                        else setLiveTranscript(updatedText);
                       }}
                       meetingId={meeting?.id}
                       onTranscriptSync={async (finds, replaceWith) => {
@@ -3757,7 +3760,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         <p className="text-sm text-muted-foreground">
                           Regenerating notes from{' '}
                           <span className="font-medium text-foreground">
-                            {notesTranscriptSource === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)'}
+                            {notesTranscriptSource === 'batch' ? 'Batch (Whisper)' : notesTranscriptSource === 'live' ? 'Live (AssemblyAI)' : 'Best of Both'}
                           </span>{' '}
                           transcript...
                         </p>
@@ -3842,101 +3845,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                             <p>No live (AssemblyAI) transcript available for this meeting.</p>
                           </div>
                         )
-                      )}
-
-                      {/* Consolidated Transcript View */}
-                      {transcriptSubTab === 'consolidated' && (
-                        <div className="space-y-4">
-                          {/* Generate button if not yet consolidated */}
-                          {!consolidatedTranscript && (batchTranscript || liveTranscript) && (
-                            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                              <div className="text-center space-y-2">
-                                <Sparkles className="h-10 w-10 mx-auto text-primary opacity-70" />
-                                <h3 className="font-medium">AI-Powered Transcript Consolidation</h3>
-                                <p className="text-sm text-muted-foreground max-w-md">
-                                  Merge both Batch and Live transcripts into a single, accurate version using AI to resolve discrepancies and choose the best content from each source.
-                                </p>
-                              </div>
-                              <Button
-                                onClick={generateConsolidatedTranscript}
-                                disabled={isConsolidating || (!batchTranscript && !liveTranscript)}
-                                className="gap-2"
-                              >
-                                {isConsolidating ? (
-                                  <>
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Consolidating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Sparkles className="h-4 w-4" />
-                                    Generate Consolidated Transcript
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          )}
-
-                          {/* Stats badge if consolidated */}
-                          {consolidatedTranscript && consolidationStats && (
-                            <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm">
-                              <Badge variant="outline" className="gap-1">
-                                <span className="text-muted-foreground">Batch:</span> {consolidationStats.batchWords} words
-                              </Badge>
-                              <Badge variant="outline" className="gap-1">
-                                <span className="text-muted-foreground">Live:</span> {consolidationStats.liveWords} words
-                              </Badge>
-                              <Badge variant="default" className="gap-1">
-                                <Sparkles className="h-3 w-3" />
-                                Final: {consolidationStats.finalWords} words
-                              </Badge>
-                              {consolidationStats.method === 'ai_merged' && (
-                                <Badge variant="secondary" className="gap-1">
-                                  <Check className="h-3 w-3" />
-                                  AI Merged
-                                </Badge>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={generateConsolidatedTranscript}
-                                disabled={isConsolidating}
-                                className="ml-auto h-7 text-xs"
-                              >
-                                {isConsolidating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
-                                Regenerate
-                              </Button>
-                            </div>
-                          )}
-
-                          {/* Consolidated content */}
-                          {consolidatedTranscript && (
-                            <div className="relative">
-                              {viewMode === 'plain' ? (
-                                <pre 
-                                  className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
-                                  style={{ fontSize: `${fontSize}px` }}
-                                >
-                                  {consolidatedTranscript}
-                                </pre>
-                              ) : (
-                                <div 
-                                  className="prose prose-sm dark:prose-invert max-w-none text-justify"
-                                  style={{ fontSize: `${fontSize}px` }}
-                                  dangerouslySetInnerHTML={{ __html: formatTranscript(consolidatedTranscript) }}
-                                />
-                              )}
-                            </div>
-                          )}
-
-                          {/* No transcripts available */}
-                          {!batchTranscript && !liveTranscript && (
-                            <div className="text-center py-12 text-muted-foreground">
-                              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                              <p>No transcripts available to consolidate.</p>
-                            </div>
-                          )}
-                        </div>
                       )}
                     </>
                   )}
