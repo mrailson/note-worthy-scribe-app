@@ -408,36 +408,45 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
       // Auto-optimise for SystmOne before saving - store as separate systmOneNote
       let noteWithOptimisation = note;
       if (note.heidiNote) {
-        console.log('🔧 Auto-optimising notes for SystmOne...');
-        try {
-          const optimiseResult = await supabase.functions.invoke('tighten-systmone-notes', {
-            body: {
-              history: note.heidiNote.history || '',
-              examination: note.heidiNote.examination || '',
-              assessment: note.heidiNote.impression || '',
-              plan: note.heidiNote.plan || ''
-            }
-          });
+        const optimisationPayload = {
+          history: note.heidiNote.history || '',
+          examination: note.heidiNote.examination || '',
+          assessment: note.heidiNote.impression || '',
+          plan: note.heidiNote.plan || ''
+        };
 
-          if (optimiseResult.data && !optimiseResult.error && !optimiseResult.data.error) {
-            console.log('✅ SystmOne optimisation complete');
-            // Store optimised version SEPARATELY in systmOneNote, keep original heidiNote intact
-            noteWithOptimisation = {
-              ...note,
-              systmOneNote: {
-                consultationHeader: note.heidiNote.consultationHeader,
-                history: optimiseResult.data.history || note.heidiNote.history,
-                examination: optimiseResult.data.examination || note.heidiNote.examination,
-                impression: optimiseResult.data.assessment || note.heidiNote.impression,
-                plan: optimiseResult.data.plan || note.heidiNote.plan
-              }
-            };
-            setConsultationNote(noteWithOptimisation);
-          } else {
-            console.warn('SystmOne optimisation returned error, using original notes:', optimiseResult.data?.error || optimiseResult.error);
+        const hasOptimisationContent = Object.values(optimisationPayload)
+          .some((v) => typeof v === 'string' && v.trim().length > 0);
+
+        if (!hasOptimisationContent) {
+          console.log('Skipping SystmOne optimisation - no content to optimise');
+        } else {
+          console.log('🔧 Auto-optimising notes for SystmOne...');
+          try {
+            const optimiseResult = await supabase.functions.invoke('tighten-systmone-notes', {
+              body: optimisationPayload
+            });
+
+            if (optimiseResult.data && !optimiseResult.error && !optimiseResult.data.error) {
+              console.log('✅ SystmOne optimisation complete');
+              // Store optimised version SEPARATELY in systmOneNote, keep original heidiNote intact
+              noteWithOptimisation = {
+                ...note,
+                systmOneNote: {
+                  consultationHeader: note.heidiNote.consultationHeader,
+                  history: optimiseResult.data.history || note.heidiNote.history,
+                  examination: optimiseResult.data.examination || note.heidiNote.examination,
+                  impression: optimiseResult.data.assessment || note.heidiNote.impression,
+                  plan: optimiseResult.data.plan || note.heidiNote.plan
+                }
+              };
+              setConsultationNote(noteWithOptimisation);
+            } else {
+              console.warn('SystmOne optimisation returned error, using original notes:', optimiseResult.data?.error || optimiseResult.error);
+            }
+          } catch (optimiseError) {
+            console.warn('SystmOne optimisation failed, using original notes:', optimiseError);
           }
-        } catch (optimiseError) {
-          console.warn('SystmOne optimisation failed, using original notes:', optimiseError);
         }
       }
       
@@ -503,35 +512,44 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
       
       // Auto-optimise for SystmOne - store as separate systmOneNote
       if (note.heidiNote) {
-        console.log('🔧 Auto-optimising regenerated notes for SystmOne...');
-        try {
-          const optimiseResult = await supabase.functions.invoke('tighten-systmone-notes', {
-            body: {
-              history: note.heidiNote.history || '',
-              examination: note.heidiNote.examination || '',
-              assessment: note.heidiNote.impression || '',
-              plan: note.heidiNote.plan || ''
-            }
-          });
+        const optimisationPayload = {
+          history: note.heidiNote.history || '',
+          examination: note.heidiNote.examination || '',
+          assessment: note.heidiNote.impression || '',
+          plan: note.heidiNote.plan || ''
+        };
 
-          if (optimiseResult.data && !optimiseResult.error && !optimiseResult.data.error) {
-            console.log('✅ SystmOne optimisation complete');
-            // Store optimised version SEPARATELY in systmOneNote
-            noteWithOptimisation = {
-              ...note,
-              systmOneNote: {
-                consultationHeader: note.heidiNote.consultationHeader,
-                history: optimiseResult.data.history || note.heidiNote.history,
-                examination: optimiseResult.data.examination || note.heidiNote.examination,
-                impression: optimiseResult.data.assessment || note.heidiNote.impression,
-                plan: optimiseResult.data.plan || note.heidiNote.plan
-              }
-            };
-          } else {
-            console.warn('SystmOne optimisation returned error:', optimiseResult.data?.error || optimiseResult.error);
+        const hasOptimisationContent = Object.values(optimisationPayload)
+          .some((v) => typeof v === 'string' && v.trim().length > 0);
+
+        if (!hasOptimisationContent) {
+          console.log('Skipping SystmOne optimisation (regenerate) - no content to optimise');
+        } else {
+          console.log('🔧 Auto-optimising regenerated notes for SystmOne...');
+          try {
+            const optimiseResult = await supabase.functions.invoke('tighten-systmone-notes', {
+              body: optimisationPayload
+            });
+
+            if (optimiseResult.data && !optimiseResult.error && !optimiseResult.data.error) {
+              console.log('✅ SystmOne optimisation complete');
+              // Store optimised version SEPARATELY in systmOneNote
+              noteWithOptimisation = {
+                ...note,
+                systmOneNote: {
+                  consultationHeader: note.heidiNote.consultationHeader,
+                  history: optimiseResult.data.history || note.heidiNote.history,
+                  examination: optimiseResult.data.examination || note.heidiNote.examination,
+                  impression: optimiseResult.data.assessment || note.heidiNote.impression,
+                  plan: optimiseResult.data.plan || note.heidiNote.plan
+                }
+              };
+            } else {
+              console.warn('SystmOne optimisation returned error:', optimiseResult.data?.error || optimiseResult.error);
+            }
+          } catch (optimiseError) {
+            console.warn('SystmOne optimisation failed:', optimiseError);
           }
-        } catch (optimiseError) {
-          console.warn('SystmOne optimisation failed:', optimiseError);
         }
       }
 

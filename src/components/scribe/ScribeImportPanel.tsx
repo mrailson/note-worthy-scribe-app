@@ -270,30 +270,39 @@ export const ScribeImportPanel = ({ settings, onNotesGenerated }: ScribeImportPa
 
       // Auto-optimise for TPP SystmOne (store separately so Narrative != SystmOne)
       if (note.heidiNote) {
-        setProgress(95);
-        setStatusMessage('Optimising for SystmOne...');
-        try {
-          const { data: optimised, error: optimiseError } = await supabase.functions.invoke('tighten-systmone-notes', {
-            body: {
-              history: note.heidiNote.history || '',
-              examination: note.heidiNote.examination || '',
-              assessment: note.heidiNote.impression || '',
-              plan: note.heidiNote.plan || ''
-            }
-          });
+        const optimisationPayload = {
+          history: note.heidiNote.history || '',
+          examination: note.heidiNote.examination || '',
+          assessment: note.heidiNote.impression || '',
+          plan: note.heidiNote.plan || ''
+        };
 
-          if (!optimiseError && optimised && !optimised.error) {
-            note.systmOneNote = {
-              consultationHeader: note.heidiNote.consultationHeader,
-              history: optimised.history || note.heidiNote.history,
-              examination: optimised.examination || note.heidiNote.examination,
-              impression: optimised.assessment || note.heidiNote.impression,
-              plan: optimised.plan || note.heidiNote.plan
-            };
+        const hasOptimisationContent = Object.values(optimisationPayload)
+          .some((v) => typeof v === 'string' && v.trim().length > 0);
+
+        if (!hasOptimisationContent) {
+          console.log('Skipping SystmOne optimisation (import) - no content to optimise');
+        } else {
+          setProgress(95);
+          setStatusMessage('Optimising for SystmOne...');
+          try {
+            const { data: optimised, error: optimiseError } = await supabase.functions.invoke('tighten-systmone-notes', {
+              body: optimisationPayload
+            });
+
+            if (!optimiseError && optimised && !optimised.error) {
+              note.systmOneNote = {
+                consultationHeader: note.heidiNote.consultationHeader,
+                history: optimised.history || note.heidiNote.history,
+                examination: optimised.examination || note.heidiNote.examination,
+                impression: optimised.assessment || note.heidiNote.impression,
+                plan: optimised.plan || note.heidiNote.plan
+              };
+            }
+          } catch (e) {
+            // Non-blocking: if optimisation fails, still return original notes
+            console.warn('SystmOne optimisation failed for imported consultation:', e);
           }
-        } catch (e) {
-          // Non-blocking: if optimisation fails, still return original notes
-          console.warn('SystmOne optimisation failed for imported consultation:', e);
         }
       }
 
