@@ -190,7 +190,12 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
 
     if (transcriptError) throw transcriptError;
 
-    // 3. Insert notes
+    // 3. Insert notes (include systmOneNote in heidi_notes as nested object)
+    const heidiNotesWithOptimised = noteToSave.heidiNote ? {
+      ...noteToSave.heidiNote,
+      systmOneOptimised: noteToSave.systmOneNote || null
+    } : null;
+
     const { error: notesError } = await supabase
       .from('gp_consultation_notes')
       .insert([{
@@ -198,9 +203,9 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
         note_format: noteToSave.noteFormat || 'heidi',
         note_style: settings.noteFormat,
         soap_notes: JSON.parse(JSON.stringify(noteToSave.soapNote)),
-        heidi_notes: noteToSave.heidiNote ? JSON.parse(JSON.stringify(noteToSave.heidiNote)) : null,
+        heidi_notes: heidiNotesWithOptimised ? JSON.parse(JSON.stringify(heidiNotesWithOptimised)) : null,
         snomed_codes: noteToSave.snomedCodes || [],
-        is_systmone_optimised: isSystmOneOptimised || false
+        is_systmone_optimised: !!noteToSave.systmOneNote
       }]);
 
     if (notesError) throw notesError;
@@ -383,8 +388,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
       // Go directly to review state
       setConsultationState('review');
       
-      // Auto-optimise for SystmOne before saving
-      let optimisedNote = note;
+      // Auto-optimise for SystmOne before saving - store as separate systmOneNote
+      let noteWithOptimisation = note;
       if (note.heidiNote) {
         console.log('🔧 Auto-optimising notes for SystmOne...');
         try {
@@ -399,26 +404,18 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
 
           if (optimiseResult.data && !optimiseResult.error && !optimiseResult.data.error) {
             console.log('✅ SystmOne optimisation complete');
-            optimisedNote = {
+            // Store optimised version SEPARATELY in systmOneNote, keep original heidiNote intact
+            noteWithOptimisation = {
               ...note,
-              heidiNote: {
-                ...note.heidiNote,
+              systmOneNote: {
+                consultationHeader: note.heidiNote.consultationHeader,
                 history: optimiseResult.data.history || note.heidiNote.history,
                 examination: optimiseResult.data.examination || note.heidiNote.examination,
                 impression: optimiseResult.data.assessment || note.heidiNote.impression,
                 plan: optimiseResult.data.plan || note.heidiNote.plan
               }
             };
-            setConsultationNote(optimisedNote);
-            
-            // Update edit content with optimised version
-            setHeidiEditContent({
-              consultationHeader: optimisedNote.heidiNote!.consultationHeader,
-              history: optimisedNote.heidiNote!.history,
-              examination: optimisedNote.heidiNote!.examination,
-              impression: optimisedNote.heidiNote!.impression,
-              plan: optimisedNote.heidiNote!.plan
-            });
+            setConsultationNote(noteWithOptimisation);
           } else {
             console.warn('SystmOne optimisation returned error, using original notes:', optimiseResult.data?.error || optimiseResult.error);
           }
@@ -429,7 +426,7 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
       
       // Auto-save immediately (awaited with status feedback) - include realtime transcript
       // Pass true for isSystmOneOptimised if optimisation succeeded
-      await autoSaveWithRetry(optimisedNote, transcriptForSave, wordCountForSave, durationForSave, realtimeTranscriptForSave, optimisedNote !== note);
+      await autoSaveWithRetry(noteWithOptimisation, transcriptForSave, wordCountForSave, durationForSave, realtimeTranscriptForSave, !!noteWithOptimisation.systmOneNote);
       
     } catch (error) {
       console.error('Error generating notes:', error);
@@ -485,9 +482,9 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
         snomedCodes: data.snomedCodes || []
       };
 
-      let optimisedNote = note;
+      let noteWithOptimisation = note;
       
-      // Auto-optimise for SystmOne
+      // Auto-optimise for SystmOne - store as separate systmOneNote
       if (note.heidiNote) {
         console.log('🔧 Auto-optimising regenerated notes for SystmOne...');
         try {
@@ -502,10 +499,11 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
 
           if (optimiseResult.data && !optimiseResult.error && !optimiseResult.data.error) {
             console.log('✅ SystmOne optimisation complete');
-            optimisedNote = {
+            // Store optimised version SEPARATELY in systmOneNote
+            noteWithOptimisation = {
               ...note,
-              heidiNote: {
-                ...note.heidiNote,
+              systmOneNote: {
+                consultationHeader: note.heidiNote.consultationHeader,
                 history: optimiseResult.data.history || note.heidiNote.history,
                 examination: optimiseResult.data.examination || note.heidiNote.examination,
                 impression: optimiseResult.data.assessment || note.heidiNote.impression,
@@ -520,28 +518,28 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
         }
       }
 
-      setConsultationNote(optimisedNote);
+      setConsultationNote(noteWithOptimisation);
       
       // Set edit content for SOAP
       setEditContent({
-        S: optimisedNote.soapNote.S,
-        O: optimisedNote.soapNote.O,
-        A: optimisedNote.soapNote.A,
-        P: optimisedNote.soapNote.P
+        S: noteWithOptimisation.soapNote.S,
+        O: noteWithOptimisation.soapNote.O,
+        A: noteWithOptimisation.soapNote.A,
+        P: noteWithOptimisation.soapNote.P
       });
 
-      // Set edit content for Heidi if available
-      if (optimisedNote.heidiNote) {
+      // Set edit content for Heidi if available (use original)
+      if (noteWithOptimisation.heidiNote) {
         setHeidiEditContent({
-          consultationHeader: optimisedNote.heidiNote.consultationHeader,
-          history: optimisedNote.heidiNote.history,
-          examination: optimisedNote.heidiNote.examination,
-          impression: optimisedNote.heidiNote.impression,
-          plan: optimisedNote.heidiNote.plan
+          consultationHeader: noteWithOptimisation.heidiNote.consultationHeader,
+          history: noteWithOptimisation.heidiNote.history,
+          examination: noteWithOptimisation.heidiNote.examination,
+          impression: noteWithOptimisation.heidiNote.impression,
+          plan: noteWithOptimisation.heidiNote.plan
         });
       }
       
-      showToast.success('Notes regenerated and optimised for SystmOne', { section: 'gpscribe' });
+      showToast.success('Notes regenerated' + (noteWithOptimisation.systmOneNote ? ' and optimised for SystmOne' : ''), { section: 'gpscribe' });
     } catch (error) {
       console.error('Error regenerating notes:', error);
       showToast.error('Failed to regenerate notes', { section: 'gpscribe' });

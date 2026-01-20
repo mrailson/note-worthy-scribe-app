@@ -384,13 +384,12 @@ export const ConsultationNoteState = ({
           ) : viewMode === 'systmone' ? (
             <NarrativeClinicalNoteView
               soapNote={consultationNote.soapNote}
-              heidiNote={consultationNote.heidiNote}
+              heidiNote={consultationNote.systmOneNote || consultationNote.heidiNote}
               showNotMentioned={settings.showNotMentioned}
               onShowNotMentionedChange={onShowNotMentionedChange}
-              editable={true}
-              onSectionChange={onNarrativeSectionChange}
+              editable={false}
               consultationId={consultationId}
-              isSystmOneOptimised={true}
+              isSystmOneOptimised={!!consultationNote.systmOneNote}
             />
           ) : viewMode === 'emis' ? (
             <EmisNoteView

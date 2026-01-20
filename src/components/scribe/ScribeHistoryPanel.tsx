@@ -713,10 +713,10 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     {settings.consultationViewMode === 'systmone' && (
                       <NarrativeClinicalNoteView
                         soapNote={currentSoapNote}
-                        heidiNote={currentSession.heidiNote}
+                        heidiNote={currentSession.systmOneNote || currentSession.heidiNote}
                         showNotMentioned={settings.showNotMentioned}
                         onShowNotMentionedChange={handleShowNotMentionedChange}
-                        isSystmOneOptimised={true}
+                        isSystmOneOptimised={!!currentSession.systmOneNote || currentSession.isSystmOneOptimised}
                       />
                     )}
 
