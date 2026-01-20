@@ -118,20 +118,26 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
       const reader = new FileReader();
       reader.onload = async () => {
         try {
-          const base64Data = (reader.result as string).split(',')[1];
+          const dataUrl = reader.result as string;
+          
+          // Determine file type for the edge function
+          let fileType: 'pdf' | 'word' = 'word';
+          if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+            fileType = 'pdf';
+          }
           
           const { data, error } = await supabase.functions.invoke('extract-document-text', {
             body: { 
-              file: base64Data,
+              dataUrl,
               fileName: file.name,
-              mimeType: file.type
+              fileType
             }
           });
           
           if (error) throw error;
-          if (!data?.text) throw new Error('No text extracted');
+          if (!data?.extractedText) throw new Error('No text extracted');
           
-          resolve(data.text);
+          resolve(data.extractedText);
         } catch (err: any) {
           reject(err);
         }
