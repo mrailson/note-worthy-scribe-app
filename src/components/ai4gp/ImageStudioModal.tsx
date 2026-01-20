@@ -16,6 +16,7 @@ import {
   Images
 } from 'lucide-react';
 import { useImageStudio } from '@/hooks/useImageStudio';
+import { useImageGallery } from '@/hooks/useImageGallery';
 import { ContextTab } from './studio/ContextTab';
 import { StyleTab } from './studio/StyleTab';
 import { BrandingTab } from './studio/BrandingTab';
@@ -36,6 +37,8 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
 }) => {
   const [showGallery, setShowGallery] = useState(false);
+  
+  const { fetchImages } = useImageGallery();
   
   const {
     settings,
@@ -151,6 +154,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
                 onSelectHistoryItem={selectHistoryItem}
                 descriptionProvided={!!settings.description.trim()}
                 onSaveToGallery={saveToGallery}
+                onGallerySaved={fetchImages}
               />
             </TabsContent>
           </div>

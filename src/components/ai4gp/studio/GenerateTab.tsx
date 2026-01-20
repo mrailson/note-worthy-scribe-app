@@ -20,6 +20,7 @@ interface GenerateTabProps {
   onSelectHistoryItem: (item: GenerationHistoryItem) => void;
   descriptionProvided: boolean;
   onSaveToGallery?: (result: GeneratedImage) => Promise<string | null>;
+  onGallerySaved?: () => void;
 }
 
 export const GenerateTab: React.FC<GenerateTabProps> = ({
@@ -34,6 +35,7 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
   onSelectHistoryItem,
   descriptionProvided,
   onSaveToGallery,
+  onGallerySaved,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [savedImageId, setSavedImageId] = useState<string | null>(null);
@@ -82,6 +84,8 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
       if (imageId) {
         setSavedImageId(imageId);
         toast.success('Image saved to gallery');
+        // Trigger gallery refresh
+        onGallerySaved?.();
       }
     } finally {
       setIsSaving(false);
