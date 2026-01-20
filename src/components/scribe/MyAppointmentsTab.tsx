@@ -29,14 +29,15 @@ export const MyAppointmentsTab = ({ onStartConsultation, onViewConsultation }: M
   };
 
   const handleStartConsultation = (apt: Appointment) => {
-    // Convert appointment to patient context
+    // Convert appointment to patient context with appointment ID for auto-linking
     const patientContext: PatientContext = {
       name: apt.patient_name,
       nhsNumber: apt.nhs_number,
       dateOfBirth: apt.date_of_birth,
       address: apt.address,
       postcode: apt.postcode,
-      contactNumber: apt.contact_number
+      contactNumber: apt.contact_number,
+      appointmentId: apt.id  // Pass appointment ID for linking after save
     };
     
     // Mark as in progress

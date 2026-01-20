@@ -145,6 +145,8 @@ export interface PatientContext {
     preferred?: 'mobile' | 'home' | 'work';  // Which number is marked as preferred
   };
   gender?: 'M' | 'F';      // Male or Female
+  // Link to appointment (for auto-linking after save)
+  appointmentId?: string;
 }
 
 // Context file for consultation (blood results, screenshots, documents)

@@ -248,6 +248,23 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
         setIsSaved(true);
         setIsSaving(false);
         console.log('✅ Consultation auto-saved successfully:', consultationId);
+        
+        // Link appointment to consultation if started from an appointment
+        if (patientContext?.appointmentId) {
+          try {
+            await supabase
+              .from('gp_appointments')
+              .update({ 
+                linked_consultation_id: consultationId,
+                status: 'completed'
+              })
+              .eq('id', patientContext.appointmentId);
+            console.log('✅ Linked appointment to consultation:', patientContext.appointmentId);
+          } catch (linkError) {
+            console.error('Failed to link appointment:', linkError);
+          }
+        }
+        
         // Notify parent with session ID to navigate to history
         onAutoSaveComplete?.(consultationId);
         return consultationId;
@@ -264,7 +281,7 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
     console.error('❌ All auto-save attempts failed');
     showToast.error('Auto-save failed. Click Save to retry.', { section: 'gpscribe' });
     return null;
-  }, [saveConsultationInternal, onAutoSaveComplete]);
+  }, [saveConsultationInternal, onAutoSaveComplete, patientContext]);
 
   // Finish consultation and generate notes (with auto-save)
   const finishConsultation = useCallback(async () => {
