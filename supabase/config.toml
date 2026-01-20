@@ -413,3 +413,6 @@ verify_jwt = true
 
 [functions.consolidate-single-meeting-transcript]
 verify_jwt = false
+
+[functions.assemblyai-transcription-url]
+verify_jwt = true
