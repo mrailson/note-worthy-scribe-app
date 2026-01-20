@@ -323,7 +323,7 @@ const CSOReport = () => {
             <CardContent className="space-y-6">
               <div className="prose dark:prose-invert max-w-none">
                 <p className="text-base leading-relaxed mb-4">
-                  <strong>Executive Summary (Updated 19/11/2025)</strong>
+                  <strong>Executive Summary (Updated 20/01/2026)</strong>
                 </p>
                 <p className="text-base leading-relaxed mb-4">
                   NoteWell AI is a Class I, low-risk, non-business-critical administrative and governance support tool for NHS primary care. It provides meeting transcription, structured complaints management, and document generation. NoteWell does not offer clinical decision-making, has no EMIS/S1 write-back, and all outputs require human review.
@@ -343,7 +343,7 @@ const CSOReport = () => {
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-6 mt-6">
                 <h4 className="font-semibold text-lg mb-4 flex items-center gap-2 text-blue-900 dark:text-blue-300">
                   <Shield className="w-5 h-5" />
-                  Assurance Status Overview (19/11/2025)
+                  Assurance Status Overview (20/01/2026)
                 </h4>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
@@ -964,7 +964,7 @@ const CSOReport = () => {
             <CardHeader>
               <CardTitle className="text-2xl flex items-center gap-2">
                 <Lock className="w-6 h-6" />
-                DPIA Summary – NoteWell AI (Updated 19/11/2025)
+                DPIA Summary – NoteWell AI (Updated 20/01/2026)
               </CardTitle>
               <CardDescription>Data Protection Impact Assessment summary for NHS primary care administrative workflows</CardDescription>
             </CardHeader>
