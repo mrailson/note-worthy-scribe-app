@@ -60,6 +60,7 @@ interface MeetingCoachModalProps {
   onClose: () => void;
   isRecording: boolean;
   getLiveTranscript: () => string;
+  recordingDuration?: number; // Duration in seconds from parent
   meetingContext: {
     title?: string;
     type?: string;
@@ -73,6 +74,7 @@ export function MeetingCoachModal({
   onClose,
   isRecording,
   getLiveTranscript,
+  recordingDuration = 0,
   meetingContext
 }: MeetingCoachModalProps) {
   const { user } = useAuth();
@@ -80,7 +82,6 @@ export function MeetingCoachModal({
   const [insightHistory, setInsightHistory] = useState<CoachInsight[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [lastAnalysisTime, setLastAnalysisTime] = useState<number | null>(null);
-  const [meetingStartTime] = useState(Date.now());
   const [isMinimized, setIsMinimized] = useState(false);
   const [lastWordCount, setLastWordCount] = useState(0);
   const [activeTab, setActiveTab] = useState('realtime');
@@ -369,7 +370,7 @@ export function MeetingCoachModal({
   const analyzeTranscript = async (recentChunk: string, fullTranscript: string) => {
     setIsAnalyzing(true);
     
-    const meetingDurationMinutes = Math.floor((Date.now() - meetingStartTime) / 60000);
+    const meetingDurationMinutes = Math.floor(recordingDuration / 60);
     
     try {
       const { data, error } = await supabase.functions.invoke('meeting-coach-analyze', {
@@ -449,8 +450,8 @@ export function MeetingCoachModal({
   };
 
   const getMeetingDuration = (): string => {
-    const minutes = Math.floor((Date.now() - meetingStartTime) / 60000);
-    const seconds = Math.floor(((Date.now() - meetingStartTime) % 60000) / 1000);
+    const minutes = Math.floor(recordingDuration / 60);
+    const seconds = recordingDuration % 60;
     return `${minutes}m ${seconds}s`;
   };
 

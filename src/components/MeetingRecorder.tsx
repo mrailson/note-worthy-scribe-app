@@ -7077,6 +7077,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         isOpen={coachModalOpen}
         onClose={() => setCoachModalOpen(false)}
         isRecording={isRecording}
+        recordingDuration={duration}
         getLiveTranscript={() => liveTranscriptRef.current?.getCurrentTranscript() || ''}
         meetingContext={{
           title: meetingSettings?.title,
