@@ -106,6 +106,14 @@ export const AUDIO_FORMAT_LABELS: Record<AudioRecordingFormat, string> = {
   'mp3': 'MP3 - Alternative'
 };
 
+// Transcript source for note generation
+export type NoteTranscriptSource = 'batch' | 'live';
+
+export const NOTE_TRANSCRIPT_SOURCE_LABELS: Record<NoteTranscriptSource, string> = {
+  'batch': 'Notewell Batch Transcription (Whisper)',
+  'live': 'Notewell Live Transcription (AssemblyAI)'
+};
+
 // Chunk duration configuration
 export const CHUNK_DURATION_OPTIONS = {
   min: 15,
@@ -181,6 +189,8 @@ export interface ScribeSettings {
   // Audio recording settings
   audioFormat?: AudioRecordingFormat; // Audio encoding format (webm or mp3)
   chunkDurationSeconds?: number; // Audio chunk duration for transcription (15-60s)
+  // Note generation settings
+  noteTranscriptSource?: NoteTranscriptSource; // Which transcript to use for generating notes
 }
 
 export interface ScribeTranscriptData {
@@ -271,4 +281,6 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   // Audio recording settings
   audioFormat: 'webm', // Default to WebM (best compatibility)
   chunkDurationSeconds: 25, // Default 25 seconds per chunk
+  // Note generation settings
+  noteTranscriptSource: 'batch', // Default to Batch (Whisper) for better clinical quality
 };

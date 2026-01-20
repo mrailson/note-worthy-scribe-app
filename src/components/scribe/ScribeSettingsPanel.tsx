@@ -4,8 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ScribeSettings, HistoryRetention, HISTORY_RETENTION_LABELS } from "@/types/scribe";
-import { Save, RotateCcw, Shield, ChevronDown } from "lucide-react";
+import { ScribeSettings, HistoryRetention, HISTORY_RETENTION_LABELS, NoteTranscriptSource, NOTE_TRANSCRIPT_SOURCE_LABELS } from "@/types/scribe";
+import { Save, RotateCcw, Shield, ChevronDown, FileText } from "lucide-react";
 import { ScribeMicrophoneSettings } from "./ScribeMicrophoneSettings";
 import { useState } from "react";
 
@@ -24,6 +24,7 @@ export const ScribeSettingsPanel = ({
   onResetSettings,
 }: ScribeSettingsPanelProps) => {
   const [consentOpen, setConsentOpen] = useState(false);
+  const [noteGenOpen, setNoteGenOpen] = useState(true);
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -40,6 +41,48 @@ export const ScribeSettingsPanel = ({
         onSystemAudioChange={(enabled) => onUpdateSetting('systemAudioEnabled', enabled)}
         onSaveMicSettings={onSaveSettings}
       />
+
+      {/* Note Generation Settings */}
+      <Card>
+        <Collapsible open={noteGenOpen} onOpenChange={setNoteGenOpen}>
+          <CollapsibleTrigger className="w-full">
+            <div className="flex items-center justify-between p-6">
+              <div className="flex items-center gap-2 font-semibold">
+                <FileText className="h-5 w-5" />
+                Note Generation
+              </div>
+              <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${noteGenOpen ? 'rotate-180' : ''}`} />
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-4 pt-0">
+              <div className="space-y-2">
+                <Label htmlFor="noteTranscriptSource">Default Transcript Source for Notes</Label>
+                <Select
+                  value={settings.noteTranscriptSource || 'batch'}
+                  onValueChange={(value: NoteTranscriptSource) => 
+                    onUpdateSetting('noteTranscriptSource', value)
+                  }
+                >
+                  <SelectTrigger id="noteTranscriptSource">
+                    <SelectValue placeholder="Select transcript source" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(NOTE_TRANSCRIPT_SOURCE_LABELS) as NoteTranscriptSource[]).map((key) => (
+                      <SelectItem key={key} value={key}>
+                        {NOTE_TRANSCRIPT_SOURCE_LABELS[key]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Choose which transcription to use when generating EMIS/TPP notes. Batch typically provides better clinical quality.
+                </p>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
 
       {/* Consent, Privacy & History Settings - Collapsible */}
       <Card>

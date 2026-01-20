@@ -274,16 +274,43 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
       }
 
       // Capture recording data before state changes
-      // Use AssemblyAI live transcript as primary source if available, fallback to Whisper
       const assemblyTranscript = recording.livePreviewFullTranscript?.trim() || '';
       const whisperTranscript = result.transcript?.trim() || '';
       
-      // Prefer AssemblyAI transcript as primary source
-      const transcriptForSave = assemblyTranscript.length > 0 ? assemblyTranscript : whisperTranscript;
-      const realtimeTranscriptForSave = whisperTranscript; // Store Whisper as backup/realtime
+      // Get user's preferred transcript source from settings (default: batch/Whisper)
+      const preferredSource = settings.noteTranscriptSource || 'batch';
+      
+      let transcriptForSave: string;
+      let realtimeTranscriptForSave: string;
+      let actualSourceUsed: string;
+      
+      if (preferredSource === 'batch') {
+        // Prefer Whisper (Batch), fallback to AssemblyAI if empty
+        if (whisperTranscript.length > 0) {
+          transcriptForSave = whisperTranscript;
+          realtimeTranscriptForSave = assemblyTranscript;
+          actualSourceUsed = 'Whisper (Batch)';
+        } else {
+          transcriptForSave = assemblyTranscript;
+          realtimeTranscriptForSave = '';
+          actualSourceUsed = 'AssemblyAI (fallback - Whisper empty)';
+        }
+      } else {
+        // Prefer AssemblyAI (Live), fallback to Whisper if empty
+        if (assemblyTranscript.length > 0) {
+          transcriptForSave = assemblyTranscript;
+          realtimeTranscriptForSave = whisperTranscript;
+          actualSourceUsed = 'AssemblyAI (Live)';
+        } else {
+          transcriptForSave = whisperTranscript;
+          realtimeTranscriptForSave = '';
+          actualSourceUsed = 'Whisper (fallback - AssemblyAI empty)';
+        }
+      }
+      
       const wordCountForSave = transcriptForSave.split(/\s+/).filter((w: string) => w.length > 0).length;
       
-      console.log(`📝 Using ${assemblyTranscript.length > 0 ? 'AssemblyAI' : 'Whisper'} as primary transcript (${wordCountForSave} words)`);
+      console.log(`📝 Using ${actualSourceUsed} as primary transcript (preferred: ${preferredSource}, ${wordCountForSave} words)`);
       const durationForSave = recording.duration;
 
       setConsultationState('generating');
