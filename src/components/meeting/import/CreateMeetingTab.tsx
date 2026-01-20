@@ -1,0 +1,471 @@
+import React, { useState, useRef, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { 
+  FileAudio, 
+  FileText, 
+  Upload, 
+  Loader2, 
+  X, 
+  Sparkles,
+  Mic,
+  ClipboardPaste,
+  Check
+} from 'lucide-react';
+import { showToast } from '@/utils/toastWrapper';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+
+interface CreateMeetingTabProps {
+  onComplete?: () => void;
+  onClose?: () => void;
+}
+
+interface UploadedFile {
+  file: File;
+  name: string;
+  size: number;
+  type: 'audio' | 'text';
+  status: 'pending' | 'transcribing' | 'done' | 'error';
+  transcript?: string;
+  error?: string;
+}
+
+const SUPPORTED_AUDIO_TYPES = [
+  'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/webm', 
+  'audio/ogg', 'audio/m4a', 'audio/mp4', 'audio/x-m4a'
+];
+
+const SUPPORTED_TEXT_TYPES = [
+  'text/plain', 'text/csv', 'text/markdown',
+  'application/json'
+];
+
+export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
+  onComplete,
+  onClose
+}) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [meetingTitle, setMeetingTitle] = useState('');
+  const [pastedText, setPastedText] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const getFileType = (file: File): 'audio' | 'text' | null => {
+    if (SUPPORTED_AUDIO_TYPES.includes(file.type) || 
+        file.name.match(/\.(mp3|wav|webm|ogg|m4a|mp4)$/i)) {
+      return 'audio';
+    }
+    if (SUPPORTED_TEXT_TYPES.includes(file.type) || 
+        file.name.match(/\.(txt|md|csv|json)$/i)) {
+      return 'text';
+    }
+    return null;
+  };
+
+  const transcribeAudioFile = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Audio = (reader.result as string).split(',')[1];
+          
+          const { data, error } = await supabase.functions.invoke('transcribe-audio', {
+            body: { audio: base64Audio }
+          });
+          
+          if (error) throw error;
+          if (!data?.text) throw new Error('No transcript returned');
+          
+          resolve(data.text);
+        } catch (err: any) {
+          reject(err);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const readTextFile = async (file: File): Promise<string> => {
+    return file.text();
+  };
+
+  const processFile = async (uploadedFile: UploadedFile): Promise<string> => {
+    if (uploadedFile.type === 'audio') {
+      return transcribeAudioFile(uploadedFile.file);
+    } else {
+      return readTextFile(uploadedFile.file);
+    }
+  };
+
+  const handleFilesAdded = useCallback(async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const validFiles: UploadedFile[] = [];
+    
+    for (const file of fileArray) {
+      const fileType = getFileType(file);
+      if (fileType) {
+        validFiles.push({
+          file,
+          name: file.name,
+          size: file.size,
+          type: fileType,
+          status: 'pending'
+        });
+      } else {
+        showToast.warning(`Unsupported file type: ${file.name}`, { section: 'meeting_manager' });
+      }
+    }
+    
+    if (validFiles.length === 0) return;
+    
+    setUploadedFiles(prev => [...prev, ...validFiles]);
+    setIsProcessing(true);
+    
+    // Process files sequentially
+    for (const uploadedFile of validFiles) {
+      try {
+        setUploadedFiles(prev => 
+          prev.map(f => f.name === uploadedFile.name ? { ...f, status: 'transcribing' } : f)
+        );
+        
+        const transcript = await processFile(uploadedFile);
+        
+        setUploadedFiles(prev => 
+          prev.map(f => f.name === uploadedFile.name 
+            ? { ...f, status: 'done', transcript } 
+            : f
+          )
+        );
+      } catch (error: any) {
+        console.error('File processing error:', error);
+        setUploadedFiles(prev => 
+          prev.map(f => f.name === uploadedFile.name 
+            ? { ...f, status: 'error', error: error.message } 
+            : f
+          )
+        );
+      }
+    }
+    
+    setIsProcessing(false);
+  }, []);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFilesAdded(files);
+    }
+    e.target.value = '';
+  };
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFilesAdded(files);
+    }
+  }, [handleFilesAdded]);
+
+  const removeFile = (fileName: string) => {
+    setUploadedFiles(prev => prev.filter(f => f.name !== fileName));
+  };
+
+  const getCombinedTranscript = (): string => {
+    const parts: string[] = [];
+    
+    // Add pasted text first
+    if (pastedText.trim()) {
+      parts.push(pastedText.trim());
+    }
+    
+    // Add file transcripts
+    for (const file of uploadedFiles) {
+      if (file.status === 'done' && file.transcript) {
+        parts.push(file.transcript);
+      }
+    }
+    
+    return parts.join('\n\n');
+  };
+
+  const hasContent = pastedText.trim() || uploadedFiles.some(f => f.status === 'done');
+  const hasPendingFiles = uploadedFiles.some(f => f.status === 'pending' || f.status === 'transcribing');
+
+  const handleCreateMeeting = async () => {
+    if (!user) {
+      showToast.error('You must be logged in', { section: 'meeting_manager' });
+      return;
+    }
+    
+    const transcript = getCombinedTranscript();
+    if (!transcript) {
+      showToast.error('No content to create meeting from', { section: 'meeting_manager' });
+      return;
+    }
+    
+    setIsCreating(true);
+    
+    try {
+      const title = meetingTitle.trim() || `Imported Meeting - ${new Date().toLocaleDateString('en-GB')}`;
+      const wordCount = transcript.split(/\s+/).length;
+      const estimatedMinutes = Math.max(1, Math.round(wordCount / 150)); // ~150 words per minute
+      
+      // Create meeting with transcript in both live and batch fields
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .insert({
+          title,
+          description: 'Meeting created from imported content',
+          meeting_type: 'general',
+          start_time: new Date().toISOString(),
+          end_time: new Date(Date.now() + estimatedMinutes * 60000).toISOString(),
+          duration_minutes: estimatedMinutes,
+          status: 'completed',
+          user_id: user.id,
+          live_transcript_text: transcript,
+          whisper_transcript_text: transcript
+        })
+        .select()
+        .single();
+      
+      if (meetingError) throw meetingError;
+      
+      // Also save to meeting_transcripts table for compatibility
+      await supabase
+        .from('meeting_transcripts')
+        .insert({
+          meeting_id: meeting.id,
+          content: transcript,
+          confidence_score: 0.9,
+          timestamp_seconds: 0
+        });
+      
+      showToast.success('Meeting created! Generating notes...', { section: 'meeting_manager' });
+      
+      // Trigger notes generation in background
+      supabase.functions.invoke('auto-generate-meeting-notes', {
+        body: { meetingId: meeting.id }
+      }).catch(err => console.error('Note generation error:', err));
+      
+      // Close modal and navigate
+      onComplete?.();
+      onClose?.();
+      navigate('/meetings');
+      
+    } catch (error: any) {
+      console.error('Error creating meeting:', error);
+      showToast.error(error.message || 'Failed to create meeting', { section: 'meeting_manager' });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Meeting Title */}
+      <div className="space-y-2">
+        <Label htmlFor="meeting-title">Meeting Title (optional)</Label>
+        <Input
+          id="meeting-title"
+          placeholder="e.g., Team Planning Session"
+          value={meetingTitle}
+          onChange={(e) => setMeetingTitle(e.target.value)}
+        />
+      </div>
+      
+      {/* Drop Zone */}
+      <Card
+        className={cn(
+          "border-2 border-dashed transition-colors cursor-pointer",
+          isDragOver 
+            ? "border-primary bg-primary/5" 
+            : "border-muted-foreground/25 hover:border-primary/50"
+        )}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <CardContent className="py-8 flex flex-col items-center justify-center gap-3">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <FileAudio className="h-6 w-6" />
+            <FileText className="h-6 w-6" />
+          </div>
+          <div className="text-center">
+            <p className="font-medium">Drop audio or text files here</p>
+            <p className="text-sm text-muted-foreground">
+              MP3, WAV, M4A, OGG, TXT, or click to browse
+            </p>
+          </div>
+          <Button variant="outline" size="sm" className="mt-2">
+            <Upload className="h-4 w-4 mr-2" />
+            Choose Files
+          </Button>
+        </CardContent>
+      </Card>
+      
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept=".mp3,.wav,.webm,.ogg,.m4a,.txt,.md,.csv"
+        multiple
+        onChange={handleFileSelect}
+      />
+      
+      {/* Uploaded Files List */}
+      {uploadedFiles.length > 0 && (
+        <div className="space-y-2">
+          <Label>Uploaded Files</Label>
+          <ScrollArea className="max-h-32">
+            <div className="space-y-2">
+              {uploadedFiles.map((file) => (
+                <div 
+                  key={file.name}
+                  className="flex items-center justify-between p-2 bg-muted/50 rounded-md"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {file.type === 'audio' ? (
+                      <Mic className="h-4 w-4 text-primary flex-shrink-0" />
+                    ) : (
+                      <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                    )}
+                    <span className="text-sm truncate">{file.name}</span>
+                    <span className="text-xs text-muted-foreground flex-shrink-0">
+                      ({formatFileSize(file.size)})
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {file.status === 'pending' && (
+                      <Badge variant="secondary" className="text-xs">Pending</Badge>
+                    )}
+                    {file.status === 'transcribing' && (
+                      <Badge variant="secondary" className="text-xs">
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        Transcribing
+                      </Badge>
+                    )}
+                    {file.status === 'done' && (
+                      <Badge variant="default" className="text-xs bg-green-600">
+                        <Check className="h-3 w-3 mr-1" />
+                        Done
+                      </Badge>
+                    )}
+                    {file.status === 'error' && (
+                      <Badge variant="destructive" className="text-xs">Error</Badge>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeFile(file.name);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+      
+      {/* Paste Transcript */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <ClipboardPaste className="h-4 w-4 text-muted-foreground" />
+          <Label>Or paste transcript text</Label>
+        </div>
+        <Textarea
+          placeholder="Paste your meeting transcript or notes here..."
+          value={pastedText}
+          onChange={(e) => setPastedText(e.target.value)}
+          className="min-h-[120px] resize-none"
+        />
+        {pastedText && (
+          <p className="text-xs text-muted-foreground">
+            {pastedText.split(/\s+/).filter(Boolean).length} words
+          </p>
+        )}
+      </div>
+      
+      {/* Preview Combined Content */}
+      {hasContent && (
+        <div className="p-3 bg-muted/30 rounded-md border border-border/50">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">Content Preview</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {getCombinedTranscript().split(/\s+/).filter(Boolean).length} total words from{' '}
+            {(pastedText.trim() ? 1 : 0) + uploadedFiles.filter(f => f.status === 'done').length} source(s)
+          </p>
+        </div>
+      )}
+      
+      {/* Create Button */}
+      <Button
+        onClick={handleCreateMeeting}
+        disabled={!hasContent || hasPendingFiles || isCreating}
+        className="w-full"
+        size="lg"
+      >
+        {isCreating ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Creating Meeting...
+          </>
+        ) : (
+          <>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Create Meeting & Generate Notes
+          </>
+        )}
+      </Button>
+      
+      {hasPendingFiles && (
+        <p className="text-xs text-center text-amber-600">
+          Please wait for all files to finish processing
+        </p>
+      )}
+    </div>
+  );
+};
