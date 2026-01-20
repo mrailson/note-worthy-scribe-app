@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -7,8 +7,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, Upload, Loader2, Plus, X, FileText, Sparkles } from 'lucide-react';
+import { Users, Upload, Loader2, Plus, X, FileText, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { parseAttendeesFromText } from '@/utils/meeting/parseAttendeesFromText';
+import { ImageProcessor } from '@/utils/fileProcessors/ImageProcessor';
 import { showToast } from '@/utils/toastWrapper';
 import { cn } from '@/lib/utils';
 import type { ImportedContent } from './LiveImportModal';
@@ -84,6 +85,27 @@ export const AttendeesImportTab: React.FC<AttendeesImportTabProps> = ({
     }
   };
 
+  const processImageForAttendees = useCallback(async (file: File) => {
+    setIsProcessing(true);
+    try {
+      showToast.info('Extracting attendees from image...', { section: 'meeting_manager' });
+      const rawText = await ImageProcessor.processImage(file);
+      
+      if (rawText.includes('OCR failed') || rawText.includes('No text found')) {
+        showToast.warning('Could not extract text from image', { section: 'meeting_manager' });
+        return;
+      }
+      
+      setPastedText(rawText);
+      parseAttendees(rawText);
+      showToast.success('Attendees extracted from image', { section: 'meeting_manager' });
+    } catch (error: any) {
+      showToast.error(`Image processing failed: ${error.message}`, { section: 'meeting_manager' });
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [parseAttendees]);
+
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
@@ -99,7 +121,16 @@ export const AttendeesImportTab: React.FC<AttendeesImportTabProps> = ({
     setIsDragOver(false);
     
     const file = e.dataTransfer.files?.[0];
-    if (file && (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.csv'))) {
+    if (!file) return;
+    
+    // Handle images
+    if (file.type.startsWith('image/')) {
+      await processImageForAttendees(file);
+      return;
+    }
+    
+    // Handle text files
+    if (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.csv')) {
       setIsProcessing(true);
       try {
         const text = await file.text();
@@ -110,10 +141,33 @@ export const AttendeesImportTab: React.FC<AttendeesImportTabProps> = ({
       } finally {
         setIsProcessing(false);
       }
-    } else {
-      showToast.error('Please drop a text or CSV file', { section: 'meeting_manager' });
+      return;
     }
-  }, [parseAttendees]);
+    
+    showToast.error('Please drop an image or text file', { section: 'meeting_manager' });
+  }, [parseAttendees, processImageForAttendees]);
+
+  // Handle paste events for images
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            await processImageForAttendees(file);
+          }
+          break;
+        }
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [processImageForAttendees]);
 
   const addManualAttendee = () => {
     if (!newAttendeeName.trim()) return;
@@ -186,7 +240,7 @@ export const AttendeesImportTab: React.FC<AttendeesImportTabProps> = ({
         )}
       >
         <Textarea
-          placeholder="Paste attendee list here...&#10;&#10;Supports formats like:&#10;• John Smith, Jane Doe&#10;• Name (Organisation)&#10;• name@email.com"
+          placeholder="Paste attendee list or screenshot here...&#10;&#10;Supports formats like:&#10;• John Smith, Jane Doe&#10;• Name (Organisation)&#10;• name@email.com&#10;• Screenshots (Ctrl+V)"
           value={pastedText}
           onChange={handleTextChange}
           className="min-h-[120px] resize-none"
@@ -194,8 +248,8 @@ export const AttendeesImportTab: React.FC<AttendeesImportTabProps> = ({
         {isDragOver && (
           <div className="absolute inset-0 bg-primary/5 backdrop-blur-sm flex items-center justify-center rounded-lg border-2 border-dashed border-primary">
             <div className="text-center">
-              <FileText className="h-8 w-8 mx-auto text-primary mb-2" />
-              <p className="font-medium text-sm">Drop file to import</p>
+              <ImageIcon className="h-8 w-8 mx-auto text-primary mb-2" />
+              <p className="font-medium text-sm">Drop image or file to import</p>
             </div>
           </div>
         )}
