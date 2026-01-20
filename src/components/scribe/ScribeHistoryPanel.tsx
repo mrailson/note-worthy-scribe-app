@@ -477,7 +477,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                 />
                 <span className="text-muted-foreground/40">|</span>
                 <div className="flex items-center gap-0.5">
-                  {/* Narrative Clinical (TPP SystmOne) */}
+                  {/* Narrative Clinical View */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -488,12 +488,30 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                             ? "text-primary bg-primary/10" 
                             : "text-muted-foreground hover:text-foreground hover:bg-muted"
                         )}
-                        aria-label="Narrative Clinical (TPP SystmOne)"
+                        aria-label="Narrative Clinical"
+                      >
+                        <ClipboardList className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Narrative Clinical</TooltipContent>
+                  </Tooltip>
+                  {/* TPP SystmOne (Auto-Optimised) */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => handleViewModeChange('systmone')}
+                        className={cn(
+                          "p-1.5 rounded-md transition-colors",
+                          settings.consultationViewMode === 'systmone' 
+                            ? "text-primary bg-primary/10" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                        )}
+                        aria-label="TPP SystmOne (Optimised)"
                       >
                         <SystmOneIcon size="sm" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Narrative Clinical (TPP SystmOne)</TooltipContent>
+                    <TooltipContent side="bottom">TPP SystmOne (Auto-Optimised)</TooltipContent>
                   </Tooltip>
                   {/* EMIS View */}
                   <Tooltip>
@@ -687,7 +705,18 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         heidiNote={currentSession.heidiNote}
                         showNotMentioned={settings.showNotMentioned}
                         onShowNotMentionedChange={handleShowNotMentionedChange}
-                        isSystmOneOptimised={currentSession.isSystmOneOptimised}
+                        isSystmOneOptimised={false}
+                      />
+                    )}
+
+                    {/* TPP SystmOne View Mode (Auto-Optimised) */}
+                    {settings.consultationViewMode === 'systmone' && (
+                      <NarrativeClinicalNoteView
+                        soapNote={currentSoapNote}
+                        heidiNote={currentSession.heidiNote}
+                        showNotMentioned={settings.showNotMentioned}
+                        onShowNotMentionedChange={handleShowNotMentionedChange}
+                        isSystmOneOptimised={true}
                       />
                     )}
 

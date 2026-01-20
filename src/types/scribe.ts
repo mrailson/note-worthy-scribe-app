@@ -86,7 +86,7 @@ export interface ScribeSession {
   isSystmOneOptimised?: boolean;  // Note has been optimised for TPP SystmOne
 }
 
-export type ConsultationViewMode = 'soap' | 'narrativeClinical' | 'emis' | 'ageingWell' | 'patient' | 'referral' | 'transcript';
+export type ConsultationViewMode = 'soap' | 'narrativeClinical' | 'systmone' | 'emis' | 'ageingWell' | 'patient' | 'referral' | 'transcript';
 
 export type NoteStyle = 'shorthand' | 'standard';
 
