@@ -2815,19 +2815,6 @@ export const MeetingHistoryList = ({
                           Email Meeting Notes
                         </DropdownMenuItem>
 
-                      {/* Legacy Notes View - Backup option */}
-                      <DropdownMenuItem 
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          setInitialTabForModal('notes');
-                          handleViewNotesWithDeduplication(meeting, 'click');
-                        }}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        View Notes (Legacy)
-                      </DropdownMenuItem>
-
                       {isMobile ? (
                         <DropdownMenuItem 
                           onSelect={(e) => {
