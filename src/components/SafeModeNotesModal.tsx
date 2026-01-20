@@ -256,6 +256,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [detailLevel, setDetailLevel] = useState<number>(3); // Default: Standard
   const [noteType, setNoteType] = useState<string>('standard'); // Note type selection
   const [isRegeneratingNotes, setIsRegeneratingNotes] = useState(false);
+  
+  // Notes transcript source selection (which transcript to use for generating notes)
+  const [notesTranscriptSource, setNotesTranscriptSource] = useState<'batch' | 'live'>('batch');
 
   // Get icon for note type
   const getNoteTypeIcon = (iconName: string) => {
@@ -267,6 +270,24 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       default: return FileText;
     }
   };
+
+  // Save notes transcript source preference
+  const saveNotesTranscriptSource = useCallback(async (source: 'batch' | 'live') => {
+    if (!meeting?.id) return;
+    
+    const dbSource = source === 'batch' ? 'whisper' : 'assembly';
+    const { error } = await supabase
+      .from('meetings')
+      .update({ primary_transcript_source: dbSource })
+      .eq('id', meeting.id);
+    
+    if (error) {
+      console.error('Error saving transcript source preference:', error);
+      toast.error('Failed to save transcript source preference');
+    } else {
+      toast.success(`Notes will now be generated from ${source === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)'} transcript`);
+    }
+  }, [meeting?.id]);
 
   // Regenerate notes at a new detail level and/or note type
   const triggerRegeneration = useCallback(async (newLevel: number, newNoteType?: string) => {
@@ -283,14 +304,16 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       const typeToUse = newNoteType ?? noteType;
       const typeConfig = MEETING_NOTE_TYPES.find(t => t.id === typeToUse);
       
-      toast.info(`Regenerating ${typeConfig?.label || 'Standard'} notes at ${levelLabel} detail level...`);
+      const sourceLabel = notesTranscriptSource === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)';
+      toast.info(`Regenerating ${typeConfig?.label || 'Standard'} notes at ${levelLabel} detail level using ${sourceLabel} transcript...`);
       
       const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
         body: { 
           meetingId: meeting.id,
           forceRegenerate: true,
           detailLevel: levelLabel.toLowerCase(),
-          noteType: typeToUse
+          noteType: typeToUse,
+          transcriptSource: notesTranscriptSource === 'batch' ? 'whisper' : 'assembly'
         }
       });
       
@@ -321,7 +344,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     } finally {
       setIsRegeneratingNotes(false);
     }
-  }, [meeting?.id, noteType]);
+  }, [meeting?.id, noteType, notesTranscriptSource]);
 
   // Convert DB meeting_format to local meetingType
   const mapFormatToType = (format: string | null): 'teams' | 'f2f' | 'hybrid' => {
@@ -737,10 +760,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     // Fetch notes and meeting format
     const fetchNotes = async () => {
       try {
-        // First try meetings table for notes_style_3, meeting_format, and meeting_location
+        // First try meetings table for notes_style_3, meeting_format, meeting_location, and primary_transcript_source
         const { data: meetingData } = await supabase
           .from('meetings')
-          .select('notes_style_3, meeting_format, meeting_location')
+          .select('notes_style_3, meeting_format, meeting_location, primary_transcript_source')
           .eq('id', meeting.id)
           .maybeSingle();
 
@@ -751,6 +774,14 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         
         if (meetingData?.meeting_location) {
           setMeetingLocation(meetingData.meeting_location);
+        }
+        
+        // Load notes transcript source preference
+        if (meetingData?.primary_transcript_source) {
+          const source = meetingData.primary_transcript_source === 'assembly' ? 'live' : 'batch';
+          setNotesTranscriptSource(source);
+        } else {
+          setNotesTranscriptSource('batch'); // Default to batch
         }
 
         if (meetingData?.notes_style_3) {
@@ -3492,6 +3523,39 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         )}
                       </Button>
                     </div>
+
+                    {/* Notes Source Selector - which transcript to use for regenerating notes */}
+                    {(batchTranscript || liveTranscript) && !isLoadingTranscript && !transcriptError && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-lg border border-border">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">Notes from:</span>
+                        <div className="flex items-center gap-1 bg-background rounded-md p-0.5">
+                          <Button
+                            variant={notesTranscriptSource === 'batch' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => {
+                              setNotesTranscriptSource('batch');
+                              saveNotesTranscriptSource('batch');
+                            }}
+                            className="h-6 text-xs px-2"
+                            disabled={!batchTranscript}
+                          >
+                            Batch
+                          </Button>
+                          <Button
+                            variant={notesTranscriptSource === 'live' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => {
+                              setNotesTranscriptSource('live');
+                              saveNotesTranscriptSource('live');
+                            }}
+                            className="h-6 text-xs px-2"
+                            disabled={!liveTranscript}
+                          >
+                            Live
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Right side actions */}
                     <div className="flex gap-2">
