@@ -322,10 +322,10 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
         body: { meetingId: meeting.id }
       }).catch(err => console.error('Note generation error:', err));
       
-      // Close modal and navigate
+      // Close modal and navigate to home with Meeting History tab
       onComplete?.();
       onClose?.();
-      navigate('/meetings');
+      navigate('/?tab=history');
       
     } catch (error: any) {
       console.error('Error creating meeting:', error);
