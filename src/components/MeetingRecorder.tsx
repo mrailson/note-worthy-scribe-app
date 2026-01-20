@@ -3526,15 +3526,16 @@ export const MeetingRecorder = ({
     }
     
     transcriptSnippetIntervalRef.current = setInterval(() => {
-      // Get the last 5 seconds worth of transcript from the accumulated transcript
-      const words = latestCompleteTranscriptRef.current.split(' ');
-      const recentWords = words.slice(-50); // Approximate last 5 seconds (10 words per second avg)
+      // Get the last 50 words from the AssemblyAI live transcript
+      const liveText = assemblyPreview.fullTranscript || '';
+      const words = liveText.split(' ').filter(w => w.trim().length > 0);
+      const recentWords = words.slice(-50);
       const snippet = recentWords.join(' ');
       
       if (snippet.trim().length > 0) {
         setTranscriptSnippet(snippet);
         setShowTranscriptSnippet(true);
-        console.log('📝 Transcript snippet (last 5s):', snippet);
+        console.log('📝 Live transcript snippet (AssemblyAI):', snippet);
         
         // Hide the snippet after 3 seconds
         setTimeout(() => {
