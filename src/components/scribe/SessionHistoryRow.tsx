@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScribeSession, CONSULTATION_TYPE_SHORT, ConsultationCategory } from "@/types/scribe";
 import { ChevronDown, ChevronRight, Eye, Pencil, Trash2, MoreVertical, User, Check, X, Stethoscope, Heart, HandHeart, Copy, ClipboardList, Monitor, List, Save } from "lucide-react";
+import { SystmOneIcon } from "@/components/icons/SystmOneIcon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -255,7 +256,7 @@ export function SessionHistoryRow({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                    <ClipboardList className="h-3 w-3" />
+                    <SystmOneIcon size="sm" className="h-3 w-3" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">TPP SystmOne</TooltipContent>

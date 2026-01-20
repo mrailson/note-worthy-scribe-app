@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from "react";
+import { useMemo, useCallback, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { InteractiveClinicalContent } from "./InteractiveClinicalContent";
 import { useTightenSystmOneNotes } from "@/hooks/useTightenSystmOneNotes";
+import { SystmOneIcon } from "@/components/icons/SystmOneIcon";
 
 interface NarrativeClinicalNoteViewProps {
   soapNote?: SOAPNote | null;
@@ -26,6 +27,7 @@ interface NarrativeClinicalNoteViewProps {
   editable?: boolean;
   onSectionChange?: (sectionKey: string, newContent: string) => void;
   consultationId?: string;
+  isSystmOneOptimised?: boolean;
 }
 
 // Icon mapping for each section
@@ -45,6 +47,7 @@ export const NarrativeClinicalNoteView = ({
   editable = true,
   onSectionChange,
   consultationId,
+  isSystmOneOptimised = false,
 }: NarrativeClinicalNoteViewProps) => {
   const { tightenNotes, isTightening, qualityGate, resetQualityGate } = useTightenSystmOneNotes();
   const [optimisedNote, setOptimisedNote] = useState<NarrativeClinicalNote | null>(null);
@@ -53,6 +56,13 @@ export const NarrativeClinicalNoteView = ({
   const narrativeClinicalNote = useMemo(() => {
     return transformToNarrativeClinical(soapNote || null, heidiNote, { showNotMentioned });
   }, [soapNote, heidiNote, showNotMentioned]);
+
+  // If already optimised from database, treat current notes as optimised
+  useEffect(() => {
+    if (isSystmOneOptimised && !optimisedNote) {
+      setOptimisedNote(narrativeClinicalNote);
+    }
+  }, [isSystmOneOptimised, narrativeClinicalNote, optimisedNote]);
 
   // Use optimised note if available, otherwise use original
   const displayNote = optimisedNote || narrativeClinicalNote;
@@ -152,7 +162,7 @@ export const NarrativeClinicalNoteView = ({
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <ClipboardList className="h-4 w-4" />
+                <SystmOneIcon size="md" />
                 TPP SystmOne View
               </CardTitle>
               <Badge variant="secondary" className="text-xs font-normal gap-1">

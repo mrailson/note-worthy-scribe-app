@@ -83,6 +83,7 @@ export interface ScribeSession {
   followUpDate?: string;          // ISO date for follow-up
   isReviewed?: boolean;           // GP marked as reviewed
   isCopied?: boolean;             // Note has been copied to clinical system
+  isSystmOneOptimised?: boolean;  // Note has been optimised for TPP SystmOne
 }
 
 export type ConsultationViewMode = 'soap' | 'narrativeClinical' | 'emis' | 'ageingWell' | 'patient' | 'referral' | 'transcript';
