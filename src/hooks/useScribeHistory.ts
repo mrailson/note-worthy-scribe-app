@@ -399,6 +399,7 @@ export const useScribeHistory = () => {
         ? data.gp_consultation_notes[0] 
         : data.gp_consultation_notes;
       
+      // Parse SOAP notes
       let soapNote: { S: string; O: string; A: string; P: string } | undefined;
       if (notesData?.soap_notes) {
         const soapData = typeof notesData.soap_notes === 'string' 
@@ -412,6 +413,34 @@ export const useScribeHistory = () => {
         };
       }
 
+      // Parse Heidi notes - handle both string and object formats
+      const heidiNotes = notesData?.heidi_notes 
+        ? (typeof notesData.heidi_notes === 'string' 
+            ? JSON.parse(notesData.heidi_notes) 
+            : notesData.heidi_notes)
+        : null;
+
+      // Extract heidiNote (original) - use top-level keys only
+      const heidiNote = heidiNotes ? {
+        consultationHeader: heidiNotes.consultationHeader || '',
+        history: heidiNotes.history || '',
+        examination: heidiNotes.examination || '',
+        impression: heidiNotes.impression || '',
+        plan: heidiNotes.plan || ''
+      } : undefined;
+
+      // Extract systmOneNote (optimised) from nested property
+      const systmOneNote = heidiNotes?.systmOneOptimised ? {
+        consultationHeader: heidiNotes.systmOneOptimised.consultationHeader || heidiNotes.consultationHeader || '',
+        history: heidiNotes.systmOneOptimised.history || '',
+        examination: heidiNotes.systmOneOptimised.examination || '',
+        impression: heidiNotes.systmOneOptimised.impression || '',
+        plan: heidiNotes.systmOneOptimised.plan || ''
+      } : undefined;
+
+      // Determine if SystmOne optimised
+      const isSystmOneOptimised = notesData?.is_systmone_optimised || !!heidiNotes?.systmOneOptimised;
+
       const session: ScribeSession = {
         id: data.id,
         title: data.title,
@@ -421,7 +450,9 @@ export const useScribeHistory = () => {
         actionItems: '',
         keyPoints: '',
         soapNote,
-        heidiNote: notesData?.heidi_notes || undefined,
+        heidiNote,
+        systmOneNote,
+        isSystmOneOptimised,
         duration: Math.ceil((data.duration_seconds || 0) / 60),
         wordCount: data.word_count || 0,
         createdAt: data.created_at,
@@ -436,6 +467,14 @@ export const useScribeHistory = () => {
         patientDob: data.patient_dob || undefined,
         patientContextConfidence: data.patient_context_confidence || undefined,
       };
+
+      // Log confirmation of SystmOne note loading
+      if (session.systmOneNote) {
+        console.log('📂 History loaded with SystmOne optimised note:', {
+          heidiHistory: session.heidiNote?.history?.substring(0, 50),
+          systmOneHistory: session.systmOneNote?.history?.substring(0, 50)
+        });
+      }
 
       setCurrentSession(session);
       return session;
