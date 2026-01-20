@@ -384,8 +384,8 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 space-y-4 overflow-y-auto pb-4">
+    <div className="flex flex-col h-full min-h-0">
+      <div className="flex-1 space-y-4 overflow-y-auto pb-2 min-h-0">
 
         {/* Drop Zone */}
         <Card
@@ -540,7 +540,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
       </div>
       
       {/* Sticky Footer with Create Button */}
-      <div className="pt-0.5 border-t border-border/50 mt-auto bg-background">
+      <div className="pt-2 pb-1 border-t border-border/50 bg-background shrink-0">
         <Button
           onClick={handleCreateMeeting}
           disabled={!hasContent || hasPendingFiles || isCreating}
