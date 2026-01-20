@@ -5511,6 +5511,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         desktopTranscriberRef.current.stopTranscription();
       }
       
+      // Stop AssemblyAI live transcription
+      assemblyPreview.stopPreview();
+      
       // Mute audio streams but keep them alive
       if (micAudioStreamRef.current) {
         micAudioStreamRef.current.getAudioTracks().forEach(track => {
@@ -5523,7 +5526,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         });
       }
       
-      addDebugLog('⏸️ Recording paused - audio muted and transcription stopped');
+      addDebugLog('⏸️ Recording paused - audio muted and all transcription stopped');
       showToast.success("Recording paused", { section: 'meeting_manager' });
     } catch (error) {
       console.error('Error pausing recording:', error);
@@ -5563,7 +5566,15 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         }
       }
       
-      addDebugLog('▶️ Recording resumed - audio unmuted and transcription restarted');
+      // Restart AssemblyAI live transcription
+      try {
+        await assemblyPreview.startPreview(micAudioStreamRef.current || undefined);
+        console.log('✅ AssemblyAI preview restarted after unpause');
+      } catch (assemblyError) {
+        console.warn('⚠️ AssemblyAI preview failed to restart:', assemblyError);
+      }
+      
+      addDebugLog('▶️ Recording resumed - audio unmuted and all transcription restarted');
       showToast.success("Recording resumed", { section: 'meeting_manager' });
     } catch (error) {
       console.error('Error unpausing recording:', error);
