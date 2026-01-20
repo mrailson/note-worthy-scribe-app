@@ -72,7 +72,7 @@ export const ConsultationReadyState = ({
       {/* Development Disclaimer */}
       {settings.showDevDisclaimer && <ScribeDevDisclaimer className="w-full max-w-xl" />}
       
-      <Card className="w-full max-w-xl">
+      <Card className="w-full max-w-[40rem]">
         <CardContent className={`space-y-5 ${isMobile ? 'pt-4 px-3' : 'pt-6 space-y-6'}`}>
 
 
