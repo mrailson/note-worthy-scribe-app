@@ -21,7 +21,7 @@ interface AppointmentImportModalProps {
 }
 
 export const AppointmentImportModal = ({ isOpen, onClose, onImport }: AppointmentImportModalProps) => {
-  const [activeTab, setActiveTab] = useState<'paste' | 'upload'>('paste');
+  const [activeTab, setActiveTab] = useState<'paste' | 'upload'>('upload');
   const [pastedText, setPastedText] = useState('');
   const [sessionDate, setSessionDate] = useState<Date>(new Date());
   const [sessionName, setSessionName] = useState('');
@@ -226,7 +226,7 @@ export const AppointmentImportModal = ({ isOpen, onClose, onImport }: Appointmen
               />
             </TabsContent>
 
-            <TabsContent value="upload">
+            <TabsContent value="upload" className="space-y-3">
               <div
                 {...getRootProps()}
                 className={cn(
@@ -264,6 +264,14 @@ export const AppointmentImportModal = ({ isOpen, onClose, onImport }: Appointmen
                   Loaded: {uploadedFileName}
                 </p>
               )}
+              
+              {/* Helpful tip */}
+              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
+                <p>
+                  <strong>Tip:</strong> Download your "Detailed Appointments" as a Word document from your clinical system and import it directly. 
+                  This includes patient NHS Numbers, dates of birth, and appointment times which will auto-populate your consultations in Notewell Scribe.
+                </p>
+              </div>
             </TabsContent>
           </Tabs>
 
