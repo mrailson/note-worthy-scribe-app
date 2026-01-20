@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/toastWrapper";
 import { formatSoapNote, formatHeidiNote } from "@/utils/emrFormatters";
 
-export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
+export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) => void) => {
   const [consultationState, setConsultationState] = useState<ConsultationState>('ready');
   const [consultationType, setConsultationType] = useState<ConsultationType>('f2f');
   const [f2fAccompanied, setF2fAccompanied] = useState(false);
@@ -138,7 +138,7 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     }
   }, [patientConsent, recording, settings.showConsentReminder, settings.audioFormat, settings.chunkDurationSeconds, consultationType, getMicrophoneForType]);
 
-  // Internal save function for auto-save (returns promise, no toast on success)
+  // Internal save function for auto-save (returns consultation ID on success, throws on failure)
   const saveConsultationInternal = useCallback(async (
     noteToSave: ConsultationNote,
     transcriptToSave: string,
@@ -146,7 +146,7 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     durationToSave: number,
     realtimeTranscriptToSave?: string,
     isSystmOneOptimised?: boolean
-  ): Promise<boolean> => {
+  ): Promise<string> => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) {
       throw new Error('Not authenticated');
@@ -227,10 +227,10 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
       }
     }
 
-    return true;
+    return consultationId;
   }, [consultationType, consultationCategory, patientConsent, consentTimestamp, settings.noteFormat, contextFiles, patientContext]);
 
-  // Auto-save with retry - now returns success/failure and notifies parent
+  // Auto-save with retry - returns consultation ID on success, null on failure
   const autoSaveWithRetry = useCallback(async (
     noteToSave: ConsultationNote,
     transcriptToSave: string,
@@ -239,18 +239,18 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     realtimeTranscriptToSave?: string,
     isSystmOneOptimised?: boolean,
     maxRetries = 3
-  ): Promise<boolean> => {
+  ): Promise<string | null> => {
     setIsSaving(true);
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        await saveConsultationInternal(noteToSave, transcriptToSave, wordCountToSave, durationToSave, realtimeTranscriptToSave, isSystmOneOptimised);
+        const consultationId = await saveConsultationInternal(noteToSave, transcriptToSave, wordCountToSave, durationToSave, realtimeTranscriptToSave, isSystmOneOptimised);
         setIsSaved(true);
         setIsSaving(false);
-        console.log('✅ Consultation auto-saved successfully');
-        // Notify parent to refresh history
-        onAutoSaveComplete?.();
-        return true;
+        console.log('✅ Consultation auto-saved successfully:', consultationId);
+        // Notify parent with session ID to navigate to history
+        onAutoSaveComplete?.(consultationId);
+        return consultationId;
       } catch (error) {
         console.error(`Auto-save attempt ${attempt} failed:`, error);
         if (attempt < maxRetries) {
@@ -263,7 +263,7 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     setIsSaving(false);
     console.error('❌ All auto-save attempts failed');
     showToast.error('Auto-save failed. Click Save to retry.', { section: 'gpscribe' });
-    return false;
+    return null;
   }, [saveConsultationInternal, onAutoSaveComplete]);
 
   // Finish consultation and generate notes (with auto-save)
@@ -601,8 +601,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     setPatientContext(null);
   }, []);
 
-  // Set imported consultation from external source (Import tab)
-  const setImportedConsultation = useCallback((notes: ConsultationNote, transcript: string) => {
+  // Set imported consultation from external source (Import tab) - auto-saves and navigates to history
+  const setImportedConsultation = useCallback(async (notes: ConsultationNote, transcript: string) => {
     setImportedTranscript(transcript);
     
     // Preserve systmOneNote in the state update
@@ -631,8 +631,13 @@ export const useScribeConsultation = (onAutoSaveComplete?: () => void) => {
     }
     
     setConsultationState('review');
-    setIsSaved(false);
-  }, []);
+    
+    // Calculate word count from transcript
+    const wordCount = transcript.split(/\s+/).filter(word => word.length > 0).length;
+    
+    // Auto-save immediately and navigate to history (via callback)
+    await autoSaveWithRetry(notes, transcript, wordCount, 0, undefined, !!notes.systmOneNote);
+  }, [autoSaveWithRetry]);
 
   // Copy to clipboard with EMR formatting
   const copyToClipboard = useCallback(async (section?: keyof SOAPNote) => {
