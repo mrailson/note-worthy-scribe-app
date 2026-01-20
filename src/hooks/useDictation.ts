@@ -548,7 +548,7 @@ export function useDictation() {
     }
   }, [user, selectedTemplate, content, saveDraft, status, systemAudioEnabled]);
 
-  // Stop dictation
+  // Stop dictation and auto-format
   const stopDictation = useCallback(async () => {
     if (clientRef.current) {
       clientRef.current.stop();
@@ -570,7 +570,33 @@ export function useDictation() {
     
     setStatus('idle');
     fetchHistory();
-  }, [saveDraft, fetchHistory]);
+
+    // Auto format and clean if there's content
+    const currentContent = contentRef.current;
+    if (currentContent && currentContent.trim().length > 10) {
+      setIsFormatting(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('format-dictation', {
+          body: { 
+            content: currentContent.trim(), 
+            templateType: selectedTemplate 
+          }
+        });
+        
+        if (error) throw error;
+        
+        if (data?.formattedContent) {
+          setContent(data.formattedContent);
+          showToast.success('Notes formatted and cleaned');
+        }
+      } catch (err) {
+        console.error('Auto-format failed:', err);
+        // Don't show error toast - just leave content as-is
+      } finally {
+        setIsFormatting(false);
+      }
+    }
+  }, [saveDraft, fetchHistory, selectedTemplate]);
 
   // Clear and start new
   const newDictation = useCallback(() => {
