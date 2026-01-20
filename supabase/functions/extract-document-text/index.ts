@@ -60,12 +60,25 @@ serve(async (req) => {
       extractedText = ocrData.choices?.[0]?.message?.content || 'Failed to extract text from image';
       console.log('OCR extracted text length:', extractedText.length);
 
-    } else if (fileType === 'pdf' || fileType === 'powerpoint') {
-      // For PDFs and PowerPoint, use vision model to extract text from each page/slide
+    } else if (fileType === 'pdf' || fileType === 'powerpoint' || fileType === 'word' || fileType === 'excel') {
+      // For PDFs, PowerPoint, Word docs, and Excel, use vision model to extract text
       const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
       if (!LOVABLE_API_KEY) {
         throw new Error('LOVABLE_API_KEY not configured');
       }
+
+      const fileTypeDescriptions: Record<string, string> = {
+        'pdf': 'PDF document',
+        'powerpoint': 'PowerPoint presentation',
+        'word': 'Word document',
+        'excel': 'Excel spreadsheet',
+      };
+
+      const extractionPrompt = fileType === 'excel' 
+        ? 'Extract ALL text and data from this Excel spreadsheet. Return the content in a readable format, preserving table structure where possible. Include all sheets, headers, and cell values. Do not add any commentary.'
+        : `Extract ALL text content from this ${fileTypeDescriptions[fileType] || 'document'}. Return ONLY the extracted text, preserving the structure, headings, bullet points, and formatting. Include all text from all pages/slides/sections. Do not add any commentary.`;
+
+      console.log(`Extracting text from ${fileType} using Gemini vision...`);
 
       const docResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
@@ -81,11 +94,14 @@ serve(async (req) => {
               content: [
                 {
                   type: 'text',
-                  text: `Extract ALL text content from this ${fileType === 'pdf' ? 'PDF document' : 'PowerPoint presentation'}. Return ONLY the extracted text, preserving the structure and formatting. Include all text from all pages/slides. Do not add any commentary.`
+                  text: extractionPrompt
                 },
                 {
-                  type: 'image_url',
-                  image_url: { url: dataUrl }
+                  type: 'file',
+                  file: { 
+                    filename: fileName,
+                    file_data: dataUrl 
+                  }
                 }
               ]
             }
@@ -101,7 +117,10 @@ serve(async (req) => {
 
       const docData = await docResponse.json();
       extractedText = docData.choices?.[0]?.message?.content || 'Failed to extract text from document';
-      console.log('Document extracted text length:', extractedText.length);
+      console.log(`${fileType} extracted text length:`, extractedText.length);
+    } else {
+      console.log(`Unknown file type: ${fileType}, returning empty text`);
+      extractedText = '';
     }
 
     return new Response(

@@ -105,12 +105,39 @@ serve(async (req) => {
       topic, 
       presentationType = 'Professional Presentation',
       slideCount = 10,
-      supportingContent,
       customInstructions,
       audience = 'healthcare professionals',
       branding,
       fontStyle,
+      supportingFiles, // Array of { name, content, type } from frontend
     } = requestBody;
+
+    // Handle supportingContent - accept both old string format and new array format
+    let supportingContent = requestBody.supportingContent || '';
+    
+    // If we have supportingFiles array, combine them into supportingContent
+    if (supportingFiles && Array.isArray(supportingFiles) && supportingFiles.length > 0) {
+      console.log(`[Gamma] Processing ${supportingFiles.length} supporting files`);
+      
+      const extractedContent = supportingFiles
+        .filter((f: any) => f.content && typeof f.content === 'string')
+        .map((f: any) => {
+          // Skip if still Base64 DataURL (extraction failed on frontend)
+          if (f.content.startsWith('data:')) {
+            console.warn(`[Gamma] Skipping Base64 content for ${f.name} - extraction may have failed`);
+            return '';
+          }
+          console.log(`[Gamma] Including content from ${f.name}: ${f.content.length} chars`);
+          return `\n--- Content from: ${f.name} ---\n${f.content}\n`;
+        })
+        .filter((c: string) => c.length > 0)
+        .join('\n');
+      
+      if (extractedContent) {
+        supportingContent = extractedContent;
+        console.log(`[Gamma] Combined supporting content: ${supportingContent.length} chars`);
+      }
+    }
 
     // Accept both naming conventions for theme/template
     const themeId = requestBody.themeId || requestBody.templateId;
