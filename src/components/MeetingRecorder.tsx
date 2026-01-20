@@ -5566,10 +5566,13 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         }
       }
       
-      // Restart AssemblyAI live transcription
+      // Restart AssemblyAI live transcription (preserve existing transcript)
       try {
-        await assemblyPreview.startPreview(micAudioStreamRef.current || undefined);
-        console.log('✅ AssemblyAI preview restarted after unpause');
+        await assemblyPreview.startPreview(
+          micAudioStreamRef.current || undefined,
+          { preserveTranscript: true }
+        );
+        console.log('✅ AssemblyAI preview resumed after unpause (transcript preserved)');
       } catch (assemblyError) {
         console.warn('⚠️ AssemblyAI preview failed to restart:', assemblyError);
       }

@@ -9,7 +9,7 @@ interface UseAssemblyRealtimePreviewReturn {
   status: PreviewStatus;
   isActive: boolean;
   error: string | null;
-  startPreview: (externalStream?: MediaStream) => Promise<void>;
+  startPreview: (externalStream?: MediaStream, options?: { preserveTranscript?: boolean }) => Promise<void>;
   stopPreview: () => void;
 }
 
@@ -118,7 +118,12 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     setLiveTranscript(words.join(' '));
   }, []);
 
-  const startPreview = useCallback(async (externalStream?: MediaStream) => {
+  const startPreview = useCallback(async (
+    externalStream?: MediaStream,
+    options?: { preserveTranscript?: boolean }
+  ) => {
+    const { preserveTranscript = false } = options || {};
+    
     if (clientRef.current || isActive) {
       console.log('🎤 Preview already active, skipping start');
       return;
@@ -127,12 +132,21 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     try {
       setStatus('connecting');
       setError(null);
-      setLiveTranscript("");
-      setFullTranscript("");
-      baseTranscriptRef.current = "";
-      currentPartialRef.current = "";
-      lastFinalSegmentRef.current = "";
-      lastFinalAtRef.current = 0;
+      
+      // Only clear transcripts if NOT preserving (i.e., fresh start)
+      if (!preserveTranscript) {
+        setLiveTranscript("");
+        setFullTranscript("");
+        baseTranscriptRef.current = "";
+        currentPartialRef.current = "";
+        lastFinalSegmentRef.current = "";
+        lastFinalAtRef.current = 0;
+        console.log('🎤 Starting fresh AssemblyAI preview (transcripts cleared)');
+      } else {
+        // Reset only partial tracking refs, keep accumulated text
+        currentPartialRef.current = "";
+        console.log('🎤 Resuming AssemblyAI preview (preserving existing transcript)');
+      }
       
       console.log('🎤 Starting AssemblyAI real-time preview...', 
         externalStream ? '(with external stream)' : '(mic only)');
