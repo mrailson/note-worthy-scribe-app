@@ -26,6 +26,7 @@ export interface ImageStudioSettings {
   // Branding & Logo
   brandingLevel: BrandingLevel;
   customBranding: CustomBrandingOptions;
+  customPracticeName: string;
   logoPlacement: LogoPlacementId;
   includeLogo: boolean;
   

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -143,7 +144,20 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
         </CardContent>
       </Card>
 
-      {/* Branding Level - Collapsible */}
+      {/* Custom Practice Name */}
+      <div className="space-y-2">
+        <Label htmlFor="custom-practice-name">Custom Practice Name</Label>
+        <Input
+          id="custom-practice-name"
+          placeholder={practiceContext?.practiceName || "Enter practice name"}
+          value={settings.customPracticeName || ''}
+          onChange={(e) => onUpdate({ customPracticeName: e.target.value })}
+        />
+        <p className="text-xs text-muted-foreground">
+          Leave blank to use your default practice name
+          {practiceContext?.practiceName && ` (${practiceContext.practiceName})`}
+        </p>
+      </div>
       <Collapsible open={brandingOpen} onOpenChange={setBrandingOpen}>
         <CollapsibleTrigger asChild>
           <button

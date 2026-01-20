@@ -71,6 +71,7 @@ const DEFAULT_SETTINGS: ImageStudioSettings = {
     website: false,
     pcn: false,
   },
+  customPracticeName: '',
   logoPlacement: 'top-right',
   includeLogo: false,
   
