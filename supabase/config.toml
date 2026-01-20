@@ -416,3 +416,6 @@ verify_jwt = false
 
 [functions.assemblyai-transcription-url]
 verify_jwt = true
+
+[functions.tighten-systmone-notes]
+verify_jwt = true
