@@ -1092,18 +1092,38 @@ Content guidelines:
       textContent = data.choices?.[0]?.message?.content || '';
       imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
-      // Check for content moderation blocks
+      // Check for errors in the response
       const choiceError = data.choices?.[0]?.error;
-      if (choiceError?.message === 'PROHIBITED_CONTENT' || choiceError?.code === 502) {
-        console.error('Content moderation block:', JSON.stringify(choiceError));
-        return new Response(JSON.stringify({
-          error: 'Content moderation: This image request was blocked by the AI safety system. Medical and health-related imagery can sometimes trigger content filters. Try simplifying your request, removing reference images, or using more general descriptive terms.',
-          code: 'CONTENT_MODERATION',
-          success: false
-        }), { 
-          status: 422, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        });
+      if (choiceError) {
+        console.error('AI Gateway error in response:', JSON.stringify(choiceError));
+        
+        // Check for rate limit / resource exhausted errors
+        const errorMetadata = choiceError.metadata?.raw || '';
+        if (errorMetadata.includes('RESOURCE_EXHAUSTED') || errorMetadata.includes('429') || choiceError.code === 429) {
+          return new Response(JSON.stringify({
+            error: 'The AI image service is temporarily busy. Please wait a moment and try again.',
+            code: 'RATE_LIMIT',
+            success: false
+          }), { 
+            status: 429, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          });
+        }
+        
+        // Check for content moderation blocks
+        if (choiceError.message === 'PROHIBITED_CONTENT' || choiceError.code === 502) {
+          return new Response(JSON.stringify({
+            error: 'Content moderation: This image request was blocked by the AI safety system. Medical and health-related imagery can sometimes trigger content filters. Try simplifying your request, removing reference images, or using more general descriptive terms.',
+            code: 'CONTENT_MODERATION',
+            success: false
+          }), { 
+            status: 422, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          });
+        }
+        
+        // Generic error fallback
+        throw new Error(choiceError.message || 'Image generation failed. Please try again.');
       }
 
       if (!imageUrl) {
