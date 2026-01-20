@@ -39,9 +39,10 @@ const Scribe = () => {
   const isMobile = useIsMobile();
   
   const history = useScribeHistory();
-  const consultation = useScribeConsultation(() => {
-    // Callback when auto-save completes - refresh history
-    history.fetchSessions();
+  const consultation = useScribeConsultation(async (sessionId: string) => {
+    // Callback when auto-save completes - load the saved session in History tab
+    await history.loadSession(sessionId);
+    setActiveTab('history');
   });
   const settingsHook = useScribeSettings();
   
@@ -308,8 +309,8 @@ const Scribe = () => {
               <ScribeImportPanel
                 settings={settingsHook.settings}
                 onNotesGenerated={(notes: ConsultationNote, transcript: string) => {
+                  // Auto-save happens inside setImportedConsultation, which triggers the callback to navigate to history
                   consultation.setImportedConsultation(notes, transcript);
-                  setActiveTab('consultation');
                 }}
               />
             </TabsContent>
