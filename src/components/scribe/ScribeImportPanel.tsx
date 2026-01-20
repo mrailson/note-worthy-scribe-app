@@ -268,6 +268,35 @@ export const ScribeImportPanel = ({ settings, onNotesGenerated }: ScribeImportPa
         snomedCodes: data.snomedCodes || []
       };
 
+      // Auto-optimise for TPP SystmOne (store separately so Narrative != SystmOne)
+      if (note.heidiNote) {
+        setProgress(95);
+        setStatusMessage('Optimising for SystmOne...');
+        try {
+          const { data: optimised, error: optimiseError } = await supabase.functions.invoke('tighten-systmone-notes', {
+            body: {
+              history: note.heidiNote.history || '',
+              examination: note.heidiNote.examination || '',
+              assessment: note.heidiNote.impression || '',
+              plan: note.heidiNote.plan || ''
+            }
+          });
+
+          if (!optimiseError && optimised && !optimised.error) {
+            note.systmOneNote = {
+              consultationHeader: note.heidiNote.consultationHeader,
+              history: optimised.history || note.heidiNote.history,
+              examination: optimised.examination || note.heidiNote.examination,
+              impression: optimised.assessment || note.heidiNote.impression,
+              plan: optimised.plan || note.heidiNote.plan
+            };
+          }
+        } catch (e) {
+          // Non-blocking: if optimisation fails, still return original notes
+          console.warn('SystmOne optimisation failed for imported consultation:', e);
+        }
+      }
+
       setProgress(100);
       showToast.success('Notes generated successfully', { section: 'gpscribe' });
       
