@@ -40,7 +40,8 @@ const Scribe = () => {
   
   const history = useScribeHistory();
   const consultation = useScribeConsultation(async (sessionId: string) => {
-    // Callback when auto-save completes - load the saved session in History tab
+    // Callback when auto-save completes - refresh list and load the saved session
+    await history.fetchSessions();
     await history.loadSession(sessionId);
     setActiveTab('history');
   });
