@@ -386,17 +386,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 space-y-4 overflow-y-auto pb-4">
-        {/* Meeting Title */}
-        <div className="space-y-2">
-          <Label htmlFor="meeting-title">Meeting Title (optional)</Label>
-          <Input
-            id="meeting-title"
-            placeholder="e.g., Team Planning Session"
-            value={meetingTitle}
-            onChange={(e) => setMeetingTitle(e.target.value)}
-          />
-        </div>
-        
+
         {/* Drop Zone */}
         <Card
           className={cn(
