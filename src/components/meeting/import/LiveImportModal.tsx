@@ -231,7 +231,7 @@ export const LiveImportModal: React.FC<LiveImportModalProps> = ({
                 />
               </TabsContent>
               
-              <TabsContent value="create" className="mt-0 h-full">
+              <TabsContent value="create" className="mt-0 h-[calc(85vh-180px)] flex flex-col">
                 <CreateMeetingTab 
                   onComplete={onImportComplete}
                   onClose={() => onOpenChange(false)}
