@@ -168,8 +168,8 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { meetingId, forceRegenerate = false, detailLevel = 'standard', noteType = 'standard' } = await req.json();
-    console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel, 'with note type:', noteType);
+    const { meetingId, forceRegenerate = false, detailLevel = 'standard', noteType = 'standard', transcriptSource } = await req.json();
+    console.log('🤖 Auto-generating notes for meeting:', meetingId, 'at detail level:', detailLevel, 'with note type:', noteType, 'using transcript source:', transcriptSource || 'auto');
 
     if (!meetingId) {
       throw new Error('Meeting ID is required');
@@ -246,25 +246,79 @@ serve(async (req) => {
       .update({ notes_generation_status: 'generating' })
       .eq('id', meetingId);
 
-    // Get transcript using the database function that checks all possible sources
-    const { data: finalTranscriptResult, error: transcriptError } = await supabase
-      .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
+    // Get transcript based on transcriptSource parameter
+    let fullTranscript = '';
+    let actualTranscriptSource = 'unknown';
+    let itemCount = 0;
 
-    if (transcriptError) {
-      console.error('❌ Error fetching transcript:', transcriptError);
-      await supabase
+    if (transcriptSource === 'whisper') {
+      // Use Whisper (batch) transcript directly from meetings table
+      console.log('📄 User requested Whisper (batch) transcript');
+      const { data: meetingTranscript } = await supabase
         .from('meetings')
-        .update({ notes_generation_status: 'failed' })
-        .eq('id', meetingId);
-      throw new Error(`Failed to fetch transcript: ${transcriptError.message}`);
-    }
+        .select('whisper_transcript_text')
+        .eq('id', meetingId)
+        .single();
+      
+      fullTranscript = meetingTranscript?.whisper_transcript_text || '';
+      actualTranscriptSource = 'whisper';
+      
+      // Fallback to assembly if whisper is empty
+      if (!fullTranscript.trim()) {
+        console.log('⚠️ Whisper transcript empty, falling back to AssemblyAI');
+        const { data: fallback } = await supabase
+          .from('meetings')
+          .select('assembly_transcript_text, live_transcript_text')
+          .eq('id', meetingId)
+          .single();
+        fullTranscript = fallback?.assembly_transcript_text || fallback?.live_transcript_text || '';
+        actualTranscriptSource = 'assembly_fallback';
+      }
+    } else if (transcriptSource === 'assembly') {
+      // Use AssemblyAI (live) transcript directly from meetings table
+      console.log('📄 User requested AssemblyAI (live) transcript');
+      const { data: meetingTranscript } = await supabase
+        .from('meetings')
+        .select('assembly_transcript_text, live_transcript_text')
+        .eq('id', meetingId)
+        .single();
+      
+      fullTranscript = meetingTranscript?.assembly_transcript_text || meetingTranscript?.live_transcript_text || '';
+      actualTranscriptSource = 'assembly';
+      
+      // Fallback to whisper if assembly is empty
+      if (!fullTranscript.trim()) {
+        console.log('⚠️ AssemblyAI transcript empty, falling back to Whisper');
+        const { data: fallback } = await supabase
+          .from('meetings')
+          .select('whisper_transcript_text')
+          .eq('id', meetingId)
+          .single();
+        fullTranscript = fallback?.whisper_transcript_text || '';
+        actualTranscriptSource = 'whisper_fallback';
+      }
+    } else {
+      // Auto mode: use existing get_meeting_full_transcript function (default behaviour)
+      console.log('📄 Using auto transcript selection via get_meeting_full_transcript');
+      const { data: finalTranscriptResult, error: transcriptError } = await supabase
+        .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
 
-    const transcriptData = finalTranscriptResult?.[0];
-    const fullTranscript = transcriptData?.transcript || '';
-    const transcriptSource = transcriptData?.source || 'unknown';
-    const itemCount = transcriptData?.item_count || 0;
+      if (transcriptError) {
+        console.error('❌ Error fetching transcript:', transcriptError);
+        await supabase
+          .from('meetings')
+          .update({ notes_generation_status: 'failed' })
+          .eq('id', meetingId);
+        throw new Error(`Failed to fetch transcript: ${transcriptError.message}`);
+      }
+
+      const transcriptData = finalTranscriptResult?.[0];
+      fullTranscript = transcriptData?.transcript || '';
+      actualTranscriptSource = transcriptData?.source || 'auto';
+      itemCount = transcriptData?.item_count || 0;
+    }
     
-    console.log(`📄 Found transcript from ${transcriptSource} with ${itemCount} items, ${fullTranscript.length} chars`);
+    console.log(`📄 Using transcript from ${actualTranscriptSource}, ${fullTranscript.length} chars`);
     
     if (!fullTranscript.trim()) {
       console.log('⚠️ No transcript found for meeting');
