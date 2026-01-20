@@ -4129,6 +4129,37 @@ export const MeetingRecorder = ({
       // Clear unsaved meeting data but keep session IDs until meeting is saved
       localStorage.removeItem('unsaved_meeting');
       
+      // Delete orphaned meeting record from database for short recordings
+      const meetingIdToDelete = sessionStorage.getItem('currentMeetingId');
+      if (meetingIdToDelete) {
+        console.log(`🗑️ Deleting short meeting record: ${meetingIdToDelete}`);
+        
+        // Delete related records first (in parallel for speed)
+        const deletePromises = [
+          supabase.from('meeting_transcription_chunks').delete().eq('meeting_id', meetingIdToDelete),
+          supabase.from('meeting_transcripts').delete().eq('meeting_id', meetingIdToDelete),
+          supabase.from('transcription_chunks').delete().eq('meeting_id', meetingIdToDelete),
+          supabase.from('audio_chunks').delete().eq('meeting_id', meetingIdToDelete),
+        ];
+        
+        await Promise.all(deletePromises).catch(err => 
+          console.error('Error deleting related meeting records:', err)
+        );
+        
+        // Delete the meeting itself
+        const { error: deleteError } = await supabase.from('meetings').delete().eq('id', meetingIdToDelete);
+        
+        if (deleteError) {
+          console.error('Failed to delete short meeting:', deleteError);
+        } else {
+          console.log('✅ Successfully deleted short meeting record');
+        }
+        
+        // Clear session storage
+        sessionStorage.removeItem('currentMeetingId');
+        sessionStorage.removeItem('currentSessionId');
+      }
+      
       // Reset the meeting immediately for short recordings (background)
       setStopRecordingStep('Complete!');
       setTimeout(async () => {
