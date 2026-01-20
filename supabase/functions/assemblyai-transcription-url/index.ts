@@ -82,7 +82,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         audio_url: audioUrl,
-        language_code: 'en_gb',
+        language_code: 'en_uk', // British English
         speech_model: 'best',
         punctuate: true,
         format_text: true,
