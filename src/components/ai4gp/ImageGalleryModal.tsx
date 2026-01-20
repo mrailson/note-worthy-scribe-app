@@ -142,39 +142,54 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
 
-  const handleOpenFullSize = (image: UserGeneratedImage) => {
+  const handleOpenFullSize = async (image: UserGeneratedImage) => {
     if (!image?.image_url) return;
 
-    // Browsers can fail to open very long data URLs directly.
-    // Rendering the <img> inside an about:blank document is more reliable.
-    const newWindow = window.open('', '_blank', 'noopener,noreferrer');
-    if (!newWindow) return;
-
     const title = escapeHtml(image.title ? `${image.title} — Image` : 'Image');
-
-    newWindow.document.open();
-    newWindow.document.write(
-      `<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>${title}</title></head><body></body></html>`
-    );
-    newWindow.document.close();
-
-    const body = newWindow.document.body;
-    if (!body) return;
-
-    body.style.margin = '0';
-    body.style.display = 'flex';
-    body.style.alignItems = 'center';
-    body.style.justifyContent = 'center';
-    body.style.minHeight = '100vh';
-
-    const img = newWindow.document.createElement('img');
-    img.src = image.image_url;
-    img.alt = image.alt_text || 'Image';
-    img.style.maxWidth = '100%';
-    img.style.maxHeight = '100vh';
-    img.style.objectFit = 'contain';
-
-    body.appendChild(img);
+    
+    // For data URLs, convert to blob URL which browsers handle better
+    if (image.image_url.startsWith('data:')) {
+      try {
+        // Convert data URL to blob
+        const response = await fetch(image.image_url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Open a new window with the blob URL
+        const newWindow = window.open('', '_blank');
+        if (!newWindow) {
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        
+        newWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <title>${title}</title>
+              <style>
+                body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #1a1a1a; }
+                img { max-width: 100%; max-height: 100vh; object-fit: contain; }
+              </style>
+            </head>
+            <body>
+              <img src="${blobUrl}" alt="${escapeHtml(image.alt_text || 'Image')}" />
+            </body>
+          </html>
+        `);
+        newWindow.document.close();
+        
+        // Clean up blob URL when window closes
+        newWindow.onbeforeunload = () => URL.revokeObjectURL(blobUrl);
+      } catch (error) {
+        console.error('Failed to open image:', error);
+      }
+    } else {
+      // For regular URLs, open directly
+      window.open(image.image_url, '_blank');
+    }
   };
 
   const handleSaveTitle = async (imageId: string) => {
