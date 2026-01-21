@@ -8,7 +8,7 @@ import { Bot, Clock, Users, Calendar, TrendingUp, ChevronDown, ChevronUp, Messag
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-type SortField = 'user' | 'ai4gp' | 'gp_genie' | 'pm_genie' | 'patient_line' | 'total' | 'messages' | 'last_active';
+type SortField = 'user' | 'ai4gp' | 'gp_genie' | 'pm_genie' | 'patient_line' | 'scribe' | 'meeting' | 'total' | 'messages' | 'last_active';
 type SortDirection = 'asc' | 'desc';
 
 interface UserGenieStats {
@@ -19,6 +19,8 @@ interface UserGenieStats {
   gp_genie_count: number;
   pm_genie_count: number;
   patient_line_count: number;
+  scribe_count: number;
+  meeting_count: number;
   total_chats: number;
   total_messages: number;
   last_24h: number;
@@ -32,6 +34,8 @@ interface SystemStats {
   gp_genie_total: number;
   pm_genie_total: number;
   patient_line_total: number;
+  scribe_total: number;
+  meeting_total: number;
   total_chats: number;
   total_messages: number;
   last_24h: number;
@@ -85,6 +89,8 @@ export const GenieUsageReport = () => {
         case 'gp_genie': aVal = a.gp_genie_count; bVal = b.gp_genie_count; break;
         case 'pm_genie': aVal = a.pm_genie_count; bVal = b.pm_genie_count; break;
         case 'patient_line': aVal = a.patient_line_count; bVal = b.patient_line_count; break;
+        case 'scribe': aVal = a.scribe_count; bVal = b.scribe_count; break;
+        case 'meeting': aVal = a.meeting_count; bVal = b.meeting_count; break;
         case 'total': aVal = a.total_chats; bVal = b.total_chats; break;
         case 'messages': aVal = a.total_messages; bVal = b.total_messages; break;
         case 'last_active': 
@@ -125,6 +131,8 @@ export const GenieUsageReport = () => {
         gp_genie_count: row.out_gp_genie_count || 0,
         pm_genie_count: row.out_pm_genie_count || 0,
         patient_line_count: row.out_patient_line_count || 0,
+        scribe_count: row.out_scribe_count || 0,
+        meeting_count: row.out_meeting_count || 0,
         total_chats: row.out_total_chats || 0,
         total_messages: row.out_total_messages || 0,
         last_24h: row.out_last_24h || 0,
@@ -139,6 +147,8 @@ export const GenieUsageReport = () => {
         gp_genie_total: results.reduce((sum, r) => sum + (r.gp_genie_count || 0), 0),
         pm_genie_total: results.reduce((sum, r) => sum + (r.pm_genie_count || 0), 0),
         patient_line_total: results.reduce((sum, r) => sum + (r.patient_line_count || 0), 0),
+        scribe_total: results.reduce((sum, r) => sum + (r.scribe_count || 0), 0),
+        meeting_total: results.reduce((sum, r) => sum + (r.meeting_count || 0), 0),
         total_chats: results.reduce((sum, r) => sum + (r.total_chats || 0), 0),
         total_messages: results.reduce((sum, r) => sum + (r.total_messages || 0), 0),
         last_24h: results.reduce((sum, r) => sum + (r.last_24h || 0), 0),
@@ -234,7 +244,7 @@ export const GenieUsageReport = () => {
           <CardTitle className="text-base">Breakdown by Service</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="text-center p-3 border rounded-lg">
               <div className="text-2xl font-bold text-amber-600">{systemStats?.ai4gp_total || 0}</div>
               <div className="text-sm text-muted-foreground">AI4GP Chat</div>
@@ -250,6 +260,14 @@ export const GenieUsageReport = () => {
             <div className="text-center p-3 border rounded-lg">
               <div className="text-2xl font-bold text-green-600">{systemStats?.patient_line_total || 0}</div>
               <div className="text-sm text-muted-foreground">Patient Line</div>
+            </div>
+            <div className="text-center p-3 border rounded-lg">
+              <div className="text-2xl font-bold text-teal-600">{systemStats?.scribe_total || 0}</div>
+              <div className="text-sm text-muted-foreground">Scribe</div>
+            </div>
+            <div className="text-center p-3 border rounded-lg">
+              <div className="text-2xl font-bold text-indigo-600">{systemStats?.meeting_total || 0}</div>
+              <div className="text-sm text-muted-foreground">Meetings</div>
             </div>
           </div>
         </CardContent>
@@ -267,6 +285,8 @@ export const GenieUsageReport = () => {
                 <SortableHeader field="gp_genie" className="text-center">GP Genie</SortableHeader>
                 <SortableHeader field="pm_genie" className="text-center">PM Genie</SortableHeader>
                 <SortableHeader field="patient_line" className="text-center">Patient Line</SortableHeader>
+                <SortableHeader field="scribe" className="text-center">Scribe</SortableHeader>
+                <SortableHeader field="meeting" className="text-center">Meetings</SortableHeader>
                 <SortableHeader field="total" className="text-center">Total</SortableHeader>
                 <SortableHeader field="messages" className="text-center">Messages</SortableHeader>
                 <SortableHeader field="last_active" className="text-right">Last Active</SortableHeader>
@@ -275,8 +295,8 @@ export const GenieUsageReport = () => {
             <TableBody>
               {sortedUserStats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                    No Genie chats found
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                    No usage data found
                   </TableCell>
                 </TableRow>
               ) : (
@@ -312,6 +332,20 @@ export const GenieUsageReport = () => {
                     <TableCell className="text-center">
                       {user.patient_line_count > 0 ? (
                         <Badge variant="outline" className="text-green-600">{user.patient_line_count}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.scribe_count > 0 ? (
+                        <Badge variant="outline" className="text-teal-600">{user.scribe_count}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.meeting_count > 0 ? (
+                        <Badge variant="outline" className="text-indigo-600">{user.meeting_count}</Badge>
                       ) : (
                         <span className="text-muted-foreground">0</span>
                       )}
