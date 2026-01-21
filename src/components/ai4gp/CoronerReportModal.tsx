@@ -80,6 +80,21 @@ export const CoronerReportModal: React.FC<CoronerReportModalProps> = ({
 
       if (error) throw error;
 
+      // Check for validation rejection
+      if (data.error === 'Document validation failed' && data.validationDetails) {
+        const details = data.validationDetails;
+        toast.error('Document Validation Failed', {
+          description: details.message,
+          duration: 8000,
+        });
+        console.warn('Document validation rejected:', details);
+        return;
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       setGeneratedReport(data.report);
       toast.success('Coroner\'s report generated');
     } catch (err) {
