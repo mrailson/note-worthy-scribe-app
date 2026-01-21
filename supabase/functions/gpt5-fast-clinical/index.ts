@@ -404,20 +404,33 @@ serve(async (req) => {
   const finalMaxTokens = max_tokens || detectedMaxTokens;
 
   const resolveGatewayModel = (m?: string): string => {
-    // Client sometimes sends stable aliases; map them to Lovable gateway models
+    // SPEED-OPTIMISED: Use Gemini 3 Flash as default (~1-2s TTFT vs 25s for GPT-5)
     const input = (m || '').trim();
-    if (!input) return 'openai/gpt-5-mini';
+    if (!input) return 'google/gemini-3-flash-preview';
 
-    // Legacy / alias mapping
-    if (input === 'gpt-5') return 'openai/gpt-5';
-    if (input === 'gpt-5-mini' || input === 'gpt-5-instant') return 'openai/gpt-5-mini';
+    // FAST MODE: Speed/grok/fast all route to Gemini 3 Flash
+    if (input === 'speed' || input === 'fast' || input === 'grok') {
+      return 'google/gemini-3-flash-preview';
+    }
+
+    // GPT-5 full is too slow (25s TTFT) - remap to Gemini 3 Flash
+    if (input === 'gpt-5' || input === 'gpt-5-2025-08-07') {
+      console.log(`↩️ Remapping slow model '${input}' to 'google/gemini-3-flash-preview'`);
+      return 'google/gemini-3-flash-preview';
+    }
+
+    // Balanced option: GPT-5 mini (~3-5s)
+    if (input === 'gpt-5-mini' || input === 'gpt-5-instant' || input === 'chatgpt5') {
+      return 'openai/gpt-5-mini';
+    }
+
     if (input === 'gpt-5-nano') return 'openai/gpt-5-nano';
 
-    // Already a gateway model
+    // Already a gateway model - pass through
     if (input.startsWith('openai/') || input.startsWith('google/')) return input;
 
-    // Safe default
-    return 'openai/gpt-5-mini';
+    // Safe fast default
+    return 'google/gemini-3-flash-preview';
   };
 
   const tryModel = async (m: string, stream: boolean) => {

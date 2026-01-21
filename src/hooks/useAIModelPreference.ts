@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
-export type AIModel = 'chatgpt5' | 'grok' | 'deepseek-chat';
+// Speed: Gemini 3 Flash (~1-2s) | Balanced: GPT-5 Mini (~3-5s)
+export type AIModel = 'grok' | 'chatgpt5';
 
 interface UseAIModelPreferenceReturn {
   selectedModel: AIModel;
@@ -8,17 +9,18 @@ interface UseAIModelPreferenceReturn {
 }
 
 export const useAIModelPreference = (): UseAIModelPreferenceReturn => {
-  const [selectedModel, setSelectedModelState] = useState<AIModel>('chatgpt5');
+  // Default to speed (grok = Gemini 3 Flash)
+  const [selectedModel, setSelectedModelState] = useState<AIModel>('grok');
 
   // Load preference from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('ai4gp-model-preference');
-    if (saved === 'chatgpt5' || saved === 'grok' || saved === 'deepseek-chat') {
+    if (saved === 'chatgpt5' || saved === 'grok') {
       setSelectedModelState(saved);
-    } else if (saved === 'claude') {
-      // Migrate old claude preference to chatgpt5
-      setSelectedModelState('chatgpt5');
-      localStorage.setItem('ai4gp-model-preference', 'chatgpt5');
+    } else if (saved === 'claude' || saved === 'deepseek-chat') {
+      // Migrate old preferences to speed mode
+      setSelectedModelState('grok');
+      localStorage.setItem('ai4gp-model-preference', 'grok');
     }
   }, []);
 

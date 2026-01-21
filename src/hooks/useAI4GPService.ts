@@ -22,7 +22,7 @@ export const useAI4GPService = () => {
   const [sessionMemory, setSessionMemory] = useState(true);
   const [verificationLevel, setVerificationLevel] = useState('standard');
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gpt-5-2025-08-07');
+  const [selectedModel, setSelectedModel] = useState('google/gemini-3-flash-preview');
   const [useOpenAI, setUseOpenAI] = useState(true);
   const [showRenderTimes, setShowRenderTimes] = useState(false);
   const [showAIService, setShowAIService] = useState(false);
@@ -102,9 +102,11 @@ export const useAI4GPService = () => {
     onStream?: (chunk: string, webSearchPerformed?: boolean) => void
   ): Promise<{ response: string; webSearchPerformed: boolean }> => {
     try {
-      // Use stable model names instead of date-suffixed ones
-      const stableModel = selectedModel === 'gpt-5-2025-08-07' ? 'gpt-5' :
-                         selectedModel === 'gpt-5-mini-2025-08-07' ? 'gpt-5-instant' :
+      // Map model selections to gateway-compatible identifiers
+      const stableModel = selectedModel === 'gpt-5-2025-08-07' ? 'google/gemini-3-flash-preview' :
+                         selectedModel === 'gpt-5-mini-2025-08-07' ? 'openai/gpt-5-mini' :
+                         selectedModel === 'grok' ? 'google/gemini-3-flash-preview' :
+                         selectedModel === 'chatgpt5' ? 'openai/gpt-5-mini' :
                          selectedModel;
 
       // Content type detection for dynamic token allocation
