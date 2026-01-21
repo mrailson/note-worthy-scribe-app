@@ -50,7 +50,8 @@ import {
   ArrowDown,
   LogIn,
   Mail,
-  Mic
+  Mic,
+  Bot
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -71,6 +72,7 @@ import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
 import { GPScribeStats } from '@/components/admin/GPScribeStats';
 import { StorageManagement } from '@/components/admin/StorageManagement';
 import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAccess';
+import { AI4GPServicesOverview } from '@/components/admin/AI4GPServicesOverview';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
 
 import * as XLSX from 'xlsx-js-style';
@@ -1966,6 +1968,11 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <span className="hidden sm:inline">Meeting Service</span>
               <span className="sm:hidden">Meetings</span>
             </TabsTrigger>
+            <TabsTrigger value="ai4gp-services" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <Bot className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">AI4GP Services</span>
+              <span className="sm:hidden">AI4GP</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -2326,6 +2333,11 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
             {/* Meeting Statistics by User */}
             <MeetingStatsByUser />
+          </TabsContent>
+
+          {/* AI4GP Services Tab */}
+          <TabsContent value="ai4gp-services" className="space-y-6">
+            <AI4GPServicesOverview />
           </TabsContent>
 
           {/* User Management Tab */}
