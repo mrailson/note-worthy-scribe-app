@@ -9,6 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useChunkTracker, ChunkStatus } from "./useChunkTracker";
 import { useAssemblyRealtimePreview, PreviewStatus } from "./useAssemblyRealtimePreview";
 
+// Cost protection constants - match MeetingRecorder protections
+const MAX_RECORDING_DURATION_SECONDS = 4 * 60 * 60; // 4 hours hard limit
+const DURATION_WARNINGS = [3600, 7200, 10800]; // 1h, 2h, 3h warnings in seconds
+
 export type AudioSourceMode = 'microphone' | 'microphone_and_system';
 export type { PreviewStatus };
 
@@ -45,6 +49,10 @@ export const useScribeRecording = () => {
   const sessionIdRef = useRef<string | null>(null);
   const systemStreamRef = useRef<MediaStream | null>(null);
   const currentMicIdRef = useRef<string | undefined>(undefined);
+  
+  // Duration warning tracking for cost protection
+  const shownWarningsRef = useRef<Set<number>>(new Set());
+  const silenceAutoStopTriggeredRef = useRef(false);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -104,6 +112,9 @@ export const useScribeRecording = () => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isRecording]);
+
+  // Duration monitoring ref - we'll set this after stopRecording is defined
+  const stopRecordingRef = useRef<(() => Promise<any>) | null>(null);
 
   const handleTranscriptUpdate = useCallback((newTranscriptData: ScribeTranscriptData) => {
     setRealtimeTranscripts(prev => {
@@ -177,6 +188,10 @@ export const useScribeRecording = () => {
       sessionIdRef.current = `scribe_${Date.now()}`;
       recordingStartTimeRef.current = Date.now();
       clearChunks();
+      
+      // Reset cost protection state
+      shownWarningsRef.current.clear();
+      silenceAutoStopTriggeredRef.current = false;
       
       // Request wake lock to prevent device sleep
       await requestWakeLock();
@@ -310,6 +325,19 @@ export const useScribeRecording = () => {
           chunkDurationMs // customChunkDurationMs - user preference
         );
         
+        // Connect silence auto-stop callback (20 min inactivity protection)
+        desktopTranscriberRef.current.onSilenceAutoStop = async () => {
+          if (silenceAutoStopTriggeredRef.current) return; // Prevent multiple triggers
+          silenceAutoStopTriggeredRef.current = true;
+          console.warn('⚠️ 20 minutes of inactivity detected - auto-stopping Scribe');
+          toast.warning('Consultation stopped due to 20 minutes of inactivity', { 
+            duration: 10000 
+          });
+          if (stopRecordingRef.current) {
+            await stopRecordingRef.current();
+          }
+        };
+        
         await desktopTranscriberRef.current.startTranscription();
       }
 
@@ -402,6 +430,40 @@ export const useScribeRecording = () => {
       return null;
     }
   }, [transcript, duration, wordCount]);
+
+  // Keep stopRecordingRef updated for duration monitoring effect
+  useEffect(() => {
+    stopRecordingRef.current = stopRecording;
+  }, [stopRecording]);
+
+  // Duration monitoring for cost protection (matches MeetingRecorder)
+  // This effect runs after stopRecording is defined to avoid circular dependency
+  useEffect(() => {
+    if (!isRecording || isPaused) {
+      return;
+    }
+
+    // Show warnings at milestones (1h, 2h, 3h)
+    DURATION_WARNINGS.forEach(threshold => {
+      if (duration >= threshold && !shownWarningsRef.current.has(threshold)) {
+        shownWarningsRef.current.add(threshold);
+        const hours = Math.floor(threshold / 3600);
+        toast.warning(`Consultation has been running for ${hours} hour${hours > 1 ? 's' : ''} - consider finishing`, {
+          duration: 10000,
+        });
+        console.warn(`⚠️ Scribe duration warning: ${hours} hour(s) reached`);
+      }
+    });
+
+    // Hard stop at 4 hours to prevent runaway billing
+    if (duration >= MAX_RECORDING_DURATION_SECONDS && stopRecordingRef.current) {
+      console.warn('🛑 Maximum Scribe recording duration reached (4 hours) - auto-stopping');
+      toast.error('Consultation auto-stopped after 4 hours maximum duration', {
+        duration: 15000,
+      });
+      stopRecordingRef.current();
+    }
+  }, [duration, isRecording, isPaused]);
 
   const pauseRecording = useCallback(() => {
     setIsPaused(true);
@@ -580,6 +642,19 @@ export const useScribeRecording = () => {
         currentMicIdRef.current, // selectedDeviceId
         combinedStream // externalStream
       );
+      
+      // Connect silence auto-stop callback (20 min inactivity protection)
+      desktopTranscriberRef.current.onSilenceAutoStop = async () => {
+        if (silenceAutoStopTriggeredRef.current) return; // Prevent multiple triggers
+        silenceAutoStopTriggeredRef.current = true;
+        console.warn('⚠️ 20 minutes of inactivity detected - auto-stopping Scribe');
+        toast.warning('Consultation stopped due to 20 minutes of inactivity', { 
+          duration: 10000 
+        });
+        if (stopRecordingRef.current) {
+          await stopRecordingRef.current();
+        }
+      };
       
       await desktopTranscriberRef.current.startTranscription();
       
