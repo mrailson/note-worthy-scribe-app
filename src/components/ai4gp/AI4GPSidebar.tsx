@@ -19,7 +19,8 @@ import {
   PanelLeft,
   Activity,
   Camera,
-  Presentation
+  Presentation,
+  Mic
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -55,6 +56,7 @@ interface AI4GPSidebarProps {
   onShowPresentationStudio: () => void;
   onShowAllQuickActions: () => void;
   onShowImageStudio: () => void;
+  onShowAdminDictate: () => void;
   meetings: SidebarMeeting[];
   meetingsLoading: boolean;
   onSelectMeeting: (meetingId: string) => void;
@@ -77,6 +79,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
   onShowPresentationStudio,
   onShowAllQuickActions,
   onShowImageStudio,
+  onShowAdminDictate,
   meetings,
   meetingsLoading,
   onSelectMeeting
@@ -92,6 +95,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
   const quickActions = [
     { icon: Newspaper, label: 'GP News', action: onShowNews },
     { icon: Activity, label: 'BP Average Service', action: onShowBPCalculator },
+    { icon: Mic, label: 'Admin Dictate', action: onShowAdminDictate },
     { icon: Presentation, label: 'Presentation Studio', action: onShowPresentationStudio },
     { icon: Palette, label: 'Image Studio', action: onShowImageStudio },
   ];
