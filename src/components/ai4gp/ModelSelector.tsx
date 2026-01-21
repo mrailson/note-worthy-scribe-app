@@ -14,7 +14,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   selectedModel,
   onModelChange,
 }) => {
-  const isChatGPT5 = selectedModel === 'chatgpt5';
+  // grok = Speed (Gemini 3 Flash ~1-2s), chatgpt5 = Balanced (GPT-5 Mini ~3-5s)
+  const isSpeedMode = selectedModel === 'grok';
 
   return (
     <TooltipProvider>
@@ -22,23 +23,23 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         <TooltipTrigger asChild>
           <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
             <div className="flex items-center space-x-1">
-              <Zap className={`w-3 h-3 transition-colors ${!isChatGPT5 ? 'text-primary' : 'text-muted-foreground/50'}`} />
-              <Label className={`text-xs cursor-pointer transition-colors ${!isChatGPT5 ? 'text-foreground' : 'text-muted-foreground/50'}`}>
+              <Zap className={`w-3 h-3 transition-colors ${isSpeedMode ? 'text-primary' : 'text-muted-foreground/50'}`} />
+              <Label className={`text-xs cursor-pointer transition-colors ${isSpeedMode ? 'text-foreground' : 'text-muted-foreground/50'}`}>
                 Speed
               </Label>
             </div>
             
             <Switch
-              checked={isChatGPT5}
+              checked={!isSpeedMode}
               onCheckedChange={(checked) => onModelChange(checked ? 'chatgpt5' : 'grok')}
               className="scale-75"
             />
             
             <div className="flex items-center space-x-1">
-              <Label className={`text-xs cursor-pointer transition-colors ${isChatGPT5 ? 'text-foreground' : 'text-muted-foreground/50'}`}>
-                ChatGPT 5
+              <Label className={`text-xs cursor-pointer transition-colors ${!isSpeedMode ? 'text-foreground' : 'text-muted-foreground/50'}`}>
+                Balanced
               </Label>
-              <Bot className={`w-3 h-3 transition-colors ${isChatGPT5 ? 'text-primary' : 'text-muted-foreground/50'}`} />
+              <Bot className={`w-3 h-3 transition-colors ${!isSpeedMode ? 'text-primary' : 'text-muted-foreground/50'}`} />
             </div>
           </div>
         </TooltipTrigger>
@@ -46,7 +47,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           <div className="text-center">
             <p className="font-medium">AI Model Selection</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Currently using: <span className="font-medium text-foreground">{selectedModel === 'grok' ? 'Speed (Grok)' : 'ChatGPT 5'}</span>
+              {isSpeedMode ? 'Gemini 3 Flash (~1-2s)' : 'GPT-5 Mini (~3-5s)'}
             </p>
           </div>
         </TooltipContent>
