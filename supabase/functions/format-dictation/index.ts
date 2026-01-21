@@ -440,13 +440,12 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
+        model: "openai/gpt-5-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Please format and clean up the following dictated consultation notes:\n\n${protectedText}` },
         ],
-        temperature: 0.3,
-        max_tokens: 4000,
+        max_completion_tokens: 4000,
       }),
     });
 
