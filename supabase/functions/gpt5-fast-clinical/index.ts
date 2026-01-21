@@ -440,12 +440,14 @@ serve(async (req) => {
       "Content-Type": "application/json",
     };
 
-    // Much shorter timeout to prevent hanging
+    // Timeout guard: GPT-5 / streaming responses can legitimately take longer than 15s.
+    // Keep a finite timeout to avoid true hangs, but allow enough time for real-world latency.
+    const timeoutMs = gatewayModel.startsWith('openai/gpt-5') ? 90000 : 60000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.log(`Request timeout after 15 seconds for model ${gatewayModel}`);
+      console.log(`Request timeout after ${Math.round(timeoutMs / 1000)}s for model ${gatewayModel}`);
       controller.abort();
-    }, 15000); // 15 second timeout
+    }, timeoutMs);
 
     try {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -456,9 +458,13 @@ serve(async (req) => {
       });
       clearTimeout(timeoutId);
       return response;
-    } catch (error) {
+    } catch (error: any) {
       clearTimeout(timeoutId);
-      console.error(`API call failed for ${m}:`, error.message);
+      if (error?.name === 'AbortError') {
+        console.error(`API call timed out for ${m} (${gatewayModel}) after ${Math.round(timeoutMs / 1000)}s`);
+        throw new Error(`Upstream AI request timed out after ${Math.round(timeoutMs / 1000)}s`);
+      }
+      console.error(`API call failed for ${m}:`, error?.message || String(error));
       throw error;
     }
   };
