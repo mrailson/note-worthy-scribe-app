@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Copy, ClipboardList, Stethoscope, Brain, Activity, ListChecks, Shield, EyeOff, Wand2, Check, AlertTriangle, Loader2, UserCheck } from "lucide-react";
+import { Copy, ClipboardList, Stethoscope, Brain, Activity, ListChecks, Shield, EyeOff, Wand2, Check, AlertTriangle, Loader2, UserCheck, RefreshCw } from "lucide-react";
 import { SOAPNote, HeidiNote, PatientContext } from "@/types/scribe";
 import { 
   transformToNarrativeClinical, 
@@ -29,6 +29,8 @@ interface NarrativeClinicalNoteViewProps {
   consultationId?: string;
   isSystmOneOptimised?: boolean;
   patientContext?: PatientContext;
+  onReoptimise?: () => Promise<void>;
+  isReoptimising?: boolean;
 }
 
 // Icon mapping for each section
@@ -50,6 +52,8 @@ export const NarrativeClinicalNoteView = ({
   consultationId,
   isSystmOneOptimised = false,
   patientContext,
+  onReoptimise,
+  isReoptimising = false,
 }: NarrativeClinicalNoteViewProps) => {
   const { tightenNotes, isTightening, qualityGate, resetQualityGate } = useTightenSystmOneNotes();
   const [optimisedNote, setOptimisedNote] = useState<NarrativeClinicalNote | null>(null);
@@ -217,6 +221,29 @@ export const NarrativeClinicalNoteView = ({
               )}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Re-optimise Button - show when not optimised and callback provided */}
+              {onReoptimise && !isSystmOneOptimised && !optimisedNote && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onReoptimise}
+                  disabled={isReoptimising}
+                  className="text-xs gap-1 border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                >
+                  {isReoptimising ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Optimising...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-3 w-3" />
+                      Re-optimise
+                    </>
+                  )}
+                </Button>
+              )}
+              
               {/* Patient Safety Header Toggle */}
               {patientContext?.nhsNumber && (
                 <div className="flex items-center gap-2">

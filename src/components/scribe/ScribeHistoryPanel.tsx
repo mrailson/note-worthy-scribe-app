@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle, CONSULTATION_CATEGORY_LABELS, ConsultationCategory } from "@/types/scribe";
+import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle, CONSULTATION_CATEGORY_LABELS, ConsultationCategory, HeidiNote } from "@/types/scribe";
 import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Monitor, Settings2, User, Lightbulb, Stethoscope, Heart, HandHeart, CheckSquare, XSquare, ChevronLeft, Send, Sparkles, Pencil, ClipboardList } from "lucide-react";
 import { SystmOneIcon } from "@/components/icons/SystmOneIcon";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -33,6 +33,7 @@ import { maskPatientName, maskDateOfBirth, maskPatientData } from "@/utils/patie
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { QuickPatientEntryForm } from "./QuickPatientEntryForm";
 import { SessionHistoryRow } from "./SessionHistoryRow";
+import { useTightenSystmOneNotes } from "@/hooks/useTightenSystmOneNotes";
 
 interface ScribeHistoryPanelProps {
   sessions: ScribeSession[];
@@ -85,6 +86,10 @@ export const ScribeHistoryPanel = ({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratedNotes, setRegeneratedNotes] = useState<SOAPNote | null>(null);
   const [displaySettingsOpen, setDisplaySettingsOpen] = useState(false);
+  
+  // SystmOne re-optimisation
+  const { tightenNotes, isTightening: isReoptimising } = useTightenSystmOneNotes();
+  const [localSystmOneNote, setLocalSystmOneNote] = useState<HeidiNote | null>(null);
   
   // Multi-select state
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -153,6 +158,90 @@ export const ScribeHistoryPanel = ({
   const handleShowNotMentionedChange = useCallback((show: boolean) => {
     onUpdateSetting('showNotMentioned', show);
   }, [onUpdateSetting]);
+
+  // Clear local SystmOne note when session changes
+  const handleLoadSession = useCallback((sessionId: string) => {
+    setLocalSystmOneNote(null);
+    onLoadSession(sessionId);
+  }, [onLoadSession]);
+
+  // Re-optimise handler for SystmOne view
+  const handleReoptimise = useCallback(async () => {
+    if (!currentSession?.heidiNote) {
+      toast.error('No notes available to optimise');
+      return;
+    }
+
+    const narrativeNote = transformToNarrativeClinical(
+      currentSession.soapNote || null,
+      currentSession.heidiNote,
+      { showNotMentioned: true }
+    );
+
+    const result = await tightenNotes({
+      history: narrativeNote.history || '',
+      examination: narrativeNote.examination || '',
+      assessment: narrativeNote.assessment || '',
+      plan: narrativeNote.plan || ''
+    });
+
+    if (result) {
+      // Create optimised HeidiNote from result (using impression for assessment)
+      const optimisedNote: HeidiNote = {
+        consultationHeader: currentSession.heidiNote.consultationHeader || '',
+        history: result.history,
+        examination: result.examination,
+        impression: result.assessment, // Map assessment back to impression
+        plan: result.plan,
+      };
+
+      setLocalSystmOneNote(optimisedNote);
+
+      // Save to database using raw update
+      try {
+        const currentHeidiNotes = currentSession.heidiNote || {};
+        const updatedHeidiNotes = {
+          ...currentHeidiNotes,
+          systmOneOptimised: optimisedNote
+        };
+
+        // Use fetch directly to avoid type issues with table that has RLS
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          toast.error('Not authenticated');
+          return;
+        }
+
+        const response = await fetch(
+          `https://dphcnbricafkbtizkoal.supabase.co/rest/v1/scribe_sessions?id=eq.${currentSession.id}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              heidi_notes: updatedHeidiNotes,
+              is_systmone_optimised: true
+            })
+          }
+        );
+
+        if (!response.ok) {
+          console.error('Failed to save optimised notes:', await response.text());
+          toast.error('Optimised but failed to save');
+        } else {
+          toast.success('Notes optimised and saved');
+          // Refresh to pick up changes
+          onRefresh();
+        }
+      } catch (err) {
+        console.error('Error saving optimised notes:', err);
+      }
+    }
+  }, [currentSession, tightenNotes, onRefresh]);
 
   // Filter out "None mentioned", "None discussed", blank values, etc. when toggle is off
   const filterNotMentioned = useCallback((text: string): string => {
@@ -718,15 +807,17 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     {settings.consultationViewMode === 'systmone' && (
                       <NarrativeClinicalNoteView
                         soapNote={currentSoapNote}
-                        heidiNote={currentSession.systmOneNote || currentSession.heidiNote}
+                        heidiNote={localSystmOneNote || currentSession.systmOneNote || currentSession.heidiNote}
                         showNotMentioned={settings.showNotMentioned}
                         onShowNotMentionedChange={handleShowNotMentionedChange}
-                        isSystmOneOptimised={!!currentSession.systmOneNote || currentSession.isSystmOneOptimised}
+                        isSystmOneOptimised={!!localSystmOneNote || !!currentSession.systmOneNote || currentSession.isSystmOneOptimised}
                         patientContext={currentSession.patientNhsNumber ? {
                           name: currentSession.patientName,
                           nhsNumber: currentSession.patientNhsNumber,
                           dateOfBirth: currentSession.patientDob
                         } : undefined}
+                        onReoptimise={handleReoptimise}
+                        isReoptimising={isReoptimising}
                       />
                     )}
 
@@ -991,7 +1082,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                   isSelectMode={isSelectMode}
                   isSelected={isSelected}
                   onToggleSelect={() => toggleSelection(session.id)}
-                  onView={() => onLoadSession(session.id)}
+                  onView={() => handleLoadSession(session.id)}
                   onDelete={() => onDeleteSession(session.id)}
                   onRefresh={onRefresh}
                   isMobile={isMobile}
