@@ -71,6 +71,7 @@ import { TeamsAudioHint } from "@/components/meeting/TeamsAudioHint";
 import { useAssemblyRealtimePreview, PreviewStatus } from "@/hooks/useAssemblyRealtimePreview";
 import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
+import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -547,6 +548,58 @@ export const MeetingRecorder = ({
     setWordCount(assemblyWords);
     onWordCountUpdate(assemblyWords);
   }, [assemblyPreview.fullTranscript, onWordCountUpdate]);
+
+  // ============= WHISPER COST PROTECTION =============
+  // Maximum recording duration (4 hours) to prevent runaway billing
+  const MAX_RECORDING_DURATION_SECONDS = 4 * 60 * 60; // 4 hours
+  // Warning thresholds at 1h, 2h, 3h
+  const DURATION_WARNINGS = [3600, 7200, 10800]; // seconds
+  const shownDurationWarningsRef = useRef<Set<number>>(new Set());
+
+  // Get current meeting ID from sessionStorage for kill signal
+  const currentMeetingIdFromStorage = sessionStorage.getItem('currentMeetingId');
+
+  // Server-side kill signal listener
+  useMeetingKillSignal(
+    currentMeetingIdFromStorage,
+    isRecording,
+    useCallback(() => {
+      console.log('🛑 Server kill signal received - stopping recording');
+      stopRecording();
+    }, [])
+  );
+
+  // Duration warning and hard limit effect
+  useEffect(() => {
+    if (!isRecording) {
+      // Reset warnings when not recording
+      shownDurationWarningsRef.current.clear();
+      return;
+    }
+
+    // Show warnings at milestones
+    DURATION_WARNINGS.forEach(threshold => {
+      if (duration >= threshold && !shownDurationWarningsRef.current.has(threshold)) {
+        shownDurationWarningsRef.current.add(threshold);
+        const hours = threshold / 3600;
+        showToast.warning(`Recording has been running for ${hours} hour${hours > 1 ? 's' : ''}`, { 
+          section: 'meeting_manager',
+          duration: 10000 
+        });
+        console.log(`⏰ Duration warning: ${hours} hour(s) reached`);
+      }
+    });
+
+    // Hard stop at 4 hours
+    if (duration >= MAX_RECORDING_DURATION_SECONDS) {
+      console.warn('⚠️ Maximum recording duration (4 hours) reached - auto-stopping');
+      showToast.error('Recording auto-stopped after 4 hours maximum duration', { 
+        section: 'meeting_manager',
+        duration: 15000 
+      });
+      stopRecording();
+    }
+  }, [duration, isRecording]);
 
   // Reset meeting function
   const resetMeeting = async () => {

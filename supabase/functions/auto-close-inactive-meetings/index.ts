@@ -174,6 +174,25 @@ serve(async (req) => {
           continue;
         }
 
+        // Broadcast kill signal to any connected clients
+        try {
+          const channel = supabase.channel(`meeting-kill:${meeting.id}`);
+          await channel.send({
+            type: 'broadcast',
+            event: 'force_stop',
+            payload: { 
+              reason: 'server_inactivity_timeout', 
+              meeting_id: meeting.id,
+              timestamp: new Date().toISOString()
+            }
+          });
+          await supabase.removeChannel(channel);
+          console.log(`📡 Sent kill signal for meeting ${meeting.id}`);
+        } catch (broadcastError) {
+          console.error(`⚠️ Failed to broadcast kill signal for ${meeting.id}:`, broadcastError);
+          // Don't fail the whole operation if broadcast fails
+        }
+
         // Queue notes generation if there's transcript content
         const { data: hasContent } = await supabase
           .from('meeting_transcription_chunks')
