@@ -5,6 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Bump this when diagnosing production issues so logs clearly show which code is running.
+const FUNCTION_VERSION = "2026-01-21-1";
+
 type TemplateType = 'free' | 'consultation' | 'referral' | 'patient-letter' | 'clinical-note' | 'sick-note';
 
 const TEMPLATE_INSTRUCTIONS: Record<TemplateType, string> = {
@@ -408,6 +411,8 @@ Deno.serve(async (req) => {
     const template = (templateType as TemplateType) || "free";
     const templateInstruction = TEMPLATE_INSTRUCTIONS[template] || TEMPLATE_INSTRUCTIONS.free;
 
+    console.log(`🧩 format-dictation version: ${FUNCTION_VERSION}`);
+
     console.log("📝 Processing dictation, length:", content.length);
     console.log("📋 Template type:", template);
 
@@ -445,6 +450,14 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Defensive normalisation: if any legacy model IDs slip through on the gateway, map to a supported default.
+    const isGateway = endpoint.includes("ai.gateway.lovable.dev");
+    if (isGateway && (model === "gpt-4o-mini" || model === "openai/gpt-4o-mini")) {
+      console.log(`↩️ Remapping legacy model '${model}' to 'google/gemini-3-flash-preview' for gateway compatibility`);
+      model = "google/gemini-3-flash-preview";
+    }
+    console.log(`🧭 Provider: ${isGateway ? "lovable-gateway" : "openai-direct"} | model: ${model}`);
+
     // Build system prompt
     const systemPrompt = buildSystemPrompt(templateInstruction);
 
@@ -471,7 +484,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
+      console.error("AI API error:", response.status, errorText);
       return new Response(
         JSON.stringify({ error: "Failed to format dictation", details: errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
