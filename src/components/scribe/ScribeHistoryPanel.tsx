@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import type { Json } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -209,12 +210,32 @@ export const ScribeHistoryPanel = ({
 
       setLocalSystmOneNote(optimisedNote);
 
-      // Save to database via gp_consultation_notes table
+      // Save to database - merge into heidi_notes JSONB column
       try {
+        // First fetch existing heidi_notes to preserve other data
+        const { data: existingData, error: fetchError } = await supabase
+          .from('gp_consultation_notes')
+          .select('heidi_notes')
+          .eq('consultation_id', currentSession.id)
+          .single();
+
+        if (fetchError) {
+          console.error('Failed to fetch existing notes:', fetchError);
+          toast.error('Optimised but failed to save');
+          return;
+        }
+
+        // Merge optimised notes into heidi_notes JSONB
+        const existingHeidiNotes = (existingData?.heidi_notes || {}) as Record<string, Json>;
+        const updatedHeidiNotes: Record<string, Json> = {
+          ...existingHeidiNotes,
+          systmOneOptimised: JSON.parse(JSON.stringify(optimisedNote)) as Json
+        };
+
         const { error: updateError } = await supabase
           .from('gp_consultation_notes')
           .update({
-            systmone_notes: optimisedNote,
+            heidi_notes: updatedHeidiNotes,
             is_systmone_optimised: true
           })
           .eq('consultation_id', currentSession.id);
