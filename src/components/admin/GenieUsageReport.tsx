@@ -283,53 +283,88 @@ export const GenieUsageReport = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedUserStats.map((user) => (
-                  <TableRow key={user.user_id}>
+                <>
+                  {sortedUserStats.map((user) => (
+                    <TableRow key={user.user_id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{user.full_name || 'Unnamed User'}</div>
+                          <div className="text-xs text-muted-foreground">{user.email}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {user.ai4gp_count > 0 ? (
+                          <Badge variant="outline" className="text-amber-600">{user.ai4gp_count}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {user.scribe_count > 0 ? (
+                          <Badge variant="outline" className="text-teal-600">{user.scribe_count}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {user.meeting_count > 0 ? (
+                          <Badge variant="outline" className="text-indigo-600">{user.meeting_count}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary">{user.total_chats}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="text-sm">{user.total_messages}</span>
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground">
+                        {user.last_active ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <Clock className="h-3 w-3" />
+                            {format(new Date(user.last_active), 'dd/MM/yyyy HH:mm')}
+                          </div>
+                        ) : (
+                          <span>-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Totals Row */}
+                  <TableRow className="bg-muted/50 font-medium border-t-2">
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{user.full_name || 'Unnamed User'}</div>
-                        <div className="text-xs text-muted-foreground">{user.email}</div>
-                      </div>
+                      <div className="font-semibold">Totals</div>
+                      <div className="text-xs text-muted-foreground">{sortedUserStats.length} users</div>
                     </TableCell>
                     <TableCell className="text-center">
-                      {user.ai4gp_count > 0 ? (
-                        <Badge variant="outline" className="text-amber-600">{user.ai4gp_count}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
+                      <Badge variant="outline" className="text-amber-600 font-semibold">
+                        {systemStats?.ai4gp_total || 0}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      {user.scribe_count > 0 ? (
-                        <Badge variant="outline" className="text-teal-600">{user.scribe_count}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
+                      <Badge variant="outline" className="text-teal-600 font-semibold">
+                        {systemStats?.scribe_total || 0}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      {user.meeting_count > 0 ? (
-                        <Badge variant="outline" className="text-indigo-600">{user.meeting_count}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
+                      <Badge variant="outline" className="text-indigo-600 font-semibold">
+                        {systemStats?.meeting_total || 0}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="secondary">{user.total_chats}</Badge>
+                      <Badge variant="secondary" className="font-semibold">
+                        {systemStats?.total_chats || 0}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-center">
-                      <span className="text-sm">{user.total_messages}</span>
+                      <span className="text-sm font-semibold">{systemStats?.total_messages || 0}</span>
                     </TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">
-                      {user.last_active ? (
-                        <div className="flex items-center justify-end gap-1">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(user.last_active), 'dd/MM/yyyy HH:mm')}
-                        </div>
-                      ) : (
-                        <span>-</span>
-                      )}
+                      —
                     </TableCell>
                   </TableRow>
-                ))
+                </>
               )}
             </TableBody>
           </Table>
