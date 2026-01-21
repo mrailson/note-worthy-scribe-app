@@ -445,7 +445,8 @@ Deno.serve(async (req) => {
           { role: "system", content: systemPrompt },
           { role: "user", content: `Please format and clean up the following dictated consultation notes:\n\n${protectedText}` },
         ],
-        temperature: 0.3,
+        // NOTE: Some models (notably GPT-5 variants via compatible gateways) reject non-default temperature.
+        // Omitting `temperature` keeps broad compatibility.
         max_tokens: 4000,
       }),
     });
