@@ -204,7 +204,8 @@ ${plan || 'Not provided'}`;
               { role: "user", content: userMessage }
             ],
             // GPT-5 models use `max_completion_tokens` (not `max_tokens`).
-            max_completion_tokens: 4000,
+            // Reduced from 4000 to 1500 for faster responses - typical output is 200-400 tokens
+            max_completion_tokens: 1500,
           }),
         });
 
