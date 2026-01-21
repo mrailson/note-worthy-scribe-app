@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Switch } from '@/components/ui/switch';
@@ -43,6 +43,84 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
   onCopy,
   onClear,
 }) => {
+  const [countdown, setCountdown] = useState<number | null>(null);
+
+  const handleStartClick = useCallback(() => {
+    // Start countdown, then trigger recording
+    setCountdown(3);
+  }, []);
+
+  // Handle countdown timer
+  useEffect(() => {
+    if (countdown === null) return;
+
+    if (countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      // Countdown finished, start recording
+      setCountdown(null);
+      onStart();
+    }
+  }, [countdown, onStart]);
+
+  // Render countdown overlay
+  if (countdown !== null) {
+    const circumference = 2 * Math.PI * 44; // radius = 44
+    const progress = (3 - countdown) / 3; // 0 to 1 over 3 seconds
+    const strokeDashoffset = circumference * (1 - progress);
+
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-4">
+        <div className="relative w-24 h-24">
+          {/* Background circle */}
+          <svg className="w-24 h-24 transform -rotate-90">
+            <circle
+              className="text-muted-foreground/20"
+              strokeWidth="4"
+              stroke="currentColor"
+              fill="transparent"
+              r="44"
+              cx="48"
+              cy="48"
+            />
+            {/* Animated progress circle */}
+            <circle
+              className="text-primary transition-all duration-1000 ease-linear"
+              strokeWidth="4"
+              strokeLinecap="round"
+              stroke="currentColor"
+              fill="transparent"
+              r="44"
+              cx="48"
+              cy="48"
+              style={{
+                strokeDasharray: circumference,
+                strokeDashoffset: strokeDashoffset,
+              }}
+            />
+          </svg>
+          {/* Countdown number */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-4xl font-bold text-primary animate-pulse">
+              {countdown}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-lg font-medium text-foreground">
+            Get ready...
+          </span>
+          <span className="text-sm text-muted-foreground">
+            Recording starts in {countdown} second{countdown !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2">
@@ -59,10 +137,10 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
           </Button>
         ) : (
           <Button
-            onClick={onStart}
+            onClick={handleStartClick}
             variant="default"
             size="lg"
-            disabled={isConnecting}
+            disabled={isConnecting || countdown !== null}
             className={cn(
               "gap-2 min-w-[140px]",
               hasContent && "bg-green-600 hover:bg-green-700"
