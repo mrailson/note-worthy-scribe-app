@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollText, History, Mic, Home } from 'lucide-react';
+import { ScrollText, History, Mic, Home, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useDictation } from '@/hooks/useDictation';
 import { DictationTextArea } from './DictationTextArea';
@@ -42,6 +43,14 @@ export function DictationPanel() {
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* Development Disclaimer */}
+          <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/30">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
+              <strong>⚠️ Development Build</strong> – Transcription accuracy is not yet clinical-grade. For demonstration and evaluation only; do not use for real patient care.
+            </AlertDescription>
+          </Alert>
+
           {activeTab === 'dictate' ? (
             <>
               {/* Template Selection - only show when not recording and no content */}
