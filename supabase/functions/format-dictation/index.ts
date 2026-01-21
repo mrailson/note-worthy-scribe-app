@@ -417,12 +417,30 @@ Deno.serve(async (req) => {
 
     console.log(`🔐 Protected text ready, ${tokenCountBefore} tokens locked`);
 
-    // Get API key
-    const apiKey = Deno.env.get("LOVABLE_API_KEY") || Deno.env.get("OPENAI_API_KEY");
-    if (!apiKey) {
-      console.error("API key not configured");
+    // Choose provider:
+    // - Prefer Lovable AI Gateway when available (most of the app uses this).
+    // - Fall back to direct OpenAI only if gateway key is missing.
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+
+    let endpoint: string;
+    let authKey: string;
+    let model: string;
+
+    if (lovableKey) {
+      endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
+      authKey = lovableKey;
+      model = "openai/gpt-4o-mini";
+      console.log("🔑 Using Lovable AI Gateway for dictation formatting");
+    } else if (openaiKey) {
+      endpoint = "https://api.openai.com/v1/chat/completions";
+      authKey = openaiKey;
+      model = "gpt-4o-mini";
+      console.log("🔑 Using OpenAI direct API for dictation formatting");
+    } else {
+      console.error("No AI API key configured (LOVABLE_API_KEY or OPENAI_API_KEY)");
       return new Response(
-        JSON.stringify({ error: "API key not configured" }),
+        JSON.stringify({ error: "No AI API key configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -433,14 +451,14 @@ Deno.serve(async (req) => {
     // Step 2: Send protected text to LLM for formatting
     console.log("🤖 Sending to LLM for formatting...");
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        "Authorization": `Bearer ${authKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Please format and clean up the following dictated consultation notes:\n\n${protectedText}` },
