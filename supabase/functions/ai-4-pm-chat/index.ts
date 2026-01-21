@@ -1536,6 +1536,56 @@ async function callLovableAIGateway(messages: Message[], systemPrompt: string, m
   return cleanBNFOutput(data.choices[0].message.content || 'No response generated');
 }
 
+// Streaming version for SSE responses
+async function streamLovableAIGateway(messages: Message[], systemPrompt: string, model: string, files?: UploadedFile[]): Promise<ReadableStream> {
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!lovableApiKey) {
+    throw new Error('LOVABLE_API_KEY not configured');
+  }
+
+  console.log(`Streaming from Lovable AI Gateway with model: ${model}`);
+
+  const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing";
+
+  const formattedMessages = [
+    { role: 'system', content: enhancedSystemPrompt },
+    ...messages.map(msg => {
+      let content = msg.content || '[No message content]';
+      
+      if (msg.files && msg.files.length > 0) {
+        const fileContent = msg.files.map(file => 
+          `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+        ).join('');
+        content += fileContent;
+      }
+      
+      return { role: msg.role, content };
+    })
+  ];
+
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${lovableApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: formattedMessages,
+      max_tokens: 4096,
+      stream: true
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Lovable AI Gateway streaming error (${response.status}):`, errorText);
+    throw new Error(`Lovable AI Gateway error (${response.status}): ${errorText}`);
+  }
+
+  return response.body!;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -1549,7 +1599,7 @@ serve(async (req) => {
 
   try {
     console.log('📝 Environment check - OpenAI key present:', !!openaiApiKey);
-    console.log('🚀 AI-4-PM-Chat function started - v4');
+    console.log('🚀 AI-4-PM-Chat function started - v5 (streaming)');
     console.log('📝 Request method:', req.method);
     console.log('📝 Request headers:', Object.fromEntries(req.headers.entries()));
     
@@ -1562,6 +1612,9 @@ serve(async (req) => {
     const systemPrompt = requestData.systemPrompt;
     const files = requestData.files;
     verificationLevel = requestData.verificationLevel || 'standard';
+    const streamRequested = requestData.stream === true;
+
+    console.log('📝 Stream requested:', streamRequested);
 
     // Check API key availability - use consistent variable names
     console.log('API Keys status:', {
@@ -1658,49 +1711,74 @@ serve(async (req) => {
     // Create final system prompt by combining enhanced prompt with source context
     const finalSystemPrompt = enhancedSystemPrompt + sourceContext;
 
-  // Initialize response variable
-  let response: string = '';
-  
-  console.log('About to route to model:', selectedModel);
+    // Check if streaming is supported for the selected model
+    const streamableModels = ['google/gemini-3-flash-preview', 'google/gemini-3-pro-preview', 'google/gemini-2.5-flash', 'openai/gpt-5', 'openai/gpt-5-mini'];
+    const canStream = streamRequested && streamableModels.includes(selectedModel);
 
-  // Model routing with proper mapping
-  if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
-    response = await callClaude(processedMessages, finalSystemPrompt, files);
-  } else if (selectedModel === 'gpt-5-2025-08-07' || selectedModel === 'gpt-5' || selectedModel === 'gpt-5-mini-2025-08-07' || selectedModel === 'gpt-5-nano-2025-08-07') {
-    // Use GPT-5 function for GPT-5 models with fallback
-    try {
-      console.log('Calling GPT-5...');
-      response = await callGPT5(processedMessages, finalSystemPrompt, files);
-      console.log('GPT-5 response received:', !!response, 'Length:', response?.length || 0);
+    // Handle streaming response for supported models
+    if (canStream) {
+      console.log('🔄 Starting streaming response for model:', selectedModel);
       
-      // Ensure we have a valid response
-      if (!response || response.trim() === '') {
-        console.log('GPT-5 returned empty response, falling back to GPT-4 Turbo');
+      try {
+        const streamBody = await streamLovableAIGateway(processedMessages, finalSystemPrompt, selectedModel, files);
+        
+        return new Response(streamBody, {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          },
+        });
+      } catch (error) {
+        console.error('Streaming failed, falling back to non-streaming:', error);
+        // Fall through to non-streaming response
+      }
+    }
+
+    // Initialize response variable for non-streaming
+    let response: string = '';
+    
+    console.log('About to route to model:', selectedModel);
+
+    // Model routing with proper mapping
+    if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
+      response = await callClaude(processedMessages, finalSystemPrompt, files);
+    } else if (selectedModel === 'gpt-5-2025-08-07' || selectedModel === 'gpt-5' || selectedModel === 'gpt-5-mini-2025-08-07' || selectedModel === 'gpt-5-nano-2025-08-07') {
+      // Use GPT-5 function for GPT-5 models with fallback
+      try {
+        console.log('Calling GPT-5...');
+        response = await callGPT5(processedMessages, finalSystemPrompt, files);
+        console.log('GPT-5 response received:', !!response, 'Length:', response?.length || 0);
+        
+        // Ensure we have a valid response
+        if (!response || response.trim() === '') {
+          console.log('GPT-5 returned empty response, falling back to GPT-4 Turbo');
+          response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
+        }
+      } catch (error) {
+        console.log('GPT-5 failed, falling back to GPT-4 Turbo:', error.message);
         response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
       }
-    } catch (error) {
-      console.log('GPT-5 failed, falling back to GPT-4 Turbo:', error.message);
+    } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo' || selectedModel === 'gpt-4o' || selectedModel === 'gpt-4o-mini' || !selectedModel) {
+      // Use GPT-4 Turbo for legacy models
       response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
+    } else if (selectedModel === 'grok-beta') {
+      response = await callGrok(processedMessages, finalSystemPrompt, files);
+    } else if (selectedModel === 'gemini-ultra' || selectedModel === 'gemini-1.5-pro') {
+      response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-pro', files);
+    } else if (selectedModel === 'gemini-1.5-flash') {
+      response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-flash', files);
+    } else if (selectedModel === 'deepseek-chat') {
+      response = await callDeepseek(processedMessages, finalSystemPrompt, files);
+    } else if (selectedModel === 'google/gemini-3-flash-preview' || selectedModel === 'google/gemini-3-pro-preview' || selectedModel === 'google/gemini-2.5-flash' || selectedModel === 'openai/gpt-5' || selectedModel === 'openai/gpt-5-mini') {
+      // Use Lovable AI Gateway for these models
+      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, selectedModel, files);
+    } else {
+      // Fallback to Lovable AI Gateway with default model
+      console.log(`Unsupported model ${selectedModel}, falling back to Lovable AI Gateway`);
+      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3-flash-preview', files);
     }
-  } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo' || selectedModel === 'gpt-4o' || selectedModel === 'gpt-4o-mini' || !selectedModel) {
-    // Use GPT-4 Turbo for legacy models
-    response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
-  } else if (selectedModel === 'grok-beta') {
-    response = await callGrok(processedMessages, finalSystemPrompt, files);
-  } else if (selectedModel === 'gemini-ultra' || selectedModel === 'gemini-1.5-pro') {
-    response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-pro', files);
-  } else if (selectedModel === 'gemini-1.5-flash') {
-    response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-flash', files);
-  } else if (selectedModel === 'deepseek-chat') {
-    response = await callDeepseek(processedMessages, finalSystemPrompt, files);
-  } else if (selectedModel === 'google/gemini-3-flash-preview' || selectedModel === 'google/gemini-3-pro-preview' || selectedModel === 'google/gemini-2.5-flash' || selectedModel === 'openai/gpt-5' || selectedModel === 'openai/gpt-5-mini') {
-    // Use Lovable AI Gateway for these models
-    response = await callLovableAIGateway(processedMessages, finalSystemPrompt, selectedModel, files);
-  } else {
-    // Fallback to Lovable AI Gateway with default model
-    console.log(`Unsupported model ${selectedModel}, falling back to Lovable AI Gateway`);
-    response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3-flash-preview', files);
-  }
   
   console.log('Model call completed successfully');
   console.log('Response received:', !!response);

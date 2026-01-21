@@ -998,175 +998,312 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         messages: messagesForAPI,
         model: modelToUse,
         files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
-        verificationLevel: verificationLevel
+        verificationLevel: verificationLevel,
+        stream: true // Request streaming
       };
 
-      // Get response from edge function
-      const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
-        body: requestBody
-      });
-
-      if (error) {
-        console.error('AI Service Error:', error);
-        throw new Error(`AI service error: ${error.message || 'Unknown error'}`);
-      }
-
-      const responseContent = data?.response || data?.content || 'No response received';
+      // Check if model supports streaming
+      const streamableModels = ['google/gemini-3-flash-preview', 'google/gemini-3-pro-preview', 'google/gemini-2.5-flash', 'openai/gpt-5', 'openai/gpt-5-mini'];
+      const canStream = streamableModels.includes(modelToUse);
       
-      // Capture API response time (when data first comes back)
-      const apiResponseTime = Date.now() - startTime;
-      
-      if (!responseContent || responseContent === 'No response received') {
-        throw new Error('No valid response received from AI service');
-      }
-      
-      // Fast response when no files, slower when files are present for better UX
-      const hasFiles = uploadedFiles.length > 0;
-      const chunks = responseContent.split(' ');
-      
-      if (!hasFiles) {
-        // Fast response - show immediately with minimal chunking for natural feel
-        const chunkSize = Math.max(5, Math.floor(chunks.length / 5)); // ~5 fast updates
-        let currentIndex = 0;
-        let accumulatedContent = '';
-        let timeToFirstWords: number | undefined;
+      if (canStream) {
+        // Use fetch for true streaming
+        console.log('🔄 Using true streaming for model:', modelToUse);
+        
+        const session = await supabase.auth.getSession();
+        const accessToken = session.data.session?.access_token;
+        
+        const response = await fetch('https://dphcnbricafkbtizkoal.supabase.co/functions/v1/ai-4-pm-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+          },
+          body: JSON.stringify(requestBody)
+        });
 
-        const streamChunks = () => {
-          if (currentIndex < chunks.length) {
-            const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
-            const chunkText = chunks.slice(currentIndex, endIndex).join(' ') + ' ';
-            accumulatedContent += chunkText;
-            currentIndex = endIndex;
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Stream error: ${response.status} - ${errorText}`);
+        }
 
-            // Capture time to first words on first chunk
-            if (currentIndex === chunkSize && !timeToFirstWords) {
-              timeToFirstWords = Date.now() - startTime;
-            }
-
-            setMessages(prev => prev.map(msg => 
-              msg.id === assistantMessageId 
-                ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
-                : msg
-            ));
-
-            if (currentIndex < chunks.length) {
-              // Very fast streaming - minimal delay
-              setTimeout(streamChunks, 15 + Math.random() * 10);
-            } else {
-              // Streaming complete
-              const endTime = Date.now();
-              const responseTime = endTime - startTime;
+        // Check if we got an SSE stream
+        const contentType = response.headers.get('content-type') || '';
+        
+        if (contentType.includes('text/event-stream')) {
+          // True SSE streaming
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+          
+          let accumulatedContent = '';
+          let timeToFirstWords: number | undefined;
+          let buffer = '';
+          
+          const processStream = async () => {
+            if (!reader) return;
+            
+            while (true) {
+              const { done, value } = await reader.read();
               
-              const finalAssistantMessage = {
-                ...assistantMessage,
-                content: responseContent,
-                isStreaming: false,
-                responseTime,
-                timeToFirstWords,
-                apiResponseTime
-              };
+              if (done) {
+                // Stream complete
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                const finalAssistantMessage = {
+                  ...assistantMessage,
+                  content: accumulatedContent.trim(),
+                  isStreaming: false,
+                  responseTime,
+                  timeToFirstWords,
+                  apiResponseTime: timeToFirstWords || responseTime
+                };
 
-              // Perform clinical verification if this was a clinical query
-              console.log('🔍 Checking clinical verification conditions:', { isClinical, userIsClinical: userMessage.isClinical });
-              if (isClinical && userMessage.isClinical) {
-                console.log('✅ Clinical verification conditions met, starting verification...');
-                setTimeout(async () => {
-                  const verificationData = await performClinicalVerification(
-                    assistantMessageId,
-                    userMessage.content,
-                    responseContent
-                  );
+                // Perform clinical verification if this was a clinical query
+                if (isClinical && userMessage.isClinical) {
+                  setTimeout(async () => {
+                    const verificationData = await performClinicalVerification(
+                      assistantMessageId,
+                      userMessage.content,
+                      accumulatedContent.trim()
+                    );
+                    if (verificationData) {
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessageId 
+                          ? { ...msg, clinicalVerification: verificationData }
+                          : msg
+                      ));
+                    }
+                  }, 500);
+                }
+                
+                setMessages(prev => prev.map(msg => 
+                  msg.id === assistantMessageId 
+                    ? finalAssistantMessage
+                    : msg
+                ));
 
-                  console.log('📊 Verification data received:', verificationData);
-                  if (verificationData) {
-                    console.log('💾 Adding verification data to message...');
-                    setMessages(prev => prev.map(msg => 
-                      msg.id === assistantMessageId 
-                        ? { ...msg, clinicalVerification: verificationData }
-                        : msg
-                    ));
-                  } else {
-                    console.log('❌ No verification data to add');
-                  }
-                }, 500); // Delay to allow UI to settle
-              } else {
-                console.log('❌ Clinical verification skipped - conditions not met');
-              }
-              
-              setMessages(prev => prev.map(msg => 
-                msg.id === assistantMessageId 
-                  ? finalAssistantMessage
-                  : msg
-              ));
-
-                 // Auto-save the search
+                // Auto-save the search
                 setTimeout(async () => {
                   const finalMessages = [...newMessages, finalAssistantMessage];
                   await saveSearchAutomatically(finalMessages);
                 }, 100);
-            }
-          }
-        };
-
-        // Start fast streaming
-        streamChunks();
-      } else {
-        // Slower streaming for file-based responses
-        const chunkSize = Math.max(1, Math.floor(chunks.length / 20)); // ~20 updates
-        let currentIndex = 0;
-        let accumulatedContent = '';
-        let timeToFirstWords: number | undefined;
-
-        const streamChunks = () => {
-          if (currentIndex < chunks.length) {
-            const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
-            const chunkText = chunks.slice(currentIndex, endIndex).join(' ') + ' ';
-            accumulatedContent += chunkText;
-            currentIndex = endIndex;
-
-            // Capture time to first words on first chunk
-            if (currentIndex === chunkSize && !timeToFirstWords) {
-              timeToFirstWords = Date.now() - startTime;
-            }
-
-            setMessages(prev => prev.map(msg => 
-              msg.id === assistantMessageId 
-                ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
-                : msg
-            ));
-
-            if (currentIndex < chunks.length) {
-              // Continue streaming with delay for file processing
-              setTimeout(streamChunks, 50 + Math.random() * 50);
-            } else {
-              // Streaming complete
-              const endTime = Date.now();
-              const responseTime = endTime - startTime;
+                
+                break;
+              }
               
+              buffer += decoder.decode(value, { stream: true });
+              
+              // Parse SSE events
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || ''; // Keep incomplete line in buffer
+              
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
+                  if (data === '[DONE]') continue;
+                  
+                  try {
+                    const parsed = JSON.parse(data);
+                    const content = parsed.choices?.[0]?.delta?.content || '';
+                    
+                    if (content) {
+                      accumulatedContent += content;
+                      
+                      if (!timeToFirstWords) {
+                        timeToFirstWords = Date.now() - startTime;
+                        console.log('⚡ Time to first words:', timeToFirstWords, 'ms');
+                      }
+                      
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessageId 
+                          ? { ...msg, content: accumulatedContent, isStreaming: true, timeToFirstWords }
+                          : msg
+                      ));
+                    }
+                  } catch {
+                    // Ignore parse errors for incomplete JSON
+                  }
+                }
+              }
+            }
+          };
+          
+          await processStream();
+        } else {
+          // Non-streaming JSON response (fallback)
+          const data = await response.json();
+          const responseContent = data?.response || data?.content || 'No response received';
+          
+          // Capture API response time
+          const apiResponseTime = Date.now() - startTime;
+          
+          // Fast simulated streaming
+          const chunks = responseContent.split(' ');
+          const chunkSize = Math.max(5, Math.floor(chunks.length / 5));
+          let currentIndex = 0;
+          let accumulatedContent = '';
+          let timeToFirstWords: number | undefined;
+
+          const streamChunks = () => {
+            if (currentIndex < chunks.length) {
+              const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
+              const chunkText = chunks.slice(currentIndex, endIndex).join(' ') + ' ';
+              accumulatedContent += chunkText;
+              currentIndex = endIndex;
+
+              if (currentIndex === chunkSize && !timeToFirstWords) {
+                timeToFirstWords = Date.now() - startTime;
+              }
+
               setMessages(prev => prev.map(msg => 
                 msg.id === assistantMessageId 
-                  ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords, apiResponseTime }
+                  ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
                   : msg
               ));
 
-              // Auto-save the search
-              setTimeout(async () => {
-                const finalMessages = [...newMessages, {
+              if (currentIndex < chunks.length) {
+                setTimeout(streamChunks, 15 + Math.random() * 10);
+              } else {
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                const finalAssistantMessage = {
                   ...assistantMessage,
                   content: responseContent,
                   isStreaming: false,
                   responseTime,
                   timeToFirstWords,
                   apiResponseTime
-                }];
-                await saveSearchAutomatically(finalMessages);
-              }, 100);
-            }
-          }
-        };
+                };
 
-        // Start slower streaming for file processing
-        streamChunks();
+                if (isClinical && userMessage.isClinical) {
+                  setTimeout(async () => {
+                    const verificationData = await performClinicalVerification(
+                      assistantMessageId,
+                      userMessage.content,
+                      responseContent
+                    );
+                    if (verificationData) {
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessageId 
+                          ? { ...msg, clinicalVerification: verificationData }
+                          : msg
+                      ));
+                    }
+                  }, 500);
+                }
+                
+                setMessages(prev => prev.map(msg => 
+                  msg.id === assistantMessageId 
+                    ? finalAssistantMessage
+                    : msg
+                ));
+
+                setTimeout(async () => {
+                  const finalMessages = [...newMessages, finalAssistantMessage];
+                  await saveSearchAutomatically(finalMessages);
+                }, 100);
+              }
+            }
+          };
+
+          streamChunks();
+        }
+      } else {
+        // Use supabase.functions.invoke for non-streamable models (original logic)
+        const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
+          body: { ...requestBody, stream: false }
+        });
+
+        if (error) {
+          console.error('AI Service Error:', error);
+          throw new Error(`AI service error: ${error.message || 'Unknown error'}`);
+        }
+
+        const responseContent = data?.response || data?.content || 'No response received';
+        
+        const apiResponseTime = Date.now() - startTime;
+        
+        if (!responseContent || responseContent === 'No response received') {
+          throw new Error('No valid response received from AI service');
+        }
+        
+        const hasFiles = uploadedFiles.length > 0;
+        const chunks = responseContent.split(' ');
+        
+        if (!hasFiles) {
+          const chunkSize = Math.max(5, Math.floor(chunks.length / 5));
+          let currentIndex = 0;
+          let accumulatedContent = '';
+          let timeToFirstWords: number | undefined;
+
+          const streamChunks = () => {
+            if (currentIndex < chunks.length) {
+              const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
+              const chunkText = chunks.slice(currentIndex, endIndex).join(' ') + ' ';
+              accumulatedContent += chunkText;
+              currentIndex = endIndex;
+
+              if (currentIndex === chunkSize && !timeToFirstWords) {
+                timeToFirstWords = Date.now() - startTime;
+              }
+
+              setMessages(prev => prev.map(msg => 
+                msg.id === assistantMessageId 
+                  ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
+                  : msg
+              ));
+
+              if (currentIndex < chunks.length) {
+                setTimeout(streamChunks, 15 + Math.random() * 10);
+              } else {
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                
+                const finalAssistantMessage = {
+                  ...assistantMessage,
+                  content: responseContent,
+                  isStreaming: false,
+                  responseTime,
+                  timeToFirstWords,
+                  apiResponseTime
+                };
+
+                if (isClinical && userMessage.isClinical) {
+                  setTimeout(async () => {
+                    const verificationData = await performClinicalVerification(
+                      assistantMessageId,
+                      userMessage.content,
+                      responseContent
+                    );
+                    if (verificationData) {
+                      setMessages(prev => prev.map(msg => 
+                        msg.id === assistantMessageId 
+                          ? { ...msg, clinicalVerification: verificationData }
+                          : msg
+                      ));
+                    }
+                  }, 500);
+                }
+                
+                setMessages(prev => prev.map(msg => 
+                  msg.id === assistantMessageId 
+                    ? finalAssistantMessage
+                    : msg
+                ));
+
+                setTimeout(async () => {
+                  const finalMessages = [...newMessages, finalAssistantMessage];
+                  await saveSearchAutomatically(finalMessages);
+                }, 100);
+              }
+            }
+          };
+
+          streamChunks();
+        }
       }
 
 
