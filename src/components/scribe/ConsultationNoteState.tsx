@@ -50,6 +50,7 @@ interface ConsultationNoteStateProps {
   viewMode?: ConsultationViewMode;
   onViewModeChange?: (mode: ConsultationViewMode) => void;
   onShowNotMentionedChange?: (show: boolean) => void;
+  onIncludeNhsDobOnCopyChange?: (include: boolean) => void;
   // Narrative clinical editing
   onNarrativeSectionChange?: (sectionKey: string, newContent: string) => void;
   consultationId?: string;
@@ -92,6 +93,7 @@ export const ConsultationNoteState = ({
   viewMode = 'soap',
   onViewModeChange,
   onShowNotMentionedChange,
+  onIncludeNhsDobOnCopyChange,
   onNarrativeSectionChange,
   consultationId,
   isSaving = false,
@@ -381,6 +383,8 @@ export const ConsultationNoteState = ({
               consultationId={consultationId}
               isSystmOneOptimised={false}
               patientContext={patientContext}
+              includeNhsDobOnCopy={settings.includeNhsDobOnCopy ?? true}
+              onIncludeNhsDobOnCopyChange={onIncludeNhsDobOnCopyChange}
             />
           ) : viewMode === 'systmone' ? (
             <NarrativeClinicalNoteView
@@ -392,6 +396,8 @@ export const ConsultationNoteState = ({
               consultationId={consultationId}
               isSystmOneOptimised={!!consultationNote.systmOneNote}
               patientContext={patientContext}
+              includeNhsDobOnCopy={settings.includeNhsDobOnCopy ?? true}
+              onIncludeNhsDobOnCopyChange={onIncludeNhsDobOnCopyChange}
             />
           ) : viewMode === 'emis' ? (
             <EmisNoteView

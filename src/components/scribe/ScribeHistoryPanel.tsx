@@ -159,6 +159,10 @@ export const ScribeHistoryPanel = ({
     onUpdateSetting('showNotMentioned', show);
   }, [onUpdateSetting]);
 
+  const handleIncludeNhsDobOnCopyChange = useCallback((include: boolean) => {
+    onUpdateSetting('includeNhsDobOnCopy', include);
+  }, [onUpdateSetting]);
+
   // Clear local SystmOne note when session changes
   const handleLoadSession = useCallback((sessionId: string) => {
     setLocalSystmOneNote(null);
@@ -800,6 +804,8 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                           nhsNumber: currentSession.patientNhsNumber,
                           dateOfBirth: currentSession.patientDob
                         } : undefined}
+                        includeNhsDobOnCopy={settings.includeNhsDobOnCopy ?? true}
+                        onIncludeNhsDobOnCopyChange={handleIncludeNhsDobOnCopyChange}
                       />
                     )}
 
@@ -818,6 +824,8 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         } : undefined}
                         onReoptimise={handleReoptimise}
                         isReoptimising={isReoptimising}
+                        includeNhsDobOnCopy={settings.includeNhsDobOnCopy ?? true}
+                        onIncludeNhsDobOnCopyChange={handleIncludeNhsDobOnCopyChange}
                       />
                     )}
 
