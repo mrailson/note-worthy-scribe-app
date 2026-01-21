@@ -1469,6 +1469,73 @@ async function callDeepseek(messages: Message[], systemPrompt: string, files?: U
   return cleanBNFOutput(data.choices[0].message.content || 'No response generated');
 }
 
+async function callLovableAIGateway(messages: Message[], systemPrompt: string, model: string, files?: UploadedFile[]): Promise<string> {
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!lovableApiKey) {
+    throw new Error('LOVABLE_API_KEY not configured');
+  }
+
+  console.log(`Calling Lovable AI Gateway with model: ${model}`);
+
+  const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing";
+
+  const formattedMessages = [
+    { role: 'system', content: enhancedSystemPrompt },
+    ...messages.map(msg => {
+      let content = msg.content || '[No message content]';
+      
+      if (msg.files && msg.files.length > 0) {
+        const fileContent = msg.files.map(file => 
+          `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+        ).join('');
+        content += fileContent;
+      }
+      
+      return { role: msg.role, content };
+    })
+  ];
+
+  console.log('Making Lovable AI Gateway API call...');
+  console.log('Request body preview:', { model, messageCount: formattedMessages.length, hasTimeout: true });
+
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${lovableApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: formattedMessages,
+      max_tokens: 4096
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Lovable AI Gateway error (${response.status}):`, errorText);
+    throw new Error(`Lovable AI Gateway error (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log('Lovable AI Gateway response received successfully');
+  console.log('Lovable AI Gateway response completed successfully (' + (data.choices?.[0]?.message?.content?.length || 0) + ' characters, model: ' + model + ')');
+  console.log('Response structure:', {
+    hasChoices: !!data.choices,
+    choicesLength: data.choices?.length,
+    hasMessage: !!data.choices?.[0]?.message,
+    hasContent: !!data.choices?.[0]?.message?.content,
+    contentLength: data.choices?.[0]?.message?.content?.length || 0
+  });
+
+  if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+    console.error('Unexpected Lovable AI Gateway response structure:', JSON.stringify(data));
+    throw new Error('Invalid response structure from Lovable AI Gateway');
+  }
+
+  return cleanBNFOutput(data.choices[0].message.content || 'No response generated');
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -1626,10 +1693,13 @@ serve(async (req) => {
     response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-flash', files);
   } else if (selectedModel === 'deepseek-chat') {
     response = await callDeepseek(processedMessages, finalSystemPrompt, files);
+  } else if (selectedModel === 'google/gemini-3-flash-preview' || selectedModel === 'google/gemini-3-pro-preview' || selectedModel === 'google/gemini-2.5-flash' || selectedModel === 'openai/gpt-5' || selectedModel === 'openai/gpt-5-mini') {
+    // Use Lovable AI Gateway for these models
+    response = await callLovableAIGateway(processedMessages, finalSystemPrompt, selectedModel, files);
   } else {
-    // Fallback to GPT-4 Turbo for any unsupported model
-    console.log(`Unsupported model ${selectedModel}, falling back to GPT-4 Turbo`);
-    response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
+    // Fallback to Lovable AI Gateway with default model
+    console.log(`Unsupported model ${selectedModel}, falling back to Lovable AI Gateway`);
+    response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3-flash-preview', files);
   }
   
   console.log('Model call completed successfully');
