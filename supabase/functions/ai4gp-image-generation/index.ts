@@ -354,8 +354,8 @@ serve(async (req) => {
     // Extract editedDetails from practiceContext (user-edited branding text from dialog)
     const editedDetails = practiceContext?.editedDetails as string[] | undefined;
 
-    // Use selected model or default to Gemini 3 Pro Image (best quality)
-    const selectedImageModel = imageModel || 'google/gemini-3-pro-image-preview';
+    // Use selected model or default to Gemini 2.5 Flash Image (Nano banana - fast + reliable)
+    const selectedImageModel = imageModel || 'google/gemini-2.5-flash-image';
 
     // Determine effective request type (studio uses 'purpose', regular uses 'requestType')
     const effectiveRequestType = isStudioRequest ? (purpose || 'general') : (requestType || 'general');
@@ -1029,20 +1029,33 @@ Content guidelines:
         text: imagePrompt
       });
       
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: selectedImageModel,
-          messages: [
-            { role: 'user', content: messageContent.length === 1 ? imagePrompt : messageContent }
-          ],
-          modalities: ['image', 'text']
-        }),
-      });
+      // Add timeout to prevent hanging indefinitely (90 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.error('Image generation timeout after 90 seconds');
+        controller.abort();
+      }, 90000);
+
+      let response;
+      try {
+        response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: selectedImageModel,
+            messages: [
+              { role: 'user', content: messageContent.length === 1 ? imagePrompt : messageContent }
+            ],
+            modalities: ['image', 'text']
+          }),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(timeoutId);
+      }
 
       // Handle rate limits and payment errors
       if (response.status === 429) {
