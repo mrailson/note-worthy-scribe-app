@@ -132,6 +132,16 @@ export const MyAppointmentsTab = ({ onStartConsultation, onViewConsultation }: M
                 <Upload className="h-4 w-4" />
                 Import Appointments
               </Button>
+              
+              {/* Testing Disclaimer */}
+              <div className="mt-6 mx-auto max-w-md p-4 border border-destructive/50 bg-destructive/10 rounded-lg">
+                <p className="text-destructive text-sm font-medium">
+                  ⚠️ Testing Only – Do Not Use in Live Patient Care
+                </p>
+                <p className="text-destructive/80 text-xs mt-1">
+                  This feature is not clinically approved and must not be relied upon for documentation or decisions.
+                </p>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">

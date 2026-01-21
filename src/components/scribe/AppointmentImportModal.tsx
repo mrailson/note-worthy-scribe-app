@@ -341,6 +341,16 @@ export const AppointmentImportModal = ({ isOpen, onClose, onImport }: Appointmen
                 </p>
               )}
               
+              {/* Testing Disclaimer */}
+              <div className="p-3 border border-destructive bg-destructive/10 rounded-lg">
+                <p className="text-destructive text-sm font-medium">
+                  ⚠️ Testing Only – Do Not Use in Live Patient Care
+                </p>
+                <p className="text-destructive/80 text-xs mt-1">
+                  This feature is not clinically approved and must not be relied upon for documentation or decisions.
+                </p>
+              </div>
+              
               {/* Helpful tip */}
               <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
                 <p>
