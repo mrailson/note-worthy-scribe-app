@@ -232,7 +232,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigate('/meetings')}
+                    onClick={() => navigate('/?tab=history')}
                     className="w-10 h-10 p-0 justify-center"
                   >
                     <Calendar className="w-4 h-4" />
