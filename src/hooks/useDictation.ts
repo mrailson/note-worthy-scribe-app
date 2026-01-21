@@ -50,6 +50,23 @@ export function useDictation() {
   const [isFormatting, setIsFormatting] = useState(false);
   const [systemAudioEnabled, setSystemAudioEnabled] = useState(false);
   
+  // View toggle state - original vs cleaned
+  const [originalContent, setOriginalContent] = useState('');
+  const [cleanedContent, setCleanedContent] = useState('');
+  const [showCleaned, setShowCleaned] = useState(true);
+  const [autoCleanEnabled, setAutoCleanEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('dictation-auto-clean');
+      return saved !== null ? JSON.parse(saved) : true;
+    }
+    return true;
+  });
+  
+  // Persist auto-clean preference
+  useEffect(() => {
+    localStorage.setItem('dictation-auto-clean', JSON.stringify(autoCleanEnabled));
+  }, [autoCleanEnabled]);
+  
   // Refs
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -571,9 +588,13 @@ export function useDictation() {
     setStatus('idle');
     fetchHistory();
 
-    // Auto format and clean if there's content
+    // Store original content before any cleaning
     const currentContent = contentRef.current;
-    if (currentContent && currentContent.trim().length > 10) {
+    setOriginalContent(currentContent);
+    setCleanedContent(''); // Reset cleaned content
+    
+    // Auto format and clean if enabled and there's content
+    if (autoCleanEnabled && currentContent && currentContent.trim().length > 10) {
       setIsFormatting(true);
       try {
         const { data, error } = await supabase.functions.invoke('format-dictation', {
@@ -586,7 +607,11 @@ export function useDictation() {
         if (error) throw error;
         
         if (data?.formattedContent) {
-          setContent(data.formattedContent);
+          setCleanedContent(data.formattedContent);
+          // Show cleaned by default if preference is to show cleaned
+          if (showCleaned) {
+            setContent(data.formattedContent);
+          }
           showToast.success('Notes formatted and cleaned');
         }
       } catch (err) {
@@ -596,7 +621,7 @@ export function useDictation() {
         setIsFormatting(false);
       }
     }
-  }, [saveDraft, fetchHistory, selectedTemplate]);
+  }, [saveDraft, fetchHistory, selectedTemplate, autoCleanEnabled, showCleaned]);
 
   // Clear and start new
   const newDictation = useCallback(() => {
@@ -615,11 +640,60 @@ export function useDictation() {
     }
 
     setContent('');
+    setOriginalContent('');
+    setCleanedContent('');
     setDuration(0);
     setCurrentSessionId(null);
     setStatus('idle');
     setError(null);
   }, []);
+  
+  // Toggle between original and cleaned view
+  const toggleShowCleaned = useCallback(() => {
+    setShowCleaned(prev => {
+      const next = !prev;
+      // Switch displayed content
+      if (next && cleanedContent) {
+        setContent(cleanedContent);
+      } else if (!next && originalContent) {
+        setContent(originalContent);
+      }
+      return next;
+    });
+  }, [originalContent, cleanedContent]);
+  
+  // Manual clean trigger (when auto-clean is off)
+  const triggerManualClean = useCallback(async () => {
+    const textToClean = originalContent || content;
+    if (!textToClean.trim() || textToClean.trim().length < 10) {
+      showToast.error('Not enough content to clean');
+      return;
+    }
+    
+    setIsFormatting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('format-dictation', {
+        body: { 
+          content: textToClean.trim(), 
+          templateType: selectedTemplate 
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data?.formattedContent) {
+        setCleanedContent(data.formattedContent);
+        setShowCleaned(true);
+        setContent(data.formattedContent);
+        showToast.success('Notes formatted and cleaned');
+      }
+    } catch (err) {
+      console.error('Manual format failed:', err);
+      showToast.error(err instanceof Error ? err.message : 'Failed to format text');
+    } finally {
+      setIsFormatting(false);
+    }
+  }, [originalContent, content, selectedTemplate]);
 
   // Copy to clipboard
   const copyToClipboard = useCallback(async (text?: string) => {
@@ -762,6 +836,13 @@ export function useDictation() {
     systemAudioEnabled,
     setSystemAudioEnabled,
     
+    // View toggle state
+    originalContent,
+    cleanedContent,
+    showCleaned,
+    autoCleanEnabled,
+    setAutoCleanEnabled,
+    
     // Computed
     formatDuration,
     templates: DICTATION_TEMPLATES,
@@ -779,5 +860,7 @@ export function useDictation() {
     finalizeDictation,
     fetchHistory,
     formatAndClean,
+    toggleShowCleaned,
+    triggerManualClean,
   };
 }

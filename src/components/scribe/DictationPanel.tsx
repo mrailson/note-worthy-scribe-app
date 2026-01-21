@@ -8,6 +8,7 @@ import { DictationTextArea } from './DictationTextArea';
 import { DictationTemplates } from './DictationTemplates';
 import { DictationHistoryPanel } from './DictationHistoryPanel';
 import { DictationQuickActions } from './DictationQuickActions';
+import { DictationViewToggle } from './DictationViewToggle';
 
 export function DictationPanel() {
   const dictation = useDictation();
@@ -68,6 +69,19 @@ export function DictationPanel() {
                     Start a new dictation with template options
                   </span>
                 </div>
+              )}
+
+              {/* View Toggle - show after recording stops with content */}
+              {dictation.status === 'idle' && dictation.content && !dictation.isRecording && (
+                <DictationViewToggle
+                  showCleaned={dictation.showCleaned}
+                  onToggle={dictation.toggleShowCleaned}
+                  autoCleanEnabled={dictation.autoCleanEnabled}
+                  onAutoCleanChange={dictation.setAutoCleanEnabled}
+                  hasCleanedContent={Boolean(dictation.cleanedContent)}
+                  isFormatting={dictation.isFormatting}
+                  onManualClean={dictation.triggerManualClean}
+                />
               )}
 
               {/* Quick Actions Bar with integrated Start/Stop button */}
