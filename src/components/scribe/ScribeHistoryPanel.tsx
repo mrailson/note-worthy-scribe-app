@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { TranscriptDisplay } from "./TranscriptDisplay";
 import { TranscriptComparisonView } from "./TranscriptComparisonView";
 import { ConsultationViewControls } from "./ConsultationViewControls";
-import { NoteStyleToggle } from "./NoteStyleToggle";
+import { EmrToggle } from "./EmrToggle";
 import { PatientLetterView } from "./PatientLetterView";
 import { SessionHistorySearch, DateFilter, CategoryFilter } from "./SessionHistorySearch";
 import { ReferralWorkspace } from "./ReferralWorkspace";
@@ -150,10 +150,11 @@ export const ScribeHistoryPanel = ({
     onUpdateSetting('consultationViewMode', mode);
   }, [onUpdateSetting]);
 
-  const handleNoteStyleChange = useCallback((style: NoteStyle) => {
-    onUpdateSetting('noteStyle', style);
-    // Also update detail level for consistency
-    onUpdateSetting('consultationDetailLevel', style === 'shorthand' ? 1 : 3);
+  const handleEmrChange = useCallback((emr: 'systmone' | 'emis') => {
+    // Update the emrFormat setting (persisted preference)
+    onUpdateSetting('emrFormat', emr);
+    // Also switch the consultation view mode to match
+    onUpdateSetting('consultationViewMode', emr);
   }, [onUpdateSetting]);
 
   const handleShowNotMentionedChange = useCallback((show: boolean) => {
@@ -575,9 +576,9 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                   {calculatedWordCount} words
                 </span>
                 <span className="text-muted-foreground/40">|</span>
-                <NoteStyleToggle
-                  style={settings.noteStyle || 'standard'}
-                  onStyleChange={handleNoteStyleChange}
+                <EmrToggle
+                  emr={settings.emrFormat || 'systmone'}
+                  onEmrChange={handleEmrChange}
                 />
                 <span className="text-muted-foreground/40">|</span>
                 <div className="flex items-center gap-0.5">
