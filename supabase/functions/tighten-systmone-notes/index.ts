@@ -198,14 +198,13 @@ ${plan || 'Not provided'}`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "openai/gpt-5-mini",
+            // Using Gemini for faster response times
+            model: "google/gemini-3-flash-preview",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content: userMessage }
             ],
-            // GPT-5 models use `max_completion_tokens` (not `max_tokens`).
-            // Reduced from 4000 to 1500 for faster responses - typical output is 200-400 tokens
-            max_completion_tokens: 1500,
+            max_tokens: 1500,
           }),
         });
 
