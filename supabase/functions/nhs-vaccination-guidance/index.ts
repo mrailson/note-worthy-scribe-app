@@ -92,7 +92,7 @@ Steps:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'gpt-4o-mini',
         max_tokens: 2200,
         temperature: 0.2,
         top_p: 0.1,

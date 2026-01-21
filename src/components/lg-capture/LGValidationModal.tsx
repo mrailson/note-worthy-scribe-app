@@ -456,7 +456,7 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
             <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">4</div>
             <div className="flex-1">
               <p className="font-medium">When the file is added to the record of <span className="text-primary">{patient.patient_name || 'the patient'}</span>, take a screenshot and paste it below</p>
-              <p className="text-sm text-muted-foreground mb-2">The system will check and confirm — it's vital we never accidentally save to the wrong patient. Press <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs font-mono">Win</kbd> + <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs font-mono">PrtScn</kbd> to capture.</p>
+              <p className="text-sm text-muted-foreground mb-2">The system will check and confirm — it's vital we never accidentally save to the wrong patient. Press <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs font-mono">Win</kbd> + <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs font-mono">Shift</kbd> + <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs font-mono">S</kbd> to capture.</p>
               
               <div
                 {...getRootProps()}

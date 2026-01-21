@@ -8927,10 +8927,8 @@ export type Database = {
           out_last_30d: number
           out_last_7d: number
           out_last_active: string
-          out_meeting_count: number
           out_patient_line_count: number
           out_pm_genie_count: number
-          out_scribe_count: number
           out_total_chats: number
           out_total_messages: number
           out_user_id: string

@@ -1,5 +1,4 @@
 import { useState, useCallback, useMemo } from "react";
-import type { Json } from "@/integrations/supabase/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -210,38 +209,43 @@ export const ScribeHistoryPanel = ({
 
       setLocalSystmOneNote(optimisedNote);
 
-      // Save to database - merge into heidi_notes JSONB column
+      // Save to database
       try {
-        // First fetch existing heidi_notes to preserve other data
-        const { data: existingData, error: fetchError } = await supabase
-          .from('gp_consultation_notes')
-          .select('heidi_notes')
-          .eq('consultation_id', currentSession.id)
-          .single();
+        const currentHeidiNotes = currentSession.heidiNote || {};
+        const updatedHeidiNotes = {
+          ...currentHeidiNotes,
+          systmOneOptimised: optimisedNote
+        };
 
-        if (fetchError) {
-          console.error('Failed to fetch existing notes:', fetchError);
-          toast.error('Optimised but failed to save');
+        // Use fetch with env variables for Supabase URL
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          toast.error('Not authenticated');
           return;
         }
 
-        // Merge optimised notes into heidi_notes JSONB
-        const existingHeidiNotes = (existingData?.heidi_notes || {}) as Record<string, Json>;
-        const updatedHeidiNotes: Record<string, Json> = {
-          ...existingHeidiNotes,
-          systmOneOptimised: JSON.parse(JSON.stringify(optimisedNote)) as Json
-        };
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/scribe_sessions?id=eq.${currentSession.id}`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+              'apikey': supabaseKey,
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              heidi_notes: updatedHeidiNotes,
+              is_systmone_optimised: true
+            })
+          }
+        );
 
-        const { error: updateError } = await supabase
-          .from('gp_consultation_notes')
-          .update({
-            heidi_notes: updatedHeidiNotes,
-            is_systmone_optimised: true
-          })
-          .eq('consultation_id', currentSession.id);
-
-        if (updateError) {
-          console.error('Failed to save optimised notes:', updateError);
+        if (!response.ok) {
+          console.error('Failed to save optimised notes:', await response.text());
           toast.error('Optimised but failed to save');
         } else {
           toast.success('Notes optimised and saved');

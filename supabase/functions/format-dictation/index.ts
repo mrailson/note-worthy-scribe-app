@@ -417,10 +417,10 @@ Deno.serve(async (req) => {
 
     console.log(`🔐 Protected text ready, ${tokenCountBefore} tokens locked`);
 
-    // Get API key - prefer Lovable gateway
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableKey) {
-      console.error("LOVABLE_API_KEY not configured");
+    // Get API key
+    const apiKey = Deno.env.get("LOVABLE_API_KEY") || Deno.env.get("OPENAI_API_KEY");
+    if (!apiKey) {
+      console.error("API key not configured");
       return new Response(
         JSON.stringify({ error: "API key not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -430,28 +430,29 @@ Deno.serve(async (req) => {
     // Build system prompt
     const systemPrompt = buildSystemPrompt(templateInstruction);
 
-    // Step 2: Send protected text to LLM for formatting via Lovable gateway
+    // Step 2: Send protected text to LLM for formatting
     console.log("🤖 Sending to LLM for formatting...");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${lovableKey}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5-mini",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Please format and clean up the following dictated consultation notes:\n\n${protectedText}` },
         ],
-        max_completion_tokens: 4000,
+        temperature: 0.3,
+        max_tokens: 4000,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("OpenAI API error:", response.status, errorText);
       return new Response(
         JSON.stringify({ error: "Failed to format dictation", details: errorText }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -462,7 +463,7 @@ Deno.serve(async (req) => {
     const formattedWithTokens = data.choices?.[0]?.message?.content?.trim();
 
     if (!formattedWithTokens) {
-      console.error("No content in AI response");
+      console.error("No content in OpenAI response");
       return new Response(
         JSON.stringify({ error: "No formatted content returned" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

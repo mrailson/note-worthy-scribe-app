@@ -471,7 +471,7 @@ export const PatientContextCapture = ({
                     Take a screenshot of the patient banner in SystmOne
                   </p>
                   <p className="text-xs opacity-75">
-                    Press <kbd className="px-1.5 py-0.5 rounded bg-muted border text-xs font-mono">Win</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-muted border text-xs font-mono">PrtScn</kbd> then paste here — I'll extract the name and NHS number
+                    Press <kbd className="px-1.5 py-0.5 rounded bg-muted border text-xs font-mono">Win</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-muted border text-xs font-mono">Shift</kbd> + <kbd className="px-1.5 py-0.5 rounded bg-muted border text-xs font-mono">S</kbd> then paste here — I'll extract the name and NHS number
                   </p>
                 </div>
               </div>

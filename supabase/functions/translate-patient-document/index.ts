@@ -96,7 +96,7 @@ Translate ALL the values in the JSON structure to ${targetLanguage}. Keep the pr
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           { 
             role: 'system', 

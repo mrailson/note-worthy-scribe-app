@@ -70,7 +70,7 @@ ${text}
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'gpt-4o-mini',
         temperature: 0.2,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT_V2 },

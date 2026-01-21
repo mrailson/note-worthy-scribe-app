@@ -59,7 +59,7 @@ Format your response with clear headings, proper spacing, and professional medic
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',

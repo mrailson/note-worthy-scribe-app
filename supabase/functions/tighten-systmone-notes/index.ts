@@ -198,13 +198,12 @@ ${plan || 'Not provided'}`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            // Using Gemini for faster response times
-            model: "google/gemini-3-flash-preview",
+            model: "gpt-4o-mini",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content: userMessage }
             ],
-            max_tokens: 1500,
+            max_tokens: 4000,
           }),
         });
 

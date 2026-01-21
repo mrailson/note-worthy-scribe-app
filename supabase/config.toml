@@ -419,6 +419,3 @@ verify_jwt = true
 
 [functions.tighten-systmone-notes]
 verify_jwt = true
-
-[functions.generate-coroner-report]
-verify_jwt = true

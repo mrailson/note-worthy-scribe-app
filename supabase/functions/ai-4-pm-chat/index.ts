@@ -121,11 +121,10 @@ interface UploadedFile {
 
 interface RequestBody {
   messages: Message[];
-  model?: 'claude' | 'gpt' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5-2025-08-07' | 'gpt-5' | 'gpt-5-mini-2025-08-07' | 'gpt-5-nano-2025-08-07' | 'gemini-ultra' | 'gemini-1.5-pro' | 'gemini-1.5-flash' | 'deepseek-chat' | 'google/gemini-3-flash-preview' | 'google/gemini-3-pro-preview' | 'google/gemini-2.5-flash' | 'openai/gpt-5' | 'openai/gpt-5-mini';
+  model?: 'claude' | 'gpt' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gpt-4o' | 'gpt-4o-mini' | 'gpt-5-2025-08-07' | 'gpt-5' | 'gpt-5-mini-2025-08-07' | 'gpt-5-nano-2025-08-07' | 'gemini-ultra' | 'gemini-1.5-pro' | 'gemini-1.5-flash' | 'deepseek-chat';
   systemPrompt: string;
   files?: UploadedFile[];
   verificationLevel?: string;
-  stream?: boolean;
 }
 
 // Helper function to extract text content from files
@@ -892,13 +891,12 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
 }
 
 async function callGPT5(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
-  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-  if (!lovableApiKey) {
-    console.log('LOVABLE_API_KEY not configured, falling back to GPT-4 Turbo');
-    return await callGPT4Turbo(messages, systemPrompt, files);
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiApiKey) {
+    throw new Error('OpenAI API key not configured');
   }
 
-  console.log('Calling GPT-5 via Lovable AI Gateway...');
+  console.log('Calling GPT-5 with web search tools...');
   console.log('Messages count:', messages.length);
   console.log('System prompt length:', systemPrompt.length);
   console.log('Files count:', files?.length || 0);
@@ -925,7 +923,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
 - Only describe what you can actually see written or printed in the image
 - If text is unclear, state that it's unclear rather than guessing`;
 
-  const gptMessages: Array<{role: string; content: string}> = [
+  const gptMessages = [
     { role: 'system', content: enhancedSystemPrompt }
   ];
 
@@ -949,33 +947,82 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     });
   });
 
-  console.log('Making GPT-5 API call via Lovable AI Gateway...');
+  // Set maximum token limits for all content types to prevent cutoffs
+  function detectContentType(messages: Message[]): { maxTokens: number; contentType: string } {
+    const lastMessage = messages[messages.length - 1];
+    const content = lastMessage?.content?.toLowerCase() || '';
+    
+    // Check for comprehensive content indicators
+    const comprehensiveIndicators = [
+      'leaflet', 'comprehensive', 'detailed guide', 'full guide', 'complete guide',
+      'patient information', 'detailed explanation', 'comprehensive overview',
+      'step by step', 'complete instructions', 'full instructions'
+    ];
+    
+    const medicalAnalysisIndicators = [
+      'analyze', 'assessment', 'evaluation', 'diagnosis', 'differential',
+      'complex case', 'investigation', 'clinical reasoning', 'pathophysiology'
+    ];
+    
+    const clinicalNotesIndicators = [
+      'clinical note', 'soap note', 'consultation note', 'discharge summary',
+      'referral letter', 'brief summary', 'quick note'
+    ];
+    
+    // Use maximum tokens for ALL content types to prevent cutoffs
+    if (comprehensiveIndicators.some(indicator => content.includes(indicator))) {
+      return { maxTokens: 4096, contentType: 'comprehensive' };
+    }
+    
+    if (medicalAnalysisIndicators.some(indicator => content.includes(indicator))) {
+      return { maxTokens: 4096, contentType: 'analysis' }; // Max tokens for analysis
+    }
+    
+    if (clinicalNotesIndicators.some(indicator => content.includes(indicator))) {
+      return { maxTokens: 4096, contentType: 'clinical_notes' }; // Max tokens for clinical content
+    }
+    
+    // Check content length as secondary indicator
+    if (content.length > 200) {
+      return { maxTokens: 4096, contentType: 'medium' }; // Max tokens for medium content
+    }
+    
+    return { maxTokens: 4096, contentType: 'short' }; // Max tokens for ALL responses
+  }
+
+  const { maxTokens, contentType } = detectContentType(messages);
+  
+  console.log('Making initial GPT-5 API call...');
   console.log('Request body preview:', {
-    model: 'openai/gpt-5-mini',
+    model: 'gpt-5-2025-08-07',
+    max_tokens: maxTokens,
+    contentType: contentType,
     messageCount: gptMessages.length,
     hasTimeout: true
   });
 
-  // Add timeout controller for GPT-5 calls
-  const timeoutDuration = 60000;
+  // Add timeout controller for GPT-5 calls - longer timeout for comprehensive content
+  const timeoutDuration = contentType === 'comprehensive' || contentType === 'analysis' ? 60000 : 45000;
   const controller = new AbortController();
   const timeout = setTimeout(() => {
     console.log(`GPT-5 request timed out after ${timeoutDuration/1000} seconds, aborting...`);
     controller.abort("GPT-5 request timeout");
   }, timeoutDuration);
 
-  let response;
+  let initial;
   try {
-    response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    initial = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${lovableApiKey}`
+        'Authorization': `Bearer ${openaiApiKey}`
       },
       body: JSON.stringify({
-        model: 'openai/gpt-5-mini',
-        max_completion_tokens: 4096,
-        messages: gptMessages
+        model: 'gpt-5-2025-08-07',
+        max_tokens: maxTokens,
+        // Note: GPT-5 doesn't support temperature parameter
+        messages: gptMessages,
+        stop: contentType === 'short' ? ["\n##", "\n###", "\n---"] : undefined // Only use stop sequences for short content
       }),
       signal: controller.signal
     });
@@ -985,45 +1032,105 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     clearTimeout(timeout);
     
     if (error.name === 'AbortError' || String(error).includes('timeout')) {
-      console.log('GPT-5 request timed out, falling back to GPT-4 Turbo');
+      console.log(`GPT-5 request timed out for ${contentType} content, trying with reduced tokens...`);
+      
+      // Progressive retry with maximum tokens - no reduction needed
+      if (maxTokens >= 4096) {
+        console.log('Retrying GPT-5 with maximum token limit...');
+        try {
+          const retryController = new AbortController();
+          const retryTimeout = setTimeout(() => retryController.abort("GPT-5 retry timeout"), 30000);
+          
+          const retryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-5-2025-08-07',
+              max_tokens: 4096, // Maximum tokens for retry
+              messages: gptMessages,
+              stop: undefined // Remove stop sequences to allow full responses
+            }),
+            signal: retryController.signal
+          });
+          
+          clearTimeout(retryTimeout);
+          
+          if (retryResponse.ok) {
+            const retryData = await retryResponse.json();
+            const retryContent = retryData.choices?.[0]?.message?.content;
+            if (retryContent && retryContent.trim()) {
+              console.log('GPT-5 retry succeeded with maximum tokens');
+              return retryContent;
+            }
+          }
+        } catch (retryError) {
+          console.log('GPT-5 retry also failed, falling back to GPT-4 Turbo');
+        }
+      }
+      
+      console.log('Falling back to GPT-4 Turbo');
       return await callGPT4Turbo(messages, systemPrompt, files);
     }
     throw error;
   }
 
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Lovable AI Gateway error:', error);
-    console.error('API response status:', response.status);
+  if (!initial.ok) {
+    const error = await initial.text();
+    console.error('OpenAI API error:', error);
+    console.error('API response status:', initial.status);
+    console.error('API response headers:', Object.fromEntries(initial.headers.entries()));
     
-    // Check for rate limit or payment required errors
-    if (response.status === 429) {
-      console.log('Rate limit exceeded, falling back to GPT-4 Turbo');
-      return await callGPT4Turbo(messages, systemPrompt, files);
+    // Check for quota exceeded error specifically
+    if (initial.status === 429 || error.includes('insufficient_quota')) {
+      throw new Error(`OpenAI API quota exceeded (429): ${error}`);
     }
     
-    if (response.status === 402) {
-      console.log('Payment required, falling back to GPT-4 Turbo');
-      return await callGPT4Turbo(messages, systemPrompt, files);
+    // Check for unsupported model - fallback to GPT-4o
+    if (initial.status === 404 || error.includes('model') || error.includes('not found')) {
+      console.log('GPT-5 not available, falling back to GPT-4o');
+      const fallbackResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiApiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          max_tokens: 4000,
+          temperature: 0.7,
+          messages: gptMessages
+        })
+      });
+      
+      if (!fallbackResponse.ok) {
+        const fallbackError = await fallbackResponse.text();
+        throw new Error(`OpenAI API fallback error: ${fallbackResponse.status} - ${fallbackError}`);
+      }
+      
+      const fallbackData = await fallbackResponse.json();
+      return cleanBNFOutput(fallbackData.choices[0].message.content);
     }
     
-    // Fallback to GPT-4 Turbo for any other errors
-    console.log('GPT-5 Gateway error, falling back to GPT-4 Turbo');
-    return await callGPT4Turbo(messages, systemPrompt, files);
+    throw new Error(`OpenAI API error: ${initial.status}`);
   }
 
-  const data = await response.json();
+  const initialData = await initial.json();
   console.log('GPT-5 API response received successfully');
   console.log('Response structure:', {
-    hasChoices: !!data.choices,
-    choicesLength: data.choices?.length,
-    hasMessage: !!data.choices?.[0]?.message,
-    hasContent: !!data.choices?.[0]?.message?.content,
-    contentLength: data.choices?.[0]?.message?.content?.length || 0
+    hasChoices: !!initialData.choices,
+    choicesLength: initialData.choices?.length,
+    hasMessage: !!initialData.choices?.[0]?.message,
+    hasContent: !!initialData.choices?.[0]?.message?.content,
+    contentLength: initialData.choices?.[0]?.message?.content?.length || 0,
+    contentType: contentType,
+    maxTokensUsed: maxTokens
   });
   
-  const choice = data.choices?.[0];
-  console.log('GPT-5 response received successfully');
+  const choice = initialData.choices?.[0];
+  console.log('Initial completion result - GPT-5 response received successfully');
   console.log('Response length:', choice?.message?.content?.length || 0);
 
   // Return the direct response with validation
@@ -1034,236 +1141,8 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     return await callGPT4Turbo(messages, systemPrompt, files);
   }
   
-  console.log(`GPT-5 response completed successfully (${responseContent.length} characters)`);
-  return cleanBNFOutput(responseContent);
-}
-
-// Unified Lovable AI Gateway function for all gateway models (Gemini, GPT-5, etc.)
-async function callLovableAIGateway(messages: Message[], systemPrompt: string, model: string, files?: UploadedFile[]): Promise<string> {
-  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-  if (!lovableApiKey) {
-    console.log('LOVABLE_API_KEY not configured, falling back to GPT-4 Turbo');
-    return await callGPT4Turbo(messages, systemPrompt, files);
-  }
-
-  console.log(`Calling Lovable AI Gateway with model: ${model}`);
-  console.log('Messages count:', messages.length);
-  console.log('System prompt length:', systemPrompt.length);
-  console.log('Files count:', files?.length || 0);
-
-  const today = new Date().toLocaleDateString('en-GB', {
-    timeZone: 'Europe/London',
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-
-  const enhancedSystemPrompt = `You are "AI 4 GP Service" for UK NHS primary care.
-Today is ${today} (Europe/London).
-
-For time-sensitive questions about BNF/NICE updates, DHSC/NHSE policy, vaccination programmes, provide the best guidance you can from your training data and suggest users check the latest information at the relevant official sources (gov.uk, england.nhs.uk, nhs.uk, nice.org.uk, bnf.nice.org.uk, ukhsa.gov.uk).
-
-${systemPrompt}
-
-CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
-- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text
-- DO NOT generate fictional content, clinical scenarios, or patient information
-- DO NOT hallucinate or invent details not visible in the image
-- Only describe what you can actually see written or printed in the image
-- If text is unclear, state that it's unclear rather than guessing`;
-
-  const gatewayMessages: Array<{role: string; content: string}> = [
-    { role: 'system', content: enhancedSystemPrompt }
-  ];
-
-  messages.forEach(msg => {
-    let content = msg.content || '';
-    
-    if (msg.files && msg.files.length > 0) {
-      const fileContent = msg.files.map(file => 
-        `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
-      ).join('');
-      content += fileContent;
-    }
-    
-    if (!content.trim()) {
-      content = '[No message content]';
-    }
-    
-    gatewayMessages.push({
-      role: msg.role,
-      content
-    });
-  });
-
-  console.log('Making Lovable AI Gateway API call...');
-  console.log('Request body preview:', {
-    model,
-    messageCount: gatewayMessages.length,
-    hasTimeout: true
-  });
-
-  // Add timeout controller
-  const timeoutDuration = 60000;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => {
-    console.log(`Lovable AI Gateway request timed out after ${timeoutDuration/1000} seconds, aborting...`);
-    controller.abort("Request timeout");
-  }, timeoutDuration);
-
-  let response;
-  try {
-    // Use max_completion_tokens for OpenAI models, max_tokens for Gemini
-    const tokenParam = model.startsWith('openai/') 
-      ? { max_completion_tokens: 4096 }
-      : { max_tokens: 4096 };
-
-    response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${lovableApiKey}`
-      },
-      body: JSON.stringify({
-        model,
-        ...tokenParam,
-        messages: gatewayMessages
-      }),
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeout);
-  } catch (error) {
-    clearTimeout(timeout);
-    
-    if (error.name === 'AbortError' || String(error).includes('timeout')) {
-      console.log('Lovable AI Gateway request timed out, falling back to GPT-4 Turbo');
-      return await callGPT4Turbo(messages, systemPrompt, files);
-    }
-    throw error;
-  }
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Lovable AI Gateway error:', error);
-    console.error('API response status:', response.status);
-    
-    if (response.status === 429) {
-      console.log('Rate limit exceeded, falling back to GPT-4 Turbo');
-      return await callGPT4Turbo(messages, systemPrompt, files);
-    }
-    
-    if (response.status === 402) {
-      console.log('Payment required, falling back to GPT-4 Turbo');
-      return await callGPT4Turbo(messages, systemPrompt, files);
-    }
-    
-    console.log('Lovable AI Gateway error, falling back to GPT-4 Turbo');
-    return await callGPT4Turbo(messages, systemPrompt, files);
-  }
-
-  const data = await response.json();
-  console.log('Lovable AI Gateway response received successfully');
-  console.log('Response structure:', {
-    hasChoices: !!data.choices,
-    choicesLength: data.choices?.length,
-    hasMessage: !!data.choices?.[0]?.message,
-    hasContent: !!data.choices?.[0]?.message?.content,
-    contentLength: data.choices?.[0]?.message?.content?.length || 0
-  });
-  
-  const choice = data.choices?.[0];
-  const responseContent = choice?.message?.content;
-  
-  if (!responseContent || responseContent.trim() === '') {
-    console.error('ERROR: Lovable AI Gateway returned empty content, falling back to GPT-4 Turbo');
-    return await callGPT4Turbo(messages, systemPrompt, files);
-  }
-  
-  console.log(`Lovable AI Gateway response completed successfully (${responseContent.length} characters, model: ${model})`);
-  return cleanBNFOutput(responseContent);
-}
-
-// Streaming version of Lovable AI Gateway function - returns Response with SSE stream
-async function callLovableAIGatewayStreaming(messages: Message[], systemPrompt: string, model: string, files?: UploadedFile[]): Promise<Response> {
-  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-  if (!lovableApiKey) {
-    throw new Error('LOVABLE_API_KEY not configured');
-  }
-
-  console.log(`Calling Lovable AI Gateway STREAMING with model: ${model}`);
-
-  const today = new Date().toLocaleDateString('en-GB', {
-    timeZone: 'Europe/London',
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-
-  const enhancedSystemPrompt = `You are "AI 4 GP Service" for UK NHS primary care.
-Today is ${today} (Europe/London).
-
-For time-sensitive questions about BNF/NICE updates, DHSC/NHSE policy, vaccination programmes, provide the best guidance you can from your training data and suggest users check the latest information at the relevant official sources (gov.uk, england.nhs.uk, nhs.uk, nice.org.uk, bnf.nice.org.uk, ukhsa.gov.uk).
-
-${systemPrompt}
-
-CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
-- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text
-- DO NOT generate fictional content, clinical scenarios, or patient information
-- Only describe what you can actually see written or printed in the image`;
-
-  const gatewayMessages: Array<{role: string; content: string}> = [
-    { role: 'system', content: enhancedSystemPrompt }
-  ];
-
-  messages.forEach(msg => {
-    let content = msg.content || '';
-    
-    if (msg.files && msg.files.length > 0) {
-      const fileContent = msg.files.map(file => 
-        `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
-      ).join('');
-      content += fileContent;
-    }
-    
-    if (!content.trim()) {
-      content = '[No message content]';
-    }
-    
-    gatewayMessages.push({
-      role: msg.role,
-      content
-    });
-  });
-
-  const tokenParam = model.startsWith('openai/') 
-    ? { max_completion_tokens: 4096 }
-    : { max_tokens: 4096 };
-
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${lovableApiKey}`
-    },
-    body: JSON.stringify({
-      model,
-      ...tokenParam,
-      stream: true,
-      messages: gatewayMessages
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Lovable AI Gateway streaming error:', error);
-    throw new Error(`AI Gateway error: ${response.status}`);
-  }
-
-  console.log('Streaming response started successfully');
-  return response;
+  console.log(`GPT-5 response completed successfully for ${contentType} content (${responseContent.length} characters)`);
+  return responseContent;
 }
 
 async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
@@ -1616,7 +1495,6 @@ serve(async (req) => {
     const systemPrompt = requestData.systemPrompt;
     const files = requestData.files;
     verificationLevel = requestData.verificationLevel || 'standard';
-    const useStreaming = requestData.stream === true;
 
     // Check API key availability - use consistent variable names
     console.log('API Keys status:', {
@@ -1718,61 +1596,23 @@ serve(async (req) => {
   
   console.log('About to route to model:', selectedModel);
 
-  // Check if streaming is requested for Lovable AI Gateway models
-  if (useStreaming && (selectedModel.startsWith('google/') || selectedModel.startsWith('openai/') || selectedModel.startsWith('gpt-5'))) {
-    console.log('STREAMING MODE ENABLED for model:', selectedModel);
-    
-    // Map legacy model names to gateway format
-    const gatewayModel = selectedModel.startsWith('gpt-5') ? 'openai/gpt-5-mini' : selectedModel;
-    
-    try {
-      const streamResponse = await callLovableAIGatewayStreaming(processedMessages, finalSystemPrompt, gatewayModel, files);
-      
-      // Return the streaming response directly
-      return new Response(streamResponse.body, {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive'
-        }
-      });
-    } catch (error) {
-      console.error('Streaming failed, falling back to non-streaming:', error.message);
-      // Fall through to non-streaming mode
-    }
-  }
-
-  // Model routing with proper mapping - Lovable AI Gateway models first (non-streaming)
-  if (selectedModel.startsWith('google/') || selectedModel.startsWith('openai/')) {
-    // Route to Lovable AI Gateway for new model format
-    try {
-      console.log('Calling Lovable AI Gateway with model:', selectedModel);
-      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, selectedModel, files);
-      console.log('Lovable AI Gateway response received:', !!response, 'Length:', response?.length || 0);
-      
-      if (!response || response.trim() === '') {
-        console.log('Lovable AI Gateway returned empty response, falling back to GPT-4 Turbo');
-        response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
-      }
-    } catch (error) {
-      console.log('Lovable AI Gateway failed, falling back to GPT-4 Turbo:', error.message);
-      response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
-    }
-  } else if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
+  // Model routing with proper mapping
+  if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
     response = await callClaude(processedMessages, finalSystemPrompt, files);
   } else if (selectedModel === 'gpt-5-2025-08-07' || selectedModel === 'gpt-5' || selectedModel === 'gpt-5-mini-2025-08-07' || selectedModel === 'gpt-5-nano-2025-08-07') {
-    // Legacy GPT-5 models - route to Lovable AI Gateway
+    // Use GPT-5 function for GPT-5 models with fallback
     try {
-      console.log('Routing legacy GPT-5 model to Lovable AI Gateway...');
-      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'openai/gpt-5-mini', files);
+      console.log('Calling GPT-5...');
+      response = await callGPT5(processedMessages, finalSystemPrompt, files);
+      console.log('GPT-5 response received:', !!response, 'Length:', response?.length || 0);
       
+      // Ensure we have a valid response
       if (!response || response.trim() === '') {
-        console.log('Lovable AI Gateway returned empty response, falling back to GPT-4 Turbo');
+        console.log('GPT-5 returned empty response, falling back to GPT-4 Turbo');
         response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
       }
     } catch (error) {
-      console.log('Lovable AI Gateway failed, falling back to GPT-4 Turbo:', error.message);
+      console.log('GPT-5 failed, falling back to GPT-4 Turbo:', error.message);
       response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
     }
   } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo' || selectedModel === 'gpt-4o' || selectedModel === 'gpt-4o-mini' || !selectedModel) {
@@ -1787,14 +1627,9 @@ serve(async (req) => {
   } else if (selectedModel === 'deepseek-chat') {
     response = await callDeepseek(processedMessages, finalSystemPrompt, files);
   } else {
-    // Fallback to Gemini 3 Flash via Lovable AI Gateway for any unsupported model
-    console.log(`Unsupported model ${selectedModel}, falling back to Lovable AI Gateway with Gemini 3 Flash`);
-    try {
-      response = await callLovableAIGateway(processedMessages, finalSystemPrompt, 'google/gemini-3-flash-preview', files);
-    } catch (error) {
-      console.log('Lovable AI Gateway fallback failed, using GPT-4 Turbo:', error.message);
-      response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
-    }
+    // Fallback to GPT-4 Turbo for any unsupported model
+    console.log(`Unsupported model ${selectedModel}, falling back to GPT-4 Turbo`);
+    response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
   }
   
   console.log('Model call completed successfully');
