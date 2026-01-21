@@ -426,9 +426,14 @@ serve(async (req) => {
       model: gatewayModel,
       messages: chatMessages,
       stream,
-      max_tokens: finalMaxTokens,
-      // Avoid sending unsupported params for some models (e.g. GPT-5 variants)
     };
+
+    // GPT-5 family requires `max_completion_tokens` (OpenAI-compatible API behaviour)
+    if (gatewayModel.startsWith('openai/gpt-5')) {
+      requestBody.max_completion_tokens = finalMaxTokens;
+    } else {
+      requestBody.max_tokens = finalMaxTokens;
+    }
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -438,7 +443,7 @@ serve(async (req) => {
     // Much shorter timeout to prevent hanging
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.log(`Request timeout after 15 seconds for model ${m}`);
+      console.log(`Request timeout after 15 seconds for model ${gatewayModel}`);
       controller.abort();
     }, 15000); // 15 second timeout
 
