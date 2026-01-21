@@ -88,11 +88,13 @@ export const AdminDictateTextArea: React.FC<AdminDictateTextAreaProps> = ({
                 : "Select a template and start recording, or type directly..."
           }
           className={cn(
-            "h-full min-h-[200px] resize-none font-mono text-sm",
-            isRecording && "border-red-500 bg-red-50/50 dark:bg-red-950/20",
-            isConnecting && "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20",
+            "h-full min-h-[200px] resize-none text-base leading-relaxed bg-white dark:bg-white/95 text-foreground",
+            "font-serif",
+            isRecording && "border-red-500 bg-red-50 dark:bg-red-50",
+            isConnecting && "border-yellow-500 bg-yellow-50 dark:bg-yellow-50",
             error && "border-destructive"
           )}
+          style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
           disabled={disabled}
         />
         
