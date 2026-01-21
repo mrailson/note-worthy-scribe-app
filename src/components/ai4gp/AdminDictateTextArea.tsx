@@ -88,23 +88,15 @@ export const AdminDictateTextArea: React.FC<AdminDictateTextAreaProps> = ({
                 : "Select a template and start recording, or type directly..."
           }
           className={cn(
-            "h-full min-h-[200px] resize-none text-base leading-relaxed bg-white dark:bg-white/95 text-foreground",
+            "h-full min-h-[200px] resize-none text-base leading-relaxed bg-white dark:bg-white text-foreground",
             "font-serif",
-            isRecording && "border-red-500 bg-red-50 dark:bg-red-50",
-            isConnecting && "border-yellow-500 bg-yellow-50 dark:bg-yellow-50",
+            isRecording && "border-red-500 border-2",
+            isConnecting && "border-yellow-500 border-2",
             error && "border-destructive"
           )}
           style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
           disabled={disabled}
         />
-        
-        {/* Recording indicator */}
-        {isRecording && (
-          <div className="absolute top-2 right-2 flex items-center gap-2 text-red-600 text-xs font-medium">
-            <Mic className="w-3 h-3 animate-pulse" />
-            <span className="animate-pulse">Recording...</span>
-          </div>
-        )}
         
         {isConnecting && (
           <div className="absolute top-2 right-2 flex items-center gap-2 text-yellow-600 text-xs font-medium">
