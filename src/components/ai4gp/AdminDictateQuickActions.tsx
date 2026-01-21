@@ -15,6 +15,9 @@ import {
 } from 'lucide-react';
 import { AdminDictationStatus } from '@/hooks/useAdminDictation';
 import { cn } from '@/lib/utils';
+import { WordIcon } from '@/components/icons/WordIcon';
+import { generateMeetingNotesDocx } from '@/utils/generateMeetingNotesDocx';
+import { showToast } from '@/utils/toastWrapper';
 
 interface AdminDictateQuickActionsProps {
   status: AdminDictationStatus;
@@ -23,6 +26,8 @@ interface AdminDictateQuickActionsProps {
   hasContent: boolean;
   isFormatting: boolean;
   systemAudioEnabled: boolean;
+  content: string;
+  templateName: string;
   onSystemAudioChange: (enabled: boolean) => void;
   onStart: () => void;
   onStop: () => void;
@@ -37,6 +42,8 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
   hasContent,
   isFormatting,
   systemAudioEnabled,
+  content,
+  templateName,
   onSystemAudioChange,
   onStart,
   onStop,
@@ -44,6 +51,31 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
   onClear,
 }) => {
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleDownloadWord = useCallback(async () => {
+    if (!content) return;
+    
+    setIsExporting(true);
+    try {
+      const now = new Date();
+      await generateMeetingNotesDocx({
+        metadata: {
+          title: templateName || 'Dictation',
+          date: now.toLocaleDateString('en-GB'),
+          time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+        },
+        content: content,
+        filename: `${templateName.toLowerCase().replace(/\s+/g, '-')}-${now.toISOString().split('T')[0]}.docx`,
+      });
+      showToast.success('Document downloaded');
+    } catch (error) {
+      console.error('Failed to export Word document:', error);
+      showToast.error('Failed to download document');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [content, templateName]);
 
   const handleStartClick = useCallback(() => {
     // Start countdown AND connection concurrently
@@ -184,6 +216,27 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
               </Button>
             </TooltipTrigger>
             <TooltipContent>Copy to clipboard</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Download Word Button */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDownloadWord}
+                disabled={!hasContent || isRecording || isExporting}
+              >
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <WordIcon className="w-4 h-4" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Download as Word</TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
