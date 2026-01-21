@@ -27,6 +27,7 @@ interface AdminDictateQuickActionsProps {
   isFormatting: boolean;
   systemAudioEnabled: boolean;
   content: string;
+  cleanedContent: string;
   templateName: string;
   onSystemAudioChange: (enabled: boolean) => void;
   onStart: () => void;
@@ -43,6 +44,7 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
   isFormatting,
   systemAudioEnabled,
   content,
+  cleanedContent,
   templateName,
   onSystemAudioChange,
   onStart,
@@ -54,7 +56,9 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
   const [isExporting, setIsExporting] = useState(false);
 
   const handleDownloadWord = useCallback(async () => {
-    if (!content) return;
+    // Always prefer cleaned content for Word export
+    const exportContent = cleanedContent || content;
+    if (!exportContent) return;
     
     setIsExporting(true);
     try {
@@ -65,7 +69,7 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
           date: now.toLocaleDateString('en-GB'),
           time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
         },
-        content: content,
+        content: exportContent,
         filename: `${templateName.toLowerCase().replace(/\s+/g, '-')}-${now.toISOString().split('T')[0]}.docx`,
       });
       showToast.success('Document downloaded');
@@ -75,7 +79,7 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
     } finally {
       setIsExporting(false);
     }
-  }, [content, templateName]);
+  }, [content, cleanedContent, templateName]);
 
   const handleStartClick = useCallback(() => {
     // Start countdown AND connection concurrently

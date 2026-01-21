@@ -12,6 +12,7 @@ interface AdminDictateViewToggleProps {
   onToggle: () => void;
   autoCleanEnabled: boolean;
   onAutoCleanChange: (enabled: boolean) => void;
+  hasOriginalContent: boolean;
   hasCleanedContent: boolean;
   isFormatting: boolean;
   onManualClean?: () => void;
@@ -22,11 +23,15 @@ export const AdminDictateViewToggle: React.FC<AdminDictateViewToggleProps> = ({
   onToggle,
   autoCleanEnabled,
   onAutoCleanChange,
+  hasOriginalContent,
   hasCleanedContent,
   isFormatting,
   onManualClean,
 }) => {
-  const canToggle = hasCleanedContent && !isFormatting;
+  // Can toggle to Original if we have original content
+  // Can toggle to Cleaned if we have cleaned content
+  const canToggleToOriginal = hasOriginalContent && !isFormatting;
+  const canToggleToCleaned = hasCleanedContent && !isFormatting;
 
   return (
     <div className="flex items-center gap-2">
@@ -35,8 +40,8 @@ export const AdminDictateViewToggle: React.FC<AdminDictateViewToggleProps> = ({
         <Button
           variant={!showCleaned ? "secondary" : "ghost"}
           size="sm"
-          onClick={onToggle}
-          disabled={!canToggle}
+          onClick={() => showCleaned && onToggle()}
+          disabled={!canToggleToOriginal || !showCleaned}
           className="h-7 px-3 text-xs gap-1.5"
         >
           <FileText className="w-3 h-3" />
@@ -45,8 +50,8 @@ export const AdminDictateViewToggle: React.FC<AdminDictateViewToggleProps> = ({
         <Button
           variant={showCleaned ? "secondary" : "ghost"}
           size="sm"
-          onClick={onToggle}
-          disabled={!canToggle}
+          onClick={() => !showCleaned && onToggle()}
+          disabled={!canToggleToCleaned || showCleaned}
           className="h-7 px-3 text-xs gap-1.5"
         >
           <Sparkles className="w-3 h-3" />

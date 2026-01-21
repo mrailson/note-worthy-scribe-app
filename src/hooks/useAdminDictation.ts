@@ -589,6 +589,32 @@ export function useAdminDictation() {
     }
   }, [content, selectedTemplate, status, isFormatting]);
 
+  // Save edits when user clicks out of the text area
+  const saveOnBlur = useCallback(async () => {
+    if (!currentSessionId || status === 'recording') return;
+    
+    try {
+      await supabase
+        .from('admin_dictations')
+        .update({
+          content: contentRef.current,
+          cleaned_content: showCleaned ? contentRef.current : cleanedContent || null,
+          word_count: contentRef.current.trim().split(/\s+/).filter(w => w).length,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentSessionId);
+      
+      // Update the appropriate state based on which view is being edited
+      if (showCleaned) {
+        setCleanedContent(contentRef.current);
+      } else {
+        setOriginalContent(contentRef.current);
+      }
+    } catch (err) {
+      console.error('Auto-save on blur failed:', err);
+    }
+  }, [currentSessionId, status, showCleaned, cleanedContent]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -633,5 +659,6 @@ export function useAdminDictation() {
     formatAndClean,
     toggleShowCleaned,
     triggerManualClean,
+    saveOnBlur,
   };
 }
