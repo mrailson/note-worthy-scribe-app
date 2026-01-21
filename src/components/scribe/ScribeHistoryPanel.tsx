@@ -209,43 +209,18 @@ export const ScribeHistoryPanel = ({
 
       setLocalSystmOneNote(optimisedNote);
 
-      // Save to database
+      // Save to database via gp_consultation_notes table
       try {
-        const currentHeidiNotes = currentSession.heidiNote || {};
-        const updatedHeidiNotes = {
-          ...currentHeidiNotes,
-          systmOneOptimised: optimisedNote
-        };
+        const { error: updateError } = await supabase
+          .from('gp_consultation_notes')
+          .update({
+            systmone_notes: optimisedNote,
+            is_systmone_optimised: true
+          })
+          .eq('consultation_id', currentSession.id);
 
-        // Use fetch with env variables for Supabase URL
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-          toast.error('Not authenticated');
-          return;
-        }
-
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        
-        const response = await fetch(
-          `${supabaseUrl}/rest/v1/scribe_sessions?id=eq.${currentSession.id}`,
-          {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-              'apikey': supabaseKey,
-              'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({
-              heidi_notes: updatedHeidiNotes,
-              is_systmone_optimised: true
-            })
-          }
-        );
-
-        if (!response.ok) {
-          console.error('Failed to save optimised notes:', await response.text());
+        if (updateError) {
+          console.error('Failed to save optimised notes:', updateError);
           toast.error('Optimised but failed to save');
         } else {
           toast.success('Notes optimised and saved');
