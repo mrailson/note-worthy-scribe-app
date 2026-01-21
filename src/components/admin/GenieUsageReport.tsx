@@ -8,7 +8,7 @@ import { Bot, Clock, Users, Calendar, TrendingUp, ChevronDown, ChevronUp, Messag
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-type SortField = 'user' | 'ai4gp' | 'gp_genie' | 'pm_genie' | 'patient_line' | 'scribe' | 'meeting' | 'total' | 'messages' | 'last_active';
+type SortField = 'user' | 'ai4gp' | 'scribe' | 'meeting' | 'total' | 'messages' | 'last_active';
 type SortDirection = 'asc' | 'desc';
 
 interface UserGenieStats {
@@ -86,11 +86,9 @@ export const GenieUsageReport = () => {
           bVal = b.full_name || b.email; 
           break;
         case 'ai4gp': aVal = a.ai4gp_count; bVal = b.ai4gp_count; break;
-        case 'gp_genie': aVal = a.gp_genie_count; bVal = b.gp_genie_count; break;
-        case 'pm_genie': aVal = a.pm_genie_count; bVal = b.pm_genie_count; break;
-        case 'patient_line': aVal = a.patient_line_count; bVal = b.patient_line_count; break;
         case 'scribe': aVal = a.scribe_count; bVal = b.scribe_count; break;
         case 'meeting': aVal = a.meeting_count; bVal = b.meeting_count; break;
+        case 'total': aVal = a.total_chats; bVal = b.total_chats; break;
         case 'total': aVal = a.total_chats; bVal = b.total_chats; break;
         case 'messages': aVal = a.total_messages; bVal = b.total_messages; break;
         case 'last_active': 
@@ -244,22 +242,10 @@ export const GenieUsageReport = () => {
           <CardTitle className="text-base">Breakdown by Service</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="text-center p-3 border rounded-lg">
               <div className="text-2xl font-bold text-amber-600">{systemStats?.ai4gp_total || 0}</div>
               <div className="text-sm text-muted-foreground">AI4GP Chat</div>
-            </div>
-            <div className="text-center p-3 border rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{systemStats?.gp_genie_total || 0}</div>
-              <div className="text-sm text-muted-foreground">GP Genie</div>
-            </div>
-            <div className="text-center p-3 border rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{systemStats?.pm_genie_total || 0}</div>
-              <div className="text-sm text-muted-foreground">PM Genie</div>
-            </div>
-            <div className="text-center p-3 border rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{systemStats?.patient_line_total || 0}</div>
-              <div className="text-sm text-muted-foreground">Patient Line</div>
             </div>
             <div className="text-center p-3 border rounded-lg">
               <div className="text-2xl font-bold text-teal-600">{systemStats?.scribe_total || 0}</div>
@@ -282,9 +268,6 @@ export const GenieUsageReport = () => {
               <TableRow>
                 <SortableHeader field="user">User</SortableHeader>
                 <SortableHeader field="ai4gp" className="text-center">AI4GP</SortableHeader>
-                <SortableHeader field="gp_genie" className="text-center">GP Genie</SortableHeader>
-                <SortableHeader field="pm_genie" className="text-center">PM Genie</SortableHeader>
-                <SortableHeader field="patient_line" className="text-center">Patient Line</SortableHeader>
                 <SortableHeader field="scribe" className="text-center">Scribe</SortableHeader>
                 <SortableHeader field="meeting" className="text-center">Meetings</SortableHeader>
                 <SortableHeader field="total" className="text-center">Total</SortableHeader>
@@ -295,7 +278,7 @@ export const GenieUsageReport = () => {
             <TableBody>
               {sortedUserStats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     No usage data found
                   </TableCell>
                 </TableRow>
@@ -311,27 +294,6 @@ export const GenieUsageReport = () => {
                     <TableCell className="text-center">
                       {user.ai4gp_count > 0 ? (
                         <Badge variant="outline" className="text-amber-600">{user.ai4gp_count}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.gp_genie_count > 0 ? (
-                        <Badge variant="outline" className="text-purple-600">{user.gp_genie_count}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.pm_genie_count > 0 ? (
-                        <Badge variant="outline" className="text-blue-600">{user.pm_genie_count}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.patient_line_count > 0 ? (
-                        <Badge variant="outline" className="text-green-600">{user.patient_line_count}</Badge>
                       ) : (
                         <span className="text-muted-foreground">0</span>
                       )}
