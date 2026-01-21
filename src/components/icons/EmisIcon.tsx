@@ -1,16 +1,16 @@
 import { cn } from "@/lib/utils";
-import tppLogo from "@/assets/tpp-logo.png";
+import emisLogo from "@/assets/emis-logo.png";
 
-interface SystmOneIconProps {
+interface EmisIconProps {
   className?: string;
   size?: "sm" | "md" | "lg";
 }
 
 /**
- * TPP SystmOne logo icon
- * Uses the official TPP brand logo
+ * EMIS Health logo icon
+ * Uses the official EMIS brand logo
  */
-export const SystmOneIcon = ({ className, size = "sm" }: SystmOneIconProps) => {
+export const EmisIcon = ({ className, size = "sm" }: EmisIconProps) => {
   const sizeClasses = {
     sm: "h-6 w-auto",
     md: "h-7 w-auto",
@@ -19,8 +19,8 @@ export const SystmOneIcon = ({ className, size = "sm" }: SystmOneIconProps) => {
 
   return (
     <img
-      src={tppLogo}
-      alt="TPP SystmOne"
+      src={emisLogo}
+      alt="EMIS Health"
       className={cn(sizeClasses[size], "object-contain", className)}
     />
   );
