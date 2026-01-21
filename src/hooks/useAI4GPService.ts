@@ -996,8 +996,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         messages: messagesForAPI,
         model: modelToUse,
         files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
-        verificationLevel: verificationLevel,
-        stream: true
+        verificationLevel: verificationLevel
       };
 
       // Get response from edge function
