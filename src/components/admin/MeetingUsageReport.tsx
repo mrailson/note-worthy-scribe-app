@@ -4,10 +4,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Activity, Clock, Users, Calendar, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { Activity, Clock, Users, Calendar, TrendingUp, ChevronDown, ChevronUp, PoundSterling } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { format } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+// Whisper API cost per hour in GBP
+const WHISPER_COST_PER_HOUR = 0.24;
+
+const calculateCost = (durationMins: number): number => {
+  return (durationMins / 60) * WHISPER_COST_PER_HOUR;
+};
+
+const formatCost = (cost: number): string => {
+  return `£${cost.toFixed(2)}`;
+};
 
 interface TodaysMeeting {
   id: string;
@@ -19,7 +31,7 @@ interface TodaysMeeting {
   word_count: number;
 }
 
-type SortField = 'user' | 'last_24h' | 'last_7d' | 'last_30d' | 'all_time' | 'deleted' | 'avg_duration' | 'total_time';
+type SortField = 'user' | 'last_24h' | 'last_7d' | 'last_30d' | 'all_time' | 'deleted' | 'avg_duration' | 'total_time' | 'cost';
 type SortDirection = 'asc' | 'desc';
 
 interface UserMeetingStats {
@@ -33,6 +45,7 @@ interface UserMeetingStats {
   avg_duration_mins: number;
   total_duration_mins: number;
   deleted_meetings_count: number;
+  total_cost: number;
 }
 
 interface SystemStats {
@@ -49,6 +62,10 @@ interface SystemStats {
   words_24h: number;
   words_7d: number;
   words_30d: number;
+  cost_24h: number;
+  cost_7d: number;
+  cost_30d: number;
+  total_cost: number;
 }
 
 const MIN_WORDS_FOR_COUNT = 100;
@@ -103,6 +120,7 @@ export const MeetingUsageReport = () => {
         case 'deleted': aVal = a.deleted_meetings_count; bVal = b.deleted_meetings_count; break;
         case 'avg_duration': aVal = a.avg_duration_mins; bVal = b.avg_duration_mins; break;
         case 'total_time': aVal = a.total_duration_mins; bVal = b.total_duration_mins; break;
+        case 'cost': aVal = a.total_cost; bVal = b.total_cost; break;
       }
       
       if (typeof aVal === 'string') {
@@ -180,6 +198,9 @@ export const MeetingUsageReport = () => {
 
       const totalMeetings = results.reduce((sum, r) => sum + (r.all_time || 0), 0);
       const totalDuration = results.reduce((sum, r) => sum + (r.total_duration_mins || 0), 0);
+      const duration24h = results.reduce((sum, r) => sum + (r.duration_24h || 0), 0);
+      const duration7d = results.reduce((sum, r) => sum + (r.duration_7d || 0), 0);
+      const duration30d = results.reduce((sum, r) => sum + (r.duration_30d || 0), 0);
 
       // Calculate system-wide totals from all users
       const systemStatsCalc: SystemStats = {
@@ -190,12 +211,16 @@ export const MeetingUsageReport = () => {
         total_duration_mins: totalDuration,
         avg_duration_mins: totalMeetings > 0 ? Math.round(totalDuration / totalMeetings) : 0,
         total_words: results.reduce((sum, r) => sum + (r.total_words || 0), 0),
-        duration_24h: results.reduce((sum, r) => sum + (r.duration_24h || 0), 0),
-        duration_7d: results.reduce((sum, r) => sum + (r.duration_7d || 0), 0),
-        duration_30d: results.reduce((sum, r) => sum + (r.duration_30d || 0), 0),
+        duration_24h: duration24h,
+        duration_7d: duration7d,
+        duration_30d: duration30d,
         words_24h: results.reduce((sum, r) => sum + (r.words_24h || 0), 0),
         words_7d: results.reduce((sum, r) => sum + (r.words_7d || 0), 0),
         words_30d: results.reduce((sum, r) => sum + (r.words_30d || 0), 0),
+        cost_24h: calculateCost(duration24h),
+        cost_7d: calculateCost(duration7d),
+        cost_30d: calculateCost(duration30d),
+        total_cost: calculateCost(totalDuration),
       };
 
       setSystemStats(systemStatsCalc);
@@ -212,6 +237,7 @@ export const MeetingUsageReport = () => {
         avg_duration_mins: r.avg_duration_mins || 0,
         total_duration_mins: r.total_duration_mins || 0,
         deleted_meetings_count: r.deleted_meetings_count || 0,
+        total_cost: calculateCost(r.total_duration_mins || 0),
       }));
 
       setUserStats(userStatsArray);
@@ -293,10 +319,22 @@ export const MeetingUsageReport = () => {
                 <span>Words:</span>
                 <span className="font-medium text-foreground">{formatNumber(systemStats?.words_24h || 0)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Avg words:</span>
-                <span className="font-medium text-foreground">{formatNumber(systemStats && systemStats.last_24h > 0 ? Math.round((systemStats.words_24h || 0) / systemStats.last_24h) : 0)}</span>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex justify-between cursor-help">
+                      <span className="flex items-center gap-1">
+                        <PoundSterling className="h-3 w-3" />
+                        Cost:
+                      </span>
+                      <span className="font-medium text-amber-600">{formatCost(systemStats?.cost_24h || 0)}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Based on £0.24 per hour Whisper API rate</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
@@ -323,10 +361,22 @@ export const MeetingUsageReport = () => {
                 <span>Words:</span>
                 <span className="font-medium text-foreground">{formatNumber(systemStats?.words_7d || 0)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Avg words:</span>
-                <span className="font-medium text-foreground">{formatNumber(systemStats && systemStats.last_7d > 0 ? Math.round((systemStats.words_7d || 0) / systemStats.last_7d) : 0)}</span>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex justify-between cursor-help">
+                      <span className="flex items-center gap-1">
+                        <PoundSterling className="h-3 w-3" />
+                        Cost:
+                      </span>
+                      <span className="font-medium text-amber-600">{formatCost(systemStats?.cost_7d || 0)}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Based on £0.24 per hour Whisper API rate</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
@@ -353,10 +403,22 @@ export const MeetingUsageReport = () => {
                 <span>Words:</span>
                 <span className="font-medium text-foreground">{formatNumber(systemStats?.words_30d || 0)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Avg words:</span>
-                <span className="font-medium text-foreground">{formatNumber(systemStats && systemStats.last_30d > 0 ? Math.round((systemStats.words_30d || 0) / systemStats.last_30d) : 0)}</span>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex justify-between cursor-help">
+                      <span className="flex items-center gap-1">
+                        <PoundSterling className="h-3 w-3" />
+                        Cost:
+                      </span>
+                      <span className="font-medium text-amber-600">{formatCost(systemStats?.cost_30d || 0)}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Based on £0.24 per hour Whisper API rate</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
 
@@ -383,10 +445,22 @@ export const MeetingUsageReport = () => {
                 <span>Words:</span>
                 <span className="font-medium text-foreground">{formatNumber(systemStats?.total_words || 0)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Avg words:</span>
-                <span className="font-medium text-foreground">{formatNumber(systemStats && systemStats.all_time > 0 ? Math.round((systemStats.total_words || 0) / systemStats.all_time) : 0)}</span>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex justify-between cursor-help">
+                      <span className="flex items-center gap-1">
+                        <PoundSterling className="h-3 w-3" />
+                        Total Cost:
+                      </span>
+                      <span className="font-bold text-amber-600">{formatCost(systemStats?.total_cost || 0)}</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Based on £0.24 per hour Whisper API rate</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </div>
@@ -406,12 +480,13 @@ export const MeetingUsageReport = () => {
                   <SortableHeader field="deleted" className="text-center">Deleted</SortableHeader>
                   <SortableHeader field="avg_duration" className="text-right">Avg Duration</SortableHeader>
                   <SortableHeader field="total_time" className="text-right">Total Time</SortableHeader>
+                  <SortableHeader field="cost" className="text-right">Cost</SortableHeader>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedUserStats.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       No completed meetings found
                     </TableCell>
                   </TableRow>
@@ -482,6 +557,7 @@ export const MeetingUsageReport = () => {
                       </TableCell>
                       <TableCell className="text-right text-sm">{formatDuration(user.avg_duration_mins)}</TableCell>
                       <TableCell className="text-right text-sm">{formatDuration(user.total_duration_mins)}</TableCell>
+                      <TableCell className="text-right text-sm font-medium text-amber-600">{formatCost(user.total_cost)}</TableCell>
                     </TableRow>
                   ))
                 )}
