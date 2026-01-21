@@ -891,12 +891,13 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
 }
 
 async function callGPT5(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!openaiApiKey) {
-    throw new Error('OpenAI API key not configured');
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!lovableApiKey) {
+    console.log('LOVABLE_API_KEY not configured, falling back to GPT-4 Turbo');
+    return await callGPT4Turbo(messages, systemPrompt, files);
   }
 
-  console.log('Calling GPT-5 with web search tools...');
+  console.log('Calling GPT-5 via Lovable AI Gateway...');
   console.log('Messages count:', messages.length);
   console.log('System prompt length:', systemPrompt.length);
   console.log('Files count:', files?.length || 0);
@@ -923,7 +924,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
 - Only describe what you can actually see written or printed in the image
 - If text is unclear, state that it's unclear rather than guessing`;
 
-  const gptMessages = [
+  const gptMessages: Array<{role: string; content: string}> = [
     { role: 'system', content: enhancedSystemPrompt }
   ];
 
@@ -947,82 +948,33 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     });
   });
 
-  // Set maximum token limits for all content types to prevent cutoffs
-  function detectContentType(messages: Message[]): { maxTokens: number; contentType: string } {
-    const lastMessage = messages[messages.length - 1];
-    const content = lastMessage?.content?.toLowerCase() || '';
-    
-    // Check for comprehensive content indicators
-    const comprehensiveIndicators = [
-      'leaflet', 'comprehensive', 'detailed guide', 'full guide', 'complete guide',
-      'patient information', 'detailed explanation', 'comprehensive overview',
-      'step by step', 'complete instructions', 'full instructions'
-    ];
-    
-    const medicalAnalysisIndicators = [
-      'analyze', 'assessment', 'evaluation', 'diagnosis', 'differential',
-      'complex case', 'investigation', 'clinical reasoning', 'pathophysiology'
-    ];
-    
-    const clinicalNotesIndicators = [
-      'clinical note', 'soap note', 'consultation note', 'discharge summary',
-      'referral letter', 'brief summary', 'quick note'
-    ];
-    
-    // Use maximum tokens for ALL content types to prevent cutoffs
-    if (comprehensiveIndicators.some(indicator => content.includes(indicator))) {
-      return { maxTokens: 4096, contentType: 'comprehensive' };
-    }
-    
-    if (medicalAnalysisIndicators.some(indicator => content.includes(indicator))) {
-      return { maxTokens: 4096, contentType: 'analysis' }; // Max tokens for analysis
-    }
-    
-    if (clinicalNotesIndicators.some(indicator => content.includes(indicator))) {
-      return { maxTokens: 4096, contentType: 'clinical_notes' }; // Max tokens for clinical content
-    }
-    
-    // Check content length as secondary indicator
-    if (content.length > 200) {
-      return { maxTokens: 4096, contentType: 'medium' }; // Max tokens for medium content
-    }
-    
-    return { maxTokens: 4096, contentType: 'short' }; // Max tokens for ALL responses
-  }
-
-  const { maxTokens, contentType } = detectContentType(messages);
-  
-  console.log('Making initial GPT-5 API call...');
+  console.log('Making GPT-5 API call via Lovable AI Gateway...');
   console.log('Request body preview:', {
-    model: 'gpt-5-2025-08-07',
-    max_tokens: maxTokens,
-    contentType: contentType,
+    model: 'openai/gpt-5-mini',
     messageCount: gptMessages.length,
     hasTimeout: true
   });
 
-  // Add timeout controller for GPT-5 calls - longer timeout for comprehensive content
-  const timeoutDuration = contentType === 'comprehensive' || contentType === 'analysis' ? 60000 : 45000;
+  // Add timeout controller for GPT-5 calls
+  const timeoutDuration = 60000;
   const controller = new AbortController();
   const timeout = setTimeout(() => {
     console.log(`GPT-5 request timed out after ${timeoutDuration/1000} seconds, aborting...`);
     controller.abort("GPT-5 request timeout");
   }, timeoutDuration);
 
-  let initial;
+  let response;
   try {
-    initial = await fetch('https://api.openai.com/v1/chat/completions', {
+    response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`
+        'Authorization': `Bearer ${lovableApiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
-        max_tokens: maxTokens,
-        // Note: GPT-5 doesn't support temperature parameter
-        messages: gptMessages,
-        stop: contentType === 'short' ? ["\n##", "\n###", "\n---"] : undefined // Only use stop sequences for short content
+        model: 'openai/gpt-5-mini',
+        max_completion_tokens: 4096,
+        messages: gptMessages
       }),
       signal: controller.signal
     });
@@ -1032,105 +984,45 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     clearTimeout(timeout);
     
     if (error.name === 'AbortError' || String(error).includes('timeout')) {
-      console.log(`GPT-5 request timed out for ${contentType} content, trying with reduced tokens...`);
-      
-      // Progressive retry with maximum tokens - no reduction needed
-      if (maxTokens >= 4096) {
-        console.log('Retrying GPT-5 with maximum token limit...');
-        try {
-          const retryController = new AbortController();
-          const retryTimeout = setTimeout(() => retryController.abort("GPT-5 retry timeout"), 30000);
-          
-          const retryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${openaiApiKey}`
-            },
-            body: JSON.stringify({
-              model: 'gpt-5-2025-08-07',
-              max_tokens: 4096, // Maximum tokens for retry
-              messages: gptMessages,
-              stop: undefined // Remove stop sequences to allow full responses
-            }),
-            signal: retryController.signal
-          });
-          
-          clearTimeout(retryTimeout);
-          
-          if (retryResponse.ok) {
-            const retryData = await retryResponse.json();
-            const retryContent = retryData.choices?.[0]?.message?.content;
-            if (retryContent && retryContent.trim()) {
-              console.log('GPT-5 retry succeeded with maximum tokens');
-              return retryContent;
-            }
-          }
-        } catch (retryError) {
-          console.log('GPT-5 retry also failed, falling back to GPT-4 Turbo');
-        }
-      }
-      
-      console.log('Falling back to GPT-4 Turbo');
+      console.log('GPT-5 request timed out, falling back to GPT-4 Turbo');
       return await callGPT4Turbo(messages, systemPrompt, files);
     }
     throw error;
   }
 
-  if (!initial.ok) {
-    const error = await initial.text();
-    console.error('OpenAI API error:', error);
-    console.error('API response status:', initial.status);
-    console.error('API response headers:', Object.fromEntries(initial.headers.entries()));
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Lovable AI Gateway error:', error);
+    console.error('API response status:', response.status);
     
-    // Check for quota exceeded error specifically
-    if (initial.status === 429 || error.includes('insufficient_quota')) {
-      throw new Error(`OpenAI API quota exceeded (429): ${error}`);
+    // Check for rate limit or payment required errors
+    if (response.status === 429) {
+      console.log('Rate limit exceeded, falling back to GPT-4 Turbo');
+      return await callGPT4Turbo(messages, systemPrompt, files);
     }
     
-    // Check for unsupported model - fallback to GPT-4o
-    if (initial.status === 404 || error.includes('model') || error.includes('not found')) {
-      console.log('GPT-5 not available, falling back to GPT-4o');
-      const fallbackResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiApiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          max_tokens: 4000,
-          temperature: 0.7,
-          messages: gptMessages
-        })
-      });
-      
-      if (!fallbackResponse.ok) {
-        const fallbackError = await fallbackResponse.text();
-        throw new Error(`OpenAI API fallback error: ${fallbackResponse.status} - ${fallbackError}`);
-      }
-      
-      const fallbackData = await fallbackResponse.json();
-      return cleanBNFOutput(fallbackData.choices[0].message.content);
+    if (response.status === 402) {
+      console.log('Payment required, falling back to GPT-4 Turbo');
+      return await callGPT4Turbo(messages, systemPrompt, files);
     }
     
-    throw new Error(`OpenAI API error: ${initial.status}`);
+    // Fallback to GPT-4 Turbo for any other errors
+    console.log('GPT-5 Gateway error, falling back to GPT-4 Turbo');
+    return await callGPT4Turbo(messages, systemPrompt, files);
   }
 
-  const initialData = await initial.json();
+  const data = await response.json();
   console.log('GPT-5 API response received successfully');
   console.log('Response structure:', {
-    hasChoices: !!initialData.choices,
-    choicesLength: initialData.choices?.length,
-    hasMessage: !!initialData.choices?.[0]?.message,
-    hasContent: !!initialData.choices?.[0]?.message?.content,
-    contentLength: initialData.choices?.[0]?.message?.content?.length || 0,
-    contentType: contentType,
-    maxTokensUsed: maxTokens
+    hasChoices: !!data.choices,
+    choicesLength: data.choices?.length,
+    hasMessage: !!data.choices?.[0]?.message,
+    hasContent: !!data.choices?.[0]?.message?.content,
+    contentLength: data.choices?.[0]?.message?.content?.length || 0
   });
   
-  const choice = initialData.choices?.[0];
-  console.log('Initial completion result - GPT-5 response received successfully');
+  const choice = data.choices?.[0];
+  console.log('GPT-5 response received successfully');
   console.log('Response length:', choice?.message?.content?.length || 0);
 
   // Return the direct response with validation
@@ -1141,8 +1033,8 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     return await callGPT4Turbo(messages, systemPrompt, files);
   }
   
-  console.log(`GPT-5 response completed successfully for ${contentType} content (${responseContent.length} characters)`);
-  return responseContent;
+  console.log(`GPT-5 response completed successfully (${responseContent.length} characters)`);
+  return cleanBNFOutput(responseContent);
 }
 
 async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
