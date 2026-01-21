@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 export interface DocumentFile {
   id: string;
   name: string;
-  type: 'pdf' | 'word' | 'image' | 'unknown';
+  type: 'pdf' | 'word' | 'image' | 'text' | 'rtf' | 'email' | 'unknown';
   size: number;
   status: 'pending' | 'parsing' | 'parsed' | 'failed';
   extractedText?: string;
@@ -42,6 +42,9 @@ export function useFolderDocumentAnalysis() {
     if (ext === 'pdf') return 'pdf';
     if (ext === 'docx' || ext === 'doc') return 'word';
     if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext || '')) return 'image';
+    if (ext === 'txt' || ext === 'text') return 'text';
+    if (ext === 'rtf') return 'rtf';
+    if (['eml', 'msg', 'emlx'].includes(ext || '')) return 'email';
     return 'unknown';
   };
 
@@ -110,7 +113,7 @@ export function useFolderDocumentAnalysis() {
       }
 
       if (files.length === 0) {
-        toast.error('No supported documents found in folder. Supported: PDF, Word, Images');
+        toast.error('No supported documents found in folder. Supported: PDF, Word, Images, TXT, RTF, Email (EML/MSG)');
         setState(prev => ({ ...prev, isProcessing: false }));
         return;
       }

@@ -216,6 +216,135 @@ async function extractXlsxText(zip: JSZip): Promise<string> {
   return parts.join("\n\n").trim();
 }
 
+// Extract text from RTF content by stripping formatting codes
+function extractRtfText(rtfContent: string): string {
+  // Remove RTF header/control groups
+  let text = rtfContent;
+  
+  // Remove nested groups but preserve their text content
+  let prevLength = -1;
+  while (prevLength !== text.length) {
+    prevLength = text.length;
+    // Remove control groups that don't contain text
+    text = text.replace(/\{\\[^{}]*\}/g, '');
+  }
+  
+  // Remove remaining braces
+  text = text.replace(/[{}]/g, '');
+  
+  // Remove RTF control words (e.g., \par, \b, \i, \f0, etc.)
+  text = text.replace(/\\[a-z]+\d*\s?/gi, ' ');
+  
+  // Convert RTF line breaks to newlines
+  text = text.replace(/\\par\s*/gi, '\n');
+  text = text.replace(/\\line\s*/gi, '\n');
+  text = text.replace(/\\tab\s*/gi, '\t');
+  
+  // Remove escape sequences
+  text = text.replace(/\\'[0-9a-f]{2}/gi, ''); // Hex escaped chars
+  text = text.replace(/\\\\/g, '\\');
+  text = text.replace(/\\~/g, ' '); // Non-breaking space
+  text = text.replace(/\\_/g, '-'); // Non-breaking hyphen
+  text = text.replace(/\\-/g, ''); // Optional hyphen
+  
+  // Clean up whitespace
+  text = text.replace(/[ \t]+/g, ' ');
+  text = text.replace(/\n[ \t]+/g, '\n');
+  text = text.replace(/[ \t]+\n/g, '\n');
+  text = text.replace(/\n{3,}/g, '\n\n');
+  
+  return text.trim();
+}
+
+// Extract text from email content (EML format)
+function extractEmailText(emailContent: string, fileName: string): string {
+  const lines = emailContent.split(/\r?\n/);
+  const headers: Record<string, string> = {};
+  let bodyStartIndex = 0;
+  let inHeaders = true;
+  
+  // Parse headers
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    if (line === '' && inHeaders) {
+      bodyStartIndex = i + 1;
+      inHeaders = false;
+      break;
+    }
+    
+    if (inHeaders) {
+      // Check if it's a continuation of previous header
+      if (line.startsWith(' ') || line.startsWith('\t')) {
+        const lastKey = Object.keys(headers).pop();
+        if (lastKey) {
+          headers[lastKey] += ' ' + line.trim();
+        }
+      } else {
+        const colonIndex = line.indexOf(':');
+        if (colonIndex > 0) {
+          const key = line.substring(0, colonIndex).toLowerCase();
+          const value = line.substring(colonIndex + 1).trim();
+          headers[key] = value;
+        }
+      }
+    }
+  }
+  
+  // Extract body
+  let body = lines.slice(bodyStartIndex).join('\n');
+  
+  // Handle quoted-printable encoding
+  if (headers['content-transfer-encoding']?.toLowerCase().includes('quoted-printable')) {
+    body = decodeQuotedPrintable(body);
+  }
+  
+  // Handle base64 encoding
+  if (headers['content-transfer-encoding']?.toLowerCase().includes('base64')) {
+    try {
+      body = atob(body.replace(/\s/g, ''));
+    } catch {
+      // Keep original if decode fails
+    }
+  }
+  
+  // Strip HTML tags if content is HTML
+  if (headers['content-type']?.toLowerCase().includes('text/html')) {
+    body = body.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+    body = body.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+    body = body.replace(/<[^>]+>/g, ' ');
+    body = decodeXmlEntities(body);
+  }
+  
+  // Build output
+  const output: string[] = ['=== EMAIL MESSAGE ==='];
+  
+  if (headers['from']) output.push(`From: ${headers['from']}`);
+  if (headers['to']) output.push(`To: ${headers['to']}`);
+  if (headers['cc']) output.push(`CC: ${headers['cc']}`);
+  if (headers['date']) output.push(`Date: ${headers['date']}`);
+  if (headers['subject']) output.push(`Subject: ${headers['subject']}`);
+  
+  output.push('');
+  output.push('--- Message Body ---');
+  output.push(body.replace(/\n{3,}/g, '\n\n').trim());
+  
+  return output.join('\n');
+}
+
+// Decode quoted-printable encoding
+function decodeQuotedPrintable(text: string): string {
+  // Handle soft line breaks
+  text = text.replace(/=\r?\n/g, '');
+  
+  // Decode encoded characters
+  text = text.replace(/=([0-9A-F]{2})/gi, (_, hex) => {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+  
+  return text;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -329,6 +458,26 @@ serve(async (req) => {
       }
 
       console.log(`${fileType} extracted text length:`, extractedText.length);
+
+    } else if (fileType === "text") {
+      // Plain text files - just decode the base64
+      const decoder = new TextDecoder('utf-8');
+      extractedText = decoder.decode(base64ToUint8Array(base64Data));
+      console.log(`Plain text extracted, length: ${extractedText.length}`);
+
+    } else if (fileType === "rtf") {
+      // RTF files - strip RTF formatting codes to extract plain text
+      const decoder = new TextDecoder('utf-8');
+      const rtfContent = decoder.decode(base64ToUint8Array(base64Data));
+      extractedText = extractRtfText(rtfContent);
+      console.log(`RTF text extracted, length: ${extractedText.length}`);
+
+    } else if (fileType === "email") {
+      // Email files (EML/MSG) - extract headers and body
+      const decoder = new TextDecoder('utf-8');
+      const emailContent = decoder.decode(base64ToUint8Array(base64Data));
+      extractedText = extractEmailText(emailContent, fileName || 'email');
+      console.log(`Email text extracted, length: ${extractedText.length}`);
 
     } else {
       console.log(`Unknown file type: ${fileType}, returning empty text`);
