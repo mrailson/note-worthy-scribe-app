@@ -6,7 +6,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Copy, Brain, ListChecks, ClipboardList, Monitor, ChevronDown, ChevronRight, Phone } from "lucide-react";
+import { Copy, Brain, ListChecks, ClipboardList, ChevronDown, ChevronRight, Phone } from "lucide-react";
+import { EmisIcon } from "@/components/icons/EmisIcon";
 import { SOAPNote, HeidiNote, ConsultationType } from "@/types/scribe";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -241,7 +242,7 @@ export const EmisNoteView = ({
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Monitor className="h-5 w-5 text-primary" />
+              <EmisIcon size="md" />
               <CardTitle className="text-lg">EMIS View</CardTitle>
               <Badge variant="secondary" className="text-xs font-normal">
                 EMIS-optimised
