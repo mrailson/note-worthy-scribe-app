@@ -58,6 +58,48 @@ export type Database = {
           },
         ]
       }
+      admin_dictations: {
+        Row: {
+          cleaned_content: string | null
+          content: string
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          is_draft: boolean | null
+          template_type: string
+          title: string | null
+          updated_at: string
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          cleaned_content?: string | null
+          content: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_draft?: boolean | null
+          template_type?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          cleaned_content?: string | null
+          content?: string
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_draft?: boolean | null
+          template_type?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       ai_4_pm_searches: {
         Row: {
           brief_overview: string | null

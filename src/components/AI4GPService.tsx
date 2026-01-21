@@ -42,6 +42,7 @@ import { PowerPointGenerationOverlay } from '@/components/PowerPointGenerationOv
 
 import { ImageStudioModal } from '@/components/ai4gp/ImageStudioModal';
 import { PresentationStudioModal } from '@/components/ai4gp/PresentationStudioModal';
+import { AdminDictatePanel } from '@/components/ai4gp/AdminDictatePanel';
 
   // Hook imports
 import { useIsMobile, useDeviceInfo } from '@/hooks/use-mobile';
@@ -128,6 +129,7 @@ const AI4GPService = () => {
   const [showPromptsModal, setShowPromptsModal] = useState(false);
   const [showImageStudio, setShowImageStudio] = useState(false);
   const [showPresentationStudio, setShowPresentationStudio] = useState(false);
+  const [showAdminDictate, setShowAdminDictate] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>(() => {
     const saved = localStorage.getItem('ai4gp-selected-role');
@@ -158,6 +160,13 @@ const AI4GPService = () => {
     setShowBPCalculator(false);
     setShowTranslation(false);
     setShowSearchHistory(false);
+    setShowAdminDictate(false);
+  };
+
+  const handleShowAdminDictate = () => {
+    const wasOpen = showAdminDictate;
+    closeAllPanels();
+    if (!wasOpen) setShowAdminDictate(true);
   };
 
   // Panel toggle handlers that close other panels first
@@ -443,6 +452,7 @@ const AI4GPService = () => {
           onShowAllQuickActions={() => setShowAllQuickActions(true)}
           onShowImageStudio={() => setShowImageStudio(true)}
           onShowPresentationStudio={() => setShowPresentationStudio(true)}
+          onShowAdminDictate={handleShowAdminDictate}
           meetings={meetings as any}
           meetingsLoading={meetingsLoading}
           onSelectMeeting={(meetingId) => {
@@ -683,8 +693,15 @@ const AI4GPService = () => {
                 </div>
               )}
 
+              {/* Admin Dictate Panel - Inline Display */}
+              {showAdminDictate && (
+                <div className="flex-1 overflow-y-auto bg-background">
+                  <AdminDictatePanel onClose={() => setShowAdminDictate(false)} />
+                </div>
+              )}
+
               {/* Main Chat Content - Only show when services are not active */}
-              {!showImageCreate && !showImageService && !showNews && !showBPCalculator && !showTranslation && (
+              {!showImageCreate && !showImageService && !showNews && !showBPCalculator && !showTranslation && !showAdminDictate && (
                 <CardContent className={cn(
                   "flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden",
                   deviceInfo.isIPhone && "pb-safe"
