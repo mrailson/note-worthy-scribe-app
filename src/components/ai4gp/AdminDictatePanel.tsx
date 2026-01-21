@@ -51,6 +51,7 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
     fetchHistory,
     toggleShowCleaned,
     triggerManualClean,
+    saveOnBlur,
   } = useAdminDictation();
 
   const handleLoadSession = (session: any) => {
@@ -119,6 +120,7 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
                 onToggle={toggleShowCleaned}
                 autoCleanEnabled={autoCleanEnabled}
                 onAutoCleanChange={setAutoCleanEnabled}
+                hasOriginalContent={!!originalContent}
                 hasCleanedContent={!!cleanedContent}
                 isFormatting={isFormatting}
                 onManualClean={triggerManualClean}
@@ -134,7 +136,8 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
             hasContent={!!content}
             isFormatting={isFormatting}
             systemAudioEnabled={systemAudioEnabled}
-            content={showCleaned && cleanedContent ? cleanedContent : content}
+            content={content}
+            cleanedContent={cleanedContent || ''}
             templateName={templates.find(t => t.id === selectedTemplate)?.name || 'Dictation'}
             onSystemAudioChange={setSystemAudioEnabled}
             onStart={startDictation}
@@ -148,9 +151,10 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
             <AdminDictateTextArea
               content={content}
               onChange={setContent}
+              onBlur={saveOnBlur}
               status={status}
               error={error}
-              disabled={isRecording || isConnecting}
+              disabled={isConnecting}
             />
           </div>
         </TabsContent>

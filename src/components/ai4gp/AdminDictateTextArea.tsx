@@ -1,67 +1,54 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Mic } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { AdminDictationStatus } from '@/hooks/useAdminDictation';
 import { cn } from '@/lib/utils';
 
 interface AdminDictateTextAreaProps {
   content: string;
   onChange: (content: string) => void;
+  onBlur?: () => void;
   status: AdminDictationStatus;
   error: string | null;
   disabled?: boolean;
 }
 
-// Format text into readable paragraphs
-function formatIntoParagraphs(text: string): string {
-  const sentences = text.split(/(?<=[.!?])\s+/);
-  const paragraphs: string[] = [];
-  let currentParagraph: string[] = [];
-  
-  for (const sentence of sentences) {
-    currentParagraph.push(sentence);
-    if (currentParagraph.length >= 4) {
-      paragraphs.push(currentParagraph.join(' '));
-      currentParagraph = [];
-    }
-  }
-  
-  if (currentParagraph.length > 0) {
-    paragraphs.push(currentParagraph.join(' '));
-  }
-  
-  return paragraphs.join('\n\n');
-}
-
 export const AdminDictateTextArea: React.FC<AdminDictateTextAreaProps> = ({
   content,
   onChange,
+  onBlur,
   status,
   error,
   disabled,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastContentLengthRef = useRef(0);
   
-  // Auto-scroll during recording
+  // Auto-scroll during recording when new content arrives
   useEffect(() => {
     if (status === 'recording' && textareaRef.current) {
-      textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+      // Only scroll if content is growing (new transcription coming in)
+      if (content.length > lastContentLengthRef.current) {
+        textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+      }
+      lastContentLengthRef.current = content.length;
     }
   }, [content, status]);
 
-  // Format content for display
-  const displayContent = useMemo(() => {
-    if (status === 'recording') {
-      return content;
+  // Reset the length tracker when not recording
+  useEffect(() => {
+    if (status !== 'recording') {
+      lastContentLengthRef.current = 0;
     }
-    // Only format if content doesn't already have paragraph breaks
-    if (content && !content.includes('\n\n')) {
-      return formatIntoParagraphs(content);
+  }, [status]);
+
+  const handleBlur = useCallback(() => {
+    if (onBlur) {
+      onBlur();
     }
-    return content;
-  }, [content, status]);
+  }, [onBlur]);
 
   const isRecording = status === 'recording';
   const isConnecting = status === 'connecting';
@@ -78,8 +65,9 @@ export const AdminDictateTextArea: React.FC<AdminDictateTextAreaProps> = ({
       <div className="relative flex-1 min-h-0">
         <Textarea
           ref={textareaRef}
-          value={displayContent}
+          value={content}
           onChange={(e) => onChange(e.target.value)}
+          onBlur={handleBlur}
           placeholder={
             isConnecting 
               ? "Connecting to transcription service..."
@@ -89,13 +77,13 @@ export const AdminDictateTextArea: React.FC<AdminDictateTextAreaProps> = ({
           }
           className={cn(
             "h-full min-h-[200px] resize-none text-base leading-relaxed bg-white dark:bg-white text-foreground",
-            "font-serif",
+            "font-serif cursor-text",
             isRecording && "border-red-500 border-2",
             isConnecting && "border-yellow-500 border-2",
             error && "border-destructive"
           )}
           style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
-          disabled={disabled}
+          disabled={disabled || isRecording}
         />
         
         {isConnecting && (
