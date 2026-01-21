@@ -2,14 +2,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Message, UploadedFile, SearchHistory, GeneratedImage, GeneratedPresentation } from '@/types/ai4gp';
+import { Message, UploadedFile, SearchHistory } from '@/types/ai4gp';
 import { useDisplayPreferences } from './useDisplayPreferences';
 import { prepareMessagesForAPI, getMemoryStats } from '@/utils/conversationMemory';
-import { detectImageRequest, extractImageContext, isReferringToPreviousContent, ImageRequestDetection } from '@/utils/imageRequestDetection';
 import { detectVoiceRequest } from '@/utils/voiceRequestDetection';
-import { detectPowerPointRequest, getPresentationTypeDisplayName } from '@/utils/powerpointRequestDetection';
 import { VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
-import { BrandingLevel, CustomBrandingOptions } from '@/components/ai4gp/ImageBrandingDialog';
 
 export const useAI4GPService = () => {
   const { user } = useAuth();
@@ -31,21 +28,6 @@ export const useAI4GPService = () => {
   const [chatHistoryRetentionDays, setChatHistoryRetentionDays] = useState(30);
   const [hideGPClinical, setHideGPClinical] = useState(false);
   const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1'>('google/gemini-3-pro-image-preview');
-  const [includePracticeLogo, setIncludePracticeLogo] = useState(true);
-  
-  // Image branding dialog state
-  const [showBrandingDialog, setShowBrandingDialog] = useState(false);
-  const [pendingImageRequest, setPendingImageRequest] = useState<{
-    message: string;
-    imageDetection: ImageRequestDetection;
-    assistantMessageId: string;
-    startTime: number;
-    userMessage: Message;
-    newMessages: Message[];
-    documentContent?: string;
-    imageAttachments?: { name: string; content: string; type: string }[];
-    isVisualFromFilesRequest: boolean;
-  } | null>(null);
   
   // Display Settings - now managed by useDisplayPreferences
   const {
@@ -506,92 +488,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     try {
       const startTime = Date.now();
       
-      // Check if this is an image generation request
-      // Pass previous messages for context-aware detection (e.g., "can you do it" follow-ups)
+      // Previous messages for context-aware detection
       const previousMessagesForDetection = messages.map(m => ({ role: m.role, content: m.content }));
-      const imageDetection = detectImageRequest(messageToUse, previousMessagesForDetection);
-      
-      // Allow image generation for visual types even with document/image files
-      // These types explicitly want to CREATE visuals FROM the attached content
-      const visualTypesAllowedWithFiles = [
-        'infographic', 'chart', 'diagram', 'poster', 'calendar',
-        'leaflet', 'newsletter', 'social', 'waiting-room', 'form-header', 'campaign', 'general'
-      ];
-      const isVisualFromFilesRequest = hasAnyFiles && visualTypesAllowedWithFiles.includes(imageDetection.requestType);
-      const shouldGenerateImage = imageDetection.isImageRequest && 
-                                   imageDetection.confidence !== 'low' && 
-                                   (!hasDocumentFiles || isVisualFromFilesRequest);
-      
-      if (shouldGenerateImage) {
-        console.log('🎨 Image request detected:', { 
-          originalMessage: messageToUse.substring(0, 100),
-          requestType: imageDetection.requestType,
-          confidence: imageDetection.confidence,
-          isVisualFromFilesRequest, 
-          hasDocumentFiles,
-          hasImageFiles,
-          filesCount: uploadedFiles.length
-        });
-        
-        // Extract document content from non-image files
-        let documentContent = uploadedFiles.length > 0
-          ? uploadedFiles
-              .filter(f => !f.type.startsWith('image/'))
-              .map(f => `## ${f.name}\n${f.content.substring(0, 8000)}`)
-              .join('\n\n') || undefined
-          : undefined;
-        
-        // If no uploaded files but user is referring to previous content, use last AI response
-        if (!documentContent && isReferringToPreviousContent(messageToUse)) {
-          const lastAssistantMessage = messages.slice().reverse()
-            .find(m => m.role === 'assistant' && m.content.length > 100);
-          
-          if (lastAssistantMessage) {
-            documentContent = `## Previous AI Response\n${lastAssistantMessage.content.substring(0, 8000)}`;
-            console.log('🎨 Using previous AI response as document content for image');
-          }
-        }
-        
-        // Check if user message itself contains substantial pasted content
-        if (!documentContent && messageToUse.length > 300) {
-          // Remove the command portion and see if there's substantial content left
-          const cleanedContent = messageToUse
-            .replace(/^.{0,100}(?:create|generate|make|turn|convert).{0,50}(?:infographic|image|picture|visual|chart|diagram|poster|leaflet).{0,50}(?:from|using|based\s+on|about|of)?:?\s*/i, '')
-            .trim();
-          if (cleanedContent.length > 200) {
-            documentContent = `## User Provided Content\n${cleanedContent.substring(0, 8000)}`;
-            console.log('🎨 Using pasted content from user message for image');
-          }
-        }
-        
-        // Extract image file data for reference-based generation
-        const imageAttachments = uploadedFiles
-          .filter(f => f.type.startsWith('image/'))
-          .map(f => ({ name: f.name, content: f.content, type: f.type }));
-        
-        // Store pending request and show branding dialog
-        setPendingImageRequest({
-          message: messageToUse,
-          imageDetection,
-          assistantMessageId,
-          startTime,
-          userMessage,
-          newMessages,
-          documentContent,
-          imageAttachments,
-          isVisualFromFilesRequest
-        });
-        setShowBrandingDialog(true);
-        
-        // Update message to show waiting for branding selection
-        setMessages(prev => prev.map(msg => 
-          msg.id === assistantMessageId 
-            ? { ...msg, content: '🎨 Waiting for branding options...', isStreaming: true }
-            : msg
-        ));
-        
-        return; // Wait for user to select branding options
-      }
       
       // Check if this is a voice file generation request
       // Pass uploaded files so we can extract text from them for voice generation
@@ -698,140 +596,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           return;
         }
       }
-      
-      // Check if this is a PowerPoint generation request
-      const pptDetection = detectPowerPointRequest(messageToUse, previousMessagesForDetection, uploadedFiles);
-      
-      // Debug logging for topic extraction
-      console.log('📊 PowerPoint detection result:', {
-        originalMessage: messageToUse.substring(0, 100),
-        isPowerPointRequest: pptDetection.isPowerPointRequest,
-        extractedTopic: pptDetection.topic,
-        confidence: pptDetection.confidence,
-        presentationType: pptDetection.presentationType
-      });
-      
-      if (pptDetection.isPowerPointRequest && pptDetection.confidence !== 'low') {
-        console.log('📊 PowerPoint request detected, proceeding with generation');
-        
-        // Update message to show generation in progress
-        setMessages(prev => prev.map(msg => 
-          msg.id === assistantMessageId 
-            ? { ...msg, content: '📊 Generating professional presentation with Notewell AI...\n\nThis may take 30-60 seconds for best quality.', isStreaming: true }
-            : msg
-        ));
-        
-        try {
-          // Prepare supporting content from uploaded files
-          let supportingContent = '';
-          if (uploadedFiles.length > 0) {
-            supportingContent = uploadedFiles.map(file => {
-              // Limit each file content and format nicely
-              const truncatedContent = file.content.substring(0, 15000);
-              return `### ${file.name}\n${truncatedContent}`;
-            }).join('\n\n---\n\n');
-          }
-          
-          // If no uploaded files but user is referring to previous content, use last AI response
-          if (!supportingContent && isReferringToPreviousContent(messageToUse)) {
-            const lastAssistantMessage = messages.slice().reverse()
-              .find(m => m.role === 'assistant' && m.content.length > 100);
-            
-            if (lastAssistantMessage) {
-              supportingContent = `### Previous AI Response\n${lastAssistantMessage.content.substring(0, 20000)}`;
-              console.log('📊 Using previous AI response as supporting content for PowerPoint');
-            }
-          }
-          
-          // Check if user message itself contains substantial pasted content
-          if (!supportingContent && messageToUse.length > 300) {
-            // Remove the command portion and see if there's substantial content left
-            const cleanedContent = messageToUse
-              .replace(/^.{0,100}(?:please\s+)?(?:create|generate|make|turn|convert).{0,50}(?:power\s*point|pptx?|presentation|slides?).{0,50}(?:from|using|based\s+on|about|on)?:?\s*/i, '')
-              .trim();
-            if (cleanedContent.length > 200) {
-              supportingContent = `### User Provided Content\n${cleanedContent.substring(0, 20000)}`;
-              console.log('📊 Using pasted content from user message for PowerPoint');
-            }
-          }
-          
-          // Call Gamma API edge function
-          const { data: gammaResponse, error: gammaError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
-            body: {
-              topic: pptDetection.topic,
-              presentationType: getPresentationTypeDisplayName(pptDetection.presentationType),
-              slideCount: pptDetection.slideCount || 10,
-              supportingContent: supportingContent || undefined,
-              customInstructions: pptDetection.customInstructions,
-              audience: 'NHS healthcare professionals and primary care staff'
-            }
-          });
-          
-          if (gammaError) {
-            console.error('Gamma API error:', gammaError);
-            throw new Error(gammaError.message || 'Failed to generate presentation');
-          }
-          
-          if (!gammaResponse?.success || (!gammaResponse?.downloadUrl && !gammaResponse?.pptxBase64)) {
-            console.error('Invalid Gamma response:', gammaResponse);
-            throw new Error(gammaResponse?.error || 'No presentation data received');
-          }
-          
-          console.log('📊 Gamma presentation generated successfully');
-          
-          const endTime = Date.now();
-          const responseTime = endTime - startTime;
-          
-          // Create the presentation object - prefer downloadUrl over pptxBase64
-          const generatedPresentation: GeneratedPresentation = {
-            downloadUrl: gammaResponse.downloadUrl,
-            pptxBase64: gammaResponse.pptxBase64, // Legacy fallback
-            title: gammaResponse.title || pptDetection.topic,
-            slideCount: gammaResponse.slideCount || pptDetection.slideCount || 10,
-            presentationType: getPresentationTypeDisplayName(pptDetection.presentationType),
-            sourceFiles: uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name) : undefined
-          };
-          
-          // Create message with generated presentation
-          const pptMessage: Message = {
-            ...assistantMessage,
-            content: `✅ **Professional PowerPoint Generated!**\n\n**Title:** ${generatedPresentation.title}\n**Type:** ${generatedPresentation.presentationType}\n**Slides:** ${generatedPresentation.slideCount}\n${uploadedFiles.length > 0 ? `\n**Source Materials:** ${uploadedFiles.map(f => f.name).join(', ')}` : ''}\n\n*Powered by Gamma AI for professional-grade design.*\n\nYour presentation is ready to download below.`,
-            isStreaming: false,
-            responseTime,
-            model: 'Gamma AI',
-            generatedPresentation
-          };
-          
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId ? pptMessage : msg
-          ));
-          
-          // Auto-save the search
-          setTimeout(async () => {
-            const finalMessages = [...newMessages, pptMessage];
-            await saveSearchAutomatically(finalMessages);
-          }, 100);
-          
-          setIsLoading(false);
-          toast.success('Professional PowerPoint generated successfully!');
-          return;
-          
-        } catch (pptError: any) {
-          console.error('PowerPoint generation failed:', pptError);
-          
-          // Fall back to regular AI response with explanation
-          const fallbackMessage = `I wasn't able to generate the PowerPoint presentation. ${pptError.message || 'Please try again.'}\n\nWould you like me to try again, or would you prefer the content in a different format?`;
-          
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId 
-              ? { ...msg, content: fallbackMessage, isStreaming: false }
-              : msg
-          ));
-          
-          setIsLoading(false);
-          return;
-        }
-      }
+      // Note: Image and PowerPoint generation removed from inline chat
+      // Use Image Studio or Presentation Studio for these features
       const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel);
       console.log('📄 Final system prompt (first 500 chars):', systemPrompt.substring(0, 500));
       
@@ -1481,7 +1247,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setChatHistoryRetentionDays(preferences.chatHistoryRetentionDays ?? 30);
           setHideGPClinical(preferences.hideGPClinical ?? false);
           setImageGenerationModel(preferences.imageGenerationModel ?? 'google/gemini-3-pro-image-preview');
-          setIncludePracticeLogo(preferences.includePracticeLogo ?? true);
+          // includePracticeLogo removed - use Image Studio
           console.log('AI4GP settings loaded successfully');
         } else {
           console.log('No saved AI4GP preferences found, using defaults');
@@ -1522,8 +1288,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         autoCollapseUserPrompts,
         chatHistoryRetentionDays,
         hideGPClinical,
-        imageGenerationModel,
-        includePracticeLogo
+        imageGenerationModel
       };
 
       console.log('Saving AI4GP preferences:', preferences);
@@ -1552,7 +1317,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, imageGenerationModel, includePracticeLogo]);
+  }, [user?.id, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, northamptonshireICB, textSize, interfaceDensity, containerWidth, highContrast, readingFont, autoCollapseUserPrompts, chatHistoryRetentionDays, hideGPClinical, imageGenerationModel]);
 
   // Save settings when they change (with debounce to avoid too many saves)
   useEffect(() => {
@@ -1854,149 +1619,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setInput(originalInput);
   }, [messages, uploadedFiles, buildSystemPrompt, verificationLevel, input, handleGPT5FastClinical, saveSearchAutomatically]);
 
-  // Handle branding selection and proceed with image generation
-  const handleBrandingConfirm = useCallback(async (
-    brandingLevel: BrandingLevel,
-    customBranding: CustomBrandingOptions,
-    practiceContext: any,
-    includeLogo: boolean,
-    layout?: 'portrait' | 'landscape' | 'square' | 'circle',
-    editedDetails?: string[]
-  ) => {
-    if (!pendingImageRequest) {
-      console.error('No pending image request');
-      setShowBrandingDialog(false);
-      return;
-    }
-
-    const {
-      message,
-      imageDetection,
-      assistantMessageId,
-      startTime,
-      userMessage,
-      newMessages,
-      documentContent,
-      imageAttachments,
-    } = pendingImageRequest;
-
-    setShowBrandingDialog(false);
-
-    // Update message to show image generation in progress
-    setMessages(prev => prev.map(msg => 
-      msg.id === assistantMessageId 
-        ? { ...msg, content: '🎨 Generating visual representation...', isStreaming: true }
-        : msg
-    ));
-
-    // Extract context from previous messages
-    const conversationContext = extractImageContext(
-      imageDetection.imagePrompt || message,
-      messages.map(m => ({ role: m.role, content: m.content }))
-    );
-
-    try {
-      const { data, error } = await supabase.functions.invoke('ai4gp-image-generation', {
-        body: {
-          prompt: message,
-          conversationContext,
-          documentContent,
-          imageAttachments,
-          imageModel: imageGenerationModel,
-          layoutPreference: layout || 'portrait',
-          practiceContext: {
-            practiceName: practiceContext?.practiceName,
-            pcnName: practiceContext?.pcnName,
-            organisationType: practiceContext?.organisationType,
-            practiceAddress: practiceContext?.practiceAddress,
-            practicePhone: practiceContext?.practicePhone,
-            practiceEmail: practiceContext?.practiceEmail,
-            practiceWebsite: practiceContext?.practiceWebsite,
-            logoUrl: practiceContext?.logoUrl,
-            // Pass branding options
-            brandingLevel,
-            customBranding,
-            // Pass logo toggle state
-            includeLogo,
-            // Pass edited details (user-edited branding text)
-            editedDetails
-          },
-          requestType: imageDetection.requestType
-        }
-      });
-
-      if (error) {
-        console.error('Image generation error:', error);
-        throw new Error(error.message || 'Image generation failed');
-      }
-
-      if (!data.success) {
-        throw new Error(data.error || 'Image generation failed');
-      }
-
-      const endTime = Date.now();
-      const responseTime = endTime - startTime;
-
-      // Create message with generated image
-      const imageMessage: Message = {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: data.textResponse,
-        timestamp: userMessage.timestamp,
-        isStreaming: false,
-        responseTime,
-        model: imageGenerationModel === 'google/gemini-3-pro-image-preview' ? 'Gemini 3 Pro' : imageGenerationModel === 'google/gemini-2.5-flash-image-preview' ? 'Gemini Flash' : 'GPT Image',
-        generatedImages: [data.image as GeneratedImage]
-      };
-
-      setMessages(prev => prev.map(msg => 
-        msg.id === assistantMessageId ? imageMessage : msg
-      ));
-
-      // Auto-save the search
-      setTimeout(async () => {
-        const finalMessages = [...newMessages, imageMessage];
-        await saveSearchAutomatically(finalMessages);
-      }, 100);
-
-      setIsLoading(false);
-      setPendingImageRequest(null);
-      toast.success('Image generated successfully!');
-
-    } catch (imageError: any) {
-      console.error('Image generation failed:', imageError);
-
-      // Fall back to regular AI response with explanation
-      const fallbackMessage = `I wasn't able to generate an image for that request. ${imageError.message || 'Please try again with a different description.'}\n\nWould you like me to describe the information in text format instead, or would you like to try a different image request?`;
-
-      setMessages(prev => prev.map(msg => 
-        msg.id === assistantMessageId 
-          ? { ...msg, content: fallbackMessage, isStreaming: false }
-          : msg
-      ));
-
-      setIsLoading(false);
-      setPendingImageRequest(null);
-    }
-  }, [pendingImageRequest, messages, saveSearchAutomatically, imageGenerationModel]);
-
-  // Handle branding dialog cancel
-  const handleBrandingCancel = useCallback(() => {
-    if (pendingImageRequest) {
-      const { assistantMessageId } = pendingImageRequest;
-      
-      // Remove the assistant message or show cancelled
-      setMessages(prev => prev.map(msg => 
-        msg.id === assistantMessageId 
-          ? { ...msg, content: 'Image generation cancelled.', isStreaming: false }
-          : msg
-      ));
-    }
-    
-    setShowBrandingDialog(false);
-    setPendingImageRequest(null);
-    setIsLoading(false);
-  }, [pendingImageRequest]);
+  // Note: handleBrandingConfirm and handleBrandingCancel removed
+  // Use Image Studio for image generation with branding options
 
   return {
     messages,
@@ -2062,15 +1686,6 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     hideGPClinical,
     setHideGPClinical,
     imageGenerationModel,
-    setImageGenerationModel,
-    // Image branding dialog
-    showBrandingDialog,
-    setShowBrandingDialog,
-    pendingImageRequest,
-    handleBrandingConfirm,
-    handleBrandingCancel,
-    // Practice logo toggle
-    includePracticeLogo,
-    setIncludePracticeLogo
+    setImageGenerationModel
   };
 };

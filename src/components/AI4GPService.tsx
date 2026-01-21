@@ -39,7 +39,7 @@ import { AI4GPUserGuide } from '@/components/ai4gp/AI4GPUserGuide';
 import { TranslationToolInterface } from '@/components/TranslationToolInterface';
 import { MeetingPreviewDrawer } from '@/components/ai4gp/MeetingPreviewDrawer';
 import { PowerPointGenerationOverlay } from '@/components/PowerPointGenerationOverlay';
-import { ImageBrandingDialog } from '@/components/ai4gp/ImageBrandingDialog';
+
 import { ImageStudioModal } from '@/components/ai4gp/ImageStudioModal';
 import { PresentationStudioModal } from '@/components/ai4gp/PresentationStudioModal';
 
@@ -238,13 +238,6 @@ const AI4GPService = () => {
     setHideGPClinical,
     imageGenerationModel,
     setImageGenerationModel,
-    showBrandingDialog,
-    setShowBrandingDialog,
-    pendingImageRequest,
-    handleBrandingConfirm,
-    handleBrandingCancel,
-    includePracticeLogo,
-    setIncludePracticeLogo
   } = useAI4GPService();
 
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -1019,17 +1012,6 @@ const AI4GPService = () => {
         isFullVersion={isFullPowerPointGenerating}
       />
 
-      {/* Image Branding Dialog */}
-      <ImageBrandingDialog
-        open={showBrandingDialog}
-        onOpenChange={setShowBrandingDialog}
-        practiceContext={practiceContext}
-        onConfirm={(brandingLevel, customBranding, includeLogo, layout, editedDetails) => handleBrandingConfirm(brandingLevel, customBranding, practiceContext, includeLogo, layout, editedDetails)}
-        onCancel={handleBrandingCancel}
-        requestType={pendingImageRequest?.imageDetection?.requestType || 'general'}
-        includePracticeLogo={includePracticeLogo}
-        onLogoToggleChange={setIncludePracticeLogo}
-      />
 
       {/* Prompts Modal */}
       <PromptsModal
