@@ -155,7 +155,7 @@ Be comprehensive but concise. Preserve all important details, dates, figures, an
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "openai/gpt-5-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: chunk }
@@ -438,17 +438,17 @@ serve(async (req) => {
   };
 
   try {
-    // Use GPT-4o-mini directly with streaming for fast, reliable responses
-    console.log(`Starting request with model: gpt-4o-mini, tokens: ${finalMaxTokens}, webSearch: ${searchPerformed}`);
-    const resp = await tryModel("gpt-4o-mini", true);
+    // Use openai/gpt-5-mini directly with streaming for fast, reliable responses
+    console.log(`Starting request with model: openai/gpt-5-mini, tokens: ${finalMaxTokens}, webSearch: ${searchPerformed}`);
+    const resp = await tryModel("openai/gpt-5-mini", true);
 
     if (!resp.ok) {
       const errorText = await resp.text();
-      console.error(`GPT-4o-mini failed:`, errorText);
+      console.error(`openai/gpt-5-mini failed:`, errorText);
       return sseError(`OpenAI API error: ${errorText}`, resp.status);
     }
 
-    console.log(`Successfully got response from gpt-4o-mini`);
+    console.log(`Successfully got response from openai/gpt-5-mini`);
     
     // If web search was performed, prepend a meta message indicating this
     if (searchPerformed) {

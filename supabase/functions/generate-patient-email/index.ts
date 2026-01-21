@@ -185,7 +185,7 @@ Generate ONLY the main letter body content. Do not include greetings, signatures
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'openai/gpt-5-mini',
         messages: [
           {
             role: 'system',

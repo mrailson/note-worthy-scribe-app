@@ -198,7 +198,7 @@ ${plan || 'Not provided'}`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "openai/gpt-5-mini",
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content: userMessage }
