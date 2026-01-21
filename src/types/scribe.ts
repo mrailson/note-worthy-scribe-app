@@ -199,6 +199,8 @@ export interface ScribeSettings {
   chunkDurationSeconds?: number; // Audio chunk duration for transcription (15-60s)
   // Note generation settings
   noteTranscriptSource?: NoteTranscriptSource; // Which transcript to use for generating notes
+  // Copy settings
+  includeNhsDobOnCopy?: boolean; // Prepend NHS number and DOB when copying notes
 }
 
 export interface ScribeTranscriptData {
@@ -330,4 +332,6 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   chunkDurationSeconds: 25, // Default 25 seconds per chunk
   // Note generation settings
   noteTranscriptSource: 'batch', // Default to Batch (Whisper) for better clinical quality
+  // Copy settings
+  includeNhsDobOnCopy: true, // Default to including NHS/DOB on copy for patient safety
 };

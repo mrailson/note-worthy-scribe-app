@@ -31,6 +31,8 @@ interface NarrativeClinicalNoteViewProps {
   patientContext?: PatientContext;
   onReoptimise?: () => Promise<void>;
   isReoptimising?: boolean;
+  includeNhsDobOnCopy?: boolean;
+  onIncludeNhsDobOnCopyChange?: (include: boolean) => void;
 }
 
 // Icon mapping for each section
@@ -54,10 +56,11 @@ export const NarrativeClinicalNoteView = ({
   patientContext,
   onReoptimise,
   isReoptimising = false,
+  includeNhsDobOnCopy = true,
+  onIncludeNhsDobOnCopyChange,
 }: NarrativeClinicalNoteViewProps) => {
   const { tightenNotes, isTightening, qualityGate, resetQualityGate } = useTightenSystmOneNotes();
   const [optimisedNote, setOptimisedNote] = useState<NarrativeClinicalNote | null>(null);
-  const [includePatientHeader, setIncludePatientHeader] = useState(true);
   // Transform the notes to Narrative Clinical format
   const narrativeClinicalNote = useMemo(() => {
     return transformToNarrativeClinical(soapNote || null, heidiNote, { showNotMentioned });
@@ -145,7 +148,7 @@ export const NarrativeClinicalNoteView = ({
     let fullText = getNarrativeClinicalText(displayNote);
     
     // Prepend patient safety header if enabled and patient context available
-    if (includePatientHeader && patientContext) {
+    if (includeNhsDobOnCopy && patientContext) {
       const headerParts: string[] = [];
       
       if (patientContext.nhsNumber) {
@@ -249,8 +252,8 @@ export const NarrativeClinicalNoteView = ({
                 <div className="flex items-center gap-2">
                   <Switch
                     id="include-patient-header"
-                    checked={includePatientHeader}
-                    onCheckedChange={setIncludePatientHeader}
+                    checked={includeNhsDobOnCopy}
+                    onCheckedChange={(checked) => onIncludeNhsDobOnCopyChange?.(checked)}
                     className="scale-90"
                   />
                   <Label 
