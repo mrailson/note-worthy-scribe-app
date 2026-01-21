@@ -8,19 +8,19 @@ import { Bot, Clock, Users, Calendar, TrendingUp, ChevronDown, ChevronUp, Messag
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-type SortField = 'user' | 'gp_genie' | 'pm_genie' | 'patient_line' | 'total' | 'messages' | 'last_active';
+type SortField = 'user' | 'ai4gp' | 'gp_genie' | 'pm_genie' | 'patient_line' | 'total' | 'messages' | 'last_active';
 type SortDirection = 'asc' | 'desc';
 
 interface UserGenieStats {
   user_id: string;
   email: string;
   full_name: string | null;
+  ai4gp_count: number;
   gp_genie_count: number;
   pm_genie_count: number;
   patient_line_count: number;
   total_chats: number;
   total_messages: number;
-  total_duration_seconds: number;
   last_24h: number;
   last_7d: number;
   last_30d: number;
@@ -28,6 +28,7 @@ interface UserGenieStats {
 }
 
 interface SystemStats {
+  ai4gp_total: number;
   gp_genie_total: number;
   pm_genie_total: number;
   patient_line_total: number;
@@ -80,6 +81,7 @@ export const GenieUsageReport = () => {
           aVal = a.full_name || a.email; 
           bVal = b.full_name || b.email; 
           break;
+        case 'ai4gp': aVal = a.ai4gp_count; bVal = b.ai4gp_count; break;
         case 'gp_genie': aVal = a.gp_genie_count; bVal = b.gp_genie_count; break;
         case 'pm_genie': aVal = a.pm_genie_count; bVal = b.pm_genie_count; break;
         case 'patient_line': aVal = a.patient_line_count; bVal = b.patient_line_count; break;
@@ -114,10 +116,26 @@ export const GenieUsageReport = () => {
         return;
       }
 
-      const results = (data || []) as UserGenieStats[];
+      // Map RPC output columns (with out_ prefix) to component interface
+      const results: UserGenieStats[] = (data || []).map((row: any) => ({
+        user_id: row.out_user_id,
+        email: row.out_email,
+        full_name: row.out_full_name,
+        ai4gp_count: row.out_ai4gp_count || 0,
+        gp_genie_count: row.out_gp_genie_count || 0,
+        pm_genie_count: row.out_pm_genie_count || 0,
+        patient_line_count: row.out_patient_line_count || 0,
+        total_chats: row.out_total_chats || 0,
+        total_messages: row.out_total_messages || 0,
+        last_24h: row.out_last_24h || 0,
+        last_7d: row.out_last_7d || 0,
+        last_30d: row.out_last_30d || 0,
+        last_active: row.out_last_active,
+      }));
 
       // Calculate system-wide totals
       const systemStatsCalc: SystemStats = {
+        ai4gp_total: results.reduce((sum, r) => sum + (r.ai4gp_count || 0), 0),
         gp_genie_total: results.reduce((sum, r) => sum + (r.gp_genie_count || 0), 0),
         pm_genie_total: results.reduce((sum, r) => sum + (r.pm_genie_count || 0), 0),
         patient_line_total: results.reduce((sum, r) => sum + (r.patient_line_count || 0), 0),
@@ -137,14 +155,6 @@ export const GenieUsageReport = () => {
     }
   };
 
-  const formatDuration = (seconds: number): string => {
-    if (seconds < 60) return `${seconds}s`;
-    const mins = Math.floor(seconds / 60);
-    if (mins < 60) return `${mins}m`;
-    const hours = Math.floor(mins / 60);
-    const remainingMins = mins % 60;
-    return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
-  };
 
   if (loading) {
     return (
@@ -224,7 +234,11 @@ export const GenieUsageReport = () => {
           <CardTitle className="text-base">Breakdown by Service</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 border rounded-lg">
+              <div className="text-2xl font-bold text-amber-600">{systemStats?.ai4gp_total || 0}</div>
+              <div className="text-sm text-muted-foreground">AI4GP Chat</div>
+            </div>
             <div className="text-center p-3 border rounded-lg">
               <div className="text-2xl font-bold text-purple-600">{systemStats?.gp_genie_total || 0}</div>
               <div className="text-sm text-muted-foreground">GP Genie</div>
@@ -249,6 +263,7 @@ export const GenieUsageReport = () => {
             <TableHeader>
               <TableRow>
                 <SortableHeader field="user">User</SortableHeader>
+                <SortableHeader field="ai4gp" className="text-center">AI4GP</SortableHeader>
                 <SortableHeader field="gp_genie" className="text-center">GP Genie</SortableHeader>
                 <SortableHeader field="pm_genie" className="text-center">PM Genie</SortableHeader>
                 <SortableHeader field="patient_line" className="text-center">Patient Line</SortableHeader>
@@ -260,7 +275,7 @@ export const GenieUsageReport = () => {
             <TableBody>
               {sortedUserStats.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     No Genie chats found
                   </TableCell>
                 </TableRow>
@@ -272,6 +287,13 @@ export const GenieUsageReport = () => {
                         <div className="font-medium">{user.full_name || 'Unnamed User'}</div>
                         <div className="text-xs text-muted-foreground">{user.email}</div>
                       </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.ai4gp_count > 0 ? (
+                        <Badge variant="outline" className="text-amber-600">{user.ai4gp_count}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground">0</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-center">
                       {user.gp_genie_count > 0 ? (
