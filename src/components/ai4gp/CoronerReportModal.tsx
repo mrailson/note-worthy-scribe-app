@@ -160,7 +160,7 @@ export const CoronerReportModal: React.FC<CoronerReportModalProps> = ({
             Coroner's Report Generator
           </DialogTitle>
           <DialogDescription>
-            Select a folder containing case documents (PDF, Word, images) to generate a structured coroner's report.
+            Select a folder containing case documents (PDF, Word, images, TXT, RTF, emails) to generate a structured coroner's report.
           </DialogDescription>
         </DialogHeader>
 
