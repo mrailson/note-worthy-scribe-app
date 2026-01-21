@@ -46,11 +46,12 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
   const [countdown, setCountdown] = useState<number | null>(null);
 
   const handleStartClick = useCallback(() => {
-    // Start countdown, then trigger recording
+    // Start countdown AND connection concurrently
     setCountdown(3);
-  }, []);
+    onStart(); // Start connecting immediately
+  }, [onStart]);
 
-  // Handle countdown timer
+  // Handle countdown timer (visual only now, connection starts immediately)
   useEffect(() => {
     if (countdown === null) return;
 
@@ -60,11 +61,10 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
       }, 1000);
       return () => clearTimeout(timer);
     } else {
-      // Countdown finished, start recording
+      // Countdown finished
       setCountdown(null);
-      onStart();
     }
-  }, [countdown, onStart]);
+  }, [countdown]);
 
   // Render countdown overlay
   if (countdown !== null) {
