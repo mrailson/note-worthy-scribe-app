@@ -8919,19 +8919,19 @@ export type Database = {
       get_genie_usage_report: {
         Args: never
         Returns: {
-          email: string
-          full_name: string
-          gp_genie_count: number
-          last_24h: number
-          last_30d: number
-          last_7d: number
-          last_active: string
-          patient_line_count: number
-          pm_genie_count: number
-          total_chats: number
-          total_duration_seconds: number
-          total_messages: number
-          user_id: string
+          out_ai4gp_count: number
+          out_email: string
+          out_full_name: string
+          out_gp_genie_count: number
+          out_last_24h: number
+          out_last_30d: number
+          out_last_7d: number
+          out_last_active: string
+          out_patient_line_count: number
+          out_pm_genie_count: number
+          out_total_chats: number
+          out_total_messages: number
+          out_user_id: string
         }[]
       }
       get_gp_scribe_stats_by_user: {
