@@ -33,6 +33,7 @@ interface NarrativeClinicalNoteViewProps {
   isReoptimising?: boolean;
   includeNhsDobOnCopy?: boolean;
   onIncludeNhsDobOnCopyChange?: (include: boolean) => void;
+  viewMode?: 'narrativeClinical' | 'systmone';
 }
 
 // Icon mapping for each section
@@ -58,6 +59,7 @@ export const NarrativeClinicalNoteView = ({
   isReoptimising = false,
   includeNhsDobOnCopy = true,
   onIncludeNhsDobOnCopyChange,
+  viewMode = 'narrativeClinical',
 }: NarrativeClinicalNoteViewProps) => {
   const { tightenNotes, isTightening, qualityGate, resetQualityGate } = useTightenSystmOneNotes();
   const [optimisedNote, setOptimisedNote] = useState<NarrativeClinicalNote | null>(null);
@@ -181,20 +183,26 @@ export const NarrativeClinicalNoteView = ({
     );
   }
 
+  // Determine if we're in SystmOne mode (either by prop or by having optimised content)
+  const isInSystmOneMode = viewMode === 'systmone' || isSystmOneOptimised;
+  const needsOptimisation = viewMode === 'systmone' && !isSystmOneOptimised && !optimisedNote;
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <Card className={cn(
         "border-2 bg-gradient-to-br",
-        isSystmOneOptimised 
+        isSystmOneOptimised || optimisedNote
           ? "border-green-200 from-green-50/50 to-transparent" 
-          : "border-primary/20 from-primary/5 to-transparent"
+          : needsOptimisation
+            ? "border-amber-200 from-amber-50/50 to-transparent"
+            : "border-primary/20 from-primary/5 to-transparent"
       )}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <CardTitle className="text-base flex items-center gap-2">
-                {isSystmOneOptimised ? (
+                {isInSystmOneMode ? (
                   <>
                     <SystmOneIcon size="md" />
                     TPP SystmOne View
@@ -210,16 +218,16 @@ export const NarrativeClinicalNoteView = ({
                 <Shield className="h-3 w-3" />
                 H/E/A/I/P
               </Badge>
-              {isSystmOneOptimised && (
+              {(isSystmOneOptimised || optimisedNote) && (
                 <Badge variant="outline" className="text-xs font-normal gap-1 bg-green-50 text-green-700 border-green-200">
                   <Wand2 className="h-3 w-3" />
                   Auto-Optimised
                 </Badge>
               )}
-              {optimisedNote && !isSystmOneOptimised && (
-                <Badge variant="outline" className="text-xs font-normal gap-1 bg-green-50 text-green-700 border-green-200">
-                  <Wand2 className="h-3 w-3" />
-                  Optimised
+              {needsOptimisation && (
+                <Badge variant="outline" className="text-xs font-normal gap-1 bg-amber-50 text-amber-700 border-amber-200">
+                  <AlertTriangle className="h-3 w-3" />
+                  Needs Optimisation
                 </Badge>
               )}
             </div>

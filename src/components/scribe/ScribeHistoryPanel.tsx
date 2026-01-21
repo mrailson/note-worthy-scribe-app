@@ -809,6 +809,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         showNotMentioned={settings.showNotMentioned}
                         onShowNotMentionedChange={handleShowNotMentionedChange}
                         isSystmOneOptimised={false}
+                        viewMode="narrativeClinical"
                         patientContext={currentSession.patientNhsNumber ? {
                           name: currentSession.patientName,
                           nhsNumber: currentSession.patientNhsNumber,
@@ -827,6 +828,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         showNotMentioned={settings.showNotMentioned}
                         onShowNotMentionedChange={handleShowNotMentionedChange}
                         isSystmOneOptimised={!!localSystmOneNote || !!currentSession.systmOneNote || currentSession.isSystmOneOptimised}
+                        viewMode="systmone"
                         patientContext={currentSession.patientNhsNumber ? {
                           name: currentSession.patientName,
                           nhsNumber: currentSession.patientNhsNumber,
