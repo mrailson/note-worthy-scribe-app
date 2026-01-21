@@ -1055,6 +1055,12 @@ const AI4GPService = () => {
         onOpenChange={setShowPresentationStudio}
       />
 
+      {/* Coroner Report Modal */}
+      <CoronerReportModal
+        open={showCoronerReport}
+        onOpenChange={setShowCoronerReport}
+      />
+
     </>
   );
 };
