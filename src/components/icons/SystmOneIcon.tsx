@@ -12,9 +12,9 @@ interface SystmOneIconProps {
  */
 export const SystmOneIcon = ({ className, size = "sm" }: SystmOneIconProps) => {
   const sizeClasses = {
-    sm: "h-3.5 w-auto",
-    md: "h-4 w-auto",
-    lg: "h-5 w-auto"
+    sm: "h-5 w-auto",
+    md: "h-6 w-auto",
+    lg: "h-7 w-auto"
   };
 
   return (
