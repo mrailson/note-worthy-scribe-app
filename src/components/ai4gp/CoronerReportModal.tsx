@@ -32,13 +32,13 @@ import { cn } from '@/lib/utils';
 import { generateWordDocument } from '@/utils/documentGenerators';
 
 interface CoronerReportModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export const CoronerReportModal: React.FC<CoronerReportModalProps> = ({
-  isOpen,
-  onClose,
+  open,
+  onOpenChange,
 }) => {
   const {
     isSupported,
@@ -58,7 +58,7 @@ export const CoronerReportModal: React.FC<CoronerReportModalProps> = ({
     reset();
     setAdditionalContext('');
     setGeneratedReport(null);
-    onClose();
+    onOpenChange(false);
   };
 
   const handleGenerateReport = async () => {
@@ -136,7 +136,7 @@ export const CoronerReportModal: React.FC<CoronerReportModalProps> = ({
   const progress = totalCount > 0 ? (parsedCount / totalCount) * 100 : 0;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
