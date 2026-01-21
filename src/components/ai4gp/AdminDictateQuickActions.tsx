@@ -114,7 +114,7 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
             Get ready...
           </span>
           <span className="text-sm text-muted-foreground">
-            Recording starts in {countdown} second{countdown !== 1 ? 's' : ''}
+            Listening starts in {countdown} second{countdown !== 1 ? 's' : ''}
           </span>
         </div>
       </div>
@@ -133,7 +133,7 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
             className="gap-2 min-w-[140px]"
           >
             <MicOff className="w-4 h-4" />
-            Stop Recording
+            Stop
           </Button>
         ) : (
           <Button
@@ -154,17 +154,17 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
             ) : (
               <>
                 <Mic className="w-4 h-4" />
-                {hasContent ? 'Continue' : 'Start Recording'}
+                {hasContent ? 'Continue' : 'Start Listening'}
               </>
             )}
           </Button>
         )}
 
-        {/* Recording indicator */}
+        {/* Listening indicator */}
         {isRecording && (
-          <div className="flex items-center gap-2 text-red-600">
-            <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
-            <span className="text-sm font-medium">Recording</span>
+          <div className="flex items-center gap-2 text-primary">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+            <span className="text-sm font-medium">Listening...</span>
           </div>
         )}
       </div>
@@ -213,7 +213,7 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
           </PopoverTrigger>
           <PopoverContent align="end" className="w-64">
             <div className="space-y-4">
-              <h4 className="font-medium text-sm">Recording Settings</h4>
+              <h4 className="font-medium text-sm">Dictation Settings</h4>
               
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">

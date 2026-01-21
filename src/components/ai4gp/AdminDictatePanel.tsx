@@ -66,8 +66,8 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
             <Mic className="w-5 h-5 text-primary" />
             <CardTitle className="text-lg">Admin Dictate</CardTitle>
             {isRecording && (
-              <Badge variant="destructive" className="animate-pulse">
-                Recording
+              <Badge variant="secondary" className="animate-pulse bg-primary/10 text-primary border-primary/20">
+                Listening
               </Badge>
             )}
           </div>
