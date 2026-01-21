@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std/http/server.ts";
 
-// Force redeploy to pick up updated OPENAI_API_KEY - v5 with document chunking
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-const OPENAI_ORG = Deno.env.get("OPENAI_ORG") ?? "";
+// v6: Route all LLM calls through Lovable AI Gateway (no OPENAI_API_KEY required)
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY");
 
 const cors = {
@@ -148,14 +147,19 @@ async function summariseChunk(chunk: string, chunkIndex: number, totalChunks: nu
 Focus on key points relevant to this query: "${userQuery}"
 Be comprehensive but concise. Preserve all important details, dates, figures, and requirements.`;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  if (!LOVABLE_API_KEY) {
+    throw new Error('LOVABLE_API_KEY not configured');
+  }
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      // Fast + cheap summarisation model
+      model: "google/gemini-2.5-flash-lite",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: chunk }
@@ -284,9 +288,9 @@ serve(async (req) => {
       status
     });
 
-  if (!OPENAI_API_KEY) {
-    console.error('CRITICAL: OPENAI_API_KEY environment variable is not set');
-    return sseError("OpenAI API key not configured.", 500);
+  if (!LOVABLE_API_KEY) {
+    console.error('CRITICAL: LOVABLE_API_KEY environment variable is not set');
+    return sseError("Lovable AI key not configured.", 500);
   }
 
   let body: any;
@@ -399,20 +403,37 @@ serve(async (req) => {
   const { maxTokens: detectedMaxTokens } = detectContentType(messages);
   const finalMaxTokens = max_tokens || detectedMaxTokens;
 
+  const resolveGatewayModel = (m?: string): string => {
+    // Client sometimes sends stable aliases; map them to Lovable gateway models
+    const input = (m || '').trim();
+    if (!input) return 'openai/gpt-5-mini';
+
+    // Legacy / alias mapping
+    if (input === 'gpt-5') return 'openai/gpt-5';
+    if (input === 'gpt-5-mini' || input === 'gpt-5-instant') return 'openai/gpt-5-mini';
+    if (input === 'gpt-5-nano') return 'openai/gpt-5-nano';
+
+    // Already a gateway model
+    if (input.startsWith('openai/') || input.startsWith('google/')) return input;
+
+    // Safe default
+    return 'openai/gpt-5-mini';
+  };
+
   const tryModel = async (m: string, stream: boolean) => {
+    const gatewayModel = resolveGatewayModel(m);
     const requestBody: Record<string, any> = {
-      model: m,
+      model: gatewayModel,
       messages: chatMessages,
       stream,
       max_tokens: finalMaxTokens,
-      temperature: 0.2
+      // Avoid sending unsupported params for some models (e.g. GPT-5 variants)
     };
 
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
       "Content-Type": "application/json",
     };
-    if (OPENAI_ORG) headers["OpenAI-Organization"] = OPENAI_ORG;
 
     // Much shorter timeout to prevent hanging
     const controller = new AbortController();
@@ -422,7 +443,7 @@ serve(async (req) => {
     }, 15000); // 15 second timeout
 
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers,
         body: JSON.stringify(requestBody),
@@ -438,17 +459,19 @@ serve(async (req) => {
   };
 
   try {
-    // Use GPT-4o-mini directly with streaming for fast, reliable responses
-    console.log(`Starting request with model: gpt-4o-mini, tokens: ${finalMaxTokens}, webSearch: ${searchPerformed}`);
-    const resp = await tryModel("gpt-4o-mini", true);
+    // Prefer GPT-5-mini via Lovable Gateway for fast, high-quality output
+    const requestedModel = model;
+    const resolvedModel = (requestedModel || 'openai/gpt-5-mini');
+    console.log(`Starting request with model: ${resolvedModel}, tokens: ${finalMaxTokens}, webSearch: ${searchPerformed}`);
+    const resp = await tryModel(resolvedModel, true);
 
     if (!resp.ok) {
       const errorText = await resp.text();
-      console.error(`GPT-4o-mini failed:`, errorText);
-      return sseError(`OpenAI API error: ${errorText}`, resp.status);
+      console.error(`Model failed:`, errorText);
+      return sseError(`AI API error: ${errorText}`, resp.status);
     }
 
-    console.log(`Successfully got response from gpt-4o-mini`);
+    console.log(`Successfully got response from AI gateway`);
     
     // If web search was performed, prepend a meta message indicating this
     if (searchPerformed) {
