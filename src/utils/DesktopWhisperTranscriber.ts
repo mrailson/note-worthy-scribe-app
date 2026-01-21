@@ -64,6 +64,12 @@ export class DesktopWhisperTranscriber {
   private readonly SILENCE_DURATION_MS = 1500; // 1.5 seconds of silence triggers flush
   private readonly MIN_CHUNK_DURATION_MS = 2000; // Minimum 2 seconds before flushing
   
+  // Extended silence detection for auto-stop (20 minutes of no speech activity)
+  private readonly SILENCE_AUTO_STOP_MS = 20 * 60 * 1000; // 20 minutes
+  private extendedSilenceCheckInterval: NodeJS.Timeout | null = null;
+  private lastTranscriptActivityTime = 0;
+  public onSilenceAutoStop?: () => void;
+  
   // Web Worker-based chunk timing (resistant to background throttling)
   private chunkTimerWorker: Worker | null = null;
   private chunkTimerWorkerBlobUrl: string | null = null;
@@ -100,6 +106,9 @@ export class DesktopWhisperTranscriber {
   private startActivityMonitoring() {
     if (!this.analyser) return;
     
+    // Initialize transcript activity time
+    this.lastTranscriptActivityTime = Date.now();
+    
     const bufferLength = this.analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
     
@@ -135,6 +144,19 @@ export class DesktopWhisperTranscriber {
         this.onAudioActivity(this.isSpeaking);
       }
     }, 100); // Check every 100ms
+    
+    // Start extended silence check for auto-stop (checks every 60 seconds)
+    this.extendedSilenceCheckInterval = setInterval(() => {
+      if (!this.isRecording) return;
+      
+      const silenceDuration = Date.now() - this.lastTranscriptActivityTime;
+      if (silenceDuration > this.SILENCE_AUTO_STOP_MS) {
+        console.warn(`⚠️ 20 minutes of inactivity detected (${Math.round(silenceDuration / 60000)} min) - triggering auto-stop`);
+        if (this.onSilenceAutoStop) {
+          this.onSilenceAutoStop();
+        }
+      }
+    }, 60000); // Check every minute
   }
   
   /**
@@ -195,6 +217,10 @@ export class DesktopWhisperTranscriber {
     if (this.silenceTimer) {
       clearTimeout(this.silenceTimer);
       this.silenceTimer = null;
+    }
+    if (this.extendedSilenceCheckInterval) {
+      clearInterval(this.extendedSilenceCheckInterval);
+      this.extendedSilenceCheckInterval = null;
     }
     if (this.audioContext) {
       this.audioContext.close();
@@ -891,6 +917,9 @@ export class DesktopWhisperTranscriber {
         // Always send transcription to UI for better user experience
         console.log('✅ Desktop transcription sent to UI:', cleanText);
         this.onTranscription(transcriptData);
+        
+        // Update activity timestamp for silence auto-stop detection
+        this.lastTranscriptActivityTime = Date.now();
         
         // Notify watchdog that a chunk was successfully processed
         if (this.onChunkProcessed) {
