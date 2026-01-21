@@ -706,6 +706,11 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         showNotMentioned={settings.showNotMentioned}
                         onShowNotMentionedChange={handleShowNotMentionedChange}
                         isSystmOneOptimised={false}
+                        patientContext={currentSession.patientNhsNumber ? {
+                          name: currentSession.patientName,
+                          nhsNumber: currentSession.patientNhsNumber,
+                          dateOfBirth: currentSession.patientDob
+                        } : undefined}
                       />
                     )}
 
@@ -717,6 +722,11 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                         showNotMentioned={settings.showNotMentioned}
                         onShowNotMentionedChange={handleShowNotMentionedChange}
                         isSystmOneOptimised={!!currentSession.systmOneNote || currentSession.isSystmOneOptimised}
+                        patientContext={currentSession.patientNhsNumber ? {
+                          name: currentSession.patientName,
+                          nhsNumber: currentSession.patientNhsNumber,
+                          dateOfBirth: currentSession.patientDob
+                        } : undefined}
                       />
                     )}
 
