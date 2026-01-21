@@ -457,7 +457,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
       handleClearAll();
       onOpenChange(false);
       
-      navigate('/meetings');
+      navigate('/?tab=history');
 
     } catch (error: any) {
       console.error('Error creating meeting:', error);
