@@ -349,9 +349,13 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
         .map(f => `[${f.name}]:\n${f.content}`)
         .join('\n\n');
 
+      // Send BOTH transcripts for Best-of-Both merge when available
+      console.log(`📝 Using Best-of-Both: Whisper=${whisperTranscript.length} chars, AssemblyAI=${assemblyTranscript.length} chars`);
+      
       const { data, error } = await supabase.functions.invoke('generate-scribe-notes', {
         body: { 
-          transcript: transcriptForSave,
+          batchTranscript: whisperTranscript,
+          liveTranscript: assemblyTranscript,
           consultationType,
           outputFormat: 'heidi',
           noteFormat: settings.noteFormat,

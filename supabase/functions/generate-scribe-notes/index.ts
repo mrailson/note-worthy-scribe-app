@@ -15,7 +15,9 @@ serve(async (req) => {
 
   try {
     const { 
-      transcript, 
+      transcript,           // Legacy: single transcript (for backwards compatibility)
+      batchTranscript,      // NEW: Whisper transcript
+      liveTranscript,       // NEW: AssemblyAI transcript
       consultationType = 'f2f', 
       outputFormat = 'heidi', 
       detailLevel = 3,
@@ -24,14 +26,20 @@ serve(async (req) => {
       includeExpandedSummary = false
     } = await req.json();
 
-    if (!transcript || typeof transcript !== 'string') {
+    // Determine transcript source mode
+    const hasBothTranscripts = batchTranscript?.trim() && liveTranscript?.trim();
+    const singleTranscript = transcript?.trim() || batchTranscript?.trim() || liveTranscript?.trim();
+
+    if (!hasBothTranscripts && !singleTranscript) {
       return new Response(
-        JSON.stringify({ error: 'Invalid transcript provided' }),
+        JSON.stringify({ error: 'No transcript provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Generating ${noteFormat} notes for ${consultationType} consultation, detail level: ${detailLevel}, transcript length: ${transcript.length} chars, expanded summary: ${includeExpandedSummary}`);
+    const mode = hasBothTranscripts ? 'best-of-both' : 'single-source';
+    console.log(`Mode: ${mode}, Batch: ${batchTranscript?.length || 0} chars, Live: ${liveTranscript?.length || 0} chars, Single: ${singleTranscript?.length || 0} chars`);
+    console.log(`Generating ${noteFormat} notes for ${consultationType} consultation, detail level: ${detailLevel}, expanded summary: ${includeExpandedSummary}`);
 
     const consultationTypeLabel = {
       'f2f': 'F2F',
@@ -50,7 +58,127 @@ serve(async (req) => {
 
     const detailInstruction = detailLevelInstructions[detailLevel] || detailLevelInstructions[3];
 
-    // Notewell foundational principles - shared across all formats
+    // ═══════════════════════════════════════════════════════════════
+    // BEST-OF-BOTH SYSTEM PROMPT (for dual transcripts)
+    // ═══════════════════════════════════════════════════════════════
+    const bestOfBothPrinciples = `You are Notewell, an AI clinical documentation assistant supporting UK NHS primary care clinicians.
+
+Your task is to produce a defensible medico-legal clinical note by CROSS-VALIDATING two imperfect transcripts of the SAME consultation.
+
+INPUT TRANSCRIPTS:
+- batchTranscript: Whisper (Batch) — often better wording, may miss content
+- liveTranscript: AssemblyAI (Live) — more complete, may contain errors, repetition, or paraphrase
+
+NEITHER transcript is authoritative on its own.
+
+════════════════════════════════════════════════════
+ABSOLUTE NON-NEGOTIABLE PRINCIPLES
+════════════════════════════════════════════════════
+
+1) FAITHFULNESS OVER COMPLETENESS
+   - Only include information explicitly stated in at least ONE transcript
+   - If uncertain, OMIT — do not hedge, do not guess
+
+2) MEDICOLEGAL SAFETY
+   - NEVER assert negatives unless explicitly stated
+   - FORBIDDEN: "No known", "Denies", "Nil", "None", "Not mentioned", "Not documented"
+   - Absence of discussion = omission, not documentation
+
+3) NO CLINICAL INTERPRETATION
+   - Do not infer diagnoses, differentials, or clinical reasoning
+   - Use symptom/problem wording unless a diagnosis was explicitly stated
+
+4) MEDICATION SAFETY
+   - Do NOT invent dose, route, frequency, or duration
+   - Record medications ONLY as stated
+   - Never infer diagnoses from medications
+
+5) UK GP STANDARDS
+   - British English
+   - NHS-appropriate terminology
+   - Concise, professional GP record style
+
+════════════════════════════════════════════════════
+MANDATORY BEST-OF-BOTH REASONING PROCESS
+════════════════════════════════════════════════════
+
+You MUST perform the following internally before writing the note:
+
+STEP 1 — Evidence Extraction
+Extract atomic factual statements from BOTH transcripts:
+- Symptoms and durations
+- Patient quotes where relevant
+- PMH, PSH, FH, SH, DH
+- Examination findings
+- Investigation results vs plans
+- Referrals, follow-up, safety-netting
+
+STEP 2 — Evidence Classification
+Classify each fact as:
+A) CONFIRMED — clearly present in BOTH transcripts
+B) SINGLE-SOURCE CLEAR — present in ONE transcript, coherent, and clearly transcription (not inference)
+C) CONFLICTED / UNCERTAIN — contradictory, garbled, or unclear
+
+STEP 3 — Inclusion Rules
+- Include A) always
+- Include B) only if:
+  • wording is clear
+  • not contradicted elsewhere
+  • does not require inference
+- EXCLUDE C) entirely
+
+STEP 4 — Conflict Resolution Priority
+When wording differs:
+1) Prefer clearer grammar and complete sentences
+2) Prefer correct medical terminology
+3) Prefer wording consistent with surrounding context
+4) If still uncertain → OMIT
+
+STEP 5 — Noise Removal
+- Remove repetition, false starts, ASR artefacts
+- Remove clinician "thinking aloud" unless it forms an explicit plan
+- Do NOT merge contradictory conversational phrasing
+
+DO NOT OUTPUT A MERGED TRANSCRIPT.
+ONLY OUTPUT THE FINAL CLINICAL NOTE.
+
+════════════════════════════════════════════════════
+SELF-HARM & RISK DOCUMENTATION
+════════════════════════════════════════════════════
+
+When self-harm or suicidal ideation is discussed:
+- Clearly distinguish: non-suicidal self-harm vs suicidal thoughts vs intent
+- Record protective factors only if explicitly stated
+- Include crisis/safety-net advice only if given
+- Do NOT risk-score or escalate beyond the consultation content
+- Do NOT imply completion of formal risk assessments unless explicitly stated
+
+════════════════════════════════════════════════════
+WHAT YOU MUST NEVER DO
+════════════════════════════════════════════════════
+
+❌ Add diagnoses not explicitly made by the clinician
+❌ Document absent findings or assert negatives
+❌ Imply completion of formal assessments unless stated
+❌ Introduce clinical reasoning not verbalised
+❌ Convert summaries into retrospective clinical interpretation
+❌ Write "not mentioned", "not documented", "nil", "none", or similar
+❌ Generate safety-netting advice that was not given
+❌ Fabricate any clinical information not in either transcript
+
+════════════════════════════════════════════════════
+FINAL VALIDATION CHECK (MANDATORY)
+════════════════════════════════════════════════════
+
+Before outputting, confirm:
+✓ The note could be safely read in court
+✓ The clinician could confidently defend every line
+✓ Nothing appears that the GP did not say, assess, or agree
+✓ Every item maps to transcript evidence
+
+When in doubt: Accuracy > completeness, Safety > polish`;
+
+    // Single-source Notewell principles (original)
     const notewellPrinciples = `You are Notewell, an AI clinical documentation assistant supporting UK NHS primary care clinicians.
 
 Your purpose is to transform a consultation transcript into a defensible medico-legal clinical record.
@@ -127,9 +255,11 @@ Before outputting, confirm:
 
 When in doubt: Accuracy > completeness, Safety > polish`;
 
-    // Heidi-style format prompt
-    const heidiSystemPrompt = `${notewellPrinciples}
+    // Select the appropriate principles based on mode
+    const activePrinciples = hasBothTranscripts ? bestOfBothPrinciples : notewellPrinciples;
 
+    // Heidi-style format prompt
+    const heidiFormatPrompt = `
 This is a ${consultationTypeLabel} consultation.
 
 VERBOSITY LEVEL: ${detailInstruction}
@@ -182,11 +312,11 @@ Guidelines:
 - Adjust verbosity according to the detail level instruction above
 - Use standard medical abbreviations (HPC, PMH, PSH, DH, SH, FH, O/E, Ix, Rx, F/U, SOB, etc.)
 - Empty sections should have empty strings - NEVER use "none", "not mentioned", "not documented", or similar
-- Format for easy reading in EMR systems`;
+- Format for easy reading in EMR systems
+- If conflicted between sources, OMIT rather than qualify`;
 
-    // SOAP format prompt with Notewell principles
-    const soapSystemPrompt = `${notewellPrinciples}
-
+    // SOAP format prompt
+    const soapFormatPrompt = `
 This is a ${consultationType === 'f2f' ? 'face to face' : consultationType} consultation.
 
 VERBOSITY LEVEL: ${detailInstruction}
@@ -231,9 +361,32 @@ Guidelines:
 - Use British English spelling and NHS terminology
 - Use standard medical abbreviations
 - Empty sections should have empty strings - NEVER use placeholder text like "none" or "not mentioned"
-- Adjust verbosity according to the detail level instruction above`;
+- Adjust verbosity according to the detail level instruction above
+- If conflicted between sources, OMIT rather than qualify`;
 
-    const systemPrompt = noteFormat === 'heidi' ? heidiSystemPrompt : soapSystemPrompt;
+    // Combine principles with format prompt
+    const systemPrompt = activePrinciples + (noteFormat === 'heidi' ? heidiFormatPrompt : soapFormatPrompt);
+
+    // Build user prompt based on mode
+    let userPrompt: string;
+    if (hasBothTranscripts) {
+      userPrompt = `Please analyse these TWO consultation transcripts and generate clinical notes using the Best-of-Both merge method.
+
+=== BATCH TRANSCRIPT (Whisper) ===
+${batchTranscript}
+
+=== LIVE TRANSCRIPT (AssemblyAI) ===
+${liveTranscript}
+
+${contextContent ? `\nADDITIONAL CLINICAL CONTEXT PROVIDED:\n${contextContent}` : ''}
+
+Remember: Cross-validate BOTH sources. Include facts that appear clearly in at least ONE source. OMIT anything conflicted or uncertain. NEVER assert negatives.`;
+    } else {
+      userPrompt = `Please analyse this consultation transcript and generate clinical notes. Remember: ONLY include information explicitly stated in the transcript. Leave sections blank if information was not mentioned. NEVER assert negatives or comment on absent information.
+
+TRANSCRIPT:
+${singleTranscript}${contextContent ? `\n\nADDITIONAL CLINICAL CONTEXT PROVIDED:\n${contextContent}` : ''}`;
+    }
 
     // Main clinical record generation
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -246,7 +399,7 @@ Guidelines:
         model: 'gpt-4o',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Please analyse this consultation transcript and generate clinical notes. Remember: ONLY include information explicitly stated in the transcript. Leave sections blank if information was not mentioned. NEVER assert negatives or comment on absent information.\n\nTRANSCRIPT:\n${transcript}${contextContent ? `\n\nADDITIONAL CLINICAL CONTEXT PROVIDED:\n${contextContent}` : ''}` }
+          { role: 'user', content: userPrompt }
         ],
         response_format: { type: "json_object" },
         max_tokens: 3000,
@@ -270,6 +423,15 @@ Guidelines:
       // Ensure format field is set
       parsedContent.noteFormat = noteFormat;
       
+      // Add merge mode metadata
+      parsedContent.mergeMode = mode;
+      if (hasBothTranscripts) {
+        parsedContent.transcriptStats = {
+          batchWords: batchTranscript.trim().split(/\s+/).filter((w: string) => w.length > 0).length,
+          liveWords: liveTranscript.trim().split(/\s+/).filter((w: string) => w.length > 0).length
+        };
+      }
+      
       // For Heidi format, also generate SOAP mapping for backwards compatibility
       if (noteFormat === 'heidi' && parsedContent.history) {
         parsedContent.S = parsedContent.history;
@@ -288,6 +450,7 @@ Guidelines:
         impression: '',
         plan: '',
         noteFormat: 'heidi',
+        mergeMode: mode,
         S: content,
         O: '',
         A: '',
@@ -299,6 +462,7 @@ Guidelines:
         A: '',
         P: '',
         noteFormat: 'soap',
+        mergeMode: mode,
         snomedCodes: []
       };
     }
@@ -307,6 +471,10 @@ Guidelines:
     if (includeExpandedSummary) {
       console.log('Generating expanded AI clinical summary...');
       try {
+        const expandedTranscript = hasBothTranscripts 
+          ? `BATCH TRANSCRIPT:\n${batchTranscript}\n\nLIVE TRANSCRIPT:\n${liveTranscript}`
+          : singleTranscript;
+          
         const expandedResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -338,7 +506,7 @@ Generate a clear, readable narrative summary of this consultation that could be 
               },
               { 
                 role: 'user', 
-                content: `Generate an expanded clinical summary based on this consultation.\n\nTRANSCRIPT:\n${transcript}${contextContent ? `\n\nADDITIONAL CONTEXT:\n${contextContent}` : ''}` 
+                content: `Generate an expanded clinical summary based on this consultation.\n\nTRANSCRIPT:\n${expandedTranscript}${contextContent ? `\n\nADDITIONAL CONTEXT:\n${contextContent}` : ''}` 
               }
             ],
             max_tokens: 1500,
@@ -357,7 +525,7 @@ Generate a clear, readable narrative summary of this consultation that could be 
       }
     }
 
-    console.log(`Successfully generated ${noteFormat} notes${includeExpandedSummary ? ' with expanded summary' : ''}`);
+    console.log(`Successfully generated ${noteFormat} notes using ${mode} mode${includeExpandedSummary ? ' with expanded summary' : ''}`);
 
     return new Response(JSON.stringify(parsedContent), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
