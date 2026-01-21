@@ -30,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { generateWordDocument } from '@/utils/documentGenerators';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 
 interface CoronerReportModalProps {
   open: boolean;
@@ -297,10 +298,13 @@ export const CoronerReportModal: React.FC<CoronerReportModalProps> = ({
                 </div>
               </div>
               
-              <ScrollArea className="flex-1 border rounded-lg p-4 bg-muted/30">
-                <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                  {generatedReport}
-                </div>
+              <ScrollArea className="h-[50vh] border rounded-lg p-4 bg-muted/30">
+                <div 
+                  className="prose prose-sm dark:prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ 
+                    __html: renderNHSMarkdown(generatedReport || '', { enableNHSStyling: true }) 
+                  }}
+                />
               </ScrollArea>
             </>
           )}
