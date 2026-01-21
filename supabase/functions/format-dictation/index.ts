@@ -430,8 +430,8 @@ Deno.serve(async (req) => {
     if (lovableKey) {
       endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
       authKey = lovableKey;
-      model = "openai/gpt-4o-mini";
-      console.log("🔑 Using Lovable AI Gateway for dictation formatting");
+      model = "google/gemini-3-flash-preview";
+      console.log("🔑 Using Lovable AI Gateway (Gemini 3 Flash) for dictation formatting");
     } else if (openaiKey) {
       endpoint = "https://api.openai.com/v1/chat/completions";
       authKey = openaiKey;
