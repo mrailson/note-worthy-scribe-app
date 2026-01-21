@@ -8916,6 +8916,24 @@ export type Database = {
           title: string
         }[]
       }
+      get_genie_usage_report: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          gp_genie_count: number
+          last_24h: number
+          last_30d: number
+          last_7d: number
+          last_active: string
+          patient_line_count: number
+          pm_genie_count: number
+          total_chats: number
+          total_duration_seconds: number
+          total_messages: number
+          user_id: string
+        }[]
+      }
       get_gp_scribe_stats_by_user: {
         Args: never
         Returns: {
@@ -8928,6 +8946,22 @@ export type Database = {
           today_count: number
           total_duration_seconds: number
           total_words: number
+          user_id: string
+        }[]
+      }
+      get_image_usage_report: {
+        Args: never
+        Returns: {
+          email: string
+          full_name: string
+          image_studio_count: number
+          infographic_count: number
+          last_24h: number
+          last_30d: number
+          last_7d: number
+          last_generated: string
+          quick_pick_count: number
+          total_images: number
           user_id: string
         }[]
       }
@@ -9112,6 +9146,21 @@ export type Database = {
           mic_test_service_access: boolean
           role: Database["public"]["Enums"]["app_role"]
           shared_drive_access: boolean
+          user_id: string
+        }[]
+      }
+      get_presentation_usage_report: {
+        Args: never
+        Returns: {
+          avg_slides_per_presentation: number
+          email: string
+          full_name: string
+          last_24h: number
+          last_30d: number
+          last_7d: number
+          last_created: string
+          total_presentations: number
+          total_slides: number
           user_id: string
         }[]
       }
