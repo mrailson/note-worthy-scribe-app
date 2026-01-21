@@ -2642,6 +2642,16 @@ export const MeetingRecorder = ({
       selectedMicrophoneId // Pass selected microphone device
     );
 
+    // Connect silence auto-stop callback (20 min inactivity protection)
+    transcriber.onSilenceAutoStop = () => {
+      console.warn('⚠️ 20 minutes of inactivity detected - auto-stopping recording');
+      showToast.warning('Recording stopped due to 20 minutes of inactivity', { 
+        section: 'meeting_manager',
+        duration: 10000 
+      });
+      stopRecording();
+    };
+
     await transcriber.startTranscription();
     desktopTranscriberRef.current = transcriber;
     
