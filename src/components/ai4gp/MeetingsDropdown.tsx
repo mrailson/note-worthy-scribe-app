@@ -258,7 +258,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
 
   const handleMeetingClick = (meeting: any, event: React.MouseEvent) => {
     event.preventDefault();
-    navigate('/meetings', { state: { scrollToMeetingId: meeting.id } });
+    navigate('/?tab=history', { state: { scrollToMeetingId: meeting.id } });
   };
 
   const handleEditMeeting = (meeting: any, event: React.MouseEvent) => {

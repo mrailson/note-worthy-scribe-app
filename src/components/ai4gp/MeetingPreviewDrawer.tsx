@@ -90,7 +90,7 @@ export const MeetingPreviewDrawer = ({ meetingId, open, onOpenChange }: MeetingP
 
   const handleOpenFullMeeting = () => {
     onOpenChange(false);
-    navigate(`/meeting-summary/${meetingId}`);
+    navigate('/?tab=history', { state: { scrollToMeetingId: meetingId } });
   };
 
   const handleOverviewChange = (newOverview: string) => {
