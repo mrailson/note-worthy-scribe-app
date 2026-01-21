@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Copy, ClipboardList, Stethoscope, Brain, Activity, ListChecks, Shield, EyeOff, Wand2, Check, AlertTriangle, Loader2 } from "lucide-react";
-import { SOAPNote, HeidiNote } from "@/types/scribe";
+import { Copy, ClipboardList, Stethoscope, Brain, Activity, ListChecks, Shield, EyeOff, Wand2, Check, AlertTriangle, Loader2, UserCheck } from "lucide-react";
+import { SOAPNote, HeidiNote, PatientContext } from "@/types/scribe";
 import { 
   transformToNarrativeClinical, 
   getNarrativeClinicalText, 
@@ -28,6 +28,7 @@ interface NarrativeClinicalNoteViewProps {
   onSectionChange?: (sectionKey: string, newContent: string) => void;
   consultationId?: string;
   isSystmOneOptimised?: boolean;
+  patientContext?: PatientContext;
 }
 
 // Icon mapping for each section
@@ -48,10 +49,11 @@ export const NarrativeClinicalNoteView = ({
   onSectionChange,
   consultationId,
   isSystmOneOptimised = false,
+  patientContext,
 }: NarrativeClinicalNoteViewProps) => {
   const { tightenNotes, isTightening, qualityGate, resetQualityGate } = useTightenSystmOneNotes();
   const [optimisedNote, setOptimisedNote] = useState<NarrativeClinicalNote | null>(null);
-
+  const [includePatientHeader, setIncludePatientHeader] = useState(true);
   // Transform the notes to Narrative Clinical format
   const narrativeClinicalNote = useMemo(() => {
     return transformToNarrativeClinical(soapNote || null, heidiNote, { showNotMentioned });
@@ -136,7 +138,25 @@ export const NarrativeClinicalNoteView = ({
   };
 
   const copyAll = () => {
-    const fullText = getNarrativeClinicalText(displayNote);
+    let fullText = getNarrativeClinicalText(displayNote);
+    
+    // Prepend patient safety header if enabled and patient context available
+    if (includePatientHeader && patientContext) {
+      const headerParts: string[] = [];
+      
+      if (patientContext.nhsNumber) {
+        headerParts.push(`NHS: ${patientContext.nhsNumber}`);
+      }
+      if (patientContext.dateOfBirth) {
+        headerParts.push(`DOB: ${patientContext.dateOfBirth}`);
+      }
+      
+      if (headerParts.length > 0) {
+        const patientHeader = headerParts.join(' | ');
+        fullText = `${patientHeader}\n\n${fullText}`;
+      }
+    }
+    
     navigator.clipboard.writeText(fullText);
     toast.success("Full note copied to clipboard");
   };
@@ -197,6 +217,25 @@ export const NarrativeClinicalNoteView = ({
               )}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Patient Safety Header Toggle */}
+              {patientContext?.nhsNumber && (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="include-patient-header"
+                    checked={includePatientHeader}
+                    onCheckedChange={setIncludePatientHeader}
+                    className="scale-90"
+                  />
+                  <Label 
+                    htmlFor="include-patient-header" 
+                    className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1"
+                  >
+                    <UserCheck className="h-3 w-3" />
+                    NHS/DOB on Copy
+                  </Label>
+                </div>
+              )}
+              
               {/* Show Not Discussed Toggle */}
               {onShowNotMentionedChange && (
                 <div className="flex items-center gap-2">
@@ -215,8 +254,6 @@ export const NarrativeClinicalNoteView = ({
                   </Label>
                 </div>
               )}
-              
-              {/* Optimise / Revert Buttons - hidden since auto-optimisation is now automatic */}
               
               <Button variant="ghost" size="sm" onClick={copyAll}>
                 <Copy className="h-3 w-3 mr-1" /> Copy All
