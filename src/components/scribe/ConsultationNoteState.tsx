@@ -370,7 +370,7 @@ export const ConsultationNoteState = ({
         </Card>
       ) : (
         <ScrollArea className={isMobile ? 'h-[calc(100vh-320px)]' : ''}>
-          {viewMode === 'narrativeClinical' ? (
+        {viewMode === 'narrativeClinical' ? (
             <NarrativeClinicalNoteView
               soapNote={consultationNote.soapNote}
               heidiNote={consultationNote.heidiNote}
@@ -380,6 +380,7 @@ export const ConsultationNoteState = ({
               onSectionChange={onNarrativeSectionChange}
               consultationId={consultationId}
               isSystmOneOptimised={false}
+              patientContext={patientContext}
             />
           ) : viewMode === 'systmone' ? (
             <NarrativeClinicalNoteView
@@ -390,6 +391,7 @@ export const ConsultationNoteState = ({
               editable={false}
               consultationId={consultationId}
               isSystmOneOptimised={!!consultationNote.systmOneNote}
+              patientContext={patientContext}
             />
           ) : viewMode === 'emis' ? (
             <EmisNoteView
