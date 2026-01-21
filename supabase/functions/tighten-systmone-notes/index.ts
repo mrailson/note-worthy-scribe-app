@@ -203,7 +203,8 @@ ${plan || 'Not provided'}`;
               { role: "system", content: SYSTEM_PROMPT },
               { role: "user", content: userMessage }
             ],
-            max_tokens: 4000,
+            // GPT-5 models use `max_completion_tokens` (not `max_tokens`).
+            max_completion_tokens: 4000,
           }),
         });
 
