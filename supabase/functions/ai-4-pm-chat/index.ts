@@ -125,6 +125,7 @@ interface RequestBody {
   systemPrompt: string;
   files?: UploadedFile[];
   verificationLevel?: string;
+  stream?: boolean;
 }
 
 // Helper function to extract text content from files
@@ -1184,6 +1185,87 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   return cleanBNFOutput(responseContent);
 }
 
+// Streaming version of Lovable AI Gateway function - returns Response with SSE stream
+async function callLovableAIGatewayStreaming(messages: Message[], systemPrompt: string, model: string, files?: UploadedFile[]): Promise<Response> {
+  const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!lovableApiKey) {
+    throw new Error('LOVABLE_API_KEY not configured');
+  }
+
+  console.log(`Calling Lovable AI Gateway STREAMING with model: ${model}`);
+
+  const today = new Date().toLocaleDateString('en-GB', {
+    timeZone: 'Europe/London',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const enhancedSystemPrompt = `You are "AI 4 GP Service" for UK NHS primary care.
+Today is ${today} (Europe/London).
+
+For time-sensitive questions about BNF/NICE updates, DHSC/NHSE policy, vaccination programmes, provide the best guidance you can from your training data and suggest users check the latest information at the relevant official sources (gov.uk, england.nhs.uk, nhs.uk, nice.org.uk, bnf.nice.org.uk, ukhsa.gov.uk).
+
+${systemPrompt}
+
+CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
+- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text
+- DO NOT generate fictional content, clinical scenarios, or patient information
+- Only describe what you can actually see written or printed in the image`;
+
+  const gatewayMessages: Array<{role: string; content: string}> = [
+    { role: 'system', content: enhancedSystemPrompt }
+  ];
+
+  messages.forEach(msg => {
+    let content = msg.content || '';
+    
+    if (msg.files && msg.files.length > 0) {
+      const fileContent = msg.files.map(file => 
+        `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+      ).join('');
+      content += fileContent;
+    }
+    
+    if (!content.trim()) {
+      content = '[No message content]';
+    }
+    
+    gatewayMessages.push({
+      role: msg.role,
+      content
+    });
+  });
+
+  const tokenParam = model.startsWith('openai/') 
+    ? { max_completion_tokens: 4096 }
+    : { max_tokens: 4096 };
+
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${lovableApiKey}`
+    },
+    body: JSON.stringify({
+      model,
+      ...tokenParam,
+      stream: true,
+      messages: gatewayMessages
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Lovable AI Gateway streaming error:', error);
+    throw new Error(`AI Gateway error: ${response.status}`);
+  }
+
+  console.log('Streaming response started successfully');
+  return response;
+}
+
 async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiApiKey) {
@@ -1534,6 +1616,7 @@ serve(async (req) => {
     const systemPrompt = requestData.systemPrompt;
     const files = requestData.files;
     verificationLevel = requestData.verificationLevel || 'standard';
+    const useStreaming = requestData.stream === true;
 
     // Check API key availability - use consistent variable names
     console.log('API Keys status:', {
@@ -1635,7 +1718,32 @@ serve(async (req) => {
   
   console.log('About to route to model:', selectedModel);
 
-  // Model routing with proper mapping - Lovable AI Gateway models first
+  // Check if streaming is requested for Lovable AI Gateway models
+  if (useStreaming && (selectedModel.startsWith('google/') || selectedModel.startsWith('openai/') || selectedModel.startsWith('gpt-5'))) {
+    console.log('STREAMING MODE ENABLED for model:', selectedModel);
+    
+    // Map legacy model names to gateway format
+    const gatewayModel = selectedModel.startsWith('gpt-5') ? 'openai/gpt-5-mini' : selectedModel;
+    
+    try {
+      const streamResponse = await callLovableAIGatewayStreaming(processedMessages, finalSystemPrompt, gatewayModel, files);
+      
+      // Return the streaming response directly
+      return new Response(streamResponse.body, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive'
+        }
+      });
+    } catch (error) {
+      console.error('Streaming failed, falling back to non-streaming:', error.message);
+      // Fall through to non-streaming mode
+    }
+  }
+
+  // Model routing with proper mapping - Lovable AI Gateway models first (non-streaming)
   if (selectedModel.startsWith('google/') || selectedModel.startsWith('openai/')) {
     // Route to Lovable AI Gateway for new model format
     try {
