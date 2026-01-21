@@ -134,6 +134,8 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
             hasContent={!!content}
             isFormatting={isFormatting}
             systemAudioEnabled={systemAudioEnabled}
+            content={showCleaned && cleanedContent ? cleanedContent : content}
+            templateName={templates.find(t => t.id === selectedTemplate)?.name || 'Dictation'}
             onSystemAudioChange={setSystemAudioEnabled}
             onStart={startDictation}
             onStop={stopDictation}
