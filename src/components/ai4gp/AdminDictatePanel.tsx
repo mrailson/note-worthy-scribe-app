@@ -64,12 +64,7 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Mic className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Admin Dictate</CardTitle>
-            {isRecording && (
-              <Badge variant="secondary" className="animate-pulse bg-primary/10 text-primary border-primary/20">
-                Listening
-              </Badge>
-            )}
+            <CardTitle className="text-lg">Notewell Listen & Transcribe</CardTitle>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
