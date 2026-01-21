@@ -244,7 +244,7 @@ Generate the complete referral letter using the exact details provided. Use [[MI
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'openai/gpt-5-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContent }

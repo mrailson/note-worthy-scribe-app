@@ -282,7 +282,7 @@ async function cleanTranscriptChunk(text: string, apiKey: string): Promise<strin
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'openai/gpt-5-mini',
       messages: [
         {
           role: 'system',

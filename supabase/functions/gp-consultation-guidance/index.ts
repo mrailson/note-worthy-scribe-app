@@ -73,9 +73,9 @@ Be practical and specific in your suggestions. Assume this is an ongoing consult
       'Authorization': `Bearer ${openAIApiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [
+      body: JSON.stringify({
+        model: 'openai/gpt-5-mini',
+        messages: [
         {
           role: 'system',
           content: 'You are a senior GP mentor providing real-time guidance during consultations. Respond with valid JSON only.'
