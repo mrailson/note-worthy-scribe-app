@@ -5,7 +5,7 @@ import { AssemblyRealtimeClient } from '@/lib/assembly-realtime';
 import { showToast } from '@/utils/toastWrapper';
 
 export type AdminDictationStatus = 'idle' | 'connecting' | 'recording' | 'paused' | 'processing' | 'error';
-export type AdminTemplateType = 'free' | 'meeting-minutes' | 'complaint-response' | 'staff-letter' | 'hr-record' | 'significant-event' | 'policy-draft' | 'briefing-note';
+export type AdminTemplateType = 'free' | 'complaint-response' | 'hr-record' | 'briefing-note';
 
 export interface AdminDictationTemplate {
   id: AdminTemplateType;
@@ -16,12 +16,8 @@ export interface AdminDictationTemplate {
 
 export const ADMIN_DICTATION_TEMPLATES: AdminDictationTemplate[] = [
   { id: 'free', name: 'Free Dictation', description: 'Blank canvas for any content', prefix: '' },
-  { id: 'meeting-minutes', name: 'Meeting Minutes', description: 'Staff, partner or PCN meeting notes', prefix: 'Meeting Minutes\n\nDate:\nAttendees:\n\nDiscussion:\n\nActions:\n' },
   { id: 'complaint-response', name: 'Complaint Response', description: 'Professional complaint handling', prefix: 'RE: Complaint Reference\n\nDear ,\n\nThank you for your correspondence dated...\n\n' },
-  { id: 'staff-letter', name: 'Staff/Stakeholder Letter', description: 'Formal correspondence', prefix: 'Dear ,\n\nRe: \n\n' },
   { id: 'hr-record', name: 'HR Documentation', description: 'Absence, appraisal, disciplinary', prefix: 'Staff Member:\nDate:\nType:\n\nDetails:\n\nOutcome:\n' },
-  { id: 'significant-event', name: 'Significant Event Report', description: 'SEA documentation', prefix: 'Significant Event Report\n\nDate of Event:\nPersonnel Involved:\n\nWhat happened:\n\nLearning Points:\n\nActions:\n' },
-  { id: 'policy-draft', name: 'Policy Draft', description: 'Practice policies and SOPs', prefix: 'Policy:\n\nVersion:\nReview Date:\n\n1. Purpose\n\n2. Scope\n\n3. Procedure\n\n' },
   { id: 'briefing-note', name: 'Briefing Note', description: 'Quick updates for staff', prefix: 'Briefing Note\n\nSubject:\nDate:\n\nKey Points:\n\nAction Required:\n' },
 ];
 
