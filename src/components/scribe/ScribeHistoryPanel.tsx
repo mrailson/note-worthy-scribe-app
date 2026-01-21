@@ -190,6 +190,12 @@ export const ScribeHistoryPanel = ({
     });
 
     if (result) {
+      // Check if AI returned fallback content due to service issue
+      if ((result as any).error) {
+        toast.warning('Optimisation issue: ' + (result as any).error);
+        return;
+      }
+
       // Create optimised HeidiNote from result (using impression for assessment)
       const optimisedNote: HeidiNote = {
         consultationHeader: currentSession.heidiNote.consultationHeader || '',
@@ -201,7 +207,7 @@ export const ScribeHistoryPanel = ({
 
       setLocalSystmOneNote(optimisedNote);
 
-      // Save to database using raw update
+      // Save to database
       try {
         const currentHeidiNotes = currentSession.heidiNote || {};
         const updatedHeidiNotes = {
@@ -209,21 +215,24 @@ export const ScribeHistoryPanel = ({
           systmOneOptimised: optimisedNote
         };
 
-        // Use fetch directly to avoid type issues with table that has RLS
+        // Use fetch with env variables for Supabase URL
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
           toast.error('Not authenticated');
           return;
         }
 
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
         const response = await fetch(
-          `https://dphcnbricafkbtizkoal.supabase.co/rest/v1/scribe_sessions?id=eq.${currentSession.id}`,
+          `${supabaseUrl}/rest/v1/scribe_sessions?id=eq.${currentSession.id}`,
           {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${session.access_token}`,
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs',
+              'apikey': supabaseKey,
               'Prefer': 'return=minimal'
             },
             body: JSON.stringify({
@@ -243,6 +252,7 @@ export const ScribeHistoryPanel = ({
         }
       } catch (err) {
         console.error('Error saving optimised notes:', err);
+        toast.error('Failed to save optimised notes');
       }
     }
   }, [currentSession, tightenNotes, onRefresh]);
