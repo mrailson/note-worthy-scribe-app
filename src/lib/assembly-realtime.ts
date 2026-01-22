@@ -451,7 +451,7 @@ export class AssemblyRealtimeClient {
   private async startAudioCapture() {
     // Use external stream if provided, otherwise capture mic directly
     if (this.externalStream) {
-      console.log("🎙️ AssemblyRealtimeClient: using external stream (mic+system)");
+      console.log("🎙️ AssemblyRealtimeClient: using external stream (mic+system) - FAST PATH");
       this.stream = this.externalStream;
       this.ownsStream = false; // Don't stop this stream on cleanup - it's managed externally
     } else {
@@ -460,7 +460,13 @@ export class AssemblyRealtimeClient {
       this.ownsStream = true;
     }
 
-    this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    // When using external stream that's already at 16kHz, match that sample rate
+    // Otherwise use default (typically 48kHz) and resample
+    const externalSampleRate = this.externalStream?.getAudioTracks()[0]?.getSettings?.()?.sampleRate;
+    const preferredSampleRate = externalSampleRate || undefined; // Let browser choose if unknown
+    
+    this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: preferredSampleRate });
+    console.log(`🎛️ AssemblyRealtimeClient: AudioContext created at ${this.audioCtx.sampleRate}Hz`);
 
     // Deprecated but OK for this simple preview.
     this.processor = this.audioCtx.createScriptProcessor(4096, 1, 1);
@@ -528,7 +534,7 @@ export class AssemblyRealtimeClient {
       }
     };
 
-    console.log("✅ AssemblyRealtimeClient: mic capture started");
+    console.log(`✅ AssemblyRealtimeClient: audio capture started (source rate: ${this.audioCtx.sampleRate}Hz, target: ${this.sampleRateTarget}Hz)`);
   }
 
   private cleanupAudio() {

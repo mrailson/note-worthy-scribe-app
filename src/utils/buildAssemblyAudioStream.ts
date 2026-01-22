@@ -7,6 +7,9 @@
  * - Returns a single mixed audio track via MediaStreamDestination
  * 
  * This avoids Chrome's "rewrapped track" issues that cause system audio to be silent.
+ * 
+ * LATENCY FIX: Can accept an existing microphone stream to avoid duplicate getUserMedia() calls.
+ * SAMPLE RATE: Uses 16kHz to match AssemblyAI's expected input format.
  */
 
 export interface BuildAssemblyAudioStreamResult {
@@ -18,22 +21,35 @@ export interface BuildAssemblyAudioStreamResult {
   systemAudioReason?: 'no_screen_stream' | 'no_audio_tracks' | 'tracks_not_live' | 'available';
 }
 
+export interface BuildAssemblyAudioStreamOptions {
+  /** Existing microphone stream to reuse (avoids duplicate getUserMedia calls) */
+  existingMicStream?: MediaStream | null;
+  /** Microphone constraints (used only if existingMicStream is not provided) */
+  micConstraints?: MediaTrackConstraints;
+}
+
 /**
  * Build a mixed audio stream for AssemblyAI.
  * 
  * @param screenStream - The original display stream from getDisplayMedia (may be null)
- * @param micConstraints - Microphone constraints (defaults to basic audio)
+ * @param options - Options including existingMicStream and micConstraints
  * @returns Mixed stream, mic stream (for cleanup), audio context, and whether system audio was included
  */
 export async function buildAssemblyAudioStream(
   screenStream: MediaStream | null | undefined,
-  micConstraints: MediaTrackConstraints = { 
-    echoCancellation: true,
-    noiseSuppression: true,
-    autoGainControl: true
-  }
+  options: BuildAssemblyAudioStreamOptions = {}
 ): Promise<BuildAssemblyAudioStreamResult> {
+  const startTime = performance.now();
   console.log('🎛️ buildAssemblyAudioStream: Starting...');
+  
+  const {
+    existingMicStream,
+    micConstraints = { 
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true
+    }
+  } = options;
   
   // Detailed system audio detection
   let systemAudioReason: BuildAssemblyAudioStreamResult['systemAudioReason'] = 'available';
@@ -76,26 +92,41 @@ export async function buildAssemblyAudioStream(
     }
   }
   
-  // Always get mic stream
+  // Use existing mic stream if provided, otherwise request a new one
   let micStream: MediaStream | null = null;
-  try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints });
-    console.log(`🎙️ buildAssemblyAudioStream: Got mic stream with ${micStream.getAudioTracks().length} tracks`);
-  } catch (err) {
-    console.error('🎙️ buildAssemblyAudioStream: Failed to get mic stream:', err);
-    throw err;
+  let ownsMicStream = false;
+  
+  if (existingMicStream && existingMicStream.getAudioTracks().some(t => t.readyState === 'live')) {
+    micStream = existingMicStream;
+    ownsMicStream = false;
+    console.log(`🎙️ buildAssemblyAudioStream: Reusing existing mic stream (${micStream.getAudioTracks().length} tracks) - FAST PATH`);
+  } else {
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints });
+      ownsMicStream = true;
+      console.log(`🎙️ buildAssemblyAudioStream: Got NEW mic stream with ${micStream.getAudioTracks().length} tracks`);
+    } catch (err) {
+      console.error('🎙️ buildAssemblyAudioStream: Failed to get mic stream:', err);
+      throw err;
+    }
   }
   
-  // If no system audio, just return the mic stream directly
+  const micSetupTime = performance.now() - startTime;
+  console.log(`🎛️ buildAssemblyAudioStream: Mic setup took ${micSetupTime.toFixed(0)}ms`);
+  
+  // If no system audio, just return the mic stream directly (fast path)
   if (!hasSystemAudio || !screenStream) {
     console.log(`🎛️ buildAssemblyAudioStream: No system audio (reason: ${systemAudioReason}), returning mic-only stream`);
     
-    // Create a minimal audio context just for consistency
-    const audioContext = new AudioContext();
+    // Create a minimal audio context just for consistency (use 16kHz for AssemblyAI)
+    const audioContext = new AudioContext({ sampleRate: 16000 });
+    
+    const totalTime = performance.now() - startTime;
+    console.log(`🎛️ buildAssemblyAudioStream: Completed in ${totalTime.toFixed(0)}ms (mic-only)`);
     
     return {
       mixedStream: micStream,
-      micStream,
+      micStream: ownsMicStream ? micStream : null, // Only return for cleanup if we created it
       audioContext,
       hasSystemAudio: false,
       systemAudioReason
@@ -105,7 +136,9 @@ export async function buildAssemblyAudioStream(
   // --- Mix system audio + mic using Web Audio (same approach as Whisper) ---
   console.log('🎛️ buildAssemblyAudioStream: Creating Web Audio mixer...');
   
-  const audioContext = new AudioContext({ sampleRate: 48000 });
+  // Use 16kHz sample rate to match AssemblyAI's expected input format
+  // This avoids sample rate conversion issues in the transcription pipeline
+  const audioContext = new AudioContext({ sampleRate: 16000 });
   
   // Resume context in case it's suspended (Chrome policy)
   if (audioContext.state === 'suspended') {
@@ -210,9 +243,12 @@ export async function buildAssemblyAudioStream(
   // Start RMS monitoring after a short delay
   setTimeout(checkRMS, 1000);
   
+  const totalTime = performance.now() - startTime;
+  console.log(`🎛️ buildAssemblyAudioStream: Completed in ${totalTime.toFixed(0)}ms (mixed stream)`);
+  
   return {
     mixedStream: destination.stream,
-    micStream,
+    micStream: ownsMicStream ? micStream : null, // Only return for cleanup if we created it
     audioContext,
     hasSystemAudio: true,
     systemAudioReason: 'available'
