@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Calendar, Users, CheckCircle2, ArrowRight, MessageSquare, X } from "lucide-react";
+import { FileText, Calendar, Users, CheckCircle2, ArrowRight, MessageSquare, X, Mail } from "lucide-react";
 
 interface PPGUpdateModalProps {
   open: boolean;
@@ -42,7 +42,7 @@ export const PPGUpdateModal = ({ open, onOpenChange }: PPGUpdateModalProps) => {
               </DialogTitle>
               <div className="flex items-center gap-2 text-sm text-blue-100">
                 <Calendar className="h-4 w-4" />
-                <span>13 January 2026</span>
+                <span>22 January 2026</span>
               </div>
             </div>
           </div>
@@ -50,6 +50,116 @@ export const PPGUpdateModal = ({ open, onOpenChange }: PPGUpdateModalProps) => {
 
         {/* Scrollable Content */}
         <div className="overflow-y-auto max-h-[calc(90vh-180px)] px-6 py-6 space-y-6 bg-slate-50">
+          
+          {/* Latest Communication - 22 January 2026 */}
+          <div className="bg-white rounded-xl border border-emerald-200 shadow-sm overflow-hidden ring-2 ring-emerald-100">
+            <div className="flex items-center gap-3 px-5 py-4 bg-gradient-to-r from-emerald-50 to-transparent border-b border-emerald-100">
+              <div className="h-10 w-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-sm">
+                <Mail className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 text-base">Communication to PPG Members</h3>
+                <p className="text-xs text-emerald-600 font-medium">Sent 22 January 2026</p>
+              </div>
+              <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
+                Latest
+              </Badge>
+            </div>
+            
+            <div className="p-5 space-y-4 text-sm text-slate-700 leading-relaxed">
+              <p className="font-medium text-slate-900">Dear Patient Participation Group Members,</p>
+              
+              <p>
+                Thank you very much for the strong level of interest shown in being involved with the NRES Same Day Access (SDA) Pilot and the Programme Board. We are really encouraged by the number of PPG members who have come forward and by the enthusiasm to support and shape this important work.
+              </p>
+              
+              <p>
+                As a next step, and to ensure a fair, transparent and supportive process, we are asking PPG members across the NRES practices to organise a joint PPG discussion meeting. The purpose of this meeting will be to agree two PPG representatives who will share the commitment of attending the NRES Programme Board meetings.
+              </p>
+              
+              <p>
+                To support this process, we plan for a representative from the <span className="font-semibold">South Northants Voluntary Bureau (SNVB)</span> (Representative TBC) to attend as an independent facilitator, helping to guide discussion and decision-making in a balanced and inclusive way.
+              </p>
+              
+              <div className="bg-blue-50/80 border border-blue-200/60 rounded-xl p-4 space-y-3">
+                <p className="font-semibold text-[#005EB8]">What this meeting is for:</p>
+                <ul className="space-y-2 text-slate-700 ml-1">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#005EB8] mt-1">•</span>
+                    <span>To discuss the Programme Board role and commitment</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#005EB8] mt-1">•</span>
+                    <span>To consider how PPG voices can be represented effectively</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#005EB8] mt-1">•</span>
+                    <span>To agree two representatives who will attend Programme Board meetings on behalf of the wider PPG community</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <p>
+                The two representatives would share the role, helping to ensure continuity and manage the time commitment. Programme Board meetings are currently held approximately fortnightly during the setup phase, with the intention to move to monthly once the pilot is established.
+              </p>
+              
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                <p className="font-semibold text-slate-800">Background information</p>
+                <p className="text-slate-600">
+                  You will have already received detailed information about the NRES SDA Pilot, including:
+                </p>
+                <ul className="space-y-2 text-slate-700 ml-1">
+                  <li className="flex items-start gap-2">
+                    <span className="text-slate-500 mt-1">•</span>
+                    <span>What is changing and what is not changing</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-slate-500 mt-1">•</span>
+                    <span>Why strong patient involvement is a key requirement of the pilot</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-slate-500 mt-1">•</span>
+                    <span>The timeline for mobilisation and launch</span>
+                  </li>
+                </ul>
+                <p className="text-slate-600 italic">
+                  Please use that information to support your discussions and decision-making.
+                </p>
+              </div>
+              
+              <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-4 space-y-3">
+                <p className="font-semibold text-amber-800">What happens next:</p>
+                <ul className="space-y-2 text-slate-700 ml-1">
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-600 mt-1">•</span>
+                    <span>PPGs to agree a suitable date for a joint meeting</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-600 mt-1">•</span>
+                    <span>SNVB facilitator to be confirmed and invited (TBC)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-600 mt-1">•</span>
+                    <span>Outcome (the two agreed representatives) to be shared with the Programme Team</span>
+                  </li>
+                </ul>
+              </div>
+              
+              <div className="bg-red-50/80 border border-red-200/60 rounded-xl p-4">
+                <p className="font-semibold text-red-800">
+                  Action Required: Please respond with at least 3 date/time options for the meeting that would work for you over the next 2 weeks by <span className="underline">EOD Friday 23rd January</span>.
+                </p>
+              </div>
+              
+              <p>
+                If you have any questions in the meantime, or need clarification about the role or expectations, please do not hesitate to get in touch.
+              </p>
+              
+              <p>
+                Thank you again for your time, commitment and continued support. Patient insight is central to the success of this pilot, and we are very grateful for your involvement.
+              </p>
+            </div>
+          </div>
           
           {/* Section 1: PPG Representation & Engagement */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
