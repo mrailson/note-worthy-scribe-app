@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConsultationNote, ConsultationType, ConsultationViewMode, CONSULTATION_TYPE_LABELS, SOAPNote, HeidiNote, ScribeEditStates, HeidiEditStates, ScribeSettings, PatientContext } from "@/types/scribe";
 import { SOAPNoteEditor } from "./SOAPNoteEditor";
@@ -8,13 +9,16 @@ import { AgeingWellView } from "./AgeingWellView";
 import { ReferralWorkspace } from "./ReferralWorkspace";
 import { TranscriptDisplay } from "./TranscriptDisplay";
 import { QuickActionsBar } from "./QuickActionsBar";
-import { Clock, FileCheck, Stethoscope, Shield, List, Monitor, Send, ClipboardList, FileText, User, Loader2, Check, AlertCircle, Heart } from "lucide-react";
+import { ConsultationAskAI } from "./ConsultationAskAI";
+import { Clock, FileCheck, Stethoscope, Shield, List, Monitor, Send, ClipboardList, FileText, User, Loader2, Check, AlertCircle, Heart, X } from "lucide-react";
 import { SystmOneIcon } from "@/components/icons/SystmOneIcon";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 interface ConsultationNoteStateProps {
   consultationNote: ConsultationNote;
@@ -103,6 +107,8 @@ export const ConsultationNoteState = ({
   patientContext
 }: ConsultationNoteStateProps) => {
   const isMobile = useIsMobile();
+  const [showReferralSheet, setShowReferralSheet] = useState(false);
+  const [showAskAISheet, setShowAskAISheet] = useState(false);
 
   // Determine which format to display
   const useHeidiFormat = consultationNote.noteFormat === 'heidi' && 
@@ -114,6 +120,38 @@ export const ConsultationNoteState = ({
     onCancelHeidiEdit &&
     onSaveHeidiEdit &&
     onHeidiEditContentChange;
+
+  // Parse duration string to number for session
+  const parseDurationToNumber = (durationStr: string): number => {
+    // Duration is typically in format "MM:SS" or "HH:MM:SS"
+    const parts = durationStr.split(':').map(Number);
+    if (parts.length === 2) {
+      return parts[0] * 60 + parts[1]; // MM:SS
+    } else if (parts.length === 3) {
+      return parts[0] * 3600 + parts[1] * 60 + parts[2]; // HH:MM:SS
+    }
+    return 0;
+  };
+
+  // Build a mock session for ConsultationAskAI
+  const mockSessionForAI = {
+    id: consultationId || '',
+    userId: userId || '',
+    title: patientContext?.name ? `Consultation - ${patientContext.name}` : 'Consultation',
+    consultationType,
+    duration: parseDurationToNumber(duration),
+    transcript: transcript || '',
+    soapNote: consultationNote.soapNote,
+    heidiNote: consultationNote.heidiNote,
+    gpSummary: '',
+    fullNote: '',
+    patientCopy: '',
+    traineeFeedback: '',
+    referralLetter: '',
+    createdAt: new Date().toISOString(),
+    status: 'completed' as const,
+    wordCount
+  };
 
   return (
     <div className="space-y-4 pb-24">
@@ -334,12 +372,65 @@ export const ConsultationNoteState = ({
             onRegenerate={onRegenerate}
             onExportPDF={onExportPDF}
             onExportWord={onExportWord}
+            onCreateReferral={() => setShowReferralSheet(true)}
+            onAskAI={() => setShowAskAISheet(true)}
             isSaving={isSaving}
             isSaved={isSaved}
             wordCount={wordCount}
           />
         </CardContent>
       </Card>
+
+      {/* Referral Sheet */}
+      <Sheet open={showReferralSheet} onOpenChange={setShowReferralSheet}>
+        <SheetContent side={isMobile ? "bottom" : "right"} className={isMobile ? "h-[90vh]" : "w-[600px] sm:w-[700px] sm:max-w-[700px]"}>
+          <SheetHeader className="flex flex-row items-center justify-between pr-8">
+            <SheetTitle>Create Referral Letter</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 h-[calc(100%-60px)] overflow-auto">
+            <ReferralWorkspace
+              transcript={transcript}
+              notes={useHeidiFormat ? consultationNote.heidiNote : consultationNote.soapNote}
+              consultationType={consultationType}
+              userId={userId}
+              patientContext={patientContext ? {
+                name: patientContext.name,
+                dob: patientContext.dateOfBirth,
+                nhsNumber: patientContext.nhsNumber
+              } : undefined}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Ask AI Sheet */}
+      <Sheet open={showAskAISheet} onOpenChange={setShowAskAISheet}>
+        <SheetContent side={isMobile ? "bottom" : "right"} className={isMobile ? "h-[90vh]" : "w-[600px] sm:w-[700px] sm:max-w-[700px]"}>
+          <SheetHeader className="flex flex-row items-center justify-between pr-8">
+            <SheetTitle>Ask AI About This Consultation</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 h-[calc(100%-60px)] overflow-auto">
+            <ConsultationAskAI
+              session={mockSessionForAI}
+              soapNote={consultationNote.soapNote}
+              patientContext={patientContext ? {
+                name: patientContext.name,
+                nhsNumber: patientContext.nhsNumber,
+                dateOfBirth: patientContext.dateOfBirth,
+                address: patientContext.address,
+                phoneNumbers: patientContext.phoneNumbers ? {
+                  mobile: patientContext.phoneNumbers.mobile,
+                  home: patientContext.phoneNumbers.home,
+                  preferred: patientContext.phoneNumbers.preferred === 'work' 
+                    ? 'mobile' as const 
+                    : patientContext.phoneNumbers.preferred
+                } : undefined,
+                gender: patientContext.gender
+              } : undefined}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Notes Editor, Referral Workspace, or Transcript */}
       {viewMode === 'referral' ? (
