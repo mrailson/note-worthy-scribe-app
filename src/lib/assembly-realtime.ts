@@ -460,13 +460,11 @@ export class AssemblyRealtimeClient {
       this.ownsStream = true;
     }
 
-    // When using external stream that's already at 16kHz, match that sample rate
-    // Otherwise use default (typically 48kHz) and resample
-    const externalSampleRate = this.externalStream?.getAudioTracks()[0]?.getSettings?.()?.sampleRate;
-    const preferredSampleRate = externalSampleRate || undefined; // Let browser choose if unknown
-    
-    this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: preferredSampleRate });
-    console.log(`🎛️ AssemblyRealtimeClient: AudioContext created at ${this.audioCtx.sampleRate}Hz`);
+    // Always use browser's default sample rate (typically 48kHz)
+    // We resample to 16kHz in onaudioprocess before sending to AssemblyAI
+    // This matches how Notewell Listen works successfully
+    this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    console.log(`🎛️ AssemblyRealtimeClient: AudioContext created at ${this.audioCtx.sampleRate}Hz (default rate)`);
 
     // Deprecated but OK for this simple preview.
     this.processor = this.audioCtx.createScriptProcessor(4096, 1, 1);

@@ -9,7 +9,7 @@
  * This avoids Chrome's "rewrapped track" issues that cause system audio to be silent.
  * 
  * LATENCY FIX: Can accept an existing microphone stream to avoid duplicate getUserMedia() calls.
- * SAMPLE RATE: Uses 16kHz to match AssemblyAI's expected input format.
+ * SAMPLE RATE: Uses browser's default sample rate - AssemblyRealtimeClient handles resampling to 16kHz.
  */
 
 export interface BuildAssemblyAudioStreamResult {
@@ -118,8 +118,9 @@ export async function buildAssemblyAudioStream(
   if (!hasSystemAudio || !screenStream) {
     console.log(`🎛️ buildAssemblyAudioStream: No system audio (reason: ${systemAudioReason}), returning mic-only stream`);
     
-    // Create a minimal audio context just for consistency (use 16kHz for AssemblyAI)
-    const audioContext = new AudioContext({ sampleRate: 16000 });
+    // Create a minimal audio context using browser's default sample rate
+    // AssemblyRealtimeClient handles resampling to 16kHz internally
+    const audioContext = new AudioContext();
     
     const totalTime = performance.now() - startTime;
     console.log(`🎛️ buildAssemblyAudioStream: Completed in ${totalTime.toFixed(0)}ms (mic-only)`);
@@ -136,9 +137,10 @@ export async function buildAssemblyAudioStream(
   // --- Mix system audio + mic using Web Audio (same approach as Whisper) ---
   console.log('🎛️ buildAssemblyAudioStream: Creating Web Audio mixer...');
   
-  // Use 16kHz sample rate to match AssemblyAI's expected input format
-  // This avoids sample rate conversion issues in the transcription pipeline
-  const audioContext = new AudioContext({ sampleRate: 16000 });
+  // Use browser's default sample rate (typically 48kHz)
+  // AssemblyRealtimeClient handles resampling to 16kHz internally
+  const audioContext = new AudioContext();
+  console.log(`🎛️ buildAssemblyAudioStream: AudioContext created at ${audioContext.sampleRate}Hz`);
   
   // Resume context in case it's suspended (Chrome policy)
   if (audioContext.state === 'suspended') {
