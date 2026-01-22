@@ -829,7 +829,7 @@ export const SDAEstatesCapacity = () => {
       <CollapsibleCard
         title="Hub Location Status"
         icon={<Building2 className="w-5 h-5" />}
-        badge={<span className="text-xs text-slate-500 font-normal">Updated: 7 Jan 2026</span>}
+        badge={<span className="text-xs text-slate-500 font-normal">Updated: 22 Jan 2026</span>}
       >
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -841,16 +841,6 @@ export const SDAEstatesCapacity = () => {
             <Badge className="bg-green-100 text-green-800 border-green-300">Confirmed</Badge>
             <span className="font-medium text-slate-900">The Parks</span>
             <span className="text-slate-600 text-sm">- Hub Location</span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-3">
-              <Badge className="bg-amber-100 text-amber-800 border-amber-300">Pending</Badge>
-              <span className="font-medium text-slate-900">Brook Health Centre</span>
-              <span className="text-slate-600 text-sm">- Awaiting Confirmation (by 15 Jan 2026)</span>
-            </div>
-            <p className="text-sm text-slate-600 ml-[88px]">
-              Meeting with NHFT (current occupants of first floor) scheduled. Will report back to board following meeting.
-            </p>
           </div>
         </div>
       </CollapsibleCard>
