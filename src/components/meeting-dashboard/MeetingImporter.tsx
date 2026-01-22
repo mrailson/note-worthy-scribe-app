@@ -5,13 +5,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { FileText, FileAudio, Upload, Clipboard, Trash2, Loader2, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { FileText, FileAudio, Upload, Clipboard, Trash2, Loader2, CheckCircle2, AlertCircle, Sparkles, History, Plus } from 'lucide-react';
 import { showToast } from '@/utils/toastWrapper';
 import { AudioImport } from '@/components/gpscribe/AudioImport';
 import { useMeetingImporter } from '@/hooks/useMeetingImporter';
 import { FileImporter } from '@/utils/FileImporter';
 import { DemoSamplesSelector } from './DemoSamplesSelector';
 import { DemoMeeting } from '@/data/demoMeetings';
+import { useNavigate } from 'react-router-dom';
 
 interface MeetingImporterProps {
   onMeetingCreated?: (meetingId: string) => void;
@@ -28,7 +29,10 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
   meetingConfig 
 }) => {
   const [importText, setImportText] = useState('');
+  const [importSuccess, setImportSuccess] = useState(false);
+  const [importedMeetingId, setImportedMeetingId] = useState<string | null>(null);
   const { importMeeting, isImporting, progress, currentStep } = useMeetingImporter();
+  const navigate = useNavigate();
 
   const handlePasteTranscript = async () => {
     try {
@@ -103,7 +107,8 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
     try {
       const meetingId = await importMeeting(meetingData);
       setImportText('');
-      showToast.success('Meeting created and notes are being generated', { section: 'meeting_manager' });
+      setImportedMeetingId(meetingId);
+      setImportSuccess(true);
       onMeetingCreated?.(meetingId);
     } catch (error) {
       console.error('Import failed:', error);
@@ -123,7 +128,8 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
 
     try {
       const meetingId = await importMeeting(meetingData);
-      showToast.success('Audio imported and notes are being generated', { section: 'meeting_manager' });
+      setImportedMeetingId(meetingId);
+      setImportSuccess(true);
       onMeetingCreated?.(meetingId);
     } catch (error) {
       console.error('Audio import failed:', error);
@@ -145,7 +151,8 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
 
     try {
       const meetingId = await importMeeting(meetingData);
-      showToast.success(`Demo meeting "${demo.title}" loaded successfully!`, { section: 'meeting_manager' });
+      setImportedMeetingId(meetingId);
+      setImportSuccess(true);
       onMeetingCreated?.(meetingId);
     } catch (error) {
       console.error('Demo import failed:', error);
@@ -154,6 +161,65 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
   };
 
   const wordCount = importText.trim().split(/\s+/).filter(word => word.length > 0).length;
+
+  const handleViewInHistory = () => {
+    if (importedMeetingId) {
+      navigate('/?tab=history', { 
+        state: { 
+          viewNotes: importedMeetingId,
+          openModal: true,
+          scrollToMeetingId: importedMeetingId
+        } 
+      });
+    }
+  };
+
+  const handleImportAnother = () => {
+    setImportSuccess(false);
+    setImportedMeetingId(null);
+    setImportText('');
+  };
+
+  // Show success panel after import
+  if (importSuccess && importedMeetingId) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-6 sm:p-8">
+          <div className="flex flex-col items-center text-center space-y-4">
+            <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold">Meeting Imported Successfully!</h3>
+              <p className="text-muted-foreground max-w-md">
+                Your meeting has been imported and notes are now being generated. 
+                You can view it in <strong>Meeting History</strong>.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <Button 
+                onClick={handleViewInHistory}
+                className="gap-2"
+              >
+                <History className="h-4 w-4" />
+                View in Meeting History
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleImportAnother}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Import Another Meeting
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full">
