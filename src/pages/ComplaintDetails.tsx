@@ -2301,14 +2301,14 @@ const ComplaintDetails = () => {
               </Card>
 
               {/* Delete Complaint Section */}
-              <Card className="border-destructive/50">
+              <Card className="border-muted">
                 <CardHeader>
-                  <CardTitle className="text-destructive flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Danger Zone
+                  <CardTitle className="text-muted-foreground flex items-center gap-2">
+                    <Trash2 className="h-5 w-5" />
+                    Remove Complaint
                   </CardTitle>
                   <CardDescription>
-                    Permanently delete this complaint and all associated data
+                    If this complaint is no longer needed, you can remove it from the system. This will delete all associated records.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
