@@ -77,8 +77,8 @@ export const actionLogData: ActionLogItem[] = [
     owner: "TBC",
     dueDate: "31/01/2026",
     priority: "Medium",
-    status: "Open",
-    notes: "20/01/2026 - Communication sent to all PPG members requesting date options for joint PPG meeting. SNVB facilitator to be confirmed. PPGs to agree two representatives for Programme Board. Response deadline: EOD Friday 23/01/2026."
+    status: "Closed",
+    notes: "22/01/2026 - Completed. Communication sent to all PPG members requesting date options for joint PPG meeting. SNVB facilitator to be confirmed. PPGs to agree two representatives for Programme Board."
   },
   {
     actionId: "008",
