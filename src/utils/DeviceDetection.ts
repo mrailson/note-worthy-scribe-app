@@ -12,6 +12,9 @@ export interface DeviceInfo {
   isChromium: boolean;
   isMobile: boolean;
   isDesktop: boolean;
+  isAndroid: boolean;
+  isSamsungBrowser: boolean;
+  androidBrowser: 'chrome' | 'samsung' | 'firefox' | 'other';
   useChromiumMicPipeline: boolean;
   deviceType: 'ios' | 'iphone' | 'android' | 'safari_desktop' | 'chromium_desktop' | 'other_desktop';
   hasNotch: boolean;
@@ -23,11 +26,22 @@ export function detectDevice(): DeviceInfo {
   const userAgent = navigator.userAgent;
   
   const isIOS = /iPad|iPhone|iPod/.test(userAgent);
-  const isIPhone = /iPhone/.test(userAgent) || (isIOS && window.innerWidth <= 768); // Increased threshold for modern iPhones
+  const isIPhone = /iPhone/.test(userAgent) || (isIOS && window.innerWidth <= 768);
   const isSafari = /Safari/.test(userAgent) && !/Chrome|Edg/.test(userAgent);
   const isChromium = /Chrome|Edg/.test(userAgent);
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
   const isDesktop = !isMobile;
+  
+  // Android-specific detection
+  const isAndroid = /Android/.test(userAgent);
+  const isSamsungBrowser = /SamsungBrowser/.test(userAgent);
+  
+  let androidBrowser: 'chrome' | 'samsung' | 'firefox' | 'other' = 'other';
+  if (isAndroid) {
+    if (isSamsungBrowser) androidBrowser = 'samsung';
+    else if (/Chrome/.test(userAgent)) androidBrowser = 'chrome';
+    else if (/Firefox/.test(userAgent)) androidBrowser = 'firefox';
+  }
   
   // Feature flag for Chromium mic pipeline (default: false)
   const useChromiumMicPipeline = 
@@ -70,6 +84,9 @@ export function detectDevice(): DeviceInfo {
     isChromium,
     isMobile,
     isDesktop,
+    isAndroid,
+    isSamsungBrowser,
+    androidBrowser,
     useChromiumMicPipeline,
     deviceType,
     hasNotch,
@@ -97,10 +114,10 @@ export function getRecommendedTranscriber(): string {
     return 'iPhoneWhisperTranscriber';
   } else if (device.isIOS) {
     return 'iPhoneWhisperTranscriber';
+  } else if (device.isAndroid) {
+    return 'AndroidWhisperTranscriber'; // NEW: Dedicated Android path
   } else if (device.useChromiumMicPipeline) {
     return 'ChromiumMicTranscriber';
-  } else if (device.isMobile) {
-    return 'DesktopWhisperTranscriber'; // Android uses desktop transcriber
   } else {
     return 'DesktopWhisperTranscriber';
   }
