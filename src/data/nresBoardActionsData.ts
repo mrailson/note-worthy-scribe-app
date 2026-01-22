@@ -78,7 +78,7 @@ export const actionLogData: ActionLogItem[] = [
     dueDate: "31/01/2026",
     priority: "Medium",
     status: "Open",
-    notes: "Patient Participation Group engagement"
+    notes: "20/01/2026 - Communication sent to all PPG members requesting date options for joint PPG meeting. SNVB facilitator to be confirmed. PPGs to agree two representatives for Programme Board. Response deadline: EOD Friday 23/01/2026."
   },
   {
     actionId: "008",
