@@ -70,6 +70,18 @@ const programmeBoardMeetings: Meeting[] = [
 // Workgroup Meetings with their documents
 const workgroupMeetings: Meeting[] = [
   {
+    id: 2,
+    date: "22 January 2026",
+    location: "IT Task & Finish - Virtual Meeting",
+    documents: [
+      {
+        title: "Meeting Notes - Digital TAD & IT Integration",
+        type: "minutes",
+        filePath: "/evidence/meetings/workgroup/IT_Task_Finish_Meeting_Notes_22_Jan_2026.docx"
+      }
+    ]
+  },
+  {
     id: 1,
     date: "8 January 2026",
     location: "PML Bicester (with remote attendees via Teams)",
