@@ -67,8 +67,8 @@ export const actionLogData: ActionLogItem[] = [
     owner: "MR",
     dueDate: "15/01/2026",
     priority: "High",
-    status: "Open",
-    notes: "Pending Brook Health Centre confirmation before 15/01/2026"
+    status: "Closed",
+    notes: "15/01/2026 - Brook have been unable to speak with NHFT by the agreed date so have withdrawn from being a HUB at this time but may request in the future"
   },
   {
     actionId: "007",
@@ -95,5 +95,5 @@ export const actionLogData: ActionLogItem[] = [
 export const actionLogMetadata = {
   sourceMeeting: "Programme Board Meeting - 23rd December 2025",
   nextMeeting: "Virtual - 13th January 2026, 13:00-14:00",
-  lastUpdated: "07/01/2026 09:17"
+  lastUpdated: "22/01/2026 16:55"
 };
