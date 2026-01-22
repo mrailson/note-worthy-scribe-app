@@ -494,8 +494,8 @@ export const SDAEvidenceLibrary = () => {
                   <p className="text-sm text-slate-500">Site Visit - Helen Barrett (SNVB)</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                    Planned
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    Completed
                   </Badge>
                   <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${openVcseMeetings.includes(2) ? 'rotate-90' : ''}`} />
                 </div>
@@ -504,6 +504,13 @@ export const SDAEvidenceLibrary = () => {
             
             <CollapsibleContent>
               <div className="px-4 pb-4 pt-2 border-t border-slate-100 space-y-4">
+                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                  <h4 className="font-semibold text-green-900 mb-2">✓ Visit Completed</h4>
+                  <p className="text-sm text-green-800">
+                    Site visit completed at Riverside on 19th January 2026. Dr Mark Gray will provide an update to the Programme Board at the Face-to-Face meeting on 27th January 2026 at Wootton.
+                  </p>
+                </div>
+
                 <div className="bg-blue-50 rounded-lg p-4">
                   <h4 className="font-semibold text-blue-900 mb-2">Meeting Details</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
