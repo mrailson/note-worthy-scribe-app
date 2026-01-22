@@ -3990,9 +3990,33 @@ export const MeetingRecorder = ({
       // Uses combined stream (mic+system) when screen sharing, or mic-only stream otherwise
       try {
         console.log('🎤 Starting AssemblyAI real-time preview...');
-        // micAudioStreamRef.current contains the combined stream in mic-and-system mode
-        // or the microphone stream in mic-only mode
-        const streamForAssembly = micAudioStreamRef.current || undefined;
+        
+        let streamForAssembly: MediaStream | undefined = micAudioStreamRef.current || undefined;
+        
+        // In mic-and-system mode with screen share, combine system audio + mic for AssemblyAI
+        if (recordingMode === 'mic-and-system' && screenStreamRef.current) {
+          try {
+            const systemAudioTracks = screenStreamRef.current.getAudioTracks();
+            console.log(`🔊 Screen share has ${systemAudioTracks.length} audio tracks`);
+            
+            if (systemAudioTracks.length > 0) {
+              // Get a fresh mic stream for AssemblyAI
+              const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              const micAudioTracks = micStream.getAudioTracks();
+              console.log(`🎙️ Mic stream has ${micAudioTracks.length} audio tracks`);
+              
+              // Create combined stream with both sources
+              const combinedTracks = [...systemAudioTracks, ...micAudioTracks];
+              streamForAssembly = new MediaStream(combinedTracks);
+              micAudioStreamRef.current = streamForAssembly;
+              
+              console.log(`🎧 Created combined stream for AssemblyAI: ${combinedTracks.length} tracks (system + mic)`);
+            }
+          } catch (combineError) {
+            console.warn('⚠️ Could not combine streams for AssemblyAI, falling back to mic-only:', combineError);
+          }
+        }
+        
         console.log('🎧 Stream for AssemblyAI:', streamForAssembly ? `${streamForAssembly.getTracks().length} tracks` : 'none (will capture mic)');
         await assemblyPreview.startPreview(streamForAssembly);
         console.log('✅ AssemblyAI real-time preview started');
