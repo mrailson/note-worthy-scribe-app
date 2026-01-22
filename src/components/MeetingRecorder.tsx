@@ -628,6 +628,11 @@ export const MeetingRecorder = ({
     setTranscriptSnippet("");
     setShowTranscriptSnippet(false);
     
+    // Reset recording mode to default (mic-only) for next meeting
+    setRecordingMode('mic-only');
+    setMicCaptured(false);
+    setSystemAudioCaptured(false);
+    
     // Clear AssemblyAI live transcript state
     assemblyPreview.clearTranscript();
     
@@ -3982,10 +3987,14 @@ export const MeetingRecorder = ({
       addDebugLog('✅ Recording started successfully');
       
       // Start AssemblyAI real-time transcription alongside Whisper
-      // Uses same microphone stream for dual transcription
+      // Uses combined stream (mic+system) when screen sharing, or mic-only stream otherwise
       try {
         console.log('🎤 Starting AssemblyAI real-time preview...');
-        await assemblyPreview.startPreview(micAudioStreamRef.current || undefined);
+        // micAudioStreamRef.current contains the combined stream in mic-and-system mode
+        // or the microphone stream in mic-only mode
+        const streamForAssembly = micAudioStreamRef.current || undefined;
+        console.log('🎧 Stream for AssemblyAI:', streamForAssembly ? `${streamForAssembly.getTracks().length} tracks` : 'none (will capture mic)');
+        await assemblyPreview.startPreview(streamForAssembly);
         console.log('✅ AssemblyAI real-time preview started');
       } catch (assemblyError) {
         console.warn('⚠️ AssemblyAI preview failed to start (Whisper will continue):', assemblyError);
