@@ -36,7 +36,7 @@ export class AssemblyRealtimeClient {
   private externalStream?: MediaStream; // Optional external stream (e.g., combined mic+system)
   private ownsStream = true; // Whether we created the stream (and should stop it on cleanup)
   private audioCtx?: AudioContext;
-  private source?: MediaStreamAudioSourceNode;
+  private sources: MediaStreamAudioSourceNode[] = [];
   private processor?: ScriptProcessorNode;
   private muteGain?: GainNode;
 
@@ -461,7 +461,6 @@ export class AssemblyRealtimeClient {
     }
 
     this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    this.source = this.audioCtx.createMediaStreamSource(this.stream);
 
     // Deprecated but OK for this simple preview.
     this.processor = this.audioCtx.createScriptProcessor(4096, 1, 1);
@@ -469,10 +468,50 @@ export class AssemblyRealtimeClient {
     // Avoid feedback by routing via a muted gain node.
     this.muteGain = this.audioCtx.createGain();
     this.muteGain.gain.value = 0;
-
-    this.source.connect(this.processor);
     this.processor.connect(this.muteGain);
     this.muteGain.connect(this.audioCtx.destination);
+
+    // IMPORTANT:
+    // When a MediaStream contains multiple audio tracks (e.g. screen-share system audio + mic),
+    // createMediaStreamSource(stream) can effectively capture only one track depending on browser.
+    // To reliably capture *all* tracks, we create one source per track and let the Web Audio graph mix them.
+    const audioTracks = this.stream.getAudioTracks();
+    console.log(
+      `🎛️ AssemblyRealtimeClient: audio capture initialising (${audioTracks.length} audio track(s))`
+    );
+    for (const t of audioTracks) {
+      try {
+        const settings = (t.getSettings?.() ?? {}) as MediaTrackSettings;
+        console.log("🎚️ AssemblyRealtimeClient: track", {
+          id: t.id,
+          label: t.label,
+          kind: t.kind,
+          enabled: t.enabled,
+          muted: (t as any).muted,
+          readyState: t.readyState,
+          settings,
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    this.sources = [];
+    if (audioTracks.length > 1) {
+      console.log(
+        "🧩 AssemblyRealtimeClient: multiple audio tracks detected; mixing all tracks for transcription"
+      );
+      for (const track of audioTracks) {
+        const perTrackStream = new MediaStream([track]);
+        const src = this.audioCtx.createMediaStreamSource(perTrackStream);
+        src.connect(this.processor);
+        this.sources.push(src);
+      }
+    } else {
+      const src = this.audioCtx.createMediaStreamSource(this.stream);
+      src.connect(this.processor);
+      this.sources.push(src);
+    }
 
     const buffer16: Int16Array[] = [];
     let accLen = 0;
@@ -504,7 +543,11 @@ export class AssemblyRealtimeClient {
   private cleanupAudio() {
     try {
       this.processor?.disconnect();
-      this.source?.disconnect();
+      this.sources.forEach((s) => {
+        try {
+          s.disconnect();
+        } catch {}
+      });
       this.muteGain?.disconnect();
       this.audioCtx?.close();
     } catch {}
@@ -517,7 +560,7 @@ export class AssemblyRealtimeClient {
     }
 
     this.processor = undefined;
-    this.source = undefined;
+    this.sources = [];
     this.muteGain = undefined;
     this.audioCtx = undefined;
     this.stream = undefined;
