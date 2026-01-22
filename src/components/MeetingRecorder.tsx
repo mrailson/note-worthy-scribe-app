@@ -92,6 +92,8 @@ import { mergeByTimestamps, segmentsToPlainText, type Segment } from '@/lib/segm
 import { useMeetingData } from "@/hooks/useMeetingData";
 import { trimSilence } from '@/utils/audioSilenceTrimmer';
 import { transcodeToWhisperFormat, shouldTranscode } from '@/utils/audioTranscoder';
+import { buildAssemblyAudioStream, cleanupAssemblyAudioStream } from '@/utils/buildAssemblyAudioStream';
+import type { BuildAssemblyAudioStreamResult } from '@/utils/buildAssemblyAudioStream';
 
 interface TranscriptData {
   text: string;
@@ -698,6 +700,10 @@ export const MeetingRecorder = ({
       desktopTranscriberRef.current = null;
     }
     
+    // Cleanup AssemblyAI audio mixer
+    cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
+    assemblyAudioMixerRef.current = null;
+    
     // Clear recording audio if playing
     if (recordingAudioRef.current) {
       recordingAudioRef.current.pause();
@@ -783,6 +789,9 @@ export const MeetingRecorder = ({
   const isRecordingRef = useRef<boolean>(false);
   const recordingStartTimeRef = useRef<Date | null>(null);
   const recordingStartMonotonicRef = useRef<number | null>(null);
+  
+  // AssemblyAI audio mixer ref (for proper system audio capture like Whisper)
+  const assemblyAudioMixerRef = useRef<BuildAssemblyAudioStreamResult | null>(null);
   
   // Fetch user practices and set default location
   useEffect(() => {
@@ -3987,41 +3996,37 @@ export const MeetingRecorder = ({
       addDebugLog('✅ Recording started successfully');
       
       // Start AssemblyAI real-time transcription alongside Whisper
-      // Uses combined stream (mic+system) when screen sharing, or mic-only stream otherwise
+      // Uses Web Audio mixer for proper system audio capture (same approach as Whisper)
       try {
         console.log('🎤 Starting AssemblyAI real-time preview...');
         
-        let streamForAssembly: MediaStream | undefined = micAudioStreamRef.current || undefined;
+        // Build the mixed audio stream using Web Audio (not rewrapped tracks)
+        // This fixes Chrome "Entire screen" system audio capture
+        const mixerResult = await buildAssemblyAudioStream(
+          screenStreamRef.current, // Pass original display stream (may be null for mic-only mode)
+          { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        );
         
-        // In mic-and-system mode with screen share, combine system audio + mic for AssemblyAI
-        if (recordingMode === 'mic-and-system' && screenStreamRef.current) {
-          try {
-            const systemAudioTracks = screenStreamRef.current.getAudioTracks();
-            console.log(`🔊 Screen share has ${systemAudioTracks.length} audio tracks`);
-            
-            if (systemAudioTracks.length > 0) {
-              // Get a fresh mic stream for AssemblyAI
-              const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-              const micAudioTracks = micStream.getAudioTracks();
-              console.log(`🎙️ Mic stream has ${micAudioTracks.length} audio tracks`);
-              
-              // Create combined stream with both sources
-              const combinedTracks = [...systemAudioTracks, ...micAudioTracks];
-              streamForAssembly = new MediaStream(combinedTracks);
-              micAudioStreamRef.current = streamForAssembly;
-              
-              console.log(`🎧 Created combined stream for AssemblyAI: ${combinedTracks.length} tracks (system + mic)`);
-            }
-          } catch (combineError) {
-            console.warn('⚠️ Could not combine streams for AssemblyAI, falling back to mic-only:', combineError);
-          }
+        assemblyAudioMixerRef.current = mixerResult;
+        
+        console.log(`🎧 AssemblyAI audio mixer ready: hasSystemAudio=${mixerResult.hasSystemAudio}, tracks=${mixerResult.mixedStream.getAudioTracks().length}`);
+        
+        // Update system audio captured flag based on mixer result
+        if (mixerResult.hasSystemAudio) {
+          setSystemAudioCaptured(true);
+          console.log('✅ System audio is being captured for AssemblyAI transcription');
+        } else if (recordingMode === 'mic-and-system') {
+          console.log('⚠️ System audio not available for AssemblyAI (mic-only fallback)');
         }
         
-        console.log('🎧 Stream for AssemblyAI:', streamForAssembly ? `${streamForAssembly.getTracks().length} tracks` : 'none (will capture mic)');
-        await assemblyPreview.startPreview(streamForAssembly);
-        console.log('✅ AssemblyAI real-time preview started');
+        // Start preview with the mixed stream
+        await assemblyPreview.startPreview(mixerResult.mixedStream);
+        console.log('✅ AssemblyAI real-time preview started with Web Audio mixer');
       } catch (assemblyError) {
         console.warn('⚠️ AssemblyAI preview failed to start (Whisper will continue):', assemblyError);
+        // Clean up mixer if it was created
+        cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
+        assemblyAudioMixerRef.current = null;
         // Don't fail the recording - Whisper is the primary transcription
       }
       
@@ -4185,6 +4190,10 @@ export const MeetingRecorder = ({
       // Stop AssemblyAI real-time preview
       assemblyPreview.stopPreview();
       
+      // Cleanup AssemblyAI audio mixer
+      cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
+      assemblyAudioMixerRef.current = null;
+      
       setStopRecordingStep('Releasing audio…');
       
       // Stop microphone stream
@@ -4320,6 +4329,10 @@ export const MeetingRecorder = ({
     
     // Stop AssemblyAI real-time preview
     assemblyPreview.stopPreview();
+    
+    // Cleanup AssemblyAI audio mixer
+    cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
+    assemblyAudioMixerRef.current = null;
     
     console.log('🚨 STOP RECORDING FUNCTION CALLED');
     
