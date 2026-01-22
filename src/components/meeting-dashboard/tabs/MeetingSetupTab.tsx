@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MeetingConfiguration } from "../MeetingConfiguration";
 import { MeetingImporter } from "../MeetingImporter";
 import { useDashboard } from "../utils/DashboardContext";
-import { Settings, Upload } from "lucide-react";
+import { Settings, FileUp } from "lucide-react";
 import { showToast } from '@/utils/toastWrapper';
 import { useNavigate } from 'react-router-dom';
 
@@ -30,14 +30,21 @@ export const MeetingSetupTab = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="configure" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="configure" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Configure Meeting
+        <TabsList className="grid w-full grid-cols-2 h-auto p-1">
+          <TabsTrigger 
+            value="configure" 
+            className="flex flex-col items-center gap-1 py-3 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <Settings className="h-5 w-5" />
+            <span className="text-sm font-medium">Configure Meeting</span>
           </TabsTrigger>
-          <TabsTrigger value="import" className="flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            Import Content
+          <TabsTrigger 
+            value="import" 
+            className="flex flex-col items-center gap-1 py-3 px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+          >
+            <FileUp className="h-5 w-5" />
+            <span className="text-sm font-medium">Import Notes</span>
+            <span className="text-xs text-muted-foreground data-[state=active]:text-primary-foreground/80">Create meeting from transcript</span>
           </TabsTrigger>
         </TabsList>
 
