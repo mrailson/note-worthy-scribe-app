@@ -14,6 +14,8 @@ export interface BuildAssemblyAudioStreamResult {
   micStream: MediaStream | null;
   audioContext: AudioContext;
   hasSystemAudio: boolean;
+  /** Reason why system audio is not available (if hasSystemAudio is false) */
+  systemAudioReason?: 'no_screen_stream' | 'no_audio_tracks' | 'tracks_not_live' | 'available';
 }
 
 /**
@@ -33,11 +35,46 @@ export async function buildAssemblyAudioStream(
 ): Promise<BuildAssemblyAudioStreamResult> {
   console.log('🎛️ buildAssemblyAudioStream: Starting...');
   
-  // Check if we have system audio from the screen stream
-  const systemAudioTracks = screenStream?.getAudioTracks() ?? [];
-  const hasSystemAudio = systemAudioTracks.length > 0 && systemAudioTracks.some(t => t.readyState === 'live');
+  // Detailed system audio detection
+  let systemAudioReason: BuildAssemblyAudioStreamResult['systemAudioReason'] = 'available';
+  let hasSystemAudio = false;
   
-  console.log(`🎛️ buildAssemblyAudioStream: System audio tracks: ${systemAudioTracks.length}, live: ${hasSystemAudio}`);
+  if (!screenStream) {
+    systemAudioReason = 'no_screen_stream';
+    console.log('🎛️ buildAssemblyAudioStream: No screen stream provided');
+  } else {
+    const systemAudioTracks = screenStream.getAudioTracks();
+    console.log(`🎛️ buildAssemblyAudioStream: Screen stream has ${systemAudioTracks.length} audio track(s)`);
+    
+    if (systemAudioTracks.length === 0) {
+      systemAudioReason = 'no_audio_tracks';
+      console.log('🎛️ buildAssemblyAudioStream: No audio tracks in screen stream');
+    } else {
+      // Log detailed track info
+      for (const track of systemAudioTracks) {
+        const settings = track.getSettings?.() || {};
+        console.log('🎛️ buildAssemblyAudioStream: System audio track:', {
+          id: track.id,
+          label: track.label,
+          enabled: track.enabled,
+          muted: (track as any).muted,
+          readyState: track.readyState,
+          settings
+        });
+      }
+      
+      // Check if any tracks are live
+      const liveTrackCount = systemAudioTracks.filter(t => t.readyState === 'live' && t.enabled).length;
+      if (liveTrackCount === 0) {
+        systemAudioReason = 'tracks_not_live';
+        console.log('🎛️ buildAssemblyAudioStream: No live/enabled audio tracks');
+      } else {
+        hasSystemAudio = true;
+        systemAudioReason = 'available';
+        console.log(`🎛️ buildAssemblyAudioStream: ${liveTrackCount} live audio track(s) available`);
+      }
+    }
+  }
   
   // Always get mic stream
   let micStream: MediaStream | null = null;
@@ -51,7 +88,7 @@ export async function buildAssemblyAudioStream(
   
   // If no system audio, just return the mic stream directly
   if (!hasSystemAudio || !screenStream) {
-    console.log('🎛️ buildAssemblyAudioStream: No system audio, returning mic-only stream');
+    console.log(`🎛️ buildAssemblyAudioStream: No system audio (reason: ${systemAudioReason}), returning mic-only stream`);
     
     // Create a minimal audio context just for consistency
     const audioContext = new AudioContext();
@@ -60,7 +97,8 @@ export async function buildAssemblyAudioStream(
       mixedStream: micStream,
       micStream,
       audioContext,
-      hasSystemAudio: false
+      hasSystemAudio: false,
+      systemAudioReason
     };
   }
   
@@ -116,34 +154,59 @@ export async function buildAssemblyAudioStream(
     console.log(`🎛️ buildAssemblyAudioStream: Output track: ${track.label}, enabled: ${track.enabled}, readyState: ${track.readyState}`);
   }
   
-  // Add RMS monitoring for debugging (log once every 2 seconds)
-  let lastRMSLog = 0;
-  const analyser = audioContext.createAnalyser();
-  analyser.fftSize = 256;
-  compressor.connect(analyser);
+  // Add RMS monitoring for both system and mixed paths
+  const systemAnalyser = audioContext.createAnalyser();
+  systemAnalyser.fftSize = 256;
+  systemGain.connect(systemAnalyser);
   
-  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+  const mixedAnalyser = audioContext.createAnalyser();
+  mixedAnalyser.fftSize = 256;
+  compressor.connect(mixedAnalyser);
+  
+  let lastRMSLog = 0;
+  let systemAudioDetectedEver = false;
+  const systemDataArray = new Uint8Array(systemAnalyser.frequencyBinCount);
+  const mixedDataArray = new Uint8Array(mixedAnalyser.frequencyBinCount);
+  
   const checkRMS = () => {
     if (audioContext.state === 'closed') return;
     
-    analyser.getByteTimeDomainData(dataArray);
-    let sum = 0;
-    for (let i = 0; i < dataArray.length; i++) {
-      const normalized = (dataArray[i] - 128) / 128;
-      sum += normalized * normalized;
+    // Check system audio path
+    systemAnalyser.getByteTimeDomainData(systemDataArray);
+    let systemSum = 0;
+    for (let i = 0; i < systemDataArray.length; i++) {
+      const normalized = (systemDataArray[i] - 128) / 128;
+      systemSum += normalized * normalized;
     }
-    const rms = Math.sqrt(sum / dataArray.length);
+    const systemRms = Math.sqrt(systemSum / systemDataArray.length);
+    
+    // Check mixed output
+    mixedAnalyser.getByteTimeDomainData(mixedDataArray);
+    let mixedSum = 0;
+    for (let i = 0; i < mixedDataArray.length; i++) {
+      const normalized = (mixedDataArray[i] - 128) / 128;
+      mixedSum += normalized * normalized;
+    }
+    const mixedRms = Math.sqrt(mixedSum / mixedDataArray.length);
+    
+    // Track if we've ever detected system audio
+    if (systemRms > 0.01) {
+      systemAudioDetectedEver = true;
+    }
     
     const now = Date.now();
-    if (now - lastRMSLog > 2000 && rms > 0.001) {
+    if (now - lastRMSLog > 3000) {
       lastRMSLog = now;
-      console.log(`🎛️ buildAssemblyAudioStream: Mixed audio RMS: ${rms.toFixed(4)} (${rms > 0.01 ? '🔊 audio detected' : '🔇 quiet'})`);
+      const systemStatus = systemRms > 0.01 ? '🔊 ACTIVE' : systemAudioDetectedEver ? '🔇 quiet' : '⚠️ SILENT';
+      const mixedStatus = mixedRms > 0.01 ? '🔊 ACTIVE' : '🔇 quiet';
+      console.log(`🎛️ buildAssemblyAudioStream RMS: system=${systemRms.toFixed(4)} (${systemStatus}), mixed=${mixedRms.toFixed(4)} (${mixedStatus})`);
     }
     
     if (audioContext.state === 'running') {
       setTimeout(checkRMS, 500);
     }
   };
+  
   // Start RMS monitoring after a short delay
   setTimeout(checkRMS, 1000);
   
@@ -151,7 +214,8 @@ export async function buildAssemblyAudioStream(
     mixedStream: destination.stream,
     micStream,
     audioContext,
-    hasSystemAudio: true
+    hasSystemAudio: true,
+    systemAudioReason: 'available'
   };
 }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Mic, Monitor, CheckCircle2, XCircle, AlertCircle, CheckCircle } from "lucide-react";
+import { Mic, Monitor, CheckCircle2, XCircle, AlertCircle, CheckCircle, Radio } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,8 @@ interface AudioCaptureStatusIndicatorProps {
   timeSinceLastChunk?: number;
   totalChunks?: number;
   actualChunksPerMinute?: number;
+  // AssemblyAI input mode
+  assemblyInputMode?: 'mic-only' | 'mic-and-system' | 'inactive';
 }
 
 export const AudioCaptureStatusIndicator = ({
@@ -26,7 +28,8 @@ export const AudioCaptureStatusIndicator = ({
   healthStatus = 'inactive',
   timeSinceLastChunk = 0,
   totalChunks = 0,
-  actualChunksPerMinute = 0
+  actualChunksPerMinute = 0,
+  assemblyInputMode = 'inactive'
 }: AudioCaptureStatusIndicatorProps) => {
   const [showVoiceIndicator, setShowVoiceIndicator] = useState(true);
   const [hasAutoHidden, setHasAutoHidden] = useState(false);
@@ -72,6 +75,33 @@ export const AudioCaptureStatusIndicator = ({
       return { icon: CheckCircle2, color: "text-green-500", label: "System Audio Active" };
     }
     return { icon: AlertCircle, color: "text-amber-500", label: "System Audio Not Detected" };
+  };
+
+  const getAssemblyInputStatus = () => {
+    if (assemblyInputMode === 'inactive') {
+      return null;
+    }
+    if (assemblyInputMode === 'mic-and-system') {
+      return { 
+        color: "text-green-500", 
+        label: "Live Transcript: Mic + System",
+        description: "Live transcript is capturing both microphone and system audio"
+      };
+    }
+    // mic-only
+    if (recordingMode === 'mic-and-system') {
+      // User wanted system audio but got mic-only fallback
+      return { 
+        color: "text-amber-500", 
+        label: "Live Transcript: Mic Only (fallback)",
+        description: "System audio unavailable for live transcript. Check your screen share settings."
+      };
+    }
+    return { 
+      color: "text-blue-500", 
+      label: "Live Transcript: Mic Only",
+      description: "Live transcript is using microphone input"
+    };
   };
 
   const handleMicStatusClick = () => {
@@ -124,6 +154,7 @@ export const AudioCaptureStatusIndicator = ({
   const micStatus = getMicStatus();
   const systemStatus = getSystemStatus();
   const healthConfig = getHealthConfig();
+  const assemblyStatus = getAssemblyInputStatus();
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg border">
@@ -167,6 +198,21 @@ export const AudioCaptureStatusIndicator = ({
                 You may have selected a Window instead of a Browser Tab
               </p>
             )}
+          </TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* AssemblyAI Input Mode Indicator */}
+      {assemblyStatus && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className="flex items-center gap-1.5 cursor-help">
+              <Radio className={`h-3.5 w-3.5 ${assemblyStatus.color}`} />
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="font-medium">{assemblyStatus.label}</p>
+            <p className="text-xs text-muted-foreground mt-1">{assemblyStatus.description}</p>
           </TooltipContent>
         </Tooltip>
       )}
