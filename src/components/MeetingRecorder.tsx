@@ -4006,9 +4006,13 @@ export const MeetingRecorder = ({
         
         // Build the mixed audio stream using Web Audio (not rewrapped tracks)
         // This fixes Chrome "Entire screen" system audio capture
+        // LATENCY FIX: We pass the existing mic stream if available to avoid duplicate getUserMedia calls
         const mixerResult = await buildAssemblyAudioStream(
           screenStreamRef.current, // Pass original display stream (may be null for mic-only mode)
-          { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          { 
+            existingMicStream: micAudioStreamRef.current,
+            micConstraints: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          }
         );
         
         assemblyAudioMixerRef.current = mixerResult;
