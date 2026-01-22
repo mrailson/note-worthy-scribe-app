@@ -15,7 +15,10 @@ import {
   Sparkles,
   Mic,
   ClipboardPaste,
-  Check
+  Check,
+  CheckCircle2,
+  History,
+  Plus
 } from 'lucide-react';
 import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
@@ -68,6 +71,8 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [importSuccess, setImportSuccess] = useState(false);
+  const [importedMeetingId, setImportedMeetingId] = useState<string | null>(null);
 
   const getFileType = (file: File): 'audio' | 'text' | 'document' | null => {
     if (SUPPORTED_AUDIO_TYPES.includes(file.type) || 
@@ -357,17 +362,14 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
           timestamp_seconds: 0
         });
       
-      showToast.success('Meeting created! Generating notes...', { section: 'meeting_manager' });
-      
       // Trigger notes generation in background
       supabase.functions.invoke('auto-generate-meeting-notes', {
         body: { meetingId: meeting.id }
       }).catch(err => console.error('Note generation error:', err));
       
-      // Close modal and navigate to home with Meeting History tab
-      onComplete?.();
-      onClose?.();
-      navigate('/?tab=history');
+      // Show success panel instead of closing immediately
+      setImportedMeetingId(meeting.id);
+      setImportSuccess(true);
       
     } catch (error: any) {
       console.error('Error creating meeting:', error);
@@ -377,11 +379,68 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     }
   };
 
+  const handleViewInHistory = () => {
+    onComplete?.();
+    onClose?.();
+    navigate('/?tab=history', { 
+      state: { 
+        scrollToMeetingId: importedMeetingId,
+        viewNotes: importedMeetingId,
+        openModal: true 
+      } 
+    });
+  };
+
+  const handleImportAnother = () => {
+    setImportSuccess(false);
+    setImportedMeetingId(null);
+    setMeetingTitle('');
+    setPastedText('');
+    setUploadedFiles([]);
+  };
+
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
+
+  // Show success panel after successful import
+  if (importSuccess) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 px-4 text-center space-y-4">
+        <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+          <CheckCircle2 className="h-8 w-8 text-green-600" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-foreground">
+            Meeting Created Successfully!
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            Your meeting has been imported and notes are being generated. 
+            View it in Meeting History.
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+          <Button 
+            className="flex-1"
+            onClick={handleViewInHistory}
+          >
+            <History className="h-4 w-4 mr-2" />
+            View in Meeting History
+          </Button>
+          <Button 
+            variant="outline" 
+            className="flex-1"
+            onClick={handleImportAnother}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Import Another
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full min-h-0">
