@@ -854,7 +854,7 @@ export const SDAEstatesCapacity = () => {
           <ul className="space-y-2">
             <li className="flex items-start gap-2 text-sm text-slate-600">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></span>
-              <strong>Brackley Medical Centre & Brook Health Centre:</strong> Non-GMS space requires rent
+              <span><strong>Brackley Medical Centre & Brook Health Centre:</strong> Non-GMS space requires rent. Awaiting confirmation on the rent request for the duration of the New Models pilot (as at 22 Jan 2026).</span>
             </li>
             <li className="flex items-start gap-2 text-sm text-slate-600">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></span>
