@@ -471,10 +471,7 @@ export class AssemblyRealtimeClient {
     this.processor.connect(this.muteGain);
     this.muteGain.connect(this.audioCtx.destination);
 
-    // IMPORTANT:
-    // When a MediaStream contains multiple audio tracks (e.g. screen-share system audio + mic),
-    // createMediaStreamSource(stream) can effectively capture only one track depending on browser.
-    // To reliably capture *all* tracks, we create one source per track and let the Web Audio graph mix them.
+    // Log track info for debugging
     const audioTracks = this.stream.getAudioTracks();
     console.log(
       `🎛️ AssemblyRealtimeClient: audio capture initialising (${audioTracks.length} audio track(s))`
@@ -496,22 +493,16 @@ export class AssemblyRealtimeClient {
       }
     }
 
+    // Use a single source node from the stream.
+    // The stream should already be properly mixed (via Web Audio in MeetingRecorder)
+    // if it contains system audio. Using a single source is more reliable than
+    // creating per-track sources which can fail with Chrome display capture.
     this.sources = [];
-    if (audioTracks.length > 1) {
-      console.log(
-        "🧩 AssemblyRealtimeClient: multiple audio tracks detected; mixing all tracks for transcription"
-      );
-      for (const track of audioTracks) {
-        const perTrackStream = new MediaStream([track]);
-        const src = this.audioCtx.createMediaStreamSource(perTrackStream);
-        src.connect(this.processor);
-        this.sources.push(src);
-      }
-    } else {
-      const src = this.audioCtx.createMediaStreamSource(this.stream);
-      src.connect(this.processor);
-      this.sources.push(src);
-    }
+    const src = this.audioCtx.createMediaStreamSource(this.stream);
+    src.connect(this.processor);
+    this.sources.push(src);
+    
+    console.log("🎛️ AssemblyRealtimeClient: single source node connected (stream should be pre-mixed)");
 
     const buffer16: Int16Array[] = [];
     let accLen = 0;
