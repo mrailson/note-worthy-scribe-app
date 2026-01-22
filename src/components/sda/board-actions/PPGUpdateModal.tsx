@@ -59,7 +59,7 @@ export const PPGUpdateModal = ({ open, onOpenChange }: PPGUpdateModalProps) => {
               </div>
               <div>
                 <h3 className="font-semibold text-slate-900 text-base">Communication to PPG Members</h3>
-                <p className="text-xs text-emerald-600 font-medium">Sent 22 January 2026</p>
+                <p className="text-xs text-emerald-600 font-medium">Sent 20 January 2026</p>
               </div>
               <Badge className="ml-auto bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
                 Latest
