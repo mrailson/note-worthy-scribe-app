@@ -481,6 +481,9 @@ export const MeetingRecorder = ({
   const [systemAudioCaptured, setSystemAudioCaptured] = useState(false);
   const [audioActivity, setAudioActivity] = useState(false);
   
+  // AssemblyAI input mode tracking (explicit feedback for users)
+  const [assemblyInputMode, setAssemblyInputMode] = useState<'mic-only' | 'mic-and-system' | 'inactive'>('inactive');
+  
   // Audio source switching state
   const [isSwitchingAudioSource, setIsSwitchingAudioSource] = useState(false);
   
@@ -634,6 +637,7 @@ export const MeetingRecorder = ({
     setRecordingMode('mic-only');
     setMicCaptured(false);
     setSystemAudioCaptured(false);
+    setAssemblyInputMode('inactive');
     
     // Clear AssemblyAI live transcript state
     assemblyPreview.clearTranscript();
@@ -4009,14 +4013,38 @@ export const MeetingRecorder = ({
         
         assemblyAudioMixerRef.current = mixerResult;
         
-        console.log(`🎧 AssemblyAI audio mixer ready: hasSystemAudio=${mixerResult.hasSystemAudio}, tracks=${mixerResult.mixedStream.getAudioTracks().length}`);
+        console.log(`🎧 AssemblyAI audio mixer ready: hasSystemAudio=${mixerResult.hasSystemAudio}, reason=${mixerResult.systemAudioReason}, tracks=${mixerResult.mixedStream.getAudioTracks().length}`);
         
-        // Update system audio captured flag based on mixer result
+        // Update system audio captured flag and AssemblyAI input mode based on mixer result
         if (mixerResult.hasSystemAudio) {
           setSystemAudioCaptured(true);
+          setAssemblyInputMode('mic-and-system');
+          addDebugLog('✅ AssemblyAI: Mic + System audio');
           console.log('✅ System audio is being captured for AssemblyAI transcription');
-        } else if (recordingMode === 'mic-and-system') {
-          console.log('⚠️ System audio not available for AssemblyAI (mic-only fallback)');
+        } else {
+          setAssemblyInputMode('mic-only');
+          
+          // Explicit fallback notification when user expected system audio
+          if (recordingMode === 'mic-and-system') {
+            const reasonMessage = mixerResult.systemAudioReason === 'no_screen_stream' 
+              ? 'No screen share active'
+              : mixerResult.systemAudioReason === 'no_audio_tracks'
+              ? 'Screen share has no audio (try sharing a Browser Tab with "Share tab audio")'
+              : mixerResult.systemAudioReason === 'tracks_not_live'
+              ? 'System audio track ended or is muted'
+              : 'System audio unavailable';
+            
+            addDebugLog(`⚠️ AssemblyAI: Mic only (${reasonMessage})`);
+            console.log(`⚠️ System audio not available for AssemblyAI: ${reasonMessage}`);
+            
+            // Show toast so user knows fallback occurred
+            showToast.warning(`Live transcript using microphone only. ${reasonMessage}`, {
+              section: 'meeting_manager',
+              duration: 6000
+            });
+          } else {
+            addDebugLog('ℹ️ AssemblyAI: Mic only (mic-only mode)');
+          }
         }
         
         // Start preview with the mixed stream
@@ -4024,6 +4052,7 @@ export const MeetingRecorder = ({
         console.log('✅ AssemblyAI real-time preview started with Web Audio mixer');
       } catch (assemblyError) {
         console.warn('⚠️ AssemblyAI preview failed to start (Whisper will continue):', assemblyError);
+        setAssemblyInputMode('inactive');
         // Clean up mixer if it was created
         cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
         assemblyAudioMixerRef.current = null;
@@ -4329,6 +4358,7 @@ export const MeetingRecorder = ({
     
     // Stop AssemblyAI real-time preview
     assemblyPreview.stopPreview();
+    setAssemblyInputMode('inactive');
     
     // Cleanup AssemblyAI audio mixer
     cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
@@ -6015,6 +6045,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                            timeSinceLastChunk={watchdog.timeSinceLastChunk}
                            totalChunks={watchdog.totalChunks}
                            actualChunksPerMinute={watchdog.actualChunksPerMinute}
+                           assemblyInputMode={assemblyInputMode}
                          />
                          
                          {/* Quick Audio Source Switcher - visible during recording */}
