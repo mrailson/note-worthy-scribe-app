@@ -39,6 +39,7 @@ import { CompactMeetingList } from "@/components/meeting-history/CompactMeetingL
 import { MeetingGridView } from "@/components/meeting-history/MeetingGridView";
 import { MeetingTableView } from "@/components/meeting-history/MeetingTableView";
 import { MeetingTimelineView } from "@/components/meeting-history/MeetingTimelineView";
+import { isNewMeeting } from "@/components/meeting-history/NewMeetingBadge";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
 import { SafeModeNotesModal } from "@/components/SafeModeNotesModal";
 import { useRecording } from "@/contexts/RecordingContext";
@@ -5826,6 +5827,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <History className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting History</span>
             <span className="sm:hidden">History</span>
+            {meetings.some(m => isNewMeeting(m.created_at)) && (
+              <Badge className="bg-green-600 hover:bg-green-600 text-white text-[10px] px-1.5 py-0 h-4 ml-1">
+                New
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
