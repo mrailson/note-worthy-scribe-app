@@ -286,7 +286,7 @@ export const SDADigitalIntegration = () => {
             <div className="ml-7 space-y-4">
               <div className="bg-green-50 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge className="bg-green-600">UPDATE - 23rd Dec 2025</Badge>
+                  <Badge className="bg-green-600">UPDATE - 22nd Jan 2026</Badge>
                 </div>
                 <div className="space-y-3 text-sm text-slate-700">
                   <p>
@@ -298,9 +298,9 @@ export const SDADigitalIntegration = () => {
                   <p>
                     <strong>Action Taken:</strong> Met with X-ON (Surgery Connect parent company) on 18th December 2025. Requested they fund the transfer of Denton Village Surgery to Surgery Connect (buy-out cost from existing provider).
                   </p>
-                  <div className="flex items-center gap-2 mt-3">
-                    <Clock className="w-4 h-4 text-amber-600" />
-                    <span className="text-amber-700 font-medium">Awaiting response from X-ON as at 23rd December 2025</span>
+                  <div className="flex items-center gap-2 mt-3 p-3 bg-green-100 rounded-lg border border-green-300">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <span className="text-green-800 font-medium">Denton have received the offer from X-ON for the telephony covering the buy-out from existing supplier. All practices will be on the same phone system.</span>
                   </div>
                 </div>
               </div>
