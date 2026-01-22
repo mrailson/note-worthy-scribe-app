@@ -95,6 +95,7 @@ import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal"
 import { MeetingAttendeeModal } from './MeetingAttendeeModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { AttendeeRoleBadge } from './meeting-history/AttendeeRoleBadge';
+import { NewMeetingBadge } from './meeting-history/NewMeetingBadge';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
 import { toast } from 'sonner';
 import { TranscriptRepairButton } from '@/components/admin/TranscriptRepairButton';
@@ -2262,6 +2263,7 @@ export const MeetingHistoryList = ({
                       ) : (
                         <>
                           <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{meeting.title}</h3>
+                          <NewMeetingBadge createdAt={meeting.created_at} />
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

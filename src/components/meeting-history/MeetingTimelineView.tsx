@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { NewMeetingBadge } from "./NewMeetingBadge";
 
 interface Meeting {
   id: string;
@@ -221,9 +222,12 @@ export const MeetingTimelineView = ({
                           </div>
 
                           {/* Title */}
-                          <h4 className="font-semibold text-base group-hover:text-primary transition-colors truncate">
-                            {meeting.title}
-                          </h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-base group-hover:text-primary transition-colors truncate">
+                              {meeting.title}
+                            </h4>
+                            <NewMeetingBadge createdAt={meeting.created_at} />
+                          </div>
 
                           {/* Overview */}
                           {meeting.overview && (

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { NewMeetingBadge } from "./NewMeetingBadge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -182,9 +183,12 @@ export const MeetingGridView = ({
               </div>
 
               {/* Title */}
-              <h3 className="font-semibold text-base line-clamp-2 mb-2 group-hover:text-primary transition-colors">
-                {meeting.title}
-              </h3>
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="font-semibold text-base line-clamp-2 group-hover:text-primary transition-colors">
+                  {meeting.title}
+                </h3>
+                <NewMeetingBadge createdAt={meeting.created_at} />
+              </div>
 
               {/* Overview excerpt */}
               {meeting.overview && (
