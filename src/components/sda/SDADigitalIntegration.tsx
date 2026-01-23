@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList, BarChart3, FileText, AlertTriangle, Users, Calendar, TrendingUp, Download } from "lucide-react";
+import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList, BarChart3, FileText, AlertTriangle, Users, Calendar, TrendingUp, Download, PoundSterling } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
 import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
@@ -286,7 +286,7 @@ export const SDADigitalIntegration = () => {
             <div className="ml-7 space-y-4">
               <div className="bg-green-50 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge className="bg-green-600">UPDATE - 22nd Jan 2026</Badge>
+                  <Badge className="bg-green-600">UPDATE - 23rd Jan 2026</Badge>
                 </div>
                 <div className="space-y-3 text-sm text-slate-700">
                   <p>
@@ -298,38 +298,92 @@ export const SDADigitalIntegration = () => {
                   <p>
                     <strong>Action Taken:</strong> Met with X-ON (Surgery Connect parent company) on 18th December 2025. Requested they fund the transfer of Denton Village Surgery to Surgery Connect (buy-out cost from existing provider).
                   </p>
-                  <div className="flex items-center gap-2 mt-3 p-3 bg-green-100 rounded-lg border border-green-300">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    <span className="text-green-800 font-medium">Denton have received the offer from X-ON for the telephony covering the buy-out from existing supplier. All practices will be on the same phone system.</span>
+                </div>
+              </div>
+
+              {/* X-ON Commercial Proposal */}
+              <div className="bg-green-50 rounded-lg p-4 border border-green-300">
+                <div className="flex items-center gap-2 mb-3">
+                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <h5 className="font-semibold text-slate-900">X-ON Commercial Proposal Received</h5>
+                  <Badge className="bg-green-600 text-xs">15th January 2026</Badge>
+                </div>
+                <p className="text-sm text-slate-700 mb-3">
+                  Following negotiations, X-ON has submitted an updated commercial proposal for the <strong>Intelligent Care Navigation System</strong>. Key terms include:
+                </p>
+                
+                <div className="bg-white rounded-lg p-3 mb-3 border border-green-200">
+                  <h6 className="font-semibold text-slate-900 text-sm mb-2">Key Commercial Terms:</h6>
+                  <ul className="text-sm text-slate-700 space-y-1">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span><strong>17.7% discount</strong> from RRP across all products</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span>X-ON will fund <strong>Denton Village Surgery telephony buy-out in full</strong> (£6,434.79 inc. VAT)</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      <span><strong>Two-month rental-free period</strong> (£13,708.87 concession)</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                      <span>36-month contract term</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-blue-100 rounded-lg border border-blue-300 mb-3">
+                  <PoundSterling className="w-5 h-5 text-blue-700" />
+                  <div>
+                    <p className="text-blue-900 font-semibold">Annual Cost: £82,253.22</p>
+                    <p className="text-blue-700 text-xs">(~£6,854/month for 6 practices)</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h5 className="font-semibold text-slate-900 mb-2">X-ON Suite Capabilities (Potential Benefits)</h5>
-                <ul className="text-sm text-slate-600 space-y-1">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    AI Scribe functionality
+              {/* Products Included */}
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <h5 className="font-semibold text-slate-900 mb-2">Products Included in Proposal</h5>
+                <ul className="text-sm text-slate-600 space-y-2">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Surgery Assist</strong> - AI-powered 24/7 digital front door with multilingual support
+                    </div>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    Enhanced reporting capabilities
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Surgery Insights</strong> - Unified analytics dashboard
+                    </div>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-amber-500" />
-                    AI Voice Agents (coming soon)
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Omni-Consult</strong> - Voice/Web/Staff consultation forms
+                    </div>
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    Other high-quality developments beneficial for Neighbourhood and SDA model
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Surgery Intellect</strong> - AI Scribe (TORTUS technology, UKCA Class I medical device)
+                    </div>
                   </li>
                 </ul>
-                <p className="text-xs text-slate-500 mt-2 italic">Full applicability to our model TBC</p>
+                <p className="text-xs text-slate-500 mt-2 italic">Note: Surgery Connect telephony for Denton is a separate proposal (buy-out funded by X-ON)</p>
               </div>
 
+              {/* Next Steps */}
               <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
-                <p className="text-sm text-amber-800">
+                <h5 className="font-semibold text-amber-900 text-sm mb-2">Next Steps:</h5>
+                <ul className="text-sm text-amber-800 space-y-1 list-disc ml-4">
+                  <li>Walk-through meeting to be scheduled with X-ON</li>
+                  <li>Formal evaluation against NRES requirements</li>
+                  <li>Decision on commercial package</li>
+                </ul>
+                <p className="text-sm text-amber-800 mt-2">
                   <strong>Lead Contacts:</strong> Alex and Malcolm to provide ongoing updates on IT/practical setup progress.
                 </p>
               </div>
