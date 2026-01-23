@@ -63,11 +63,19 @@ export const BPExportOptions = ({
   const [emailAddress, setEmailAddress] = useState('');
   const includedReadings = readings.filter(r => r.included);
   const excludedReadings = readings.filter(r => !r.included);
+  
+  // Calculate diary entry count for sit/stand mode
+  const isSitStandMode = sitStandAverages && (sitStandAverages.sittingCount > 0 || sitStandAverages.standingCount > 0);
+  const diaryEntryCount = sitStandAverages?.diaryEntryCount || 0;
 
   const copyToClipboard = async () => {
     if (!averages) return;
 
-    const text = `Average BP: ${averages.systolic}/${averages.diastolic} mmHg (${includedReadings.length} readings)
+    const countText = isSitStandMode 
+      ? `${includedReadings.length} readings (${diaryEntryCount} diary entries × 2 positions)`
+      : `${includedReadings.length} readings`;
+
+    const text = `Average BP: ${averages.systolic}/${averages.diastolic} mmHg (${countText})
 Range: ${averages.systolicMin}-${averages.systolicMax} / ${averages.diastolicMin}-${averages.diastolicMax}
 ${averages.pulse ? `Average Pulse: ${averages.pulse} bpm` : ''}
 ${category ? `Category: ${category.label}` : ''}
@@ -239,7 +247,13 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
           }),
           summaryTable,
           new Paragraph({
-            children: [new TextRun({ text: `Based on ${includedReadings.length} readings`, size: 18, color: "9CA3AF" })],
+            children: [new TextRun({ 
+              text: isSitStandMode 
+                ? `Based on ${includedReadings.length} readings (${diaryEntryCount} diary entries × 2 positions)`
+                : `Based on ${includedReadings.length} readings`, 
+              size: 18, 
+              color: "9CA3AF" 
+            })],
             alignment: AlignmentType.RIGHT,
             spacing: { before: 80, after: 200 },
           }),
@@ -372,7 +386,14 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
           new Paragraph({
             children: [
               new TextRun({ text: "Total readings: ", size: 20, color: "6B7280" }),
-              new TextRun({ text: String(readings.length), bold: true, size: 20, color: "1F2937" }),
+              new TextRun({ 
+                text: isSitStandMode 
+                  ? `${readings.length} (${diaryEntryCount} diary entries × 2 positions)`
+                  : String(readings.length), 
+                bold: true, 
+                size: 20, 
+                color: "1F2937" 
+              }),
             ],
             spacing: { after: 50 },
           }),
@@ -601,7 +622,7 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
                   </div>
                   ` : ''}
                 </div>
-                <div style="text-align: right; color: #9CA3AF; font-size: 12px;">Based on ${includedReadings.length} readings</div>
+                <div style="text-align: right; color: #9CA3AF; font-size: 12px;">Based on ${includedReadings.length} readings${isSitStandMode ? ` (${diaryEntryCount} diary entries × 2 positions)` : ''}</div>
               </div>
             </div>
 
@@ -668,7 +689,7 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
             <div class="section">
               <div class="section-title">📅 Reading Summary</div>
               <div class="target-box">
-                <p><strong>Total readings:</strong> ${readings.length}</p>
+                <p><strong>Total readings:</strong> ${readings.length}${isSitStandMode ? ` (${diaryEntryCount} diary entries × 2 positions)` : ''}</p>
                 <p><strong>Included:</strong> <span style="color: #065F46;">${includedReadings.length}</span></p>
                 ${excludedReadings.length > 0 ? `<p><strong>Excluded:</strong> <span style="color: #DC2626;">${excludedReadings.length}</span></p>` : ''}
                 <p><strong>Date range:</strong> ${dateRange.start && dateRange.end ? `${dateRange.start} → ${dateRange.end}` : 'Unknown'}</p>

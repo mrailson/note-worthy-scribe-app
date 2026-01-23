@@ -156,6 +156,7 @@ const PublicBPCalculator = () => {
                 averages={averages}
                 category={category}
                 readingsCount={includedCount}
+                diaryEntryCount={isSitStandMode ? sitStandAverages.diaryEntryCount : undefined}
               />
             )}
 
@@ -172,6 +173,7 @@ const PublicBPCalculator = () => {
               totalReadings={readings.length}
               includedCount={includedCount}
               excludedCount={excludedCount}
+              diaryEntryCount={isSitStandMode ? sitStandAverages.diaryEntryCount : undefined}
             />
 
             <BPReadingsTable 

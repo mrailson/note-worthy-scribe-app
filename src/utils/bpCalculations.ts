@@ -62,6 +62,9 @@ export interface SitStandAverages {
   sitting: BPAverages | null;
   standing: BPAverages | null;
   posturalDrop: PosturalDrop | null;
+  sittingCount: number;
+  standingCount: number;
+  diaryEntryCount: number; // Unique date/time combinations (rows in the diary)
 }
 
 // Group readings by date
@@ -468,6 +471,10 @@ export const calculateSitStandAverages = (readings: BPReading[]): SitStandAverag
   const sitting = calculateSubsetAverages(sittingReadings);
   const standing = calculateSubsetAverages(standingReadings);
   
+  // Calculate diary entry count (unique date/time combinations)
+  // Each diary row typically has both a sitting and standing reading
+  const diaryEntryCount = Math.max(sittingReadings.length, standingReadings.length);
+  
   let posturalDrop: PosturalDrop | null = null;
   
   if (sitting && standing) {
@@ -500,5 +507,12 @@ export const calculateSitStandAverages = (readings: BPReading[]): SitStandAverag
     };
   }
   
-  return { sitting, standing, posturalDrop };
+  return { 
+    sitting, 
+    standing, 
+    posturalDrop,
+    sittingCount: sittingReadings.length,
+    standingCount: standingReadings.length,
+    diaryEntryCount
+  };
 };

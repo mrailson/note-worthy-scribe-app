@@ -11,6 +11,7 @@ interface BPTrendAnalysisProps {
   totalReadings: number;
   includedCount: number;
   excludedCount: number;
+  diaryEntryCount?: number; // For sit/stand mode
 }
 
 export const BPTrendAnalysis = ({
@@ -20,7 +21,8 @@ export const BPTrendAnalysis = ({
   qofRelevance,
   totalReadings,
   includedCount,
-  excludedCount
+  excludedCount,
+  diaryEntryCount
 }: BPTrendAnalysisProps) => {
   const getQualityColor = (rating: string) => {
     switch (rating) {
@@ -120,7 +122,14 @@ export const BPTrendAnalysis = ({
           <div className="pt-3 border-t space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Total readings:</span>
-              <span className="font-medium text-foreground">{totalReadings}</span>
+              <span className="font-medium text-foreground">
+                {totalReadings}
+                {diaryEntryCount && diaryEntryCount !== totalReadings && (
+                  <span className="text-muted-foreground font-normal ml-1">
+                    ({diaryEntryCount} diary entries × 2)
+                  </span>
+                )}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Included:</span>
