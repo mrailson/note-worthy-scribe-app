@@ -247,24 +247,22 @@ export const PromptsModal: React.FC<PromptsModalProps> = ({
             </TabsTrigger>
           </TabsList>
           
-          <div className="flex-1 min-h-0 overflow-hidden">
-            <ScrollArea className="h-full px-6 py-4">
-              <TabsContent value="gp" className="mt-0 data-[state=inactive]:hidden">
-                {filteredGPPrompts !== null ? (
-                  renderSearchResults(filteredGPPrompts)
-                ) : (
-                  renderCategoryAccordion(gpCategories)
-                )}
-              </TabsContent>
-              
-              <TabsContent value="pm" className="mt-0 data-[state=inactive]:hidden">
-                {filteredPMPrompts !== null ? (
-                  renderSearchResults(filteredPMPrompts)
-                ) : (
-                  renderCategoryAccordion(pmCategories)
-                )}
-              </TabsContent>
-            </ScrollArea>
+          <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+            <TabsContent value="gp" className="mt-0 data-[state=inactive]:hidden">
+              {filteredGPPrompts !== null ? (
+                renderSearchResults(filteredGPPrompts)
+              ) : (
+                renderCategoryAccordion(gpCategories)
+              )}
+            </TabsContent>
+            
+            <TabsContent value="pm" className="mt-0 data-[state=inactive]:hidden">
+              {filteredPMPrompts !== null ? (
+                renderSearchResults(filteredPMPrompts)
+              ) : (
+                renderCategoryAccordion(pmCategories)
+              )}
+            </TabsContent>
           </div>
         </Tabs>
       </DialogContent>
