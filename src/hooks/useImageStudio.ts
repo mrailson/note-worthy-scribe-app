@@ -487,6 +487,154 @@ export function useImageStudio() {
     }
   }, [user?.id, state.settings]);
 
+  // Quick edit: streamlined image editing flow
+  const quickEdit = useCallback(async (
+    imageContent: string,
+    editInstructions: string,
+    imageModel?: string
+  ): Promise<GeneratedImage | null> => {
+    if (!imageContent || !editInstructions.trim()) {
+      toast.error('Please provide an image and editing instructions');
+      return null;
+    }
+
+    // Set up state for editing
+    setState(prev => ({
+      ...prev,
+      isGenerating: true,
+      generationProgress: 5,
+      error: null,
+    }));
+
+    const selectedModel = (imageModel as ImageStudioRequest['imageModel']) || 'google/gemini-3-pro-image-preview';
+    const fallbackModel = 'google/gemini-2.5-flash-image-preview';
+
+    const attemptEdit = async (model: string, isRetry = false): Promise<GeneratedImage | null> => {
+      try {
+        setState(prev => ({ ...prev, generationProgress: 15 }));
+
+        // Optimise image before sending
+        let optimisedContent = imageContent;
+        const originalSize = getBase64SizeKB(imageContent);
+        console.log(`📊 Quick edit image: ${originalSize}KB`);
+        
+        if (originalSize > 500) {
+          const result = await optimiseImageForUpload(imageContent, {
+            maxSizeKB: 600,
+            maxDimension: 1280,
+            quality: 0.8
+          });
+          optimisedContent = result.optimised;
+          console.log(`✅ Optimised: ${result.originalSizeKB}KB -> ${result.finalSizeKB}KB`);
+        }
+
+        setState(prev => ({ ...prev, generationProgress: 30 }));
+
+        // Build simplified edit request
+        const request: ImageStudioRequest = {
+          prompt: editInstructions,
+          referenceImages: [{
+            content: optimisedContent,
+            type: 'image/jpeg',
+            mode: 'edit-source',
+            instructions: editInstructions,
+          }],
+          imageModel: model as ImageStudioRequest['imageModel'],
+          isStudioRequest: true,
+        };
+
+        console.log('🎨 Quick Edit: Sending request with model:', model);
+
+        setState(prev => ({ ...prev, generationProgress: 50 }));
+
+        const { data, error } = await supabase.functions.invoke('ai4gp-image-generation', {
+          body: request,
+        });
+
+        setState(prev => ({ ...prev, generationProgress: 85 }));
+
+        if (error) {
+          console.error('🔴 Supabase function error:', error);
+          throw { message: error.message, code: 'UNKNOWN' };
+        }
+
+        if (data?.error) {
+          console.error('🔴 Edge function returned error:', data.error, data.code);
+          throw { message: data.error, code: data.code || 'UNKNOWN' };
+        }
+
+        if (!data?.image?.url) {
+          console.error('🔴 No image URL in response:', data);
+          throw { message: 'No image was generated', code: 'UNKNOWN' };
+        }
+
+        console.log('✅ Quick edit successful');
+
+        const result: GeneratedImage = {
+          url: data.image.url,
+          alt: data.image.alt || editInstructions.substring(0, 100),
+          prompt: editInstructions,
+        };
+
+        return result;
+      } catch (err) {
+        const errorCode = parseErrorCode(err);
+        console.error(`🔴 Quick edit attempt failed (${errorCode}):`, err);
+
+        if (!isRetry && model !== fallbackModel) {
+          const retriableErrors: ErrorCode[] = ['TIMEOUT', 'UNKNOWN'];
+          if (retriableErrors.includes(errorCode)) {
+            console.log(`🔄 Retrying quick edit with fallback model: ${fallbackModel}`);
+            toast.info('Retrying with alternative model...');
+            return attemptEdit(fallbackModel, true);
+          }
+        }
+
+        throw { message: ERROR_MESSAGES[errorCode], code: errorCode, original: err };
+      }
+    };
+
+    try {
+      const result = await attemptEdit(selectedModel);
+
+      if (result) {
+        // Add to history
+        const historyItem: GenerationHistoryItem = {
+          id: `edit-${Date.now()}`,
+          timestamp: new Date(),
+          settings: { description: editInstructions },
+          result,
+        };
+
+        setState(prev => ({
+          ...prev,
+          isGenerating: false,
+          generationProgress: 100,
+          currentResult: result,
+          generationHistory: [historyItem, ...prev.generationHistory.slice(0, 19)],
+        }));
+
+        toast.success('Image edited successfully!');
+        return result;
+      }
+
+      return null;
+    } catch (error: any) {
+      console.error('Quick edit error:', error);
+      const errorMessage = error?.message || ERROR_MESSAGES.UNKNOWN;
+
+      setState(prev => ({
+        ...prev,
+        isGenerating: false,
+        generationProgress: 0,
+        error: errorMessage,
+      }));
+
+      toast.error(errorMessage);
+      return null;
+    }
+  }, []);
+
   return {
     ...state,
     updateSettings,
@@ -500,6 +648,7 @@ export function useImageStudio() {
     editCurrentResult,
     selectHistoryItem,
     saveToGallery,
+    quickEdit,
   };
 }
 
