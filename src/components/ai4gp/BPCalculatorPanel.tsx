@@ -140,6 +140,7 @@ export const BPCalculatorPanel = ({ cleanView }: BPCalculatorPanelProps) => {
               averages={averages}
               category={category}
               readingsCount={includedCount}
+              diaryEntryCount={isSitStandMode ? sitStandAverages.diaryEntryCount : undefined}
             />
           )}
 
@@ -158,6 +159,7 @@ export const BPCalculatorPanel = ({ cleanView }: BPCalculatorPanelProps) => {
             totalReadings={readings.length}
             includedCount={includedCount}
             excludedCount={excludedCount}
+            diaryEntryCount={isSitStandMode ? sitStandAverages.diaryEntryCount : undefined}
           />
 
           {/* Readings Table */}

@@ -29,9 +29,14 @@ export const BPSitStandSummaryCard = ({ sitStandAverages }: BPSitStandSummaryCar
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Sitting Average */}
           <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Armchair className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-600">Sitting</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Armchair className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-600">Sitting</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {sitStandAverages.sittingCount} reading{sitStandAverages.sittingCount !== 1 ? 's' : ''}
+              </span>
             </div>
             {sitting ? (
               <>
@@ -55,9 +60,14 @@ export const BPSitStandSummaryCard = ({ sitStandAverages }: BPSitStandSummaryCar
 
           {/* Standing Average */}
           <div className="bg-purple-50 dark:bg-purple-950/30 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <PersonStanding className="h-4 w-4 text-purple-600" />
-              <span className="text-sm font-medium text-purple-600">Standing</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <PersonStanding className="h-4 w-4 text-purple-600" />
+                <span className="text-sm font-medium text-purple-600">Standing</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {sitStandAverages.standingCount} reading{sitStandAverages.standingCount !== 1 ? 's' : ''}
+              </span>
             </div>
             {standing ? (
               <>
@@ -129,7 +139,10 @@ export const BPSitStandSummaryCard = ({ sitStandAverages }: BPSitStandSummaryCar
         </div>
 
         {/* Clinical interpretation */}
-        <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+        <div className="mt-4 p-3 bg-muted/50 rounded-lg space-y-1">
+          <p className="text-xs text-muted-foreground">
+            <strong>Readings summary:</strong> {sitStandAverages.diaryEntryCount} diary entr{sitStandAverages.diaryEntryCount !== 1 ? 'ies' : 'y'} × 2 positions = {sitStandAverages.sittingCount + sitStandAverages.standingCount} total readings
+          </p>
           <p className="text-xs text-muted-foreground">
             <strong>Orthostatic hypotension criteria:</strong> Systolic drop ≥20 mmHg OR diastolic drop ≥10 mmHg within 3 minutes of standing.
           </p>

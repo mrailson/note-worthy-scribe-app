@@ -24,9 +24,10 @@ interface BPSummaryCardProps {
   averages: BPAverages;
   category: NHSCategory | null;
   readingsCount: number;
+  diaryEntryCount?: number; // For sit/stand mode - shows diary entries vs readings
 }
 
-export const BPSummaryCard = ({ averages, category, readingsCount }: BPSummaryCardProps) => {
+export const BPSummaryCard = ({ averages, category, readingsCount, diaryEntryCount }: BPSummaryCardProps) => {
   const getCategoryBadgeClass = (color: string) => {
     switch (color) {
       case 'green':
@@ -109,6 +110,11 @@ export const BPSummaryCard = ({ averages, category, readingsCount }: BPSummaryCa
         <div className="flex items-center justify-end mt-6 pt-4 border-t border-red-200 dark:border-red-800">
           <div className="text-sm text-muted-foreground">
             Based on <span className="font-medium text-foreground">{readingsCount}</span> readings
+            {diaryEntryCount && diaryEntryCount !== readingsCount && (
+              <span className="ml-1">
+                ({diaryEntryCount} diary entr{diaryEntryCount !== 1 ? 'ies' : 'y'} × 2 positions)
+              </span>
+            )}
           </div>
         </div>
       </CardContent>
