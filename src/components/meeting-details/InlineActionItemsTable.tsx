@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { CheckCircle2, User, Calendar, Flag, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Popover,
   PopoverContent,
@@ -20,6 +21,7 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { useActionItems, ActionItem } from '@/hooks/useActionItems';
+import { parseMarkdownTable } from '@/lib/tableRenderer';
 
 interface InlineActionItemsTableProps {
   meetingId: string;
@@ -355,8 +357,125 @@ export const InlineActionItemsTable = ({ meetingId }: InlineActionItemsTableProp
   const { actionItems, isLoading, updateActionItem, deleteActionItem } = useActionItems(meetingId);
   const [viewMode, setViewMode] = useState<'open' | 'completed'>('open');
 
+  const [fallbackTable, setFallbackTable] = useState<ReturnType<typeof parseMarkdownTable> | null>(null);
+  const [isFallbackLoading, setIsFallbackLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const extractActionItemsTableMarkdown = (summary: string): string | null => {
+      // Find the Action Items heading and capture until the next heading.
+      const headingMatch = summary.match(/^#{1,4}\s*action\s+items?\s*$/im);
+      if (!headingMatch?.index && headingMatch?.index !== 0) return null;
+
+      const start = headingMatch.index + headingMatch[0].length;
+      const afterHeading = summary.slice(start);
+
+      const nextHeadingMatch = afterHeading.match(/^#{1,4}\s+/m);
+      const sectionBody = nextHeadingMatch?.index != null
+        ? afterHeading.slice(0, nextHeadingMatch.index)
+        : afterHeading;
+
+      // Find the first markdown table block inside the section.
+      const lines = sectionBody.split('\n');
+      const tableLines: string[] = [];
+      let inTable = false;
+
+      for (const rawLine of lines) {
+        const line = rawLine.trimEnd();
+        const looksLikeTableRow = /^\s*\|.*\|\s*$/.test(line);
+
+        if (looksLikeTableRow) {
+          inTable = true;
+          tableLines.push(line);
+          continue;
+        }
+
+        if (inTable) {
+          // Stop at the first non-table line after we've started capturing.
+          break;
+        }
+      }
+
+      if (tableLines.length < 2) return null;
+      return tableLines.join('\n');
+    };
+
+    const loadFallback = async () => {
+      if (isLoading) return;
+      if (actionItems.length > 0) return;
+      if (fallbackTable) return;
+
+      setIsFallbackLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+
+        if (error) throw error;
+        const summary = data?.summary || '';
+        if (!summary) return;
+
+        const tableMarkdown = extractActionItemsTableMarkdown(summary);
+        if (!tableMarkdown) return;
+
+        const parsed = parseMarkdownTable(tableMarkdown);
+        if (!parsed) return;
+
+        if (!cancelled) {
+          setFallbackTable(parsed);
+        }
+      } catch {
+        // Silent fallback: if we can't parse, just render nothing (keeps UI clean).
+      } finally {
+        if (!cancelled) setIsFallbackLoading(false);
+      }
+    };
+
+    loadFallback();
+    return () => {
+      cancelled = true;
+    };
+  }, [actionItems.length, fallbackTable, isLoading, meetingId]);
+
   if (isLoading || actionItems.length === 0) {
-    return null;
+    // If the DB-backed table is empty, try to render a read-only fallback from the markdown summary.
+    if (isLoading || isFallbackLoading || !fallbackTable) return null;
+
+    return (
+      <div className="rounded-lg border overflow-hidden">
+        <div className="bg-primary px-4 py-2 flex items-center justify-between">
+          <h3 className="font-semibold text-primary-foreground flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            Action Items
+          </h3>
+          <span className="text-xs text-primary-foreground/80">From notes</span>
+        </div>
+
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              {fallbackTable.headers.map((h) => (
+                <TableHead key={h}>{h}</TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {fallbackTable.rows.map((row, idx) => (
+              <TableRow key={idx}>
+                {fallbackTable.headers.map((h) => (
+                  <TableCell key={`${idx}-${h}`} className="align-top">
+                    <span className="text-sm text-foreground">{row[h] ?? ''}</span>
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
   }
 
   const completedCount = actionItems.filter(item => item.status === 'Completed').length;
