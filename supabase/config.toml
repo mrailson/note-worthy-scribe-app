@@ -422,3 +422,6 @@ verify_jwt = true
 
 [functions.format-admin-dictation]
 verify_jwt = true
+
+[functions.google-speech-streaming]
+verify_jwt = false
