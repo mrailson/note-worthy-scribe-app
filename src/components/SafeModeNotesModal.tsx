@@ -2225,18 +2225,21 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     }
   };
 
-  // Remove action items section from formatted content (we'll show it as a table)
+  // Remove action items section from formatted content (we'll show it as a table) - ONLY if actionList toggle is OFF
   const contentWithoutActionItems = useMemo(() => {
     if (!notesContent) return '';
     
-    // Remove Action Items section and everything after it until next ## heading
     let cleaned = notesContent;
     
-    // Remove the action items section (since we display as table)
-    cleaned = cleaned.replace(/##?\s*Action\s+Items?\s*\n[\s\S]*?(?=\n#{1,2}\s|$)/gi, '');
-    
-    // Remove Completed section too
-    cleaned = cleaned.replace(/##?\s*Completed\s*(Items?)?\s*\n[\s\S]*?(?=\n#{1,2}\s|$)/gi, '');
+    // Only remove Action Items section if the actionList toggle is OFF
+    // When ON, keep the action items in the notes content
+    if (!notesViewSettings.settings.visibleSections.actionList) {
+      // Remove the action items section (since toggle is off)
+      cleaned = cleaned.replace(/##?\s*Action\s+Items?\s*\n[\s\S]*?(?=\n#{1,2}\s|$)/gi, '');
+      
+      // Remove Completed section too
+      cleaned = cleaned.replace(/##?\s*Completed\s*(Items?)?\s*\n[\s\S]*?(?=\n#{1,2}\s|$)/gi, '');
+    }
 
     // Remove Discussion Summary section (covered by Executive Summary) - more precise regex
     cleaned = cleaned.replace(/##?\s*Discussion\s+Summary\s*\n[\s\S]*?(?=\n#{1,2}\s|$)/gi, '');
@@ -2265,7 +2268,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
     
     return cleaned;
-  }, [notesContent]);
+  }, [notesContent, notesViewSettings.settings.visibleSections.actionList]);
 
   // Enhanced markdown to HTML converter with proper list handling
   const basicFormat = (text: string): string => {
