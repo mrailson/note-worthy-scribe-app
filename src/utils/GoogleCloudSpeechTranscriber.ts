@@ -6,17 +6,9 @@ export interface TranscriptData {
   confidence: number;
   start?: number;
   end?: number;
-  speaker?: string;
-  words?: Array<{
-    word: string;
-    start: number;
-    end: number;
-    confidence: number;
-    speaker?: number;
-  }>;
 }
 
-export class DeepgramRealtimeTranscriber {
+export class GoogleCloudSpeechTranscriber {
   private ws: WebSocket | null = null;
   private audioStream: { stop: () => void } | null = null;
   private isRecording = false;
@@ -35,130 +27,103 @@ export class DeepgramRealtimeTranscriber {
   ) {}
 
   async startTranscription() {
-    console.log('🚀 Starting Deepgram realtime transcription...');
+    console.log('🚀 Starting Google Cloud Speech transcription...');
     
     try {
       this.shouldReconnect = true;
       this.onStatusChange('Connecting...');
       
       // Connect to our WebSocket proxy
-      const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-streaming`;
-      console.log('📡 Connecting to Deepgram WebSocket at:', wsUrl);
+      const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/google-speech-streaming`;
+      console.log('📡 Connecting to Google Cloud Speech WebSocket at:', wsUrl);
       this.ws = new WebSocket(wsUrl);
       this.ws.binaryType = 'arraybuffer';
 
       this.ws.onopen = async () => {
-        console.log('✅ Connected to Deepgram WebSocket proxy');
+        console.log('✅ Connected to Google Cloud Speech WebSocket proxy');
         this.onStatusChange('connected');
         
-        // Send session start message to initialize Deepgram connection
-        this.ws?.send(JSON.stringify({ type: 'session.start' }));
+        // Send session start message
+        this.ws?.send(JSON.stringify({ 
+          type: 'session.start',
+          config: {
+            language: 'en-GB',
+            model: 'latest_long',
+            enableAutomaticPunctuation: true,
+            sampleRateHertz: 24000
+          }
+        }));
       };
 
       this.ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📝 Deepgram message received:', data.type || data.message_type || 'transcription');
+          console.log('📝 Google Cloud Speech message received:', data);
           
-          // Handle error messages
           if (data.type === 'error') {
-            console.error('❌ Deepgram error:', data.error);
-            this.onError(`Deepgram error: ${data.error}`);
+            console.error('❌ Google Cloud Speech error:', data.error);
+            this.onError(`Google Cloud Speech error: ${data.error}`);
             return;
           }
           
-          // Handle session start confirmation
           if (data.type === 'session_begins') {
-            console.log('✅ Deepgram session began, starting audio capture...');
+            console.log('✅ Google Cloud Speech session began, starting audio capture...');
             this.sessionId = data.session_id || Date.now().toString();
             this.onStatusChange('connected');
             this.startAudioCapture();
             return;
           }
           
-          // Handle Deepgram transcription results
-          // Deepgram sends results in channel.alternatives format
-          if (data.channel?.alternatives || data.results?.channels) {
-            const channels = data.channel?.alternatives 
-              ? [{ alternatives: data.channel.alternatives }]
-              : (data.results?.channels || []);
-            
-            for (const channel of channels) {
-              const alternatives = channel.alternatives || [];
-              if (alternatives.length > 0) {
-                const bestAlt = alternatives[0];
-                const transcript = bestAlt.transcript?.trim();
+          // Handle transcription results
+          if (data.type === 'transcription' || data.results) {
+            const results = data.results || [data];
+            for (const result of results) {
+              const transcript = result.alternatives?.[0]?.transcript || result.transcript;
+              if (transcript?.trim()) {
+                const transcriptData: TranscriptData = {
+                  text: transcript.trim(),
+                  is_final: result.isFinal || result.is_final || false,
+                  confidence: result.alternatives?.[0]?.confidence || result.confidence || 0.9
+                };
                 
-                if (transcript) {
-                  const transcriptData: TranscriptData = {
-                    text: transcript,
-                    is_final: data.is_final || data.speech_final || false,
-                    confidence: bestAlt.confidence || 0.9,
-                    words: bestAlt.words?.map((w: any) => ({
-                      word: w.word,
-                      start: w.start,
-                      end: w.end,
-                      confidence: w.confidence,
-                      speaker: w.speaker
-                    }))
-                  };
-                  
-                  console.log(`📝 ${transcriptData.is_final ? 'Final' : 'Partial'} Deepgram transcript:`, transcript.substring(0, 50));
-                  this.onTranscription(transcriptData);
-                }
+                console.log(`📝 ${transcriptData.is_final ? 'Final' : 'Partial'} transcript:`, transcriptData.text);
+                this.onTranscription(transcriptData);
               }
             }
             return;
           }
           
-          // Handle session termination
           if (data.type === 'session_terminated') {
-            console.log('🔌 Deepgram session terminated');
+            console.log('🔌 Google Cloud Speech session terminated');
             this.isRecording = false;
             this.onStatusChange('Disconnected');
             return;
           }
           
-          // Handle VAD events (Voice Activity Detection)
-          if (data.type === 'SpeechStarted' || data.type === 'speech_started') {
-            console.log('🎤 Speech detected');
-            return;
-          }
-          
-          // Handle utterance end
-          if (data.type === 'UtteranceEnd' || data.speech_final) {
-            console.log('🔚 Utterance ended');
-            return;
-          }
-          
-          console.log('❓ Unknown Deepgram message type:', data.type);
-          
         } catch (parseError) {
-          console.error('❌ Error parsing Deepgram message:', parseError, 'Raw data:', event.data);
+          console.error('❌ Error parsing Google Cloud Speech message:', parseError);
         }
       };
 
       this.ws.onerror = (error) => {
-        console.error('❌ Deepgram WebSocket error:', error);
+        console.error('❌ Google Cloud Speech WebSocket error:', error);
         this.onError('WebSocket connection error');
       };
 
       this.ws.onclose = (event) => {
-        console.log('🔌 Deepgram WebSocket closed - Code:', event.code, 'Reason:', event.reason);
+        console.log('🔌 Google Cloud Speech WebSocket closed - Code:', event.code);
         this.isRecording = false;
         
         if (event.code !== 1000 && this.shouldReconnect) {
-          console.log('🔄 Connection lost unexpectedly, attempting reconnection...');
           this.handleReconnection();
         } else {
-          console.log('🔌 Clean WebSocket closure');
           this.onStatusChange('Disconnected');
           this.cleanup();
         }
       };
 
     } catch (error) {
-      console.error('❌ Failed to start Deepgram:', error);
+      console.error('❌ Failed to start Google Cloud Speech:', error);
       this.onError('Failed to start transcription: ' + (error as Error).message);
       this.cleanup();
     }
@@ -166,19 +131,17 @@ export class DeepgramRealtimeTranscriber {
 
   private async startAudioCapture() {
     try {
-      console.log('🎙️ Starting audio capture for Deepgram...');
+      console.log('🎙️ Starting audio capture for Google Cloud Speech...');
       
-      // Start audio capture and streaming using PCM16 format
       this.audioStream = await createPcmStream((audioBuffer) => {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-          // Send raw PCM audio bytes to Deepgram
           this.ws.send(audioBuffer);
         }
       });
       
       this.isRecording = true;
       this.onStatusChange('recording');
-      console.log('🎙️ Audio streaming to Deepgram started successfully');
+      console.log('🎙️ Audio streaming to Google Cloud Speech started');
       
     } catch (audioError) {
       console.error('❌ Audio capture error:', audioError);
@@ -187,7 +150,7 @@ export class DeepgramRealtimeTranscriber {
   }
 
   stopTranscription() {
-    console.log('🛑 Stopping Deepgram transcription...');
+    console.log('🛑 Stopping Google Cloud Speech transcription...');
     this.shouldReconnect = false;
     this.isRecording = false;
     
@@ -196,10 +159,8 @@ export class DeepgramRealtimeTranscriber {
       this.reconnectTimeout = null;
     }
     
-    // Send terminate message before closing
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       try {
-        console.log('📤 Sending terminate message to Deepgram...');
         this.ws.send(JSON.stringify({ type: 'terminate' }));
       } catch (e) {
         console.log('Could not send terminate message:', e);
@@ -232,7 +193,6 @@ export class DeepgramRealtimeTranscriber {
     }
 
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log('❌ Max reconnection attempts reached. Stopping.');
       this.onError(`Failed to reconnect after ${this.maxReconnectAttempts} attempts`);
       this.onStatusChange('Failed');
       return;
@@ -241,7 +201,6 @@ export class DeepgramRealtimeTranscriber {
     this.isReconnecting = true;
     this.reconnectAttempts++;
     
-    // Exponential backoff: 1s, 2s, 4s, 8s, 16s
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 16000);
     
     console.log(`🔄 Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`);
@@ -252,18 +211,16 @@ export class DeepgramRealtimeTranscriber {
       
       try {
         await this.startTranscription();
-        this.reconnectAttempts = 0; // Reset on successful connection
+        this.reconnectAttempts = 0;
         this.isReconnecting = false;
-        console.log('✅ Reconnection successful');
       } catch (error) {
-        console.error('❌ Reconnection failed:', error);
         this.isReconnecting = false;
-        this.handleReconnection(); // Try again
+        this.handleReconnection();
       }
     }, delay);
   }
 
   async clearSummary() {
-    console.log('Deepgram summary cleared');
+    console.log('Google Cloud Speech summary cleared');
   }
 }
