@@ -36,16 +36,27 @@ export interface BPReading {
 
 export type { BPAverages, NHSCategory, NICEHomeBPAverage, BPTrends, DataQuality, DateRange, QOFRelevance, SitStandAverages };
 
+export type ProcessingStatus = 
+  | 'idle'
+  | 'extracting'
+  | 'analysing'
+  | 'validating'
+  | 'complete';
+
 export const useBPCalculator = () => {
   const [readings, setReadings] = useState<BPReading[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>('idle');
 
   const parseTextInput = useCallback(async (text: string, isSitStandMode: boolean = false) => {
     setIsProcessing(true);
+    setProcessingStatus('analysing');
     try {
       const { data, error } = await supabase.functions.invoke('parse-bp-readings', {
         body: { text, mode: 'text', isSitStandMode }
       });
+      
+      setProcessingStatus('validating');
 
       if (error) throw error;
 
@@ -73,11 +84,13 @@ export const useBPCalculator = () => {
       throw error;
     } finally {
       setIsProcessing(false);
+      setProcessingStatus('idle');
     }
   }, []);
 
   const parseImageInput = useCallback(async (file: File, isSitStandMode: boolean = false) => {
     setIsProcessing(true);
+    setProcessingStatus('extracting');
     try {
       const fileName = file.name.toLowerCase();
       const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
@@ -90,6 +103,7 @@ export const useBPCalculator = () => {
         const { FileProcessorManager } = await import('@/utils/fileProcessors/FileProcessorManager');
         const processed = await FileProcessorManager.processFile(file);
         
+        setProcessingStatus('analysing');
         // Send extracted text to the API in text mode
         const { data, error } = await supabase.functions.invoke('parse-bp-readings', {
           body: { text: processed.content, mode: 'text', isSitStandMode }
@@ -97,6 +111,7 @@ export const useBPCalculator = () => {
         
         if (error) throw error;
         
+        setProcessingStatus('validating');
         if (data.readings && data.readings.length > 0) {
           const newReadings: BPReading[] = data.readings.map((r: any, index: number) => ({
             id: `reading-${Date.now()}-${index}`,
@@ -130,12 +145,14 @@ export const useBPCalculator = () => {
           if (textContent && textContent.replace(/---\s*Page\s*\d+\s*---/g, '').trim().length > 100) {
             console.log('✅ PDF text extracted successfully, using fast text mode');
             
+            setProcessingStatus('analysing');
             const { data, error } = await supabase.functions.invoke('parse-bp-readings', {
               body: { text: textContent, mode: 'text', isSitStandMode }
             });
             
             if (error) throw error;
             
+            setProcessingStatus('validating');
             if (data.readings && data.readings.length > 0) {
               const newReadings: BPReading[] = data.readings.map((r: any, index: number) => ({
                 id: `reading-${Date.now()}-${index}`,
@@ -164,6 +181,7 @@ export const useBPCalculator = () => {
       
       // For images and scanned PDFs - send to vision API
       console.log('🖼️ Using vision API for:', fileName);
+      setProcessingStatus('extracting');
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(reader.result as string);
@@ -171,6 +189,7 @@ export const useBPCalculator = () => {
         reader.readAsDataURL(file);
       });
 
+      setProcessingStatus('analysing');
       const { data, error } = await supabase.functions.invoke('parse-bp-readings', {
         body: { 
           imageData: base64,
@@ -181,7 +200,8 @@ export const useBPCalculator = () => {
       });
 
       if (error) throw error;
-
+      
+      setProcessingStatus('validating');
       if (data.readings && data.readings.length > 0) {
         const newReadings: BPReading[] = data.readings.map((r: any, index: number) => ({
           id: `reading-${Date.now()}-${index}`,
@@ -206,6 +226,7 @@ export const useBPCalculator = () => {
       throw error;
     } finally {
       setIsProcessing(false);
+      setProcessingStatus('idle');
     }
   }, []);
 
@@ -306,6 +327,7 @@ export const useBPCalculator = () => {
     readings,
     setReadings,
     isProcessing,
+    processingStatus,
     parseTextInput,
     parseImageInput,
     toggleReading,
