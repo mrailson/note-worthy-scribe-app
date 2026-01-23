@@ -15,6 +15,39 @@ import {
   NHS_PALETTES 
 } from '@/utils/colourPalettes';
 import type { GeneratedImage } from '@/types/ai4gp';
+import { optimiseImageForUpload, getBase64SizeKB } from '@/utils/imageOptimiser';
+
+// Error codes from edge function
+type ErrorCode = 'RATE_LIMIT' | 'CONTENT_MODERATION' | 'PAYMENT_REQUIRED' | 'TIMEOUT' | 'UNKNOWN';
+
+// User-friendly error messages
+const ERROR_MESSAGES: Record<ErrorCode, string> = {
+  RATE_LIMIT: 'The image service is temporarily busy. Please wait a moment and try again.',
+  CONTENT_MODERATION: 'This request was blocked by content filters. Try simplifying your request or removing reference images.',
+  PAYMENT_REQUIRED: 'Usage limit reached. Please check your Lovable workspace credits.',
+  TIMEOUT: 'Image generation timed out. Try with a simpler request or different model.',
+  UNKNOWN: 'Failed to generate image. Please try again.',
+};
+
+// Parse error response to extract code
+function parseErrorCode(error: any): ErrorCode {
+  const message = error?.message || error?.error || String(error);
+  const code = error?.code;
+  
+  if (code === 'RATE_LIMIT' || message.includes('rate limit') || message.includes('429')) {
+    return 'RATE_LIMIT';
+  }
+  if (code === 'CONTENT_MODERATION' || message.includes('moderation') || message.includes('blocked') || message.includes('PROHIBITED')) {
+    return 'CONTENT_MODERATION';
+  }
+  if (code === 'PAYMENT_REQUIRED' || message.includes('payment') || message.includes('credit') || message.includes('402')) {
+    return 'PAYMENT_REQUIRED';
+  }
+  if (message.includes('timeout') || message.includes('timed out') || message.includes('AbortError')) {
+    return 'TIMEOUT';
+  }
+  return 'UNKNOWN';
+}
 
 const HISTORY_STORAGE_KEY = 'image-studio-history';
 const MAX_HISTORY_ITEMS = 20;
@@ -163,7 +196,7 @@ export function useImageStudio() {
     }
   }, [state.generationHistory, addReferenceImage]);
 
-  // Generate image
+  // Generate image with retry logic and optimisation
   const generateImage = useCallback(async (imageModel?: string) => {
     const { settings } = state;
     
@@ -175,104 +208,182 @@ export function useImageStudio() {
     setState(prev => ({ 
       ...prev, 
       isGenerating: true, 
-      generationProgress: 10,
+      generationProgress: 5,
       error: null 
     }));
 
     abortControllerRef.current = new AbortController();
 
+    // Determine if this is an edit request (has reference images)
+    const isEditMode = settings.referenceImages.length > 0;
+    const selectedModel = (imageModel as ImageStudioRequest['imageModel']) || 'google/gemini-3-pro-image-preview';
+    
+    // Fallback model for retry
+    const fallbackModel = 'google/gemini-2.5-flash-image-preview';
+
+    const attemptGeneration = async (model: string, isRetry = false): Promise<GeneratedImage | null> => {
+      try {
+        setState(prev => ({ ...prev, generationProgress: 10 }));
+
+        // Optimise reference images before sending (reduces payload size)
+        let optimisedReferences: ImageStudioRequest['referenceImages'] | undefined;
+        
+        if (settings.referenceImages.length > 0) {
+          console.log(`🖼️ Optimising ${settings.referenceImages.length} reference image(s)...`);
+          const optimisedImages = await Promise.all(
+            settings.referenceImages.map(async (img) => {
+              const originalSize = getBase64SizeKB(img.content);
+              console.log(`📊 Reference image "${img.name}": ${originalSize}KB`);
+              
+              // Only optimise if over 500KB to reduce edge function payload
+              if (originalSize > 500) {
+                const result = await optimiseImageForUpload(img.content, {
+                  maxSizeKB: 600,
+                  maxDimension: 1280,
+                  quality: 0.8
+                });
+                console.log(`✅ Optimised: ${result.originalSizeKB}KB -> ${result.finalSizeKB}KB`);
+                return {
+                  content: result.optimised,
+                  type: 'image/jpeg',
+                  mode: img.mode,
+                  instructions: settings.referenceInstructions || undefined,
+                };
+              }
+              
+              return {
+                content: img.content,
+                type: img.type,
+                mode: img.mode,
+                instructions: settings.referenceInstructions || undefined,
+              };
+            })
+          );
+          optimisedReferences = optimisedImages;
+        }
+
+        setState(prev => ({ ...prev, generationProgress: 25 }));
+
+        // Build the request
+        const request: ImageStudioRequest = {
+          prompt: settings.description,
+          supportingContent: settings.supportingContent || undefined,
+          keyMessages: settings.keyMessages.length > 0 ? settings.keyMessages : undefined,
+          targetAudience: settings.targetAudience,
+          purpose: settings.purpose,
+          stylePreset: settings.stylePreset,
+          colourPalette: {
+            primary: settings.colourPalette.primary,
+            secondary: settings.colourPalette.secondary,
+            accent: settings.colourPalette.accent,
+            background: settings.colourPalette.background,
+            text: settings.colourPalette.text,
+          },
+          layoutPreference: settings.layoutPreference,
+          practiceContext: practiceContext || undefined,
+          brandingLevel: settings.brandingLevel,
+          customBranding: settings.customBranding,
+          logoPlacement: settings.logoPlacement,
+          includeLogo: settings.includeLogo,
+          referenceImages: optimisedReferences,
+          imageModel: model as ImageStudioRequest['imageModel'],
+          isStudioRequest: true,
+        };
+
+        // Log request details for debugging
+        const estimatedPayloadSize = JSON.stringify(request).length / 1024;
+        console.log('🎨 Image Studio: Generating image with settings:', {
+          purpose: settings.purpose,
+          style: settings.stylePreset,
+          model,
+          isRetry,
+          isEditMode,
+          referenceCount: settings.referenceImages.length,
+          referenceMode: settings.referenceMode,
+          estimatedPayloadKB: Math.round(estimatedPayloadSize),
+        });
+
+        setState(prev => ({ ...prev, generationProgress: 40 }));
+
+        const { data, error } = await supabase.functions.invoke('ai4gp-image-generation', {
+          body: request,
+        });
+
+        setState(prev => ({ ...prev, generationProgress: 80 }));
+
+        if (error) {
+          console.error('🔴 Supabase function error:', error);
+          throw { message: error.message, code: 'UNKNOWN' };
+        }
+
+        // Check for error in response data (from edge function)
+        if (data?.error) {
+          console.error('🔴 Edge function returned error:', data.error, data.code);
+          throw { message: data.error, code: data.code || 'UNKNOWN' };
+        }
+
+        if (!data?.image?.url) {
+          console.error('🔴 No image URL in response:', data);
+          throw { message: 'No image was generated', code: 'UNKNOWN' };
+        }
+
+        console.log('✅ Image generated successfully');
+
+        const result: GeneratedImage = {
+          url: data.image.url,
+          alt: data.image.alt || settings.description.substring(0, 100),
+          prompt: settings.description,
+          requestType: data.image.requestType || (settings.purpose === 'banner' ? 'general' : settings.purpose as GeneratedImage['requestType']),
+        };
+
+        return result;
+      } catch (err) {
+        const errorCode = parseErrorCode(err);
+        console.error(`🔴 Generation attempt failed (${errorCode}):`, err);
+        
+        // For edit mode, try fallback model on certain errors
+        if (isEditMode && !isRetry && model !== fallbackModel) {
+          const retriableErrors: ErrorCode[] = ['TIMEOUT', 'UNKNOWN'];
+          if (retriableErrors.includes(errorCode)) {
+            console.log(`🔄 Retrying with fallback model: ${fallbackModel}`);
+            toast.info('Retrying with alternative model...');
+            return attemptGeneration(fallbackModel, true);
+          }
+        }
+        
+        throw { message: ERROR_MESSAGES[errorCode], code: errorCode, original: err };
+      }
+    };
+
     try {
-      // Build the request
-      const request: ImageStudioRequest = {
-        prompt: settings.description,
-        supportingContent: settings.supportingContent || undefined,
-        keyMessages: settings.keyMessages.length > 0 ? settings.keyMessages : undefined,
-        targetAudience: settings.targetAudience,
-        purpose: settings.purpose,
-        stylePreset: settings.stylePreset,
-        colourPalette: {
-          primary: settings.colourPalette.primary,
-          secondary: settings.colourPalette.secondary,
-          accent: settings.colourPalette.accent,
-          background: settings.colourPalette.background,
-          text: settings.colourPalette.text,
-        },
-        layoutPreference: settings.layoutPreference,
-        practiceContext: practiceContext || undefined,
-        brandingLevel: settings.brandingLevel,
-        customBranding: settings.customBranding,
-        logoPlacement: settings.logoPlacement,
-        includeLogo: settings.includeLogo,
-        referenceImages: settings.referenceImages.length > 0 
-          ? settings.referenceImages.map(img => ({
-              content: img.content,
-              type: img.type,
-              mode: img.mode,
-              instructions: settings.referenceInstructions || undefined,
-            }))
-          : undefined,
-        imageModel: (imageModel as ImageStudioRequest['imageModel']) || 'google/gemini-3-pro-image-preview',
-        isStudioRequest: true,
-      };
+      const result = await attemptGeneration(selectedModel);
+      
+      if (result) {
+        // Add to history
+        const historyItem: GenerationHistoryItem = {
+          id: `gen-${Date.now()}`,
+          timestamp: new Date(),
+          settings: { ...settings },
+          result,
+        };
 
-      setState(prev => ({ ...prev, generationProgress: 30 }));
+        setState(prev => ({
+          ...prev,
+          isGenerating: false,
+          generationProgress: 100,
+          currentResult: result,
+          generationHistory: [historyItem, ...prev.generationHistory.slice(0, 19)],
+          activeTab: 'generate',
+        }));
 
-      console.log('🎨 Image Studio: Generating image with settings:', {
-        purpose: settings.purpose,
-        style: settings.stylePreset,
-        hasReferences: settings.referenceImages.length > 0,
-        referenceMode: settings.referenceMode,
-      });
-
-      const { data, error } = await supabase.functions.invoke('ai4gp-image-generation', {
-        body: request,
-      });
-
-      setState(prev => ({ ...prev, generationProgress: 80 }));
-
-      if (error) {
-        throw error;
+        toast.success('Image generated successfully!');
+        return result;
       }
-
-      // Check for error in response data (from edge function)
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      if (!data?.image?.url) {
-        throw new Error('No image was generated');
-      }
-
-      const result: GeneratedImage = {
-        url: data.image.url,
-        alt: data.image.alt || settings.description.substring(0, 100),
-        prompt: settings.description,
-        requestType: data.image.requestType || (settings.purpose === 'banner' ? 'general' : settings.purpose as GeneratedImage['requestType']),
-      };
-
-      // Add to history
-      const historyItem: GenerationHistoryItem = {
-        id: `gen-${Date.now()}`,
-        timestamp: new Date(),
-        settings: { ...settings },
-        result,
-      };
-
-      setState(prev => ({
-        ...prev,
-        isGenerating: false,
-        generationProgress: 100,
-        currentResult: result,
-        generationHistory: [historyItem, ...prev.generationHistory.slice(0, 19)], // Keep last 20
-        activeTab: 'generate',
-      }));
-
-      toast.success('Image generated successfully!');
-      return result;
-
-    } catch (error) {
+      
+      return null;
+    } catch (error: any) {
       console.error('Image Studio generation error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to generate image';
+      const errorMessage = error?.message || ERROR_MESSAGES.UNKNOWN;
       
       setState(prev => ({
         ...prev,
