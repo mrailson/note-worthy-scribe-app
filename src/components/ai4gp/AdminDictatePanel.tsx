@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, Mic, History, FileText, Plus } from 'lucide-react';
 import { useAdminDictation } from '@/hooks/useAdminDictation';
 import { AdminDictateTemplates } from './AdminDictateTemplates';
@@ -12,7 +10,7 @@ import { AdminDictateTextArea } from './AdminDictateTextArea';
 import { AdminDictateQuickActions } from './AdminDictateQuickActions';
 import { AdminDictateHistory } from './AdminDictateHistory';
 import { AdminDictateViewToggle } from './AdminDictateViewToggle';
-import { TranscriptionService } from '@/types/transcriptionServices';
+
 
 interface AdminDictatePanelProps {
   onClose: () => void;
@@ -54,9 +52,6 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
     toggleShowCleaned,
     triggerManualClean,
     saveOnBlur,
-    transcriptionServices,
-    transcriptionService,
-    setTranscriptionService,
   } = useAdminDictation();
 
   const handleLoadSession = (session: any) => {
@@ -77,41 +72,10 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
           </Button>
         </div>
         
-        {/* Service Selector */}
-        <div className="flex items-center gap-3 mt-3">
-          <Select 
-            value={transcriptionService} 
-            onValueChange={(v) => setTranscriptionService(v as TranscriptionService)}
-            disabled={isRecording || isConnecting}
-          >
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Select service" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Real-time Services</SelectLabel>
-                {transcriptionServices.filter(s => s.type === 'realtime').map(service => (
-                  <SelectItem key={service.id} value={service.id}>
-                    <div className="flex flex-col">
-                      <span>{service.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-              <SelectSeparator />
-              <SelectGroup>
-                <SelectLabel>Batch Services</SelectLabel>
-                {transcriptionServices.filter(s => s.type === 'batch').map(service => (
-                  <SelectItem key={service.id} value={service.id}>
-                    {service.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground">
-            {transcriptionServices.find(s => s.id === transcriptionService)?.description}
-          </span>
+        {/* AssemblyAI label */}
+        <div className="flex items-center gap-2 mt-3">
+          <Badge variant="secondary" className="text-xs">AssemblyAI</Badge>
+          <span className="text-xs text-muted-foreground">High accuracy, real-time streaming</span>
         </div>
         
         {(isRecording || content) && (
