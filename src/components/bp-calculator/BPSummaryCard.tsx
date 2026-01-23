@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Heart, TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { Heart, TrendingUp, TrendingDown, Activity, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface BPAverages {
   systolic: number;
@@ -108,12 +109,23 @@ export const BPSummaryCard = ({ averages, category, readingsCount, diaryEntryCou
 
         {/* Readings Count */}
         <div className="flex items-center justify-end mt-6 pt-4 border-t border-red-200 dark:border-red-800">
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground flex items-center gap-1.5">
             Based on <span className="font-medium text-foreground">{readingsCount}</span> readings
             {diaryEntryCount && diaryEntryCount !== readingsCount && (
-              <span className="ml-1">
-                ({diaryEntryCount} diary entr{diaryEntryCount !== 1 ? 'ies' : 'y'} × 2 positions)
-              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground/80 cursor-help">
+                      <Info className="h-3.5 w-3.5" />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="text-sm">
+                      <strong>{diaryEntryCount} diary entr{diaryEntryCount !== 1 ? 'ies' : 'y'}</strong> × 2 positions (sitting + standing) = <strong>{readingsCount} total readings</strong>
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
         </div>
