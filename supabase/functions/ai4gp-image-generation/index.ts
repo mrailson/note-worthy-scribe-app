@@ -994,16 +994,32 @@ Content guidelines:
       
       // Add reference images from Image Studio first if provided
       if (referenceImages && referenceImages.length > 0) {
-        console.log(`📎 Including ${referenceImages.length} studio reference image(s)`);
+        const firstRefMode = referenceImages[0]?.mode || 'unknown';
+        const firstRefInstructions = referenceImages[0]?.instructions;
+        console.log(`📎 Including ${referenceImages.length} studio reference image(s) for ${firstRefMode} mode`);
+        let totalRefSizeKB = 0;
+        
         for (const refImg of referenceImages) {
           const imageDataUrl = refImg.content.startsWith('data:') 
             ? refImg.content 
             : `data:${refImg.type};base64,${refImg.content}`;
           
+          // Estimate size for logging
+          const base64Part = imageDataUrl.split(',')[1] || imageDataUrl;
+          const sizeKB = Math.round((base64Part.length * 3 / 4) / 1024);
+          totalRefSizeKB += sizeKB;
+          console.log(`  📊 Reference image: ${sizeKB}KB, mode: ${refImg.mode}`);
+          
           messageContent.push({
             type: 'image_url',
             image_url: { url: imageDataUrl }
           });
+        }
+        
+        console.log(`  📊 Total reference images size: ${totalRefSizeKB}KB`);
+        
+        if (firstRefInstructions) {
+          console.log(`  📝 Edit instructions: "${firstRefInstructions.substring(0, 100)}..."`);
         }
       }
       
