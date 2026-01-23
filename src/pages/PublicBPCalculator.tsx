@@ -9,6 +9,7 @@ import { BPTrendAnalysis } from '@/components/bp-calculator/BPTrendAnalysis';
 import { BPExportOptions } from '@/components/bp-calculator/BPExportOptions';
 import { BPModeSelector, BPMode } from '@/components/bp-calculator/BPModeSelector';
 import { BPSitStandSummaryCard } from '@/components/bp-calculator/BPSitStandSummaryCard';
+import { BPProcessingStatus } from '@/components/bp-calculator/BPProcessingStatus';
 import { PublicBPHeader } from '@/components/bp-calculator/PublicBPHeader';
 import { useBPCalculator } from '@/hooks/useBPCalculator';
 
@@ -21,6 +22,7 @@ const PublicBPCalculator = () => {
     readings,
     setReadings,
     isProcessing,
+    processingStatus,
     parseTextInput,
     parseImageInput,
     toggleReading,
@@ -122,17 +124,8 @@ const PublicBPCalculator = () => {
             size="lg"
             className="min-w-[200px]"
           >
-            {isProcessing ? (
-              <>
-                <span className="animate-spin mr-2">⏳</span>
-                Processing...
-              </>
-            ) : (
-              <>
-                <Heart className="mr-2 h-5 w-5" />
-                Calculate Average
-              </>
-            )}
+            <Heart className="mr-2 h-5 w-5" />
+            Calculate Average
           </Button>
           <Button
             onClick={handleClear}
@@ -143,6 +136,11 @@ const PublicBPCalculator = () => {
             Clear All
           </Button>
         </div>
+
+        {/* Processing Status */}
+        {isProcessing && (
+          <BPProcessingStatus status={processingStatus} />
+        )}
 
         {/* Results Section */}
         {readings.length > 0 && (
