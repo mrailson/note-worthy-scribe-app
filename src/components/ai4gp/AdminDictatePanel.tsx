@@ -72,11 +72,6 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
           </Button>
         </div>
         
-        {/* AssemblyAI label */}
-        <div className="flex items-center gap-2 mt-3">
-          <Badge variant="secondary" className="text-xs">AssemblyAI</Badge>
-          <span className="text-xs text-muted-foreground">High accuracy, real-time streaming</span>
-        </div>
         
         {(isRecording || content) && (
           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
