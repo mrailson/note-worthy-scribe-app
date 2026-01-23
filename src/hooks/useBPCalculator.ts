@@ -83,6 +83,7 @@ export const useBPCalculator = () => {
       const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
       const isWord = fileName.endsWith('.docx') || fileName.endsWith('.doc');
       const isText = fileName.endsWith('.txt');
+      const isPDF = fileName.endsWith('.pdf');
       
       // For Excel, Word, and text files - extract text client-side first
       if (isExcel || isWord || isText) {
@@ -118,7 +119,51 @@ export const useBPCalculator = () => {
         return;
       }
       
-      // For images and PDFs - send to vision API
+      // For PDFs - try text extraction first (much faster than vision API)
+      if (isPDF) {
+        console.log('📄 Attempting PDF text extraction before vision API...');
+        try {
+          const { PDFProcessor } = await import('@/utils/fileProcessors/PDFProcessor');
+          const textContent = await PDFProcessor.extractText(file);
+          
+          // If we got meaningful text (more than just page markers), use text mode
+          if (textContent && textContent.replace(/---\s*Page\s*\d+\s*---/g, '').trim().length > 100) {
+            console.log('✅ PDF text extracted successfully, using fast text mode');
+            
+            const { data, error } = await supabase.functions.invoke('parse-bp-readings', {
+              body: { text: textContent, mode: 'text', isSitStandMode }
+            });
+            
+            if (error) throw error;
+            
+            if (data.readings && data.readings.length > 0) {
+              const newReadings: BPReading[] = data.readings.map((r: any, index: number) => ({
+                id: `reading-${Date.now()}-${index}`,
+                systolic: r.systolic,
+                diastolic: r.diastolic,
+                pulse: r.pulse,
+                date: r.date,
+                time: r.time,
+                sourceText: r.sourceText,
+                included: !r.excluded,
+                excludeReason: r.excludeReason,
+                position: r.position || (isSitStandMode ? undefined : 'standard'),
+                standingMinutes: r.standingMinutes || r.standing_minutes
+              }));
+              
+              setReadings(prev => [...prev, ...newReadings]);
+            }
+            return;
+          } else {
+            console.log('⚠️ PDF has minimal extractable text, falling back to vision API for scanned/handwritten content');
+          }
+        } catch (pdfError) {
+          console.warn('⚠️ PDF text extraction failed, falling back to vision API:', pdfError);
+        }
+      }
+      
+      // For images and scanned PDFs - send to vision API
+      console.log('🖼️ Using vision API for:', fileName);
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(reader.result as string);
