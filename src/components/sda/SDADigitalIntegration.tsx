@@ -303,10 +303,20 @@ export const SDADigitalIntegration = () => {
 
               {/* X-ON Commercial Proposal */}
               <div className="bg-green-50 rounded-lg p-4 border border-green-300">
-                <div className="flex items-center gap-2 mb-3">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  <h5 className="font-semibold text-slate-900">X-ON Commercial Proposal Received</h5>
-                  <Badge className="bg-green-600 text-xs">15th January 2026</Badge>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <h5 className="font-semibold text-slate-900">X-ON Commercial Proposal Received</h5>
+                    <Badge className="bg-green-600 text-xs">15th January 2026</Badge>
+                  </div>
+                  <a 
+                    href="/documents/X-ON_Intelligent_Care_Navigation_Proposal_NRES_Jan2026.pdf" 
+                    download="X-ON_Intelligent_Care_Navigation_Proposal_NRES_Jan2026.pdf"
+                    className="flex items-center gap-2 bg-[#005EB8] text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-[#004494] transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Proposal
+                  </a>
                 </div>
                 <p className="text-sm text-slate-700 mb-3">
                   Following negotiations, X-ON has submitted an updated commercial proposal for the <strong>Intelligent Care Navigation System</strong>. Key terms include:
