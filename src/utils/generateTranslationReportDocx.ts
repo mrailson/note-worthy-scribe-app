@@ -229,9 +229,9 @@ export const generateTranslationReportDocx = async (options: GenerateTranslation
         });
         URL.revokeObjectURL(imgUrl);
         
-        // Calculate dimensions maintaining aspect ratio (max width 150, max height 80)
-        const maxWidth = 150;
-        const maxHeight = 80;
+        // Calculate dimensions maintaining aspect ratio (max width 300, max height 160)
+        const maxWidth = 300;
+        const maxHeight = 160;
         const aspectRatio = img.naturalWidth / img.naturalHeight;
         let width = maxWidth;
         let height = width / aspectRatio;
@@ -254,7 +254,7 @@ export const generateTranslationReportDocx = async (options: GenerateTranslation
               }),
             ],
             alignment: AlignmentType.CENTER,
-            spacing: { after: 120 },
+            spacing: { after: 0 },
           })
         );
       }
