@@ -14,12 +14,14 @@ export interface TranslationMessage {
 
 interface UseReceptionTranslationOptions {
   sessionToken: string;
+  sessionId?: string;
   patientLanguage: string;
   isStaff: boolean;
 }
 
 export const useReceptionTranslation = ({
   sessionToken,
+  sessionId,
   patientLanguage,
   isStaff
 }: UseReceptionTranslationOptions) => {
@@ -150,18 +152,35 @@ export const useReceptionTranslation = ({
         timestamp: new Date()
       };
 
+      // Broadcast the message
       await channelRef.current.send({
         type: 'broadcast',
         event: 'translation',
         payload: message
       });
+
+      // Save to database for history (staff only saves to avoid duplicates)
+      if (isStaff && sessionId) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user?.id) {
+          await supabase.from('reception_translation_messages').insert({
+            session_id: sessionId,
+            user_id: userData.user.id,
+            speaker: message.speaker,
+            original_text: message.originalText,
+            translated_text: message.translatedText,
+            source_language: sourceLanguage,
+            target_language: targetLanguage
+          });
+        }
+      }
     } catch (err) {
       console.error('Error sending message:', err);
       setError('Failed to send message');
     } finally {
       setIsTranslating(false);
     }
-  }, [isStaff, patientLanguage, translateText]);
+  }, [isStaff, sessionId, patientLanguage, translateText]);
 
   // End the session (staff only)
   const endSession = useCallback(async (sessionId: string) => {
