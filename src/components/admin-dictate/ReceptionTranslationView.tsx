@@ -12,7 +12,8 @@ import {
   Check, 
   Wifi, 
   WifiOff,
-  Volume2
+  Volume2,
+  Trash2
 } from 'lucide-react';
 import { useReceptionTranslation, TranslationMessage } from '@/hooks/useReceptionTranslation';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
@@ -45,7 +46,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     isConnected,
     isTranslating,
     sendMessage,
-    endSession
+    endSession,
+    deleteMessage
   } = useReceptionTranslation({
     sessionToken,
     patientLanguage,
@@ -172,9 +174,22 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               ? 'bg-primary text-primary-foreground' 
               : 'bg-muted'
           }`}>
-            <p className="text-sm font-medium mb-1">
-              {isStaffMessage ? '🇬🇧 You said:' : '🇬🇧 Patient said (translated):'}
-            </p>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <p className="text-sm font-medium">
+                {isStaffMessage ? '🇬🇧 You said:' : '🇬🇧 Patient said (translated):'}
+              </p>
+              {isStaffMessage && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/20"
+                  onClick={() => deleteMessage(msg.id)}
+                  title="Delete message"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
             <p className="text-lg">
               {isStaffMessage ? msg.originalText : msg.translatedText}
             </p>

@@ -49,6 +49,10 @@ export const useReceptionTranslation = ({
           return [...prev, { ...message, timestamp: new Date(message.timestamp) }];
         });
       })
+      .on('broadcast', { event: 'delete_message' }, (payload) => {
+        const { messageId } = payload.payload as { messageId: string };
+        setMessages(prev => prev.filter(m => m.id !== messageId));
+      })
       .on('broadcast', { event: 'session_ended' }, () => {
         setIsConnected(false);
         setError('Session ended by staff');
@@ -153,6 +157,21 @@ export const useReceptionTranslation = ({
     setMessages([]);
   }, []);
 
+  // Delete a single message (staff only, broadcasts to patient view)
+  const deleteMessage = useCallback(async (messageId: string) => {
+    if (!channelRef.current) return;
+
+    // Remove locally
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+
+    // Broadcast deletion to sync with patient view
+    await channelRef.current.send({
+      type: 'broadcast',
+      event: 'delete_message',
+      payload: { messageId }
+    });
+  }, []);
+
   return {
     messages,
     isConnected,
@@ -160,6 +179,7 @@ export const useReceptionTranslation = ({
     error,
     sendMessage,
     endSession,
-    clearMessages
+    clearMessages,
+    deleteMessage
   };
 };
