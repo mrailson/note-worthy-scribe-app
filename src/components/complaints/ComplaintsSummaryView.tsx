@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -83,6 +84,7 @@ export const ComplaintsSummaryView: React.FC<ComplaintsSummaryViewProps> = ({
   onViewDetails,
   calculateDaysUntilDeadline
 }) => {
+  const navigate = useNavigate();
   const getStatusConfig = (status: string) => {
     return STATUS_CONFIG[status] || { label: status, color: 'bg-muted text-muted-foreground', icon: null };
   };
@@ -168,10 +170,10 @@ export const ComplaintsSummaryView: React.FC<ComplaintsSummaryViewProps> = ({
                     variant="ghost"
                     size="sm"
                     className="shrink-0"
-                    onClick={() => onViewDetails(complaint)}
+                    onClick={() => navigate(`/complaints/${complaint.id}`)}
                   >
                     <Eye className="h-4 w-4 mr-1" />
-                    View
+                    View Details
                     <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
