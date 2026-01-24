@@ -282,7 +282,7 @@ export const generateTranslationReportDocx = async (options: GenerateTranslation
   children.push(
     new Paragraph({
       children: [new TextRun({
-        text: 'Clinical Communication Evidence Document',
+        text: 'Notewell AI - Patient Communication Report',
         italics: true,
         size: FONTS.size.body,
         color: NHS_COLORS.textLightGrey,
