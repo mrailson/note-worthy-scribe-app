@@ -617,6 +617,18 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     'sv', 'no', 'fi', 'he', 'th', 'tl', 'ms', 'sk', 'hr'
   ];
 
+  // Ref to track currently playing audio element
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Stop any currently playing audio
+  const stopCurrentAudio = useCallback(() => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+      currentAudioRef.current = null;
+    }
+  }, []);
+
   // Load audio for a specific message and return the URL
   const loadAudioForMessage = async (messageId: string, text: string, languageCode: string) => {
     // If already loaded, don't reload
@@ -650,8 +662,12 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         const audioUrl = URL.createObjectURL(audioBlob);
         setAudioUrls(prev => ({ ...prev, [messageId]: audioUrl }));
         
+        // Stop any currently playing audio before playing new one
+        stopCurrentAudio();
+        
         // Auto-play the audio
         const audio = new Audio(audioUrl);
+        currentAudioRef.current = audio;
         audio.play().catch(err => console.log('Auto-play blocked:', err));
       } else {
         showToast.error('No audio content received');
@@ -663,6 +679,19 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       setLoadingAudio(prev => ({ ...prev, [messageId]: false }));
     }
   };
+
+  // Handle audio play event on audio elements to ensure only one plays at a time
+  const handleAudioPlay = useCallback((event: React.SyntheticEvent<HTMLAudioElement>) => {
+    const audioElement = event.currentTarget;
+    
+    // Stop any other playing audio
+    if (currentAudioRef.current && currentAudioRef.current !== audioElement) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+    }
+    
+    currentAudioRef.current = audioElement;
+  }, []);
 
   const handleDownloadReport = async () => {
     if (messages.length === 0) {
@@ -883,6 +912,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   src={audioUrls[messageId]}
                   className="w-full h-8"
                   style={{ minWidth: '200px' }}
+                  onPlay={handleAudioPlay}
                 >
                   Your browser does not support the audio element.
                 </audio>
