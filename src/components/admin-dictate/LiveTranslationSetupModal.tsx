@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Languages, QrCode, Loader2 } from 'lucide-react';
+import { Languages, QrCode, Loader2, Check } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
@@ -110,6 +110,9 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
                     <span className="flex items-center gap-2">
                       <span>{lang.flag}</span>
                       <span>{lang.name}</span>
+                      {lang.hasElevenLabsVoice && (
+                        <Check className="h-4 w-4 text-green-500 ml-1" />
+                      )}
                     </span>
                   </SelectItem>
                 ))}
