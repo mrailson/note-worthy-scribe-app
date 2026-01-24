@@ -30,7 +30,26 @@ export interface PatientViewPhrases {
   sessionNotFound: string;
   sessionEnded: string;
   invalidLink: string;
+  // Email feature (optional with defaults)
+  emailChat?: string;
+  emailChatDescription?: string;
+  yourEmail?: string;
+  sendCopy?: string;
+  sending?: string;
+  emailSent?: string;
+  emailError?: string;
 }
+
+// Default email translations for languages that don't have them
+const DEFAULT_EMAIL_PHRASES = {
+  emailChat: 'Email me this chat',
+  emailChatDescription: 'Receive a copy of this conversation',
+  yourEmail: 'Your email address',
+  sendCopy: 'Send copy',
+  sending: 'Sending...',
+  emailSent: 'Email sent successfully',
+  emailError: 'Failed to send email',
+};
 
 export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
   en: {
@@ -61,6 +80,13 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'Session not found or has expired',
     sessionEnded: 'This session has ended',
     invalidLink: 'Invalid session link',
+    emailChat: 'Email me this chat',
+    emailChatDescription: 'Receive a copy of this conversation',
+    yourEmail: 'Your email address',
+    sendCopy: 'Send copy',
+    sending: 'Sending...',
+    emailSent: 'Email sent successfully',
+    emailError: 'Failed to send email',
   },
   pl: {
     speakNow: 'Mów teraz',
@@ -90,6 +116,13 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'Sesja nie została znaleziona lub wygasła',
     sessionEnded: 'Ta sesja została zakończona',
     invalidLink: 'Nieprawidłowy link sesji',
+    emailChat: 'Wyślij mi ten czat',
+    emailChatDescription: 'Otrzymaj kopię tej rozmowy',
+    yourEmail: 'Twój adres e-mail',
+    sendCopy: 'Wyślij kopię',
+    sending: 'Wysyłanie...',
+    emailSent: 'E-mail wysłany pomyślnie',
+    emailError: 'Nie udało się wysłać e-maila',
   },
   ro: {
     speakNow: 'Vorbiți acum',
@@ -963,6 +996,16 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
   },
 };
 
-export const getPatientViewPhrases = (languageCode: string): PatientViewPhrases => {
-  return PATIENT_VIEW_TRANSLATIONS[languageCode] || PATIENT_VIEW_TRANSLATIONS.en;
+export const getPatientViewPhrases = (languageCode: string): Required<PatientViewPhrases> => {
+  const base = PATIENT_VIEW_TRANSLATIONS[languageCode] || PATIENT_VIEW_TRANSLATIONS.en;
+  return {
+    ...base,
+    emailChat: base.emailChat || DEFAULT_EMAIL_PHRASES.emailChat,
+    emailChatDescription: base.emailChatDescription || DEFAULT_EMAIL_PHRASES.emailChatDescription,
+    yourEmail: base.yourEmail || DEFAULT_EMAIL_PHRASES.yourEmail,
+    sendCopy: base.sendCopy || DEFAULT_EMAIL_PHRASES.sendCopy,
+    sending: base.sending || DEFAULT_EMAIL_PHRASES.sending,
+    emailSent: base.emailSent || DEFAULT_EMAIL_PHRASES.emailSent,
+    emailError: base.emailError || DEFAULT_EMAIL_PHRASES.emailError,
+  };
 };

@@ -5,11 +5,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff, Send, Loader2, Languages, WifiOff } from 'lucide-react';
+import { Mic, MicOff, Send, Loader2, Languages, WifiOff, Mail } from 'lucide-react';
 import { useReceptionTranslation, TranslationMessage } from '@/hooks/useReceptionTranslation';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 import { supabase } from '@/integrations/supabase/client';
+import { PatientEmailChatModal } from '@/components/admin-dictate/PatientEmailChatModal';
 
 const ReceptionPatientView: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -24,6 +25,7 @@ const ReceptionPatientView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -197,44 +199,57 @@ const ReceptionPatientView: React.FC = () => {
   const latestStaffMessage = [...messages].reverse().find(m => m.speaker === 'staff');
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="border-b p-4 bg-primary text-primary-foreground">
-        <div className="flex items-center justify-center gap-2">
-          <Languages className="h-5 w-5" />
-          <span className="font-semibold">{phrases.liveTranslation}</span>
-          {languageInfo && (
-            <Badge variant="secondary" className="ml-2">
-              {languageInfo.flag} {languageInfo.name}
+      <div className="border-b p-3 bg-primary text-primary-foreground shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Languages className="h-5 w-5" />
+            <span className="font-semibold">{phrases.liveTranslation}</span>
+            {languageInfo && (
+              <Badge variant="secondary" className="ml-1">
+                {languageInfo.flag}
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge 
+              variant={isConnected ? 'secondary' : 'outline'} 
+              className="text-xs"
+            >
+              {isConnected ? `●` : `○`}
             </Badge>
-          )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground hover:bg-primary-foreground/20"
+              onClick={() => setShowEmailModal(true)}
+              disabled={messages.length === 0}
+            >
+              <Mail className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <Badge 
-          variant={isConnected ? 'secondary' : 'outline'} 
-          className="mx-auto mt-2 block w-fit"
-        >
-          {isConnected ? `● ${phrases.connected}` : `○ ${phrases.connecting}`}
-        </Badge>
       </div>
 
       {/* Latest message - prominent display */}
       {latestStaffMessage && (
-        <div className="p-6 bg-secondary/50 border-b">
-          <p className="text-sm text-muted-foreground mb-2 text-center">{phrases.receptionSays}</p>
-          <p className="text-2xl md:text-3xl text-center font-medium leading-relaxed">
+        <div className="p-4 bg-secondary/50 border-b shrink-0">
+          <p className="text-xs text-muted-foreground mb-1 text-center">{phrases.receptionSays}</p>
+          <p className="text-xl md:text-2xl text-center font-medium leading-relaxed">
             {latestStaffMessage.translatedText}
           </p>
         </div>
       )}
 
       {/* Message history */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-        <div className="space-y-4 max-w-lg mx-auto">
+      <ScrollArea className="flex-1 min-h-0" ref={scrollRef}>
+        <div className="space-y-3 max-w-lg mx-auto p-3">
           {messages.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              <Languages className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg">{phrases.waitingForReception}</p>
-              <p className="text-sm mt-2">{phrases.messagesWillAppear}</p>
+            <div className="text-center text-muted-foreground py-6">
+              <Languages className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              <p className="text-base">{phrases.waitingForReception}</p>
+              <p className="text-sm mt-1">{phrases.messagesWillAppear}</p>
             </div>
           ) : (
             messages.map((msg, index) => (
@@ -243,17 +258,17 @@ const ReceptionPatientView: React.FC = () => {
                 className={`flex ${msg.speaker === 'patient' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl p-4 ${
+                  className={`max-w-[85%] rounded-2xl p-3 ${
                     msg.speaker === 'patient'
                       ? 'bg-primary text-primary-foreground rounded-br-sm'
                       : 'bg-muted rounded-bl-sm'
                   }`}
                 >
-                  <p className="text-lg leading-relaxed">
+                  <p className="text-base leading-relaxed">
                     {msg.speaker === 'staff' ? msg.translatedText : msg.originalText}
                   </p>
                   {msg.speaker === 'patient' && (
-                    <p className="text-xs mt-2 opacity-70">{phrases.sentToReception}</p>
+                    <p className="text-xs mt-1 opacity-70">{phrases.sentToReception}</p>
                   )}
                 </div>
               </div>
@@ -262,7 +277,7 @@ const ReceptionPatientView: React.FC = () => {
 
           {isTranslating && (
             <div className="flex justify-end">
-              <div className="bg-primary/50 text-primary-foreground rounded-2xl rounded-br-sm p-4">
+              <div className="bg-primary/50 text-primary-foreground rounded-2xl rounded-br-sm p-3">
                 <Loader2 className="h-5 w-5 animate-spin" />
               </div>
             </div>
@@ -271,7 +286,7 @@ const ReceptionPatientView: React.FC = () => {
       </ScrollArea>
 
       {/* Input area */}
-      <div className="border-t p-4 bg-background">
+      <div className="border-t p-3 bg-background shrink-0 pb-safe">
         <div className="max-w-lg mx-auto">
           <div className="flex gap-2">
             <Textarea
@@ -279,7 +294,7 @@ const ReceptionPatientView: React.FC = () => {
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={languageInfo ? phrases.typeInLanguage.replace('{language}', languageInfo.name) : phrases.typeYourMessage}
-              className="min-h-[60px] resize-none text-lg"
+              className="min-h-[50px] resize-none text-base"
               rows={2}
             />
             <div className="flex flex-col gap-2">
@@ -289,25 +304,33 @@ const ReceptionPatientView: React.FC = () => {
                 className="h-full aspect-square"
                 onClick={toggleListening}
               >
-                {isListening ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+                {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
               </Button>
             </div>
           </div>
           <Button
             className="w-full mt-2"
-            size="lg"
             onClick={handleSend}
             disabled={!inputText.trim() || isTranslating}
           >
             {isTranslating ? (
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : (
-              <Send className="h-5 w-5 mr-2" />
+              <Send className="h-4 w-4 mr-2" />
             )}
             {phrases.send}
           </Button>
         </div>
       </div>
+
+      {/* Email Modal */}
+      <PatientEmailChatModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        messages={messages}
+        phrases={phrases}
+        languageName={languageInfo?.name || 'Unknown'}
+      />
     </div>
   );
 };
