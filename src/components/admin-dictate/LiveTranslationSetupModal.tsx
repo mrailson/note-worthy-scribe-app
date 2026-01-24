@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Languages, QrCode, Loader2, Check } from 'lucide-react';
+import { Languages, QrCode, Loader2, Check, MessageSquareText } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
@@ -100,6 +100,23 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
         <div className="space-y-6 py-4">
           <div className="space-y-2">
             <Label htmlFor="language">Patient's Language</Label>
+            
+            {/* Voice Quality Legend */}
+            <div className="rounded-md bg-muted/50 p-3 text-xs space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
+                <span className="text-muted-foreground">Premium voice (natural, realistic)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                <span className="text-muted-foreground">Standard voice (clear, functional)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MessageSquareText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                <span className="text-muted-foreground">Text only (no audio playback)</span>
+              </div>
+            </div>
+            
             <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
               <SelectTrigger id="language" className="w-full">
                 <SelectValue placeholder="Select language..." />
@@ -112,6 +129,9 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
                       <span>{lang.name}</span>
                       {lang.hasElevenLabsVoice && (
                         <Check className="h-4 w-4 text-green-500 ml-1" />
+                      )}
+                      {lang.hasGoogleTTSVoice && !lang.hasElevenLabsVoice && (
+                        <Check className="h-4 w-4 text-amber-500 ml-1" />
                       )}
                     </span>
                   </SelectItem>
