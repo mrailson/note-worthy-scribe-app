@@ -608,9 +608,21 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     onClose();
   };
 
+  // ElevenLabs supported languages (32 languages with natural voices)
+  const ELEVENLABS_SUPPORTED = [
+    'en', 'ar', 'zh', 'fr', 'de', 'hi', 'it', 'es', 'pl', 'pt', 'ro', 'ru', 
+    'tr', 'uk', 'vi', 'ja', 'ko', 'bg', 'cs', 'da', 'nl', 'el', 'hu', 'id',
+    'sv', 'no', 'fi', 'he', 'th', 'tl', 'ms', 'sk', 'hr'
+  ];
+
   const playAudio = async (text: string, languageCode: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+      // Use ElevenLabs for supported languages (more realistic), fallback to Google TTS
+      const endpoint = ELEVENLABS_SUPPORTED.includes(languageCode) 
+        ? 'gp-translation-tts' 
+        : 'text-to-speech';
+      
+      const { data, error } = await supabase.functions.invoke(endpoint, {
         body: { text, languageCode }
       });
       
