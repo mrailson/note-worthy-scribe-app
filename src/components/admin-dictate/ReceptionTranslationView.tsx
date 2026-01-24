@@ -529,12 +529,16 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           </h2>
 
           {qrCodeUrl && (
-            <Card 
-              className="mb-3 cursor-pointer transition-transform hover:scale-105 group relative"
+            <Card
+              className="mb-3 cursor-pointer transition-transform hover:scale-105 group relative overflow-hidden"
               onClick={() => setShowExpandedQR(true)}
             >
               <CardContent className="p-3">
-                <img src={qrCodeUrl} alt="Patient QR Code" className="w-36 h-36" />
+                <img
+                  src={qrCodeUrl}
+                  alt="Patient QR Code"
+                  className="block w-36 h-36"
+                />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg">
                   <Maximize2 className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
