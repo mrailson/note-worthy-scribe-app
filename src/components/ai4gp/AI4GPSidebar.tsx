@@ -164,7 +164,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
           <div className="flex items-center gap-2 min-w-0">
             <Sparkles className="w-5 h-5 text-primary flex-shrink-0" />
             <span className="font-semibold text-sm truncate">
-              {selectedRole === 'practice-manager' ? 'AI4PM' : 'AI4GP'}
+              {selectedRole === 'practice-manager' ? 'Ask AI' : 'AI4GP'}
             </span>
           </div>
         )}

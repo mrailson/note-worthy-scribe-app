@@ -33,7 +33,7 @@ export const ServiceOverview = () => {
     },
     {
       icon: <Users className="h-6 w-6" />,
-      title: "AI4PM Service", 
+      title: "Ask AI", 
       description: "Intelligent Practice Manager assistant with specialized NHS administrative knowledge",
       benefits: ["ARRS claim guidance", "PCN DES support", "CQC compliance help", "Staff management", "Policy interpretation"]
     },
