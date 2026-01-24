@@ -25,17 +25,21 @@ serve(async (req) => {
     }
 
     console.log('📥 SPEECH-TO-TEXT: Parsing request body...');
-    const { audio, mimeType, fileName } = await req.json();
+    const { audio, mimeType, fileName, language } = await req.json();
     
     if (!audio) {
       console.error('❌ SPEECH-TO-TEXT: No audio data provided');
       throw new Error('No audio data provided');
     }
 
+    // Use provided language or default to English
+    const transcriptionLanguage = language || 'en';
+
     console.log('📊 SPEECH-TO-TEXT: Audio data received');
     console.log('   - Size:', audio.length, 'characters');
     console.log('   - MIME type:', mimeType || 'not provided');
     console.log('   - File name:', fileName || 'not provided');
+    console.log('   - Language:', transcriptionLanguage);
 
     // Convert base64 to binary
     console.log('🔄 SPEECH-TO-TEXT: Converting base64 to audio file...');
@@ -98,14 +102,20 @@ serve(async (req) => {
     const audioBlob = new Blob([bytes], { type: detectedMimeType });
     formData.append('file', audioBlob, `audio.${fileExtension}`);
     formData.append('model', 'whisper-1');
-    formData.append('language', 'en');
+    formData.append('language', transcriptionLanguage);
     formData.append('response_format', 'verbose_json');
     // Anti-hallucination parameters
     formData.append('temperature', '0');
     
-    // Comprehensive UK GP/NHS clinical terminology prompt for accurate medical transcription
-    // This prevents misheard words and ensures proper UK medical spelling
-    const ukMedicalPrompt = `UK GP consultation. NHS primary care.
+    // Build language-appropriate prompt
+    // For English, use comprehensive UK GP/NHS clinical terminology
+    // For other languages, use a generic medical context prompt
+    let whisperPrompt: string;
+    
+    if (transcriptionLanguage === 'en') {
+      // Comprehensive UK GP/NHS clinical terminology prompt for accurate medical transcription
+      // This prevents misheard words and ensures proper UK medical spelling
+      whisperPrompt = `UK GP consultation. NHS primary care.
 
 Clinical terms: SNOMED, NICE guidelines, BNF, QoF, QOF, DES, ICS, PCN, hypertension, hyperlipidaemia, hypothyroidism, diabetes mellitus, type 2 diabetes, ischaemic heart disease, IHD, COPD, chronic obstructive pulmonary disease, asthma, chronic kidney disease, CKD, atrial fibrillation, AF, angina, myocardial infarction, heart failure, osteoarthritis, rheumatoid arthritis, fibromyalgia, depression, anxiety, insomnia.
 
@@ -120,8 +130,13 @@ UK spellings: haemoglobin, haematology, paediatric, paediatrics, orthopaedic, oe
 Abbreviations: F2F, face to face, T/C, telephone consultation, DNA, did not attend, DNW, FU, follow up, follow-up, Rx, prescription, Hx, history, PMH, past medical history, DH, drug history, SH, social history, FH, family history, O/E, on examination, SOAP, NAD, nothing abnormal detected, TBC, to be confirmed, TCI, to come in, OOH, out of hours, A&E, GP, HCA, healthcare assistant, ANP, advanced nurse practitioner.
 
 Examination terms: auscultation, palpation, percussion, bilateral, unilateral, tenderness, guarding, rebound, crepitations, crackles, wheeze, rhonchi, oedema, erythema, pallor, cyanosis, jaundice, clubbing.`;
+    } else {
+      // For non-English languages, use a simple context prompt
+      // The language parameter tells Whisper what language to expect
+      whisperPrompt = `Healthcare conversation. Medical consultation. Patient speaking.`;
+    }
 
-    formData.append('prompt', ukMedicalPrompt);
+    formData.append('prompt', whisperPrompt);
 
     console.log('📡 SPEECH-TO-TEXT: Sending request to OpenAI Whisper API...');
     
