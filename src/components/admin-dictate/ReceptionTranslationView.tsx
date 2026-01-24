@@ -640,9 +640,21 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       if (error) throw error;
       
       if (data?.audioContent) {
-        // Use audio/mpeg for proper browser support
-        const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+        // Convert base64 to Blob URL for better browser compatibility
+        const binaryString = atob(data.audioContent);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
+        const audioUrl = URL.createObjectURL(audioBlob);
         setAudioUrls(prev => ({ ...prev, [messageId]: audioUrl }));
+        
+        // Auto-play the audio
+        const audio = new Audio(audioUrl);
+        audio.play().catch(err => console.log('Auto-play blocked:', err));
+      } else {
+        showToast.error('No audio content received');
       }
     } catch (err) {
       console.error('Audio loading error:', err);
