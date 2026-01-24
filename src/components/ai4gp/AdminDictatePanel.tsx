@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X, Mic, History, FileText, Plus } from 'lucide-react';
+import { X, Mic, History, ScrollText, Plus } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAdminDictation } from '@/hooks/useAdminDictation';
 import { AdminDictateTextArea } from './AdminDictateTextArea';
 import { AdminDictateQuickActions } from './AdminDictateQuickActions';
@@ -110,15 +111,45 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
     <Card className="flex flex-col h-full border-0 shadow-none">
       <CardHeader className="flex-shrink-0 border-b px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Mic className="w-5 h-5 text-primary" />
             <CardTitle className="text-lg">Dictate or Translate</CardTitle>
+            
+            {/* Inline tab icons */}
+            <div className="flex items-center gap-1 ml-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={activeTab === 'dictate' ? 'default' : 'ghost'}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setActiveTab('dictate')}
+                  >
+                    <ScrollText className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Dictate</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={activeTab === 'history' ? 'default' : 'ghost'}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setActiveTab('history')}
+                  >
+                    <History className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>History</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
+          
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
         </div>
-        
         
         {(isRecording || content) && (
           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
@@ -129,16 +160,6 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
       </CardHeader>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'dictate' | 'history')} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="mx-4 mt-3 grid w-auto grid-cols-2">
-          <TabsTrigger value="dictate" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Dictate
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <History className="w-4 h-4" />
-            History
-          </TabsTrigger>
-        </TabsList>
 
         <TabsContent value="dictate" className="flex-1 flex flex-col min-h-0 mt-0 p-4 gap-4">
           {/* Mode Selector - show when idle and no content */}
