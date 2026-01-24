@@ -324,6 +324,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         patientLanguageName: languageInfo?.name || patientLanguage,
         sessionStart: sessionStartTime,
         sessionEnd: new Date(),
+        practiceInfo: {
+          name: practiceContext?.practiceName,
+          address: practiceContext?.practiceAddress,
+          logoUrl: practiceContext?.logoUrl,
+        },
       });
       showToast.success('Translation report downloaded successfully');
     } catch (error) {
