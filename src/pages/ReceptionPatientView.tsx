@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff, Send, Loader2, Languages, WifiOff, Mail } from 'lucide-react';
+import { Mic, MicOff, Send, Loader2, Languages, WifiOff, Mail, Volume2 } from 'lucide-react';
 import { useReceptionTranslation, TranslationMessage } from '@/hooks/useReceptionTranslation';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
@@ -27,8 +27,12 @@ const ReceptionPatientView: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(true);
+  const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const langCode = sessionData?.patient_language || 'en';
   const phrases = getPatientViewPhrases(langCode);
@@ -91,10 +95,67 @@ const ReceptionPatientView: React.FC = () => {
 
   // Auto-scroll to latest message
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
     }
   }, [messages]);
+
+  // Audio playback for translations
+  const handlePlayAudio = useCallback(async (messageId: string, text: string, languageCode: string) => {
+    // Stop any currently playing audio
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause();
+      currentAudioRef.current = null;
+      setPlayingAudioId(null);
+    }
+
+    // If clicking on already playing audio, just stop
+    if (playingAudioId === messageId) {
+      return;
+    }
+
+    setLoadingAudioId(messageId);
+
+    try {
+      const response = await supabase.functions.invoke('text-to-speech-openai', {
+        body: { 
+          text, 
+          voice: 'nova',
+          language: languageCode 
+        }
+      });
+
+      if (response.error) throw response.error;
+
+      const audioUrl = response.data?.audioUrl;
+      if (!audioUrl) throw new Error('No audio URL returned');
+
+      const audio = new Audio(audioUrl);
+      currentAudioRef.current = audio;
+      
+      audio.onended = () => {
+        setPlayingAudioId(null);
+        currentAudioRef.current = null;
+      };
+      
+      audio.onerror = () => {
+        setPlayingAudioId(null);
+        setLoadingAudioId(null);
+        currentAudioRef.current = null;
+      };
+
+      setLoadingAudioId(null);
+      setPlayingAudioId(messageId);
+      await audio.play();
+    } catch (err) {
+      console.error('Audio playback error:', err);
+      setLoadingAudioId(null);
+      setPlayingAudioId(null);
+    }
+  }, [playingAudioId]);
 
   // Speech recognition setup - note: not supported on iOS Safari
   useEffect(() => {
@@ -269,7 +330,7 @@ const ReceptionPatientView: React.FC = () => {
       )}
 
       {/* Message history */}
-      <ScrollArea className="flex-1 min-h-0" ref={scrollRef}>
+      <ScrollArea className="flex-1 min-h-0" ref={scrollAreaRef}>
         <div className="space-y-3 max-w-lg mx-auto p-3">
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-6">
@@ -278,27 +339,62 @@ const ReceptionPatientView: React.FC = () => {
               <p className="text-sm mt-1">{phrases.messagesWillAppear}</p>
             </div>
           ) : (
-            messages.map((msg, index) => (
-              <div
-                key={msg.id || index}
-                className={`flex ${msg.speaker === 'patient' ? 'justify-end' : 'justify-start'}`}
-              >
+            messages.map((msg, index) => {
+              const messageId = msg.id || `msg-${index}`;
+              const isStaffMessage = msg.speaker === 'staff';
+              const displayText = isStaffMessage ? msg.translatedText : msg.originalText;
+              const audioLang = isStaffMessage ? langCode : 'en';
+              
+              return (
                 <div
-                  className={`max-w-[85%] rounded-2xl p-3 ${
-                    msg.speaker === 'patient'
-                      ? 'bg-primary text-primary-foreground rounded-br-sm'
-                      : 'bg-muted rounded-bl-sm'
-                  }`}
+                  key={messageId}
+                  className={`flex ${msg.speaker === 'patient' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="text-base leading-relaxed">
-                    {msg.speaker === 'staff' ? msg.translatedText : msg.originalText}
-                  </p>
-                  {msg.speaker === 'patient' && (
-                    <p className="text-xs mt-1 opacity-70">{phrases.sentToReception}</p>
-                  )}
+                  <div
+                    className={`max-w-[85%] rounded-2xl p-3 ${
+                      msg.speaker === 'patient'
+                        ? 'bg-primary text-primary-foreground rounded-br-sm'
+                        : 'bg-muted rounded-bl-sm'
+                    }`}
+                  >
+                    <p className="text-base leading-relaxed">
+                      {displayText}
+                    </p>
+                    <div className="flex items-center justify-between mt-2">
+                      {msg.speaker === 'patient' ? (
+                        <p className="text-xs opacity-70">{phrases.sentToReception}</p>
+                      ) : (
+                        <span />
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`h-7 px-2 ${msg.speaker === 'patient' ? 'text-primary-foreground hover:bg-primary-foreground/20' : ''}`}
+                        onClick={() => handlePlayAudio(messageId, displayText, audioLang)}
+                        disabled={loadingAudioId === messageId}
+                      >
+                        {loadingAudioId === messageId ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            <span className="text-xs">Load Audio</span>
+                          </>
+                        ) : playingAudioId === messageId ? (
+                          <>
+                            <Volume2 className="h-3 w-3 mr-1 animate-pulse" />
+                            <span className="text-xs">Playing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="h-3 w-3 mr-1" />
+                            <span className="text-xs">Play Audio</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
 
           {isTranslating && (
