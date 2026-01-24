@@ -264,9 +264,9 @@ export const ComplaintsSummaryView: React.FC<ComplaintsSummaryViewProps> = ({
                         </p>
                       )}
                     </div>
-                    <p className="text-sm line-clamp-2">
-                      {outcome.outcome_summary?.substring(0, 200) || 'No key learnings recorded'}
-                      {outcome.outcome_summary && outcome.outcome_summary.length > 200 && '...'}
+                    <p className="text-sm line-clamp-3 min-h-[2.5rem]">
+                      {outcome.outcome_summary?.substring(0, 300) || 'No key learnings recorded'}
+                      {outcome.outcome_summary && outcome.outcome_summary.length > 300 && '...'}
                     </p>
                   </div>
                 )}
