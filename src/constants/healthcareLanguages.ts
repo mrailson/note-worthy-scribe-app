@@ -4,6 +4,7 @@ export interface LanguageOption {
   flag: string;
   voice?: string;
   hasElevenLabsVoice?: boolean;
+  hasGoogleTTSVoice?: boolean;
   manualTranslationOnly?: boolean;
 }
 
@@ -45,22 +46,24 @@ export const HEALTHCARE_LANGUAGES: LanguageOption[] = [
   { code: 'he', name: 'Hebrew', flag: '🇮🇱', hasElevenLabsVoice: true },
   { code: 'ja', name: 'Japanese', flag: '🇯🇵', hasElevenLabsVoice: true },
   { code: 'ko', name: 'Korean', flag: '🇰🇷', hasElevenLabsVoice: true },
-  // Manual translation only (no ElevenLabs voice support)
-  { code: 'ku', name: 'Kurdish', flag: '🏴', voice: 'ku-TR-Standard-A', manualTranslationOnly: true },
-  { code: 'ps', name: 'Pashto', flag: '🇦🇫', voice: 'ps-AF-Standard-A', manualTranslationOnly: true },
-  { code: 'ti', name: 'Tigrinya', flag: '🇪🇷', voice: 'ti-ER-Standard-A', manualTranslationOnly: true },
-  // Additional languages - manual translation only (limited or no ElevenLabs support)
-  { code: 'bn', name: 'Bengali', flag: '🇧🇩', manualTranslationOnly: true },
+  
+  // Google Cloud TTS supported (standard quality fallback)
+  { code: 'bn', name: 'Bengali', flag: '🇧🇩', voice: 'bn-IN-Standard-A', hasGoogleTTSVoice: true },
+  { code: 'pa', name: 'Punjabi', flag: '🇮🇳', voice: 'pa-IN-Wavenet-A', hasGoogleTTSVoice: true },
+  { code: 'gu', name: 'Gujarati', flag: '🇮🇳', voice: 'gu-IN-Standard-A', hasGoogleTTSVoice: true },
+  { code: 'ta', name: 'Tamil', flag: '🇮🇳', voice: 'ta-IN-Wavenet-A', hasGoogleTTSVoice: true },
+  { code: 'te', name: 'Telugu', flag: '🇮🇳', voice: 'te-IN-Standard-A', hasGoogleTTSVoice: true },
+  { code: 'kn', name: 'Kannada', flag: '🇮🇳', voice: 'kn-IN-Standard-A', hasGoogleTTSVoice: true },
+  { code: 'ml', name: 'Malayalam', flag: '🇮🇳', voice: 'ml-IN-Standard-A', hasGoogleTTSVoice: true },
+  { code: 'mr', name: 'Marathi', flag: '🇮🇳', voice: 'mr-IN-Standard-A', hasGoogleTTSVoice: true },
+  { code: 'sw', name: 'Swahili', flag: '🇰🇪', voice: 'sw-KE-Standard-A', hasGoogleTTSVoice: true },
+  { code: 'ku', name: 'Kurdish', flag: '🏴', voice: 'ku-TR-Standard-A', hasGoogleTTSVoice: true },
+  { code: 'ps', name: 'Pashto', flag: '🇦🇫', voice: 'ps-AF-Standard-A', hasGoogleTTSVoice: true },
+  { code: 'ti', name: 'Tigrinya', flag: '🇪🇷', voice: 'ti-ER-Standard-A', hasGoogleTTSVoice: true },
+  
+  // Text translation only (no voice support)
   { code: 'ur', name: 'Urdu', flag: '🇵🇰', manualTranslationOnly: true },
-  { code: 'pa', name: 'Punjabi', flag: '🇮🇳', manualTranslationOnly: true },
-  { code: 'gu', name: 'Gujarati', flag: '🇮🇳', manualTranslationOnly: true },
-  { code: 'ta', name: 'Tamil', flag: '🇮🇳', manualTranslationOnly: true },
-  { code: 'te', name: 'Telugu', flag: '🇮🇳', manualTranslationOnly: true },
-  { code: 'kn', name: 'Kannada', flag: '🇮🇳', manualTranslationOnly: true },
-  { code: 'ml', name: 'Malayalam', flag: '🇮🇳', manualTranslationOnly: true },
-  { code: 'mr', name: 'Marathi', flag: '🇮🇳', manualTranslationOnly: true },
   { code: 'ne', name: 'Nepali', flag: '🇳🇵', manualTranslationOnly: true },
-  { code: 'sw', name: 'Swahili', flag: '🇰🇪', manualTranslationOnly: true },
   { code: 'am', name: 'Amharic', flag: '🇪🇹', manualTranslationOnly: true },
   { code: 'yo', name: 'Yoruba', flag: '🇳🇬', manualTranslationOnly: true },
   { code: 'ig', name: 'Igbo', flag: '🇳🇬', manualTranslationOnly: true },
@@ -72,6 +75,9 @@ export const HEALTHCARE_LANGUAGES: LanguageOption[] = [
 // Helper functions to filter languages by type
 export const getElevenLabsLanguages = () => 
   HEALTHCARE_LANGUAGES.filter(lang => lang.hasElevenLabsVoice && lang.code !== 'none');
+
+export const getGoogleTTSLanguages = () => 
+  HEALTHCARE_LANGUAGES.filter(lang => lang.hasGoogleTTSVoice && lang.code !== 'none');
 
 export const getManualTranslationLanguages = () => 
   HEALTHCARE_LANGUAGES.filter(lang => lang.manualTranslationOnly && lang.code !== 'none');
