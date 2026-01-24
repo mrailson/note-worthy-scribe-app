@@ -219,14 +219,36 @@ export const generateTranslationReportDocx = async (options: GenerateTranslation
         const arrayBuffer = await blob.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
         
+        // Load image to get natural dimensions for aspect ratio
+        const imgUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = reject;
+          img.src = imgUrl;
+        });
+        URL.revokeObjectURL(imgUrl);
+        
+        // Calculate dimensions maintaining aspect ratio (max width 150, max height 80)
+        const maxWidth = 150;
+        const maxHeight = 80;
+        const aspectRatio = img.naturalWidth / img.naturalHeight;
+        let width = maxWidth;
+        let height = width / aspectRatio;
+        
+        if (height > maxHeight) {
+          height = maxHeight;
+          width = height * aspectRatio;
+        }
+        
         children.push(
           new Paragraph({
             children: [
               new ImageRun({
                 data: uint8Array,
                 transformation: {
-                  width: 120,
-                  height: 60,
+                  width: Math.round(width),
+                  height: Math.round(height),
                 },
                 type: blob.type.includes('png') ? 'png' : 'jpg',
               }),
