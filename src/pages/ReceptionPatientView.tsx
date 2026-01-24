@@ -26,6 +26,7 @@ const ReceptionPatientView: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -95,12 +96,25 @@ const ReceptionPatientView: React.FC = () => {
     }
   }, [messages]);
 
-  // Speech recognition setup
+  // Speech recognition setup - note: not supported on iOS Safari
   useEffect(() => {
     if (!sessionData?.patient_language) return;
 
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    // Check for speech recognition support
+    const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+    
+    // iOS Safari doesn't support Web Speech API
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    
+    if (!hasSpeechRecognition || (isIOS && isSafari)) {
+      setSpeechSupported(false);
+      console.log('Speech recognition not supported on this browser');
+      return;
+    }
+
+    try {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = true;
@@ -129,8 +143,20 @@ const ReceptionPatientView: React.FC = () => {
         }
       };
 
-      recognitionRef.current.onerror = () => setIsListening(false);
+      recognitionRef.current.onerror = (e: any) => {
+        console.error('Speech recognition error:', e.error);
+        setIsListening(false);
+        if (e.error === 'not-allowed') {
+          setSpeechSupported(false);
+        }
+      };
+      
       recognitionRef.current.onend = () => setIsListening(false);
+      
+      setSpeechSupported(true);
+    } catch (err) {
+      console.error('Failed to initialise speech recognition:', err);
+      setSpeechSupported(false);
     }
 
     return () => { recognitionRef.current?.stop(); };
@@ -297,16 +323,18 @@ const ReceptionPatientView: React.FC = () => {
               className="min-h-[50px] resize-none text-base"
               rows={2}
             />
-            <div className="flex flex-col gap-2">
-              <Button
-                size="lg"
-                variant={isListening ? 'destructive' : 'outline'}
-                className="h-full aspect-square"
-                onClick={toggleListening}
-              >
-                {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-              </Button>
-            </div>
+            {speechSupported && (
+              <div className="flex flex-col gap-2">
+                <Button
+                  size="lg"
+                  variant={isListening ? 'destructive' : 'outline'}
+                  className="h-full aspect-square"
+                  onClick={toggleListening}
+                >
+                  {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                </Button>
+              </div>
+            )}
           </div>
           <Button
             className="w-full mt-2"
