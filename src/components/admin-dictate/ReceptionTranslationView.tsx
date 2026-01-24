@@ -443,9 +443,12 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   // Auto-scroll to latest message
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
     }
-  }, [messages]);
+  }, [messages, isTranslating]);
 
   // Keep refs in sync with state
   useEffect(() => {
