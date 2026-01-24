@@ -50,7 +50,7 @@ export const AdminDictateModeSelector: React.FC<AdminDictateModeSelectorProps> =
             "font-medium text-sm transition-colors",
             mode === 'dictate' ? "text-foreground" : "text-muted-foreground"
           )}>
-            Free Dictation
+            Dictation
           </span>
         </button>
 
