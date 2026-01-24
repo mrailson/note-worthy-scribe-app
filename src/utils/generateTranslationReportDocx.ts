@@ -203,7 +203,7 @@ function getOverallConfidence(messages: TranslationMessage[]): { score: number; 
 }
 
 export const generateTranslationReportDocx = async (options: GenerateTranslationReportOptions): Promise<void> => {
-  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, ImageRun } = await import('docx');
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, ImageRun, Footer, PageNumber, Header } = await import('docx');
   
   const { messages, patientLanguage, patientLanguageName, sessionStart, sessionEnd, practiceInfo } = options;
   
@@ -537,9 +537,65 @@ export const generateTranslationReportDocx = async (options: GenerateTranslation
     })
   );
   
-  // Create document
+  // Create document with footer
   const styles = buildNHSStyles();
   const numbering = buildNumbering();
+  
+  // Build footer content with practice info and page numbers
+  const footerChildren: any[] = [];
+  
+  if (practiceInfo?.name) {
+    const footerText = practiceInfo.address 
+      ? `${practiceInfo.name} | ${practiceInfo.address}`
+      : practiceInfo.name;
+    
+    footerChildren.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: footerText,
+            size: FONTS.size.footer,
+            color: NHS_COLORS.textLightGrey,
+            font: FONTS.default,
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+      })
+    );
+  }
+  
+  // Page numbers
+  footerChildren.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'Page ',
+          size: FONTS.size.footer,
+          color: NHS_COLORS.textLightGrey,
+          font: FONTS.default,
+        }),
+        new TextRun({
+          children: [PageNumber.CURRENT],
+          size: FONTS.size.footer,
+          color: NHS_COLORS.textLightGrey,
+          font: FONTS.default,
+        }),
+        new TextRun({
+          text: ' of ',
+          size: FONTS.size.footer,
+          color: NHS_COLORS.textLightGrey,
+          font: FONTS.default,
+        }),
+        new TextRun({
+          children: [PageNumber.TOTAL_PAGES],
+          size: FONTS.size.footer,
+          color: NHS_COLORS.textLightGrey,
+          font: FONTS.default,
+        }),
+      ],
+      alignment: AlignmentType.CENTER,
+    })
+  );
   
   const doc = new Document({
     styles: styles,
@@ -549,6 +605,11 @@ export const generateTranslationReportDocx = async (options: GenerateTranslation
         page: {
           margin: { top: 1080, right: 1080, bottom: 1080, left: 1080 },
         },
+      },
+      footers: {
+        default: new Footer({
+          children: footerChildren,
+        }),
       },
       children,
     }],
