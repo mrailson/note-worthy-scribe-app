@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   Mic, 
   MicOff, 
@@ -14,8 +15,8 @@ import {
   WifiOff,
   Volume2,
   Trash2,
-  Download,
-  FileText
+  FileText,
+  Maximize2
 } from 'lucide-react';
 import { useReceptionTranslation, TranslationMessage } from '@/hooks/useReceptionTranslation';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
@@ -23,6 +24,135 @@ import { showToast } from '@/utils/toastWrapper';
 import QRCode from 'qrcode';
 import { supabase } from '@/integrations/supabase/client';
 import { generateTranslationReportDocx } from '@/utils/generateTranslationReportDocx';
+import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
+
+// Translated instructions for patients
+const QR_INSTRUCTIONS: Record<string, {
+  scanInstruction: string;
+  welcomeMessage: string;
+}> = {
+  en: {
+    scanInstruction: 'Please scan this QR code with your phone camera',
+    welcomeMessage: 'Welcome to {practice}. This service will help us communicate with you in your language.'
+  },
+  fr: {
+    scanInstruction: 'Veuillez scanner ce code QR avec la caméra de votre téléphone',
+    welcomeMessage: 'Bienvenue à {practice}. Ce service nous aidera à communiquer avec vous dans votre langue.'
+  },
+  es: {
+    scanInstruction: 'Por favor escanee este código QR con la cámara de su teléfono',
+    welcomeMessage: 'Bienvenido a {practice}. Este servicio nos ayudará a comunicarnos con usted en su idioma.'
+  },
+  pl: {
+    scanInstruction: 'Proszę zeskanować ten kod QR aparatem telefonu',
+    welcomeMessage: 'Witamy w {practice}. Ta usługa pomoże nam komunikować się z Państwem w Państwa języku.'
+  },
+  ro: {
+    scanInstruction: 'Vă rugăm să scanați acest cod QR cu camera telefonului',
+    welcomeMessage: 'Bine ați venit la {practice}. Acest serviciu ne va ajuta să comunicăm cu dumneavoastră în limba dumneavoastră.'
+  },
+  pt: {
+    scanInstruction: 'Por favor, digitalize este código QR com a câmara do seu telemóvel',
+    welcomeMessage: 'Bem-vindo a {practice}. Este serviço irá ajudar-nos a comunicar consigo na sua língua.'
+  },
+  ar: {
+    scanInstruction: 'يرجى مسح رمز QR هذا بكاميرا هاتفك',
+    welcomeMessage: 'مرحبًا بكم في {practice}. ستساعدنا هذه الخدمة على التواصل معكم بلغتكم.'
+  },
+  bn: {
+    scanInstruction: 'অনুগ্রহ করে আপনার ফোনের ক্যামেরা দিয়ে এই QR কোডটি স্ক্যান করুন',
+    welcomeMessage: '{practice}-এ স্বাগতম। এই পরিষেবাটি আমাদের আপনার ভাষায় আপনার সাথে যোগাযোগ করতে সাহায্য করবে।'
+  },
+  gu: {
+    scanInstruction: 'કૃપા કરીને તમારા ફોનના કેમેરાથી આ QR કોડ સ્કેન કરો',
+    welcomeMessage: '{practice}માં સ્વાગત છે. આ સેવા અમને તમારી ભાષામાં તમારી સાથે વાતચીત કરવામાં મદદ કરશે.'
+  },
+  hi: {
+    scanInstruction: 'कृपया अपने फोन के कैमरे से इस QR कोड को स्कैन करें',
+    welcomeMessage: '{practice} में आपका स्वागत है। यह सेवा हमें आपकी भाषा में आपसे संवाद करने में मदद करेगी।'
+  },
+  pa: {
+    scanInstruction: 'ਕਿਰਪਾ ਕਰਕੇ ਆਪਣੇ ਫ਼ੋਨ ਦੇ ਕੈਮਰੇ ਨਾਲ ਇਸ QR ਕੋਡ ਨੂੰ ਸਕੈਨ ਕਰੋ',
+    welcomeMessage: '{practice} ਵਿੱਚ ਤੁਹਾਡਾ ਸੁਆਗਤ ਹੈ। ਇਹ ਸੇਵਾ ਸਾਨੂੰ ਤੁਹਾਡੀ ਭਾਸ਼ਾ ਵਿੱਚ ਤੁਹਾਡੇ ਨਾਲ ਸੰਪਰਕ ਕਰਨ ਵਿੱਚ ਮਦਦ ਕਰੇਗੀ।'
+  },
+  ur: {
+    scanInstruction: 'براہ کرم اپنے فون کے کیمرے سے اس QR کوڈ کو اسکین کریں',
+    welcomeMessage: '{practice} میں خوش آمدید۔ یہ سروس ہمیں آپ کی زبان میں آپ سے بات چیت کرنے میں مدد کرے گی۔'
+  },
+  zh: {
+    scanInstruction: '请用手机摄像头扫描此二维码',
+    welcomeMessage: '欢迎来到{practice}。这项服务将帮助我们用您的语言与您交流。'
+  },
+  'zh-TW': {
+    scanInstruction: '請用手機相機掃描此二維碼',
+    welcomeMessage: '歡迎來到{practice}。這項服務將幫助我們用您的語言與您交流。'
+  },
+  so: {
+    scanInstruction: 'Fadlan sawir koodhkan QR-ga kamaradda telefoonkaaga',
+    welcomeMessage: 'Ku soo dhawoow {practice}. Adeeggan wuxuu naga caawin doonaa inaan kugula xiriirno luqaddaada.'
+  },
+  ti: {
+    scanInstruction: 'በጃኻ ብካመራ ተሌፎንካ እዚ QR ኮድ ስካን ግበር',
+    welcomeMessage: 'ናብ {practice} እንቋዕ ብደሓን መጻእካ። እዚ ኣገልግሎት ብቋንቋኻ ምሳኻ ንምርኻብ ክሕግዘና እዩ።'
+  },
+  tr: {
+    scanInstruction: 'Lütfen bu QR kodunu telefonunuzun kamerasıyla tarayın',
+    welcomeMessage: '{practice}\'a hoş geldiniz. Bu hizmet sizinle kendi dilinizde iletişim kurmamıza yardımcı olacaktır.'
+  },
+  it: {
+    scanInstruction: 'Si prega di scansionare questo codice QR con la fotocamera del telefono',
+    welcomeMessage: 'Benvenuto a {practice}. Questo servizio ci aiuterà a comunicare con Lei nella Sua lingua.'
+  },
+  de: {
+    scanInstruction: 'Bitte scannen Sie diesen QR-Code mit Ihrer Handykamera',
+    welcomeMessage: 'Willkommen bei {practice}. Dieser Service wird uns helfen, in Ihrer Sprache mit Ihnen zu kommunizieren.'
+  },
+  ru: {
+    scanInstruction: 'Пожалуйста, отсканируйте этот QR-код камерой телефона',
+    welcomeMessage: 'Добро пожаловать в {practice}. Этот сервис поможет нам общаться с вами на вашем языке.'
+  },
+  fa: {
+    scanInstruction: 'لطفاً این کد QR را با دوربین گوشی خود اسکن کنید',
+    welcomeMessage: 'به {practice} خوش آمدید. این سرویس به ما کمک می‌کند تا به زبان شما با شما ارتباط برقرار کنیم.'
+  },
+  ku: {
+    scanInstruction: 'Ji kerema xwe vê koda QR-ê bi kameraya têlefona xwe bişopîne',
+    welcomeMessage: 'Tu bi xêr hatî {practice}. Ev xizmet dê ji me re bibe alîkar ku em bi zimanê te bi te re têkiliyê daynin.'
+  },
+  vi: {
+    scanInstruction: 'Vui lòng quét mã QR này bằng camera điện thoại của bạn',
+    welcomeMessage: 'Chào mừng bạn đến {practice}. Dịch vụ này sẽ giúp chúng tôi giao tiếp với bạn bằng ngôn ngữ của bạn.'
+  },
+  th: {
+    scanInstruction: 'กรุณาสแกน QR code นี้ด้วยกล้องโทรศัพท์ของคุณ',
+    welcomeMessage: 'ยินดีต้อนรับสู่ {practice} บริการนี้จะช่วยให้เราสื่อสารกับคุณในภาษาของคุณ'
+  },
+  tl: {
+    scanInstruction: 'Pakiscan ang QR code na ito gamit ang camera ng iyong telepono',
+    welcomeMessage: 'Maligayang pagdating sa {practice}. Ang serbisyong ito ay makakatulong sa amin na makipag-usap sa iyo sa iyong wika.'
+  },
+  ne: {
+    scanInstruction: 'कृपया तपाईंको फोनको क्यामेराले यो QR कोड स्क्यान गर्नुहोस्',
+    welcomeMessage: '{practice}मा स्वागत छ। यो सेवाले हामीलाई तपाईंको भाषामा तपाईंसँग कुराकानी गर्न मद्दत गर्नेछ।'
+  },
+  sw: {
+    scanInstruction: 'Tafadhali scan msimbo huu wa QR kwa kamera ya simu yako',
+    welcomeMessage: 'Karibu {practice}. Huduma hii itatusaidia kuwasiliana nawe kwa lugha yako.'
+  },
+  am: {
+    scanInstruction: 'እባክዎ ይህንን QR ኮድ በስልክዎ ካሜራ ይቃኙ',
+    welcomeMessage: 'ወደ {practice} እንኳን በደህና መጡ። ይህ አገልግሎት በእርስዎ ቋንቋ ከእርስዎ ጋር ለመገናኘት ይረዳናል።'
+  }
+};
+
+const getQRInstructions = (langCode: string, practiceName: string) => {
+  const instructions = QR_INSTRUCTIONS[langCode] || QR_INSTRUCTIONS['en'];
+  return {
+    scanInstruction: instructions.scanInstruction,
+    welcomeMessage: instructions.welcomeMessage.replace('{practice}', practiceName || 'our practice')
+  };
+};
 
 interface ReceptionTranslationViewProps {
   sessionId: string;
@@ -38,13 +168,18 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   onClose
 }) => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+  const [largeQrCodeUrl, setLargeQrCodeUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [sessionStartTime] = useState<Date>(new Date());
+  const [showExpandedQR, setShowExpandedQR] = useState(false);
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const { practiceContext } = usePracticeContext();
+  const practiceName = practiceContext?.practiceName || 'Our Practice';
 
   const {
     messages,
@@ -62,14 +197,25 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const languageInfo = HEALTHCARE_LANGUAGES.find(l => l.code === patientLanguage);
   const patientUrl = `${window.location.origin}/reception-translate?session=${sessionToken}`;
 
-  // Generate QR code
+  // Generate QR codes (small and large versions)
   useEffect(() => {
+    // Small QR for sidebar
     QRCode.toDataURL(patientUrl, {
       width: 200,
       margin: 2,
       color: { dark: '#000000', light: '#ffffff' }
     }).then(setQrCodeUrl);
+    
+    // Large QR for expanded modal
+    QRCode.toDataURL(patientUrl, {
+      width: 400,
+      margin: 3,
+      color: { dark: '#000000', light: '#ffffff' }
+    }).then(setLargeQrCodeUrl);
   }, [patientUrl]);
+  
+  // Get localized instructions
+  const qrInstructions = getQRInstructions(patientLanguage, practiceName);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -371,33 +517,51 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         </div>
 
         {/* QR Code panel */}
-        <div className="w-80 border-l p-6 flex flex-col items-center justify-center bg-muted/30">
+        <div className="w-80 border-l p-6 flex flex-col items-center bg-muted/30 overflow-y-auto">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <QrCode className="h-5 w-5" />
             Patient QR Code
           </h2>
 
           {qrCodeUrl && (
-            <Card className="mb-4">
+            <Card 
+              className="mb-4 cursor-pointer transition-transform hover:scale-105 group relative"
+              onClick={() => setShowExpandedQR(true)}
+            >
               <CardContent className="p-4">
                 <img src={qrCodeUrl} alt="Patient QR Code" className="w-48 h-48" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg">
+                  <Maximize2 className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </CardContent>
             </Card>
           )}
 
-          <p className="text-sm text-muted-foreground text-center mb-4">
-            Ask the patient to scan this QR code with their phone camera
-          </p>
+          {/* Instructions in patient's language */}
+          <div className="mb-4 p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 text-center">
+            <p className="text-sm font-medium text-violet-700 dark:text-violet-300 mb-1">
+              {languageInfo?.flag} {languageInfo?.name}
+            </p>
+            <p className="text-sm text-violet-600 dark:text-violet-400">
+              {qrInstructions.scanInstruction}
+            </p>
+          </div>
 
-          <Button variant="outline" size="sm" onClick={handleCopyLink}>
-            {copied ? (
-              <><Check className="h-4 w-4 mr-2" /> Copied!</>
-            ) : (
-              <><Copy className="h-4 w-4 mr-2" /> Copy Link</>
-            )}
-          </Button>
+          <div className="flex gap-2 mb-4">
+            <Button variant="outline" size="sm" onClick={handleCopyLink}>
+              {copied ? (
+                <><Check className="h-4 w-4 mr-2" /> Copied!</>
+              ) : (
+                <><Copy className="h-4 w-4 mr-2" /> Copy Link</>
+              )}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowExpandedQR(true)}>
+              <Maximize2 className="h-4 w-4 mr-2" />
+              Expand
+            </Button>
+          </div>
 
-          <div className="mt-6 p-4 rounded-lg bg-background border text-sm">
+          <div className="p-4 rounded-lg bg-background border text-sm">
             <p className="font-medium mb-2">How it works:</p>
             <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
               <li>Patient scans QR code</li>
@@ -409,6 +573,44 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           </div>
         </div>
       </div>
+
+      {/* Expanded QR Code Modal */}
+      <Dialog open={showExpandedQR} onOpenChange={setShowExpandedQR}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-center justify-center">
+              <QrCode className="h-5 w-5" />
+              Scan for Translation Service
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center py-6">
+            {/* Practice name */}
+            <p className="text-lg font-semibold text-primary mb-4">{practiceName}</p>
+            
+            {/* Large QR Code */}
+            {largeQrCodeUrl && (
+              <div className="bg-white p-4 rounded-xl shadow-lg mb-6">
+                <img src={largeQrCodeUrl} alt="Patient QR Code" className="w-72 h-72" />
+              </div>
+            )}
+            
+            {/* Instructions in patient's language - prominent */}
+            <div className="w-full max-w-sm p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/50 dark:to-purple-950/50 border border-violet-200 dark:border-violet-800 text-center">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <span className="text-2xl">{languageInfo?.flag}</span>
+                <span className="font-semibold text-violet-700 dark:text-violet-300">{languageInfo?.name}</span>
+              </div>
+              <p className="text-base text-violet-800 dark:text-violet-200 mb-3 font-medium">
+                {qrInstructions.scanInstruction}
+              </p>
+              <p className="text-sm text-violet-600 dark:text-violet-400">
+                {qrInstructions.welcomeMessage}
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
