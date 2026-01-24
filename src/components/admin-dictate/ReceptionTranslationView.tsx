@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
-  Mic, 
+  Mic,
+  Loader2,
   MicOff, 
   X, 
   QrCode, 
@@ -171,11 +172,15 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [largeQrCodeUrl, setLargeQrCodeUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [sessionStartTime] = useState<Date>(new Date());
   const [showExpandedQR, setShowExpandedQR] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const isListeningRef = useRef(false);
+  const isStartingRef = useRef(false);
+  const stoppedByUserRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const { practiceContext } = usePracticeContext();
@@ -224,62 +229,167 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     }
   }, [messages]);
 
-  // Speech recognition setup
+  // Keep refs in sync with state
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-GB';
+    isListeningRef.current = isListening;
+  }, [isListening]);
 
-      recognitionRef.current.onresult = (event) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (result.isFinal) {
-            finalTranscript += result[0].transcript;
-          } else {
-            interimTranscript += result[0].transcript;
-          }
-        }
-
-        if (finalTranscript) {
-          sendMessage(finalTranscript);
-          setTranscript('');
-        } else {
-          setTranscript(interimTranscript);
-        }
-      };
-
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognitionRef.current.onend = () => {
-        if (isListening) {
-          recognitionRef.current?.start();
-        }
-      };
+  // Speech recognition setup - create instance once
+  useEffect(() => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      console.warn('Speech recognition not supported');
+      return;
     }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognitionRef.current = new SpeechRecognition();
+    recognitionRef.current.continuous = true;
+    recognitionRef.current.interimResults = true;
+    recognitionRef.current.lang = 'en-GB';
+    recognitionRef.current.maxAlternatives = 1;
+
+    recognitionRef.current.onresult = (event: any) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript;
+        } else {
+          interimTranscript += result[0].transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        sendMessage(finalTranscript);
+        setTranscript('');
+      } else {
+        setTranscript(interimTranscript);
+      }
+    };
+
+    recognitionRef.current.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      
+      switch (event.error) {
+        case 'no-speech':
+          // Non-fatal - continue listening
+          console.log('No speech detected, continuing...');
+          break;
+        case 'aborted':
+          // Happens on restart, not a real error
+          console.log('Recognition aborted (likely restart)');
+          break;
+        case 'not-allowed':
+          showToast.error('Microphone permission denied');
+          setIsListening(false);
+          isListeningRef.current = false;
+          break;
+        case 'network':
+          showToast.error('Network error during speech recognition');
+          break;
+        default:
+          console.error('Unhandled speech error:', event.error);
+      }
+    };
+
+    recognitionRef.current.onstart = () => {
+      console.log('✅ Speech recognition started');
+      isStartingRef.current = false;
+    };
+
+    recognitionRef.current.onend = () => {
+      isStartingRef.current = false;
+      
+      // Only restart if still supposed to be listening and not stopped by user
+      if (isListeningRef.current && !stoppedByUserRef.current) {
+        console.log('Speech recognition ended, restarting...');
+        setTimeout(() => {
+          if (isListeningRef.current && !isStartingRef.current && recognitionRef.current) {
+            try {
+              isStartingRef.current = true;
+              recognitionRef.current.start();
+            } catch (e: any) {
+              isStartingRef.current = false;
+              if (e?.name !== 'InvalidStateError' && !`${e}`.includes('already started')) {
+                console.warn('Restart failed:', e);
+              }
+            }
+          }
+        }, 300);
+      } else {
+        console.log('Speech recognition ended');
+      }
+    };
 
     return () => {
+      stoppedByUserRef.current = true;
       recognitionRef.current?.stop();
     };
-  }, [sendMessage, isListening]);
+  }, [sendMessage]);
 
-  const toggleListening = () => {
+  const toggleListening = useCallback(async () => {
     if (isListening) {
+      // Stop listening
+      stoppedByUserRef.current = true;
+      isStartingRef.current = false;
       recognitionRef.current?.stop();
       setIsListening(false);
-    } else {
-      recognitionRef.current?.start();
-      setIsListening(true);
+      return;
     }
-  };
+
+    // Prevent double-starts
+    if (isStartingRef.current || isConnecting) {
+      console.log('Already starting, ignoring');
+      return;
+    }
+
+    try {
+      setIsConnecting(true);
+      
+      // Pre-flight: ensure microphone permission
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('✅ Microphone permission granted');
+      } catch (permErr) {
+        console.error('❌ Microphone permission error:', permErr);
+        showToast.error('Microphone permission denied or unavailable');
+        setIsConnecting(false);
+        return;
+      }
+
+      // Check if recognition is supported
+      if (!recognitionRef.current) {
+        showToast.error('Speech recognition not supported in this browser');
+        setIsConnecting(false);
+        return;
+      }
+
+      // Start recognition
+      stoppedByUserRef.current = false;
+      isStartingRef.current = true;
+      
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (e: any) {
+        isStartingRef.current = false;
+        if (e?.name === 'InvalidStateError' || `${e}`.includes('already started')) {
+          console.warn('Recognition already started, setting state');
+          setIsListening(true);
+        } else {
+          throw e;
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to start speech recognition:', error);
+      showToast.error('Failed to start microphone');
+      setIsListening(false);
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [isListening, isConnecting]);
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(patientUrl);
@@ -505,11 +615,14 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <div className="pt-4 flex justify-center">
             <Button
               size="lg"
-              variant={isListening ? 'destructive' : 'default'}
+              variant={isListening ? 'destructive' : isConnecting ? 'secondary' : 'default'}
               className="h-16 w-16 rounded-full"
               onClick={toggleListening}
+              disabled={isConnecting}
             >
-              {isListening ? (
+              {isConnecting ? (
+                <Loader2 className="h-8 w-8 animate-spin" />
+              ) : isListening ? (
                 <MicOff className="h-8 w-8" />
               ) : (
                 <Mic className="h-8 w-8" />
@@ -517,7 +630,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             </Button>
           </div>
           <p className="text-center text-sm text-muted-foreground mt-2">
-            {isListening ? 'Listening... Click to stop' : 'Click to start speaking'}
+            {isConnecting ? 'Connecting...' : isListening ? 'Listening... Click to stop' : 'Click to start speaking'}
           </p>
         </div>
 
