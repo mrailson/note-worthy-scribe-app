@@ -441,15 +441,26 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   // Get localized instructions
   const qrInstructions = getQRInstructions(patientLanguage, practiceName);
 
-  // Auto-scroll to latest message
+  // Auto-scroll to latest message with improved reliability
   useEffect(() => {
-    if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    const scrollToBottom = () => {
+      if (scrollRef.current) {
+        const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+        if (scrollContainer) {
+          requestAnimationFrame(() => {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          });
+        }
       }
-    }
-  }, [messages, isTranslating]);
+    };
+    
+    // Scroll immediately
+    scrollToBottom();
+    
+    // Also scroll after a short delay to handle rendering delays
+    const timeout = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timeout);
+  }, [messages, isTranslating, transcript]);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -866,17 +877,20 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const renderMessage = (msg: TranslationMessage, index: number) => {
     const isStaffMessage = msg.speaker === 'staff';
     const messageId = msg.id || `msg-${index}`;
-    const translatedText = isStaffMessage ? msg.translatedText : msg.originalText;
+    // For patient language column: staff message shows translation, patient message shows original
+    const patientLanguageText = isStaffMessage ? msg.translatedText : msg.originalText;
+    // For English column: staff message shows original, patient message shows translation
+    const englishText = isStaffMessage ? msg.originalText : msg.translatedText;
     const hasAudio = !!audioUrls[messageId];
     const isLoadingAudio = loadingAudio[messageId];
 
     return (
       <div
         key={msg.id || index}
-        className={`flex gap-4 ${isStaffMessage ? '' : 'flex-row-reverse'}`}
+        className="flex gap-4"
       >
-        {/* English column */}
-        <div className={`flex-1 ${isStaffMessage ? '' : 'text-right'}`}>
+        {/* English column - ALWAYS LEFT */}
+        <div className="flex-1">
           <div className={`inline-block max-w-full rounded-lg p-3 ${
             isStaffMessage 
               ? 'bg-primary text-primary-foreground' 
@@ -884,7 +898,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           }`}>
             <div className="flex items-center justify-between gap-2 mb-1">
               <p className="text-sm font-medium">
-                {isStaffMessage ? '🇬🇧 You said:' : '🇬🇧 Patient said (translated):'}
+                🇬🇧 {isStaffMessage ? 'You said:' : 'Patient said:'}
               </p>
               {isStaffMessage && (
                 <Button
@@ -899,14 +913,14 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               )}
             </div>
             <p className="text-lg">
-              {isStaffMessage ? msg.originalText : msg.translatedText}
+              {englishText}
             </p>
           </div>
         </div>
 
-        {/* Patient language column */}
-        <div className={`flex-1 ${isStaffMessage ? 'text-right' : ''}`}>
-          <div className={`inline-block max-w-full rounded-lg p-3 ${
+        {/* Patient language column - ALWAYS RIGHT */}
+        <div className="flex-1 text-right">
+          <div className={`inline-block max-w-full rounded-lg p-3 text-left ${
             isStaffMessage 
               ? 'bg-secondary' 
               : 'bg-accent text-accent-foreground'
@@ -917,7 +931,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               </p>
             </div>
             <p className="text-lg mb-2">
-              {translatedText}
+              {patientLanguageText}
             </p>
             {/* Audio player bar */}
             <div className="mt-2">
@@ -936,7 +950,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   variant="outline"
                   size="sm"
                   className="w-full"
-                  onClick={() => loadAudioForMessage(messageId, translatedText, patientLanguage)}
+                  onClick={() => loadAudioForMessage(messageId, patientLanguageText, patientLanguage)}
                   disabled={isLoadingAudio}
                 >
                   {isLoadingAudio ? (
