@@ -22,6 +22,7 @@ import { ComplaintSignatureSettings } from "@/components/ComplaintSignatureSetti
 import { ComplaintImport } from "@/components/ComplaintImport";
 import { ComplianceCheckCleanupButton } from "@/components/ComplianceCheckCleanupButton";
 import { HierarchicalReports } from "@/components/complaints/HierarchicalReports";
+import { ComplaintsSummaryView } from "@/components/complaints/ComplaintsSummaryView";
 import { 
   maskPatientData, 
   getUserRoleLevel, 
@@ -70,7 +71,9 @@ import {
   Shield,
   Save,
   Copy,
-  FlaskConical
+  FlaskConical,
+  LayoutGrid,
+  List
 } from "lucide-react";
 import { format } from "date-fns";
 import { showToast } from "@/utils/toastWrapper";
@@ -154,6 +157,7 @@ const ComplaintsSystem = () => {
   const [selectedPriority, setSelectedPriority] = useState("all");
   const [selectedOutcome, setSelectedOutcome] = useState("all");
   const [dashboardFilter, setDashboardFilter] = useState("");
+  const [showSummaryView, setShowSummaryView] = useState(false);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -1477,21 +1481,39 @@ const ComplaintsSystem = () => {
               "grid gap-3 sm:gap-4",
               deviceInfo.isIPhone ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4"
             )}>
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" 
-                    onClick={() => { 
-                      setDashboardFilter("all");
-                    }}>
+              <Card 
+                className={cn(
+                  "cursor-pointer hover:shadow-md transition-all",
+                  showSummaryView && "ring-2 ring-primary bg-primary/5"
+                )}
+                onClick={() => { 
+                  setShowSummaryView(!showSummaryView);
+                  if (!showSummaryView) {
+                    setDashboardFilter("all");
+                  }
+                }}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-                    <span className="hidden sm:inline">Total Complaints</span>
-                    <span className="sm:hidden">Total</span>
+                  <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center justify-between">
+                    <span>
+                      <span className="hidden sm:inline">Total Complaints</span>
+                      <span className="sm:hidden">Total</span>
+                    </span>
+                    {showSummaryView ? (
+                      <List className="h-4 w-4 text-primary" />
+                    ) : (
+                      <LayoutGrid className="h-4 w-4" />
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-xl sm:text-2xl font-bold">{complaints.length}</div>
                   <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                    <span className="hidden sm:inline">Click to view all</span>
-                    <span className="sm:hidden">View all</span>
+                    <span className="hidden sm:inline">
+                      {showSummaryView ? 'Click to hide summary view' : 'Click for summary view'}
+                    </span>
+                    <span className="sm:hidden">
+                      {showSummaryView ? 'Hide summary' : 'Summary view'}
+                    </span>
                   </p>
                 </CardContent>
               </Card>
@@ -1545,6 +1567,42 @@ const ComplaintsSystem = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Summary View - Expandable full-width cards */}
+            {showSummaryView && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <LayoutGrid className="h-5 w-5 text-primary" />
+                      All Complaints Summary
+                      <Badge variant="secondary" className="ml-2">{complaints.length}</Badge>
+                    </CardTitle>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowSummaryView(false)}
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Close
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Quick overview of all complaints with key details
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <ComplaintsSummaryView
+                    complaints={complaints}
+                    onViewDetails={(complaint) => {
+                      setSelectedComplaint(complaint as Complaint);
+                      setShowDetails(true);
+                    }}
+                    calculateDaysUntilDeadline={calculateDaysUntilDeadline}
+                  />
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>
