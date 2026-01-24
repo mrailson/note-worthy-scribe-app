@@ -6,7 +6,11 @@ const corsHeaders = {
 type AdminTemplateType = 'free' | 'meeting-minutes' | 'complaint-response' | 'staff-letter' | 'hr-record' | 'significant-event' | 'policy-draft' | 'briefing-note';
 
 const TEMPLATE_INSTRUCTIONS: Record<AdminTemplateType, string> = {
-  'free': `Clean, readable paragraphs. NO headings unless already dictated.`,
+  'free': `Format into clear, readable paragraphs with blank lines between each paragraph.
+- Create a new paragraph at each topic change or natural break
+- Each paragraph should be 2-4 sentences maximum
+- NO headings unless already dictated
+- Ensure proper sentence structure within paragraphs`,
   
   'meeting-minutes': `Format as professional meeting minutes with:
 - Clear sections: Discussion, Decisions, Actions
@@ -132,75 +136,39 @@ Deno.serve(async (req) => {
     const templateInstruction = TEMPLATE_INSTRUCTIONS[template] || TEMPLATE_INSTRUCTIONS['free'];
     const systemPrompt = buildSystemPrompt(templateInstruction);
 
-    // Use Lovable AI Gateway with Gemini for speed
-    const gatewayUrl = Deno.env.get('AI_GATEWAY_URL') || 'https://ai-gateway.lovable.dev/v1/chat/completions';
-    const gatewayApiKey = Deno.env.get('AI_GATEWAY_API_KEY');
-
-    let formattedContent: string;
-
-    if (gatewayApiKey) {
-      console.log('📝 Using Lovable AI Gateway for admin dictation formatting');
-      
-      const response = await fetch(gatewayUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${gatewayApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.0-flash',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: content.trim() }
-          ],
-          temperature: 0.3,
-          max_tokens: 4000,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Gateway error:', errorText);
-        throw new Error(`AI Gateway request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      formattedContent = result.choices?.[0]?.message?.content?.trim() || content;
-    } else {
-      // Fallback to OpenAI
-      const openaiKey = Deno.env.get('OPENAI_API_KEY');
-      if (!openaiKey) {
-        throw new Error('No AI service configured');
-      }
-
-      console.log('📝 Falling back to OpenAI for admin dictation formatting');
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: content.trim() }
-          ],
-          temperature: 0.3,
-          max_tokens: 4000,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('OpenAI error:', errorText);
-        throw new Error(`OpenAI request failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      formattedContent = result.choices?.[0]?.message?.content?.trim() || content;
+    // Use Lovable AI Gateway
+    const gatewayApiKey = Deno.env.get('LOVABLE_API_KEY');
+    
+    if (!gatewayApiKey) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
+
+    console.log('📝 Using Lovable AI Gateway for admin dictation formatting');
+    
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${gatewayApiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: content.trim() }
+        ],
+        max_tokens: 4000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Gateway error:', errorText);
+      throw new Error(`AI Gateway request failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const formattedContent = result.choices?.[0]?.message?.content?.trim() || content;
 
     console.log(`✅ Admin dictation formatted successfully (${template} template)`);
 
