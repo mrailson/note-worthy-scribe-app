@@ -510,13 +510,13 @@ const AI4GPService = () => {
                               )} />
                               <div className="flex flex-col min-w-0">
                                 <span className="hidden sm:inline truncate">
-                                  {selectedRole === 'practice-manager' ? 'AI 4 PM Service' : 'AI 4 GP Service'}
+                                  {selectedRole === 'practice-manager' ? 'Ask AI' : 'AI 4 GP Service'}
                                 </span>
                                 <span className={cn(
                                   "sm:hidden truncate font-semibold",
                                   deviceInfo.isIPhone && "text-base"
                                 )}>
-                                  {selectedRole === 'practice-manager' ? 'AI4PM' : 'AI4GP'}
+                                  {selectedRole === 'practice-manager' ? 'Ask AI' : 'AI4GP'}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground/60 -mt-1 hidden sm:block">Click for New Search</span>
                               </div>

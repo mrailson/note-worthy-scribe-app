@@ -46,7 +46,7 @@ const defaultVisibility: ServiceVisibility = {
 
 // Service config with access check keys
 const serviceConfig = [
-  { key: 'ai4pm_service', label: 'AI4PM Service', icon: Sparkles, accessKey: null }, // Always available
+  { key: 'ai4pm_service', label: 'Ask AI', icon: Sparkles, accessKey: null }, // Always available
   { key: 'meeting_notes', label: 'Meeting Notes', icon: FileText, accessKey: 'meeting_recorder' },
   { key: 'gp_scribe', label: 'Scribe', icon: Stethoscope, accessKey: 'gp_scribe' },
   { key: 'complaints_system', label: 'Complaints System', icon: MessageSquareWarning, accessKey: 'complaints_system' },
