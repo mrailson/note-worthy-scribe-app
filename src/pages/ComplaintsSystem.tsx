@@ -535,7 +535,7 @@ const ComplaintsSystem = () => {
         .from('complaints')
         .select(`
           *,
-          complaint_outcomes(outcome_letter, outcome_type),
+          complaint_outcomes(outcome_letter, outcome_type, sent_at),
           gp_practices(name)
         `)
         .order('created_at', { ascending: false });

@@ -40,6 +40,7 @@ interface Complaint {
   complaint_outcomes?: Array<{
     outcome_letter: string;
     outcome_type: string;
+    sent_at?: string | null;
   }>;
   // Allow additional properties
   [key: string]: any;
@@ -176,7 +177,7 @@ export const ComplaintsSummaryView: React.FC<ComplaintsSummaryViewProps> = ({
                 </div>
 
                 {/* Details Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 text-sm">
                   {/* Category */}
                   <div className="space-y-1">
                     <p className="text-xs text-muted-foreground font-medium">Category</p>
@@ -242,14 +243,6 @@ export const ComplaintsSummaryView: React.FC<ComplaintsSummaryViewProps> = ({
                       </div>
                     )}
                   </div>
-
-                  {/* Assigned To */}
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground font-medium">Assigned To</p>
-                    <p className="font-medium truncate">
-                      {complaint.assigned_to || <span className="text-muted-foreground italic">Unassigned</span>}
-                    </p>
-                  </div>
                 </div>
 
                 {/* Description Preview */}
@@ -263,7 +256,14 @@ export const ComplaintsSummaryView: React.FC<ComplaintsSummaryViewProps> = ({
                 {/* Outcome/Findings if available */}
                 {outcome && (
                   <div className="mt-2 pt-2 border-t border-dashed">
-                    <p className="text-xs text-muted-foreground font-medium mb-1">Outcome</p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs text-muted-foreground font-medium">Outcome</p>
+                      {outcome.sent_at && (
+                        <p className="text-xs text-muted-foreground">
+                          Sent to patient: {format(new Date(outcome.sent_at), 'dd MMM yyyy')}
+                        </p>
+                      )}
+                    </div>
                     <p className="text-sm line-clamp-2">
                       {outcome.outcome_letter?.substring(0, 200) || 'No outcome details recorded'}
                       {outcome.outcome_letter && outcome.outcome_letter.length > 200 && '...'}
