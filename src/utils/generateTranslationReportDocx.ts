@@ -20,6 +20,7 @@ interface GenerateTranslationReportOptions {
   practiceInfo?: {
     name?: string;
     address?: string;
+    logoUrl?: string;
   };
 }
 
@@ -202,12 +203,76 @@ function getOverallConfidence(messages: TranslationMessage[]): { score: number; 
 }
 
 export const generateTranslationReportDocx = async (options: GenerateTranslationReportOptions): Promise<void> => {
-  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle } = await import('docx');
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, ImageRun } = await import('docx');
   
-  const { messages, patientLanguage, patientLanguageName, sessionStart, sessionEnd } = options;
+  const { messages, patientLanguage, patientLanguageName, sessionStart, sessionEnd, practiceInfo } = options;
   
   const children: any[] = [];
   const overall = getOverallConfidence(messages);
+  
+  // Practice Header with Logo (if available)
+  if (practiceInfo?.logoUrl) {
+    try {
+      const response = await fetch(practiceInfo.logoUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        
+        children.push(
+          new Paragraph({
+            children: [
+              new ImageRun({
+                data: uint8Array,
+                transformation: {
+                  width: 120,
+                  height: 60,
+                },
+                type: blob.type.includes('png') ? 'png' : 'jpg',
+              }),
+            ],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 120 },
+          })
+        );
+      }
+    } catch (error) {
+      console.error('Failed to load practice logo:', error);
+    }
+  }
+  
+  // Practice Name
+  if (practiceInfo?.name) {
+    children.push(
+      new Paragraph({
+        children: [new TextRun({
+          text: practiceInfo.name,
+          bold: true,
+          size: FONTS.size.heading1,
+          color: NHS_COLORS.headingBlue,
+          font: FONTS.default,
+        })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 60 },
+      })
+    );
+    
+    // Practice Address (if available)
+    if (practiceInfo?.address) {
+      children.push(
+        new Paragraph({
+          children: [new TextRun({
+            text: practiceInfo.address,
+            size: FONTS.size.small,
+            color: NHS_COLORS.textLightGrey,
+            font: FONTS.default,
+          })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 240 },
+        })
+      );
+    }
+  }
   
   // Title
   children.push(
