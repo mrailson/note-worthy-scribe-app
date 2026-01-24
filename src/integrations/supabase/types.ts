@@ -6847,6 +6847,36 @@ export type Database = {
         }
         Relationships: []
       }
+      reception_translation_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean
+          patient_language: string
+          session_token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          patient_language: string
+          session_token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          patient_language?: string
+          session_token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       referral_destinations: {
         Row: {
           address: string | null

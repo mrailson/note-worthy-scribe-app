@@ -10,6 +10,8 @@ import { AdminDictateTextArea } from './AdminDictateTextArea';
 import { AdminDictateQuickActions } from './AdminDictateQuickActions';
 import { AdminDictateHistory } from './AdminDictateHistory';
 import { AdminDictateViewToggle } from './AdminDictateViewToggle';
+import { LiveTranslationSetupModal } from '@/components/admin-dictate/LiveTranslationSetupModal';
+import { ReceptionTranslationView } from '@/components/admin-dictate/ReceptionTranslationView';
 
 
 interface AdminDictatePanelProps {
@@ -18,6 +20,12 @@ interface AdminDictatePanelProps {
 
 export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<'dictate' | 'history'>('dictate');
+  const [showTranslationSetup, setShowTranslationSetup] = useState(false);
+  const [translationSession, setTranslationSession] = useState<{
+    id: string;
+    token: string;
+    language: string;
+  } | null>(null);
   
   const {
     status,
@@ -54,10 +62,34 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
     saveOnBlur,
   } = useAdminDictation();
 
+  const handleSessionCreated = (sessionId: string, sessionToken: string, patientLanguage: string) => {
+    setShowTranslationSetup(false);
+    setTranslationSession({
+      id: sessionId,
+      token: sessionToken,
+      language: patientLanguage
+    });
+  };
+
+  const handleCloseTranslation = () => {
+    setTranslationSession(null);
+  };
+
   const handleLoadSession = (session: any) => {
     loadSession(session);
     setActiveTab('dictate');
   };
+
+  if (translationSession) {
+    return (
+      <ReceptionTranslationView
+        sessionId={translationSession.id}
+        sessionToken={translationSession.token}
+        patientLanguage={translationSession.language}
+        onClose={handleCloseTranslation}
+      />
+    );
+  }
 
   return (
     <Card className="flex flex-col h-full border-0 shadow-none">
@@ -146,6 +178,7 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
             onStop={stopDictation}
             onCopy={() => copyToClipboard()}
             onClear={newDictation}
+            onTranslateLive={() => setShowTranslationSetup(true)}
           />
 
           {/* Text Area */}
@@ -172,6 +205,13 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
           />
         </TabsContent>
       </Tabs>
+
+      {/* Translation Setup Modal */}
+      <LiveTranslationSetupModal
+        isOpen={showTranslationSetup}
+        onClose={() => setShowTranslationSetup(false)}
+        onSessionCreated={handleSessionCreated}
+      />
     </Card>
   );
 };
