@@ -38,6 +38,11 @@ export interface PatientViewPhrases {
   sending?: string;
   emailSent?: string;
   emailError?: string;
+  // Voice input (optional with defaults)
+  tapToSpeak?: string;
+  recording?: string;
+  transcribing?: string;
+  voiceError?: string;
 }
 
 // Default email translations for languages that don't have them
@@ -49,6 +54,14 @@ const DEFAULT_EMAIL_PHRASES = {
   sending: 'Sending...',
   emailSent: 'Email sent successfully',
   emailError: 'Failed to send email',
+};
+
+// Default voice input translations
+const DEFAULT_VOICE_PHRASES = {
+  tapToSpeak: 'Tap to speak',
+  recording: 'Recording...',
+  transcribing: 'Transcribing...',
+  voiceError: 'Voice input failed',
 };
 
 export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
@@ -1007,5 +1020,9 @@ export const getPatientViewPhrases = (languageCode: string): Required<PatientVie
     sending: base.sending || DEFAULT_EMAIL_PHRASES.sending,
     emailSent: base.emailSent || DEFAULT_EMAIL_PHRASES.emailSent,
     emailError: base.emailError || DEFAULT_EMAIL_PHRASES.emailError,
+    tapToSpeak: base.tapToSpeak || DEFAULT_VOICE_PHRASES.tapToSpeak,
+    recording: base.recording || DEFAULT_VOICE_PHRASES.recording,
+    transcribing: base.transcribing || DEFAULT_VOICE_PHRASES.transcribing,
+    voiceError: base.voiceError || DEFAULT_VOICE_PHRASES.voiceError,
   };
 };

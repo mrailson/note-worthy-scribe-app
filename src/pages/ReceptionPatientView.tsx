@@ -5,12 +5,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff, Send, Loader2, Languages, WifiOff, Mail, Volume2 } from 'lucide-react';
+import { Send, Loader2, Languages, WifiOff, Mail, Volume2 } from 'lucide-react';
 import { useReceptionTranslation, TranslationMessage } from '@/hooks/useReceptionTranslation';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { PatientEmailChatModal } from '@/components/admin-dictate/PatientEmailChatModal';
+import { PatientVoiceRecorder } from '@/components/admin-dictate/PatientVoiceRecorder';
 
 const ReceptionPatientView: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -24,12 +25,9 @@ const ReceptionPatientView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
-  const [isListening, setIsListening] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(true);
   const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -157,81 +155,10 @@ const ReceptionPatientView: React.FC = () => {
     }
   }, [playingAudioId]);
 
-  // Speech recognition setup - note: not supported on iOS Safari
-  useEffect(() => {
-    if (!sessionData?.patient_language) return;
-
-    // Check for speech recognition support
-    const hasSpeechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-    
-    // iOS Safari doesn't support Web Speech API
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    
-    if (!hasSpeechRecognition || (isIOS && isSafari)) {
-      setSpeechSupported(false);
-      console.log('Speech recognition not supported on this browser');
-      return;
-    }
-
-    try {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = true;
-      
-      const langMap: Record<string, string> = {
-        'ar': 'ar-SA', 'zh': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE',
-        'hi': 'hi-IN', 'it': 'it-IT', 'es': 'es-ES', 'pl': 'pl-PL',
-        'pt': 'pt-PT', 'ru': 'ru-RU', 'tr': 'tr-TR', 'ur': 'ur-PK',
-        'bn': 'bn-BD', 'pa': 'pa-IN', 'gu': 'gu-IN', 'ta': 'ta-IN',
-        'te': 'te-IN', 'uk': 'uk-UA', 'vi': 'vi-VN', 'th': 'th-TH',
-        'nl': 'nl-NL', 'el': 'el-GR', 'cs': 'cs-CZ', 'ro': 'ro-RO',
-        'hu': 'hu-HU', 'da': 'da-DK',
-      };
-      
-      recognitionRef.current.lang = langMap[sessionData.patient_language] || sessionData.patient_language;
-
-      recognitionRef.current.onresult = (event: any) => {
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          }
-        }
-        if (finalTranscript) {
-          setInputText(prev => prev + finalTranscript);
-        }
-      };
-
-      recognitionRef.current.onerror = (e: any) => {
-        console.error('Speech recognition error:', e.error);
-        setIsListening(false);
-        if (e.error === 'not-allowed') {
-          setSpeechSupported(false);
-        }
-      };
-      
-      recognitionRef.current.onend = () => setIsListening(false);
-      
-      setSpeechSupported(true);
-    } catch (err) {
-      console.error('Failed to initialise speech recognition:', err);
-      setSpeechSupported(false);
-    }
-
-    return () => { recognitionRef.current?.stop(); };
-  }, [sessionData?.patient_language]);
-
-  const toggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    } else {
-      recognitionRef.current?.start();
-      setIsListening(true);
-    }
-  };
+  // Handle voice transcription from PatientVoiceRecorder
+  const handleVoiceTranscription = useCallback((text: string) => {
+    setInputText(prev => prev ? `${prev} ${text}` : text);
+  }, []);
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
@@ -419,18 +346,17 @@ const ReceptionPatientView: React.FC = () => {
               className="min-h-[50px] resize-none text-base"
               rows={2}
             />
-            {speechSupported && (
-              <div className="flex flex-col gap-2">
-                <Button
-                  size="lg"
-                  variant={isListening ? 'destructive' : 'outline'}
-                  className="h-full aspect-square"
-                  onClick={toggleListening}
-                >
-                  {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-                </Button>
-              </div>
-            )}
+            <PatientVoiceRecorder
+              onTranscription={handleVoiceTranscription}
+              language={langCode}
+              disabled={isTranslating}
+              phrases={{
+                tapToSpeak: phrases.tapToSpeak,
+                recording: phrases.recording,
+                transcribing: phrases.transcribing,
+                voiceError: phrases.voiceError,
+              }}
+            />
           </div>
           <Button
             className="w-full mt-2"
