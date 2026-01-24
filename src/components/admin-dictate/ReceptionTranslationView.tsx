@@ -17,8 +17,13 @@ import {
   Volume2,
   Trash2,
   FileText,
-  Maximize2
+  Maximize2,
+  Printer,
+  Mail,
+  Smartphone
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useReceptionTranslation, TranslationMessage } from '@/hooks/useReceptionTranslation';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { showToast } from '@/utils/toastWrapper';
@@ -279,6 +284,69 @@ const QR_INSTRUCTIONS: Record<string, {
   }
 };
 
+// Localised sharing text for Print, Email, SMS
+const SHARING_TRANSLATIONS: Record<string, {
+  emailSubject: string;
+  emailBody: string;
+  smsText: string;
+  printTitle: string;
+  copySuccess: string;
+  sendSuccess: string;
+  accurxInstruction: string;
+}> = {
+  en: { emailSubject: 'Join Translation Session', emailBody: 'Please click the link below to join the translation session:', smsText: 'Join the translation, click the link:', printTitle: 'Translation Session', copySuccess: 'Copied to clipboard', sendSuccess: 'Email sent successfully', accurxInstruction: 'Copy and paste this into Accurx to send to the patient' },
+  ar: { emailSubject: 'انضم إلى جلسة الترجمة', emailBody: 'يرجى النقر على الرابط أدناه للانضمام إلى جلسة الترجمة:', smsText: 'انضم إلى الترجمة، انقر على الرابط:', printTitle: 'جلسة الترجمة', copySuccess: 'تم النسخ', sendSuccess: 'تم إرسال البريد الإلكتروني', accurxInstruction: 'انسخ والصق هذا في Accurx للإرسال إلى المريض' },
+  zh: { emailSubject: '加入翻译会话', emailBody: '请点击以下链接加入翻译会话：', smsText: '加入翻译，点击链接：', printTitle: '翻译会话', copySuccess: '已复制到剪贴板', sendSuccess: '邮件发送成功', accurxInstruction: '复制并粘贴到Accurx发送给患者' },
+  fr: { emailSubject: 'Rejoindre la session de traduction', emailBody: 'Veuillez cliquer sur le lien ci-dessous pour rejoindre la session de traduction :', smsText: 'Rejoignez la traduction, cliquez sur le lien :', printTitle: 'Session de traduction', copySuccess: 'Copié dans le presse-papiers', sendSuccess: 'Email envoyé avec succès', accurxInstruction: 'Copiez et collez ceci dans Accurx pour envoyer au patient' },
+  de: { emailSubject: 'An der Übersetzungssitzung teilnehmen', emailBody: 'Bitte klicken Sie auf den untenstehenden Link, um an der Übersetzungssitzung teilzunehmen:', smsText: 'Zur Übersetzung beitreten, Link klicken:', printTitle: 'Übersetzungssitzung', copySuccess: 'In die Zwischenablage kopiert', sendSuccess: 'E-Mail erfolgreich gesendet', accurxInstruction: 'Kopieren und in Accurx einfügen, um an den Patienten zu senden' },
+  hi: { emailSubject: 'अनुवाद सत्र में शामिल हों', emailBody: 'कृपया अनुवाद सत्र में शामिल होने के लिए नीचे दिए गए लिंक पर क्लिक करें:', smsText: 'अनुवाद में शामिल हों, लिंक पर क्लिक करें:', printTitle: 'अनुवाद सत्र', copySuccess: 'क्लिपबोर्ड पर कॉपी किया गया', sendSuccess: 'ईमेल सफलतापूर्वक भेजा गया', accurxInstruction: 'इसे Accurx में कॉपी और पेस्ट करें और मरीज को भेजें' },
+  it: { emailSubject: 'Unisciti alla sessione di traduzione', emailBody: 'Clicca sul link qui sotto per unirti alla sessione di traduzione:', smsText: 'Unisciti alla traduzione, clicca sul link:', printTitle: 'Sessione di traduzione', copySuccess: 'Copiato negli appunti', sendSuccess: 'Email inviata con successo', accurxInstruction: 'Copia e incolla in Accurx per inviare al paziente' },
+  es: { emailSubject: 'Únase a la sesión de traducción', emailBody: 'Haga clic en el enlace a continuación para unirse a la sesión de traducción:', smsText: 'Únase a la traducción, haga clic en el enlace:', printTitle: 'Sesión de traducción', copySuccess: 'Copiado al portapapeles', sendSuccess: 'Correo enviado con éxito', accurxInstruction: 'Copie y pegue esto en Accurx para enviar al paciente' },
+  bg: { emailSubject: 'Присъединете се към сесията за превод', emailBody: 'Моля, кликнете върху връзката по-долу, за да се присъедините към сесията за превод:', smsText: 'Присъединете се към превода, кликнете върху връзката:', printTitle: 'Сесия за превод', copySuccess: 'Копирано в клипборда', sendSuccess: 'Имейлът е изпратен успешно', accurxInstruction: 'Копирайте и поставете това в Accurx, за да изпратите на пациента' },
+  hr: { emailSubject: 'Pridružite se sesiji prevođenja', emailBody: 'Kliknite na poveznicu u nastavku da biste se pridružili sesiji prevođenja:', smsText: 'Pridružite se prijevodu, kliknite na poveznicu:', printTitle: 'Sesija prevođenja', copySuccess: 'Kopirano u međuspremnik', sendSuccess: 'E-pošta uspješno poslana', accurxInstruction: 'Kopirajte i zalijepite ovo u Accurx za slanje pacijentu' },
+  cs: { emailSubject: 'Připojte se k překladatelské relaci', emailBody: 'Kliknutím na odkaz níže se připojíte k překladatelské relaci:', smsText: 'Připojte se k překladu, klikněte na odkaz:', printTitle: 'Překladatelská relace', copySuccess: 'Zkopírováno do schránky', sendSuccess: 'E-mail úspěšně odeslán', accurxInstruction: 'Zkopírujte a vložte do Accurx k odeslání pacientovi' },
+  da: { emailSubject: 'Deltag i oversættelsessessionen', emailBody: 'Klik på linket nedenfor for at deltage i oversættelsessessionen:', smsText: 'Deltag i oversættelsen, klik på linket:', printTitle: 'Oversættelsessession', copySuccess: 'Kopieret til udklipsholder', sendSuccess: 'E-mail sendt', accurxInstruction: 'Kopier og indsæt dette i Accurx for at sende til patienten' },
+  nl: { emailSubject: 'Neem deel aan de vertaalsessie', emailBody: 'Klik op de onderstaande link om deel te nemen aan de vertaalsessie:', smsText: 'Neem deel aan de vertaling, klik op de link:', printTitle: 'Vertaalsessie', copySuccess: 'Gekopieerd naar klembord', sendSuccess: 'E-mail succesvol verzonden', accurxInstruction: 'Kopieer en plak dit in Accurx om naar de patiënt te sturen' },
+  el: { emailSubject: 'Συμμετοχή στη συνεδρία μετάφρασης', emailBody: 'Κάντε κλικ στον παρακάτω σύνδεσμο για να συμμετάσχετε στη συνεδρία μετάφρασης:', smsText: 'Συμμετοχή στη μετάφραση, κάντε κλικ στον σύνδεσμο:', printTitle: 'Συνεδρία μετάφρασης', copySuccess: 'Αντιγράφηκε στο πρόχειρο', sendSuccess: 'Το email στάλθηκε επιτυχώς', accurxInstruction: 'Αντιγράψτε και επικολλήστε αυτό στο Accurx για αποστολή στον ασθενή' },
+  hu: { emailSubject: 'Csatlakozzon a fordítási munkamenethez', emailBody: 'Kattintson az alábbi linkre a fordítási munkamenethez való csatlakozáshoz:', smsText: 'Csatlakozzon a fordításhoz, kattintson a linkre:', printTitle: 'Fordítási munkamenet', copySuccess: 'Vágólapra másolva', sendSuccess: 'E-mail sikeresen elküldve', accurxInstruction: 'Másolja és illessze be az Accurx-be a betegnek való küldéshez' },
+  pl: { emailSubject: 'Dołącz do sesji tłumaczeniowej', emailBody: 'Kliknij poniższy link, aby dołączyć do sesji tłumaczeniowej:', smsText: 'Dołącz do tłumaczenia, kliknij link:', printTitle: 'Sesja tłumaczeniowa', copySuccess: 'Skopiowano do schowka', sendSuccess: 'E-mail wysłany pomyślnie', accurxInstruction: 'Skopiuj i wklej to do Accurx, aby wysłać do pacjenta' },
+  pt: { emailSubject: 'Junte-se à sessão de tradução', emailBody: 'Clique no link abaixo para se juntar à sessão de tradução:', smsText: 'Junte-se à tradução, clique no link:', printTitle: 'Sessão de tradução', copySuccess: 'Copiado para a área de transferência', sendSuccess: 'Email enviado com sucesso', accurxInstruction: 'Copie e cole isto no Accurx para enviar ao paciente' },
+  ro: { emailSubject: 'Alăturați-vă sesiunii de traducere', emailBody: 'Faceți clic pe linkul de mai jos pentru a vă alătura sesiunii de traducere:', smsText: 'Alăturați-vă traducerii, faceți clic pe link:', printTitle: 'Sesiune de traducere', copySuccess: 'Copiat în clipboard', sendSuccess: 'Email trimis cu succes', accurxInstruction: 'Copiați și lipiți acest lucru în Accurx pentru a trimite pacientului' },
+  ru: { emailSubject: 'Присоединяйтесь к сеансу перевода', emailBody: 'Нажмите на ссылку ниже, чтобы присоединиться к сеансу перевода:', smsText: 'Присоединяйтесь к переводу, нажмите на ссылку:', printTitle: 'Сеанс перевода', copySuccess: 'Скопировано в буфер обмена', sendSuccess: 'Письмо успешно отправлено', accurxInstruction: 'Скопируйте и вставьте это в Accurx для отправки пациенту' },
+  tr: { emailSubject: 'Çeviri oturumuna katılın', emailBody: 'Çeviri oturumuna katılmak için aşağıdaki bağlantıya tıklayın:', smsText: 'Çeviriye katılın, bağlantıya tıklayın:', printTitle: 'Çeviri oturumu', copySuccess: 'Panoya kopyalandı', sendSuccess: 'E-posta başarıyla gönderildi', accurxInstruction: 'Bunu Accurx\'e kopyalayıp yapıştırarak hastaya gönderin' },
+  fa: { emailSubject: 'به جلسه ترجمه بپیوندید', emailBody: 'لطفاً برای پیوستن به جلسه ترجمه روی لینک زیر کلیک کنید:', smsText: 'به ترجمه بپیوندید، روی لینک کلیک کنید:', printTitle: 'جلسه ترجمه', copySuccess: 'در کلیپ‌بورد کپی شد', sendSuccess: 'ایمیل با موفقیت ارسال شد', accurxInstruction: 'این را در Accurx کپی و پیست کنید تا به بیمار ارسال شود' },
+  ku: { emailSubject: 'Beşdarî danişîna wergerê bibe', emailBody: 'Ji kerema xwe li ser lînka jêrîn bikirtînin da ku beşdarî danişîna wergerê bibin:', smsText: 'Beşdarî wergerê bibe, li lînkê bikirtîne:', printTitle: 'Danişîna wergerê', copySuccess: 'Li clipboardê hat kopîkirin', sendSuccess: 'E-name bi serkeftî hat şandin', accurxInstruction: 'Vê kopî bike û di Accurx de bicîh bîne da ku ji nexweş re bişînî' },
+  ps: { emailSubject: 'د ژباړې ناستې سره یوځای شئ', emailBody: 'مهرباني وکړئ د ژباړې ناستې سره د یوځای کیدو لپاره لاندې لینک کلیک کړئ:', smsText: 'ژباړې سره یوځای شئ، لینک کلیک کړئ:', printTitle: 'د ژباړې ناسته', copySuccess: 'کلیپبورډ ته کاپي شو', sendSuccess: 'بریښنالیک په بریالیتوب سره لیږل شو', accurxInstruction: 'دا په Accurx کې کاپي او پیسټ کړئ ترڅو ناروغ ته یې ولیږئ' },
+  ti: { emailSubject: 'ናብ ጉባኤ ትርጉም ተጸምበሩ', emailBody: 'ናብ ጉባኤ ትርጉም ንምጽምባር ኣብ ታሕቲ ዘሎ ሊንክ ጠውቁ:', smsText: 'ናብ ትርጉም ተጸምበሩ፣ ሊንክ ጠውቁ:', printTitle: 'ጉባኤ ትርጉም', copySuccess: 'ናብ ክሊፕቦርድ ተቐዲሑ', sendSuccess: 'ኢመይል ብዓወት ተላኢኹ', accurxInstruction: 'ነዚ ኣብ Accurx ቅዳሕን ለጥፍን ናብ ሕሙም ክትልእኮ' },
+  bn: { emailSubject: 'অনুবাদ সেশনে যোগ দিন', emailBody: 'অনুবাদ সেশনে যোগ দিতে নীচের লিঙ্কে ক্লিক করুন:', smsText: 'অনুবাদে যোগ দিন, লিঙ্কে ক্লিক করুন:', printTitle: 'অনুবাদ সেশন', copySuccess: 'ক্লিপবোর্ডে কপি করা হয়েছে', sendSuccess: 'ইমেইল সফলভাবে পাঠানো হয়েছে', accurxInstruction: 'রোগীকে পাঠাতে Accurx-এ এটি কপি এবং পেস্ট করুন' },
+  ur: { emailSubject: 'ترجمے کے سیشن میں شامل ہوں', emailBody: 'ترجمے کے سیشن میں شامل ہونے کے لیے نیچے دیے گئے لنک پر کلک کریں:', smsText: 'ترجمے میں شامل ہوں، لنک پر کلک کریں:', printTitle: 'ترجمے کا سیشن', copySuccess: 'کلپ بورڈ پر کاپی ہو گیا', sendSuccess: 'ای میل کامیابی سے بھیجی گئی', accurxInstruction: 'مریض کو بھیجنے کے لیے اسے Accurx میں کاپی اور پیسٹ کریں' },
+  pa: { emailSubject: 'ਅਨੁਵਾਦ ਸੈਸ਼ਨ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋਵੋ', emailBody: 'ਅਨੁਵਾਦ ਸੈਸ਼ਨ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋਣ ਲਈ ਹੇਠਾਂ ਦਿੱਤੇ ਲਿੰਕ \'ਤੇ ਕਲਿੱਕ ਕਰੋ:', smsText: 'ਅਨੁਵਾਦ ਵਿੱਚ ਸ਼ਾਮਲ ਹੋਵੋ, ਲਿੰਕ \'ਤੇ ਕਲਿੱਕ ਕਰੋ:', printTitle: 'ਅਨੁਵਾਦ ਸੈਸ਼ਨ', copySuccess: 'ਕਲਿੱਪਬੋਰਡ \'ਤੇ ਕਾਪੀ ਕੀਤਾ ਗਿਆ', sendSuccess: 'ਈਮੇਲ ਸਫਲਤਾਪੂਰਵਕ ਭੇਜੀ ਗਈ', accurxInstruction: 'ਮਰੀਜ਼ ਨੂੰ ਭੇਜਣ ਲਈ ਇਸਨੂੰ Accurx ਵਿੱਚ ਕਾਪੀ ਅਤੇ ਪੇਸਟ ਕਰੋ' },
+  gu: { emailSubject: 'અનુવાદ સત્રમાં જોડાઓ', emailBody: 'અનુવાદ સત્રમાં જોડાવા માટે નીચેની લિંક પર ક્લિક કરો:', smsText: 'અનુવાદમાં જોડાઓ, લિંક પર ક્લિક કરો:', printTitle: 'અનુવાદ સત્ર', copySuccess: 'ક્લિપબોર્ડ પર કૉપિ થયું', sendSuccess: 'ઈમેલ સફળતાપૂર્વક મોકલાયો', accurxInstruction: 'દર્દીને મોકલવા માટે આને Accurx માં કૉપિ અને પેસ્ટ કરો' },
+  ta: { emailSubject: 'மொழிபெயர்ப்பு அமர்வில் சேரவும்', emailBody: 'மொழிபெயர்ப்பு அமர்வில் சேர கீழே உள்ள இணைப்பைக் கிளிக் செய்யவும்:', smsText: 'மொழிபெயர்ப்பில் சேரவும், இணைப்பைக் கிளிக் செய்யவும்:', printTitle: 'மொழிபெயர்ப்பு அமர்வு', copySuccess: 'கிளிப்போர்டுக்கு நகலெடுக்கப்பட்டது', sendSuccess: 'மின்னஞ்சல் வெற்றிகரமாக அனுப்பப்பட்டது', accurxInstruction: 'நோயாளிக்கு அனுப்ப இதை Accurx இல் நகலெடுத்து ஒட்டவும்' },
+  te: { emailSubject: 'అనువాద సెషన్‌లో చేరండి', emailBody: 'అనువాద సెషన్‌లో చేరడానికి క్రింది లింక్‌పై క్లిక్ చేయండి:', smsText: 'అనువాదంలో చేరండి, లింక్‌పై క్లిక్ చేయండి:', printTitle: 'అనువాద సెషన్', copySuccess: 'క్లిప్‌బోర్డ్‌కు కాపీ చేయబడింది', sendSuccess: 'ఇమెయిల్ విజయవంతంగా పంపబడింది', accurxInstruction: 'రోగికి పంపడానికి దీన్ని Accurxలో కాపీ చేసి పేస్ట్ చేయండి' },
+  kn: { emailSubject: 'ಅನುವಾದ ಅಧಿವೇಶನಕ್ಕೆ ಸೇರಿ', emailBody: 'ಅನುವಾದ ಅಧಿವೇಶನಕ್ಕೆ ಸೇರಲು ಕೆಳಗಿನ ಲಿಂಕ್ ಅನ್ನು ಕ್ಲಿಕ್ ಮಾಡಿ:', smsText: 'ಅನುವಾದಕ್ಕೆ ಸೇರಿ, ಲಿಂಕ್ ಕ್ಲಿಕ್ ಮಾಡಿ:', printTitle: 'ಅನುವಾದ ಅಧಿವೇಶನ', copySuccess: 'ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ಗೆ ನಕಲಿಸಲಾಗಿದೆ', sendSuccess: 'ಇಮೇಲ್ ಯಶಸ್ವಿಯಾಗಿ ಕಳುಹಿಸಲಾಗಿದೆ', accurxInstruction: 'ರೋಗಿಗೆ ಕಳುಹಿಸಲು Accurx ನಲ್ಲಿ ಇದನ್ನು ನಕಲಿಸಿ ಮತ್ತು ಅಂಟಿಸಿ' },
+  ml: { emailSubject: 'വിവർത്തന സെഷനിൽ ചേരുക', emailBody: 'വിവർത്തന സെഷനിൽ ചേരാൻ താഴെയുള്ള ലിങ്കിൽ ക്ലിക്ക് ചെയ്യുക:', smsText: 'വിവർത്തനത്തിൽ ചേരുക, ലിങ്കിൽ ക്ലിക്ക് ചെയ്യുക:', printTitle: 'വിവർത്തന സെഷൻ', copySuccess: 'ക്ലിപ്പ്ബോർഡിലേക്ക് പകർത്തി', sendSuccess: 'ഇമെയിൽ വിജയകരമായി അയച്ചു', accurxInstruction: 'രോഗിക്ക് അയയ്ക്കാൻ ഇത് Accurx-ൽ കോപ്പി ചെയ്ത് പേസ്റ്റ് ചെയ്യുക' },
+  mr: { emailSubject: 'भाषांतर सत्रात सामील व्हा', emailBody: 'भाषांतर सत्रात सामील होण्यासाठी खालील लिंकवर क्लिक करा:', smsText: 'भाषांतरात सामील व्हा, लिंकवर क्लिक करा:', printTitle: 'भाषांतर सत्र', copySuccess: 'क्लिपबोर्डवर कॉपी केले', sendSuccess: 'ईमेल यशस्वीरित्या पाठवला', accurxInstruction: 'रुग्णाला पाठवण्यासाठी हे Accurx मध्ये कॉपी आणि पेस्ट करा' },
+  ne: { emailSubject: 'अनुवाद सत्रमा सामेल हुनुहोस्', emailBody: 'अनुवाद सत्रमा सामेल हुन तलको लिङ्कमा क्लिक गर्नुहोस्:', smsText: 'अनुवादमा सामेल हुनुहोस्, लिङ्कमा क्लिक गर्नुहोस्:', printTitle: 'अनुवाद सत्र', copySuccess: 'क्लिपबोर्डमा प्रतिलिपि गरियो', sendSuccess: 'इमेल सफलतापूर्वक पठाइयो', accurxInstruction: 'बिरामीलाई पठाउन यसलाई Accurx मा प्रतिलिपि र टाँस्नुहोस्' },
+  uk: { emailSubject: 'Приєднайтесь до сеансу перекладу', emailBody: 'Натисніть на посилання нижче, щоб приєднатися до сеансу перекладу:', smsText: 'Приєднайтесь до перекладу, натисніть на посилання:', printTitle: 'Сеанс перекладу', copySuccess: 'Скопійовано в буфер обміну', sendSuccess: 'Електронний лист успішно надіслано', accurxInstruction: 'Скопіюйте та вставте це в Accurx для надсилання пацієнту' },
+  vi: { emailSubject: 'Tham gia phiên dịch', emailBody: 'Vui lòng nhấp vào liên kết bên dưới để tham gia phiên dịch:', smsText: 'Tham gia dịch thuật, nhấp vào liên kết:', printTitle: 'Phiên dịch thuật', copySuccess: 'Đã sao chép vào clipboard', sendSuccess: 'Email đã gửi thành công', accurxInstruction: 'Sao chép và dán vào Accurx để gửi cho bệnh nhân' },
+  th: { emailSubject: 'เข้าร่วมเซสชันการแปล', emailBody: 'กรุณาคลิกลิงก์ด้านล่างเพื่อเข้าร่วมเซสชันการแปล:', smsText: 'เข้าร่วมการแปล คลิกลิงก์:', printTitle: 'เซสชันการแปล', copySuccess: 'คัดลอกไปยังคลิปบอร์ดแล้ว', sendSuccess: 'ส่งอีเมลสำเร็จ', accurxInstruction: 'คัดลอกและวางสิ่งนี้ใน Accurx เพื่อส่งให้ผู้ป่วย' },
+  id: { emailSubject: 'Bergabung dengan sesi penerjemahan', emailBody: 'Silakan klik tautan di bawah untuk bergabung dengan sesi penerjemahan:', smsText: 'Bergabung dengan terjemahan, klik tautan:', printTitle: 'Sesi penerjemahan', copySuccess: 'Disalin ke clipboard', sendSuccess: 'Email berhasil dikirim', accurxInstruction: 'Salin dan tempel ini di Accurx untuk dikirim ke pasien' },
+  ms: { emailSubject: 'Sertai sesi terjemahan', emailBody: 'Sila klik pautan di bawah untuk menyertai sesi terjemahan:', smsText: 'Sertai terjemahan, klik pautan:', printTitle: 'Sesi terjemahan', copySuccess: 'Disalin ke papan keratan', sendSuccess: 'E-mel berjaya dihantar', accurxInstruction: 'Salin dan tampal ini dalam Accurx untuk menghantar kepada pesakit' },
+  tl: { emailSubject: 'Sumali sa session ng pagsasalin', emailBody: 'Mangyaring i-click ang link sa ibaba upang sumali sa session ng pagsasalin:', smsText: 'Sumali sa pagsasalin, i-click ang link:', printTitle: 'Session ng pagsasalin', copySuccess: 'Nakopya sa clipboard', sendSuccess: 'Matagumpay na naipadala ang email', accurxInstruction: 'Kopyahin at i-paste ito sa Accurx upang ipadala sa pasyente' },
+  sw: { emailSubject: 'Jiunge na kikao cha kutafsiri', emailBody: 'Tafadhali bofya kiungo hapa chini ili kujiunga na kikao cha kutafsiri:', smsText: 'Jiunge na tafsiri, bofya kiungo:', printTitle: 'Kikao cha kutafsiri', copySuccess: 'Imenakiliwa kwenye ubao wa kunakili', sendSuccess: 'Barua pepe imetumwa kwa mafanikio', accurxInstruction: 'Nakili na ubandike hii katika Accurx ili kutuma kwa mgonjwa' },
+  am: { emailSubject: 'የትርጉም ክፍለ ጊዜ ይቀላቀሉ', emailBody: 'እባክዎ ከታች ያለውን አገናኝ ጠቅ ያድርጉ የትርጉም ክፍለ ጊዜ ለመቀላቀል:', smsText: 'ትርጉም ይቀላቀሉ፣ አገናኝ ላይ ጠቅ ያድርጉ:', printTitle: 'የትርጉም ክፍለ ጊዜ', copySuccess: 'ወደ ክሊፕቦርድ ተቀድቷል', sendSuccess: 'ኢሜይል በተሳካ ሁኔታ ተልኳል', accurxInstruction: 'ይህንን በ Accurx ውስጥ ቅዳ እና ለበሽተኛው ለመላክ ለጥፍ' },
+  yo: { emailSubject: 'Darapọ mọ igba itumọ', emailBody: 'Jọwọ tẹ ọna asopọ ni isalẹ lati darapọ mọ igba itumọ:', smsText: 'Darapọ mọ itumọ, tẹ ọna asopọ:', printTitle: 'Igba itumọ', copySuccess: 'Ti da si clipboard', sendSuccess: 'Imeeli ti ranṣẹ ni aṣeyọri', accurxInstruction: 'Daakọ ati lẹ eyi sinu Accurx lati fi ranṣẹ si alaisan' },
+  ig: { emailSubject: 'Sonye na nnọkọ nsụgharị', emailBody: 'Biko pịa njikọ dị n\'okpuru iji sonyere nnọkọ nsụgharị:', smsText: 'Sonye na nsụgharị, pịa njikọ:', printTitle: 'Nnọkọ nsụgharị', copySuccess: 'Edepụtara na clipboard', sendSuccess: 'E zigara email nke ọma', accurxInstruction: 'Depụta ma kpọnye nke a na Accurx iziga onye ọrịa' },
+  ha: { emailSubject: 'Shiga zaman fassara', emailBody: 'Da fatan za a danna hanyar haɗi da ke ƙasa don shiga zaman fassara:', smsText: 'Shiga fassara, danna hanyar haɗi:', printTitle: 'Zaman fassara', copySuccess: 'An kwafa zuwa clipboard', sendSuccess: 'An aika email cikin nasara', accurxInstruction: 'Kwafa kuma manna wannan a cikin Accurx don aika wa majinyaci' },
+  so: { emailSubject: 'Ku biir kulan turjumaadda', emailBody: 'Fadlan guji linkiga hoose si aad ugu biirto kulan turjumaadda:', smsText: 'Ku biir turjumaadda, guji linkiga:', printTitle: 'Kulan turjumaadda', copySuccess: 'Lagu koobiyeeyey clipboard', sendSuccess: 'Emailka waa la diray si guul leh', accurxInstruction: 'Koobiyee oo ku dhejiso tan Accurx si aad ugu dirto bukaanka' },
+  om: { emailSubject: 'Walgahii hiikkaa irratti makamaa', emailBody: 'Walgahii hiikkaa irratti makamuu link armaan gadii tuqi:', smsText: 'Hiikkaa irratti makamaa, link tuqi:', printTitle: 'Walgahii hiikkaa', copySuccess: 'Gara clipboarditti waraabame', sendSuccess: 'Imeeliin milkaa\'inaan ergame', accurxInstruction: 'Kana Accurx keessatti waraabii fi maxxansii dhukkubsataaf erguuf' }
+};
+
+const getSharingText = (langCode: string) => {
+  return SHARING_TRANSLATIONS[langCode] || SHARING_TRANSLATIONS['en'];
+};
+
 const getQRInstructions = (langCode: string, practiceName: string) => {
   const instructions = QR_INSTRUCTIONS[langCode] || QR_INSTRUCTIONS['en'];
   return {
@@ -309,6 +377,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [sessionStartTime] = useState<Date>(new Date());
   const [showExpandedQR, setShowExpandedQR] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showSMSModal, setShowSMSModal] = useState(false);
+  const [patientEmail, setPatientEmail] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [smsCopied, setSmsCopied] = useState(false);
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef(false);
   const isStartingRef = useRef(false);
@@ -581,6 +654,132 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     }
   };
 
+  // Get sharing text for the current language
+  const sharingText = getSharingText(patientLanguage);
+
+  // Handle print QR code
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showToast.error('Unable to open print window');
+      return;
+    }
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${sharingText.printTitle} - ${practiceName}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              text-align: center; 
+              padding: 40px;
+              margin: 0;
+            }
+            .practice-name { 
+              font-size: 28px; 
+              font-weight: bold; 
+              color: #7c3aed; 
+              margin-bottom: 20px;
+            }
+            .qr-container {
+              display: inline-block;
+              padding: 20px;
+              background: white;
+              border-radius: 16px;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+              margin: 20px 0;
+            }
+            .qr-code { 
+              width: 300px; 
+              height: 300px; 
+            }
+            .language-badge {
+              font-size: 24px;
+              margin: 20px 0 10px;
+            }
+            .instruction { 
+              font-size: 20px; 
+              margin: 15px 0;
+              color: #5b21b6;
+              font-weight: 500;
+            }
+            .welcome {
+              font-size: 16px;
+              color: #6b7280;
+              max-width: 400px;
+              margin: 0 auto;
+            }
+            @media print {
+              body { padding: 20px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="practice-name">${practiceName}</div>
+          <div class="qr-container">
+            <img src="${largeQrCodeUrl}" alt="QR Code" class="qr-code" />
+          </div>
+          <div class="language-badge">${languageInfo?.flag} ${languageInfo?.name}</div>
+          <div class="instruction">${qrInstructions.scanInstruction}</div>
+          <div class="welcome">${qrInstructions.welcomeMessage}</div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
+  // Handle send email to patient
+  const handleSendEmail = async () => {
+    if (!patientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patientEmail)) {
+      showToast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      const emailContent = `${qrInstructions.welcomeMessage}\n\n${sharingText.emailBody}\n\n${patientUrl}`;
+      
+      const { error } = await supabase.functions.invoke('send-chat-email', {
+        body: {
+          recipientEmails: [patientEmail],
+          subject: sharingText.emailSubject,
+          chatContent: emailContent,
+          senderName: practiceName,
+        },
+      });
+
+      if (error) throw error;
+
+      showToast.success(sharingText.sendSuccess);
+      setShowEmailModal(false);
+      setPatientEmail('');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      showToast.error('Failed to send email');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  // Handle copy SMS text
+  const handleCopySMS = async () => {
+    const smsText = `${sharingText.smsText} ${patientUrl}`;
+    try {
+      await navigator.clipboard.writeText(smsText);
+      setSmsCopied(true);
+      showToast.success(sharingText.copySuccess);
+      setTimeout(() => setSmsCopied(false), 2000);
+    } catch (err) {
+      showToast.error('Failed to copy');
+    }
+  };
+
   const renderMessage = (msg: TranslationMessage, index: number) => {
     const isStaffMessage = msg.speaker === 'staff';
 
@@ -844,10 +1043,26 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             
             {/* Large QR Code */}
             {largeQrCodeUrl && (
-              <div className="bg-white p-4 rounded-xl shadow-lg mb-6">
+              <div className="bg-white p-4 rounded-xl shadow-lg mb-4">
                 <img src={largeQrCodeUrl} alt="Patient QR Code" className="w-72 h-72" />
               </div>
             )}
+
+            {/* Action buttons */}
+            <div className="flex justify-center gap-2 mb-4">
+              <Button variant="outline" size="sm" onClick={handlePrint}>
+                <Printer className="h-4 w-4 mr-2" />
+                Print
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowEmailModal(true)}>
+                <Mail className="h-4 w-4 mr-2" />
+                Email
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setShowSMSModal(true)}>
+                <Smartphone className="h-4 w-4 mr-2" />
+                SMS
+              </Button>
+            </div>
             
             {/* Instructions in patient's language - prominent */}
             <div className="w-full max-w-sm p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/50 dark:to-purple-950/50 border border-violet-200 dark:border-violet-800 text-center">
@@ -860,6 +1075,106 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               </p>
               <p className="text-sm text-violet-600 dark:text-violet-400">
                 {qrInstructions.welcomeMessage}
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Modal */}
+      <Dialog open={showEmailModal} onOpenChange={setShowEmailModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Link to Patient
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="patient-email-input">Patient's Email Address</Label>
+              <Input
+                id="patient-email-input"
+                type="email"
+                placeholder="patient@example.com"
+                value={patientEmail}
+                onChange={(e) => setPatientEmail(e.target.value)}
+                disabled={isSendingEmail}
+              />
+            </div>
+
+            <div className="p-3 rounded-lg bg-muted text-sm">
+              <p className="font-medium mb-2">Email will include:</p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-1">
+                <li>Welcome message in {languageInfo?.name}</li>
+                <li>Clickable link to join the session</li>
+                <li>Sent from: {practiceName}</li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowEmailModal(false)} disabled={isSendingEmail}>
+                Cancel
+              </Button>
+              <Button onClick={handleSendEmail} disabled={isSendingEmail || !patientEmail}>
+                {isSendingEmail ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send Email
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* SMS Modal */}
+      <Dialog open={showSMSModal} onOpenChange={setShowSMSModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5" />
+              SMS Link for Accurx
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="p-4 rounded-lg bg-muted border-2 border-dashed">
+              <p className="text-sm font-medium mb-2 text-muted-foreground">Message in {languageInfo?.name}:</p>
+              <p className="text-base break-all">
+                {sharingText.smsText} {patientUrl}
+              </p>
+            </div>
+
+            <Button 
+              className="w-full" 
+              onClick={handleCopySMS}
+              variant={smsCopied ? 'secondary' : 'default'}
+            >
+              {smsCopied ? (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy to Clipboard
+                </>
+              )}
+            </Button>
+
+            <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-sm">
+              <p className="font-medium text-blue-700 dark:text-blue-300 mb-1">📱 Next step:</p>
+              <p className="text-blue-600 dark:text-blue-400">
+                {sharingText.accurxInstruction}
               </p>
             </div>
           </div>
