@@ -405,7 +405,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   });
 
   const languageInfo = HEALTHCARE_LANGUAGES.find(l => l.code === patientLanguage);
-  const patientUrl = `${window.location.origin}/reception-translate?session=${sessionToken}`;
+  const patientUrl = `https://gpnotewell.co.uk/reception-translate?session=${sessionToken}`;
 
   // Generate QR codes (small and large versions)
   useEffect(() => {
