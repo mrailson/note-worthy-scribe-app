@@ -585,7 +585,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-center justify-center">
               <QrCode className="h-5 w-5" />
-              Scan for Translation Service
+              Patient's Language
             </DialogTitle>
           </DialogHeader>
           

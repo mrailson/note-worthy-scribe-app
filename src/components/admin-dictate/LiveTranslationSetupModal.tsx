@@ -57,13 +57,16 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
       // Generate unique session token
       const sessionToken = crypto.randomUUID();
 
-      // Create session in database
+      // Create session in database with 1 hour expiry
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      
       const { data, error } = await supabase
         .from('reception_translation_sessions')
         .insert({
           user_id: user.id,
           patient_language: selectedLanguage,
-          session_token: sessionToken
+          session_token: sessionToken,
+          expires_at: expiresAt
         })
         .select()
         .single();
