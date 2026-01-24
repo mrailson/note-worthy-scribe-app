@@ -28,6 +28,57 @@ import { generateTranslationReportDocx } from '@/utils/generateTranslationReport
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 
+// Localised modal titles for "Patient's Language"
+const MODAL_TITLES: Record<string, string> = {
+  en: "Patient's Language",
+  ar: "لغة المريض",
+  zh: "患者语言",
+  fr: "Langue du patient",
+  de: "Sprache des Patienten",
+  hi: "रोगी की भाषा",
+  it: "Lingua del paziente",
+  es: "Idioma del paciente",
+  bg: "Език на пациента",
+  hr: "Jezik pacijenta",
+  cs: "Jazyk pacienta",
+  da: "Patientens sprog",
+  nl: "Taal van de patiënt",
+  el: "Γλώσσα ασθενούς",
+  hu: "Beteg nyelve",
+  pl: "Język pacjenta",
+  pt: "Língua do paciente",
+  ro: "Limba pacientului",
+  ru: "Язык пациента",
+  tr: "Hasta dili",
+  fa: "زبان بیمار",
+  ku: "Zimanê nexweş",
+  ps: "د ناروغ ژبه",
+  ti: "ቋንቋ ሕሙም",
+  bn: "রোগীর ভাষা",
+  ur: "مریض کی زبان",
+  pa: "ਮਰੀਜ਼ ਦੀ ਭਾਸ਼ਾ",
+  gu: "દર્દીની ભાષા",
+  ta: "நோயாளியின் மொழி",
+  te: "రోగి భాష",
+  kn: "ರೋಗಿಯ ಭಾಷೆ",
+  ml: "രോഗിയുടെ ഭാഷ",
+  mr: "रुग्णाची भाषा",
+  ne: "बिरामीको भाषा",
+  uk: "Мова пацієнта",
+  vi: "Ngôn ngữ bệnh nhân",
+  th: "ภาษาของผู้ป่วย",
+  id: "Bahasa pasien",
+  ms: "Bahasa pesakit",
+  tl: "Wika ng pasyente",
+  sw: "Lugha ya mgonjwa",
+  am: "የታካሚ ቋንቋ",
+  yo: "Èdè aláìsàn",
+  ig: "Asụsụ onye ọrịa",
+  ha: "Harshen majinyaci",
+  so: "Luqadda bukaanka",
+  om: "Afaan dhukkubsataa"
+};
+
 // Translated instructions for patients
 const QR_INSTRUCTIONS: Record<string, {
   scanInstruction: string;
@@ -144,6 +195,87 @@ const QR_INSTRUCTIONS: Record<string, {
   am: {
     scanInstruction: 'እባክዎ ይህንን QR ኮድ በስልክዎ ካሜራ ይቃኙ',
     welcomeMessage: 'ወደ {practice} እንኳን በደህና መጡ። ይህ አገልግሎት በእርስዎ ቋንቋ ከእርስዎ ጋር ለመገናኘት ይረዳናል።'
+  },
+  // New languages added
+  bg: {
+    scanInstruction: 'Моля, сканирайте този QR код с камерата на телефона си',
+    welcomeMessage: 'Добре дошли в {practice}. Тази услуга ще ни помогне да общуваме с вас на вашия език.'
+  },
+  hr: {
+    scanInstruction: 'Molimo skenirajte ovaj QR kod kamerom svog telefona',
+    welcomeMessage: 'Dobrodošli u {practice}. Ova usluga pomoći će nam da komuniciramo s vama na vašem jeziku.'
+  },
+  cs: {
+    scanInstruction: 'Naskenujte prosím tento QR kód fotoaparátem telefonu',
+    welcomeMessage: 'Vítejte v {practice}. Tato služba nám pomůže komunikovat s vámi ve vašem jazyce.'
+  },
+  da: {
+    scanInstruction: 'Scan venligst denne QR-kode med din telefons kamera',
+    welcomeMessage: 'Velkommen til {practice}. Denne tjeneste vil hjælpe os med at kommunikere med dig på dit sprog.'
+  },
+  nl: {
+    scanInstruction: 'Scan deze QR-code met de camera van uw telefoon',
+    welcomeMessage: 'Welkom bij {practice}. Deze dienst helpt ons om met u te communiceren in uw taal.'
+  },
+  el: {
+    scanInstruction: 'Παρακαλώ σαρώστε αυτόν τον κωδικό QR με την κάμερα του τηλεφώνου σας',
+    welcomeMessage: 'Καλώς ήρθατε στο {practice}. Αυτή η υπηρεσία θα μας βοηθήσει να επικοινωνήσουμε μαζί σας στη γλώσσα σας.'
+  },
+  hu: {
+    scanInstruction: 'Kérjük, szkennelje be ezt a QR-kódot telefonja kamerájával',
+    welcomeMessage: 'Üdvözöljük a {practice}-ben. Ez a szolgáltatás segít nekünk az Ön nyelvén kommunikálni Önnel.'
+  },
+  ps: {
+    scanInstruction: 'مهرباني وکړئ دا QR کوډ د خپل تلیفون کیمرې سره سکین کړئ',
+    welcomeMessage: 'د {practice} ته ښه راغلاست. دا خدمت به موږ سره ستاسو په ژبه کې ستاسو سره اړیکه ونیسي.'
+  },
+  ta: {
+    scanInstruction: 'உங்கள் தொலைபேசி கேமராவால் இந்த QR குறியீட்டை ஸ்கேன் செய்யவும்',
+    welcomeMessage: '{practice}க்கு வரவேற்கிறோம். இந்த சேவை உங்கள் மொழியில் உங்களுடன் தொடர்பு கொள்ள எங்களுக்கு உதவும்.'
+  },
+  te: {
+    scanInstruction: 'దయచేసి మీ ఫోన్ కెమెరాతో ఈ QR కోడ్‌ను స్కాన్ చేయండి',
+    welcomeMessage: '{practice}కు స్వాగతం. ఈ సేవ మీ భాషలో మీతో కమ్యూనికేట్ చేయడంలో మాకు సహాయపడుతుంది.'
+  },
+  kn: {
+    scanInstruction: 'ದಯವಿಟ್ಟು ನಿಮ್ಮ ಫೋನ್ ಕ್ಯಾಮೆರಾದಿಂದ ಈ QR ಕೋಡ್ ಅನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ',
+    welcomeMessage: '{practice}ಗೆ ಸುಸ್ವಾಗತ. ಈ ಸೇವೆಯು ನಿಮ್ಮ ಭಾಷೆಯಲ್ಲಿ ನಿಮ್ಮೊಂದಿಗೆ ಸಂವಹನ ನಡೆಸಲು ನಮಗೆ ಸಹಾಯ ಮಾಡುತ್ತದೆ.'
+  },
+  ml: {
+    scanInstruction: 'നിങ്ങളുടെ ഫോൺ ക്യാമറ ഉപയോഗിച്ച് ഈ QR കോഡ് സ്കാൻ ചെയ്യുക',
+    welcomeMessage: '{practice}ലേക്ക് സ്വാഗതം. നിങ്ങളുടെ ഭാഷയിൽ നിങ്ങളുമായി ആശയവിനിമയം നടത്താൻ ഈ സേവനം ഞങ്ങളെ സഹായിക്കും.'
+  },
+  mr: {
+    scanInstruction: 'कृपया तुमच्या फोनच्या कॅमेऱ्याने हा QR कोड स्कॅन करा',
+    welcomeMessage: '{practice}मध्ये आपले स्वागत आहे. ही सेवा आम्हाला तुमच्या भाषेत तुमच्याशी संवाद साधण्यात मदत करेल.'
+  },
+  uk: {
+    scanInstruction: 'Будь ласка, відскануйте цей QR-код камерою телефону',
+    welcomeMessage: 'Ласкаво просимо до {practice}. Цей сервіс допоможе нам спілкуватися з вами вашою мовою.'
+  },
+  id: {
+    scanInstruction: 'Silakan pindai kode QR ini dengan kamera ponsel Anda',
+    welcomeMessage: 'Selamat datang di {practice}. Layanan ini akan membantu kami berkomunikasi dengan Anda dalam bahasa Anda.'
+  },
+  ms: {
+    scanInstruction: 'Sila imbas kod QR ini dengan kamera telefon anda',
+    welcomeMessage: 'Selamat datang ke {practice}. Perkhidmatan ini akan membantu kami berkomunikasi dengan anda dalam bahasa anda.'
+  },
+  yo: {
+    scanInstruction: 'Jọwọ ṣe ayẹwo koodu QR yii pẹlu kamẹra foonu rẹ',
+    welcomeMessage: 'Kaabo si {practice}. Iṣẹ yii yoo ṣe iranlọwọ fun wa lati ba ọ sọrọ ni ede rẹ.'
+  },
+  ig: {
+    scanInstruction: 'Biko nyochaa koodu QR a site na igwefoto ekwentị gị',
+    welcomeMessage: 'Nnọọ na {practice}. Ọrụ a ga-enyere anyị aka ịkparịta ụka na asụsụ gị.'
+  },
+  ha: {
+    scanInstruction: 'Da fatan za a duba wannan lambar QR tare da kyamarar wayar ku',
+    welcomeMessage: 'Barka da zuwa {practice}. Wannan sabis zai taimaka mana mu yi magana da ku cikin yarenku.'
+  },
+  om: {
+    scanInstruction: 'Maaloo koodii QR kana kaameraa bilbila keessaniin iskeen godhaa',
+    welcomeMessage: 'Baga gara {practice} nagaan dhuftan. Tajaajilli kun afaan keessaniin isin waliin haasawuuf nu gargaara.'
   }
 };
 
@@ -702,7 +834,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-center justify-center">
               <QrCode className="h-5 w-5" />
-              Patient's Language
+              {MODAL_TITLES[patientLanguage] || MODAL_TITLES['en']}
             </DialogTitle>
           </DialogHeader>
           
