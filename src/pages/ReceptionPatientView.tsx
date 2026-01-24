@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Mic, MicOff, Send, Loader2, Languages, WifiOff } from 'lucide-react';
 import { useReceptionTranslation, TranslationMessage } from '@/hooks/useReceptionTranslation';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
+import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 import { supabase } from '@/integrations/supabase/client';
 
 const ReceptionPatientView: React.FC = () => {
@@ -26,11 +27,14 @@ const ReceptionPatientView: React.FC = () => {
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const langCode = sessionData?.patient_language || 'en';
+  const phrases = getPatientViewPhrases(langCode);
+
   // Validate session on mount
   useEffect(() => {
     const validateSession = async () => {
       if (!sessionToken) {
-        setError('Invalid session link');
+        setError('invalid_link');
         setIsLoading(false);
         return;
       }
@@ -43,13 +47,13 @@ const ReceptionPatientView: React.FC = () => {
           .single();
 
         if (fetchError || !data) {
-          setError('Session not found or has expired');
+          setError('session_not_found');
           setIsLoading(false);
           return;
         }
 
         if (!data.is_active || new Date(data.expires_at) < new Date()) {
-          setError('This session has ended');
+          setError('session_ended');
           setIsLoading(false);
           return;
         }
@@ -57,7 +61,7 @@ const ReceptionPatientView: React.FC = () => {
         setSessionData(data);
       } catch (err) {
         console.error('Session validation error:', err);
-        setError('Failed to connect to session');
+        setError('connection_error');
       } finally {
         setIsLoading(false);
       }
@@ -74,7 +78,7 @@ const ReceptionPatientView: React.FC = () => {
     error: connectionError
   } = useReceptionTranslation({
     sessionToken,
-    patientLanguage: sessionData?.patient_language || 'en',
+    patientLanguage: langCode,
     isStaff: false
   });
 
@@ -99,74 +103,35 @@ const ReceptionPatientView: React.FC = () => {
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = true;
       
-      // Map language code to BCP 47 format
       const langMap: Record<string, string> = {
-        'ar': 'ar-SA',
-        'zh': 'zh-CN',
-        'fr': 'fr-FR',
-        'de': 'de-DE',
-        'hi': 'hi-IN',
-        'it': 'it-IT',
-        'es': 'es-ES',
-        'pl': 'pl-PL',
-        'pt': 'pt-PT',
-        'ru': 'ru-RU',
-        'tr': 'tr-TR',
-        'ur': 'ur-PK',
-        'bn': 'bn-BD',
-        'pa': 'pa-IN',
-        'gu': 'gu-IN',
-        'ta': 'ta-IN',
-        'te': 'te-IN',
-        'uk': 'uk-UA',
-        'vi': 'vi-VN',
-        'th': 'th-TH',
-        'nl': 'nl-NL',
-        'el': 'el-GR',
-        'cs': 'cs-CZ',
-        'ro': 'ro-RO',
-        'hu': 'hu-HU',
-        'sv': 'sv-SE',
-        'da': 'da-DK',
-        'fi': 'fi-FI',
-        'no': 'nb-NO',
+        'ar': 'ar-SA', 'zh': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE',
+        'hi': 'hi-IN', 'it': 'it-IT', 'es': 'es-ES', 'pl': 'pl-PL',
+        'pt': 'pt-PT', 'ru': 'ru-RU', 'tr': 'tr-TR', 'ur': 'ur-PK',
+        'bn': 'bn-BD', 'pa': 'pa-IN', 'gu': 'gu-IN', 'ta': 'ta-IN',
+        'te': 'te-IN', 'uk': 'uk-UA', 'vi': 'vi-VN', 'th': 'th-TH',
+        'nl': 'nl-NL', 'el': 'el-GR', 'cs': 'cs-CZ', 'ro': 'ro-RO',
+        'hu': 'hu-HU', 'da': 'da-DK',
       };
       
       recognitionRef.current.lang = langMap[sessionData.patient_language] || sessionData.patient_language;
 
-      recognitionRef.current.onresult = (event) => {
+      recognitionRef.current.onresult = (event: any) => {
         let finalTranscript = '';
-        let interimTranscript = '';
-
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (result.isFinal) {
-            finalTranscript += result[0].transcript;
-          } else {
-            interimTranscript += result[0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
           }
         }
-
         if (finalTranscript) {
           setInputText(prev => prev + finalTranscript);
-        } else if (interimTranscript) {
-          // Show interim results
         }
       };
 
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-      };
+      recognitionRef.current.onerror = () => setIsListening(false);
+      recognitionRef.current.onend = () => setIsListening(false);
     }
 
-    return () => {
-      recognitionRef.current?.stop();
-    };
+    return () => { recognitionRef.current?.stop(); };
   }, [sessionData?.patient_language]);
 
   const toggleListening = () => {
@@ -192,13 +157,23 @@ const ReceptionPatientView: React.FC = () => {
     }
   };
 
+  const getErrorMessage = (errorKey: string) => {
+    const errorPhrases = getPatientViewPhrases(langCode);
+    switch (errorKey) {
+      case 'invalid_link': return errorPhrases.invalidLink;
+      case 'session_not_found': return errorPhrases.sessionNotFound;
+      case 'session_ended': return errorPhrases.sessionEnded;
+      default: return errorPhrases.connectionError;
+    }
+  };
+
   // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-lg text-muted-foreground">Connecting to translation session...</p>
+          <p className="text-lg text-muted-foreground">{phrases.connectingToSession}</p>
         </div>
       </div>
     );
@@ -211,18 +186,15 @@ const ReceptionPatientView: React.FC = () => {
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
             <WifiOff className="h-16 w-16 text-destructive mx-auto mb-4" />
-            <h1 className="text-xl font-semibold mb-2">Connection Error</h1>
-            <p className="text-muted-foreground">{error || connectionError}</p>
+            <h1 className="text-xl font-semibold mb-2">{phrases.connectionError}</h1>
+            <p className="text-muted-foreground">{error ? getErrorMessage(error) : connectionError}</p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // Get latest staff message for prominent display
-  const latestStaffMessage = [...messages]
-    .reverse()
-    .find(m => m.speaker === 'staff');
+  const latestStaffMessage = [...messages].reverse().find(m => m.speaker === 'staff');
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -230,7 +202,7 @@ const ReceptionPatientView: React.FC = () => {
       <div className="border-b p-4 bg-primary text-primary-foreground">
         <div className="flex items-center justify-center gap-2">
           <Languages className="h-5 w-5" />
-          <span className="font-semibold">Live Translation</span>
+          <span className="font-semibold">{phrases.liveTranslation}</span>
           {languageInfo && (
             <Badge variant="secondary" className="ml-2">
               {languageInfo.flag} {languageInfo.name}
@@ -241,16 +213,14 @@ const ReceptionPatientView: React.FC = () => {
           variant={isConnected ? 'secondary' : 'outline'} 
           className="mx-auto mt-2 block w-fit"
         >
-          {isConnected ? '● Connected' : '○ Connecting...'}
+          {isConnected ? `● ${phrases.connected}` : `○ ${phrases.connecting}`}
         </Badge>
       </div>
 
       {/* Latest message - prominent display */}
       {latestStaffMessage && (
         <div className="p-6 bg-secondary/50 border-b">
-          <p className="text-sm text-muted-foreground mb-2 text-center">
-            Reception says:
-          </p>
+          <p className="text-sm text-muted-foreground mb-2 text-center">{phrases.receptionSays}</p>
           <p className="text-2xl md:text-3xl text-center font-medium leading-relaxed">
             {latestStaffMessage.translatedText}
           </p>
@@ -263,8 +233,8 @@ const ReceptionPatientView: React.FC = () => {
           {messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               <Languages className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg">Waiting for reception to speak...</p>
-              <p className="text-sm mt-2">Messages will appear here</p>
+              <p className="text-lg">{phrases.waitingForReception}</p>
+              <p className="text-sm mt-2">{phrases.messagesWillAppear}</p>
             </div>
           ) : (
             messages.map((msg, index) => (
@@ -283,9 +253,7 @@ const ReceptionPatientView: React.FC = () => {
                     {msg.speaker === 'staff' ? msg.translatedText : msg.originalText}
                   </p>
                   {msg.speaker === 'patient' && (
-                    <p className="text-xs mt-2 opacity-70">
-                      Sent to reception in English
-                    </p>
+                    <p className="text-xs mt-2 opacity-70">{phrases.sentToReception}</p>
                   )}
                 </div>
               </div>
@@ -310,7 +278,7 @@ const ReceptionPatientView: React.FC = () => {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={languageInfo ? `Type in ${languageInfo.name}...` : 'Type your message...'}
+              placeholder={languageInfo ? phrases.typeInLanguage.replace('{language}', languageInfo.name) : phrases.typeYourMessage}
               className="min-h-[60px] resize-none text-lg"
               rows={2}
             />
@@ -321,11 +289,7 @@ const ReceptionPatientView: React.FC = () => {
                 className="h-full aspect-square"
                 onClick={toggleListening}
               >
-                {isListening ? (
-                  <MicOff className="h-6 w-6" />
-                ) : (
-                  <Mic className="h-6 w-6" />
-                )}
+                {isListening ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
               </Button>
             </div>
           </div>
@@ -340,7 +304,7 @@ const ReceptionPatientView: React.FC = () => {
             ) : (
               <Send className="h-5 w-5 mr-2" />
             )}
-            Send
+            {phrases.send}
           </Button>
         </div>
       </div>
