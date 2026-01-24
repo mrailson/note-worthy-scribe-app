@@ -73,7 +73,7 @@ export const AdminDictateModeSelector: React.FC<AdminDictateModeSelectorProps> =
             "font-medium text-sm transition-colors",
             mode === 'translate' ? "text-foreground" : "text-muted-foreground"
           )}>
-            Translate Live
+            Translation Service
           </span>
         </button>
       </div>
