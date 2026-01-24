@@ -114,7 +114,7 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
             ) : (
               <>
                 <Mic className="w-4 h-4" />
-                {hasContent ? 'Continue' : 'Start Listening'}
+                {hasContent ? 'Continue' : 'Start Transcribing'}
               </>
             )}
           </Button>
