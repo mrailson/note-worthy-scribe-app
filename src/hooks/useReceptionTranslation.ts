@@ -27,6 +27,7 @@ export const useReceptionTranslation = ({
   const [isConnected, setIsConnected] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [patientConnected, setPatientConnected] = useState(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Connect to the realtime channel
@@ -55,14 +56,44 @@ export const useReceptionTranslation = ({
       })
       .on('broadcast', { event: 'session_ended' }, () => {
         setIsConnected(false);
+        setPatientConnected(false);
         setError('Session ended by staff');
       })
-      .subscribe((status) => {
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const patients = Object.values(state).flat().filter(
+          (p: any) => p.role === 'patient'
+        );
+        setPatientConnected(patients.length > 0);
+      })
+      .on('presence', { event: 'join' }, ({ newPresences }) => {
+        const patientJoined = newPresences.some((p: any) => p.role === 'patient');
+        if (patientJoined) {
+          setPatientConnected(true);
+        }
+      })
+      .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+        const patientLeft = leftPresences.some((p: any) => p.role === 'patient');
+        if (patientLeft) {
+          const state = channel.presenceState();
+          const remaining = Object.values(state).flat().filter(
+            (p: any) => p.role === 'patient'
+          );
+          setPatientConnected(remaining.length > 0);
+        }
+      })
+      .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           setIsConnected(true);
           setError(null);
+          // Track this user's presence
+          await channel.track({
+            role: isStaff ? 'staff' : 'patient',
+            online_at: new Date().toISOString()
+          });
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setIsConnected(false);
+          setPatientConnected(false);
         }
       });
 
@@ -177,6 +208,7 @@ export const useReceptionTranslation = ({
     isConnected,
     isTranslating,
     error,
+    patientConnected,
     sendMessage,
     endSession,
     clearMessages,
