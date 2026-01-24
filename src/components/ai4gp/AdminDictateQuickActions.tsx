@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Switch } from '@/components/ui/switch';
@@ -18,7 +18,6 @@ import { cn } from '@/lib/utils';
 import { WordIcon } from '@/components/icons/WordIcon';
 import { generateMeetingNotesDocx } from '@/utils/generateMeetingNotesDocx';
 import { showToast } from '@/utils/toastWrapper';
-import { AdminDictateCountdownOverlay } from './AdminDictateCountdownOverlay';
 
 interface AdminDictateQuickActionsProps {
   status: AdminDictationStatus;
@@ -53,7 +52,6 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
   onCopy,
   onClear,
 }) => {
-  const [countdown, setCountdown] = useState<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const handleDownloadWord = useCallback(async () => {
@@ -82,34 +80,8 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
     }
   }, [content, cleanedContent, templateName]);
 
-  const handleStartClick = useCallback(() => {
-    // Start countdown AND connection concurrently
-    setCountdown(3);
-    onStart(); // Start connecting immediately
-  }, [onStart]);
-
-  // Handle countdown timer (visual only now, connection starts immediately)
-  useEffect(() => {
-    if (countdown === null) return;
-
-    if (countdown > 0) {
-      const timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else {
-      // Countdown finished
-      setCountdown(null);
-    }
-  }, [countdown]);
 
   return (
-    <>
-      {/* Full-screen countdown overlay */}
-      {countdown !== null && countdown > 0 && (
-        <AdminDictateCountdownOverlay countdown={countdown} />
-      )}
-
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
         {/* Main Record/Stop Button */}
@@ -125,10 +97,10 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
           </Button>
         ) : (
           <Button
-            onClick={handleStartClick}
+            onClick={onStart}
             variant="default"
             size="lg"
-            disabled={isConnecting || countdown !== null}
+            disabled={isConnecting}
             className={cn(
               "gap-2 min-w-[140px]",
               hasContent && "bg-green-600 hover:bg-green-700"
@@ -253,6 +225,5 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
         )}
       </div>
     </div>
-    </>
   );
 };
