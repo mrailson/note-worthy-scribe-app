@@ -13,13 +13,16 @@ import {
   Wifi, 
   WifiOff,
   Volume2,
-  Trash2
+  Trash2,
+  Download,
+  FileText
 } from 'lucide-react';
 import { useReceptionTranslation, TranslationMessage } from '@/hooks/useReceptionTranslation';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { showToast } from '@/utils/toastWrapper';
 import QRCode from 'qrcode';
 import { supabase } from '@/integrations/supabase/client';
+import { generateTranslationReportDocx } from '@/utils/generateTranslationReportDocx';
 
 interface ReceptionTranslationViewProps {
   sessionId: string;
@@ -38,6 +41,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [copied, setCopied] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [sessionStartTime] = useState<Date>(new Date());
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -159,6 +164,30 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     }
   };
 
+  const handleDownloadReport = async () => {
+    if (messages.length === 0) {
+      showToast.error('No messages to include in report');
+      return;
+    }
+
+    setIsGeneratingReport(true);
+    try {
+      await generateTranslationReportDocx({
+        messages,
+        patientLanguage,
+        patientLanguageName: languageInfo?.name || patientLanguage,
+        sessionStart: sessionStartTime,
+        sessionEnd: new Date(),
+      });
+      showToast.success('Translation report downloaded successfully');
+    } catch (error) {
+      console.error('Report generation error:', error);
+      showToast.error('Failed to generate report');
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   const renderMessage = (msg: TranslationMessage, index: number) => {
     const isStaffMessage = msg.speaker === 'staff';
 
@@ -247,10 +276,30 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             </Badge>
           )}
         </div>
-        <Button variant="destructive" size="sm" onClick={handleEndSession}>
-          <X className="h-4 w-4 mr-2" />
-          End Session
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleDownloadReport}
+            disabled={isGeneratingReport || messages.length === 0}
+          >
+            {isGeneratingReport ? (
+              <>
+                <span className="animate-spin mr-2">⏳</span>
+                Generating...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4 mr-2" />
+                Download Report
+              </>
+            )}
+          </Button>
+          <Button variant="destructive" size="sm" onClick={handleEndSession}>
+            <X className="h-4 w-4 mr-2" />
+            End Session
+          </Button>
+        </div>
       </div>
 
       {/* Main content */}
