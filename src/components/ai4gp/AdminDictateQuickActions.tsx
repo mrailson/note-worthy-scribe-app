@@ -11,8 +11,7 @@ import {
   Trash2, 
   Settings2, 
   Loader2,
-  Monitor,
-  Languages
+  Monitor
 } from 'lucide-react';
 import { AdminDictationStatus } from '@/hooks/useAdminDictation';
 import { cn } from '@/lib/utils';
@@ -36,7 +35,6 @@ interface AdminDictateQuickActionsProps {
   onStop: () => void;
   onCopy: () => void;
   onClear: () => void;
-  onTranslateLive?: () => void;
 }
 
 export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> = ({
@@ -54,7 +52,6 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
   onStop,
   onCopy,
   onClear,
-  onTranslateLive,
 }) => {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -157,26 +154,6 @@ export const AdminDictateQuickActions: React.FC<AdminDictateQuickActionsProps> =
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
             <span className="text-sm font-medium">Listening...</span>
           </div>
-        )}
-        {/* Translate Live Button */}
-        {onTranslateLive && !isRecording && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="default"
-                  onClick={onTranslateLive}
-                  disabled={isConnecting || countdown !== null}
-                  className="gap-2"
-                >
-                  <Languages className="w-4 h-4" />
-                  Translate Live
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Start live translation session with QR code for patient</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         )}
       </div>
 

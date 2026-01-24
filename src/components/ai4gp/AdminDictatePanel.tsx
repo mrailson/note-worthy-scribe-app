@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { X, Mic, History, FileText, Plus } from 'lucide-react';
 import { useAdminDictation } from '@/hooks/useAdminDictation';
-import { AdminDictateTemplates } from './AdminDictateTemplates';
 import { AdminDictateTextArea } from './AdminDictateTextArea';
 import { AdminDictateQuickActions } from './AdminDictateQuickActions';
 import { AdminDictateHistory } from './AdminDictateHistory';
 import { AdminDictateViewToggle } from './AdminDictateViewToggle';
+import { AdminDictateModeSelector, DictateMode } from './AdminDictateModeSelector';
 import { LiveTranslationSetupModal } from '@/components/admin-dictate/LiveTranslationSetupModal';
 import { ReceptionTranslationView } from '@/components/admin-dictate/ReceptionTranslationView';
 
@@ -20,6 +19,7 @@ interface AdminDictatePanelProps {
 
 export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<'dictate' | 'history'>('dictate');
+  const [selectedMode, setSelectedMode] = useState<DictateMode>('dictate');
   const [showTranslationSetup, setShowTranslationSetup] = useState(false);
   const [translationSession, setTranslationSession] = useState<{
     id: string;
@@ -62,6 +62,13 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
     saveOnBlur,
   } = useAdminDictation();
 
+  const handleModeChange = (mode: DictateMode) => {
+    setSelectedMode(mode);
+    if (mode === 'translate') {
+      setShowTranslationSetup(true);
+    }
+  };
+
   const handleSessionCreated = (sessionId: string, sessionToken: string, patientLanguage: string) => {
     setShowTranslationSetup(false);
     setTranslationSession({
@@ -73,6 +80,12 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
 
   const handleCloseTranslation = () => {
     setTranslationSession(null);
+    setSelectedMode('dictate');
+  };
+
+  const handleTranslationModalClose = () => {
+    setShowTranslationSetup(false);
+    setSelectedMode('dictate');
   };
 
   const handleLoadSession = (session: any) => {
@@ -90,6 +103,8 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
       />
     );
   }
+
+  const showModeSelector = status === 'idle' && !content && !isRecording;
 
   return (
     <Card className="flex flex-col h-full border-0 shadow-none">
@@ -126,12 +141,12 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
         </TabsList>
 
         <TabsContent value="dictate" className="flex-1 flex flex-col min-h-0 mt-0 p-4 gap-4">
-          {/* Template Selection - show when idle and no content */}
-          {status === 'idle' && !content && (
-            <AdminDictateTemplates
-              templates={templates}
-              selectedTemplate={selectedTemplate}
-              onSelectTemplate={setSelectedTemplate}
+          {/* Mode Selector - show when idle and no content */}
+          {showModeSelector && (
+            <AdminDictateModeSelector
+              mode={selectedMode}
+              onModeChange={handleModeChange}
+              disabled={isConnecting}
             />
           )}
 
@@ -162,24 +177,25 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
             </div>
           )}
 
-          {/* Quick Actions */}
-          <AdminDictateQuickActions
-            status={status}
-            isRecording={isRecording}
-            isConnecting={isConnecting}
-            hasContent={!!content}
-            isFormatting={isFormatting}
-            systemAudioEnabled={systemAudioEnabled}
-            content={content}
-            cleanedContent={cleanedContent || ''}
-            templateName={templates.find(t => t.id === selectedTemplate)?.name || 'Dictation'}
-            onSystemAudioChange={setSystemAudioEnabled}
-            onStart={startDictation}
-            onStop={stopDictation}
-            onCopy={() => copyToClipboard()}
-            onClear={newDictation}
-            onTranslateLive={() => setShowTranslationSetup(true)}
-          />
+          {/* Quick Actions - only show when in dictate mode or has content */}
+          {(selectedMode === 'dictate' || content || isRecording) && (
+            <AdminDictateQuickActions
+              status={status}
+              isRecording={isRecording}
+              isConnecting={isConnecting}
+              hasContent={!!content}
+              isFormatting={isFormatting}
+              systemAudioEnabled={systemAudioEnabled}
+              content={content}
+              cleanedContent={cleanedContent || ''}
+              templateName={templates.find(t => t.id === selectedTemplate)?.name || 'Dictation'}
+              onSystemAudioChange={setSystemAudioEnabled}
+              onStart={startDictation}
+              onStop={stopDictation}
+              onCopy={() => copyToClipboard()}
+              onClear={newDictation}
+            />
+          )}
 
           {/* Text Area */}
           <div className="flex-1 min-h-0">
@@ -209,7 +225,7 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
       {/* Translation Setup Modal */}
       <LiveTranslationSetupModal
         isOpen={showTranslationSetup}
-        onClose={() => setShowTranslationSetup(false)}
+        onClose={handleTranslationModalClose}
         onSessionCreated={handleSessionCreated}
       />
     </Card>
