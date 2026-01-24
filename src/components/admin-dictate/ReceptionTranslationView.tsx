@@ -382,6 +382,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [patientEmail, setPatientEmail] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [smsCopied, setSmsCopied] = useState(false);
+  const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
+  const [loadingAudio, setLoadingAudio] = useState<Record<string, boolean>>({});
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef(false);
   const isStartingRef = useRef(false);
@@ -615,7 +617,16 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     'sv', 'no', 'fi', 'he', 'th', 'tl', 'ms', 'sk', 'hr'
   ];
 
-  const playAudio = async (text: string, languageCode: string) => {
+  // Load audio for a specific message and return the URL
+  const loadAudioForMessage = async (messageId: string, text: string, languageCode: string) => {
+    // If already loaded, don't reload
+    if (audioUrls[messageId]) return;
+    
+    // If already loading, don't start again
+    if (loadingAudio[messageId]) return;
+    
+    setLoadingAudio(prev => ({ ...prev, [messageId]: true }));
+    
     try {
       // Use ElevenLabs for supported languages (more realistic), fallback to Google TTS
       const endpoint = ELEVENLABS_SUPPORTED.includes(languageCode) 
@@ -629,11 +640,15 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       if (error) throw error;
       
       if (data?.audioContent) {
-        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        await audio.play();
+        // Use audio/mpeg for proper browser support
+        const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+        setAudioUrls(prev => ({ ...prev, [messageId]: audioUrl }));
       }
     } catch (err) {
-      console.error('Audio playback error:', err);
+      console.error('Audio loading error:', err);
+      showToast.error('Failed to load audio');
+    } finally {
+      setLoadingAudio(prev => ({ ...prev, [messageId]: false }));
     }
   };
 
@@ -794,6 +809,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
   const renderMessage = (msg: TranslationMessage, index: number) => {
     const isStaffMessage = msg.speaker === 'staff';
+    const messageId = msg.id || `msg-${index}`;
+    const translatedText = isStaffMessage ? msg.translatedText : msg.originalText;
+    const hasAudio = !!audioUrls[messageId];
+    const isLoadingAudio = loadingAudio[messageId];
 
     return (
       <div
@@ -836,25 +855,47 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               ? 'bg-secondary' 
               : 'bg-accent text-accent-foreground'
           }`}>
-            <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1">
               <p className="text-sm font-medium">
                 {languageInfo?.flag} {isStaffMessage ? 'Translated:' : 'Patient said:'}
               </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() => playAudio(
-                  isStaffMessage ? msg.translatedText : msg.originalText,
-                  patientLanguage
-                )}
-              >
-                <Volume2 className="h-4 w-4" />
-              </Button>
             </div>
-            <p className="text-lg">
-              {isStaffMessage ? msg.translatedText : msg.originalText}
+            <p className="text-lg mb-2">
+              {translatedText}
             </p>
+            {/* Audio player bar */}
+            <div className="mt-2">
+              {hasAudio ? (
+                <audio 
+                  controls 
+                  src={audioUrls[messageId]}
+                  className="w-full h-8"
+                  style={{ minWidth: '200px' }}
+                >
+                  Your browser does not support the audio element.
+                </audio>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => loadAudioForMessage(messageId, translatedText, patientLanguage)}
+                  disabled={isLoadingAudio}
+                >
+                  {isLoadingAudio ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Loading audio...
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="h-4 w-4 mr-2" />
+                      Load Audio
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
