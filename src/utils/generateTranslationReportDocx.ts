@@ -263,39 +263,6 @@ export const generateTranslationReportDocx = async (options: GenerateTranslation
     }
   }
   
-  // Practice Name
-  if (practiceInfo?.name) {
-    children.push(
-      new Paragraph({
-        children: [new TextRun({
-          text: practiceInfo.name,
-          bold: true,
-          size: FONTS.size.heading1,
-          color: NHS_COLORS.headingBlue,
-          font: FONTS.default,
-        })],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 60 },
-      })
-    );
-    
-    // Practice Address (if available)
-    if (practiceInfo?.address) {
-      children.push(
-        new Paragraph({
-          children: [new TextRun({
-            text: practiceInfo.address,
-            size: FONTS.size.small,
-            color: NHS_COLORS.textLightGrey,
-            font: FONTS.default,
-          })],
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 240 },
-        })
-      );
-    }
-  }
-  
   // Title
   children.push(
     new Paragraph({
