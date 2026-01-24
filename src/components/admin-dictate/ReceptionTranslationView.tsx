@@ -522,53 +522,53 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         </div>
 
         {/* QR Code panel */}
-        <div className="w-80 border-l p-6 flex flex-col items-center bg-muted/30 overflow-y-auto">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <QrCode className="h-5 w-5" />
+        <div className="w-72 border-l p-4 flex flex-col items-center bg-muted/30 overflow-y-auto min-h-0">
+          <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
+            <QrCode className="h-4 w-4" />
             Patient QR Code
           </h2>
 
           {qrCodeUrl && (
             <Card 
-              className="mb-4 cursor-pointer transition-transform hover:scale-105 group relative"
+              className="mb-3 cursor-pointer transition-transform hover:scale-105 group relative"
               onClick={() => setShowExpandedQR(true)}
             >
-              <CardContent className="p-4">
-                <img src={qrCodeUrl} alt="Patient QR Code" className="w-48 h-48" />
+              <CardContent className="p-3">
+                <img src={qrCodeUrl} alt="Patient QR Code" className="w-36 h-36" />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg">
-                  <Maximize2 className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <Maximize2 className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               </CardContent>
             </Card>
           )}
 
           {/* Instructions in patient's language */}
-          <div className="mb-4 p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 text-center">
-            <p className="text-sm font-medium text-violet-700 dark:text-violet-300 mb-1">
+          <div className="mb-3 p-2 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 text-center w-full">
+            <p className="text-xs font-medium text-violet-700 dark:text-violet-300 mb-1">
               {languageInfo?.flag} {languageInfo?.name}
             </p>
-            <p className="text-sm text-violet-600 dark:text-violet-400">
+            <p className="text-xs text-violet-600 dark:text-violet-400">
               {qrInstructions.scanInstruction}
             </p>
           </div>
 
-          <div className="flex gap-2 mb-4">
-            <Button variant="outline" size="sm" onClick={handleCopyLink}>
+          <div className="flex gap-2 mb-3">
+            <Button variant="outline" size="sm" className="text-xs h-8" onClick={handleCopyLink}>
               {copied ? (
-                <><Check className="h-4 w-4 mr-2" /> Copied!</>
+                <><Check className="h-3 w-3 mr-1" /> Copied</>
               ) : (
-                <><Copy className="h-4 w-4 mr-2" /> Copy Link</>
+                <><Copy className="h-3 w-3 mr-1" /> Copy Link</>
               )}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowExpandedQR(true)}>
-              <Maximize2 className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setShowExpandedQR(true)}>
+              <Maximize2 className="h-3 w-3 mr-1" />
               Expand
             </Button>
           </div>
 
-          <div className="p-4 rounded-lg bg-background border text-sm">
-            <p className="font-medium mb-2">How it works:</p>
-            <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+          <div className="p-3 rounded-lg bg-background border text-xs w-full">
+            <p className="font-medium mb-1">How it works:</p>
+            <ol className="list-decimal list-inside space-y-0.5 text-muted-foreground">
               <li>Patient scans QR code</li>
               <li>You speak in English</li>
               <li>Patient sees translation</li>
