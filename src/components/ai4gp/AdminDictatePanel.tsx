@@ -128,7 +128,7 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
                     <ScrollText className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Dictate</TooltipContent>
+                <TooltipContent side="bottom">Dictate</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -141,7 +141,7 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
                     <History className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>History</TooltipContent>
+                <TooltipContent side="bottom">History</TooltipContent>
               </Tooltip>
             </div>
           </div>
