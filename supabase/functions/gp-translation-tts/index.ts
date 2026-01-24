@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ElevenLabs multilingual voice mapping
+// ElevenLabs multilingual voice mapping - 32+ languages with natural voices
 const VOICE_MAP: Record<string, string> = {
   // Default voices by language for best results
   'en': 'onwK4e9ZLuTAKqWW03F9', // Daniel - British male
@@ -32,7 +32,23 @@ const VOICE_MAP: Record<string, string> = {
   'uk': 'XrExE9yKIg1WjnnlVkGX', // Matilda
   'so': 'nPczCjzI2devNBz1zQrb', // Brian
   'sw': 'nPczCjzI2devNBz1zQrb', // Brian
-  'tl': 'cgSgspJ2msm6clMCkdW9', // Jessica
+  'tl': 'cgSgspJ2msm6clMCkdW9', // Jessica (Filipino/Tagalog)
+  // Additional ElevenLabs supported languages
+  'bg': 'XrExE9yKIg1WjnnlVkGX', // Matilda - Bulgarian
+  'hr': 'FGY2WhTYpPnrIDTdsKH5', // Laura - Croatian
+  'cs': 'XrExE9yKIg1WjnnlVkGX', // Matilda - Czech
+  'da': 'Xb7hH8MSUJpSbSDYk0k2', // Alice - Danish
+  'nl': 'IKne3meq5aSn9XLyUdCD', // Charlie - Dutch
+  'el': 'FGY2WhTYpPnrIDTdsKH5', // Laura - Greek
+  'hu': 'XrExE9yKIg1WjnnlVkGX', // Matilda - Hungarian
+  'id': 'cgSgspJ2msm6clMCkdW9', // Jessica - Indonesian
+  'ms': 'cgSgspJ2msm6clMCkdW9', // Jessica - Malay
+  'no': 'Xb7hH8MSUJpSbSDYk0k2', // Alice - Norwegian
+  'sv': 'Xb7hH8MSUJpSbSDYk0k2', // Alice - Swedish
+  'fi': 'Xb7hH8MSUJpSbSDYk0k2', // Alice - Finnish
+  'sk': 'XrExE9yKIg1WjnnlVkGX', // Matilda - Slovak
+  'th': 'cgSgspJ2msm6clMCkdW9', // Jessica - Thai
+  'he': 'nPczCjzI2devNBz1zQrb', // Brian - Hebrew
 };
 
 serve(async (req) => {
