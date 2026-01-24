@@ -121,8 +121,9 @@ interface Complaint {
     name: string;
   };
   complaint_outcomes?: Array<{
-    outcome_letter: string;
+    outcome_summary: string;
     outcome_type: string;
+    sent_at?: string | null;
   }>;
 }
 
@@ -535,17 +536,17 @@ const ComplaintsSystem = () => {
         .from('complaints')
         .select(`
           *,
-          complaint_outcomes(outcome_letter, outcome_type, sent_at),
+          complaint_outcomes(outcome_summary, outcome_type, sent_at),
           gp_practices(name)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
-      // Map complaints and update status to 'closed' if outcome letter exists
+      // Map complaints and update status to 'closed' if outcome summary exists
       const mappedComplaints = (data || []).map(complaint => ({
         ...complaint,
-        status: complaint.complaint_outcomes?.[0]?.outcome_letter ? 'closed' : complaint.status
+        status: complaint.complaint_outcomes?.[0]?.outcome_summary ? 'closed' : complaint.status
       }));
       
       setComplaints(mappedComplaints);
