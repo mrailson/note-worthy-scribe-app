@@ -6847,14 +6847,61 @@ export type Database = {
         }
         Relationships: []
       }
+      reception_translation_messages: {
+        Row: {
+          created_at: string
+          id: string
+          original_text: string
+          session_id: string
+          source_language: string
+          speaker: string
+          target_language: string
+          translated_text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          original_text: string
+          session_id: string
+          source_language: string
+          speaker: string
+          target_language: string
+          translated_text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          original_text?: string
+          session_id?: string
+          source_language?: string
+          speaker?: string
+          target_language?: string
+          translated_text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reception_translation_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "reception_translation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reception_translation_sessions: {
         Row: {
           created_at: string
           expires_at: string
           id: string
           is_active: boolean
+          notes: string | null
           patient_language: string
+          session_title: string | null
           session_token: string
+          total_messages: number | null
           user_id: string
         }
         Insert: {
@@ -6862,8 +6909,11 @@ export type Database = {
           expires_at?: string
           id?: string
           is_active?: boolean
+          notes?: string | null
           patient_language: string
+          session_title?: string | null
           session_token: string
+          total_messages?: number | null
           user_id: string
         }
         Update: {
@@ -6871,8 +6921,11 @@ export type Database = {
           expires_at?: string
           id?: string
           is_active?: boolean
+          notes?: string | null
           patient_language?: string
+          session_title?: string | null
           session_token?: string
+          total_messages?: number | null
           user_id?: string
         }
         Relationships: []

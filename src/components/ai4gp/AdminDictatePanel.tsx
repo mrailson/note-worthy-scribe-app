@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useAdminDictation } from '@/hooks/useAdminDictation';
 import { AdminDictateTextArea } from './AdminDictateTextArea';
 import { AdminDictateQuickActions } from './AdminDictateQuickActions';
-import { AdminDictateHistory } from './AdminDictateHistory';
+import { AdminDictateHistoryTabs } from '@/components/admin-dictate/AdminDictateHistoryTabs';
 import { AdminDictateViewToggle } from './AdminDictateViewToggle';
 import { AdminDictateModeSelector, DictateMode } from './AdminDictateModeSelector';
 import { LiveTranslationSetupModal } from '@/components/admin-dictate/LiveTranslationSetupModal';
@@ -232,13 +232,11 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
         </TabsContent>
 
         <TabsContent value="history" className="flex-1 min-h-0 mt-0 p-4">
-          <AdminDictateHistory
-            sessions={history}
-            isLoading={isLoadingHistory}
-            onLoadSession={handleLoadSession}
-            onDeleteSession={deleteSession}
-            onRefresh={fetchHistory}
-            formatDuration={formatDuration}
+          <AdminDictateHistoryTabs
+            onLoadDictation={(content, templateType) => {
+              setContent(content);
+              setSelectedTemplate(templateType as any);
+            }}
           />
         </TabsContent>
       </Tabs>

@@ -403,6 +403,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     deleteMessage
   } = useReceptionTranslation({
     sessionToken,
+    sessionId,
     patientLanguage,
     isStaff: true
   });
