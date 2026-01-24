@@ -38,7 +38,7 @@ interface Complaint {
     name: string;
   };
   complaint_outcomes?: Array<{
-    outcome_letter: string;
+    outcome_summary: string;
     outcome_type: string;
     sent_at?: string | null;
   }>;
@@ -257,7 +257,7 @@ export const ComplaintsSummaryView: React.FC<ComplaintsSummaryViewProps> = ({
                 {outcome && (
                   <div className="mt-2 pt-2 border-t border-dashed">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground font-medium">Outcome</p>
+                      <p className="text-xs text-muted-foreground font-medium">Key Learnings</p>
                       {outcome.sent_at && (
                         <p className="text-xs text-muted-foreground">
                           Sent to patient: {format(new Date(outcome.sent_at), 'dd MMM yyyy')}
@@ -265,8 +265,8 @@ export const ComplaintsSummaryView: React.FC<ComplaintsSummaryViewProps> = ({
                       )}
                     </div>
                     <p className="text-sm line-clamp-2">
-                      {outcome.outcome_letter?.substring(0, 200) || 'No outcome details recorded'}
-                      {outcome.outcome_letter && outcome.outcome_letter.length > 200 && '...'}
+                      {outcome.outcome_summary?.substring(0, 200) || 'No key learnings recorded'}
+                      {outcome.outcome_summary && outcome.outcome_summary.length > 200 && '...'}
                     </p>
                   </div>
                 )}
