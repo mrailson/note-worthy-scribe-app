@@ -56,6 +56,12 @@ export const useReceptionTranslation = ({
         const { messageId } = payload.payload as { messageId: string };
         setMessages(prev => prev.filter(m => m.id !== messageId));
       })
+      .on('broadcast', { event: 'update_message' }, (payload) => {
+        const updated = payload.payload as TranslationMessage;
+        setMessages(prev => prev.map(m => 
+          m.id === updated.id ? { ...updated, timestamp: new Date(updated.timestamp) } : m
+        ));
+      })
       .on('broadcast', { event: 'session_ended' }, () => {
         setIsConnected(false);
         setPatientConnected(false);
@@ -222,6 +228,48 @@ export const useReceptionTranslation = ({
     });
   }, []);
 
+  // Update a message (staff only, re-translates and broadcasts)
+  const updateMessage = useCallback(async (messageId: string, newText: string): Promise<boolean> => {
+    if (!channelRef.current || !newText.trim()) return false;
+
+    try {
+      // Find the original message to get language info
+      const originalMessage = messages.find(m => m.id === messageId);
+      if (!originalMessage) return false;
+
+      // Re-translate the edited text
+      const translatedText = await translateText(
+        newText,
+        originalMessage.originalLanguage,
+        originalMessage.targetLanguage
+      );
+
+      const updatedMessage: TranslationMessage = {
+        ...originalMessage,
+        originalText: newText,
+        translatedText,
+        timestamp: new Date()
+      };
+
+      // Update locally
+      setMessages(prev => prev.map(m => 
+        m.id === messageId ? updatedMessage : m
+      ));
+
+      // Broadcast update to sync with patient view
+      await channelRef.current.send({
+        type: 'broadcast',
+        event: 'update_message',
+        payload: updatedMessage
+      });
+
+      return true;
+    } catch (err) {
+      console.error('Error updating message:', err);
+      return false;
+    }
+  }, [messages, translateText]);
+
   return {
     messages,
     isConnected,
@@ -231,6 +279,7 @@ export const useReceptionTranslation = ({
     sendMessage,
     endSession,
     clearMessages,
-    deleteMessage
+    deleteMessage,
+    updateMessage
   };
 };
