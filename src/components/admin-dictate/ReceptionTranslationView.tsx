@@ -479,6 +479,19 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     return () => clearTimeout(timeout);
   }, [messages, isTranslating, transcript]);
 
+  // Auto-load audio for new staff messages (but don't auto-play)
+  useEffect(() => {
+    // Find staff messages that don't have audio loaded yet
+    const staffMessagesNeedingAudio = messages.filter(
+      m => m.speaker === 'staff' && !audioUrls[m.id] && !loadingAudio[m.id]
+    );
+    
+    // Load audio for each (typically just the latest one)
+    staffMessagesNeedingAudio.forEach(msg => {
+      loadAudioForMessage(msg.id, msg.translatedText, patientLanguage);
+    });
+  }, [messages, patientLanguage]);
+
   // Keep refs in sync with state
   useEffect(() => {
     isListeningRef.current = isListening;
@@ -785,14 +798,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
         const audioUrl = URL.createObjectURL(audioBlob);
         setAudioUrls(prev => ({ ...prev, [messageId]: audioUrl }));
-        
-        // Stop any currently playing audio before playing new one
-        stopCurrentAudio();
-        
-        // Auto-play the audio
-        const audio = new Audio(audioUrl);
-        currentAudioRef.current = audio;
-        audio.play().catch(err => console.log('Auto-play blocked:', err));
+        // Audio is now loaded and ready - no auto-play, user clicks to play
       } else {
         showToast.error('No audio content received');
       }
@@ -983,17 +989,26 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     const isLoadingAudio = loadingAudio[messageId];
     const isEditing = editingMessageId === msg.id;
 
+    // Calculate if this is the most recent staff message for highlight
+    const lastStaffIndex = messages.map((m, i) => m.speaker === 'staff' ? i : -1)
+                                   .filter(i => i >= 0).pop();
+    const isLatestStaffMessage = isStaffMessage && index === lastStaffIndex;
+
     return (
       <div
         key={msg.id || index}
-        className="flex gap-4"
+        className={`flex gap-4 ${
+          isLatestStaffMessage 
+            ? 'ring-2 ring-blue-500 ring-offset-2 rounded-xl p-2 bg-blue-50/50 dark:bg-blue-950/20' 
+            : ''
+        }`}
       >
         {/* English column - ALWAYS LEFT */}
         <div className="flex-1">
           <div className={`inline-block max-w-full rounded-lg p-3 ${
             isStaffMessage 
               ? 'bg-primary text-primary-foreground' 
-              : 'bg-muted'
+              : 'bg-green-50 dark:bg-green-950/30 border-l-4 border-green-500'
           }`}>
             <div className="flex items-center justify-between gap-2 mb-1">
               <p className="text-sm font-medium">
@@ -1053,7 +1068,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <div className={`inline-block max-w-full rounded-lg p-3 text-left ${
             isStaffMessage 
               ? 'bg-secondary' 
-              : 'bg-accent text-accent-foreground'
+              : 'bg-green-100 dark:bg-green-900/30 border-l-4 border-green-500'
           }`}>
             <div className="flex items-center gap-2 mb-1">
               <p className="text-sm font-medium">
