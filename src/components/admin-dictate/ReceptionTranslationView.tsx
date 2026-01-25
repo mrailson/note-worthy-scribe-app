@@ -2043,25 +2043,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           )}
         </div>
         <div className="flex items-center gap-2">
-          {/* System Audio Toggle - simplified button */}
-          <Button
-            variant={isCapturingSystemAudio ? 'default' : 'outline'}
-            size="sm"
-            onClick={toggleSystemAudio}
-            className={isCapturingSystemAudio ? 'bg-amber-600 hover:bg-amber-700' : ''}
-          >
-            {isCapturingSystemAudio ? (
-              <>
-                <MonitorOff className="h-4 w-4 mr-2" />
-                Stop System Audio
-              </>
-            ) : (
-              <>
-                <Monitor className="h-4 w-4 mr-2" />
-                System Audio
-              </>
-            )}
-          </Button>
           {/* History Button */}
           <Button
             variant={showHistory ? 'default' : 'outline'}
@@ -2387,6 +2368,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               systemAudioService={systemAudioService}
               onServiceChange={setSystemAudioService}
               isCapturingSystemAudio={isCapturingSystemAudio}
+              onToggleSystemAudio={toggleSystemAudio}
             />
           </div>
         </div>

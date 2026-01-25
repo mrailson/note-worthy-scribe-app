@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 import { Settings, Monitor, Check } from 'lucide-react';
 
 type SystemAudioService = 'whisper' | 'assemblyai';
@@ -12,12 +13,14 @@ interface TranslationSettingsModalProps {
   systemAudioService: SystemAudioService;
   onServiceChange: (service: SystemAudioService) => void;
   isCapturingSystemAudio: boolean;
+  onToggleSystemAudio: () => void;
 }
 
 export const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
   systemAudioService,
   onServiceChange,
   isCapturingSystemAudio,
+  onToggleSystemAudio,
 }) => {
   return (
     <Dialog>
@@ -40,14 +43,31 @@ export const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> =
         </DialogHeader>
         
         <div className="space-y-6 py-4">
+          {/* System Audio Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+            <div className="flex items-center gap-3">
+              <Monitor className={`h-5 w-5 ${isCapturingSystemAudio ? 'text-amber-500' : 'text-muted-foreground'}`} />
+              <div>
+                <Label className="text-base font-medium">System Audio</Label>
+                <p className="text-sm text-muted-foreground">
+                  Capture audio from videos or browser tabs
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={isCapturingSystemAudio}
+              onCheckedChange={onToggleSystemAudio}
+              className="data-[state=checked]:bg-amber-600"
+            />
+          </div>
+
           {/* System Audio Transcription Service */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <Monitor className="h-4 w-4 text-muted-foreground" />
-              <Label className="text-base font-medium">System Audio Service</Label>
+              <Label className="text-base font-medium">Transcription Service</Label>
             </div>
             <p className="text-sm text-muted-foreground">
-              Choose the transcription service for capturing audio from videos or browser tabs.
+              Choose the transcription service for system audio.
             </p>
             
             <RadioGroup
