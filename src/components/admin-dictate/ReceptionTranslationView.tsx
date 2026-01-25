@@ -1142,6 +1142,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         // For patient mode, accumulate without showing confirmation until they toggle back
         const isPatientMode = speakerModeRef.current === 'patient';
         
+        // CRITICAL: Set pendingSpeaker based on current mode so it's correct when sending
+        setPendingSpeaker(isPatientMode ? 'patient' : 'staff');
+        
         // Queue for confirmation (accumulate)
         setPendingTranscript(prev => {
           const newText = prev ? `${prev} ${finalTranscript}` : finalTranscript;
@@ -1152,8 +1155,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         // Only show confirmation immediately for staff mode
         // Patient mode confirmation is shown when they toggle back to staff
         if (!isPatientMode) {
-          // Set pendingSpeaker to 'staff' for staff messages
-          setPendingSpeaker('staff');
           setShowConfirmation(true);
         }
         setTranscript('');
