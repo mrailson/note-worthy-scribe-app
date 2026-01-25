@@ -104,6 +104,17 @@ const ReceptionPatientView: React.FC = () => {
     }
   }, [messages]);
 
+  // Helper: Convert Base64 to Blob URL (more reliable on mobile Safari)
+  const base64ToBlobUrl = useCallback((base64: string, mimeType = 'audio/mpeg') => {
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: mimeType });
+    return URL.createObjectURL(blob);
+  }, []);
+
   // Unlock audio on mobile - must be called from user interaction
   const unlockAudio = useCallback(async () => {
     if (audioUnlocked) return true;
@@ -118,14 +129,18 @@ const ReceptionPatientView: React.FC = () => {
         await audioContextRef.current.resume();
       }
       
-      // Play a silent audio to unlock playback on iOS
-      const silentAudio = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAbD/kwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+MYxAALqAJAAADAAAgAAAAAA/+MYxBsLqAJCAADAAAgAAAACgAAAAA=');
-      silentAudio.volume = 0.01;
-      await silentAudio.play();
-      silentAudio.pause();
+      // Play a silent buffer using Web Audio API (more reliable on iOS than MP3 data URI)
+      const ctx = audioContextRef.current;
+      if (ctx) {
+        const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+      }
       
       setAudioUnlocked(true);
-      console.log('🔊 Audio unlocked for mobile');
+      console.log('🔊 Audio unlocked for mobile via Web Audio API');
       return true;
     } catch (err) {
       console.warn('Failed to unlock audio:', err);
@@ -166,9 +181,10 @@ const ReceptionPatientView: React.FC = () => {
       const audioContent = response.data?.audioContent;
       if (!audioContent) throw new Error('No audio content returned');
 
-      // Create audio from base64 using data URI (works on all browsers including mobile Safari)
-      const audioUrl = `data:audio/mpeg;base64,${audioContent}`;
+      // Convert Base64 to Blob URL (more reliable on mobile Safari than data URI)
+      const audioUrl = base64ToBlobUrl(audioContent);
       const audio = new Audio(audioUrl);
+      audio.load(); // Explicitly load for iOS compatibility
       currentAudioRef.current = audio;
       
       // Ensure AudioContext is active (helps with iOS)
@@ -179,6 +195,7 @@ const ReceptionPatientView: React.FC = () => {
       audio.onended = () => {
         setPlayingAudioId(null);
         currentAudioRef.current = null;
+        URL.revokeObjectURL(audioUrl); // Clean up blob URL
       };
       
       audio.onerror = (e) => {
@@ -186,6 +203,7 @@ const ReceptionPatientView: React.FC = () => {
         setPlayingAudioId(null);
         setLoadingAudioId(null);
         currentAudioRef.current = null;
+        URL.revokeObjectURL(audioUrl); // Clean up blob URL
         toast({
           title: 'Audio Error',
           description: 'Could not play audio. Please try again.',
@@ -201,6 +219,7 @@ const ReceptionPatientView: React.FC = () => {
         } catch (playErr) {
           console.error('Play error:', playErr);
           setPlayingAudioId(null);
+          URL.revokeObjectURL(audioUrl);
           toast({
             title: 'Playback Error',
             description: 'Tap the screen first, then try playing audio.',
@@ -209,18 +228,12 @@ const ReceptionPatientView: React.FC = () => {
         }
       };
 
-      // Fallback: If oncanplaythrough doesn't fire quickly, try playing anyway
-      setTimeout(async () => {
-        if (loadingAudioId === messageId && audio.readyState >= 2) {
-          try {
-            setLoadingAudioId(null);
-            setPlayingAudioId(messageId);
-            await audio.play();
-          } catch (e) {
-            console.warn('Fallback play failed:', e);
-          }
+      // Fallback: If oncanplaythrough doesn't fire within 3s, reset loading state
+      setTimeout(() => {
+        if (loadingAudioId === messageId) {
+          setLoadingAudioId(null);
         }
-      }, 500);
+      }, 3000);
 
     } catch (err) {
       console.error('Audio playback error:', err);
@@ -232,7 +245,7 @@ const ReceptionPatientView: React.FC = () => {
         variant: 'destructive'
       });
     }
-  }, [playingAudioId, unlockAudio, loadingAudioId]);
+  }, [playingAudioId, unlockAudio, base64ToBlobUrl]);
 
   // Handle voice transcription from PatientVoiceRecorder
   const handleVoiceTranscription = useCallback((text: string) => {
