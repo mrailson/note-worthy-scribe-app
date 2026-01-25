@@ -214,6 +214,65 @@ const LOADING_AUDIO: Record<string, string> = {
   sk: "Načítavam zvuk...",
 };
 
+// Localised "Stop" button labels
+const STOP_AUDIO: Record<string, string> = {
+  en: "Stop",
+  ar: "إيقاف",
+  zh: "停止",
+  'zh-TW': "停止",
+  fr: "Arrêter",
+  de: "Stopp",
+  hi: "रोकें",
+  it: "Ferma",
+  es: "Parar",
+  bg: "Стоп",
+  hr: "Zaustavi",
+  cs: "Stop",
+  da: "Stop",
+  nl: "Stop",
+  el: "Διακοπή",
+  hu: "Leállítás",
+  pl: "Stop",
+  pt: "Parar",
+  ro: "Stop",
+  ru: "Стоп",
+  tr: "Durdur",
+  fa: "توقف",
+  ku: "Rawestîne",
+  ps: "ودرول",
+  ti: "ኣቋርጽ",
+  bn: "থামান",
+  ur: "روکیں",
+  pa: "ਰੋਕੋ",
+  gu: "બંધ કરો",
+  ta: "நிறுத்து",
+  te: "ఆపు",
+  kn: "ನಿಲ್ಲಿಸಿ",
+  ml: "നിർത്തുക",
+  mr: "थांबा",
+  ne: "रोक्नुहोस्",
+  uk: "Стоп",
+  vi: "Dừng",
+  th: "หยุด",
+  id: "Berhenti",
+  ms: "Berhenti",
+  tl: "Ihinto",
+  sw: "Simama",
+  am: "አቁም",
+  yo: "Dúró",
+  ig: "Kwụsị",
+  ha: "Tsaya",
+  so: "Joogso",
+  om: "Dhaabi",
+  ja: "停止",
+  ko: "중지",
+  fi: "Pysäytä",
+  sv: "Stopp",
+  no: "Stopp",
+  he: "עצור",
+  sk: "Stop",
+};
+
 // Localised modal titles for "Patient's Language"
 const MODAL_TITLES: Record<string, string> = {
   en: "Patient's Language",
@@ -565,6 +624,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [smsCopied, setSmsCopied] = useState(false);
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
   const [loadingAudio, setLoadingAudio] = useState<Record<string, boolean>>({});
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
   
   // New states for mute/pause and confirmation popup
   const [isMicPaused, setIsMicPaused] = useState(false);
@@ -659,14 +721,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   // Auto-load audio for new staff messages (but don't auto-play)
   useEffect(() => {
     // Find staff messages that don't have audio loaded yet
-    const staffMessagesNeedingAudio = messages.filter(
-      m => m.speaker === 'staff' && !audioUrls[m.id] && !loadingAudio[m.id]
-    );
-    
-    // Load audio for each (typically just the latest one)
-    staffMessagesNeedingAudio.forEach(msg => {
-      loadAudioForMessage(msg.id, msg.translatedText, patientLanguage);
-    });
+    // Note: We no longer auto-load audio - user clicks to load and play
+    // This is more reliable on iOS and saves bandwidth
   }, [messages, patientLanguage]);
 
   // Keep refs in sync with state
@@ -934,19 +990,80 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   // Ref to track currently playing audio element
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Unlock audio for mobile browsers (iOS Safari requirement)
+  const unlockAudio = useCallback(async () => {
+    if (audioUnlocked) return true;
+    
+    try {
+      // Create or resume AudioContext (required on iOS/Safari)
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+      
+      // Play a silent audio to unlock playback on iOS
+      const silentAudio = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAbD/kwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+MYxAALqAJAAADAAAgAAAAAA/+MYxBsLqAJCAADAAAgAAAACgAAAAA=');
+      silentAudio.volume = 0.01;
+      await silentAudio.play();
+      silentAudio.pause();
+      
+      setAudioUnlocked(true);
+      console.log('🔊 Audio unlocked for reception view');
+      return true;
+    } catch (err) {
+      console.warn('Failed to unlock audio:', err);
+      return false;
+    }
+  }, [audioUnlocked]);
+
   // Stop any currently playing audio
   const stopCurrentAudio = useCallback(() => {
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
       currentAudioRef.current.currentTime = 0;
       currentAudioRef.current = null;
+      setPlayingAudioId(null);
     }
   }, []);
 
-  // Load audio for a specific message and return the URL
-  const loadAudioForMessage = async (messageId: string, text: string, languageCode: string) => {
-    // If already loaded, don't reload
-    if (audioUrls[messageId]) return;
+  // Load and play audio for a specific message
+  const playAudioForMessage = async (messageId: string, text: string, languageCode: string) => {
+    // Unlock audio on first interaction (iOS requirement)
+    await unlockAudio();
+    
+    // Stop any currently playing audio
+    stopCurrentAudio();
+    
+    // If already loaded, play it directly
+    if (audioUrls[messageId]) {
+      try {
+        const audio = new Audio(audioUrls[messageId]);
+        currentAudioRef.current = audio;
+        
+        audio.onended = () => {
+          setPlayingAudioId(null);
+          currentAudioRef.current = null;
+        };
+        
+        audio.onerror = () => {
+          console.error('Audio playback error');
+          setPlayingAudioId(null);
+          currentAudioRef.current = null;
+          showToast.error('Failed to play audio');
+        };
+        
+        setPlayingAudioId(messageId);
+        await audio.play();
+      } catch (err) {
+        console.error('Playback error:', err);
+        setPlayingAudioId(null);
+        showToast.error('Failed to play audio');
+      }
+      return;
+    }
     
     // If already loading, don't start again
     if (loadingAudio[messageId]) return;
@@ -969,30 +1086,64 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         // Use Base64 Data URI directly for iOS Safari compatibility
         const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
         setAudioUrls(prev => ({ ...prev, [messageId]: audioUrl }));
-        // Audio is now loaded and ready - no auto-play, user clicks to play
+        
+        // Create audio and play it
+        const audio = new Audio(audioUrl);
+        currentAudioRef.current = audio;
+        
+        // Ensure AudioContext is active (helps with iOS)
+        if (audioContextRef.current?.state === 'suspended') {
+          await audioContextRef.current.resume();
+        }
+        
+        audio.onended = () => {
+          setPlayingAudioId(null);
+          currentAudioRef.current = null;
+        };
+        
+        audio.onerror = (e) => {
+          console.error('Audio error event:', e);
+          setPlayingAudioId(null);
+          setLoadingAudio(prev => ({ ...prev, [messageId]: false }));
+          currentAudioRef.current = null;
+          showToast.error('Failed to play audio');
+        };
+        
+        audio.oncanplaythrough = async () => {
+          try {
+            setLoadingAudio(prev => ({ ...prev, [messageId]: false }));
+            setPlayingAudioId(messageId);
+            await audio.play();
+          } catch (playErr) {
+            console.error('Play error:', playErr);
+            setPlayingAudioId(null);
+            showToast.error('Tap the screen first, then try playing audio');
+          }
+        };
+        
+        // Fallback: If oncanplaythrough doesn't fire quickly, try playing anyway
+        setTimeout(async () => {
+          if (loadingAudio[messageId] && audio.readyState >= 2) {
+            try {
+              setLoadingAudio(prev => ({ ...prev, [messageId]: false }));
+              setPlayingAudioId(messageId);
+              await audio.play();
+            } catch (e) {
+              console.warn('Fallback play failed:', e);
+            }
+          }
+        }, 500);
       } else {
         showToast.error('No audio content received');
+        setLoadingAudio(prev => ({ ...prev, [messageId]: false }));
       }
     } catch (err) {
       console.error('Audio loading error:', err);
       showToast.error('Failed to load audio');
-    } finally {
       setLoadingAudio(prev => ({ ...prev, [messageId]: false }));
     }
   };
 
-  // Handle audio play event on audio elements to ensure only one plays at a time
-  const handleAudioPlay = useCallback((event: React.SyntheticEvent<HTMLAudioElement>) => {
-    const audioElement = event.currentTarget;
-    
-    // Stop any other playing audio
-    if (currentAudioRef.current && currentAudioRef.current !== audioElement) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current.currentTime = 0;
-    }
-    
-    currentAudioRef.current = audioElement;
-  }, []);
 
   const handleDownloadReport = async () => {
     if (messages.length === 0) {
@@ -1156,7 +1307,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     const patientLanguageText = isStaffMessage ? msg.translatedText : msg.originalText;
     // For English column: staff message shows original, patient message shows translation
     const englishText = isStaffMessage ? msg.originalText : msg.translatedText;
-    const hasAudio = !!audioUrls[messageId];
     const isLoadingAudio = loadingAudio[messageId];
     const isEditing = editingMessageId === msg.id;
 
@@ -1249,39 +1399,38 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             <p className="text-lg mb-2">
               {patientLanguageText}
             </p>
-            {/* Audio player bar */}
+            {/* Audio player button */}
             <div className="mt-2">
-              {hasAudio ? (
-                <audio 
-                  controls 
-                  src={audioUrls[messageId]}
-                  className="w-full h-8"
-                  style={{ minWidth: '200px' }}
-                  onPlay={handleAudioPlay}
-                >
-                  Your browser does not support the audio element.
-                </audio>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => loadAudioForMessage(messageId, patientLanguageText, patientLanguage)}
-                  disabled={isLoadingAudio}
-                >
-                  {isLoadingAudio ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {LOADING_AUDIO[patientLanguage] || LOADING_AUDIO['en']}
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="h-4 w-4 mr-2" />
-                      {PLAY_AUDIO[patientLanguage] || PLAY_AUDIO['en']}
-                    </>
-                  )}
-                </Button>
-              )}
+              <Button
+                variant={playingAudioId === messageId ? "default" : "outline"}
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  if (playingAudioId === messageId) {
+                    stopCurrentAudio();
+                  } else {
+                    playAudioForMessage(messageId, patientLanguageText, patientLanguage);
+                  }
+                }}
+                disabled={isLoadingAudio}
+              >
+                {isLoadingAudio ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {LOADING_AUDIO[patientLanguage] || LOADING_AUDIO['en']}
+                  </>
+                ) : playingAudioId === messageId ? (
+                  <>
+                    <Pause className="h-4 w-4 mr-2" />
+                    {STOP_AUDIO[patientLanguage] || STOP_AUDIO['en']}
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="h-4 w-4 mr-2" />
+                    {PLAY_AUDIO[patientLanguage] || PLAY_AUDIO['en']}
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </div>
