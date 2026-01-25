@@ -1646,8 +1646,22 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <div className="inline-block max-w-full rounded-lg p-3 bg-primary text-primary-foreground border-2 border-primary">
-                      <p className="text-sm font-medium mb-2">📝 Confirm your message:</p>
-                      <p className="text-lg mb-3">{pendingTranscript}</p>
+                      <p className="text-sm font-medium mb-2">
+                        📝 Confirm your message: 
+                        <span className="text-xs opacity-70 ml-2">(click to edit)</span>
+                      </p>
+                      <textarea
+                        value={pendingTranscript}
+                        onChange={(e) => setPendingTranscript(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleConfirmSend();
+                          }
+                        }}
+                        className="w-full text-lg mb-3 bg-transparent border-b border-primary-foreground/30 focus:border-primary-foreground outline-none resize-none min-h-[1.5em] cursor-text hover:bg-primary-foreground/10 rounded px-1 -mx-1 transition-colors"
+                        rows={Math.max(1, Math.ceil(pendingTranscript.length / 50))}
+                      />
                       <div className="flex gap-2 justify-end">
                         <Button 
                           size="sm" 
@@ -1660,9 +1674,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                         </Button>
                         <Button 
                           size="sm" 
-                          variant="outline"
+                          variant="ghost"
                           onClick={handleAddMore}
-                          className="gap-1"
+                          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
                         >
                           <Mic className="h-4 w-4" />
                           Add More
