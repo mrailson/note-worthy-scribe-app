@@ -16,6 +16,7 @@ export interface ModuleAccess {
   cso_governance_access: boolean;
   lg_capture_access: boolean;
   bp_service_access: boolean;
+  survey_manager_access: boolean;
 }
 
 export type UserRole = 'practice_user' | 'practice_manager' | 'pcn_manager' | 'system_admin' | 'gp' | 'nurse' | 'admin_staff' | 'icb_user';
@@ -106,6 +107,10 @@ export const moduleInfo: Record<keyof ModuleAccess, { label: string; description
   bp_service_access: {
     label: 'BP Average Service',
     description: 'Blood pressure averaging calculator'
+  },
+  survey_manager_access: {
+    label: 'Survey Manager',
+    description: 'Create and manage practice surveys'
   }
 };
 
@@ -126,7 +131,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     fridge_monitoring_access: false,
     cso_governance_access: false,
     lg_capture_access: false,
-    bp_service_access: false
+    bp_service_access: false,
+    survey_manager_access: false
   },
 
   // Practice Manager - core management access (excludes Shared Drive, GP Scribe, CQC Compliance, Enhanced Access, Fridge Monitoring)
@@ -144,7 +150,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     fridge_monitoring_access: false,
     cso_governance_access: true,
     lg_capture_access: true,
-    bp_service_access: true
+    bp_service_access: true,
+    survey_manager_access: true
   },
 
   // PCN Manager - oversight across practices
@@ -162,7 +169,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     fridge_monitoring_access: false,
     cso_governance_access: true,
     lg_capture_access: false,
-    bp_service_access: false
+    bp_service_access: false,
+    survey_manager_access: true
   },
 
   // System Admin - full access to everything
@@ -180,7 +188,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     fridge_monitoring_access: true,
     cso_governance_access: true,
     lg_capture_access: true,
-    bp_service_access: true
+    bp_service_access: true,
+    survey_manager_access: true
   },
 
   // GP - clinical focus
@@ -198,7 +207,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     fridge_monitoring_access: false,
     cso_governance_access: true,
     lg_capture_access: false,
-    bp_service_access: true
+    bp_service_access: true,
+    survey_manager_access: false
   },
 
   // Nurse - clinical with limited admin
@@ -216,7 +226,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     fridge_monitoring_access: true,
     cso_governance_access: false,
     lg_capture_access: false,
-    bp_service_access: true
+    bp_service_access: true,
+    survey_manager_access: false
   },
 
   // Admin Staff - administrative focus
@@ -234,7 +245,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     fridge_monitoring_access: true,
     cso_governance_access: false,
     lg_capture_access: true,
-    bp_service_access: false
+    bp_service_access: false,
+    survey_manager_access: false
   },
 
   // ICB User - oversight and governance focus
@@ -252,7 +264,8 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     fridge_monitoring_access: false,
     cso_governance_access: true,
     lg_capture_access: false,
-    bp_service_access: false
+    bp_service_access: false,
+    survey_manager_access: false
   }
 };
 
