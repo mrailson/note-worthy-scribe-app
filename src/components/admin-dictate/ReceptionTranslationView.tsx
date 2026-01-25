@@ -1956,7 +1956,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         <div className="flex-1 text-right">
           <div className={`inline-block max-w-full rounded-lg p-3 text-left ${
             isStaffMessage 
-              ? 'bg-secondary' 
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800' 
               : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
           }`}>
             <div className="flex items-center gap-2 mb-1">
