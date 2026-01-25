@@ -646,6 +646,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   // New states for mute/pause and confirmation popup
   const [isMicPaused, setIsMicPaused] = useState(false);
   const [pendingTranscript, setPendingTranscript] = useState<string | null>(null);
+  const [pendingSpeaker, setPendingSpeaker] = useState<'staff' | 'patient'>('staff'); // Track which speaker the pending message is from
   const [showConfirmation, setShowConfirmation] = useState(false);
   
   // Inline editing state
@@ -781,7 +782,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     // If switching FROM patient mode TO staff mode, finalize the patient's accumulated transcript
     if (previousMode === 'patient' && newMode === 'staff') {
       // Combine any pending transcript + current interim into final patient message
-      const accumulatedText = pendingTranscript.trim();
+      const accumulatedText = (pendingTranscript || '').trim();
       const currentInterim = lastInterimRef.current.trim();
       const currentLiveTranscript = transcript.trim();
       
@@ -796,6 +797,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       
       if (finalPatientText) {
         console.log('📝 Finalizing patient speech:', finalPatientText);
+        // IMPORTANT: Set pendingSpeaker BEFORE changing speakerMode so confirmation shows on patient side
+        setPendingSpeaker('patient');
         setPendingTranscript(finalPatientText);
         setShowConfirmation(true);
       }
@@ -877,6 +880,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         // Only show confirmation immediately for staff mode
         // Patient mode confirmation is shown when they toggle back to staff
         if (!isPatientMode) {
+          // Set pendingSpeaker to 'staff' for staff messages
+          setPendingSpeaker('staff');
           setShowConfirmation(true);
         }
         setTranscript('');
@@ -1045,9 +1050,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   // Confirmation handlers
   const handleConfirmSend = useCallback(async () => {
     if (pendingTranscript) {
-      // Determine speaker based on current speaker mode
-      const speaker = speakerModeRef.current;
-      const result = await sendMessage(pendingTranscript, speaker);
+      // Use the tracked pendingSpeaker, not the current speakerMode
+      // This ensures patient messages are translated correctly even after mode toggle
+      const result = await sendMessage(pendingTranscript, pendingSpeaker);
       
       // Handle blocked content
       if (result.blocked) {
@@ -1064,7 +1069,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       setPendingTranscript(null);
       setShowConfirmation(false);
     }
-  }, [pendingTranscript, sendMessage]);
+  }, [pendingTranscript, pendingSpeaker, sendMessage]);
 
   const handleCancelSend = useCallback(() => {
     setPendingTranscript(null);
@@ -1757,13 +1762,13 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 </div>
               )}
 
-              {/* Confirmation UI when paused */}
+              {/* Confirmation UI when paused - use pendingSpeaker for positioning */}
               {showConfirmation && pendingTranscript && (
                 <div className="flex gap-4">
-                  {speakerMode === 'patient' && <div className="flex-1" />}
+                  {pendingSpeaker === 'patient' && <div className="flex-1" />}
                   <div className="flex-1">
                     <div className={`inline-block max-w-full rounded-lg p-3 border-2 ${
-                      speakerMode === 'patient'
+                      pendingSpeaker === 'patient'
                         ? 'bg-emerald-600 text-white dark:bg-emerald-700 border-emerald-700'
                         : 'bg-primary text-primary-foreground border-primary'
                     }`}>
@@ -1781,7 +1786,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                           }
                         }}
                         className={`w-full text-lg mb-3 bg-transparent border-b outline-none resize-none min-h-[1.5em] cursor-text rounded px-1 -mx-1 transition-colors ${
-                          speakerMode === 'patient'
+                          pendingSpeaker === 'patient'
                             ? 'border-white/30 focus:border-white hover:bg-white/10'
                             : 'border-primary-foreground/30 focus:border-primary-foreground hover:bg-primary-foreground/10'
                         }`}
@@ -1792,7 +1797,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                           size="sm" 
                           variant="ghost" 
                           onClick={handleCancelSend}
-                          className={speakerMode === 'patient' 
+                          className={pendingSpeaker === 'patient' 
                             ? "text-white hover:bg-white/20 gap-1"
                             : "text-primary-foreground hover:bg-primary-foreground/20 gap-1"
                           }
@@ -1804,7 +1809,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                           size="sm" 
                           variant="ghost"
                           onClick={handleAddMore}
-                          className={speakerMode === 'patient' 
+                          className={pendingSpeaker === 'patient' 
                             ? "text-white hover:bg-white/20 gap-1"
                             : "text-primary-foreground hover:bg-primary-foreground/20 gap-1"
                           }
@@ -1823,7 +1828,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                       </div>
                     </div>
                   </div>
-                  {speakerMode === 'staff' && <div className="flex-1" />}
+                  {pendingSpeaker === 'staff' && <div className="flex-1" />}
                 </div>
               )}
 
