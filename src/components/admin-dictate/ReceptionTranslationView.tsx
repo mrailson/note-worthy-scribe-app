@@ -2419,7 +2419,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                         <Button
                           size="sm"
                           onClick={() => {
-                            setShowConfirmation(true);
+                            // Set pendingSpeaker to match current speakerMode before sending
+                            setPendingSpeaker(speakerMode);
                             handleConfirmSend();
                           }}
                           className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
