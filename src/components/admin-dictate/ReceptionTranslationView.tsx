@@ -37,6 +37,65 @@ import { generateTranslationReportDocx } from '@/utils/generateTranslationReport
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 
+// Localised "GP Practice said" for translated messages
+const GP_PRACTICE_SAID: Record<string, string> = {
+  en: "GP Practice said:",
+  ar: "قالت العيادة:",
+  zh: "诊所说：",
+  'zh-TW': "診所說：",
+  fr: "Le cabinet médical a dit :",
+  de: "Die Praxis sagte:",
+  hi: "जीपी प्रैक्टिस ने कहा:",
+  it: "Lo studio medico ha detto:",
+  es: "La consulta médica dijo:",
+  bg: "Практиката каза:",
+  hr: "Ordinacija je rekla:",
+  cs: "Ordinace řekla:",
+  da: "Lægepraksis sagde:",
+  nl: "De huisartsenpraktijk zei:",
+  el: "Το ιατρείο είπε:",
+  hu: "A rendelő mondta:",
+  pl: "Gabinet lekarski powiedział:",
+  pt: "A clínica disse:",
+  ro: "Cabinetul medical a spus:",
+  ru: "Клиника сказала:",
+  tr: "Sağlık merkezi dedi:",
+  fa: "مطب گفت:",
+  ku: "Klînik got:",
+  ps: "کلینیک وویل:",
+  ti: "ክሊኒክ በለ:",
+  bn: "জিপি প্র্যাকটিস বলেছে:",
+  ur: "جی پی پریکٹس نے کہا:",
+  pa: "ਜੀਪੀ ਪ੍ਰੈਕਟਿਸ ਨੇ ਕਿਹਾ:",
+  gu: "જીપી પ્રેક્ટિસે કહ્યું:",
+  ta: "ஜிபி பிராக்டிஸ் கூறியது:",
+  te: "జిపి ప్రాక్టీస్ చెప్పింది:",
+  kn: "ಜಿಪಿ ಪ್ರಾಕ್ಟೀಸ್ ಹೇಳಿದ್ದು:",
+  ml: "ജിപി പ്രാക്ടീസ് പറഞ്ഞു:",
+  mr: "जीपी प्रॅक्टिस म्हणाले:",
+  ne: "जीपी प्र्याक्टिसले भन्यो:",
+  uk: "Клініка сказала:",
+  vi: "Phòng khám nói:",
+  th: "คลินิกพูดว่า:",
+  id: "Praktik dokter berkata:",
+  ms: "Klinik berkata:",
+  tl: "Sinabi ng klinika:",
+  sw: "Kliniki ilisema:",
+  am: "ክሊኒኩ እንዲህ አለ:",
+  yo: "Ilé-ìwòsàn sọ pé:",
+  ig: "Ụlọ ọgwụ kwuru:",
+  ha: "Asibitin ya ce:",
+  so: "Xarunta caafimaadka waxay tiri:",
+  om: "Kilinikiin jedhe:",
+  ja: "クリニックからのメッセージ：",
+  ko: "진료소에서 말했습니다:",
+  fi: "Vastaanotto sanoi:",
+  sv: "Vårdcentralen sa:",
+  no: "Legekontoret sa:",
+  he: "המרפאה אמרה:",
+  sk: "Ambulancia povedala:",
+};
+
 // Localised modal titles for "Patient's Language"
 const MODAL_TITLES: Record<string, string> = {
   en: "Patient's Language",
@@ -1008,7 +1067,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <div className={`inline-block max-w-full rounded-lg p-3 ${
             isStaffMessage 
               ? 'bg-primary text-primary-foreground' 
-              : 'bg-green-50 dark:bg-green-950/30 border-l-4 border-green-500'
+              : 'bg-emerald-100 dark:bg-emerald-900/40 border-l-4 border-emerald-500 text-emerald-900 dark:text-emerald-100'
           }`}>
             <div className="flex items-center justify-between gap-2 mb-1">
               <p className="text-sm font-medium">
@@ -1068,11 +1127,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <div className={`inline-block max-w-full rounded-lg p-3 text-left ${
             isStaffMessage 
               ? 'bg-secondary' 
-              : 'bg-green-100 dark:bg-green-900/30 border-l-4 border-green-500'
+              : 'bg-emerald-200 dark:bg-emerald-800/40 border-l-4 border-emerald-500 text-emerald-900 dark:text-emerald-100'
           }`}>
             <div className="flex items-center gap-2 mb-1">
               <p className="text-sm font-medium">
-                {languageInfo?.flag} {isStaffMessage ? 'Translated:' : 'Patient said:'}
+                {languageInfo?.flag} {isStaffMessage ? (GP_PRACTICE_SAID[patientLanguage] || GP_PRACTICE_SAID['en']) : 'Patient said:'}
               </p>
             </div>
             <p className="text-lg mb-2">
