@@ -111,6 +111,65 @@ const GP_PRACTICE_SAID: Record<string, string> = {
   sk: "Ambulancia povedala:",
 };
 
+// Localised "Patient said:" labels for patient messages
+const PATIENT_SAID: Record<string, string> = {
+  en: "Patient said:",
+  ar: "قال المريض:",
+  zh: "患者说：",
+  'zh-TW': "患者說：",
+  fr: "Le patient a dit :",
+  de: "Der Patient sagte:",
+  hi: "मरीज ने कहा:",
+  it: "Il paziente ha detto:",
+  es: "El paciente dijo:",
+  bg: "Пациентът каза:",
+  hr: "Pacijent je rekao:",
+  cs: "Pacient řekl:",
+  da: "Patienten sagde:",
+  nl: "De patiënt zei:",
+  el: "Ο ασθενής είπε:",
+  hu: "A páciens mondta:",
+  pl: "Pacjent powiedział:",
+  pt: "O paciente disse:",
+  ro: "Pacientul a spus:",
+  ru: "Пациент сказал:",
+  tr: "Hasta dedi:",
+  fa: "بیمار گفت:",
+  ku: "Nexweş got:",
+  ps: "ناروغ وویل:",
+  ti: "ሕሙም በለ:",
+  bn: "রোগী বলেছে:",
+  ur: "مریض نے کہا:",
+  pa: "ਮਰੀਜ਼ ਨੇ ਕਿਹਾ:",
+  gu: "દર્દીએ કહ્યું:",
+  ta: "நோயாளி கூறினார்:",
+  te: "రోగి చెప్పారు:",
+  kn: "ರೋಗಿ ಹೇಳಿದರು:",
+  ml: "രോഗി പറഞ്ഞു:",
+  mr: "रुग्ण म्हणाले:",
+  ne: "बिरामीले भन्नुभयो:",
+  uk: "Пацієнт сказав:",
+  vi: "Bệnh nhân nói:",
+  th: "ผู้ป่วยพูดว่า:",
+  id: "Pasien berkata:",
+  ms: "Pesakit berkata:",
+  tl: "Sinabi ng pasyente:",
+  sw: "Mgonjwa alisema:",
+  am: "ታካሚው አለ:",
+  yo: "Aláìsàn sọ pé:",
+  ig: "Onye ọrịa kwuru:",
+  ha: "Majinyaci ya ce:",
+  so: "Bukaanku wuxuu yiri:",
+  om: "Dhukkubsataan jedhe:",
+  ja: "患者さんが言いました：",
+  ko: "환자가 말했습니다:",
+  fi: "Potilas sanoi:",
+  sv: "Patienten sa:",
+  no: "Pasienten sa:",
+  he: "המטופל אמר:",
+  sk: "Pacient povedal:",
+};
+
 // Localised "Play Audio" button labels
 const PLAY_AUDIO: Record<string, string> = {
   en: "Play Audio",
@@ -1648,45 +1707,49 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           }`}>
             <div className="flex items-center gap-2 mb-1">
               <p className="text-sm font-medium">
-                {languageInfo?.flag} {isStaffMessage ? (GP_PRACTICE_SAID[patientLanguage] || GP_PRACTICE_SAID['en']) : 'Patient said:'}
+                {languageInfo?.flag} {isStaffMessage 
+                  ? (GP_PRACTICE_SAID[patientLanguage] || GP_PRACTICE_SAID['en']) 
+                  : (PATIENT_SAID[patientLanguage] || PATIENT_SAID['en'])}
               </p>
             </div>
             <p className="text-lg mb-2">
               {patientLanguageText}
             </p>
-            {/* Audio player button */}
-            <div className="mt-2">
-              <Button
-                variant={playingAudioId === messageId ? "default" : "outline"}
-                size="sm"
-                className="w-full"
-                onClick={() => {
-                  if (playingAudioId === messageId) {
-                    stopCurrentAudio();
-                  } else {
-                    playAudioForMessage(messageId, patientLanguageText, patientLanguage);
-                  }
-                }}
-                disabled={isLoadingAudio}
-              >
-                {isLoadingAudio ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {LOADING_AUDIO[patientLanguage] || LOADING_AUDIO['en']}
-                  </>
-                ) : playingAudioId === messageId ? (
-                  <>
-                    <Pause className="h-4 w-4 mr-2" />
-                    {STOP_AUDIO[patientLanguage] || STOP_AUDIO['en']}
-                  </>
-                ) : (
-                  <>
-                    <Volume2 className="h-4 w-4 mr-2" />
-                    {PLAY_AUDIO[patientLanguage] || PLAY_AUDIO['en']}
-                  </>
-                )}
-              </Button>
-            </div>
+            {/* Audio player button - only show for staff messages (patient messages don't need TTS) */}
+            {isStaffMessage && (
+              <div className="mt-2">
+                <Button
+                  variant={playingAudioId === messageId ? "default" : "outline"}
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    if (playingAudioId === messageId) {
+                      stopCurrentAudio();
+                    } else {
+                      playAudioForMessage(messageId, patientLanguageText, patientLanguage);
+                    }
+                  }}
+                  disabled={isLoadingAudio}
+                >
+                  {isLoadingAudio ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {LOADING_AUDIO[patientLanguage] || LOADING_AUDIO['en']}
+                    </>
+                  ) : playingAudioId === messageId ? (
+                    <>
+                      <Pause className="h-4 w-4 mr-2" />
+                      {STOP_AUDIO[patientLanguage] || STOP_AUDIO['en']}
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="h-4 w-4 mr-2" />
+                      {PLAY_AUDIO[patientLanguage] || PLAY_AUDIO['en']}
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
