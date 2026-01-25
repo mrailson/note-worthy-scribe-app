@@ -44,6 +44,8 @@ export interface PatientViewPhrases {
   recording?: string;
   transcribing?: string;
   voiceError?: string;
+  // Live voice transcription (optional with defaults)
+  tapToStop?: string;
   // Audio playback (optional with defaults)
   playAudio?: string;
   loadingAudio?: string;
@@ -68,6 +70,7 @@ const DEFAULT_VOICE_PHRASES = {
   recording: 'Recording...',
   transcribing: 'Transcribing...',
   voiceError: 'Voice input failed',
+  tapToStop: 'Tap to stop',
 };
 
 // Default audio playback translations
@@ -1172,6 +1175,7 @@ export const getPatientViewPhrases = (languageCode: string): Required<PatientVie
     recording: base.recording || DEFAULT_VOICE_PHRASES.recording,
     transcribing: base.transcribing || DEFAULT_VOICE_PHRASES.transcribing,
     voiceError: base.voiceError || DEFAULT_VOICE_PHRASES.voiceError,
+    tapToStop: base.tapToStop || DEFAULT_VOICE_PHRASES.tapToStop,
     playAudio: base.playAudio || DEFAULT_AUDIO_PHRASES.playAudio,
     loadingAudio: base.loadingAudio || DEFAULT_AUDIO_PHRASES.loadingAudio,
     playing: base.playing || DEFAULT_AUDIO_PHRASES.playing,
