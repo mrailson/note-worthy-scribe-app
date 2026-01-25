@@ -235,13 +235,13 @@ const PublicSurvey = () => {
         {/* Practice Branding Header */}
         {(showLogo || showBranding) && (
           <Card>
-            <CardContent className="py-6">
-              <div className="flex flex-col items-center text-center space-y-4">
+            <CardContent className="pt-[20px] pb-6">
+              <div className="flex flex-col items-center text-center">
                 {showLogo && (
                   <img 
                     src={logoUrl} 
                     alt="Practice Logo" 
-                    className="max-h-20 max-w-[200px] object-contain"
+                    className="max-h-20 max-w-[200px] object-contain mb-[20px]"
                   />
                 )}
                 
