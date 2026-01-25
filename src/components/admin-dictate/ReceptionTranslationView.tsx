@@ -662,6 +662,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const isStartingRef = useRef(false);
   const stoppedByUserRef = useRef(false);
   const isMicPausedRef = useRef(false);
+  const stoppingForModeChangeRef = useRef<'staff' | 'patient' | null>(null); // Track what mode we're stopping FROM
   const scrollRef = useRef<HTMLDivElement>(null);
   const speakerModeRef = useRef<'staff' | 'patient'>('staff');
   const lastInterimRef = useRef<string>(''); // Track interim to preserve on restart
@@ -814,11 +815,16 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       setTranscript('');
     }
     
-    setSpeakerMode(newMode);
-    
     // Update recognition language if it exists
     if (recognitionRef.current) {
+      // Mark that we're stopping for a mode change FROM previousMode
+      stoppingForModeChangeRef.current = previousMode;
+      
       const newLang = newMode === 'staff' ? 'en-GB' : getWebSpeechLanguageCode(patientLanguage);
+      
+      // Update mode BEFORE changing language so refs are correct for onend
+      setSpeakerMode(newMode);
+      
       recognitionRef.current.lang = newLang;
       console.log(`🌐 Speech recognition language changed to: ${newLang}`);
       
@@ -831,6 +837,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           console.warn('Error stopping recognition for language change:', e);
         }
       }
+    } else {
+      // No recognition active, just update mode
+      setSpeakerMode(newMode);
     }
   }, [patientLanguage, pendingTranscript, transcript]);
 
@@ -938,7 +947,13 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       
       // Only restart if still supposed to be listening and not stopped by user
       if (isListeningRef.current && !stoppedByUserRef.current) {
-        const isPatientMode = speakerModeRef.current === 'patient';
+        // Check if we're stopping due to a mode change - if so, use the PREVIOUS mode for preservation
+        const previousModeBeforeChange = stoppingForModeChangeRef.current;
+        const isPatientMode = previousModeBeforeChange === 'patient' || speakerModeRef.current === 'patient';
+        
+        // Clear the mode change flag after reading it
+        stoppingForModeChangeRef.current = null;
+        
         const timeSinceLastResult = Date.now() - lastResultTimeRef.current;
         
         console.log(`Speech recognition ended (${isPatientMode ? 'patient' : 'staff'} mode, ${timeSinceLastResult}ms since last result), restarting...`);
