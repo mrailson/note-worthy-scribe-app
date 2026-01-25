@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Download, BarChart3, Users, Clock, TrendingUp, Star } from 'lucide-react';
+import { ArrowLeft, Download, BarChart3, Users, Clock, TrendingUp, Star, FileText } from 'lucide-react';
 import { format, subDays, isWithinInterval } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { exportSurveyResultsToWord } from '@/utils/surveyResultsExport';
 import {
   BarChart,
   Bar,
@@ -251,6 +252,25 @@ const SurveyResults = () => {
     });
   };
 
+  const exportToWord = async () => {
+    if (!survey || !questions || !filteredResponses || !filteredAnswers) return;
+    
+    try {
+      await exportSurveyResultsToWord(survey, questions, filteredResponses, filteredAnswers);
+      toast({
+        title: 'Export complete',
+        description: 'Survey results exported to Word document',
+      });
+    } catch (error) {
+      console.error('Error exporting to Word:', error);
+      toast({
+        title: 'Export failed',
+        description: 'Failed to export survey results',
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (surveyLoading) {
     return (
       <ProtectedRoute requiredModule="survey_manager_access">
@@ -333,6 +353,10 @@ const SurveyResults = () => {
               <Button variant="outline" onClick={exportToCSV}>
                 <Download className="h-4 w-4 mr-2" />
                 Export CSV
+              </Button>
+              <Button variant="outline" onClick={exportToWord}>
+                <FileText className="h-4 w-4 mr-2" />
+                Export Word
               </Button>
             </div>
           </div>
