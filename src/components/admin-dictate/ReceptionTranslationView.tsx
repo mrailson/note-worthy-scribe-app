@@ -926,8 +926,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       let finalTranscript = '';
       let interimTranscript = '';
 
-      // Process ALL results from the beginning to capture everything
-      for (let i = 0; i < event.results.length; i++) {
+      // Only process NEW results (starting from resultIndex) to avoid duplication
+      for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
           finalTranscript += result[0].transcript + ' ';
