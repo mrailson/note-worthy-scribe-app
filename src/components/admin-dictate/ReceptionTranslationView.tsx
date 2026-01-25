@@ -1610,6 +1610,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               mode={speakerMode}
               onModeChange={handleSpeakerModeChange}
               patientLanguageName={languageInfo?.name || patientLanguage}
+              patientLanguageCode={patientLanguage}
               patientLanguageFlag={languageInfo?.flag}
               isListening={isListening && !isMicPaused}
               disabled={isConnecting}
