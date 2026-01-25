@@ -2534,7 +2534,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 <Button
                   size="lg"
                   variant={isListening ? 'destructive' : isConnecting ? 'secondary' : 'default'}
-                  className={`h-16 w-16 rounded-full ${isListening ? 'animate-pulse' : ''}`}
+                  className={`h-16 w-16 rounded-full ${isListening ? 'animate-mic-glow' : ''}`}
                   onClick={toggleListening}
                   disabled={isConnecting}
                 >
