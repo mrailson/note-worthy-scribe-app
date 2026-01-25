@@ -65,7 +65,7 @@ export const useReceptionTranslation = ({
       .on('broadcast', { event: 'session_ended' }, () => {
         setIsConnected(false);
         setPatientConnected(false);
-        setError('Session ended by staff');
+        setError('Session ended by GP Practice');
       })
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
