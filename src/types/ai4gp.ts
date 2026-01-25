@@ -42,13 +42,22 @@ export interface Message {
   generatedPresentation?: GeneratedPresentation; // PowerPoint generated from source materials
 }
 
-export interface ClinicalVerificationData {
-  confidenceScore: number; // 0-100
-  sourcesVerified: VerificationSource[];
-  llmConsensus: LLMConsensusData[];
-  verificationStatus: 'pending' | 'verified' | 'flagged';
-  riskLevel: 'low' | 'medium' | 'high';
-  evidenceSummary?: string;
+export interface ModelScores {
+  clinicalAccuracy: number;
+  bnfCompliance: number;
+  niceAlignment: number;
+  safety: number;
+  completeness: number;
+}
+
+export interface LLMConsensusData {
+  model: string;
+  service?: string;
+  scores?: ModelScores;
+  assessment: string;
+  agreementLevel: number; // 0-100
+  concerns?: string[];
+  status?: 'success' | 'failed' | 'timeout';
 }
 
 export interface VerificationSource {
@@ -56,14 +65,25 @@ export interface VerificationSource {
   url?: string;
   trustLevel: 'high' | 'medium' | 'low';
   verified: boolean;
+  contentSummary?: string;
 }
 
-export interface LLMConsensusData {
-  model: string;
-  service?: string;
-  assessment: string;
-  agreementLevel: number; // 0-100
-  concerns?: string[];
+export interface ConflictData {
+  category: string;
+  models: string[];
+  deviation: number;
+}
+
+export interface ClinicalVerificationData {
+  confidenceScore: number; // 0-100
+  sourcesVerified: VerificationSource[];
+  llmConsensus: LLMConsensusData[];
+  verificationStatus: 'pending' | 'verified' | 'flagged';
+  riskLevel: 'low' | 'medium' | 'high';
+  evidenceSummary?: string;
+  conflicts?: ConflictData[];
+  modelsUsed?: number;
+  modelsSucceeded?: number;
 }
 
 export interface UploadedFile {
