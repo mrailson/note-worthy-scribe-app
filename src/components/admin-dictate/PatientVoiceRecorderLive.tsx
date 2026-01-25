@@ -184,9 +184,13 @@ export const PatientVoiceRecorderLive: React.FC<PatientVoiceRecorderLiveProps> =
         // Show interim results as live preview
         setLiveTranscript(interimTranscript);
 
-        // When we get final results, accumulate them
+        // When we get final results, send them IMMEDIATELY to the text box (not just accumulate)
         if (finalTranscript) {
-          accumulatedTextRef.current += (accumulatedTextRef.current ? ' ' : '') + finalTranscript.trim();
+          const trimmedText = finalTranscript.trim();
+          if (trimmedText) {
+            console.log('🎤 Web Speech final (sending immediately):', trimmedText);
+            onTranscription(trimmedText); // Send to text box immediately
+          }
           setLiveTranscript(''); // Clear interim as it's now final
         }
       };
@@ -240,19 +244,17 @@ export const PatientVoiceRecorderLive: React.FC<PatientVoiceRecorderLiveProps> =
     
     setIsListening(false);
     
-    // Combine any remaining interim with accumulated final
-    const finalText = (accumulatedTextRef.current + ' ' + liveTranscript).trim();
+    // Send any remaining interim text (already-finalized text was sent immediately)
+    const remainingText = liveTranscript.trim();
     setLiveTranscript('');
     
-    if (finalText) {
-      console.log('🎤 Web Speech final text:', finalText);
-      onTranscription(finalText);
+    if (remainingText) {
+      console.log('🎤 Web Speech remaining interim text:', remainingText);
+      onTranscription(remainingText);
     }
     
     accumulatedTextRef.current = '';
   }, [liveTranscript, onTranscription]);
-
-  // Start MediaRecorder (Whisper fallback)
   const startMediaRecorder = useCallback(async () => {
     setError(null);
     audioChunksRef.current = [];
@@ -441,19 +443,14 @@ export const PatientVoiceRecorderLive: React.FC<PatientVoiceRecorderLiveProps> =
         )}
       </div>
       
-      {/* Live transcription preview for Web Speech mode */}
-      {showLivePreview && (
+      {/* Live transcription preview for Web Speech mode - only shows interim text */}
+      {showLivePreview && liveTranscript && (
         <div className="p-2 bg-secondary/50 rounded-lg border border-border/50 animate-in fade-in-0 slide-in-from-bottom-2">
           <p className="text-xs text-muted-foreground mb-1">
             {phrases.listening || 'Listening...'}
           </p>
-          <p className="text-sm leading-relaxed">
-            {accumulatedTextRef.current && (
-              <span className="text-foreground">{accumulatedTextRef.current} </span>
-            )}
-            {liveTranscript && (
-              <span className="text-muted-foreground italic">{liveTranscript}</span>
-            )}
+          <p className="text-sm leading-relaxed text-muted-foreground italic">
+            {liveTranscript}
           </p>
         </div>
       )}
