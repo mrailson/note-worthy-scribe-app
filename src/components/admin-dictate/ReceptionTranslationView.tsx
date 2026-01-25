@@ -1639,6 +1639,54 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     setEditingText('');
   }, []);
 
+  // Keyboard shortcuts for reception translation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts if user is typing in an input/textarea (except for our confirmation textarea)
+      const target = e.target as HTMLElement;
+      const isInInput = target.tagName === 'INPUT' || 
+                        (target.tagName === 'TEXTAREA' && !target.closest('[data-confirmation-textarea]'));
+      
+      // Tab to toggle speaker mode (only when not in an input)
+      if (e.key === 'Tab' && !isInInput) {
+        e.preventDefault();
+        handleSpeakerModeChange(speakerMode === 'staff' ? 'patient' : 'staff');
+        return;
+      }
+      
+      // Shortcuts that work when confirmation is showing
+      if (showConfirmation && pendingTranscript) {
+        // Spacebar or Enter to send (when not actively editing the textarea)
+        if ((e.key === ' ' || e.key === 'Enter') && !e.shiftKey) {
+          // Check if we're focused on the confirmation textarea - Enter already handled there
+          const isConfirmationTextarea = target.closest('[data-confirmation-textarea]');
+          if (e.key === ' ' || !isConfirmationTextarea) {
+            e.preventDefault();
+            handleConfirmSend();
+            return;
+          }
+        }
+        
+        // Escape to discard
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          handleCancelSend();
+          return;
+        }
+      }
+      
+      // Escape to discard pending transcript (when in "Add More" state)
+      if (e.key === 'Escape' && pendingTranscript && !showConfirmation) {
+        e.preventDefault();
+        handleCancelSend();
+        return;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showConfirmation, pendingTranscript, speakerMode, handleConfirmSend, handleCancelSend, handleSpeakerModeChange]);
+
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(patientUrl);
     setCopied(true);
@@ -2329,6 +2377,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                         <span className="text-xs opacity-70 ml-2">(click to edit)</span>
                       </p>
                       <textarea
+                        data-confirmation-textarea
                         value={pendingTranscript}
                         onChange={(e) => setPendingTranscript(e.target.value)}
                         onKeyDown={(e) => {
