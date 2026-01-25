@@ -146,7 +146,17 @@ export const useReceptionTranslation = ({
       // Check if content was blocked (400 response with blocked flag)
       if (error) {
         // Try to parse the error body if it contains blocked info
-        const errorBody = error.context?.body ? await error.context.body.text().catch(() => null) : null;
+        let errorBody: string | null = null;
+        
+        // Handle different error context formats
+        if (error.context?.body) {
+          if (typeof error.context.body === 'string') {
+            errorBody = error.context.body;
+          } else if (typeof error.context.body?.text === 'function') {
+            errorBody = await error.context.body.text().catch(() => null);
+          }
+        }
+        
         if (errorBody) {
           try {
             const parsed = JSON.parse(errorBody);
