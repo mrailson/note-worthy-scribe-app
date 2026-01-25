@@ -1897,7 +1897,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <div className={`inline-block max-w-full rounded-lg p-3 ${
             isStaffMessage 
               ? 'bg-primary text-primary-foreground' 
-              : 'bg-emerald-500 text-white dark:bg-emerald-600 border-l-4 border-emerald-700'
+              : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
           }`}>
             <div className="flex items-center justify-between gap-2 mb-1">
               <p className="text-sm font-medium">
@@ -1957,7 +1957,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <div className={`inline-block max-w-full rounded-lg p-3 text-left ${
             isStaffMessage 
               ? 'bg-secondary' 
-              : 'bg-emerald-600 text-white dark:bg-emerald-700 border-l-4 border-emerald-800'
+              : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
           }`}>
             <div className="flex items-center gap-2 mb-1">
               <p className="text-sm font-medium">
@@ -2134,7 +2134,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   <div className="flex-1">
                     <div className={`inline-block max-w-full rounded-lg p-3 animate-pulse ${
                       speakerMode === 'patient' 
-                        ? 'bg-emerald-500 text-white dark:bg-emerald-600' 
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800' 
                         : 'bg-primary/50 text-primary-foreground'
                     }`}>
                       <p className="text-sm font-medium mb-1">🎤 Listening...</p>
@@ -2152,7 +2152,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   <div className="flex-1">
                     <div className={`inline-block max-w-full rounded-lg p-3 border-2 ${
                       pendingSpeaker === 'patient'
-                        ? 'bg-emerald-600 text-white dark:bg-emerald-700 border-emerald-700'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-700'
                         : 'bg-primary text-primary-foreground border-primary'
                     }`}>
                       <p className="text-sm font-medium mb-2">
