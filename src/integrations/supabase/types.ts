@@ -8668,6 +8668,7 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           shared_drive_access: boolean | null
           show_consultation_examples: boolean | null
+          survey_manager_access: boolean | null
           translation_service_access: boolean | null
           user_id: string
         }
@@ -8694,6 +8695,7 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           shared_drive_access?: boolean | null
           show_consultation_examples?: boolean | null
+          survey_manager_access?: boolean | null
           translation_service_access?: boolean | null
           user_id: string
         }
@@ -8720,6 +8722,7 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           shared_drive_access?: boolean | null
           show_consultation_examples?: boolean | null
+          survey_manager_access?: boolean | null
           translation_service_access?: boolean | null
           user_id?: string
         }
