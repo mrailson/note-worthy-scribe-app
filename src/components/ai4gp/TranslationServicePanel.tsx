@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, Languages, Plus } from 'lucide-react';
+import { X, Languages, Plus, History } from 'lucide-react';
 import { LiveTranslationSetupModal } from '@/components/admin-dictate/LiveTranslationSetupModal';
 import { ReceptionTranslationView } from '@/components/admin-dictate/ReceptionTranslationView';
+import { TranslationHistoryPanel } from './TranslationHistoryPanel';
 
 interface TranslationServicePanelProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface TranslationServicePanelProps {
 
 export const TranslationServicePanel: React.FC<TranslationServicePanelProps> = ({ onClose }) => {
   const [showSetupModal, setShowSetupModal] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
   const [translationSession, setTranslationSession] = useState<{
     id: string;
     token: string;
@@ -55,6 +57,15 @@ export const TranslationServicePanel: React.FC<TranslationServicePanelProps> = (
     );
   }
 
+  // Show history panel
+  if (showHistory) {
+    return (
+      <Card className="flex flex-col h-full border-0 shadow-none">
+        <TranslationHistoryPanel onBack={() => setShowHistory(false)} />
+      </Card>
+    );
+  }
+
   return (
     <Card className="flex flex-col h-full border-0 shadow-none">
       <CardHeader className="flex-shrink-0 border-b px-4 py-3">
@@ -64,9 +75,20 @@ export const TranslationServicePanel: React.FC<TranslationServicePanelProps> = (
             <CardTitle className="text-lg">Translation Service</CardTitle>
           </div>
           
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowHistory(true)}
+              className="gap-2"
+            >
+              <History className="w-4 h-4" />
+              History
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
