@@ -17,6 +17,7 @@ export interface ServiceVisibility {
   fridge_monitoring: boolean;
   lg_capture: boolean;
   bp_service: boolean;
+  survey_manager: boolean;
 }
 
 const defaultVisibility: ServiceVisibility = {
@@ -34,6 +35,7 @@ const defaultVisibility: ServiceVisibility = {
   fridge_monitoring: true,
   lg_capture: true,
   bp_service: true,
+  survey_manager: true,
 };
 
 export const useServiceVisibility = () => {

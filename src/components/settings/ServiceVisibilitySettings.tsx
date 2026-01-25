@@ -25,6 +25,7 @@ interface ServiceVisibility {
   fridge_monitoring: boolean;
   lg_capture: boolean;
   bp_service: boolean;
+  survey_manager: boolean;
 }
 
 const defaultVisibility: ServiceVisibility = {
@@ -42,6 +43,7 @@ const defaultVisibility: ServiceVisibility = {
   fridge_monitoring: true,
   lg_capture: true,
   bp_service: true,
+  survey_manager: true,
 };
 
 // Service config with access check keys
@@ -60,6 +62,7 @@ const serviceConfig = [
   { key: 'fridge_monitoring', label: 'Fridge Monitoring', icon: Thermometer, accessKey: 'fridge_monitoring_access' },
   { key: 'lg_capture', label: 'LG Capture', icon: FileText, accessKey: 'lg_capture' },
   { key: 'bp_service', label: 'BP Average Service', icon: Heart, accessKey: 'bp_service' },
+  { key: 'survey_manager', label: 'Survey Manager', icon: FileText, accessKey: 'survey_manager_access' },
 ] as const;
 
 export const ServiceVisibilitySettings = () => {
