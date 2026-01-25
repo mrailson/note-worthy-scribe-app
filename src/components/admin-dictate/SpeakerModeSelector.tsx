@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { User, Users, ChevronDown } from 'lucide-react';
+import { User, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Localised "Patient" labels in native languages
@@ -163,7 +163,8 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
             variant={mode === 'staff' ? 'default' : 'outline'}
             className={cn(
               "h-auto py-3 px-4 flex flex-col gap-1 min-w-[110px] transition-all",
-              mode === 'staff' && isListening && "ring-2 ring-primary ring-offset-2"
+              mode === 'staff' && "shadow-[0_0_15px_rgba(59,130,246,0.5)] border-blue-400",
+              mode === 'staff' && isListening && "ring-2 ring-primary ring-offset-2 shadow-[0_0_20px_rgba(59,130,246,0.7)]"
             )}
             onClick={() => onModeChange('staff')}
             disabled={disabled}
@@ -174,10 +175,6 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
               <div className="text-xs opacity-70">🇬🇧 English</div>
             </div>
           </Button>
-          {/* Arrow indicator for active mode */}
-          {mode === 'staff' && (
-            <ChevronDown className="h-5 w-5 text-primary animate-bounce mt-1" />
-          )}
         </div>
         
         {/* Centre: Mic button slot (passed as children) */}
@@ -191,8 +188,8 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
             variant={mode === 'patient' ? 'default' : 'outline'}
             className={cn(
               "h-auto py-3 px-4 flex flex-col gap-1 min-w-[110px] transition-all",
-              mode === 'patient' && "bg-emerald-600 hover:bg-emerald-700 text-white",
-              mode === 'patient' && isListening && "ring-2 ring-emerald-400 ring-offset-2"
+              mode === 'patient' && "bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)] border-emerald-400",
+              mode === 'patient' && isListening && "ring-2 ring-emerald-400 ring-offset-2 shadow-[0_0_20px_rgba(16,185,129,0.7)]"
             )}
             onClick={() => onModeChange('patient')}
             disabled={disabled}
@@ -203,10 +200,6 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
               <div className="text-xs opacity-70">{patientLanguageFlag} {nativeLanguageName}</div>
             </div>
           </Button>
-          {/* Arrow indicator for active mode */}
-          {mode === 'patient' && (
-            <ChevronDown className="h-5 w-5 text-emerald-500 animate-bounce mt-1" />
-          )}
         </div>
 
         {/* RIGHT: Translation badge slot - always same width */}
