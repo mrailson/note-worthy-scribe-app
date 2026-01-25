@@ -17,6 +17,7 @@ export class BrowserSpeechTranscriber {
   private chunkCounter = 0;
   private restartTimeout: NodeJS.Timeout | null = null;
   private isRestarting = false;
+  private isiOSDevice = false;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -31,12 +32,13 @@ export class BrowserSpeechTranscriber {
 
   async startTranscription() {
     try {
-      // Check for iOS/iPhone specifically
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      // Check for iOS/iPhone specifically - iOS Safari doesn't support continuous mode
+      this.isiOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
       const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
       
       console.log('🔍 Device detection:', { 
-        isIOS, 
+        isIOS: this.isiOSDevice, 
         isSafari, 
         userAgent: navigator.userAgent.substring(0, 100) 
       });
@@ -58,14 +60,17 @@ export class BrowserSpeechTranscriber {
       console.log('🚀 Starting browser speech recognition...');
 
       this.recognition = new SpeechRecognition();
-      this.recognition.continuous = true;
+      
+      // iOS Safari doesn't support continuous mode - it causes immediate failure
+      // For iOS, we disable continuous and handle auto-restart in onend
+      this.recognition.continuous = !this.isiOSDevice;
       this.recognition.interimResults = true;
-      this.recognition.lang = 'en-US';
+      this.recognition.lang = 'en-GB';
 
       this.recognition.onstart = () => {
         this.isRecording = true;
         this.onStatusChange('Recording');
-        console.log('✅ Speech recognition started');
+        console.log('✅ Speech recognition started, continuous:', !this.isiOSDevice);
       };
 
       this.recognition.onresult = (event) => {
@@ -164,11 +169,27 @@ export class BrowserSpeechTranscriber {
       };
 
       this.recognition.onend = () => {
-        if (this.isRecording && !this.isRestarting && !this.isPaused) {
-          console.log('🔄 Speech recognition ended, restarting...');
-          this.scheduleRestart();
+        console.log('🔄 Speech recognition ended, isRecording:', this.isRecording, 'iOS:', this.isiOSDevice);
+        
+        if (this.isRecording && !this.isPaused) {
+          // On iOS, restart immediately to simulate continuous mode
+          if (this.isiOSDevice && this.recognition) {
+            console.log('🔄 iOS: Restarting recognition immediately');
+            try {
+              this.recognition.start();
+              return;
+            } catch (e) {
+              console.log('🔄 iOS: Could not restart immediately, scheduling restart');
+            }
+          }
+          
+          // For non-iOS or if immediate restart failed, use scheduled restart
+          if (!this.isRestarting) {
+            console.log('🔄 Scheduling restart...');
+            this.scheduleRestart();
+          }
         } else {
-          console.log('🛑 Speech recognition ended (stopped by user, paused, or restart in progress)');
+          console.log('🛑 Speech recognition ended (stopped by user or paused)');
         }
       };
 
