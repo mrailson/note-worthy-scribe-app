@@ -96,6 +96,124 @@ const GP_PRACTICE_SAID: Record<string, string> = {
   sk: "Ambulancia povedala:",
 };
 
+// Localised "Play Audio" button labels
+const PLAY_AUDIO: Record<string, string> = {
+  en: "Play Audio",
+  ar: "تشغيل الصوت",
+  zh: "播放音频",
+  'zh-TW': "播放音頻",
+  fr: "Lire l'audio",
+  de: "Audio abspielen",
+  hi: "ऑडियो चलाएं",
+  it: "Riproduci audio",
+  es: "Reproducir audio",
+  bg: "Пусни аудио",
+  hr: "Reproduciraj audio",
+  cs: "Přehrát zvuk",
+  da: "Afspil lyd",
+  nl: "Audio afspelen",
+  el: "Αναπαραγωγή ήχου",
+  hu: "Hang lejátszása",
+  pl: "Odtwórz dźwięk",
+  pt: "Reproduzir áudio",
+  ro: "Redare audio",
+  ru: "Воспроизвести",
+  tr: "Sesi çal",
+  fa: "پخش صدا",
+  ku: "Dengê lêxin",
+  ps: "غږ غږول",
+  ti: "ድምጺ ኣጻውት",
+  bn: "অডিও চালান",
+  ur: "آڈیو چلائیں",
+  pa: "ਆਡੀਓ ਚਲਾਓ",
+  gu: "ઓડિયો ચલાવો",
+  ta: "ஆடியோ இயக்கு",
+  te: "ఆడియో ప్లే చేయండి",
+  kn: "ಆಡಿಯೋ ಪ್ಲೇ ಮಾಡಿ",
+  ml: "ഓഡിയോ പ്ലേ ചെയ്യുക",
+  mr: "ऑडिओ प्ले करा",
+  ne: "अडियो बजाउनुहोस्",
+  uk: "Відтворити аудіо",
+  vi: "Phát âm thanh",
+  th: "เล่นเสียง",
+  id: "Putar audio",
+  ms: "Main audio",
+  tl: "I-play ang audio",
+  sw: "Cheza sauti",
+  am: "ድምፅ አጫውት",
+  yo: "Ṣí ohùn",
+  ig: "Kpọọ ọdịyo",
+  ha: "Kunna sauti",
+  so: "Dhagayso codka",
+  om: "Sagalee taphachiisi",
+  ja: "音声を再生",
+  ko: "오디오 재생",
+  fi: "Toista ääni",
+  sv: "Spela ljud",
+  no: "Spill av lyd",
+  he: "נגן שמע",
+  sk: "Prehrať zvuk",
+};
+
+// Localised "Loading audio..." labels
+const LOADING_AUDIO: Record<string, string> = {
+  en: "Loading audio...",
+  ar: "جاري تحميل الصوت...",
+  zh: "加载音频中...",
+  'zh-TW': "載入音頻中...",
+  fr: "Chargement audio...",
+  de: "Audio wird geladen...",
+  hi: "ऑडियो लोड हो रहा है...",
+  it: "Caricamento audio...",
+  es: "Cargando audio...",
+  bg: "Зареждане на аудио...",
+  hr: "Učitavanje zvuka...",
+  cs: "Načítání zvuku...",
+  da: "Indlæser lyd...",
+  nl: "Audio laden...",
+  el: "Φόρτωση ήχου...",
+  hu: "Hang betöltése...",
+  pl: "Ładowanie dźwięku...",
+  pt: "Carregando áudio...",
+  ro: "Se încarcă audio...",
+  ru: "Загрузка аудио...",
+  tr: "Ses yükleniyor...",
+  fa: "در حال بارگذاری صدا...",
+  ku: "Deng tê barkirin...",
+  ps: "غږ لوډ کیږي...",
+  ti: "ድምጺ ይጽዕን ኣሎ...",
+  bn: "অডিও লোড হচ্ছে...",
+  ur: "آڈیو لوڈ ہو رہا ہے...",
+  pa: "ਆਡੀਓ ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...",
+  gu: "ઓડિયો લોડ થઈ રહ્યો છે...",
+  ta: "ஆடியோ ஏற்றப்படுகிறது...",
+  te: "ఆడియో లోడ్ అవుతోంది...",
+  kn: "ಆಡಿಯೋ ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
+  ml: "ഓഡിയോ ലോഡുചെയ്യുന്നു...",
+  mr: "ऑडिओ लोड होत आहे...",
+  ne: "अडियो लोड हुँदैछ...",
+  uk: "Завантаження аудіо...",
+  vi: "Đang tải âm thanh...",
+  th: "กำลังโหลดเสียง...",
+  id: "Memuat audio...",
+  ms: "Memuatkan audio...",
+  tl: "Naglo-load ng audio...",
+  sw: "Inapakia sauti...",
+  am: "ድምፅ በመጫን ላይ...",
+  yo: "Ń gbé ohùn...",
+  ig: "Na-ebugo ọdịyo...",
+  ha: "Ana loda sauti...",
+  so: "Codka ayaa la soo dejinayaa...",
+  om: "Sagaleen fe'amaa jira...",
+  ja: "音声を読み込み中...",
+  ko: "오디오 로드 중...",
+  fi: "Ladataan ääntä...",
+  sv: "Laddar ljud...",
+  no: "Laster lyd...",
+  he: "טוען שמע...",
+  sk: "Načítavam zvuk...",
+};
+
 // Localised modal titles for "Patient's Language"
 const MODAL_TITLES: Record<string, string> = {
   en: "Patient's Language",
@@ -848,14 +966,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       if (error) throw error;
       
       if (data?.audioContent) {
-        // Convert base64 to Blob URL for better browser compatibility
-        const binaryString = atob(data.audioContent);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const audioBlob = new Blob([bytes], { type: 'audio/mpeg' });
-        const audioUrl = URL.createObjectURL(audioBlob);
+        // Use Base64 Data URI directly for iOS Safari compatibility
+        const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
         setAudioUrls(prev => ({ ...prev, [messageId]: audioUrl }));
         // Audio is now loaded and ready - no auto-play, user clicks to play
       } else {
@@ -1160,12 +1272,12 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   {isLoadingAudio ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Loading audio...
+                      {LOADING_AUDIO[patientLanguage] || LOADING_AUDIO['en']}
                     </>
                   ) : (
                     <>
                       <Volume2 className="h-4 w-4 mr-2" />
-                      Load Audio
+                      {PLAY_AUDIO[patientLanguage] || PLAY_AUDIO['en']}
                     </>
                   )}
                 </Button>
