@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, QrCode, Link2, BarChart3, Edit, Pause, Play, Archive, Copy, ExternalLink } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Plus, Search, QrCode, BarChart3, Edit, Pause, Play, Archive, Copy, ExternalLink, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { QRCodeModal } from '@/components/survey/QRCodeModal';
@@ -105,6 +106,50 @@ const Surveys = () => {
       toast({
         title: 'Success',
         description: `Survey ${newStatus === 'active' ? 'activated' : newStatus}`,
+      });
+      refetch();
+    }
+  };
+
+  const handleDeleteSurvey = async (surveyId: string) => {
+    // Delete questions first (foreign key constraint)
+    await supabase.from('survey_answers').delete().eq('question_id', surveyId);
+    
+    const { error: questionsError } = await supabase
+      .from('survey_questions')
+      .delete()
+      .eq('survey_id', surveyId);
+
+    if (questionsError) {
+      console.error('Error deleting questions:', questionsError);
+    }
+
+    // Delete responses
+    const { error: responsesError } = await supabase
+      .from('survey_responses')
+      .delete()
+      .eq('survey_id', surveyId);
+
+    if (responsesError) {
+      console.error('Error deleting responses:', responsesError);
+    }
+
+    // Delete the survey
+    const { error } = await supabase
+      .from('surveys')
+      .delete()
+      .eq('id', surveyId);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete survey',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Survey deleted',
+        description: 'The survey has been permanently removed',
       });
       refetch();
     }
@@ -271,7 +316,7 @@ const Surveys = () => {
                           Activate
                         </Button>
                       ) : null}
-                      {survey.status !== 'closed' && (
+                      {survey.status !== 'closed' ? (
                         <Button
                           variant="outline"
                           size="sm"
@@ -280,6 +325,36 @@ const Surveys = () => {
                           <Archive className="h-3.5 w-3.5 mr-1" />
                           Close
                         </Button>
+                      ) : (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-1" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Survey</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to permanently delete "{survey.title}"? This will also delete all {survey.response_count} response{survey.response_count !== 1 ? 's' : ''}. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteSurvey(survey.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       )}
                       <Button
                         variant="outline"
