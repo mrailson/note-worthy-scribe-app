@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSurveyImport, ImportedQuestion, ImportResult } from '@/hooks/useSurveyImport';
 import { useDropzone } from 'react-dropzone';
 import { 
@@ -159,7 +158,7 @@ export function SurveyImportModal({ open, onOpenChange, onImport, currentTitle }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Import Survey Questions</DialogTitle>
           <DialogDescription>
@@ -202,7 +201,7 @@ export function SurveyImportModal({ open, onOpenChange, onImport, currentTitle }
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col min-h-0 space-y-4">
+          <div className="flex-1 flex flex-col min-h-0 space-y-4 overflow-hidden">
             {/* Title Editor */}
             <div className="space-y-2">
               <Label htmlFor="import-title">Survey Title</Label>
@@ -228,7 +227,7 @@ export function SurveyImportModal({ open, onOpenChange, onImport, currentTitle }
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
+            <div className="flex-1 min-h-0 -mx-6 px-6 overflow-y-auto ios-scroll">
               <div className="space-y-3 pb-4">
                 {editingQuestions.length === 0 ? (
                   <div className="text-center py-8 border-2 border-dashed rounded-lg">
@@ -362,7 +361,7 @@ export function SurveyImportModal({ open, onOpenChange, onImport, currentTitle }
                   ))
                 )}
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Actions */}
             <div className="flex items-center justify-between pt-4 border-t">
