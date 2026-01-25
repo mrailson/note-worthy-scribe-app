@@ -297,13 +297,9 @@ ${entityLabel} Name: ${practiceContext.practiceName}`;
         prompt += `\nUser Email: ${practiceContext.userEmail}`;
       }
       
-      if (practiceContext.userRole) {
-        prompt += `\nUser Role: ${practiceContext.userRole}`;
-      }
-      
-      if (practiceContext.userRoles && practiceContext.userRoles.length > 1) {
-        prompt += `\nAll User Roles: ${practiceContext.userRoles.join(', ')}`;
-      }
+      // Note: We intentionally don't include the raw system role (e.g., system_admin, gp_admin)
+      // in the prompt as it's an internal identifier. The user's professional title from their
+      // profile should be used for any clinician signatures instead.
       
       if (practiceContext.practiceManagerName) {
         prompt += `\n${isGPPractice ? 'Practice' : 'Organisation'} Manager: ${practiceContext.practiceManagerName}`;
