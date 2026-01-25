@@ -163,7 +163,7 @@ export const useGammaPowerPoint = () => {
       const requestBody: Record<string, unknown> = {
         topic,
         supportingContent,
-        slideCount: 10,
+        slideCount: 4,
         presentationType: 'Professional Healthcare Presentation',
         audience: 'healthcare professionals'
       };

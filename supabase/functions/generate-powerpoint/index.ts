@@ -43,7 +43,7 @@ serve(async (req) => {
       throw new Error('Claude API key not configured');
     }
 
-    const { topic, presentationType, slideCount = 10, complexityLevel = 'intermediate', templateId, supportingFiles = [] }: PresentationRequest = await req.json();
+    const { topic, presentationType, slideCount = 4, complexityLevel = 'intermediate', templateId, supportingFiles = [] }: PresentationRequest = await req.json();
 
     console.log(`Generating PowerPoint for topic: ${topic}, type: ${presentationType}, with ${supportingFiles.length} supporting files`);
 
@@ -136,9 +136,17 @@ Keep bullet points concise (maximum 4 per slide). Use professional British Engli
           - Each bullet must be concise and actionable
           - Each slide MUST include an "imageDescription" field describing a professional visual
           
+          CRITICAL DATA INTEGRITY RULES:
+          - ONLY use statistics, percentages, numbers, dates, and metrics that are EXPLICITLY present in the source content
+          - NEVER invent, estimate, or fabricate any numerical data, statistics, or percentages
+          - If specific data is not provided, use qualitative descriptions (e.g., "significant improvement" not "87% improvement")
+          - Do NOT add example figures or placeholder statistics
+          - If content lacks data for a metrics slide, use qualitative summary points instead
+          - All facts and figures MUST come directly from the provided source content
+          
           For Executive Overview presentations:
           - Focus on strategic value and business impact
-          - Include data/metrics from documents where available
+          - Include data/metrics from documents ONLY when explicitly provided in source content
           - Clear slide types: "executive-summary", "key-metrics", "insights", "recommendations", "next-steps"
           
           Return ONLY valid JSON with this exact structure:

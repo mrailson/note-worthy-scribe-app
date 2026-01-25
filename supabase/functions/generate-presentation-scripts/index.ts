@@ -53,6 +53,12 @@ Create narration scripts for each slide that:
 - Use appropriate medical/healthcare terminology
 - Are engaging and educational for healthcare professionals
 
+CRITICAL DATA INTEGRITY RULES:
+- ONLY reference statistics, percentages, numbers, and data that are EXPLICITLY present in the source content above
+- NEVER invent, estimate, or fabricate any numerical data or statistics
+- If specific data is not available, use qualitative language instead (e.g., "notable improvement" not made-up percentages)
+- All facts must come directly from the provided source content
+
 Return your response as valid JSON only (no markdown, no code blocks), in this exact format:
 {
   "scripts": [

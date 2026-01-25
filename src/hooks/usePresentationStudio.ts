@@ -55,7 +55,7 @@ const DEFAULT_SETTINGS: PresentationStudioSettings = {
   customFooterText: '',
   
   // Slides Configuration
-  slideCount: 10,
+  slideCount: 4,
   slideTypes: DEFAULT_SLIDE_TYPES,
   complexityLevel: 'intermediate',
   generateImages: false,

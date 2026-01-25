@@ -104,7 +104,7 @@ serve(async (req) => {
     const { 
       topic, 
       presentationType = 'Professional Presentation',
-      slideCount = 10,
+      slideCount = 4,
       customInstructions,
       audience = 'healthcare professionals',
       branding,
@@ -190,7 +190,10 @@ serve(async (req) => {
     }
 
     // Build additional instructions
-    let additionalInstructions = `Use British English spelling and terminology throughout. Target audience: ${audience}. Use professional, clean design. Include data visualisations where appropriate. Each slide should have a clear, actionable message.`;
+    let additionalInstructions = `Use British English spelling and terminology throughout. Target audience: ${audience}. Use professional, clean design. Each slide should have a clear, actionable message.`;
+
+    // CRITICAL: Add strict content-fidelity rules to prevent fabrication
+    additionalInstructions += ` CRITICAL DATA INTEGRITY RULES: 1) ONLY use statistics, percentages, numbers, dates, and metrics that are EXPLICITLY present in the provided content. 2) NEVER invent, estimate, or fabricate any numerical data, statistics, or percentages. 3) If specific data is not provided, use qualitative descriptions instead (e.g., "significant improvement" rather than inventing "87% improvement"). 4) Do not add example figures or placeholder statistics. 5) If the content lacks sufficient data for a metrics slide, use qualitative summary points instead. 6) All facts must come directly from the source content provided.`;
 
     if (customInstructions) {
       additionalInstructions += ` Additional requirements: ${customInstructions}`;
