@@ -135,47 +135,40 @@ export const useReceptionTranslation = ({
     targetLanguage: string
   ): Promise<TranslationResult> => {
     try {
-      const { data, error } = await supabase.functions.invoke('translate-text', {
-        body: {
-          text,
-          targetLanguage,
-          sourceLanguage
+      // Use fetch directly to get access to response body on error
+      const response = await fetch(
+        `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/translate-text`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'}`,
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+          },
+          body: JSON.stringify({
+            text,
+            targetLanguage,
+            sourceLanguage
+          })
         }
-      });
+      );
+
+      const data = await response.json();
 
       // Check if content was blocked (400 response with blocked flag)
-      if (error) {
-        // Try to parse the error body if it contains blocked info
-        let errorBody: string | null = null;
-        
-        // Handle different error context formats
-        if (error.context?.body) {
-          if (typeof error.context.body === 'string') {
-            errorBody = error.context.body;
-          } else if (typeof error.context.body?.text === 'function') {
-            errorBody = await error.context.body.text().catch(() => null);
-          }
+      if (!response.ok) {
+        if (data?.blocked) {
+          return {
+            translatedText: text,
+            blocked: true,
+            reason: data.reason,
+            flaggedTerms: data.flaggedTerms
+          };
         }
-        
-        if (errorBody) {
-          try {
-            const parsed = JSON.parse(errorBody);
-            if (parsed.blocked) {
-              return {
-                translatedText: text,
-                blocked: true,
-                reason: parsed.reason,
-                flaggedTerms: parsed.flaggedTerms
-              };
-            }
-          } catch {
-            // Not JSON, continue with normal error handling
-          }
-        }
-        throw error;
+        throw new Error(data?.error || 'Translation failed');
       }
 
-      // Check if data indicates blocked content
+      // Check if data indicates blocked content (in case status was 200 with blocked flag)
       if (data?.blocked) {
         return {
           translatedText: text,
