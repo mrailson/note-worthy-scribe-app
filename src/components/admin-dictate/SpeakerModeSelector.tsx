@@ -142,6 +142,9 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
   
   return (
     <div className="flex flex-col items-center gap-4">
+      {/* Blue glow line above speaker controls */}
+      <div className="w-[80%] h-[2px] bg-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.6),0_0_30px_rgba(59,130,246,0.3)] rounded-full" />
+      
       {/* Horizontal row: [Badge] [Receptionist] [Mic Controls] [Patient] [Badge] */}
       {/* Both badge slots always rendered with fixed width to keep mic centred */}
       <div className="flex items-start gap-4">
