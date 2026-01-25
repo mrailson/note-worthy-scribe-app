@@ -38,11 +38,16 @@ export interface PatientViewPhrases {
   sending?: string;
   emailSent?: string;
   emailError?: string;
+  cancel?: string;
   // Voice input (optional with defaults)
   tapToSpeak?: string;
   recording?: string;
   transcribing?: string;
   voiceError?: string;
+  // Audio playback (optional with defaults)
+  playAudio?: string;
+  loadingAudio?: string;
+  playing?: string;
 }
 
 // Default email translations for languages that don't have them
@@ -54,6 +59,7 @@ const DEFAULT_EMAIL_PHRASES = {
   sending: 'Sending...',
   emailSent: 'Email sent successfully',
   emailError: 'Failed to send email',
+  cancel: 'Cancel',
 };
 
 // Default voice input translations
@@ -62,6 +68,13 @@ const DEFAULT_VOICE_PHRASES = {
   recording: 'Recording...',
   transcribing: 'Transcribing...',
   voiceError: 'Voice input failed',
+};
+
+// Default audio playback translations
+const DEFAULT_AUDIO_PHRASES = {
+  playAudio: 'Play Audio',
+  loadingAudio: 'Loading...',
+  playing: 'Playing...',
 };
 
 export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
@@ -100,6 +113,10 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sending: 'Sending...',
     emailSent: 'Email sent successfully',
     emailError: 'Failed to send email',
+    cancel: 'Cancel',
+    playAudio: 'Play Audio',
+    loadingAudio: 'Loading...',
+    playing: 'Playing...',
   },
   pl: {
     speakNow: 'Mów teraz',
@@ -136,6 +153,10 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sending: 'Wysyłanie...',
     emailSent: 'E-mail wysłany pomyślnie',
     emailError: 'Nie udało się wysłać e-maila',
+    cancel: 'Anuluj',
+    playAudio: 'Odtwórz dźwięk',
+    loadingAudio: 'Ładowanie...',
+    playing: 'Odtwarzanie...',
   },
   ro: {
     speakNow: 'Vorbiți acum',
@@ -165,6 +186,17 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'Sesiunea nu a fost găsită sau a expirat',
     sessionEnded: 'Această sesiune s-a încheiat',
     invalidLink: 'Link de sesiune invalid',
+    cancel: 'Anulează',
+    playAudio: 'Redă audio',
+    loadingAudio: 'Se încarcă...',
+    playing: 'Se redă...',
+    emailChat: 'Trimite-mi acest chat',
+    emailChatDescription: 'Primește o copie a acestei conversații',
+    yourEmail: 'Adresa ta de e-mail',
+    sendCopy: 'Trimite copie',
+    sending: 'Se trimite...',
+    emailSent: 'E-mail trimis cu succes',
+    emailError: 'Trimiterea e-mailului a eșuat',
   },
   ar: {
     speakNow: 'تحدث الآن',
@@ -194,6 +226,17 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'الجلسة غير موجودة أو انتهت صلاحيتها',
     sessionEnded: 'انتهت هذه الجلسة',
     invalidLink: 'رابط الجلسة غير صالح',
+    cancel: 'إلغاء',
+    playAudio: 'تشغيل الصوت',
+    loadingAudio: 'جار التحميل...',
+    playing: 'جار التشغيل...',
+    emailChat: 'أرسل لي هذه المحادثة',
+    emailChatDescription: 'احصل على نسخة من هذه المحادثة',
+    yourEmail: 'عنوان بريدك الإلكتروني',
+    sendCopy: 'إرسال نسخة',
+    sending: 'جار الإرسال...',
+    emailSent: 'تم إرسال البريد الإلكتروني بنجاح',
+    emailError: 'فشل إرسال البريد الإلكتروني',
   },
   hi: {
     speakNow: 'अभी बोलें',
@@ -223,6 +266,17 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'सत्र नहीं मिला या समाप्त हो गया',
     sessionEnded: 'यह सत्र समाप्त हो गया है',
     invalidLink: 'अमान्य सत्र लिंक',
+    cancel: 'रद्द करें',
+    playAudio: 'ऑडियो चलाएं',
+    loadingAudio: 'लोड हो रहा है...',
+    playing: 'चल रहा है...',
+    emailChat: 'मुझे यह चैट ईमेल करें',
+    emailChatDescription: 'इस बातचीत की एक प्रति प्राप्त करें',
+    yourEmail: 'आपका ईमेल पता',
+    sendCopy: 'प्रति भेजें',
+    sending: 'भेजा जा रहा है...',
+    emailSent: 'ईमेल सफलतापूर्वक भेजा गया',
+    emailError: 'ईमेल भेजने में विफल',
   },
   ur: {
     speakNow: 'اب بولیں',
@@ -252,6 +306,17 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'سیشن نہیں ملا یا ختم ہو گیا',
     sessionEnded: 'یہ سیشن ختم ہو گیا ہے',
     invalidLink: 'غلط سیشن لنک',
+    cancel: 'منسوخ',
+    playAudio: 'آڈیو چلائیں',
+    loadingAudio: 'لوڈ ہو رہا ہے...',
+    playing: 'چل رہا ہے...',
+    emailChat: 'مجھے یہ چیٹ ای میل کریں',
+    emailChatDescription: 'اس گفتگو کی ایک کاپی حاصل کریں',
+    yourEmail: 'آپ کا ای میل پتہ',
+    sendCopy: 'کاپی بھیجیں',
+    sending: 'بھیجا جا رہا ہے...',
+    emailSent: 'ای میل کامیابی سے بھیج دی گئی',
+    emailError: 'ای میل بھیجنے میں ناکام',
   },
   pa: {
     speakNow: 'ਹੁਣੇ ਬੋਲੋ',
@@ -281,6 +346,17 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'ਸੈਸ਼ਨ ਨਹੀਂ ਮਿਲਿਆ ਜਾਂ ਮਿਆਦ ਪੁੱਗ ਗਈ',
     sessionEnded: 'ਇਹ ਸੈਸ਼ਨ ਖਤਮ ਹੋ ਗਿਆ ਹੈ',
     invalidLink: 'ਅਵੈਧ ਸੈਸ਼ਨ ਲਿੰਕ',
+    cancel: 'ਰੱਦ ਕਰੋ',
+    playAudio: 'ਆਡੀਓ ਚਲਾਓ',
+    loadingAudio: 'ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...',
+    playing: 'ਚੱਲ ਰਿਹਾ ਹੈ...',
+    emailChat: 'ਮੈਨੂੰ ਇਹ ਚੈਟ ਈਮੇਲ ਕਰੋ',
+    emailChatDescription: 'ਇਸ ਗੱਲਬਾਤ ਦੀ ਇੱਕ ਕਾਪੀ ਪ੍ਰਾਪਤ ਕਰੋ',
+    yourEmail: 'ਤੁਹਾਡਾ ਈਮੇਲ ਪਤਾ',
+    sendCopy: 'ਕਾਪੀ ਭੇਜੋ',
+    sending: 'ਭੇਜਿਆ ਜਾ ਰਿਹਾ ਹੈ...',
+    emailSent: 'ਈਮੇਲ ਸਫਲਤਾਪੂਰਵਕ ਭੇਜੀ ਗਈ',
+    emailError: 'ਈਮੇਲ ਭੇਜਣ ਵਿੱਚ ਅਸਫਲ',
   },
   bn: {
     speakNow: 'এখন বলুন',
@@ -310,6 +386,17 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'সেশন পাওয়া যায়নি বা মেয়াদ শেষ হয়ে গেছে',
     sessionEnded: 'এই সেশন শেষ হয়ে গেছে',
     invalidLink: 'অবৈধ সেশন লিংক',
+    cancel: 'বাতিল',
+    playAudio: 'অডিও চালান',
+    loadingAudio: 'লোড হচ্ছে...',
+    playing: 'চলছে...',
+    emailChat: 'আমাকে এই চ্যাট ইমেইল করুন',
+    emailChatDescription: 'এই কথোপকথনের একটি অনুলিপি পান',
+    yourEmail: 'আপনার ইমেইল ঠিকানা',
+    sendCopy: 'অনুলিপি পাঠান',
+    sending: 'পাঠানো হচ্ছে...',
+    emailSent: 'ইমেইল সফলভাবে পাঠানো হয়েছে',
+    emailError: 'ইমেইল পাঠাতে ব্যর্থ',
   },
   es: {
     speakNow: 'Hable ahora',
@@ -339,6 +426,17 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'Sesión no encontrada o expirada',
     sessionEnded: 'Esta sesión ha terminado',
     invalidLink: 'Enlace de sesión inválido',
+    cancel: 'Cancelar',
+    playAudio: 'Reproducir audio',
+    loadingAudio: 'Cargando...',
+    playing: 'Reproduciendo...',
+    emailChat: 'Enviarme este chat',
+    emailChatDescription: 'Recibe una copia de esta conversación',
+    yourEmail: 'Tu correo electrónico',
+    sendCopy: 'Enviar copia',
+    sending: 'Enviando...',
+    emailSent: 'Correo enviado con éxito',
+    emailError: 'Error al enviar el correo',
   },
   pt: {
     speakNow: 'Fale agora',
@@ -368,6 +466,17 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'Sessão não encontrada ou expirada',
     sessionEnded: 'Esta sessão terminou',
     invalidLink: 'Link de sessão inválido',
+    cancel: 'Cancelar',
+    playAudio: 'Reproduzir áudio',
+    loadingAudio: 'Carregando...',
+    playing: 'Reproduzindo...',
+    emailChat: 'Enviar-me este chat',
+    emailChatDescription: 'Receba uma cópia desta conversa',
+    yourEmail: 'Seu endereço de e-mail',
+    sendCopy: 'Enviar cópia',
+    sending: 'Enviando...',
+    emailSent: 'E-mail enviado com sucesso',
+    emailError: 'Falha ao enviar e-mail',
   },
   fr: {
     speakNow: 'Parlez maintenant',
@@ -397,6 +506,17 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'Session non trouvée ou expirée',
     sessionEnded: 'Cette session est terminée',
     invalidLink: 'Lien de session invalide',
+    cancel: 'Annuler',
+    playAudio: 'Lire l\'audio',
+    loadingAudio: 'Chargement...',
+    playing: 'Lecture...',
+    emailChat: 'M\'envoyer ce chat',
+    emailChatDescription: 'Recevoir une copie de cette conversation',
+    yourEmail: 'Votre adresse e-mail',
+    sendCopy: 'Envoyer une copie',
+    sending: 'Envoi...',
+    emailSent: 'E-mail envoyé avec succès',
+    emailError: 'Échec de l\'envoi de l\'e-mail',
   },
   de: {
     speakNow: 'Sprechen Sie jetzt',
@@ -426,6 +546,17 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: 'Sitzung nicht gefunden oder abgelaufen',
     sessionEnded: 'Diese Sitzung ist beendet',
     invalidLink: 'Ungültiger Sitzungslink',
+    cancel: 'Abbrechen',
+    playAudio: 'Audio abspielen',
+    loadingAudio: 'Laden...',
+    playing: 'Wird abgespielt...',
+    emailChat: 'Diesen Chat per E-Mail senden',
+    emailChatDescription: 'Eine Kopie dieser Unterhaltung erhalten',
+    yourEmail: 'Ihre E-Mail-Adresse',
+    sendCopy: 'Kopie senden',
+    sending: 'Wird gesendet...',
+    emailSent: 'E-Mail erfolgreich gesendet',
+    emailError: 'E-Mail konnte nicht gesendet werden',
   },
   it: {
     speakNow: 'Parla ora',
@@ -571,6 +702,17 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     sessionNotFound: '会话未找到或已过期',
     sessionEnded: '此会话已结束',
     invalidLink: '无效的会话链接',
+    cancel: '取消',
+    playAudio: '播放音频',
+    loadingAudio: '加载中...',
+    playing: '播放中...',
+    emailChat: '发送此聊天到我的邮箱',
+    emailChatDescription: '接收此对话的副本',
+    yourEmail: '您的电子邮件地址',
+    sendCopy: '发送副本',
+    sending: '发送中...',
+    emailSent: '邮件发送成功',
+    emailError: '邮件发送失败',
   },
   vi: {
     speakNow: 'Hãy nói ngay',
@@ -1020,9 +1162,13 @@ export const getPatientViewPhrases = (languageCode: string): Required<PatientVie
     sending: base.sending || DEFAULT_EMAIL_PHRASES.sending,
     emailSent: base.emailSent || DEFAULT_EMAIL_PHRASES.emailSent,
     emailError: base.emailError || DEFAULT_EMAIL_PHRASES.emailError,
+    cancel: base.cancel || DEFAULT_EMAIL_PHRASES.cancel,
     tapToSpeak: base.tapToSpeak || DEFAULT_VOICE_PHRASES.tapToSpeak,
     recording: base.recording || DEFAULT_VOICE_PHRASES.recording,
     transcribing: base.transcribing || DEFAULT_VOICE_PHRASES.transcribing,
     voiceError: base.voiceError || DEFAULT_VOICE_PHRASES.voiceError,
+    playAudio: base.playAudio || DEFAULT_AUDIO_PHRASES.playAudio,
+    loadingAudio: base.loadingAudio || DEFAULT_AUDIO_PHRASES.loadingAudio,
+    playing: base.playing || DEFAULT_AUDIO_PHRASES.playing,
   };
 };
