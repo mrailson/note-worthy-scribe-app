@@ -97,6 +97,12 @@ export const PatientVoiceRecorderLive: React.FC<PatientVoiceRecorderLiveProps> =
   const streamRef = useRef<MediaStream | null>(null);
   const accumulatedTextRef = useRef<string>('');
 
+  // Detect iOS for special handling
+  const isIOS = useCallback((): boolean => {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }, []);
+
   // Check Web Speech API support and language availability
   const isWebSpeechSupported = useCallback((): boolean => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -113,8 +119,8 @@ export const PatientVoiceRecorderLive: React.FC<PatientVoiceRecorderLiveProps> =
     const webSpeechLang = getWebSpeechLang(language);
     const canUseWebSpeech = isWebSpeechSupported() && !!webSpeechLang;
     setUseWebSpeech(canUseWebSpeech);
-    console.log(`🎤 PatientVoiceRecorderLive: Language ${language} → Web Speech: ${canUseWebSpeech}`);
-  }, [language, isWebSpeechSupported, getWebSpeechLang]);
+    console.log(`🎤 PatientVoiceRecorderLive: Language ${language} → Web Speech: ${canUseWebSpeech}, iOS: ${isIOS()}`);
+  }, [language, isWebSpeechSupported, getWebSpeechLang, isIOS]);
 
   // Get the best supported MIME type for Whisper fallback
   const getSupportedMimeType = useCallback((): string => {
@@ -141,22 +147,25 @@ export const PatientVoiceRecorderLive: React.FC<PatientVoiceRecorderLiveProps> =
     accumulatedTextRef.current = '';
 
     try {
-      // Request mic permission first
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
 
       const webSpeechLang = getWebSpeechLang(language);
       recognition.lang = webSpeechLang || 'en-GB';
-      recognition.continuous = true;
+      
+      // iOS Safari doesn't support continuous mode - it causes immediate failure
+      // Also, interimResults can be problematic on iOS
+      const isiOSDevice = isIOS();
+      recognition.continuous = !isiOSDevice;
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
+      console.log(`🎤 Starting Web Speech: lang=${recognition.lang}, continuous=${recognition.continuous}, iOS=${isiOSDevice}`);
+
       recognition.onstart = () => {
         setIsListening(true);
-        console.log('🎤 Web Speech started, lang:', recognition.lang);
+        console.log('🎤 Web Speech started successfully');
       };
 
       recognition.onresult = (event: any) => {
@@ -183,26 +192,44 @@ export const PatientVoiceRecorderLive: React.FC<PatientVoiceRecorderLiveProps> =
       };
 
       recognition.onerror = (event: any) => {
-        console.error('🎤 Web Speech error:', event.error);
+        console.error('🎤 Web Speech error:', event.error, event);
         if (event.error === 'not-allowed') {
           setError(phrases.voiceError || 'Microphone permission denied');
+          setIsListening(false);
+        } else if (event.error === 'network') {
+          // iOS Safari often returns network error - fall back to Whisper
+          console.log('🎤 Network error on iOS, may need fallback');
+          setError(phrases.voiceError || 'Voice recognition unavailable');
+          setIsListening(false);
         } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
           setError(phrases.voiceError || 'Voice recognition error');
         }
       };
 
       recognition.onend = () => {
-        console.log('🎤 Web Speech ended');
-        // Recognition ended - don't restart, user will stop manually
+        console.log('🎤 Web Speech ended, isListening was:', isListening);
+        // On iOS, recognition ends after each phrase - restart if still listening
+        if (isiOSDevice && recognitionRef.current && isListening) {
+          console.log('🎤 iOS: Restarting recognition');
+          try {
+            recognition.start();
+          } catch (e) {
+            console.log('🎤 iOS: Could not restart, user stopped');
+            setIsListening(false);
+          }
+        }
       };
 
+      // Start recognition directly - don't request mic permission separately on iOS
+      // as this breaks the user gesture chain
       recognition.start();
+      
     } catch (err: any) {
       console.error('🎤 Failed to start Web Speech:', err);
       setError(phrases.voiceError || 'Could not access microphone');
       setIsListening(false);
     }
-  }, [language, getWebSpeechLang, phrases.voiceError]);
+  }, [language, getWebSpeechLang, phrases.voiceError, isIOS, isListening]);
 
   // Stop Web Speech and send accumulated text
   const stopWebSpeech = useCallback(() => {
