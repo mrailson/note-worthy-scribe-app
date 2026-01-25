@@ -1152,7 +1152,12 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
 };
 
 export const getPatientViewPhrases = (languageCode: string): Required<PatientViewPhrases> => {
-  const base = PATIENT_VIEW_TRANSLATIONS[languageCode] || PATIENT_VIEW_TRANSLATIONS.en;
+  // Normalise locale codes (e.g. zh-CN, zh_CN) to our translation keys (e.g. zh)
+  const raw = (languageCode || 'en').toLowerCase();
+  const direct = PATIENT_VIEW_TRANSLATIONS[raw];
+  const primary = raw.split(/[-_]/)[0];
+  const base = direct || PATIENT_VIEW_TRANSLATIONS[primary] || PATIENT_VIEW_TRANSLATIONS.en;
+
   return {
     ...base,
     emailChat: base.emailChat || DEFAULT_EMAIL_PHRASES.emailChat,
