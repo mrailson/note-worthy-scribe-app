@@ -990,25 +990,42 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   // Ref to track currently playing audio element
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  const base64ToBlobUrl = useCallback((base64: string, mimeType = 'audio/mpeg') => {
+    // Convert base64 -> Blob URL (more reliable than huge data: URIs on iOS/desktop)
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: mimeType });
+    return URL.createObjectURL(blob);
+  }, []);
+
   // Unlock audio for mobile browsers (iOS Safari requirement)
   const unlockAudio = useCallback(async () => {
     if (audioUnlocked) return true;
     
     try {
-      // Create or resume AudioContext (required on iOS/Safari)
+      // Create/resume AudioContext (required on iOS/Safari)
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return false;
+
       if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContextRef.current = new AudioCtx();
       }
-      
+
       if (audioContextRef.current.state === 'suspended') {
         await audioContextRef.current.resume();
       }
-      
-      // Play a silent audio to unlock playback on iOS
-      const silentAudio = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAbD/kwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+MYxAALqAJAAADAAAgAAAAAA/+MYxBsLqAJCAADAAAgAAAACgAAAAA=');
-      silentAudio.volume = 0.01;
-      await silentAudio.play();
-      silentAudio.pause();
+
+      // Unlock via Web Audio silent buffer (avoids NotSupportedError from silent MP3 data URIs)
+      const ctx = audioContextRef.current;
+      const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+      source.stop(ctx.currentTime + 0.01);
       
       setAudioUnlocked(true);
       console.log('🔊 Audio unlocked for reception view');
@@ -1042,6 +1059,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       try {
         const audio = new Audio(audioUrls[messageId]);
         currentAudioRef.current = audio;
+
+        // Some browsers won't fire canplaythrough for blob/data URIs reliably unless load() is called
+        audio.preload = 'auto';
+        audio.load();
         
         audio.onended = () => {
           setPlayingAudioId(null);
@@ -1083,13 +1104,22 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       if (error) throw error;
       
       if (data?.audioContent) {
-        // Use Base64 Data URI directly for iOS Safari compatibility
-        const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
-        setAudioUrls(prev => ({ ...prev, [messageId]: audioUrl }));
+        // Blob URL is more reliable than huge data: URIs across iOS + desktop
+        const audioUrl = base64ToBlobUrl(data.audioContent, 'audio/mpeg');
+        setAudioUrls(prev => {
+          const existing = prev[messageId];
+          if (existing?.startsWith('blob:')) {
+            try { URL.revokeObjectURL(existing); } catch { /* ignore */ }
+          }
+          return { ...prev, [messageId]: audioUrl };
+        });
         
         // Create audio and play it
         const audio = new Audio(audioUrl);
         currentAudioRef.current = audio;
+
+        audio.preload = 'auto';
+        audio.load();
         
         // Ensure AudioContext is active (helps with iOS)
         if (audioContextRef.current?.state === 'suspended') {
@@ -1109,9 +1139,27 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           showToast.error('Failed to play audio');
         };
         
+        let settled = false;
+        const settle = () => {
+          if (settled) return;
+          settled = true;
+          setLoadingAudio(prev => ({ ...prev, [messageId]: false }));
+        };
+
+        // Failsafe: avoid a permanently greyed-out button if canplay/error never fires
+        const failsafe = window.setTimeout(() => {
+          if (!settled) {
+            console.warn('Audio load timed out');
+            settle();
+            setPlayingAudioId(null);
+            currentAudioRef.current = null;
+            showToast.error('Failed to play audio');
+          }
+        }, 8000);
+
         audio.oncanplaythrough = async () => {
           try {
-            setLoadingAudio(prev => ({ ...prev, [messageId]: false }));
+            settle();
             setPlayingAudioId(messageId);
             await audio.play();
           } catch (playErr) {
@@ -1121,11 +1169,28 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           }
         };
         
-        // Fallback: If oncanplaythrough doesn't fire quickly, try playing anyway
-        setTimeout(async () => {
-          if (loadingAudio[messageId] && audio.readyState >= 2) {
+        audio.onerror = (e) => {
+          console.error('Audio error event:', e);
+          window.clearTimeout(failsafe);
+          settle();
+          setPlayingAudioId(null);
+          currentAudioRef.current = null;
+          showToast.error('Failed to play audio');
+        };
+
+        audio.onended = () => {
+          window.clearTimeout(failsafe);
+          settle();
+          setPlayingAudioId(null);
+          currentAudioRef.current = null;
+        };
+
+        // Fallback: if canplaythrough doesn't fire quickly, try once audio has enough data
+        window.setTimeout(async () => {
+          if (settled) return;
+          if (audio.readyState >= 2) {
             try {
-              setLoadingAudio(prev => ({ ...prev, [messageId]: false }));
+              settle();
               setPlayingAudioId(messageId);
               await audio.play();
             } catch (e) {
