@@ -50,6 +50,10 @@ export interface PatientViewPhrases {
   playAudio?: string;
   loadingAudio?: string;
   playing?: string;
+  // Offensive language moderation (optional with defaults)
+  blockedTitle?: string;
+  blockedMessage?: string;
+  editMessage?: string;
 }
 
 // Default email translations for languages that don't have them
@@ -78,6 +82,13 @@ const DEFAULT_AUDIO_PHRASES = {
   playAudio: 'Play Audio',
   loadingAudio: 'Loading...',
   playing: 'Playing...',
+};
+
+// Default moderation translations
+const DEFAULT_MODERATION_PHRASES = {
+  blockedTitle: 'Message Blocked',
+  blockedMessage: 'This message contains language that cannot be sent. Please rephrase your message.',
+  editMessage: 'Edit Message',
 };
 
 export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
@@ -1179,5 +1190,8 @@ export const getPatientViewPhrases = (languageCode: string): Required<PatientVie
     playAudio: base.playAudio || DEFAULT_AUDIO_PHRASES.playAudio,
     loadingAudio: base.loadingAudio || DEFAULT_AUDIO_PHRASES.loadingAudio,
     playing: base.playing || DEFAULT_AUDIO_PHRASES.playing,
+    blockedTitle: base.blockedTitle || DEFAULT_MODERATION_PHRASES.blockedTitle,
+    blockedMessage: base.blockedMessage || DEFAULT_MODERATION_PHRASES.blockedMessage,
+    editMessage: base.editMessage || DEFAULT_MODERATION_PHRASES.editMessage,
   };
 };
