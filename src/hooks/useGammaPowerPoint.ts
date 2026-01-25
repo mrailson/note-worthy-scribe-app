@@ -149,11 +149,14 @@ export const useGammaPowerPoint = () => {
     return { topic, supportingContent };
   };
 
-  const generateWithGamma = async (content: string, title?: string, storeInCloud = true): Promise<GenerationResult> => {
+  const generateWithGamma = async (content: string, title?: string, storeInCloud = true, slideCount = 4): Promise<GenerationResult> => {
     if (!content?.trim()) {
       toast.error('No content to generate presentation from');
       return { success: false, error: 'No content provided' };
     }
+
+    // Clamp slide count between 4 and 10
+    const validSlideCount = Math.min(10, Math.max(4, slideCount));
 
     setIsGenerating(true);
 
@@ -163,7 +166,7 @@ export const useGammaPowerPoint = () => {
       const requestBody: Record<string, unknown> = {
         topic,
         supportingContent,
-        slideCount: 4,
+        slideCount: validSlideCount,
         presentationType: 'Professional Healthcare Presentation',
         audience: 'healthcare professionals'
       };

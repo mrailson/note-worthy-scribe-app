@@ -76,6 +76,15 @@ const AI4GPService = () => {
   const queryClient = useQueryClient();
   const { generateWithGamma, isGenerating: isPowerPointGenerating } = useGammaPowerPoint();
   const { generateFullPresentation, isGenerating: isFullPowerPointGenerating, currentPhase } = useGammaPowerPointWithVoiceover();
+
+  // Wrapper functions for PowerPoint export that match expected signatures
+  const handleExportPowerPoint = (content: string, title?: string, slideCount?: number) => {
+    generateWithGamma(content, title, true, slideCount || 4);
+  };
+  
+  const handleExportPowerPointWithVoiceover = (content: string, title?: string, slideCount?: number) => {
+    generateFullPresentation(content, title, 'JBFqnCBsd6RMkjVDRZzb', slideCount || 4);
+  };
   
   // Disclaimer management
   const { showDisclaimer, disclaimerCollapsed, updateCollapsedPreference, loading: disclaimerLoading, hideDisclaimer } = useAI4GPDisclaimer();
@@ -816,8 +825,8 @@ const AI4GPService = () => {
                         expandedMessage={expandedMessage}
                         setExpandedMessage={setExpandedMessage}
                         onExportWord={generateWordDocument}
-                        onExportPowerPoint={generateWithGamma}
-                        onExportPowerPointWithVoiceover={generateFullPresentation}
+                        onExportPowerPoint={handleExportPowerPoint}
+                        onExportPowerPointWithVoiceover={handleExportPowerPointWithVoiceover}
                         showResponseMetrics={showResponseMetrics}
                         showRenderTimes={showRenderTimes}
                         showAIService={showAIService}
@@ -898,8 +907,8 @@ const AI4GPService = () => {
                   message={expandedMessage}
                   onExpandMessage={() => {}}
                   onExportWord={generateWordDocument}
-                  onExportPowerPoint={generateWithGamma}
-                  onExportPowerPointWithVoiceover={generateFullPresentation}
+                  onExportPowerPoint={handleExportPowerPoint}
+                  onExportPowerPointWithVoiceover={handleExportPowerPointWithVoiceover}
                   isModal={true} // Hide avatar and scroll arrow in modal
                   onCloseModal={() => setExpandedMessage(null)} // Close modal function
                   showResponseMetrics={showResponseMetrics}

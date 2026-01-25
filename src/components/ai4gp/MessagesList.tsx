@@ -13,8 +13,8 @@ interface MessagesListProps {
   expandedMessage: Message | null;
   setExpandedMessage: (message: Message | null) => void;
   onExportWord?: (content: string, title?: string) => void;
-  onExportPowerPoint?: (content: string, title?: string) => void;
-  onExportPowerPointWithVoiceover?: (content: string, title?: string) => void;
+  onExportPowerPoint?: (content: string, title?: string, slideCount?: number) => void;
+  onExportPowerPointWithVoiceover?: (content: string, title?: string, slideCount?: number) => void;
   showResponseMetrics?: boolean;
   showRenderTimes?: boolean;
   showAIService?: boolean;
