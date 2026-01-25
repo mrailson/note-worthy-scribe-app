@@ -5,13 +5,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Loader2, Languages, WifiOff, Mail } from 'lucide-react';
+import { Send, Loader2, Languages, WifiOff, Mail, ShieldX } from 'lucide-react';
 import { useReceptionTranslation } from '@/hooks/useReceptionTranslation';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { PatientEmailChatModal } from '@/components/admin-dictate/PatientEmailChatModal';
 import { PatientVoiceRecorderLive } from '@/components/admin-dictate/PatientVoiceRecorderLive';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const ReceptionPatientView: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -26,6 +35,7 @@ const ReceptionPatientView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showBlockedDialog, setShowBlockedDialog] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const langCode = sessionData?.patient_language || 'en';
@@ -104,8 +114,18 @@ const ReceptionPatientView: React.FC = () => {
 
   const handleSend = async () => {
     if (!inputText.trim()) return;
-    await sendMessage(inputText.trim());
-    setInputText('');
+    const result = await sendMessage(inputText.trim());
+    
+    // Handle blocked content - don't clear input, show dialog
+    if (result?.blocked) {
+      setShowBlockedDialog(true);
+      return;
+    }
+    
+    // Only clear input if message was sent successfully
+    if (result?.success !== false) {
+      setInputText('');
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -296,6 +316,30 @@ const ReceptionPatientView: React.FC = () => {
         phrases={phrases}
         languageName={languageInfo?.name || 'Unknown'}
       />
+
+      {/* Blocked Content Alert */}
+      <AlertDialog open={showBlockedDialog} onOpenChange={setShowBlockedDialog}>
+        <AlertDialogContent className="border-destructive">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <ShieldX className="h-5 w-5" />
+              {phrases.blockedTitle || 'Message Blocked'}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  {phrases.blockedMessage || 'This message contains language that cannot be sent. Please rephrase your message.'}
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowBlockedDialog(false)}>
+              {phrases.editMessage || 'Edit Message'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
