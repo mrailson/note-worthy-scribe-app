@@ -1670,23 +1670,33 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               )}
 
               {/* Live transcript (partial - still speaking) - only show for staff mode */}
-              {transcript && !isMicPaused && speakerMode === 'staff' && (
+              {transcript && !isMicPaused && (
                 <div className="flex gap-4">
+                  {speakerMode === 'patient' && <div className="flex-1" />}
                   <div className="flex-1">
-                    <div className="inline-block max-w-full rounded-lg p-3 bg-primary/50 text-primary-foreground animate-pulse">
+                    <div className={`inline-block max-w-full rounded-lg p-3 animate-pulse ${
+                      speakerMode === 'patient' 
+                        ? 'bg-emerald-500 text-white dark:bg-emerald-600' 
+                        : 'bg-primary/50 text-primary-foreground'
+                    }`}>
                       <p className="text-sm font-medium mb-1">🎤 Listening...</p>
                       <p className="text-lg">{transcript}</p>
                     </div>
                   </div>
-                  <div className="flex-1" />
+                  {speakerMode === 'staff' && <div className="flex-1" />}
                 </div>
               )}
 
               {/* Confirmation UI when paused */}
               {showConfirmation && pendingTranscript && (
                 <div className="flex gap-4">
+                  {speakerMode === 'patient' && <div className="flex-1" />}
                   <div className="flex-1">
-                    <div className="inline-block max-w-full rounded-lg p-3 bg-primary text-primary-foreground border-2 border-primary">
+                    <div className={`inline-block max-w-full rounded-lg p-3 border-2 ${
+                      speakerMode === 'patient'
+                        ? 'bg-emerald-600 text-white dark:bg-emerald-700 border-emerald-700'
+                        : 'bg-primary text-primary-foreground border-primary'
+                    }`}>
                       <p className="text-sm font-medium mb-2">
                         📝 Confirm your message: 
                         <span className="text-xs opacity-70 ml-2">(click to edit)</span>
@@ -1700,7 +1710,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                             handleConfirmSend();
                           }
                         }}
-                        className="w-full text-lg mb-3 bg-transparent border-b border-primary-foreground/30 focus:border-primary-foreground outline-none resize-none min-h-[1.5em] cursor-text hover:bg-primary-foreground/10 rounded px-1 -mx-1 transition-colors"
+                        className={`w-full text-lg mb-3 bg-transparent border-b outline-none resize-none min-h-[1.5em] cursor-text rounded px-1 -mx-1 transition-colors ${
+                          speakerMode === 'patient'
+                            ? 'border-white/30 focus:border-white hover:bg-white/10'
+                            : 'border-primary-foreground/30 focus:border-primary-foreground hover:bg-primary-foreground/10'
+                        }`}
                         rows={Math.max(1, Math.ceil(pendingTranscript.length / 50))}
                       />
                       <div className="flex gap-2 justify-end">
@@ -1708,7 +1722,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                           size="sm" 
                           variant="ghost" 
                           onClick={handleCancelSend}
-                          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
+                          className={speakerMode === 'patient' 
+                            ? "text-white hover:bg-white/20 gap-1"
+                            : "text-primary-foreground hover:bg-primary-foreground/20 gap-1"
+                          }
                         >
                           <XCircle className="h-4 w-4" />
                           Discard
@@ -1717,7 +1734,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                           size="sm" 
                           variant="ghost"
                           onClick={handleAddMore}
-                          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
+                          className={speakerMode === 'patient' 
+                            ? "text-white hover:bg-white/20 gap-1"
+                            : "text-primary-foreground hover:bg-primary-foreground/20 gap-1"
+                          }
                         >
                           <Mic className="h-4 w-4" />
                           Add More
@@ -1733,20 +1753,25 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                       </div>
                     </div>
                   </div>
-                  <div className="flex-1" />
+                  {speakerMode === 'staff' && <div className="flex-1" />}
                 </div>
               )}
 
               {/* Show pending text even when continuing to listen (after "Add More") */}
               {pendingTranscript && !showConfirmation && (
                 <div className="flex gap-4">
+                  {speakerMode === 'patient' && <div className="flex-1" />}
                   <div className="flex-1">
-                    <div className="inline-block max-w-full rounded-lg p-3 bg-primary/30 text-primary-foreground border border-primary/50">
+                    <div className={`inline-block max-w-full rounded-lg p-3 border ${
+                      speakerMode === 'patient'
+                        ? 'bg-emerald-500/30 text-emerald-900 dark:text-emerald-100 border-emerald-500/50'
+                        : 'bg-primary/30 text-primary-foreground border-primary/50'
+                    }`}>
                       <p className="text-sm font-medium mb-1 opacity-70">📝 Queued (keep speaking...)</p>
                       <p className="text-lg opacity-80">{pendingTranscript}</p>
                     </div>
                   </div>
-                  <div className="flex-1" />
+                  {speakerMode === 'staff' && <div className="flex-1" />}
                 </div>
               )}
 
