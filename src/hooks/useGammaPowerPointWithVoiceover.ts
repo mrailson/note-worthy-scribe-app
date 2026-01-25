@@ -75,7 +75,7 @@ export const useGammaPowerPointWithVoiceover = () => {
         body: {
           topic,
           content: supportingContent,
-          slideCount: 10
+          slideCount: 4
         }
       });
 
