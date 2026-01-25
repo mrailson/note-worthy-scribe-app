@@ -228,7 +228,7 @@ export function SurveyImportModal({ open, onOpenChange, onImport, currentTitle }
               </Button>
             </div>
 
-            <ScrollArea className="flex-1 min-h-0 max-h-[40vh] -mx-6 px-6">
+            <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
               <div className="space-y-3 pb-4">
                 {editingQuestions.length === 0 ? (
                   <div className="text-center py-8 border-2 border-dashed rounded-lg">
