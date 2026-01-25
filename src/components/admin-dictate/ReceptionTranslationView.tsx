@@ -28,10 +28,18 @@ import {
   AlertTriangle,
   ShieldX,
   Monitor,
-  MonitorOff
+  MonitorOff,
+  ChevronDown
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AssemblyRealtimeClient } from '@/lib/assembly-realtime';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useReceptionTranslation, TranslationMessage, ContentWarning } from '@/hooks/useReceptionTranslation';
 import {
   AlertDialog,
@@ -722,10 +730,12 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [isSystemAudioMode, setIsSystemAudioMode] = useState(false);
   const [isCapturingSystemAudio, setIsCapturingSystemAudio] = useState(false);
   const [systemAudioTranscript, setSystemAudioTranscript] = useState('');
+  const [systemAudioService, setSystemAudioService] = useState<'whisper' | 'assemblyai'>('whisper');
   const systemAudioStreamRef = useRef<MediaStream | null>(null);
   const systemAudioRecorderRef = useRef<MediaRecorder | null>(null);
   const systemAudioChunksRef = useRef<Blob[]>([]);
   const systemAudioIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const assemblyClientRef = useRef<AssemblyRealtimeClient | null>(null);
   
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef(false);
@@ -1155,7 +1165,124 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     }
   }, [isMicPaused]);
 
-  // System audio capture for testing with videos
+  // System audio capture for testing with videos (supports Whisper batch and AssemblyAI real-time)
+  const startSystemAudioCaptureWhisper = useCallback(async (audioStream: MediaStream) => {
+    // Set up MediaRecorder for Whisper batch transcription
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+      ? 'audio/webm;codecs=opus' 
+      : 'audio/webm';
+    
+    const recorder = new MediaRecorder(audioStream, { mimeType });
+    systemAudioRecorderRef.current = recorder;
+    systemAudioChunksRef.current = [];
+    
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        systemAudioChunksRef.current.push(e.data);
+      }
+    };
+    
+    recorder.start(5000); // Collect data every 5 seconds
+    
+    // Set up periodic transcription (every 10 seconds)
+    systemAudioIntervalRef.current = setInterval(async () => {
+      if (systemAudioChunksRef.current.length > 0) {
+        const chunks = [...systemAudioChunksRef.current];
+        systemAudioChunksRef.current = [];
+        
+        const audioBlob = new Blob(chunks, { type: mimeType });
+        
+        // Transcribe using Whisper
+        try {
+          const formData = new FormData();
+          formData.append('file', audioBlob, 'audio.webm');
+          formData.append('model', 'whisper-1');
+          formData.append('language', speakerModeRef.current === 'staff' ? 'en' : patientLanguage);
+          
+          const { data, error } = await supabase.functions.invoke('whisper-transcribe', {
+            body: formData
+          });
+          
+          if (error) {
+            console.error('Whisper transcription error:', error);
+            return;
+          }
+          
+          const text = data?.text?.trim();
+          if (text && text.length > 3) {
+            console.log('🎬 Whisper system audio transcription:', text);
+            setSystemAudioTranscript(prev => prev ? `${prev} ${text}` : text);
+            
+            // Queue for confirmation
+            const isPatientMode = speakerModeRef.current === 'patient';
+            setPendingSpeaker(isPatientMode ? 'patient' : 'staff');
+            setPendingTranscript(prev => prev ? `${prev} ${text}` : text);
+            
+            if (!isPatientMode) {
+              setShowConfirmation(true);
+            }
+          }
+        } catch (err) {
+          console.error('System audio transcription failed:', err);
+        }
+      }
+    }, 10000);
+  }, [patientLanguage]);
+
+  const startSystemAudioCaptureAssemblyAI = useCallback(async (audioStream: MediaStream) => {
+    console.log('🎧 Starting AssemblyAI for system audio...');
+    
+    const client = new AssemblyRealtimeClient({
+      onOpen: () => {
+        console.log('✅ AssemblyAI system audio connected');
+        showToast.success('AssemblyAI connected - real-time transcription active');
+      },
+      onPartial: (text) => {
+        console.log('📝 AssemblyAI partial:', text);
+        setSystemAudioTranscript(text);
+      },
+      onFinal: (text) => {
+        console.log('✅ AssemblyAI final:', text);
+        if (text && text.trim().length > 3) {
+          setSystemAudioTranscript(prev => prev ? `${prev} ${text}` : text);
+          
+          // Queue for confirmation
+          const isPatientMode = speakerModeRef.current === 'patient';
+          setPendingSpeaker(isPatientMode ? 'patient' : 'staff');
+          setPendingTranscript(prev => prev ? `${prev} ${text}` : text);
+          
+          if (!isPatientMode) {
+            setShowConfirmation(true);
+          }
+        }
+      },
+      onError: (err) => {
+        console.error('❌ AssemblyAI error:', err);
+        showToast.error('AssemblyAI transcription error');
+      },
+      onClose: (code, reason) => {
+        console.log('🔌 AssemblyAI closed:', code, reason);
+      },
+      onReconnecting: () => {
+        console.log('🔄 AssemblyAI reconnecting...');
+      },
+      onReconnected: () => {
+        console.log('✅ AssemblyAI reconnected');
+        showToast.success('AssemblyAI reconnected');
+      }
+    });
+    
+    assemblyClientRef.current = client;
+    
+    try {
+      await client.start(audioStream);
+    } catch (err) {
+      console.error('Failed to start AssemblyAI:', err);
+      showToast.error('Failed to start AssemblyAI transcription');
+      assemblyClientRef.current = null;
+    }
+  }, []);
+
   const startSystemAudioCapture = useCallback(async () => {
     try {
       // Request display media with audio only
@@ -1183,68 +1310,15 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       const audioStream = new MediaStream(audioTracks);
       systemAudioStreamRef.current = audioStream;
       
-      // Set up MediaRecorder
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-        ? 'audio/webm;codecs=opus' 
-        : 'audio/webm';
-      
-      const recorder = new MediaRecorder(audioStream, { mimeType });
-      systemAudioRecorderRef.current = recorder;
-      systemAudioChunksRef.current = [];
-      
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          systemAudioChunksRef.current.push(e.data);
-        }
-      };
-      
-      recorder.start(5000); // Collect data every 5 seconds
       setIsCapturingSystemAudio(true);
-      showToast.success('System audio capture started');
+      showToast.success(`System audio capture started (${systemAudioService === 'assemblyai' ? 'AssemblyAI' : 'Whisper'})`);
       
-      // Set up periodic transcription (every 10 seconds)
-      systemAudioIntervalRef.current = setInterval(async () => {
-        if (systemAudioChunksRef.current.length > 0) {
-          const chunks = [...systemAudioChunksRef.current];
-          systemAudioChunksRef.current = [];
-          
-          const audioBlob = new Blob(chunks, { type: mimeType });
-          
-          // Transcribe using Whisper
-          try {
-            const formData = new FormData();
-            formData.append('file', audioBlob, 'audio.webm');
-            formData.append('model', 'whisper-1');
-            formData.append('language', speakerModeRef.current === 'staff' ? 'en' : patientLanguage);
-            
-            const { data, error } = await supabase.functions.invoke('whisper-transcribe', {
-              body: formData
-            });
-            
-            if (error) {
-              console.error('Whisper transcription error:', error);
-              return;
-            }
-            
-            const text = data?.text?.trim();
-            if (text && text.length > 3) {
-              console.log('🎬 System audio transcription:', text);
-              setSystemAudioTranscript(prev => prev ? `${prev} ${text}` : text);
-              
-              // Queue for confirmation
-              const isPatientMode = speakerModeRef.current === 'patient';
-              setPendingSpeaker(isPatientMode ? 'patient' : 'staff');
-              setPendingTranscript(prev => prev ? `${prev} ${text}` : text);
-              
-              if (!isPatientMode) {
-                setShowConfirmation(true);
-              }
-            }
-          } catch (err) {
-            console.error('System audio transcription failed:', err);
-          }
-        }
-      }, 10000);
+      // Start the appropriate transcription service
+      if (systemAudioService === 'assemblyai') {
+        await startSystemAudioCaptureAssemblyAI(audioStream);
+      } else {
+        await startSystemAudioCaptureWhisper(audioStream);
+      }
       
       // Handle track ended (user stops sharing)
       audioTracks[0].onended = () => {
@@ -1260,9 +1334,15 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         showToast.error('Failed to capture system audio');
       }
     }
-  }, [patientLanguage]);
+  }, [patientLanguage, systemAudioService, startSystemAudioCaptureWhisper, startSystemAudioCaptureAssemblyAI]);
   
   const stopSystemAudioCapture = useCallback(() => {
+    // Stop AssemblyAI client if active
+    if (assemblyClientRef.current) {
+      assemblyClientRef.current.stop();
+      assemblyClientRef.current = null;
+    }
+    
     if (systemAudioIntervalRef.current) {
       clearInterval(systemAudioIntervalRef.current);
       systemAudioIntervalRef.current = null;
@@ -1946,25 +2026,63 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           )}
         </div>
         <div className="flex items-center gap-2">
-          {/* System Audio Toggle */}
-          <Button
-            variant={isCapturingSystemAudio ? 'default' : 'outline'}
-            size="sm"
-            onClick={toggleSystemAudio}
-            className={isCapturingSystemAudio ? 'bg-amber-600 hover:bg-amber-700' : ''}
-          >
-            {isCapturingSystemAudio ? (
-              <>
-                <MonitorOff className="h-4 w-4 mr-2" />
-                Stop System Audio
-              </>
-            ) : (
-              <>
-                <Monitor className="h-4 w-4 mr-2" />
-                System Audio
-              </>
-            )}
-          </Button>
+          {/* System Audio Toggle with Service Selector */}
+          <div className="flex items-center">
+            <Button
+              variant={isCapturingSystemAudio ? 'default' : 'outline'}
+              size="sm"
+              onClick={toggleSystemAudio}
+              className={`rounded-r-none ${isCapturingSystemAudio ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
+            >
+              {isCapturingSystemAudio ? (
+                <>
+                  <MonitorOff className="h-4 w-4 mr-2" />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Monitor className="h-4 w-4 mr-2" />
+                  System Audio
+                </>
+              )}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={isCapturingSystemAudio ? 'default' : 'outline'}
+                  size="sm"
+                  className={`rounded-l-none border-l-0 px-2 ${isCapturingSystemAudio ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
+                  disabled={isCapturingSystemAudio}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={() => setSystemAudioService('whisper')}
+                  className={systemAudioService === 'whisper' ? 'bg-muted' : ''}
+                >
+                  <span className="flex items-center gap-2">
+                    {systemAudioService === 'whisper' && <Check className="h-4 w-4" />}
+                    <span className={systemAudioService === 'whisper' ? 'font-medium' : ''}>
+                      Whisper (Batch, 10s)
+                    </span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setSystemAudioService('assemblyai')}
+                  className={systemAudioService === 'assemblyai' ? 'bg-muted' : ''}
+                >
+                  <span className="flex items-center gap-2">
+                    {systemAudioService === 'assemblyai' && <Check className="h-4 w-4" />}
+                    <span className={systemAudioService === 'assemblyai' ? 'font-medium' : ''}>
+                      AssemblyAI (Real-time)
+                    </span>
+                  </span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <Button 
             variant="outline" 
             size="sm" 
@@ -2002,9 +2120,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 <span className="font-medium text-amber-800 dark:text-amber-300">
                   Capturing System Audio
                 </span>
-                <span className="text-sm text-amber-600 dark:text-amber-400">
-                  (transcribing every 10s)
-                </span>
+                <Badge variant="outline" className="text-xs">
+                  {systemAudioService === 'assemblyai' ? 'AssemblyAI Real-time' : 'Whisper Batch'}
+                </Badge>
               </div>
               {systemAudioTranscript && (
                 <p className="mt-2 text-sm text-amber-700 dark:text-amber-400 italic">
