@@ -892,3 +892,220 @@ body:has([role="dialog"]) {
 .animate-voice-wave {
   animation: voice-wave 0.5s ease-in-out infinite;
 }
+
+/* ========================================
+   AI Response Collapse/Expand System
+   ======================================== */
+
+/* Collapsible message container */
+.message-collapsible {
+  position: relative;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.message-collapsible.collapsed {
+  max-height: 200px;
+}
+
+.message-collapsible.expanded {
+  max-height: none;
+}
+
+/* Gradient fade overlay for collapsed content */
+.message-fade-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    hsl(var(--muted) / 0.3) 30%,
+    hsl(var(--muted) / 0.7) 60%,
+    hsl(var(--muted)) 100%
+  );
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.3s ease-out;
+}
+
+.message-collapsible.expanded .message-fade-overlay {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* "More below" floating indicator */
+.more-below-indicator {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
+  transition: all 0.2s ease-out;
+  pointer-events: auto;
+}
+
+.more-below-indicator:hover {
+  transform: translateX(-50%) scale(1.05);
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.4);
+}
+
+.more-below-indicator:active {
+  transform: translateX(-50%) scale(0.98);
+}
+
+/* Pulse animation during streaming */
+@keyframes indicator-pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
+  }
+  50% {
+    box-shadow: 0 2px 16px hsl(var(--primary) / 0.5);
+  }
+}
+
+.more-below-indicator.streaming {
+  animation: indicator-pulse 1.5s ease-in-out infinite;
+}
+
+/* Character count badge */
+.char-count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  background: hsl(var(--primary-foreground) / 0.2);
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+/* Expand/Collapse button */
+.message-expand-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: 8px;
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+}
+
+.message-expand-button:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  border-color: hsl(var(--accent-foreground) / 0.2);
+}
+
+.message-expand-button svg {
+  transition: transform 0.3s ease-out;
+}
+
+.message-expand-button.expanded svg {
+  transform: rotate(180deg);
+}
+
+/* Back to top button within long messages */
+.message-back-to-top {
+  position: sticky;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: hsl(var(--background) / 0.95);
+  backdrop-filter: blur(4px);
+  border: 1px solid hsl(var(--border));
+  border-radius: 9999px;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.7rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px hsl(0 0% 0% / 0.1);
+  transition: all 0.2s ease-out;
+  z-index: 5;
+}
+
+.message-back-to-top:hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+/* Smooth content reveal animation */
+@keyframes content-reveal {
+  from {
+    opacity: 0.7;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-collapsible.expanding .message-content {
+  animation: content-reveal 0.3s ease-out;
+}
+
+/* Auto-expand toggle in header */
+.auto-expand-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  transition: all 0.2s ease-out;
+}
+
+.auto-expand-toggle:hover {
+  background: hsl(var(--muted));
+}
+
+/* Streaming indicator dot */
+@keyframes streaming-dot {
+  0%, 80%, 100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+.streaming-dot {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: streaming-dot 1.2s ease-in-out infinite;
+}
+
+.streaming-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.streaming-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}

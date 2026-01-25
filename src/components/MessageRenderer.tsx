@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { useQuickPickScrollUX } from '@/hooks/useQuickPickScrollUX';
+import { shouldCollapseContent, getPreviewText, MIN_COLLAPSIBLE_LENGTH } from '@/hooks/useMessageCollapse';
 import { 
   ChevronDown, 
+  ChevronUp,
   ChevronsUp, 
   ChevronsDown,
   Copy, 
@@ -40,7 +42,8 @@ import {
   FileType,
   Type,
   Hash,
-  ImageIcon
+  ImageIcon,
+  ArrowDown
 } from 'lucide-react';
 import { ContentInfographicModal } from '@/components/ContentInfographicModal';
 import PolicyBadge from '@/components/PolicyBadge';
@@ -115,6 +118,23 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     message.role === 'user' && (autoCollapseUserPrompts || message.isQuickPick === true)
   );
   
+  // Assistant message collapse state - check localStorage for auto-expand preference
+  const [isAssistantCollapsed, setIsAssistantCollapsed] = useState(() => {
+    // Check if user has auto-expand enabled
+    try {
+      const stored = localStorage.getItem('ai4gp-collapse-preferences');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        if (prefs.autoExpand) return false; // Auto-expand enabled, don't collapse
+      }
+    } catch (e) {}
+    // Default: collapse long messages
+    return message.role === 'assistant' && shouldCollapseContent(message.content);
+  });
+  
+  // Track if message was expanded during streaming
+  const [wasExpandedDuringStream, setWasExpandedDuringStream] = useState(false);
+  
   // Calculation verification code removed per user request
   const { user } = useAuth();
   
@@ -126,19 +146,42 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
       setIsUserMessageCollapsed(!isUserMessageCollapsed);
     }
   };
+  
+  // Toggle assistant message collapse
+  const toggleAssistantCollapse = useCallback(() => {
+    setIsAssistantCollapsed(prev => !prev);
+    if (isAssistantCollapsed) {
+      setWasExpandedDuringStream(true);
+    }
+  }, [isAssistantCollapsed]);
+  
   const { sendEmailAutomatically, isSending } = useAutoEmail();
   
   // Auto-scroll to bottom when content updates during streaming
   const contentRef = React.useRef<HTMLDivElement>(null);
+  const messageContainerRef = React.useRef<HTMLDivElement>(null);
+  
+  // Check if content is collapsible
+  const isCollapsible = message.role === 'assistant' && shouldCollapseContent(message.content);
+  
+  // Get preview content for collapsed state
+  const previewContent = isCollapsible ? getPreviewText(message.content, 400) : message.content;
+  
+  // Calculate remaining content stats
+  const remainingChars = message.content.length - previewContent.length;
+  const showMoreIndicator = isCollapsible && isAssistantCollapsed && remainingChars > 0;
   
   React.useEffect(() => {
+    // Don't auto-scroll if user manually expanded during streaming
+    if (wasExpandedDuringStream) return;
+    
     if (message.isStreaming && contentRef.current) {
       const container = contentRef.current.closest('.overflow-y-auto');
       if (container) {
         container.scrollTop = container.scrollHeight;
       }
     }
-  }, [message.content, message.isStreaming]);
+  }, [message.content, message.isStreaming, wasExpandedDuringStream]);
 
   
   // Calculate if this is a large response (more than 1000 characters or multiple sections)
@@ -762,35 +805,62 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             <div className="space-y-2 flex-1 min-h-0">
               {message.role === 'assistant' ? (
                 <div 
-                  ref={contentRef}
-                  className={`message-content overflow-x-auto w-full ai4gp-text-scaled ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'} 
-                             dark:prose-invert
-                             prose-p:mb-3 prose-p:leading-relaxed
-                             prose-ul:my-2 prose-ul:space-y-1 prose-li:my-1
-                             prose-headings:mb-3 prose-headings:mt-4
-                             [&_.flex]:mb-3`}
-                  style={{
-                    maxWidth: 'none',
-                    width: '100%',
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word'
-                  }}
+                  ref={messageContainerRef}
+                  className={`message-collapsible ${isCollapsible && isAssistantCollapsed ? 'collapsed' : 'expanded'}`}
                 >
                   <div 
-                    dangerouslySetInnerHTML={{ 
-                      __html: renderNHSMarkdown(displayContent, { enableNHSStyling: true })
+                    ref={contentRef}
+                    className={`message-content overflow-x-auto w-full ai4gp-text-scaled ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'} 
+                               dark:prose-invert
+                               prose-p:mb-3 prose-p:leading-relaxed
+                               prose-ul:my-2 prose-ul:space-y-1 prose-li:my-1
+                               prose-headings:mb-3 prose-headings:mt-4
+                               [&_.flex]:mb-3`}
+                    style={{
+                      maxWidth: 'none',
+                      width: '100%',
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word'
                     }}
-                  />
-                  {message.isStreaming && !displayContent && (
-                    <div className="inline-flex items-center gap-2 text-muted-foreground mt-2">
-                      <span className="text-sm">Notewell AI is thinking</span>
-                      <span className="inline-flex items-center gap-0.5">
-                        <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite]"></span>
-                        <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.1s]"></span>
-                        <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.2s]"></span>
-                        <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.3s]"></span>
+                  >
+                    <div 
+                      dangerouslySetInnerHTML={{ 
+                        __html: renderNHSMarkdown(
+                          isCollapsible && isAssistantCollapsed ? previewContent : displayContent, 
+                          { enableNHSStyling: true }
+                        )
+                      }}
+                    />
+                    {message.isStreaming && !displayContent && (
+                      <div className="inline-flex items-center gap-2 text-muted-foreground mt-2">
+                        <span className="text-sm">Notewell AI is thinking</span>
+                        <span className="inline-flex items-center gap-0.5">
+                          <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite]"></span>
+                          <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.1s]"></span>
+                          <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.2s]"></span>
+                          <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.3s]"></span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Gradient fade overlay when collapsed */}
+                  {showMoreIndicator && (
+                    <div className="message-fade-overlay" />
+                  )}
+                  
+                  {/* "More below" floating indicator */}
+                  {showMoreIndicator && (
+                    <button
+                      onClick={toggleAssistantCollapse}
+                      className={`more-below-indicator ${message.isStreaming ? 'streaming' : ''}`}
+                    >
+                      <ArrowDown className="w-3 h-3" />
+                      <span>Show more</span>
+                      <span className="char-count-badge">
+                        ~{Math.ceil(remainingChars / 100) * 100} chars
                       </span>
-                    </div>
+                    </button>
                   )}
                 </div>
               ) : (
@@ -801,6 +871,26 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                     }}
                   />
                 </div>
+              )}
+              
+              {/* Expand/Collapse button for assistant messages */}
+              {isCollapsible && !isModal && (
+                <button
+                  onClick={toggleAssistantCollapse}
+                  className={`message-expand-button ${!isAssistantCollapsed ? 'expanded' : ''}`}
+                >
+                  {isAssistantCollapsed ? (
+                    <>
+                      <ChevronDown className="w-4 h-4" />
+                      <span>Show full response</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronUp className="w-4 h-4" />
+                      <span>Collapse response</span>
+                    </>
+                  )}
+                </button>
               )}
             </div>
           )}
