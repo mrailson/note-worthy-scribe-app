@@ -142,17 +142,20 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
   
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* Horizontal row: [Badge?] [Receptionist] [Mic Controls] [Patient] [Badge?] */}
+      {/* Horizontal row: [Badge] [Receptionist] [Mic Controls] [Patient] [Badge] */}
+      {/* Both badge slots always rendered with fixed width to keep mic centred */}
       <div className="flex items-start gap-4">
-        {/* LEFT: Translation badge when staff mode is active */}
-        {mode === 'staff' && (
-          <Badge 
-            variant="outline" 
-            className="self-center px-3 py-2 text-sm bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800"
-          >
-            🇬🇧 English → {patientLanguageFlag} {nativeLanguageName}
-          </Badge>
-        )}
+        {/* LEFT: Translation badge slot - always same width */}
+        <div className="w-[180px] flex justify-end self-center">
+          {mode === 'staff' && (
+            <Badge 
+              variant="outline" 
+              className="px-3 py-2 text-sm bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800 whitespace-nowrap"
+            >
+              🇬🇧 English → {patientLanguageFlag} {nativeLanguageName}
+            </Badge>
+          )}
+        </div>
 
         {/* Staff/Receptionist button */}
         <div className="flex flex-col items-center gap-1 relative">
@@ -206,15 +209,17 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
           )}
         </div>
 
-        {/* RIGHT: Translation badge when patient mode is active */}
-        {mode === 'patient' && (
-          <Badge 
-            variant="outline" 
-            className="self-center px-3 py-2 text-sm bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800"
-          >
-            {patientLanguageFlag} {nativeLanguageName} → 🇬🇧 English
-          </Badge>
-        )}
+        {/* RIGHT: Translation badge slot - always same width */}
+        <div className="w-[180px] flex justify-start self-center">
+          {mode === 'patient' && (
+            <Badge 
+              variant="outline" 
+              className="px-3 py-2 text-sm bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800 whitespace-nowrap"
+            >
+              {patientLanguageFlag} {nativeLanguageName} → 🇬🇧 English
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Status text */}
