@@ -100,13 +100,25 @@ export function useReceptionTranslationHistory() {
     if (!user) return;
     
     try {
-      const { error } = await supabase
+      // First delete all messages for this session
+      const { error: messagesError } = await supabase
+        .from('reception_translation_messages')
+        .delete()
+        .eq('session_id', sessionId);
+      
+      if (messagesError) {
+        console.error('Failed to delete messages:', messagesError);
+        // Continue anyway - messages table might have cascade delete
+      }
+      
+      // Then delete the session
+      const { error: sessionError } = await supabase
         .from('reception_translation_sessions')
         .delete()
         .eq('id', sessionId)
         .eq('user_id', user.id);
       
-      if (error) throw error;
+      if (sessionError) throw sessionError;
       
       setSessions(prev => prev.filter(s => s.id !== sessionId));
       showToast.success('Session deleted');
@@ -121,12 +133,36 @@ export function useReceptionTranslationHistory() {
     if (!user) return;
     
     try {
-      const { error } = await supabase
+      // Get all session IDs for this user first
+      const { data: userSessions, error: fetchError } = await supabase
+        .from('reception_translation_sessions')
+        .select('id')
+        .eq('user_id', user.id);
+      
+      if (fetchError) throw fetchError;
+      
+      const sessionIds = (userSessions || []).map(s => s.id);
+      
+      if (sessionIds.length > 0) {
+        // First delete all messages for these sessions
+        const { error: messagesError } = await supabase
+          .from('reception_translation_messages')
+          .delete()
+          .in('session_id', sessionIds);
+        
+        if (messagesError) {
+          console.error('Failed to delete messages:', messagesError);
+          // Continue anyway - try to delete sessions
+        }
+      }
+      
+      // Then delete all sessions
+      const { error: sessionError } = await supabase
         .from('reception_translation_sessions')
         .delete()
         .eq('user_id', user.id);
       
-      if (error) throw error;
+      if (sessionError) throw sessionError;
       
       setSessions([]);
       showToast.success('All translation history deleted');
