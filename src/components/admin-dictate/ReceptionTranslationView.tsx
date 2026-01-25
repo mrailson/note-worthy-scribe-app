@@ -665,6 +665,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const scrollRef = useRef<HTMLDivElement>(null);
   const speakerModeRef = useRef<'staff' | 'patient'>('staff');
   const lastInterimRef = useRef<string>(''); // Track interim to preserve on restart
+  const lastResultTimeRef = useRef<number>(0); // Track when last result was received
+  const transcriptRef = useRef<string>(''); // Track transcript for onend handler
   
   const { practiceContext } = usePracticeContext();
   const practiceName = practiceContext?.practiceName || 'Our Practice';
@@ -775,6 +777,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     speakerModeRef.current = speakerMode;
   }, [speakerMode]);
 
+  useEffect(() => {
+    transcriptRef.current = transcript;
+  }, [transcript]);
+
   // Handle speaker mode change - update recognition language
   const handleSpeakerModeChange = useCallback((newMode: 'staff' | 'patient') => {
     const previousMode = speakerModeRef.current;
@@ -852,17 +858,23 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       let finalTranscript = '';
       let interimTranscript = '';
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      // Process ALL results from the beginning to capture everything
+      for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
-          finalTranscript += result[0].transcript;
+          finalTranscript += result[0].transcript + ' ';
         } else {
           interimTranscript += result[0].transcript;
         }
       }
+      
+      finalTranscript = finalTranscript.trim();
 
       // Track interim for potential preservation on restart
       lastInterimRef.current = interimTranscript;
+      
+      // Track last result time to detect gaps
+      lastResultTimeRef.current = Date.now();
 
       if (finalTranscript) {
         // Clear interim ref since we got a final result
@@ -873,7 +885,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         
         // Queue for confirmation (accumulate)
         setPendingTranscript(prev => {
-          const newText = prev ? `${prev} ${finalTranscript.trim()}` : finalTranscript.trim();
+          const newText = prev ? `${prev} ${finalTranscript}` : finalTranscript;
+          console.log('📝 Accumulated transcript:', newText.substring(0, 50) + '...');
           return newText;
         });
         
@@ -885,7 +898,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           setShowConfirmation(true);
         }
         setTranscript('');
-      } else {
+      } else if (interimTranscript) {
         setTranscript(interimTranscript);
       }
     };
@@ -925,26 +938,36 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       
       // Only restart if still supposed to be listening and not stopped by user
       if (isListeningRef.current && !stoppedByUserRef.current) {
-        console.log('Speech recognition ended, restarting...');
-        
-        // For patient mode, preserve any interim transcript as it may be lost on restart
-        // But DON'T show confirmation - wait for toggle back to staff mode
         const isPatientMode = speakerModeRef.current === 'patient';
-        if (isPatientMode && lastInterimRef.current.trim()) {
-          console.log('📝 Preserving interim transcript before restart:', lastInterimRef.current);
-          const interimToPreserve = lastInterimRef.current.trim();
-          lastInterimRef.current = '';
-          // Queue the interim as a pending transcript fragment (accumulate)
-          setPendingTranscript(prev => {
-            const newText = prev ? `${prev} ${interimToPreserve}` : interimToPreserve;
-            return newText;
-          });
-          // Don't show confirmation - wait for toggle
-          setTranscript('');
+        const timeSinceLastResult = Date.now() - lastResultTimeRef.current;
+        
+        console.log(`Speech recognition ended (${isPatientMode ? 'patient' : 'staff'} mode, ${timeSinceLastResult}ms since last result), restarting...`);
+        
+        // For patient mode, ALWAYS preserve any interim OR current transcript before restart
+        // This is critical - speech can be lost during the restart gap
+        if (isPatientMode) {
+          const currentTranscript = transcriptRef.current.trim();
+          const interimText = lastInterimRef.current.trim();
+          
+          // Combine any interim and current transcript before restart
+          if (interimText || currentTranscript) {
+            const textToPreserve = [interimText, currentTranscript].filter(Boolean).join(' ').trim();
+            if (textToPreserve) {
+              console.log('📝 Preserving speech before restart:', textToPreserve.substring(0, 50) + (textToPreserve.length > 50 ? '...' : ''));
+              lastInterimRef.current = '';
+              // Queue the text as pending transcript fragment (accumulate)
+              setPendingTranscript(prev => {
+                const newText = prev ? `${prev} ${textToPreserve}` : textToPreserve;
+                return newText;
+              });
+              setTranscript('');
+            }
+          }
         }
         
-        // Use shorter delay for non-English languages as they tend to end more frequently
-        const restartDelay = isPatientMode ? 50 : 300;
+        // Use MINIMAL delay for patient mode to avoid losing speech during gaps
+        // The Web Speech API often pauses between words/phrases in non-English languages
+        const restartDelay = isPatientMode ? 10 : 150;
         
         setTimeout(() => {
           if (isListeningRef.current && !isStartingRef.current && recognitionRef.current) {
