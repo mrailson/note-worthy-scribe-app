@@ -137,20 +137,23 @@ export const useReceptionTranslation = ({
   }, []);
 
   // Send a message (staff speaks English, patient speaks their language)
-  const sendMessage = useCallback(async (text: string) => {
+  // speaker parameter allows overriding when using same-device mode
+  const sendMessage = useCallback(async (text: string, speaker?: 'staff' | 'patient') => {
     if (!channelRef.current || !text.trim()) return;
 
     setIsTranslating(true);
 
     try {
-      const sourceLanguage = isStaff ? 'en' : patientLanguage;
-      const targetLanguage = isStaff ? patientLanguage : 'en';
+      // Use provided speaker or determine from isStaff
+      const actualSpeaker = speaker ?? (isStaff ? 'staff' : 'patient');
+      const sourceLanguage = actualSpeaker === 'staff' ? 'en' : patientLanguage;
+      const targetLanguage = actualSpeaker === 'staff' ? patientLanguage : 'en';
 
       const translatedText = await translateText(text, sourceLanguage, targetLanguage);
 
       const message: TranslationMessage = {
         id: crypto.randomUUID(),
-        speaker: isStaff ? 'staff' : 'patient',
+        speaker: actualSpeaker,
         originalText: text,
         translatedText,
         originalLanguage: sourceLanguage,
