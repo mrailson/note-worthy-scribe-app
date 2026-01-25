@@ -428,3 +428,6 @@ verify_jwt = false
 
 [functions.send-survey-digest]
 verify_jwt = false
+
+[functions.parse-survey-questions]
+verify_jwt = true

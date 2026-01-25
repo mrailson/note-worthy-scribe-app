@@ -13,14 +13,15 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, ArrowRight, Plus, Trash2, GripVertical, Save, Eye } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2, GripVertical, Save, Eye, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
+import { SurveyImportModal } from '@/components/surveys/SurveyImportModal';
+import { ImportedQuestion } from '@/hooks/useSurveyImport';
 interface Question {
   id?: string;
   question_text: string;
@@ -141,6 +142,7 @@ const SurveyBuilder = () => {
   });
 
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Fetch practice ID
   useEffect(() => {
@@ -266,6 +268,30 @@ const SurveyBuilder = () => {
         newQuestions[index],
       ];
       return newQuestions.map((q, i) => ({ ...q, display_order: i + 1 }));
+    });
+  };
+
+  const handleImportQuestions = (title: string, importedQuestions: ImportedQuestion[]) => {
+    // Update title if currently empty
+    if (!surveyData.title.trim() && title) {
+      setSurveyData(prev => ({ ...prev, title }));
+    }
+
+    // Convert imported questions to Question format and merge
+    const startOrder = questions.length + 1;
+    const newQuestions: Question[] = importedQuestions.map((q, idx) => ({
+      question_text: q.question_text,
+      question_type: q.question_type,
+      options: q.options || [],
+      is_required: q.is_required,
+      display_order: startOrder + idx,
+    }));
+
+    setQuestions(prev => [...prev, ...newQuestions]);
+    
+    toast({
+      title: 'Questions imported',
+      description: `Added ${newQuestions.length} question${newQuestions.length !== 1 ? 's' : ''} to your survey`,
     });
   };
 
@@ -484,10 +510,16 @@ const SurveyBuilder = () => {
                       <CardTitle>Questions</CardTitle>
                       <CardDescription>Add and configure your survey questions</CardDescription>
                     </div>
-                    <Button onClick={addQuestion} variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Question
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={() => setShowImportModal(true)} variant="outline">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import from File
+                      </Button>
+                      <Button onClick={addQuestion} variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Question
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -751,6 +783,13 @@ const SurveyBuilder = () => {
               </Card>
             </TabsContent>
           </Tabs>
+
+          <SurveyImportModal
+            open={showImportModal}
+            onOpenChange={setShowImportModal}
+            onImport={handleImportQuestions}
+            currentTitle={surveyData.title}
+          />
         </main>
       </div>
     </ProtectedRoute>
