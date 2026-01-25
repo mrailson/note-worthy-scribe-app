@@ -1292,11 +1292,12 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                       <div className="flex gap-2 flex-wrap">
                         <Button 
                           size="sm" 
-                          onClick={handleConfirmSend}
-                          className="gap-1"
+                          variant="ghost"
+                          onClick={handleCancelSend}
+                          className="gap-1 text-destructive hover:text-destructive"
                         >
-                          <Send className="h-4 w-4" />
-                          Send
+                          <XCircle className="h-4 w-4" />
+                          Discard
                         </Button>
                         <Button 
                           size="sm" 
@@ -1309,12 +1310,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                         </Button>
                         <Button 
                           size="sm" 
-                          variant="ghost"
-                          onClick={handleCancelSend}
-                          className="gap-1 text-destructive hover:text-destructive"
+                          onClick={handleConfirmSend}
+                          className="gap-1"
                         >
-                          <XCircle className="h-4 w-4" />
-                          Discard
+                          <Send className="h-4 w-4" />
+                          Send
                         </Button>
                       </div>
                     </div>
