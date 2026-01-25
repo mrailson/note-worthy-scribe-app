@@ -5,14 +5,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Loader2, Languages, WifiOff, Mail, Volume2, VolumeX } from 'lucide-react';
-import { useReceptionTranslation, TranslationMessage } from '@/hooks/useReceptionTranslation';
+import { Send, Loader2, Languages, WifiOff, Mail } from 'lucide-react';
+import { useReceptionTranslation } from '@/hooks/useReceptionTranslation';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { PatientEmailChatModal } from '@/components/admin-dictate/PatientEmailChatModal';
 import { PatientVoiceRecorder } from '@/components/admin-dictate/PatientVoiceRecorder';
-import { toast } from '@/hooks/use-toast';
 
 const ReceptionPatientView: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -27,13 +26,7 @@ const ReceptionPatientView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-  const [audioUnlocked, setAudioUnlocked] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
 
   const langCode = sessionData?.patient_language || 'en';
   const phrases = getPatientViewPhrases(langCode);
@@ -103,149 +96,6 @@ const ReceptionPatientView: React.FC = () => {
       }
     }
   }, [messages]);
-
-  // Helper: Convert Base64 to Blob URL (more reliable on mobile Safari)
-  const base64ToBlobUrl = useCallback((base64: string, mimeType = 'audio/mpeg') => {
-    const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    const blob = new Blob([bytes], { type: mimeType });
-    return URL.createObjectURL(blob);
-  }, []);
-
-  // Unlock audio on mobile - must be called from user interaction
-  const unlockAudio = useCallback(async () => {
-    if (audioUnlocked) return true;
-    
-    try {
-      // Create or resume AudioContext (required on iOS/Safari)
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-      
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
-      
-      // Play a silent buffer using Web Audio API (more reliable on iOS than MP3 data URI)
-      const ctx = audioContextRef.current;
-      if (ctx) {
-        const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(ctx.destination);
-        source.start(0);
-      }
-      
-      setAudioUnlocked(true);
-      console.log('🔊 Audio unlocked for mobile via Web Audio API');
-      return true;
-    } catch (err) {
-      console.warn('Failed to unlock audio:', err);
-      return false;
-    }
-  }, [audioUnlocked]);
-
-  // Audio playback for translations
-  const handlePlayAudio = useCallback(async (messageId: string, text: string, languageCode: string) => {
-    // Stop any currently playing audio
-    if (currentAudioRef.current) {
-      currentAudioRef.current.pause();
-      currentAudioRef.current = null;
-      setPlayingAudioId(null);
-    }
-
-    // If clicking on already playing audio, just stop
-    if (playingAudioId === messageId) {
-      return;
-    }
-
-    // Unlock audio on first interaction (required for mobile)
-    await unlockAudio();
-
-    setLoadingAudioId(messageId);
-
-    try {
-      // Use gp-translation-tts which returns base64 audio
-      const response = await supabase.functions.invoke('gp-translation-tts', {
-        body: { 
-          text, 
-          languageCode
-        }
-      });
-
-      if (response.error) throw response.error;
-
-      const audioContent = response.data?.audioContent;
-      if (!audioContent) throw new Error('No audio content returned');
-
-      // Convert Base64 to Blob URL (more reliable on mobile Safari than data URI)
-      const audioUrl = base64ToBlobUrl(audioContent);
-      const audio = new Audio(audioUrl);
-      audio.load(); // Explicitly load for iOS compatibility
-      currentAudioRef.current = audio;
-      
-      // Ensure AudioContext is active (helps with iOS)
-      if (audioContextRef.current?.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
-      
-      audio.onended = () => {
-        setPlayingAudioId(null);
-        currentAudioRef.current = null;
-        URL.revokeObjectURL(audioUrl); // Clean up blob URL
-      };
-      
-      audio.onerror = (e) => {
-        console.error('Audio error event:', e);
-        setPlayingAudioId(null);
-        setLoadingAudioId(null);
-        currentAudioRef.current = null;
-        URL.revokeObjectURL(audioUrl); // Clean up blob URL
-        toast({
-          title: 'Audio Error',
-          description: 'Could not play audio. Please try again.',
-          variant: 'destructive'
-        });
-      };
-
-      audio.oncanplaythrough = async () => {
-        try {
-          setLoadingAudioId(null);
-          setPlayingAudioId(messageId);
-          await audio.play();
-        } catch (playErr) {
-          console.error('Play error:', playErr);
-          setPlayingAudioId(null);
-          URL.revokeObjectURL(audioUrl);
-          toast({
-            title: 'Playback Error',
-            description: 'Tap the screen first, then try playing audio.',
-            variant: 'destructive'
-          });
-        }
-      };
-
-      // Fallback: If oncanplaythrough doesn't fire within 3s, reset loading state
-      setTimeout(() => {
-        if (loadingAudioId === messageId) {
-          setLoadingAudioId(null);
-        }
-      }, 3000);
-
-    } catch (err) {
-      console.error('Audio playback error:', err);
-      setLoadingAudioId(null);
-      setPlayingAudioId(null);
-      toast({
-        title: 'Audio Error',
-        description: 'Failed to generate audio. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  }, [playingAudioId, unlockAudio, base64ToBlobUrl]);
 
   // Handle voice transcription from PatientVoiceRecorder
   const handleVoiceTranscription = useCallback((text: string) => {
@@ -362,7 +212,6 @@ const ReceptionPatientView: React.FC = () => {
               const messageId = msg.id || `msg-${index}`;
               const isStaffMessage = msg.speaker === 'staff';
               const displayText = isStaffMessage ? msg.translatedText : msg.originalText;
-              const audioLang = isStaffMessage ? langCode : 'en';
               
               return (
                 <div
@@ -379,37 +228,9 @@ const ReceptionPatientView: React.FC = () => {
                     <p className="text-base leading-relaxed">
                       {displayText}
                     </p>
-                    <div className="flex items-center justify-between mt-2">
-                      {msg.speaker === 'patient' ? (
-                        <p className="text-xs opacity-70">{phrases.sentToReception}</p>
-                      ) : (
-                        <span />
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`h-7 px-2 ${msg.speaker === 'patient' ? 'text-primary-foreground hover:bg-primary-foreground/20' : ''}`}
-                        onClick={() => handlePlayAudio(messageId, displayText, audioLang)}
-                        disabled={loadingAudioId === messageId}
-                      >
-                        {loadingAudioId === messageId ? (
-                          <>
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            <span className="text-xs">{phrases.loadingAudio}</span>
-                          </>
-                        ) : playingAudioId === messageId ? (
-                          <>
-                            <Volume2 className="h-3 w-3 mr-1 animate-pulse" />
-                            <span className="text-xs">{phrases.playing}</span>
-                          </>
-                        ) : (
-                          <>
-                            <Volume2 className="h-3 w-3 mr-1" />
-                            <span className="text-xs">{phrases.playAudio}</span>
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                    {msg.speaker === 'patient' && (
+                      <p className="text-xs opacity-70 mt-2">{phrases.sentToReception}</p>
+                    )}
                   </div>
                 </div>
               );
