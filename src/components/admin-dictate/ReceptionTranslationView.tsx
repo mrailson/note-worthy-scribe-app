@@ -1604,19 +1604,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       <div className="flex-1 flex overflow-hidden">
         {/* Conversation panel */}
         <div className="flex-1 flex flex-col p-4">
-          {/* Speaker Mode Toggle */}
-          <div className="mb-4">
-            <SpeakerModeSelector
-              mode={speakerMode}
-              onModeChange={handleSpeakerModeChange}
-              patientLanguageName={languageInfo?.name || patientLanguage}
-              patientLanguageCode={patientLanguage}
-              patientLanguageFlag={languageInfo?.flag}
-              isListening={isListening && !isMicPaused}
-              disabled={isConnecting}
-            />
-          </div>
-
           {/* Patient Speaking Prompt - shown when in patient mode and listening */}
           {speakerMode === 'patient' && isListening && !isMicPaused && (
             <div className="mb-4">
@@ -1654,23 +1641,19 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 </div>
               )}
 
-              {/* Pending confirmation panel */}
-              {pendingTranscript && showConfirmation && (
+              {/* Confirmation UI when paused */}
+              {showConfirmation && pendingTranscript && (
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <div className="inline-block max-w-full rounded-lg p-4 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700">
-                      <div className="flex items-center justify-between gap-4 mb-2">
-                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-                          📝 Ready to send?
-                        </p>
-                      </div>
-                      <p className="text-lg text-amber-900 dark:text-amber-100 mb-3">{pendingTranscript}</p>
-                      <div className="flex gap-2 flex-wrap">
+                    <div className="inline-block max-w-full rounded-lg p-3 bg-primary text-primary-foreground border-2 border-primary">
+                      <p className="text-sm font-medium mb-2">📝 Confirm your message:</p>
+                      <p className="text-lg mb-3">{pendingTranscript}</p>
+                      <div className="flex gap-2 justify-end">
                         <Button 
                           size="sm" 
-                          variant="ghost"
+                          variant="ghost" 
                           onClick={handleCancelSend}
-                          className="gap-1 text-destructive hover:text-destructive"
+                          className="text-primary-foreground hover:bg-primary-foreground/20 gap-1"
                         >
                           <XCircle className="h-4 w-4" />
                           Discard
@@ -1720,56 +1703,59 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             </div>
           </ScrollArea>
 
-          {/* Microphone control */}
-          <div className="pt-4 flex flex-col items-center gap-3">
-            <div className="flex items-center gap-3">
-              {/* Pause button - only show when listening */}
-              {isListening && (
+          {/* Speaker Mode Selector with Mic Controls */}
+          <div className="pt-4">
+            <SpeakerModeSelector
+              mode={speakerMode}
+              onModeChange={handleSpeakerModeChange}
+              patientLanguageName={languageInfo?.name || patientLanguage}
+              patientLanguageCode={patientLanguage}
+              patientLanguageFlag={languageInfo?.flag}
+              isListening={isListening && !isMicPaused}
+              disabled={isConnecting}
+            >
+              {/* Mic controls as children */}
+              <div className="flex items-center gap-3">
+                {/* Pause button - only show when listening */}
+                {isListening && (
+                  <Button
+                    size="sm"
+                    variant={isMicPaused ? 'default' : 'outline'}
+                    className="h-10 px-4 rounded-full gap-2"
+                    onClick={toggleMicPause}
+                  >
+                    {isMicPaused ? (
+                      <>
+                        <Play className="h-4 w-4" />
+                        Resume
+                      </>
+                    ) : (
+                      <>
+                        <Pause className="h-4 w-4" />
+                        Pause
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                {/* Main mic button */}
                 <Button
-                  size="sm"
-                  variant={isMicPaused ? 'default' : 'outline'}
-                  className="h-10 px-4 rounded-full gap-2"
-                  onClick={toggleMicPause}
+                  size="lg"
+                  variant={isListening ? 'destructive' : isConnecting ? 'secondary' : 'default'}
+                  className="h-16 w-16 rounded-full"
+                  onClick={toggleListening}
+                  disabled={isConnecting}
                 >
-                  {isMicPaused ? (
-                    <>
-                      <Play className="h-4 w-4" />
-                      Resume
-                    </>
+                  {isConnecting ? (
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  ) : isListening ? (
+                    <MicOff className="h-8 w-8" />
                   ) : (
-                    <>
-                      <Pause className="h-4 w-4" />
-                      Pause
-                    </>
+                    <Mic className="h-8 w-8" />
                   )}
                 </Button>
-              )}
-              
-              {/* Main mic button */}
-              <Button
-                size="lg"
-                variant={isListening ? 'destructive' : isConnecting ? 'secondary' : 'default'}
-                className="h-16 w-16 rounded-full"
-                onClick={toggleListening}
-                disabled={isConnecting}
-              >
-                {isConnecting ? (
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                ) : isListening ? (
-                  <MicOff className="h-8 w-8" />
-                ) : (
-                  <Mic className="h-8 w-8" />
-                )}
-              </Button>
-            </div>
-            <p className="text-center text-sm text-muted-foreground">
-              {isConnecting 
-                ? 'Connecting...' 
-                : isListening 
-                  ? (isMicPaused ? 'Paused - click Resume to continue' : 'Listening... Click to stop')
-                  : 'Click to start speaking'
-              }
-            </p>
+              </div>
+            </SpeakerModeSelector>
           </div>
         </div>
 
