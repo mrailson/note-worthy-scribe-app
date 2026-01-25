@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('user_roles')
-        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access')
+        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access, lg_capture_access, bp_service_access, survey_manager_access')
         .eq('user_id', userId);
       
       if (error) {
@@ -61,9 +61,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
+      // Cast data to expected type (types.ts may lag behind actual DB schema)
+      const roleRecords = data as unknown as Array<{
+        meeting_notes_access: boolean;
+        gp_scribe_access: boolean;
+        complaints_manager_access: boolean;
+        enhanced_access: boolean;
+        cqc_compliance_access: boolean;
+        shared_drive_access: boolean;
+        mic_test_service_access: boolean;
+        api_testing_service_access: boolean;
+        translation_service_access: boolean;
+        fridge_monitoring_access: boolean;
+        cso_governance_access: boolean;
+        lg_capture_access: boolean;
+        bp_service_access: boolean;
+        survey_manager_access: boolean;
+      }>;
+      
       // Aggregate access flags across ALL role records using OR logic
       // If ANY role grants access to a module, the user gets access
-      const aggregatedAccess = data.reduce((acc, roleRecord) => ({
+      const aggregatedAccess = roleRecords.reduce((acc, roleRecord) => ({
         meeting_notes_access: acc.meeting_notes_access || roleRecord.meeting_notes_access,
         gp_scribe_access: acc.gp_scribe_access || roleRecord.gp_scribe_access,
         complaints_manager_access: acc.complaints_manager_access || roleRecord.complaints_manager_access,
@@ -75,6 +93,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         translation_service_access: acc.translation_service_access || roleRecord.translation_service_access,
         fridge_monitoring_access: acc.fridge_monitoring_access || roleRecord.fridge_monitoring_access,
         cso_governance_access: acc.cso_governance_access || roleRecord.cso_governance_access,
+        lg_capture_access: acc.lg_capture_access || roleRecord.lg_capture_access,
+        bp_service_access: acc.bp_service_access || roleRecord.bp_service_access,
+        survey_manager_access: acc.survey_manager_access || roleRecord.survey_manager_access,
       }), {
         meeting_notes_access: false,
         gp_scribe_access: false,
@@ -87,6 +108,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         translation_service_access: false,
         fridge_monitoring_access: false,
         cso_governance_access: false,
+        lg_capture_access: false,
+        bp_service_access: false,
+        survey_manager_access: false,
       });
       
       // Convert the aggregated access flags to module names array
@@ -102,6 +126,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (aggregatedAccess.translation_service_access) modules.push('translation_service');
       if (aggregatedAccess.fridge_monitoring_access) modules.push('fridge_monitoring_access');
       if (aggregatedAccess.cso_governance_access) modules.push('cso_governance_access');
+      if (aggregatedAccess.lg_capture_access) modules.push('lg_capture_access');
+      if (aggregatedAccess.bp_service_access) modules.push('bp_service_access');
+      if (aggregatedAccess.survey_manager_access) modules.push('survey_manager_access');
       
       console.log(`Found ${data.length} role record(s) for user, aggregated modules:`, modules);
       setUserModules(modules);

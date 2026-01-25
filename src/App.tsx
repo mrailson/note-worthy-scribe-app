@@ -48,6 +48,10 @@ import Attendees from "./pages/Attendees";
 import PracticeManagerFeedback from "./pages/PracticeManagerFeedback";
 import FeedbackResults from "./pages/FeedbackResults";
 import { NetworkDiagnosticsPage } from "./pages/NetworkDiagnosticsPage";
+import Surveys from "./pages/Surveys";
+import SurveyBuilder from "./pages/SurveyBuilder";
+import SurveyResults from "./pages/SurveyResults";
+import PublicSurvey from "./pages/PublicSurvey";
 import { AdminConsolidate } from "./pages/AdminConsolidate";
 import NotFound from "./pages/NotFound";
 import VoiceTest from "./pages/VoiceTest";
@@ -297,6 +301,30 @@ const App = () => {
               <Route path="/scribe" element={<Scribe />} />
               <Route path="/ai4gp-prompts" element={<AI4GPPromptGuide />} />
               <Route path="/reception-translate" element={<ReceptionPatientView />} />
+              
+              {/* Survey Routes */}
+              <Route path="/surveys" element={
+                <ProtectedRoute requiredModule="survey_manager_access">
+                  <Surveys />
+                </ProtectedRoute>
+              } />
+              <Route path="/surveys/create" element={
+                <ProtectedRoute requiredModule="survey_manager_access">
+                  <SurveyBuilder />
+                </ProtectedRoute>
+              } />
+              <Route path="/surveys/:id/edit" element={
+                <ProtectedRoute requiredModule="survey_manager_access">
+                  <SurveyBuilder />
+                </ProtectedRoute>
+              } />
+              <Route path="/surveys/:id/results" element={
+                <ProtectedRoute requiredModule="survey_manager_access">
+                  <SurveyResults />
+                </ProtectedRoute>
+              } />
+              <Route path="/survey/:token" element={<PublicSurvey />} />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

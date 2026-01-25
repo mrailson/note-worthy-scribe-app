@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart, LayoutDashboard } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart, LayoutDashboard, ClipboardList } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useServiceVisibility } from "@/hooks/useServiceVisibility";
@@ -267,6 +267,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                          </DropdownMenuItem>
                        )}
 
+                       {hasModuleAccess('survey_manager_access') && (
+                         <DropdownMenuItem 
+                           onClick={() => navigate('/surveys')}
+                           className="cursor-pointer py-3"
+                         >
+                           <ClipboardList className="h-4 w-4 mr-2" />
+                           Survey Manager
+                         </DropdownMenuItem>
+                       )}
 
                        {hasModuleAccess('shared_drive_access') && isServiceVisible('shared_drive') && (
                           <DropdownMenuItem 

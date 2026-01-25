@@ -248,7 +248,8 @@ const SystemAdmin = () => {
       fridge_monitoring_access: false,
       cso_governance_access: false,
       lg_capture_access: false,
-      bp_service_access: false
+      bp_service_access: false,
+      survey_manager_access: false
     }
   });
   
@@ -1185,7 +1186,8 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
         fridge_monitoring_access: user.fridge_monitoring_access ?? false,
         cso_governance_access: user.cso_governance_access ?? false,
         lg_capture_access: user.lg_capture_access ?? false,
-        bp_service_access: user.bp_service_access ?? false
+        bp_service_access: user.bp_service_access ?? false,
+        survey_manager_access: user.survey_manager_access ?? false
       }
     };
     

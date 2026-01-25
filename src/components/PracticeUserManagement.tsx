@@ -93,7 +93,12 @@ export const PracticeUserManagement = () => {
       shared_drive_access: false,
       mic_test_service_access: false,
       api_testing_service_access: false,
-      fridge_monitoring_access: false
+      fridge_monitoring_access: false,
+      translation_service_access: false,
+      cso_governance_access: false,
+      lg_capture_access: false,
+      bp_service_access: false,
+      survey_manager_access: false
     }
   });
 
@@ -370,7 +375,12 @@ export const PracticeUserManagement = () => {
         shared_drive_access: false,
         mic_test_service_access: user.mic_test_service_access,
         api_testing_service_access: user.api_testing_service_access,
-        fridge_monitoring_access: user.fridge_monitoring_access
+        fridge_monitoring_access: user.fridge_monitoring_access,
+        translation_service_access: false,
+        cso_governance_access: false,
+        lg_capture_access: false,
+        bp_service_access: false,
+        survey_manager_access: false
       }
     });
     setShowUserModal(true);
@@ -433,7 +443,12 @@ export const PracticeUserManagement = () => {
         shared_drive_access: false,
         mic_test_service_access: false,
         api_testing_service_access: false,
-        fridge_monitoring_access: false
+        fridge_monitoring_access: false,
+        translation_service_access: false,
+        cso_governance_access: false,
+        lg_capture_access: false,
+        bp_service_access: false,
+        survey_manager_access: false
       }
     });
     setSendWelcomeEmail(true);

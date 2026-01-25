@@ -9473,19 +9473,24 @@ export type Database = {
         Returns: {
           ai4gp_access: boolean
           api_testing_service_access: boolean
-          assigned_at: string
+          bp_service_access: boolean
           complaints_manager_access: boolean
           cqc_compliance_access: boolean
+          cso_governance_access: boolean
           email: string
           enhanced_access: boolean
           fridge_monitoring_access: boolean
           full_name: string
           gp_scribe_access: boolean
-          last_login: string
+          lg_capture_access: boolean
           meeting_notes_access: boolean
           mic_test_service_access: boolean
-          role: Database["public"]["Enums"]["app_role"]
+          practice_assignments: Json
+          practice_role: string
+          role: string
           shared_drive_access: boolean
+          survey_manager_access: boolean
+          translation_service_access: boolean
           user_id: string
         }[]
       }
