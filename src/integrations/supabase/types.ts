@@ -7988,6 +7988,7 @@ export type Database = {
           is_anonymous: boolean | null
           practice_id: string | null
           public_token: string | null
+          short_code: string
           show_practice_logo: boolean | null
           start_date: string | null
           status: string | null
@@ -8005,6 +8006,7 @@ export type Database = {
           is_anonymous?: boolean | null
           practice_id?: string | null
           public_token?: string | null
+          short_code: string
           show_practice_logo?: boolean | null
           start_date?: string | null
           status?: string | null
@@ -8022,6 +8024,7 @@ export type Database = {
           is_anonymous?: boolean | null
           practice_id?: string | null
           public_token?: string | null
+          short_code?: string
           show_practice_logo?: boolean | null
           start_date?: string | null
           status?: string | null
@@ -9156,6 +9159,7 @@ export type Database = {
       }
       generate_complaint_reference: { Args: never; Returns: string }
       generate_incident_reference: { Args: never; Returns: string }
+      generate_short_code: { Args: { length?: number }; Returns: string }
       get_actual_meeting_word_count: {
         Args: { p_meeting_id: string }
         Returns: number

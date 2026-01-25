@@ -51,12 +51,20 @@ const PublicSurvey = () => {
   const { data: survey, isLoading: surveyLoading, error: surveyError } = useQuery({
     queryKey: ['public-survey', token],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Try short_code first, fall back to public_token for backwards compatibility
+      let query = supabase
         .from('surveys')
         .select('id, title, description, is_anonymous, practice_id, show_practice_logo, branding_level')
-        .eq('public_token', token)
-        .eq('status', 'active')
-        .single();
+        .eq('status', 'active');
+      
+      // Check if token looks like a UUID (36 chars with dashes) or a short code (6 chars)
+      if (token && token.length === 36 && token.includes('-')) {
+        query = query.eq('public_token', token);
+      } else {
+        query = query.eq('short_code', token);
+      }
+      
+      const { data, error } = await query.single();
 
       if (error) {
         console.error('Survey fetch error:', error);

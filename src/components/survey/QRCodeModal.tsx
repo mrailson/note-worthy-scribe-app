@@ -16,6 +16,7 @@ interface QRCodeModalProps {
   onOpenChange: (open: boolean) => void;
   surveyTitle: string;
   publicToken: string;
+  shortCode?: string;
 }
 
 export const QRCodeModal = ({
@@ -23,16 +24,20 @@ export const QRCodeModal = ({
   onOpenChange,
   surveyTitle,
   publicToken,
+  shortCode,
 }: QRCodeModalProps) => {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [qrSvg, setQrSvg] = useState<string>('');
   const printRef = useRef<HTMLDivElement>(null);
 
-  const surveyUrl = `${window.location.origin}/survey/${publicToken}`;
+  // Use short URL if available, otherwise fall back to public_token
+  const surveyUrl = shortCode 
+    ? `${window.location.origin}/s/${shortCode}`
+    : `${window.location.origin}/survey/${publicToken}`;
 
   useEffect(() => {
-    if (open && publicToken) {
+    if (open && (publicToken || shortCode)) {
       const qr = new QRCodeSVG({
         content: surveyUrl,
         width: 300,
@@ -44,7 +49,7 @@ export const QRCodeModal = ({
       });
       setQrSvg(qr.svg());
     }
-  }, [open, publicToken, surveyUrl]);
+  }, [open, publicToken, shortCode, surveyUrl]);
 
   const copyLink = () => {
     navigator.clipboard.writeText(surveyUrl);
