@@ -140,9 +140,9 @@ export const PatientEmailChatModal: React.FC<PatientEmailChatModalProps> = ({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={handleClose} disabled={isSending}>
-            Cancel
+            {phrases.cancel}
           </Button>
           <Button 
             onClick={handleSend} 

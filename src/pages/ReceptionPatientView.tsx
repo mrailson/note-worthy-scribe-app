@@ -382,17 +382,17 @@ const ReceptionPatientView: React.FC = () => {
                         {loadingAudioId === messageId ? (
                           <>
                             <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            <span className="text-xs">Load Audio</span>
+                            <span className="text-xs">{phrases.loadingAudio}</span>
                           </>
                         ) : playingAudioId === messageId ? (
                           <>
                             <Volume2 className="h-3 w-3 mr-1 animate-pulse" />
-                            <span className="text-xs">Playing...</span>
+                            <span className="text-xs">{phrases.playing}</span>
                           </>
                         ) : (
                           <>
                             <Volume2 className="h-3 w-3 mr-1" />
-                            <span className="text-xs">Play Audio</span>
+                            <span className="text-xs">{phrases.playAudio}</span>
                           </>
                         )}
                       </Button>
