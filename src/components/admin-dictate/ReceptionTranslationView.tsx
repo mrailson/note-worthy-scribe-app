@@ -26,7 +26,9 @@ import {
   Send,
   XCircle,
   AlertTriangle,
-  ShieldX
+  ShieldX,
+  Monitor,
+  MonitorOff
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -716,6 +718,15 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   // Speaker mode toggle: 'staff' = listening for English, 'patient' = listening for patient's language
   const [speakerMode, setSpeakerMode] = useState<'staff' | 'patient'>('staff');
   
+  // System audio capture state
+  const [isSystemAudioMode, setIsSystemAudioMode] = useState(false);
+  const [isCapturingSystemAudio, setIsCapturingSystemAudio] = useState(false);
+  const [systemAudioTranscript, setSystemAudioTranscript] = useState('');
+  const systemAudioStreamRef = useRef<MediaStream | null>(null);
+  const systemAudioRecorderRef = useRef<MediaRecorder | null>(null);
+  const systemAudioChunksRef = useRef<Blob[]>([]);
+  const systemAudioIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef(false);
   const isStartingRef = useRef(false);
@@ -1143,6 +1154,149 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       setTranscript('');
     }
   }, [isMicPaused]);
+
+  // System audio capture for testing with videos
+  const startSystemAudioCapture = useCallback(async () => {
+    try {
+      // Request display media with audio only
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true, // Required for getDisplayMedia
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+      
+      // Check if we got audio tracks
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        showToast.error('No audio track available. Make sure to share a tab with audio.');
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
+      
+      // Stop video tracks - we only need audio
+      stream.getVideoTracks().forEach(t => t.stop());
+      
+      // Create audio-only stream
+      const audioStream = new MediaStream(audioTracks);
+      systemAudioStreamRef.current = audioStream;
+      
+      // Set up MediaRecorder
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+        ? 'audio/webm;codecs=opus' 
+        : 'audio/webm';
+      
+      const recorder = new MediaRecorder(audioStream, { mimeType });
+      systemAudioRecorderRef.current = recorder;
+      systemAudioChunksRef.current = [];
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          systemAudioChunksRef.current.push(e.data);
+        }
+      };
+      
+      recorder.start(5000); // Collect data every 5 seconds
+      setIsCapturingSystemAudio(true);
+      showToast.success('System audio capture started');
+      
+      // Set up periodic transcription (every 10 seconds)
+      systemAudioIntervalRef.current = setInterval(async () => {
+        if (systemAudioChunksRef.current.length > 0) {
+          const chunks = [...systemAudioChunksRef.current];
+          systemAudioChunksRef.current = [];
+          
+          const audioBlob = new Blob(chunks, { type: mimeType });
+          
+          // Transcribe using Whisper
+          try {
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'audio.webm');
+            formData.append('model', 'whisper-1');
+            formData.append('language', speakerModeRef.current === 'staff' ? 'en' : patientLanguage);
+            
+            const { data, error } = await supabase.functions.invoke('whisper-transcribe', {
+              body: formData
+            });
+            
+            if (error) {
+              console.error('Whisper transcription error:', error);
+              return;
+            }
+            
+            const text = data?.text?.trim();
+            if (text && text.length > 3) {
+              console.log('🎬 System audio transcription:', text);
+              setSystemAudioTranscript(prev => prev ? `${prev} ${text}` : text);
+              
+              // Queue for confirmation
+              const isPatientMode = speakerModeRef.current === 'patient';
+              setPendingSpeaker(isPatientMode ? 'patient' : 'staff');
+              setPendingTranscript(prev => prev ? `${prev} ${text}` : text);
+              
+              if (!isPatientMode) {
+                setShowConfirmation(true);
+              }
+            }
+          } catch (err) {
+            console.error('System audio transcription failed:', err);
+          }
+        }
+      }, 10000);
+      
+      // Handle track ended (user stops sharing)
+      audioTracks[0].onended = () => {
+        stopSystemAudioCapture();
+        showToast.info('System audio capture ended');
+      };
+      
+    } catch (err: any) {
+      console.error('Failed to capture system audio:', err);
+      if (err.name === 'NotAllowedError') {
+        showToast.error('Screen sharing permission denied');
+      } else {
+        showToast.error('Failed to capture system audio');
+      }
+    }
+  }, [patientLanguage]);
+  
+  const stopSystemAudioCapture = useCallback(() => {
+    if (systemAudioIntervalRef.current) {
+      clearInterval(systemAudioIntervalRef.current);
+      systemAudioIntervalRef.current = null;
+    }
+    
+    if (systemAudioRecorderRef.current && systemAudioRecorderRef.current.state !== 'inactive') {
+      systemAudioRecorderRef.current.stop();
+    }
+    systemAudioRecorderRef.current = null;
+    
+    if (systemAudioStreamRef.current) {
+      systemAudioStreamRef.current.getTracks().forEach(t => t.stop());
+      systemAudioStreamRef.current = null;
+    }
+    
+    systemAudioChunksRef.current = [];
+    setIsCapturingSystemAudio(false);
+    setSystemAudioTranscript('');
+  }, []);
+  
+  const toggleSystemAudio = useCallback(async () => {
+    if (isCapturingSystemAudio) {
+      stopSystemAudioCapture();
+    } else {
+      await startSystemAudioCapture();
+    }
+  }, [isCapturingSystemAudio, startSystemAudioCapture, stopSystemAudioCapture]);
+  
+  // Cleanup system audio on unmount
+  useEffect(() => {
+    return () => {
+      stopSystemAudioCapture();
+    };
+  }, [stopSystemAudioCapture]);
 
   // Confirmation handlers
   const handleConfirmSend = useCallback(async () => {
@@ -1792,6 +1946,25 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* System Audio Toggle */}
+          <Button
+            variant={isCapturingSystemAudio ? 'default' : 'outline'}
+            size="sm"
+            onClick={toggleSystemAudio}
+            className={isCapturingSystemAudio ? 'bg-amber-600 hover:bg-amber-700' : ''}
+          >
+            {isCapturingSystemAudio ? (
+              <>
+                <MonitorOff className="h-4 w-4 mr-2" />
+                Stop System Audio
+              </>
+            ) : (
+              <>
+                <Monitor className="h-4 w-4 mr-2" />
+                System Audio
+              </>
+            )}
+          </Button>
           <Button 
             variant="outline" 
             size="sm" 
@@ -1821,6 +1994,26 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       <div className="flex-1 flex overflow-hidden">
         {/* Conversation panel */}
         <div className="flex-1 flex flex-col p-4">
+          {/* System Audio Indicator - shown when capturing system audio */}
+          {isCapturingSystemAudio && (
+            <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg border border-amber-300 dark:border-amber-700">
+              <div className="flex items-center gap-2">
+                <Monitor className="h-5 w-5 text-amber-600 dark:text-amber-400 animate-pulse" />
+                <span className="font-medium text-amber-800 dark:text-amber-300">
+                  Capturing System Audio
+                </span>
+                <span className="text-sm text-amber-600 dark:text-amber-400">
+                  (transcribing every 10s)
+                </span>
+              </div>
+              {systemAudioTranscript && (
+                <p className="mt-2 text-sm text-amber-700 dark:text-amber-400 italic">
+                  Latest: {systemAudioTranscript.slice(-100)}...
+                </p>
+              )}
+            </div>
+          )}
+          
           {/* Patient Speaking Prompt - shown when in patient mode and listening */}
           {speakerMode === 'patient' && isListening && !isMicPaused && (
             <div className="mb-4">
