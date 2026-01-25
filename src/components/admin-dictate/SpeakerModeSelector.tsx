@@ -142,25 +142,19 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
   
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* Status badge at top showing translation direction */}
-      <Badge 
-        variant="outline" 
-        className={cn(
-          "px-4 py-2 text-sm transition-all",
-          mode === 'staff' 
-            ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800" 
-            : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800"
-        )}
-      >
-        {mode === 'staff' 
-          ? `🇬🇧 English → ${patientLanguageFlag} ${nativeLanguageName}` 
-          : `${patientLanguageFlag} ${nativeLanguageName} → 🇬🇧 English`
-        }
-      </Badge>
-
-      {/* Horizontal row: [Receptionist] [Mic Controls] [Patient] */}
+      {/* Horizontal row: [Badge?] [Receptionist] [Mic Controls] [Patient] [Badge?] */}
       <div className="flex items-start gap-4">
-        {/* Left: Staff/Receptionist button */}
+        {/* LEFT: Translation badge when staff mode is active */}
+        {mode === 'staff' && (
+          <Badge 
+            variant="outline" 
+            className="self-center px-3 py-2 text-sm bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800"
+          >
+            🇬🇧 English → {patientLanguageFlag} {nativeLanguageName}
+          </Badge>
+        )}
+
+        {/* Staff/Receptionist button */}
         <div className="flex flex-col items-center gap-1 relative">
           <Button
             variant={mode === 'staff' ? 'default' : 'outline'}
@@ -211,6 +205,16 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
             <ChevronDown className="h-5 w-5 text-emerald-500 animate-bounce mt-1" />
           )}
         </div>
+
+        {/* RIGHT: Translation badge when patient mode is active */}
+        {mode === 'patient' && (
+          <Badge 
+            variant="outline" 
+            className="self-center px-3 py-2 text-sm bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800"
+          >
+            {patientLanguageFlag} {nativeLanguageName} → 🇬🇧 English
+          </Badge>
+        )}
       </div>
 
       {/* Status text */}
