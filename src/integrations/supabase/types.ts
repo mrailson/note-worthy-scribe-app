@@ -7824,6 +7824,215 @@ export type Database = {
           },
         ]
       }
+      survey_answers: {
+        Row: {
+          answer_options: Json | null
+          answer_rating: number | null
+          answer_text: string | null
+          id: string
+          question_id: string
+          response_id: string
+        }
+        Insert: {
+          answer_options?: Json | null
+          answer_rating?: number | null
+          answer_text?: string | null
+          id?: string
+          question_id: string
+          response_id: string
+        }
+        Update: {
+          answer_options?: Json | null
+          answer_rating?: number | null
+          answer_text?: string | null
+          id?: string
+          question_id?: string
+          response_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "survey_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_answers_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "survey_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_email_preferences: {
+        Row: {
+          created_at: string | null
+          digest_day: string | null
+          id: string
+          practice_id: string | null
+          receive_weekly_digest: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          digest_day?: string | null
+          id?: string
+          practice_id?: string | null
+          receive_weekly_digest?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          digest_day?: string | null
+          id?: string
+          practice_id?: string | null
+          receive_weekly_digest?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_email_preferences_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_questions: {
+        Row: {
+          created_at: string | null
+          display_order: number
+          id: string
+          is_required: boolean | null
+          options: Json | null
+          question_text: string
+          question_type: string
+          survey_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_order: number
+          id?: string
+          is_required?: boolean | null
+          options?: Json | null
+          question_text: string
+          question_type: string
+          survey_id: string
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number
+          id?: string
+          is_required?: boolean | null
+          options?: Json | null
+          question_text?: string
+          question_type?: string
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_questions_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_responses: {
+        Row: {
+          id: string
+          ip_hash: string | null
+          respondent_email: string | null
+          respondent_name: string | null
+          submitted_at: string | null
+          survey_id: string
+        }
+        Insert: {
+          id?: string
+          ip_hash?: string | null
+          respondent_email?: string | null
+          respondent_name?: string | null
+          submitted_at?: string | null
+          survey_id: string
+        }
+        Update: {
+          id?: string
+          ip_hash?: string | null
+          respondent_email?: string | null
+          respondent_name?: string | null
+          submitted_at?: string | null
+          survey_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      surveys: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          end_date: string | null
+          id: string
+          is_anonymous: boolean | null
+          practice_id: string | null
+          public_token: string | null
+          start_date: string | null
+          status: string | null
+          survey_type: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          practice_id?: string | null
+          public_token?: string | null
+          start_date?: string | null
+          status?: string | null
+          survey_type: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          practice_id?: string | null
+          public_token?: string | null
+          start_date?: string | null
+          status?: string | null
+          survey_type?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surveys_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_audit_log: {
         Row: {
           id: string
@@ -8817,6 +9026,10 @@ export type Database = {
         }
         Returns: string
       }
+      can_manage_surveys: {
+        Args: { _practice_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_view_consultation_examples: {
         Args: { _user_id?: string }
         Returns: boolean
@@ -9322,6 +9535,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_survey_by_token: { Args: { _token: string }; Returns: string }
       get_todays_meetings_details: {
         Args: never
         Returns: {
