@@ -7979,6 +7979,7 @@ export type Database = {
       }
       surveys: {
         Row: {
+          branding_level: string | null
           created_at: string | null
           created_by: string
           description: string | null
@@ -7987,6 +7988,7 @@ export type Database = {
           is_anonymous: boolean | null
           practice_id: string | null
           public_token: string | null
+          show_practice_logo: boolean | null
           start_date: string | null
           status: string | null
           survey_type: string
@@ -7994,6 +7996,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          branding_level?: string | null
           created_at?: string | null
           created_by: string
           description?: string | null
@@ -8002,6 +8005,7 @@ export type Database = {
           is_anonymous?: boolean | null
           practice_id?: string | null
           public_token?: string | null
+          show_practice_logo?: boolean | null
           start_date?: string | null
           status?: string | null
           survey_type: string
@@ -8009,6 +8013,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          branding_level?: string | null
           created_at?: string | null
           created_by?: string
           description?: string | null
@@ -8017,6 +8022,7 @@ export type Database = {
           is_anonymous?: boolean | null
           practice_id?: string | null
           public_token?: string | null
+          show_practice_logo?: boolean | null
           start_date?: string | null
           status?: string | null
           survey_type?: string

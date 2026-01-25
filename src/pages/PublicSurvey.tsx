@@ -8,9 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
-import { Star, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Star, CheckCircle2, AlertCircle, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Question {
@@ -27,6 +26,18 @@ interface Survey {
   title: string;
   description: string | null;
   is_anonymous: boolean;
+  practice_id: string | null;
+  show_practice_logo: boolean;
+  branding_level: 'none' | 'name' | 'name_address' | 'full';
+}
+
+interface PracticeDetails {
+  practice_name: string | null;
+  address: string | null;
+  email: string | null;
+  phone: string | null;
+  practice_logo_url: string | null;
+  logo_url: string | null;
 }
 
 const PublicSurvey = () => {
@@ -37,20 +48,44 @@ const PublicSurvey = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: survey, isLoading: surveyLoading } = useQuery({
+  const { data: survey, isLoading: surveyLoading, error: surveyError } = useQuery({
     queryKey: ['public-survey', token],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('surveys')
-        .select('id, title, description, is_anonymous')
+        .select('id, title, description, is_anonymous, practice_id, show_practice_logo, branding_level')
         .eq('public_token', token)
         .eq('status', 'active')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Survey fetch error:', error);
+        throw error;
+      }
       return data as Survey;
     },
     enabled: !!token,
+    retry: 1,
+  });
+
+  const { data: practiceDetails } = useQuery({
+    queryKey: ['practice-details', survey?.practice_id],
+    queryFn: async () => {
+      if (!survey?.practice_id) return null;
+      
+      const { data, error } = await supabase
+        .from('practice_details')
+        .select('practice_name, address, email, phone, practice_logo_url, logo_url')
+        .eq('id', survey.practice_id)
+        .single();
+
+      if (error) {
+        console.error('Practice details fetch error:', error);
+        return null;
+      }
+      return data as PracticeDetails;
+    },
+    enabled: !!survey?.practice_id && (survey.show_practice_logo || survey.branding_level !== 'none'),
   });
 
   const { data: questions, isLoading: questionsLoading } = useQuery({
@@ -138,6 +173,13 @@ const PublicSurvey = () => {
   const totalQuestions = questions?.length || 0;
   const progress = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
 
+  // Get the logo URL (prefer practice_logo_url, fallback to logo_url)
+  const logoUrl = practiceDetails?.practice_logo_url || practiceDetails?.logo_url;
+
+  // Determine if we should show branding
+  const showLogo = survey?.show_practice_logo && logoUrl;
+  const showBranding = survey?.branding_level && survey.branding_level !== 'none' && practiceDetails;
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
@@ -151,7 +193,7 @@ const PublicSurvey = () => {
     );
   }
 
-  if (!survey) {
+  if (!survey || surveyError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl text-center">
@@ -186,7 +228,54 @@ const PublicSurvey = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Header */}
+        {/* Practice Branding Header */}
+        {(showLogo || showBranding) && (
+          <Card>
+            <CardContent className="py-6">
+              <div className="flex flex-col items-center text-center space-y-4">
+                {showLogo && (
+                  <img 
+                    src={logoUrl} 
+                    alt="Practice Logo" 
+                    className="max-h-20 max-w-[200px] object-contain"
+                  />
+                )}
+                
+                {showBranding && (
+                  <div className="space-y-1">
+                    {practiceDetails?.practice_name && (
+                      <h2 className="text-lg font-semibold">{practiceDetails.practice_name}</h2>
+                    )}
+                    
+                    {(survey.branding_level === 'name_address' || survey.branding_level === 'full') && 
+                      practiceDetails?.address && (
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">
+                        {practiceDetails.address}
+                      </p>
+                    )}
+                    
+                    {survey.branding_level === 'full' && (
+                      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-muted-foreground pt-1">
+                        {practiceDetails?.email && (
+                          <a href={`mailto:${practiceDetails.email}`} className="hover:text-primary">
+                            {practiceDetails.email}
+                          </a>
+                        )}
+                        {practiceDetails?.phone && (
+                          <a href={`tel:${practiceDetails.phone}`} className="hover:text-primary">
+                            {practiceDetails.phone}
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Survey Header */}
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">{survey.title}</CardTitle>

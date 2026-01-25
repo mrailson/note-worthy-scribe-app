@@ -38,6 +38,8 @@ interface SurveyData {
   is_anonymous: boolean;
   start_date: Date | null;
   end_date: Date | null;
+  show_practice_logo: boolean;
+  branding_level: 'none' | 'name' | 'name_address' | 'full';
 }
 
 const questionTypeLabels: Record<string, string> = {
@@ -139,6 +141,8 @@ const SurveyBuilder = () => {
     is_anonymous: true,
     start_date: null,
     end_date: null,
+    show_practice_logo: false,
+    branding_level: 'none',
   });
 
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -192,6 +196,8 @@ const SurveyBuilder = () => {
         is_anonymous: survey.is_anonymous,
         start_date: survey.start_date ? new Date(survey.start_date) : null,
         end_date: survey.end_date ? new Date(survey.end_date) : null,
+        show_practice_logo: survey.show_practice_logo ?? false,
+        branding_level: (survey.branding_level as SurveyData['branding_level']) ?? 'none',
       });
 
       const { data: questionsData } = await supabase
@@ -347,6 +353,8 @@ const SurveyBuilder = () => {
         practice_id: practiceId,
         created_by: user.id,
         updated_at: new Date().toISOString(),
+        show_practice_logo: surveyData.show_practice_logo,
+        branding_level: surveyData.branding_level,
       };
 
       let surveyId = id;
@@ -761,6 +769,54 @@ const SurveyBuilder = () => {
                           />
                         </PopoverContent>
                       </Popover>
+                    </div>
+                  </div>
+
+                  {/* Branding Settings */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <div>
+                      <Label className="text-base font-medium">Branding</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Customise how your practice branding appears on the survey
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <Label className="text-base">Show Practice Logo</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Display your practice logo at the top of the survey
+                        </p>
+                      </div>
+                      <Switch
+                        checked={surveyData.show_practice_logo}
+                        onCheckedChange={(checked) =>
+                          setSurveyData((prev) => ({ ...prev, show_practice_logo: checked }))
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Practice Information</Label>
+                      <Select
+                        value={surveyData.branding_level}
+                        onValueChange={(value) =>
+                          setSurveyData((prev) => ({ ...prev, branding_level: value as SurveyData['branding_level'] }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None - No practice details shown</SelectItem>
+                          <SelectItem value="name">Practice Name only</SelectItem>
+                          <SelectItem value="name_address">Practice Name + Address</SelectItem>
+                          <SelectItem value="full">Full - Name, Address, Email & Phone</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground">
+                        Select what practice contact information to display on the survey
+                      </p>
                     </div>
                   </div>
 
