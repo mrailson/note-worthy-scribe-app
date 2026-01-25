@@ -28,18 +28,11 @@ import {
   AlertTriangle,
   ShieldX,
   Monitor,
-  MonitorOff,
-  ChevronDown
+  MonitorOff
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AssemblyRealtimeClient } from '@/lib/assembly-realtime';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useReceptionTranslation, TranslationMessage, ContentWarning } from '@/hooks/useReceptionTranslation';
 import {
   AlertDialog,
@@ -61,6 +54,7 @@ import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 import { SpeakerModeSelector } from './SpeakerModeSelector';
 import { PatientSpeakingPrompt } from './PatientSpeakingPrompt';
 import { getWebSpeechLanguageCode, isWebSpeechSupported } from '@/utils/webSpeechLanguages';
+import { TranslationSettingsModal } from './TranslationSettingsModal';
 
 // Localised "GP Practice said" for translated messages
 const GP_PRACTICE_SAID: Record<string, string> = {
@@ -2044,64 +2038,26 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           )}
         </div>
         <div className="flex items-center gap-2">
-          {/* System Audio Toggle with Service Selector */}
-          <div className="flex items-center">
-            <Button
-              variant={isCapturingSystemAudio ? 'default' : 'outline'}
-              size="sm"
-              onClick={toggleSystemAudio}
-              className={`rounded-r-none ${isCapturingSystemAudio ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
-            >
-              {isCapturingSystemAudio ? (
-                <>
-                  <MonitorOff className="h-4 w-4 mr-2" />
-                  Stop
-                </>
-              ) : (
-                <>
-                  <Monitor className="h-4 w-4 mr-2" />
-                  System Audio
-                </>
-              )}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant={isCapturingSystemAudio ? 'default' : 'outline'}
-                  size="sm"
-                  className={`rounded-l-none border-l-0 px-2 ${isCapturingSystemAudio ? 'bg-amber-600 hover:bg-amber-700' : ''}`}
-                  disabled={isCapturingSystemAudio}
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem 
-                  onClick={() => setSystemAudioService('whisper')}
-                  className={systemAudioService === 'whisper' ? 'bg-muted' : ''}
-                >
-                  <span className="flex items-center gap-2">
-                    {systemAudioService === 'whisper' && <Check className="h-4 w-4" />}
-                    <span className={systemAudioService === 'whisper' ? 'font-medium' : ''}>
-                      Whisper (Batch, 10s)
-                    </span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setSystemAudioService('assemblyai')}
-                  className={systemAudioService === 'assemblyai' ? 'bg-muted' : ''}
-                >
-                  <span className="flex items-center gap-2">
-                    {systemAudioService === 'assemblyai' && <Check className="h-4 w-4" />}
-                    <span className={systemAudioService === 'assemblyai' ? 'font-medium' : ''}>
-                      AssemblyAI (Real-time)
-                    </span>
-                  </span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          <Button 
+          {/* System Audio Toggle - simplified button */}
+          <Button
+            variant={isCapturingSystemAudio ? 'default' : 'outline'}
+            size="sm"
+            onClick={toggleSystemAudio}
+            className={isCapturingSystemAudio ? 'bg-amber-600 hover:bg-amber-700' : ''}
+          >
+            {isCapturingSystemAudio ? (
+              <>
+                <MonitorOff className="h-4 w-4 mr-2" />
+                Stop System Audio
+              </>
+            ) : (
+              <>
+                <Monitor className="h-4 w-4 mr-2" />
+                System Audio
+              </>
+            )}
+          </Button>
+          <Button
             variant="outline" 
             size="sm" 
             onClick={handleDownloadReport}
@@ -2402,6 +2358,15 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               <li>Patient types/speaks reply</li>
               <li>You see English translation</li>
             </ol>
+          </div>
+
+          {/* Settings button below How it works */}
+          <div className="mt-3 flex justify-end w-full">
+            <TranslationSettingsModal
+              systemAudioService={systemAudioService}
+              onServiceChange={setSystemAudioService}
+              isCapturingSystemAudio={isCapturingSystemAudio}
+            />
           </div>
         </div>
       </div>
