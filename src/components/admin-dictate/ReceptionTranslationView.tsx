@@ -2041,14 +2041,16 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               <ShieldX className="h-5 w-5" />
               Translation Blocked
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
+          <AlertDialogDescription asChild>
+            <div className="space-y-2">
               <p>
                 {blockedContent?.reason || 'This message contains language that cannot be translated in a healthcare setting.'}
               </p>
               <p className="text-sm text-muted-foreground">
                 Please rephrase your message and try again.
               </p>
-            </AlertDialogDescription>
+            </div>
+          </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction 
@@ -2071,14 +2073,16 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               <AlertTriangle className="h-5 w-5" />
               Content Warning
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
+          <AlertDialogDescription asChild>
+            <div className="space-y-2">
               <p>
                 This message may contain inappropriate language.
               </p>
               <p className="text-sm text-muted-foreground">
                 Please review before sending to the patient.
               </p>
-            </AlertDialogDescription>
+            </div>
+          </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
