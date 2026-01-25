@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, ArrowRight, Plus, Trash2, GripVertical, Save, Eye, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2, GripVertical, Save, Eye, Upload, ChevronUp, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
@@ -275,6 +275,29 @@ const SurveyBuilder = () => {
       ];
       return newQuestions.map((q, i) => ({ ...q, display_order: i + 1 }));
     });
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData('text/plain', index.toString());
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, toIndex: number) => {
+    e.preventDefault();
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (fromIndex !== toIndex) {
+      setQuestions((prev) => {
+        const newQuestions = [...prev];
+        const [removed] = newQuestions.splice(fromIndex, 1);
+        newQuestions.splice(toIndex, 0, removed);
+        return newQuestions.map((q, i) => ({ ...q, display_order: i + 1 }));
+      });
+    }
   };
 
   const handleImportQuestions = (title: string, importedQuestions: ImportedQuestion[]) => {
@@ -541,10 +564,17 @@ const SurveyBuilder = () => {
                     </div>
                   ) : (
                     questions.map((question, index) => (
-                      <Card key={index} className="relative">
+                      <Card 
+                        key={index} 
+                        className="relative cursor-grab active:cursor-grabbing"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, index)}
+                      >
                         <CardContent className="pt-6">
                           <div className="flex items-start gap-4">
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col items-center gap-1">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -552,11 +582,23 @@ const SurveyBuilder = () => {
                                 onClick={() => moveQuestion(index, 'up')}
                                 disabled={index === 0}
                               >
-                                <GripVertical className="h-4 w-4" />
+                                <ChevronUp className="h-4 w-4" />
                               </Button>
-                              <Badge variant="secondary" className="text-xs">
-                                {index + 1}
-                              </Badge>
+                              <div className="flex items-center gap-1">
+                                <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                <Badge variant="secondary" className="text-xs">
+                                  {index + 1}
+                                </Badge>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => moveQuestion(index, 'down')}
+                                disabled={index === questions.length - 1}
+                              >
+                                <ChevronDown className="h-4 w-4" />
+                              </Button>
                             </div>
                             
                             <div className="flex-1 space-y-4">
