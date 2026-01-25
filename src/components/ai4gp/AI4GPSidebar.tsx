@@ -57,6 +57,7 @@ interface AI4GPSidebarProps {
   onShowAllQuickActions: () => void;
   onShowImageStudio: () => void;
   onShowAdminDictate: () => void;
+  onShowTranslationService: () => void;
   meetings: SidebarMeeting[];
   meetingsLoading: boolean;
   onSelectMeeting: (meetingId: string) => void;
@@ -80,6 +81,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
   onShowAllQuickActions,
   onShowImageStudio,
   onShowAdminDictate,
+  onShowTranslationService,
   meetings,
   meetingsLoading,
   onSelectMeeting
@@ -93,9 +95,10 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
   ];
 
   const quickActions = [
+    { icon: Languages, label: 'Translation Service', action: onShowTranslationService },
     { icon: Newspaper, label: 'GP News', action: onShowNews },
     { icon: Activity, label: 'BP Average Service', action: onShowBPCalculator },
-    { icon: Mic, label: 'Dictate or Translate', action: onShowAdminDictate },
+    { icon: Mic, label: 'Dictate', action: onShowAdminDictate },
     { icon: Presentation, label: 'Presentation Studio', action: onShowPresentationStudio },
     { icon: Palette, label: 'Image Studio', action: onShowImageStudio },
   ];

@@ -43,6 +43,7 @@ import { PowerPointGenerationOverlay } from '@/components/PowerPointGenerationOv
 import { ImageStudioModal } from '@/components/ai4gp/ImageStudioModal';
 import { PresentationStudioModal } from '@/components/ai4gp/PresentationStudioModal';
 import { AdminDictatePanel } from '@/components/ai4gp/AdminDictatePanel';
+import { TranslationServicePanel } from '@/components/ai4gp/TranslationServicePanel';
 
   // Hook imports
 import { useIsMobile, useDeviceInfo } from '@/hooks/use-mobile';
@@ -130,6 +131,7 @@ const AI4GPService = () => {
   const [showImageStudio, setShowImageStudio] = useState(false);
   const [showPresentationStudio, setShowPresentationStudio] = useState(false);
   const [showAdminDictate, setShowAdminDictate] = useState(false);
+  const [showTranslationService, setShowTranslationService] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>(() => {
     const saved = localStorage.getItem('ai4gp-selected-role');
@@ -161,12 +163,19 @@ const AI4GPService = () => {
     setShowTranslation(false);
     setShowSearchHistory(false);
     setShowAdminDictate(false);
+    setShowTranslationService(false);
   };
 
   const handleShowAdminDictate = () => {
     const wasOpen = showAdminDictate;
     closeAllPanels();
     if (!wasOpen) setShowAdminDictate(true);
+  };
+
+  const handleShowTranslationService = () => {
+    const wasOpen = showTranslationService;
+    closeAllPanels();
+    if (!wasOpen) setShowTranslationService(true);
   };
 
   // Panel toggle handlers that close other panels first
@@ -453,6 +462,7 @@ const AI4GPService = () => {
           onShowImageStudio={() => setShowImageStudio(true)}
           onShowPresentationStudio={() => setShowPresentationStudio(true)}
           onShowAdminDictate={handleShowAdminDictate}
+          onShowTranslationService={handleShowTranslationService}
           meetings={meetings as any}
           meetingsLoading={meetingsLoading}
           onSelectMeeting={(meetingId) => {
@@ -700,8 +710,15 @@ const AI4GPService = () => {
                 </div>
               )}
 
+              {/* Translation Service Panel - Inline Display */}
+              {showTranslationService && (
+                <div className="flex-1 overflow-y-auto bg-background">
+                  <TranslationServicePanel onClose={() => setShowTranslationService(false)} />
+                </div>
+              )}
+
               {/* Main Chat Content - Only show when services are not active */}
-              {!showImageCreate && !showImageService && !showNews && !showBPCalculator && !showTranslation && !showAdminDictate && (
+              {!showImageCreate && !showImageService && !showNews && !showBPCalculator && !showTranslation && !showAdminDictate && !showTranslationService && (
                 <CardContent className={cn(
                   "flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden",
                   deviceInfo.isIPhone && "pb-safe"
