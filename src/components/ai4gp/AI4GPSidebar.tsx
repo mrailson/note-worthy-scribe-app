@@ -130,7 +130,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
                 <Icon className="w-4 h-4 pointer-events-none" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right" className="pointer-events-none">
+            <TooltipContent side="right">
               <p>{label}</p>
             </TooltipContent>
           </Tooltip>
