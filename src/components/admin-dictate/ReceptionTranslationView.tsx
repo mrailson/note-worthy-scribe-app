@@ -663,6 +663,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const isMicPausedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const speakerModeRef = useRef<'staff' | 'patient'>('staff');
+  const lastInterimRef = useRef<string>(''); // Track interim to preserve on restart
   
   const { practiceContext } = usePracticeContext();
   const practiceName = practiceContext?.practiceName || 'Our Practice';
@@ -828,7 +829,12 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         }
       }
 
+      // Track interim for potential preservation on restart
+      lastInterimRef.current = interimTranscript;
+
       if (finalTranscript) {
+        // Clear interim ref since we got a final result
+        lastInterimRef.current = '';
         // Instead of auto-sending, queue for confirmation
         setPendingTranscript(prev => {
           const newText = prev ? `${prev} ${finalTranscript.trim()}` : finalTranscript.trim();
@@ -877,10 +883,35 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       // Only restart if still supposed to be listening and not stopped by user
       if (isListeningRef.current && !stoppedByUserRef.current) {
         console.log('Speech recognition ended, restarting...');
+        
+        // For non-English languages, preserve any interim transcript as it may be lost on restart
+        const isNonEnglish = speakerModeRef.current === 'patient';
+        if (isNonEnglish && lastInterimRef.current.trim()) {
+          console.log('📝 Preserving interim transcript before restart:', lastInterimRef.current);
+          const interimToPreserve = lastInterimRef.current.trim();
+          lastInterimRef.current = '';
+          // Queue the interim as a pending transcript fragment
+          setPendingTranscript(prev => {
+            const newText = prev ? `${prev} ${interimToPreserve}` : interimToPreserve;
+            return newText;
+          });
+          setShowConfirmation(true);
+          setTranscript('');
+        }
+        
+        // Use shorter delay for non-English languages as they tend to end more frequently
+        const restartDelay = isNonEnglish ? 50 : 300;
+        
         setTimeout(() => {
           if (isListeningRef.current && !isStartingRef.current && recognitionRef.current) {
             try {
               isStartingRef.current = true;
+              // Ensure language is still correctly set before restart
+              const expectedLang = speakerModeRef.current === 'staff' ? 'en-GB' : getWebSpeechLanguageCode(patientLanguage);
+              if (recognitionRef.current.lang !== expectedLang) {
+                recognitionRef.current.lang = expectedLang;
+                console.log(`🌐 Corrected recognition language to: ${expectedLang}`);
+              }
               recognitionRef.current.start();
             } catch (e: any) {
               isStartingRef.current = false;
@@ -889,7 +920,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               }
             }
           }
-        }, 300);
+        }, restartDelay);
       } else {
         console.log('Speech recognition ended');
       }
