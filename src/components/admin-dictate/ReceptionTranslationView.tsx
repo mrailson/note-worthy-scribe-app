@@ -2021,21 +2021,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             )}
           </Badge>
           {/* Patient Connection Status */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            patientConnected 
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
-          }`}>
-            <Smartphone className="h-4 w-4" />
-            {patientConnected ? (
-              <>
-                <span>Patient Connected</span>
-                <Check className="h-4 w-4" />
-              </>
-            ) : (
-              <span>Waiting for patient...</span>
-            )}
-          </div>
           {languageInfo && (
             <Badge variant="outline">
               {languageInfo.flag} {languageInfo.name}
