@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
-import { Settings, Monitor, Check } from 'lucide-react';
+import { Settings, Monitor, Check, Volume2 } from 'lucide-react';
 
 type SystemAudioService = 'whisper' | 'assemblyai';
 
@@ -14,6 +14,8 @@ interface TranslationSettingsModalProps {
   onServiceChange: (service: SystemAudioService) => void;
   isCapturingSystemAudio: boolean;
   onToggleSystemAudio: () => void;
+  autoPlayAudio: boolean;
+  onAutoPlayChange: (enabled: boolean) => void;
 }
 
 export const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
@@ -21,6 +23,8 @@ export const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> =
   onServiceChange,
   isCapturingSystemAudio,
   onToggleSystemAudio,
+  autoPlayAudio,
+  onAutoPlayChange,
 }) => {
   return (
     <Dialog>
@@ -43,6 +47,23 @@ export const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> =
         </DialogHeader>
         
         <div className="space-y-6 py-4">
+          {/* Auto-Play Audio Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+            <div className="flex items-center gap-3">
+              <Volume2 className={`h-5 w-5 ${autoPlayAudio ? 'text-primary' : 'text-muted-foreground'}`} />
+              <div>
+                <Label className="text-base font-medium">Auto-Play Audio</Label>
+                <p className="text-sm text-muted-foreground">
+                  Automatically play translated audio after sending
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={autoPlayAudio}
+              onCheckedChange={onAutoPlayChange}
+            />
+          </div>
+
           {/* System Audio Toggle */}
           <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
             <div className="flex items-center gap-3">
