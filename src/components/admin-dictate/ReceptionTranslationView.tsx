@@ -20,7 +20,11 @@ import {
   Maximize2,
   Printer,
   Mail,
-  Smartphone
+  Smartphone,
+  Pause,
+  Play,
+  Send,
+  XCircle
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -384,10 +388,17 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [smsCopied, setSmsCopied] = useState(false);
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
   const [loadingAudio, setLoadingAudio] = useState<Record<string, boolean>>({});
+  
+  // New states for mute/pause and confirmation popup
+  const [isMicPaused, setIsMicPaused] = useState(false);
+  const [pendingTranscript, setPendingTranscript] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef(false);
   const isStartingRef = useRef(false);
   const stoppedByUserRef = useRef(false);
+  const isMicPausedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   
   const { practiceContext } = usePracticeContext();
@@ -467,6 +478,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     isListeningRef.current = isListening;
   }, [isListening]);
 
+  useEffect(() => {
+    isMicPausedRef.current = isMicPaused;
+  }, [isMicPaused]);
+
   // Speech recognition setup - create instance once
   useEffect(() => {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
@@ -482,6 +497,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     recognitionRef.current.maxAlternatives = 1;
 
     recognitionRef.current.onresult = (event: any) => {
+      // If mic is paused, ignore all results
+      if (isMicPausedRef.current) {
+        return;
+      }
+
       let finalTranscript = '';
       let interimTranscript = '';
 
@@ -495,7 +515,12 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       }
 
       if (finalTranscript) {
-        sendMessage(finalTranscript);
+        // Instead of auto-sending, queue for confirmation
+        setPendingTranscript(prev => {
+          const newText = prev ? `${prev} ${finalTranscript.trim()}` : finalTranscript.trim();
+          return newText;
+        });
+        setShowConfirmation(true);
         setTranscript('');
       } else {
         setTranscript(interimTranscript);
@@ -560,7 +585,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       stoppedByUserRef.current = true;
       recognitionRef.current?.stop();
     };
-  }, [sendMessage]);
+  }, []);
 
   const toggleListening = useCallback(async () => {
     if (isListening) {
@@ -623,6 +648,35 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       setIsConnecting(false);
     }
   }, [isListening, isConnecting]);
+
+  // Mic pause/unpause toggle
+  const toggleMicPause = useCallback(() => {
+    setIsMicPaused(prev => !prev);
+    if (!isMicPaused) {
+      // When pausing, clear any current partial transcript
+      setTranscript('');
+    }
+  }, [isMicPaused]);
+
+  // Confirmation handlers
+  const handleConfirmSend = useCallback(() => {
+    if (pendingTranscript) {
+      sendMessage(pendingTranscript);
+      setPendingTranscript(null);
+      setShowConfirmation(false);
+    }
+  }, [pendingTranscript, sendMessage]);
+
+  const handleCancelSend = useCallback(() => {
+    setPendingTranscript(null);
+    setShowConfirmation(false);
+  }, []);
+
+  // Add more text to pending (keep listening while confirmation is showing)
+  const handleAddMore = useCallback(() => {
+    // Keep the pending text but hide confirmation to continue listening
+    setShowConfirmation(false);
+  }, []);
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(patientUrl);
@@ -1061,13 +1115,71 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 messages.map(renderMessage)
               )}
 
-              {/* Live transcript */}
-              {transcript && (
+              {/* Live transcript (partial - still speaking) */}
+              {transcript && !isMicPaused && (
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <div className="inline-block max-w-full rounded-lg p-3 bg-primary/50 text-primary-foreground animate-pulse">
                       <p className="text-sm font-medium mb-1">🎤 Listening...</p>
                       <p className="text-lg">{transcript}</p>
+                    </div>
+                  </div>
+                  <div className="flex-1" />
+                </div>
+              )}
+
+              {/* Pending confirmation panel */}
+              {pendingTranscript && showConfirmation && (
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <div className="inline-block max-w-full rounded-lg p-4 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700">
+                      <div className="flex items-center justify-between gap-4 mb-2">
+                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                          📝 Ready to send?
+                        </p>
+                      </div>
+                      <p className="text-lg text-amber-900 dark:text-amber-100 mb-3">{pendingTranscript}</p>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button 
+                          size="sm" 
+                          onClick={handleConfirmSend}
+                          className="gap-1"
+                        >
+                          <Send className="h-4 w-4" />
+                          Send
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={handleAddMore}
+                          className="gap-1"
+                        >
+                          <Mic className="h-4 w-4" />
+                          Add More
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={handleCancelSend}
+                          className="gap-1 text-destructive hover:text-destructive"
+                        >
+                          <XCircle className="h-4 w-4" />
+                          Discard
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex-1" />
+                </div>
+              )}
+
+              {/* Show pending text even when continuing to listen (after "Add More") */}
+              {pendingTranscript && !showConfirmation && (
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <div className="inline-block max-w-full rounded-lg p-3 bg-primary/30 text-primary-foreground border border-primary/50">
+                      <p className="text-sm font-medium mb-1 opacity-70">📝 Queued (keep speaking...)</p>
+                      <p className="text-lg opacity-80">{pendingTranscript}</p>
                     </div>
                   </div>
                   <div className="flex-1" />
@@ -1083,26 +1195,56 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           </ScrollArea>
 
           {/* Microphone control */}
-          <div className="pt-4 flex justify-center">
-            <Button
-              size="lg"
-              variant={isListening ? 'destructive' : isConnecting ? 'secondary' : 'default'}
-              className="h-16 w-16 rounded-full"
-              onClick={toggleListening}
-              disabled={isConnecting}
-            >
-              {isConnecting ? (
-                <Loader2 className="h-8 w-8 animate-spin" />
-              ) : isListening ? (
-                <MicOff className="h-8 w-8" />
-              ) : (
-                <Mic className="h-8 w-8" />
+          <div className="pt-4 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-3">
+              {/* Pause button - only show when listening */}
+              {isListening && (
+                <Button
+                  size="sm"
+                  variant={isMicPaused ? 'default' : 'outline'}
+                  className="h-10 px-4 rounded-full gap-2"
+                  onClick={toggleMicPause}
+                >
+                  {isMicPaused ? (
+                    <>
+                      <Play className="h-4 w-4" />
+                      Resume
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="h-4 w-4" />
+                      Pause
+                    </>
+                  )}
+                </Button>
               )}
-            </Button>
+              
+              {/* Main mic button */}
+              <Button
+                size="lg"
+                variant={isListening ? 'destructive' : isConnecting ? 'secondary' : 'default'}
+                className="h-16 w-16 rounded-full"
+                onClick={toggleListening}
+                disabled={isConnecting}
+              >
+                {isConnecting ? (
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                ) : isListening ? (
+                  <MicOff className="h-8 w-8" />
+                ) : (
+                  <Mic className="h-8 w-8" />
+                )}
+              </Button>
+            </div>
+            <p className="text-center text-sm text-muted-foreground">
+              {isConnecting 
+                ? 'Connecting...' 
+                : isListening 
+                  ? (isMicPaused ? 'Paused - click Resume to continue' : 'Listening... Click to stop')
+                  : 'Click to start speaking'
+              }
+            </p>
           </div>
-          <p className="text-center text-sm text-muted-foreground mt-2">
-            {isConnecting ? 'Connecting...' : isListening ? 'Listening... Click to stop' : 'Click to start speaking'}
-          </p>
         </div>
 
         {/* QR Code panel */}
