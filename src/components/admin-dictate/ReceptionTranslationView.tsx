@@ -2419,8 +2419,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                         <Button
                           size="sm"
                           onClick={() => {
-                            // Set pendingSpeaker to match current speakerMode before sending
-                            setPendingSpeaker(speakerMode);
+                            // pendingSpeaker is already correctly set when speech was captured
+                            // Don't overwrite it here as speakerMode might have changed since
                             handleConfirmSend();
                           }}
                           className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
