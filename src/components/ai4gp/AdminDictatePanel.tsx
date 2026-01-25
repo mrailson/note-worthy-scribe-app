@@ -9,9 +9,6 @@ import { AdminDictateTextArea } from './AdminDictateTextArea';
 import { AdminDictateQuickActions } from './AdminDictateQuickActions';
 import { AdminDictateHistoryTabs } from '@/components/admin-dictate/AdminDictateHistoryTabs';
 import { AdminDictateViewToggle } from './AdminDictateViewToggle';
-import { AdminDictateModeSelector, DictateMode } from './AdminDictateModeSelector';
-import { LiveTranslationSetupModal } from '@/components/admin-dictate/LiveTranslationSetupModal';
-import { ReceptionTranslationView } from '@/components/admin-dictate/ReceptionTranslationView';
 
 
 interface AdminDictatePanelProps {
@@ -20,13 +17,6 @@ interface AdminDictatePanelProps {
 
 export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<'dictate' | 'history'>('dictate');
-  const [selectedMode, setSelectedMode] = useState<DictateMode>('dictate');
-  const [showTranslationSetup, setShowTranslationSetup] = useState(false);
-  const [translationSession, setTranslationSession] = useState<{
-    id: string;
-    token: string;
-    language: string;
-  } | null>(null);
   
   const {
     status,
@@ -63,49 +53,10 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
     saveOnBlur,
   } = useAdminDictation();
 
-  const handleModeChange = (mode: DictateMode) => {
-    setSelectedMode(mode);
-    if (mode === 'translate') {
-      setShowTranslationSetup(true);
-    }
-  };
-
-  const handleSessionCreated = (sessionId: string, sessionToken: string, patientLanguage: string) => {
-    setShowTranslationSetup(false);
-    setTranslationSession({
-      id: sessionId,
-      token: sessionToken,
-      language: patientLanguage
-    });
-  };
-
-  const handleCloseTranslation = () => {
-    setTranslationSession(null);
-    setSelectedMode('dictate');
-  };
-
-  const handleTranslationModalClose = () => {
-    setShowTranslationSetup(false);
-    setSelectedMode('dictate');
-  };
-
   const handleLoadSession = (session: any) => {
     loadSession(session);
     setActiveTab('dictate');
   };
-
-  if (translationSession) {
-    return (
-      <ReceptionTranslationView
-        sessionId={translationSession.id}
-        sessionToken={translationSession.token}
-        patientLanguage={translationSession.language}
-        onClose={handleCloseTranslation}
-      />
-    );
-  }
-
-  const showModeSelector = status === 'idle' && !content && !isRecording;
 
   return (
     <Card className="flex flex-col h-full border-0 shadow-none">
@@ -113,7 +64,7 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Mic className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Dictate or Translate</CardTitle>
+            <CardTitle className="text-lg">Dictate</CardTitle>
             
             {/* Inline tab icons */}
             <div className="flex items-center gap-1 ml-2">
@@ -162,15 +113,6 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'dictate' | 'history')} className="flex-1 flex flex-col min-h-0">
 
         <TabsContent value="dictate" className="flex-1 flex flex-col min-h-0 mt-0 p-4 gap-4">
-          {/* Mode Selector - show when idle and no content */}
-          {showModeSelector && (
-            <AdminDictateModeSelector
-              mode={selectedMode}
-              onModeChange={handleModeChange}
-              disabled={isConnecting}
-            />
-          )}
-
           {/* New Dictation button when content exists */}
           {content && status === 'idle' && (
             <div className="flex items-center justify-between">
@@ -198,25 +140,23 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
             </div>
           )}
 
-          {/* Quick Actions - only show when in dictate mode or has content */}
-          {(selectedMode === 'dictate' || content || isRecording) && (
-            <AdminDictateQuickActions
-              status={status}
-              isRecording={isRecording}
-              isConnecting={isConnecting}
-              hasContent={!!content}
-              isFormatting={isFormatting}
-              systemAudioEnabled={systemAudioEnabled}
-              content={content}
-              cleanedContent={cleanedContent || ''}
-              templateName={templates.find(t => t.id === selectedTemplate)?.name || 'Dictation'}
-              onSystemAudioChange={setSystemAudioEnabled}
-              onStart={startDictation}
-              onStop={stopDictation}
-              onCopy={() => copyToClipboard()}
-              onClear={newDictation}
-            />
-          )}
+          {/* Quick Actions - always show for dictation */}
+          <AdminDictateQuickActions
+            status={status}
+            isRecording={isRecording}
+            isConnecting={isConnecting}
+            hasContent={!!content}
+            isFormatting={isFormatting}
+            systemAudioEnabled={systemAudioEnabled}
+            content={content}
+            cleanedContent={cleanedContent || ''}
+            templateName={templates.find(t => t.id === selectedTemplate)?.name || 'Dictation'}
+            onSystemAudioChange={setSystemAudioEnabled}
+            onStart={startDictation}
+            onStop={stopDictation}
+            onCopy={() => copyToClipboard()}
+            onClear={newDictation}
+          />
 
           {/* Text Area */}
           <div className="flex-1 min-h-0">
@@ -240,13 +180,6 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
           />
         </TabsContent>
       </Tabs>
-
-      {/* Translation Setup Modal */}
-      <LiveTranslationSetupModal
-        isOpen={showTranslationSetup}
-        onClose={handleTranslationModalClose}
-        onSessionCreated={handleSessionCreated}
-      />
     </Card>
   );
 };
