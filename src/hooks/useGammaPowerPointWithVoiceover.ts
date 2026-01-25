@@ -55,12 +55,16 @@ export const useGammaPowerPointWithVoiceover = () => {
   const generateFullPresentation = async (
     content: string, 
     title?: string,
-    voiceId: string = 'JBFqnCBsd6RMkjVDRZzb' // George - British Male Professional
+    voiceId: string = 'JBFqnCBsd6RMkjVDRZzb', // George - British Male Professional
+    slideCount: number = 4
   ) => {
     if (!content?.trim()) {
       toast.error('No content to generate presentation from');
       return;
     }
+
+    // Clamp slide count between 4 and 10
+    const validSlideCount = Math.min(10, Math.max(4, slideCount));
 
     setIsGenerating(true);
     setCurrentPhase('slides');
@@ -75,7 +79,7 @@ export const useGammaPowerPointWithVoiceover = () => {
         body: {
           topic,
           content: supportingContent,
-          slideCount: 4
+          slideCount: validSlideCount
         }
       });
 

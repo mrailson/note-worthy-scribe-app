@@ -71,8 +71,8 @@ interface MessageRendererProps {
   message: Message;
   onExpandMessage?: (message: Message) => void;
   onExportWord?: (content: string, title?: string) => void;
-  onExportPowerPoint?: (content: string, title?: string) => void;
-  onExportPowerPointWithVoiceover?: (content: string, title?: string) => void;
+  onExportPowerPoint?: (content: string, title?: string, slideCount?: number) => void;
+  onExportPowerPointWithVoiceover?: (content: string, title?: string, slideCount?: number) => void;
   isModal?: boolean; // New prop to indicate if rendering in modal
   onCloseModal?: () => void; // New prop to close modal
   showResponseMetrics?: boolean; // New prop to show response metrics
@@ -325,15 +325,15 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     }
   };
 
-  const handleExportPowerPoint = () => {
+  const handleExportPowerPoint = (slideCount: number = 4) => {
     if (onExportPowerPoint) {
-      onExportPowerPoint(message.content, 'AI Generated Presentation');
+      onExportPowerPoint(message.content, 'AI Generated Presentation', slideCount);
     }
   };
 
-  const handleExportPowerPointWithVoiceover = () => {
+  const handleExportPowerPointWithVoiceover = (slideCount: number = 4) => {
     if (onExportPowerPointWithVoiceover) {
-      onExportPowerPointWithVoiceover(message.content, 'AI Generated Presentation');
+      onExportPowerPointWithVoiceover(message.content, 'AI Generated Presentation', slideCount);
     }
   };
 
@@ -1255,10 +1255,23 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                             <FileDown className="h-4 w-4 mr-2" />
                             Download as PDF
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handleExportPowerPoint}>
-                            <Presentation className="h-4 w-4 mr-2" />
-                            Download as PowerPoint Presentation
-                          </DropdownMenuItem>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <Presentation className="h-4 w-4 mr-2" />
+                              Download as PowerPoint Presentation
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuLabel className="text-xs text-muted-foreground">
+                                Number of Slides
+                              </DropdownMenuLabel>
+                              {[4, 5, 6, 7, 8, 9, 10].map((count) => (
+                                <DropdownMenuItem key={count} onClick={() => handleExportPowerPoint(count)}>
+                                  <Hash className="h-4 w-4 mr-2" />
+                                  {count} slides
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => setShowInfographicModal(true)}>
                             <ImageIcon className="h-4 w-4 mr-2" />
