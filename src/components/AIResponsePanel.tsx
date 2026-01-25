@@ -4,11 +4,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { Copy, Sparkles, Maximize2, X, Download, Printer, Mail } from 'lucide-react';
-import { Document, Packer, Paragraph, TextRun } from "docx";
-import { saveAs } from "file-saver";
 import { showToast } from "@/utils/toastWrapper";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
+import { generateCleanAIResponseDocument } from '@/utils/cleanWordExport';
 
 interface AIResponsePanelProps {
   response: string;
@@ -32,37 +31,10 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
     return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
   };
 
-  // Handle Word document export
+  // Handle Word document export with clean formatting
   const handleWordExport = async () => {
     try {
-      const plainText = stripHtml(response);
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "AI Assistant Response",
-                  bold: true,
-                  size: 32,
-                }),
-              ],
-            }),
-            new Paragraph({
-              children: [new TextRun({ text: "" })],
-            }),
-            ...plainText.split('\n').map(line => 
-              new Paragraph({
-                children: [new TextRun({ text: line || " " })],
-              })
-            ),
-          ],
-        }],
-      });
-
-      const blob = await Packer.toBlob(doc);
-      saveAs(blob, `AI-Response-${Date.now()}.docx`);
+      await generateCleanAIResponseDocument(response, "AI Assistant Response");
       showToast.success("Word document downloaded successfully", { section: 'ai4gp' });
     } catch (error) {
       console.error('Error exporting to Word:', error);
