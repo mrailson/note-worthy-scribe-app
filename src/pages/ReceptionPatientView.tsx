@@ -11,7 +11,7 @@ import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { PatientEmailChatModal } from '@/components/admin-dictate/PatientEmailChatModal';
-import { PatientVoiceRecorder } from '@/components/admin-dictate/PatientVoiceRecorder';
+import { PatientVoiceRecorderLive } from '@/components/admin-dictate/PatientVoiceRecorderLive';
 
 const ReceptionPatientView: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -259,7 +259,7 @@ const ReceptionPatientView: React.FC = () => {
               className="min-h-[50px] resize-none text-base"
               rows={2}
             />
-            <PatientVoiceRecorder
+            <PatientVoiceRecorderLive
               onTranscription={handleVoiceTranscription}
               language={langCode}
               disabled={isTranslating}
@@ -268,6 +268,8 @@ const ReceptionPatientView: React.FC = () => {
                 recording: phrases.recording,
                 transcribing: phrases.transcribing,
                 voiceError: phrases.voiceError,
+                listening: phrases.listening,
+                tapToStop: phrases.tapToStop,
               }}
             />
           </div>
