@@ -2013,19 +2013,27 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       <div className="border-b p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-xl font-semibold">Live Translation</h1>
-          <Badge variant={isConnected ? 'default' : 'secondary'}>
-            {isConnected ? (
-              <><Wifi className="h-3 w-3 mr-1" /> Connected</>
-            ) : (
-              <><WifiOff className="h-3 w-3 mr-1" /> Connecting...</>
-            )}
-          </Badge>
-          {/* Patient Connection Status */}
           {languageInfo && (
             <Badge variant="outline">
               {languageInfo.flag} {languageInfo.name}
             </Badge>
           )}
+          {/* Patient Connection Status */}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            patientConnected 
+              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+          }`}>
+            <Smartphone className="h-4 w-4" />
+            {patientConnected ? (
+              <>
+                <span>Patient Connected</span>
+                <Check className="h-4 w-4" />
+              </>
+            ) : (
+              <span>Waiting for patient...</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {/* History Button */}
