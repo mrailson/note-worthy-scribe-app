@@ -2171,7 +2171,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                         }}
                         className={`w-full text-lg mb-3 bg-transparent border-b outline-none resize-none min-h-[1.5em] cursor-text rounded px-1 -mx-1 transition-colors ${
                           pendingSpeaker === 'patient'
-                            ? 'border-white/30 focus:border-white hover:bg-white/10'
+                            ? 'border-emerald-300 focus:border-emerald-500 hover:bg-emerald-100/50 dark:border-emerald-700 dark:focus:border-emerald-500 dark:hover:bg-emerald-800/30'
                             : 'border-primary-foreground/30 focus:border-primary-foreground hover:bg-primary-foreground/10'
                         }`}
                         rows={Math.max(1, Math.ceil(pendingTranscript.length / 50))}
@@ -2182,7 +2182,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                           variant="ghost" 
                           onClick={handleCancelSend}
                           className={pendingSpeaker === 'patient' 
-                            ? "text-white hover:bg-white/20 gap-1"
+                            ? "text-emerald-700 hover:bg-emerald-200/50 dark:text-emerald-300 dark:hover:bg-emerald-800/50 gap-1"
                             : "text-primary-foreground hover:bg-primary-foreground/20 gap-1"
                           }
                         >
@@ -2194,7 +2194,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                           variant="ghost"
                           onClick={handleAddMore}
                           className={pendingSpeaker === 'patient' 
-                            ? "text-white hover:bg-white/20 gap-1"
+                            ? "text-emerald-700 hover:bg-emerald-200/50 dark:text-emerald-300 dark:hover:bg-emerald-800/50 gap-1"
                             : "text-primary-foreground hover:bg-primary-foreground/20 gap-1"
                           }
                         >
