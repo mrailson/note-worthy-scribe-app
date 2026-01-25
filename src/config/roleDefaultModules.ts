@@ -36,7 +36,7 @@ export const moduleCategories = {
   compliance: {
     label: 'Compliance & Governance',
     description: 'Regulatory and quality assurance tools',
-    modules: ['complaints_manager_access', 'cqc_compliance_access', 'cso_governance_access']
+    modules: ['complaints_manager_access', 'cqc_compliance_access', 'cso_governance_access', 'survey_manager_access']
   },
   practice: {
     label: 'Practice Management',
