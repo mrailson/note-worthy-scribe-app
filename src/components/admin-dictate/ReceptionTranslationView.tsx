@@ -353,6 +353,174 @@ const STOP_AUDIO: Record<string, string> = {
   sk: "Stop",
 };
 
+// Localised "Queued (keep speaking)" phrases
+const QUEUED_KEEP_SPEAKING: Record<string, string> = {
+  en: "Queued (keep speaking...)",
+  ar: "في قائمة الانتظار (استمر في الكلام...)",
+  zh: "已排队（请继续说话...）",
+  'zh-TW': "已排隊（請繼續說話...）",
+  fr: "En attente (continuez à parler...)",
+  de: "In Warteschlange (sprechen Sie weiter...)",
+  hi: "कतार में (बोलते रहें...)",
+  it: "In coda (continua a parlare...)",
+  es: "En cola (sigue hablando...)",
+  bg: "На опашка (продължавайте да говорите...)",
+  hr: "U redu (nastavite govoriti...)",
+  cs: "Ve frontě (pokračujte v mluvení...)",
+  da: "I kø (bliv ved med at tale...)",
+  nl: "In wachtrij (blijf praten...)",
+  el: "Σε ουρά (συνεχίστε να μιλάτε...)",
+  hu: "Sorban áll (folytassa a beszédet...)",
+  pl: "W kolejce (mów dalej...)",
+  pt: "Na fila (continue falando...)",
+  ro: "În așteptare (continuați să vorbiți...)",
+  ru: "В очереди (продолжайте говорить...)",
+  tr: "Sırada (konuşmaya devam edin...)",
+  fa: "در صف (به صحبت ادامه دهید...)",
+  bn: "সারিতে (কথা বলতে থাকুন...)",
+  ur: "قطار میں (بولتے رہیں...)",
+  pa: "ਕਤਾਰ ਵਿੱਚ (ਬੋਲਦੇ ਰਹੋ...)",
+  gu: "કતારમાં (બોલતા રહો...)",
+  ta: "வரிசையில் (பேசிக்கொண்டே இருங்கள்...)",
+  te: "క్యూలో ఉంది (మాట్లాడుతూ ఉండండి...)",
+  kn: "ಸರದಿಯಲ್ಲಿ (ಮಾತನಾಡುತ್ತಿರಿ...)",
+  ml: "ക്യൂവിൽ (സംസാരിച്ചുകൊണ്ടിരിക്കുക...)",
+  mr: "रांगेत (बोलत राहा...)",
+  ne: "पङ्क्तिमा (बोल्दै गर्नुहोस्...)",
+  uk: "В черзі (продовжуйте говорити...)",
+  vi: "Đang chờ (tiếp tục nói...)",
+  th: "อยู่ในคิว (พูดต่อไป...)",
+  id: "Dalam antrian (terus berbicara...)",
+  ms: "Dalam barisan (teruskan bercakap...)",
+  tl: "Nasa pila (patuloy na magsalita...)",
+  sw: "Imepangwa (endelea kuzungumza...)",
+  am: "በተራ ላይ (መናገርዎን ይቀጥሉ...)",
+  yo: "Ní àtòjọ (ma ṣọ̀rọ̀ lọ...)",
+  ig: "N'ahịrị (na-ekwu okwu...)",
+  ha: "A jerin gwano (ci gaba da magana...)",
+  so: "Safka (sii wado hadlida...)",
+  om: "Tarreeffame (dubbachuu itti fufi...)",
+  ja: "キューに入っています（話し続けてください...）",
+  ko: "대기 중 (계속 말씀하세요...)",
+  fi: "Jonossa (jatka puhumista...)",
+  sv: "I kö (fortsätt prata...)",
+  no: "I kø (fortsett å snakke...)",
+  he: "בתור (המשך לדבר...)",
+  sk: "V rade (pokračujte v hovorení...)",
+};
+
+// Localised "Send" button text
+const SEND_BUTTON: Record<string, string> = {
+  en: "Send",
+  ar: "إرسال",
+  zh: "发送",
+  'zh-TW': "發送",
+  fr: "Envoyer",
+  de: "Senden",
+  hi: "भेजें",
+  it: "Invia",
+  es: "Enviar",
+  bg: "Изпрати",
+  hr: "Pošalji",
+  cs: "Odeslat",
+  da: "Send",
+  nl: "Verzenden",
+  el: "Αποστολή",
+  hu: "Küldés",
+  pl: "Wyślij",
+  pt: "Enviar",
+  ro: "Trimite",
+  ru: "Отправить",
+  tr: "Gönder",
+  fa: "ارسال",
+  bn: "পাঠান",
+  ur: "بھیجیں",
+  pa: "ਭੇਜੋ",
+  gu: "મોકલો",
+  ta: "அனுப்பு",
+  te: "పంపు",
+  kn: "ಕಳುಹಿಸಿ",
+  ml: "അയയ്ക്കുക",
+  mr: "पाठवा",
+  ne: "पठाउनुहोस्",
+  uk: "Надіслати",
+  vi: "Gửi",
+  th: "ส่ง",
+  id: "Kirim",
+  ms: "Hantar",
+  tl: "Ipadala",
+  sw: "Tuma",
+  am: "ላክ",
+  yo: "Ránṣẹ́",
+  ig: "Zipu",
+  ha: "Aika",
+  so: "Dir",
+  om: "Ergi",
+  ja: "送信",
+  ko: "보내기",
+  fi: "Lähetä",
+  sv: "Skicka",
+  no: "Send",
+  he: "שלח",
+  sk: "Odoslať",
+};
+
+// Localised "Discard & Try Again" button text
+const DISCARD_TRY_AGAIN: Record<string, string> = {
+  en: "Discard",
+  ar: "تجاهل",
+  zh: "放弃",
+  'zh-TW': "放棄",
+  fr: "Annuler",
+  de: "Verwerfen",
+  hi: "छोड़ें",
+  it: "Annulla",
+  es: "Descartar",
+  bg: "Отхвърли",
+  hr: "Odbaci",
+  cs: "Zahodit",
+  da: "Kassér",
+  nl: "Verwerpen",
+  el: "Απόρριψη",
+  hu: "Elvetés",
+  pl: "Odrzuć",
+  pt: "Descartar",
+  ro: "Renunță",
+  ru: "Отменить",
+  tr: "At",
+  fa: "لغو",
+  bn: "বাতিল",
+  ur: "منسوخ",
+  pa: "ਰੱਦ",
+  gu: "કાઢી નાખો",
+  ta: "நிராகரி",
+  te: "విస్మరించు",
+  kn: "ತ್ಯಜಿಸಿ",
+  ml: "ഉപേക്ഷിക്കുക",
+  mr: "टाकून द्या",
+  ne: "खारेज गर्नुहोस्",
+  uk: "Відхилити",
+  vi: "Hủy",
+  th: "ยกเลิก",
+  id: "Buang",
+  ms: "Buang",
+  tl: "Itapon",
+  sw: "Tupa",
+  am: "አትውል",
+  yo: "Sọ́nù",
+  ig: "Tụpụ",
+  ha: "Watsar",
+  so: "Iska tuur",
+  om: "Gati",
+  ja: "破棄",
+  ko: "삭제",
+  fi: "Hylkää",
+  sv: "Kassera",
+  no: "Forkast",
+  he: "בטל",
+  sk: "Zahodiť",
+};
+
 // Localised modal titles for "Patient's Language"
 const MODAL_TITLES: Record<string, string> = {
   en: "Patient's Language",
@@ -2223,11 +2391,45 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   <div className="flex-1">
                     <div className={`inline-block max-w-full rounded-lg p-3 border ${
                       speakerMode === 'patient'
-                        ? 'bg-emerald-500/30 text-emerald-900 dark:text-emerald-100 border-emerald-500/50'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
                         : 'bg-primary/30 text-primary-foreground border-primary/50'
                     }`}>
-                      <p className="text-sm font-medium mb-1 opacity-70">📝 Queued (keep speaking...)</p>
-                      <p className="text-lg opacity-80">{pendingTranscript}</p>
+                      <p className="text-sm font-medium mb-1 opacity-70">
+                        📝 {speakerMode === 'patient' 
+                          ? (QUEUED_KEEP_SPEAKING[patientLanguage] || QUEUED_KEEP_SPEAKING['en'])
+                          : QUEUED_KEEP_SPEAKING['en']}
+                      </p>
+                      <p className="text-lg mb-3">{pendingTranscript}</p>
+                      {/* Quick action buttons with icons for receptionist control */}
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleCancelSend}
+                          className={speakerMode === 'patient'
+                            ? "text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 gap-1"
+                            : "text-destructive hover:bg-destructive/10 gap-1"
+                          }
+                        >
+                          <X className="h-4 w-4" />
+                          {speakerMode === 'patient' 
+                            ? (DISCARD_TRY_AGAIN[patientLanguage] || DISCARD_TRY_AGAIN['en'])
+                            : DISCARD_TRY_AGAIN['en']}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setShowConfirmation(true);
+                            handleConfirmSend();
+                          }}
+                          className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                          <Check className="h-4 w-4" />
+                          {speakerMode === 'patient' 
+                            ? (SEND_BUTTON[patientLanguage] || SEND_BUTTON['en'])
+                            : SEND_BUTTON['en']}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   {speakerMode === 'staff' && <div className="flex-1" />}
