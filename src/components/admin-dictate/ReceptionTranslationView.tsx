@@ -394,6 +394,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [pendingTranscript, setPendingTranscript] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   
+  // Inline editing state
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef(false);
   const isStartingRef = useRef(false);
@@ -411,7 +416,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     patientConnected,
     sendMessage,
     endSession,
-    deleteMessage
+    deleteMessage,
+    updateMessage
   } = useReceptionTranslation({
     sessionToken,
     sessionId,
@@ -678,6 +684,44 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     setShowConfirmation(false);
   }, []);
 
+  // Start editing a message
+  const handleStartEdit = useCallback((messageId: string, originalText: string) => {
+    setEditingMessageId(messageId);
+    setEditingText(originalText);
+  }, []);
+
+  // Save the edited message
+  const handleSaveEdit = useCallback(async () => {
+    if (!editingMessageId || !editingText.trim()) {
+      setEditingMessageId(null);
+      setEditingText('');
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      const success = await updateMessage(editingMessageId, editingText.trim());
+      if (success) {
+        showToast.success('Message updated');
+      } else {
+        showToast.error('Failed to update message');
+      }
+    } catch (err) {
+      console.error('Error saving edit:', err);
+      showToast.error('Failed to save edit');
+    } finally {
+      setIsSavingEdit(false);
+      setEditingMessageId(null);
+      setEditingText('');
+    }
+  }, [editingMessageId, editingText, updateMessage]);
+
+  // Cancel editing
+  const handleCancelEdit = useCallback(() => {
+    setEditingMessageId(null);
+    setEditingText('');
+  }, []);
+
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(patientUrl);
     setCopied(true);
@@ -937,6 +981,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     const englishText = isStaffMessage ? msg.originalText : msg.translatedText;
     const hasAudio = !!audioUrls[messageId];
     const isLoadingAudio = loadingAudio[messageId];
+    const isEditing = editingMessageId === msg.id;
 
     return (
       <div
@@ -954,7 +999,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               <p className="text-sm font-medium">
                 🇬🇧 {isStaffMessage ? 'You said:' : 'Patient said:'}
               </p>
-              {isStaffMessage && (
+              {isStaffMessage && !isEditing && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -965,10 +1010,41 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
+              {isEditing && isSavingEdit && (
+                <span className="text-xs opacity-70 flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Saving...
+                </span>
+              )}
             </div>
-            <p className="text-lg">
-              {englishText}
-            </p>
+            {isEditing ? (
+              <textarea
+                value={editingText}
+                onChange={(e) => setEditingText(e.target.value)}
+                onBlur={handleSaveEdit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSaveEdit();
+                  } else if (e.key === 'Escape') {
+                    handleCancelEdit();
+                  }
+                }}
+                autoFocus
+                disabled={isSavingEdit}
+                className="w-full text-lg bg-transparent border border-primary-foreground/30 rounded px-2 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-primary-foreground/50"
+                rows={Math.max(1, Math.ceil(editingText.length / 40))}
+                style={{ minHeight: '2rem' }}
+              />
+            ) : (
+              <p 
+                className={`text-lg ${isStaffMessage ? 'cursor-pointer hover:underline hover:decoration-dotted' : ''}`}
+                onClick={() => isStaffMessage && handleStartEdit(msg.id, msg.originalText)}
+                title={isStaffMessage ? 'Click to edit' : undefined}
+              >
+                {englishText}
+              </p>
+            )}
           </div>
         </div>
 
