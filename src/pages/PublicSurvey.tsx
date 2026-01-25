@@ -220,9 +220,19 @@ const PublicSurvey = () => {
           <CardContent className="py-12">
             <CheckCircle2 className="h-16 w-16 mx-auto text-green-600 mb-4" />
             <h2 className="text-2xl font-semibold mb-2">Thank You!</h2>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground mb-6">
               Your response has been submitted successfully.
             </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              You can now safely close this page.
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => window.close()}
+              className="min-w-[120px]"
+            >
+              Close Page
+            </Button>
           </CardContent>
         </Card>
       </div>
