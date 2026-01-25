@@ -1192,15 +1192,33 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         
         const audioBlob = new Blob(chunks, { type: mimeType });
         
-        // Transcribe using Whisper
+        // Transcribe using Whisper via speech-to-text edge function
         try {
-          const formData = new FormData();
-          formData.append('file', audioBlob, 'audio.webm');
-          formData.append('model', 'whisper-1');
-          formData.append('language', speakerModeRef.current === 'staff' ? 'en' : patientLanguage);
+          // Convert blob to base64 (required by the edge function)
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+          let binaryString = '';
+          const chunkSize = 8192;
+          for (let i = 0; i < uint8Array.length; i += chunkSize) {
+            const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+            for (let j = 0; j < chunk.length; j++) {
+              binaryString += String.fromCharCode(chunk[j]);
+            }
+          }
+          const base64Audio = btoa(binaryString);
           
-          const { data, error } = await supabase.functions.invoke('whisper-transcribe', {
-            body: formData
+          // Determine language - use patient language for French videos etc.
+          // Extract just the language code (e.g., 'fr' from 'fr-FR')
+          const langCode = patientLanguage.split('-')[0] || 'en';
+          console.log('🎬 System audio transcription language:', langCode, '(from:', patientLanguage, ')');
+          
+          const { data, error } = await supabase.functions.invoke('speech-to-text', {
+            body: {
+              audio: base64Audio,
+              mimeType: mimeType,
+              fileName: 'system-audio.webm',
+              language: langCode // Use the patient language for system audio (e.g., 'fr' for French videos)
+            }
           });
           
           if (error) {
