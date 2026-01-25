@@ -508,8 +508,7 @@ serve(async (req) => {
     const modelConfigs = [
       { name: 'GPT-5', service: 'OpenAI', endpoint: 'openai', apiKey: openaiApiKey!, model: 'gpt-4o', weight: 1.2 },
       { name: 'Claude Sonnet 4', service: 'Anthropic', endpoint: 'anthropic', apiKey: anthropicApiKey!, model: 'claude-sonnet-4-20250514', weight: 1.1 },
-      { name: 'Gemini 2.5 Pro', service: 'Google (Lovable AI)', endpoint: 'lovable', apiKey: lovableApiKey!, model: 'google/gemini-2.5-pro', weight: 1.0 },
-      { name: 'Gemini 3 Flash', service: 'Google (Lovable AI)', endpoint: 'lovable', apiKey: lovableApiKey!, model: 'google/gemini-3-flash-preview', weight: 0.9 }
+      { name: 'Gemini 3 Flash', service: 'Google (Lovable AI)', endpoint: 'lovable', apiKey: lovableApiKey!, model: 'google/gemini-3-flash-preview', weight: 1.0 }
     ].filter(m => m.apiKey);
     
     console.log(`Running verification with ${modelConfigs.length} models in parallel...`);
