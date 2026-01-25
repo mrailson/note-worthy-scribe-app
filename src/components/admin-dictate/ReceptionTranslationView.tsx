@@ -36,6 +36,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { generateTranslationReportDocx } from '@/utils/generateTranslationReportDocx';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
+import { SpeakerModeSelector } from './SpeakerModeSelector';
+import { PatientSpeakingPrompt } from './PatientSpeakingPrompt';
+import { getWebSpeechLanguageCode, isWebSpeechSupported } from '@/utils/webSpeechLanguages';
 
 // Localised "GP Practice said" for translated messages
 const GP_PRACTICE_SAID: Record<string, string> = {
@@ -638,12 +641,16 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [editingText, setEditingText] = useState('');
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   
+  // Speaker mode toggle: 'staff' = listening for English, 'patient' = listening for patient's language
+  const [speakerMode, setSpeakerMode] = useState<'staff' | 'patient'>('staff');
+  
   const recognitionRef = useRef<any>(null);
   const isListeningRef = useRef(false);
   const isStartingRef = useRef(false);
   const stoppedByUserRef = useRef(false);
   const isMicPausedRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const speakerModeRef = useRef<'staff' | 'patient'>('staff');
   
   const { practiceContext } = usePracticeContext();
   const practiceName = practiceContext?.practiceName || 'Our Practice';
@@ -734,6 +741,32 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     isMicPausedRef.current = isMicPaused;
   }, [isMicPaused]);
 
+  useEffect(() => {
+    speakerModeRef.current = speakerMode;
+  }, [speakerMode]);
+
+  // Handle speaker mode change - update recognition language
+  const handleSpeakerModeChange = useCallback((newMode: 'staff' | 'patient') => {
+    setSpeakerMode(newMode);
+    
+    // Update recognition language if it exists
+    if (recognitionRef.current) {
+      const newLang = newMode === 'staff' ? 'en-GB' : getWebSpeechLanguageCode(patientLanguage);
+      recognitionRef.current.lang = newLang;
+      console.log(`🌐 Speech recognition language changed to: ${newLang}`);
+      
+      // If currently listening, restart to apply new language
+      if (isListeningRef.current && !stoppedByUserRef.current) {
+        try {
+          recognitionRef.current.stop();
+          // Will auto-restart via onend handler
+        } catch (e) {
+          console.warn('Error stopping recognition for language change:', e);
+        }
+      }
+    }
+  }, [patientLanguage]);
+
   // Speech recognition setup - create instance once
   useEffect(() => {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
@@ -745,7 +778,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     recognitionRef.current = new SpeechRecognition();
     recognitionRef.current.continuous = true;
     recognitionRef.current.interimResults = true;
-    recognitionRef.current.lang = 'en-GB';
+    // Set initial language based on speaker mode
+    recognitionRef.current.lang = speakerModeRef.current === 'staff' ? 'en-GB' : getWebSpeechLanguageCode(patientLanguage);
     recognitionRef.current.maxAlternatives = 1;
 
     recognitionRef.current.onresult = (event: any) => {
@@ -913,7 +947,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   // Confirmation handlers
   const handleConfirmSend = useCallback(() => {
     if (pendingTranscript) {
-      sendMessage(pendingTranscript);
+      // Determine speaker based on current speaker mode
+      const speaker = speakerModeRef.current;
+      sendMessage(pendingTranscript, speaker);
       setPendingTranscript(null);
       setShowConfirmation(false);
     }
@@ -1568,17 +1604,30 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       <div className="flex-1 flex overflow-hidden">
         {/* Conversation panel */}
         <div className="flex-1 flex flex-col p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex gap-2">
-              <Badge variant="outline" className="text-base px-3 py-1">
-                🇬🇧 English (You)
-              </Badge>
-              <span className="text-muted-foreground">↔</span>
-              <Badge variant="outline" className="text-base px-3 py-1">
-                {languageInfo?.flag} {languageInfo?.name} (Patient)
-              </Badge>
-            </div>
+          {/* Speaker Mode Toggle */}
+          <div className="mb-4">
+            <SpeakerModeSelector
+              mode={speakerMode}
+              onModeChange={handleSpeakerModeChange}
+              patientLanguageName={languageInfo?.name || patientLanguage}
+              patientLanguageFlag={languageInfo?.flag}
+              isListening={isListening && !isMicPaused}
+              disabled={isConnecting}
+            />
           </div>
+
+          {/* Patient Speaking Prompt - shown when in patient mode and listening */}
+          {speakerMode === 'patient' && isListening && !isMicPaused && (
+            <div className="mb-4">
+              <PatientSpeakingPrompt
+                languageCode={patientLanguage}
+                languageName={languageInfo?.name || patientLanguage}
+                languageFlag={languageInfo?.flag}
+                isListening={true}
+                liveTranscript={transcript}
+              />
+            </div>
+          )}
 
           <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
             <div className="space-y-4">
@@ -1591,8 +1640,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 messages.map(renderMessage)
               )}
 
-              {/* Live transcript (partial - still speaking) */}
-              {transcript && !isMicPaused && (
+              {/* Live transcript (partial - still speaking) - only show for staff mode */}
+              {transcript && !isMicPaused && speakerMode === 'staff' && (
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <div className="inline-block max-w-full rounded-lg p-3 bg-primary/50 text-primary-foreground animate-pulse">
