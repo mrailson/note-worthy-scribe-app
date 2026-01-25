@@ -898,6 +898,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     const saved = localStorage.getItem('translation-system-audio-service');
     return (saved === 'assemblyai' || saved === 'whisper') ? saved : 'whisper';
   });
+  const [autoPlayAudio, setAutoPlayAudio] = useState<boolean>(() => {
+    const saved = localStorage.getItem('translation-auto-play-audio');
+    return saved === 'true';
+  });
   const systemAudioStreamRef = useRef<MediaStream | null>(null);
   const systemAudioRecorderRef = useRef<MediaRecorder | null>(null);
   const systemAudioChunksRef = useRef<Blob[]>([]);
@@ -1008,11 +1012,37 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     return () => clearTimeout(timeout);
   }, [messages, isTranslating, transcript]);
 
-  // Auto-load audio for new staff messages (but don't auto-play)
+  // Track the last message count to detect new messages for auto-play
+  const lastMessageCountRef = useRef(0);
+  const autoPlayAudioRef = useRef(autoPlayAudio);
+  
+  // Keep auto-play ref in sync
   useEffect(() => {
-    // Find staff messages that don't have audio loaded yet
-    // Note: We no longer auto-load audio - user clicks to load and play
-    // This is more reliable on iOS and saves bandwidth
+    autoPlayAudioRef.current = autoPlayAudio;
+  }, [autoPlayAudio]);
+  
+  // Auto-play audio for new staff messages when enabled
+  useEffect(() => {
+    if (!autoPlayAudioRef.current) {
+      lastMessageCountRef.current = messages.length;
+      return;
+    }
+    
+    // Check if we have new messages
+    if (messages.length > lastMessageCountRef.current) {
+      // Find the newest staff message that has a translation
+      const newMessages = messages.slice(lastMessageCountRef.current);
+      const newStaffMessage = newMessages.find(m => m.speaker === 'staff' && m.translatedText);
+      
+      if (newStaffMessage) {
+        // Auto-play the translated audio after a short delay to let the UI update
+        setTimeout(() => {
+          playAudioForMessage(newStaffMessage.id, newStaffMessage.translatedText!, patientLanguage);
+        }, 500);
+      }
+    }
+    
+    lastMessageCountRef.current = messages.length;
   }, [messages, patientLanguage]);
 
   // Keep refs in sync with state
@@ -2620,6 +2650,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               }}
               isCapturingSystemAudio={isCapturingSystemAudio}
               onToggleSystemAudio={toggleSystemAudio}
+              autoPlayAudio={autoPlayAudio}
+              onAutoPlayChange={(enabled) => {
+                setAutoPlayAudio(enabled);
+                localStorage.setItem('translation-auto-play-audio', String(enabled));
+              }}
             />
           </div>
         </div>
