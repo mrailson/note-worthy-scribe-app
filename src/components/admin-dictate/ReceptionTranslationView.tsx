@@ -981,7 +981,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       
       // Handle blocked content
       if (result.blocked) {
-        // Don't clear transcript or close confirmation - blocked dialog will show
+        // Close confirmation dialog so blocked dialog can show
+        setShowConfirmation(false);
         return;
       }
       
