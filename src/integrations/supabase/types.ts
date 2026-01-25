@@ -9039,6 +9039,10 @@ export type Database = {
         Args: { _practice_id: string; _user_id: string }
         Returns: boolean
       }
+      can_submit_survey_answer: {
+        Args: { _response_id: string }
+        Returns: boolean
+      }
       can_view_consultation_examples: {
         Args: { _user_id?: string }
         Returns: boolean
