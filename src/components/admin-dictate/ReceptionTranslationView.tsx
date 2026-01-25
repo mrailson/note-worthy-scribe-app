@@ -1067,7 +1067,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <div className={`inline-block max-w-full rounded-lg p-3 ${
             isStaffMessage 
               ? 'bg-primary text-primary-foreground' 
-              : 'bg-emerald-100 dark:bg-emerald-900/40 border-l-4 border-emerald-500 text-emerald-900 dark:text-emerald-100'
+              : 'bg-emerald-500 text-white dark:bg-emerald-600 border-l-4 border-emerald-700'
           }`}>
             <div className="flex items-center justify-between gap-2 mb-1">
               <p className="text-sm font-medium">
@@ -1127,7 +1127,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <div className={`inline-block max-w-full rounded-lg p-3 text-left ${
             isStaffMessage 
               ? 'bg-secondary' 
-              : 'bg-emerald-200 dark:bg-emerald-800/40 border-l-4 border-emerald-500 text-emerald-900 dark:text-emerald-100'
+              : 'bg-emerald-600 text-white dark:bg-emerald-700 border-l-4 border-emerald-800'
           }`}>
             <div className="flex items-center gap-2 mb-1">
               <p className="text-sm font-medium">
