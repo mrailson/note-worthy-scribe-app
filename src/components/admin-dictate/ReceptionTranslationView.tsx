@@ -1878,17 +1878,18 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     const isLoadingAudio = loadingAudio[messageId];
     const isEditing = editingMessageId === msg.id;
 
-    // Calculate if this is the most recent staff message for highlight
-    const lastStaffIndex = messages.map((m, i) => m.speaker === 'staff' ? i : -1)
-                                   .filter(i => i >= 0).pop();
-    const isLatestStaffMessage = isStaffMessage && index === lastStaffIndex;
+    // Calculate if this is the most recent message for highlight
+    const lastMessageIndex = messages.length - 1;
+    const isLatestMessage = index === lastMessageIndex;
 
     return (
       <div
         key={msg.id || index}
         className={`flex gap-4 ${
-          isLatestStaffMessage 
-            ? 'ring-2 ring-blue-500 ring-offset-2 rounded-xl p-2 bg-blue-50/50 dark:bg-blue-950/20' 
+          isLatestMessage 
+            ? isStaffMessage
+              ? 'ring-2 ring-blue-500 ring-offset-2 rounded-xl p-2 bg-blue-50/50 dark:bg-blue-950/20'
+              : 'ring-2 ring-emerald-500 ring-offset-2 rounded-xl p-2 bg-emerald-50/50 dark:bg-emerald-950/20'
             : ''
         }`}
       >
