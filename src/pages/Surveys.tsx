@@ -25,6 +25,7 @@ interface Survey {
   start_date: string | null;
   end_date: string | null;
   public_token: string;
+  short_code: string;
   created_at: string;
   response_count?: number;
 }
@@ -109,12 +110,12 @@ const Surveys = () => {
     }
   };
 
-  const copyLink = (publicToken: string) => {
-    const url = `${window.location.origin}/survey/${publicToken}`;
+  const copyLink = (shortCode: string) => {
+    const url = `${window.location.origin}/s/${shortCode}`;
     navigator.clipboard.writeText(url);
     toast({
       title: 'Link copied',
-      description: 'Survey link copied to clipboard',
+      description: 'Short survey link copied to clipboard',
     });
   };
 
@@ -283,7 +284,7 @@ const Surveys = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => copyLink(survey.public_token)}
+                        onClick={() => copyLink(survey.short_code)}
                       >
                         <Copy className="h-3.5 w-3.5 mr-1" />
                         Link
@@ -320,6 +321,7 @@ const Surveys = () => {
             onOpenChange={setQrModalOpen}
             surveyTitle={selectedSurvey.title}
             publicToken={selectedSurvey.public_token}
+            shortCode={selectedSurvey.short_code}
           />
         )}
       </div>

@@ -324,6 +324,7 @@ const App = () => {
                 </ProtectedRoute>
               } />
               <Route path="/survey/:token" element={<PublicSurvey />} />
+              <Route path="/s/:token" element={<PublicSurvey />} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
