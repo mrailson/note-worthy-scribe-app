@@ -227,7 +227,7 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
       <p className="text-center text-sm text-muted-foreground">
         {isListening 
           ? `Listening for ${mode === 'staff' ? 'English' : nativeLanguageName}...` 
-          : 'Click to start speaking'
+          : 'Click the Blue Circle Microphone button below to speak and start translation'
         }
       </p>
     </div>
