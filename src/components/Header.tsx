@@ -267,7 +267,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                          </DropdownMenuItem>
                        )}
 
-                       {hasModuleAccess('survey_manager_access') && (
+                       {hasModuleAccess('survey_manager_access') && isServiceVisible('survey_manager') && (
                          <DropdownMenuItem 
                            onClick={() => navigate('/surveys')}
                            className="cursor-pointer py-3"
