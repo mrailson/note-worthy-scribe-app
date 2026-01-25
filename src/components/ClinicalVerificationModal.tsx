@@ -144,8 +144,8 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
           </DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="h-full flex-1 pr-4">
-          <div className="space-y-6 pb-4">
+        <ScrollArea className="max-h-[60vh] overflow-y-auto pr-4">
+          <div className="space-y-6 pb-4 ios-scroll">
             {/* Confidence Score & Model Stats */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-lg border">
               <div className="flex flex-wrap items-center gap-3">
