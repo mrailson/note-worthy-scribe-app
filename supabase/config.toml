@@ -425,3 +425,6 @@ verify_jwt = true
 
 [functions.google-speech-streaming]
 verify_jwt = false
+
+[functions.send-survey-digest]
+verify_jwt = false
