@@ -124,16 +124,20 @@ const PublicSurvey = () => {
     setError(null);
 
     try {
+      // IMPORTANT: public respondents don't have SELECT access to survey_responses,
+      // so we must not use `.select()`/`.single()` here (it triggers a SELECT).
+      // Generate the response id client-side so we can reference it for answers.
+      const responseId = crypto.randomUUID();
+
       // Create response record
-      const { data: response, error: responseError } = await supabase
+      const { error: responseError } = await supabase
         .from('survey_responses')
         .insert({
+          id: responseId,
           survey_id: survey.id,
           respondent_name: !survey.is_anonymous ? respondentInfo.name || null : null,
           respondent_email: !survey.is_anonymous ? respondentInfo.email || null : null,
-        })
-        .select('id')
-        .single();
+        });
 
       if (responseError) throw responseError;
 
@@ -143,7 +147,7 @@ const PublicSurvey = () => {
         .map((q) => {
           const answer = answers[q.id];
           return {
-            response_id: response.id,
+            response_id: responseId,
             question_id: q.id,
             answer_text: typeof answer === 'string' ? answer : null,
             answer_rating: typeof answer === 'number' ? answer : null,
