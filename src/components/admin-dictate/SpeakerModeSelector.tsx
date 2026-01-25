@@ -172,7 +172,7 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
             className={cn(
               "h-auto py-3 px-4 flex flex-col gap-1 min-w-[110px] transition-all",
               mode === 'staff' && "shadow-[0_0_15px_rgba(59,130,246,0.5)] border-blue-400",
-              mode === 'staff' && isListening && "ring-2 ring-primary ring-offset-2 shadow-[0_0_20px_rgba(59,130,246,0.7)] animate-pulse"
+              mode === 'staff' && isListening && "ring-2 ring-primary ring-offset-2 shadow-[0_0_20px_rgba(59,130,246,0.7)]"
             )}
             onClick={() => onModeChange('staff')}
             disabled={disabled}
@@ -197,7 +197,7 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
             className={cn(
               "h-auto py-3 px-4 flex flex-col gap-1 min-w-[110px] transition-all",
               mode === 'patient' && "bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)] border-emerald-400",
-              mode === 'patient' && isListening && "ring-2 ring-emerald-400 ring-offset-2 shadow-[0_0_20px_rgba(16,185,129,0.7)] animate-pulse"
+              mode === 'patient' && isListening && "ring-2 ring-emerald-400 ring-offset-2 shadow-[0_0_20px_rgba(16,185,129,0.7)]"
             )}
             onClick={() => onModeChange('patient')}
             disabled={disabled}

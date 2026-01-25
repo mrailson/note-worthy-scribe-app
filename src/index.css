@@ -340,6 +340,20 @@ All colors MUST be HSL.
   }
 }
 
+/* Slow glow animation for mic button */
+@keyframes mic-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px 5px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 25px 10px rgba(239, 68, 68, 0.6);
+  }
+}
+
+.animate-mic-glow {
+  animation: mic-glow 2s ease-in-out infinite;
+}
+
 /* Message content styling for proper formatting */
 .message-content p { 
   margin: 0 0 1rem; 
