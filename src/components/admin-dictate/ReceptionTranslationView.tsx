@@ -776,6 +776,35 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
   // Handle speaker mode change - update recognition language
   const handleSpeakerModeChange = useCallback((newMode: 'staff' | 'patient') => {
+    const previousMode = speakerModeRef.current;
+    
+    // If switching FROM patient mode TO staff mode, finalize the patient's accumulated transcript
+    if (previousMode === 'patient' && newMode === 'staff') {
+      // Combine any pending transcript + current interim into final patient message
+      const accumulatedText = pendingTranscript.trim();
+      const currentInterim = lastInterimRef.current.trim();
+      const currentLiveTranscript = transcript.trim();
+      
+      // Combine all accumulated speech
+      let finalPatientText = accumulatedText;
+      if (currentInterim) {
+        finalPatientText = finalPatientText ? `${finalPatientText} ${currentInterim}` : currentInterim;
+      }
+      if (currentLiveTranscript) {
+        finalPatientText = finalPatientText ? `${finalPatientText} ${currentLiveTranscript}` : currentLiveTranscript;
+      }
+      
+      if (finalPatientText) {
+        console.log('📝 Finalizing patient speech:', finalPatientText);
+        setPendingTranscript(finalPatientText);
+        setShowConfirmation(true);
+      }
+      
+      // Clear interim and live transcript
+      lastInterimRef.current = '';
+      setTranscript('');
+    }
+    
     setSpeakerMode(newMode);
     
     // Update recognition language if it exists
@@ -794,7 +823,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         }
       }
     }
-  }, [patientLanguage]);
+  }, [patientLanguage, pendingTranscript, transcript]);
 
   // Speech recognition setup - create instance once
   useEffect(() => {
@@ -835,12 +864,21 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       if (finalTranscript) {
         // Clear interim ref since we got a final result
         lastInterimRef.current = '';
-        // Instead of auto-sending, queue for confirmation
+        
+        // For patient mode, accumulate without showing confirmation until they toggle back
+        const isPatientMode = speakerModeRef.current === 'patient';
+        
+        // Queue for confirmation (accumulate)
         setPendingTranscript(prev => {
           const newText = prev ? `${prev} ${finalTranscript.trim()}` : finalTranscript.trim();
           return newText;
         });
-        setShowConfirmation(true);
+        
+        // Only show confirmation immediately for staff mode
+        // Patient mode confirmation is shown when they toggle back to staff
+        if (!isPatientMode) {
+          setShowConfirmation(true);
+        }
         setTranscript('');
       } else {
         setTranscript(interimTranscript);
@@ -884,23 +922,24 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       if (isListeningRef.current && !stoppedByUserRef.current) {
         console.log('Speech recognition ended, restarting...');
         
-        // For non-English languages, preserve any interim transcript as it may be lost on restart
-        const isNonEnglish = speakerModeRef.current === 'patient';
-        if (isNonEnglish && lastInterimRef.current.trim()) {
+        // For patient mode, preserve any interim transcript as it may be lost on restart
+        // But DON'T show confirmation - wait for toggle back to staff mode
+        const isPatientMode = speakerModeRef.current === 'patient';
+        if (isPatientMode && lastInterimRef.current.trim()) {
           console.log('📝 Preserving interim transcript before restart:', lastInterimRef.current);
           const interimToPreserve = lastInterimRef.current.trim();
           lastInterimRef.current = '';
-          // Queue the interim as a pending transcript fragment
+          // Queue the interim as a pending transcript fragment (accumulate)
           setPendingTranscript(prev => {
             const newText = prev ? `${prev} ${interimToPreserve}` : interimToPreserve;
             return newText;
           });
-          setShowConfirmation(true);
+          // Don't show confirmation - wait for toggle
           setTranscript('');
         }
         
         // Use shorter delay for non-English languages as they tend to end more frequently
-        const restartDelay = isNonEnglish ? 50 : 300;
+        const restartDelay = isPatientMode ? 50 : 300;
         
         setTimeout(() => {
           if (isListeningRef.current && !isStartingRef.current && recognitionRef.current) {
