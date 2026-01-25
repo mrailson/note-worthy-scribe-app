@@ -24,11 +24,23 @@ import {
   Pause,
   Play,
   Send,
-  XCircle
+  XCircle,
+  AlertTriangle,
+  ShieldX
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useReceptionTranslation, TranslationMessage } from '@/hooks/useReceptionTranslation';
+import { useReceptionTranslation, TranslationMessage, ContentWarning } from '@/hooks/useReceptionTranslation';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { showToast } from '@/utils/toastWrapper';
 import QRCode from 'qrcode';
@@ -660,16 +672,25 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     isConnected,
     isTranslating,
     patientConnected,
+    contentWarning,
+    blockedContent,
     sendMessage,
     endSession,
     deleteMessage,
-    updateMessage
+    updateMessage,
+    clearContentWarning,
+    clearBlockedContent
   } = useReceptionTranslation({
     sessionToken,
     sessionId,
     patientLanguage,
     isStaff: true
   });
+  
+  // State for content moderation dialogs
+  const [showBlockedDialog, setShowBlockedDialog] = useState(false);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  const [pendingWarningTranscript, setPendingWarningTranscript] = useState<string | null>(null);
 
   // Track previous patient connection state for toast notification
   const prevPatientConnectedRef = useRef(false);
@@ -680,6 +701,13 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     }
     prevPatientConnectedRef.current = patientConnected;
   }, [patientConnected]);
+
+  // Show blocked dialog when content is blocked
+  useEffect(() => {
+    if (blockedContent) {
+      setShowBlockedDialog(true);
+    }
+  }, [blockedContent]);
 
   const languageInfo = HEALTHCARE_LANGUAGES.find(l => l.code === patientLanguage);
   const patientUrl = `https://gpnotewell.co.uk/reception-translate?session=${sessionToken}`;
@@ -945,11 +973,24 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   }, [isMicPaused]);
 
   // Confirmation handlers
-  const handleConfirmSend = useCallback(() => {
+  const handleConfirmSend = useCallback(async () => {
     if (pendingTranscript) {
       // Determine speaker based on current speaker mode
       const speaker = speakerModeRef.current;
-      sendMessage(pendingTranscript, speaker);
+      const result = await sendMessage(pendingTranscript, speaker);
+      
+      // Handle blocked content
+      if (result.blocked) {
+        // Don't clear transcript - let user edit it
+        setShowConfirmation(true);
+        return;
+      }
+      
+      // Handle warning - show warning dialog but message was sent
+      if (result.warning) {
+        showToast.warning('Message sent with warning - content may be inappropriate');
+      }
+      
       setPendingTranscript(null);
       setShowConfirmation(false);
     }
@@ -1988,6 +2029,82 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Blocked Content Alert Dialog */}
+      <AlertDialog open={showBlockedDialog} onOpenChange={(open) => {
+        setShowBlockedDialog(open);
+        if (!open) clearBlockedContent();
+      }}>
+        <AlertDialogContent className="border-destructive">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <ShieldX className="h-5 w-5" />
+              Translation Blocked
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                {blockedContent?.reason || 'This message contains language that cannot be translated in a healthcare setting.'}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Please rephrase your message and try again.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction 
+              onClick={() => {
+                setShowBlockedDialog(false);
+                clearBlockedContent();
+              }}
+            >
+              Edit Message
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Content Warning Alert Dialog */}
+      <AlertDialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
+        <AlertDialogContent className="border-amber-500">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="h-5 w-5" />
+              Content Warning
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                This message may contain inappropriate language.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Please review before sending to the patient.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowWarningDialog(false);
+              clearContentWarning();
+            }}>
+              Edit Message
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={async () => {
+                if (pendingWarningTranscript) {
+                  const speaker = speakerModeRef.current;
+                  await sendMessage(pendingWarningTranscript, speaker);
+                  setPendingWarningTranscript(null);
+                  setPendingTranscript(null);
+                  setShowConfirmation(false);
+                }
+                setShowWarningDialog(false);
+                clearContentWarning();
+              }}
+            >
+              Send Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

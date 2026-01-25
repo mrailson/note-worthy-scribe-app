@@ -12,6 +12,19 @@ export interface TranslationMessage {
   timestamp: Date;
 }
 
+export interface ContentWarning {
+  reason: string;
+  flaggedTerms: string[];
+}
+
+export interface TranslationResult {
+  translatedText: string;
+  contentWarning?: ContentWarning;
+  blocked?: boolean;
+  reason?: string;
+  flaggedTerms?: string[];
+}
+
 interface UseReceptionTranslationOptions {
   sessionToken: string;
   sessionId?: string;
@@ -30,6 +43,8 @@ export const useReceptionTranslation = ({
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [patientConnected, setPatientConnected] = useState(false);
+  const [contentWarning, setContentWarning] = useState<ContentWarning | null>(null);
+  const [blockedContent, setBlockedContent] = useState<{ reason: string; flaggedTerms: string[] } | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Connect to the realtime channel
@@ -118,7 +133,7 @@ export const useReceptionTranslation = ({
     text: string,
     sourceLanguage: string,
     targetLanguage: string
-  ): Promise<string> => {
+  ): Promise<TranslationResult> => {
     try {
       const { data, error } = await supabase.functions.invoke('translate-text', {
         body: {
@@ -128,20 +143,70 @@ export const useReceptionTranslation = ({
         }
       });
 
-      if (error) throw error;
-      return data.translatedText || text;
+      // Check if content was blocked (400 response with blocked flag)
+      if (error) {
+        // Try to parse the error body if it contains blocked info
+        const errorBody = error.context?.body ? await error.context.body.text().catch(() => null) : null;
+        if (errorBody) {
+          try {
+            const parsed = JSON.parse(errorBody);
+            if (parsed.blocked) {
+              return {
+                translatedText: text,
+                blocked: true,
+                reason: parsed.reason,
+                flaggedTerms: parsed.flaggedTerms
+              };
+            }
+          } catch {
+            // Not JSON, continue with normal error handling
+          }
+        }
+        throw error;
+      }
+
+      // Check if data indicates blocked content
+      if (data?.blocked) {
+        return {
+          translatedText: text,
+          blocked: true,
+          reason: data.reason,
+          flaggedTerms: data.flaggedTerms
+        };
+      }
+
+      return {
+        translatedText: data.translatedText || text,
+        contentWarning: data.contentWarning || null
+      };
     } catch (err) {
       console.error('Translation error:', err);
-      return text; // Return original if translation fails
+      return { translatedText: text }; // Return original if translation fails
     }
+  }, []);
+
+  // Clear content warning/blocked states
+  const clearContentWarning = useCallback(() => {
+    setContentWarning(null);
+  }, []);
+
+  const clearBlockedContent = useCallback(() => {
+    setBlockedContent(null);
   }, []);
 
   // Send a message (staff speaks English, patient speaks their language)
   // speaker parameter allows overriding when using same-device mode
-  const sendMessage = useCallback(async (text: string, speaker?: 'staff' | 'patient') => {
-    if (!channelRef.current || !text.trim()) return;
+  // Returns: { success: boolean, blocked?: boolean, warning?: ContentWarning }
+  const sendMessage = useCallback(async (
+    text: string, 
+    speaker?: 'staff' | 'patient'
+  ): Promise<{ success: boolean; blocked?: boolean; warning?: ContentWarning }> => {
+    if (!channelRef.current || !text.trim()) return { success: false };
 
     setIsTranslating(true);
+    // Clear previous warnings
+    setContentWarning(null);
+    setBlockedContent(null);
 
     try {
       // Use provided speaker or determine from isStaff
@@ -149,13 +214,27 @@ export const useReceptionTranslation = ({
       const sourceLanguage = actualSpeaker === 'staff' ? 'en' : patientLanguage;
       const targetLanguage = actualSpeaker === 'staff' ? patientLanguage : 'en';
 
-      const translatedText = await translateText(text, sourceLanguage, targetLanguage);
+      const result = await translateText(text, sourceLanguage, targetLanguage);
+
+      // Handle blocked content
+      if (result.blocked) {
+        setBlockedContent({
+          reason: result.reason || 'Content contains inappropriate language',
+          flaggedTerms: result.flaggedTerms || []
+        });
+        return { success: false, blocked: true };
+      }
+
+      // Handle content warning (proceed but notify)
+      if (result.contentWarning) {
+        setContentWarning(result.contentWarning);
+      }
 
       const message: TranslationMessage = {
         id: crypto.randomUUID(),
         speaker: actualSpeaker,
         originalText: text,
-        translatedText,
+        translatedText: result.translatedText,
         originalLanguage: sourceLanguage,
         targetLanguage,
         timestamp: new Date()
@@ -183,9 +262,12 @@ export const useReceptionTranslation = ({
           });
         }
       }
+      
+      return { success: true, warning: result.contentWarning };
     } catch (err) {
       console.error('Error sending message:', err);
       setError('Failed to send message');
+      return { success: false };
     } finally {
       setIsTranslating(false);
     }
@@ -241,16 +323,30 @@ export const useReceptionTranslation = ({
       if (!originalMessage) return false;
 
       // Re-translate the edited text
-      const translatedText = await translateText(
+      const result = await translateText(
         newText,
         originalMessage.originalLanguage,
         originalMessage.targetLanguage
       );
 
+      // If blocked, don't update
+      if (result.blocked) {
+        setBlockedContent({
+          reason: result.reason || 'Content contains inappropriate language',
+          flaggedTerms: result.flaggedTerms || []
+        });
+        return false;
+      }
+
+      // Handle content warning
+      if (result.contentWarning) {
+        setContentWarning(result.contentWarning);
+      }
+
       const updatedMessage: TranslationMessage = {
         ...originalMessage,
         originalText: newText,
-        translatedText,
+        translatedText: result.translatedText,
         timestamp: new Date()
       };
 
@@ -279,10 +375,14 @@ export const useReceptionTranslation = ({
     isTranslating,
     error,
     patientConnected,
+    contentWarning,
+    blockedContent,
     sendMessage,
     endSession,
     clearMessages,
     deleteMessage,
-    updateMessage
+    updateMessage,
+    clearContentWarning,
+    clearBlockedContent
   };
 };
