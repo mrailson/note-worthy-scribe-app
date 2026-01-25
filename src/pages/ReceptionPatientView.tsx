@@ -5,13 +5,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Send, Loader2, Languages, WifiOff, Mail, Volume2 } from 'lucide-react';
+import { Send, Loader2, Languages, WifiOff, Mail, Volume2, VolumeX } from 'lucide-react';
 import { useReceptionTranslation, TranslationMessage } from '@/hooks/useReceptionTranslation';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 import { supabase } from '@/integrations/supabase/client';
 import { PatientEmailChatModal } from '@/components/admin-dictate/PatientEmailChatModal';
 import { PatientVoiceRecorder } from '@/components/admin-dictate/PatientVoiceRecorder';
+import { toast } from '@/hooks/use-toast';
 
 const ReceptionPatientView: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -28,9 +29,11 @@ const ReceptionPatientView: React.FC = () => {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const langCode = sessionData?.patient_language || 'en';
   const phrases = getPatientViewPhrases(langCode);
@@ -101,6 +104,35 @@ const ReceptionPatientView: React.FC = () => {
     }
   }, [messages]);
 
+  // Unlock audio on mobile - must be called from user interaction
+  const unlockAudio = useCallback(async () => {
+    if (audioUnlocked) return true;
+    
+    try {
+      // Create or resume AudioContext (required on iOS/Safari)
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+      
+      // Play a silent audio to unlock playback on iOS
+      const silentAudio = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAbD/kwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+MYxAALqAJAAADAAAgAAAAAA/+MYxBsLqAJCAADAAAgAAAACgAAAAA=');
+      silentAudio.volume = 0.01;
+      await silentAudio.play();
+      silentAudio.pause();
+      
+      setAudioUnlocked(true);
+      console.log('🔊 Audio unlocked for mobile');
+      return true;
+    } catch (err) {
+      console.warn('Failed to unlock audio:', err);
+      return false;
+    }
+  }, [audioUnlocked]);
+
   // Audio playback for translations
   const handlePlayAudio = useCallback(async (messageId: string, text: string, languageCode: string) => {
     // Stop any currently playing audio
@@ -115,45 +147,92 @@ const ReceptionPatientView: React.FC = () => {
       return;
     }
 
+    // Unlock audio on first interaction (required for mobile)
+    await unlockAudio();
+
     setLoadingAudioId(messageId);
 
     try {
-      const response = await supabase.functions.invoke('text-to-speech-openai', {
+      // Use gp-translation-tts which returns base64 audio
+      const response = await supabase.functions.invoke('gp-translation-tts', {
         body: { 
           text, 
-          voice: 'nova',
-          language: languageCode 
+          languageCode
         }
       });
 
       if (response.error) throw response.error;
 
-      const audioUrl = response.data?.audioUrl;
-      if (!audioUrl) throw new Error('No audio URL returned');
+      const audioContent = response.data?.audioContent;
+      if (!audioContent) throw new Error('No audio content returned');
 
+      // Create audio from base64 using data URI (works on all browsers including mobile Safari)
+      const audioUrl = `data:audio/mpeg;base64,${audioContent}`;
       const audio = new Audio(audioUrl);
       currentAudioRef.current = audio;
+      
+      // Ensure AudioContext is active (helps with iOS)
+      if (audioContextRef.current?.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
       
       audio.onended = () => {
         setPlayingAudioId(null);
         currentAudioRef.current = null;
       };
       
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('Audio error event:', e);
         setPlayingAudioId(null);
         setLoadingAudioId(null);
         currentAudioRef.current = null;
+        toast({
+          title: 'Audio Error',
+          description: 'Could not play audio. Please try again.',
+          variant: 'destructive'
+        });
       };
 
-      setLoadingAudioId(null);
-      setPlayingAudioId(messageId);
-      await audio.play();
+      audio.oncanplaythrough = async () => {
+        try {
+          setLoadingAudioId(null);
+          setPlayingAudioId(messageId);
+          await audio.play();
+        } catch (playErr) {
+          console.error('Play error:', playErr);
+          setPlayingAudioId(null);
+          toast({
+            title: 'Playback Error',
+            description: 'Tap the screen first, then try playing audio.',
+            variant: 'destructive'
+          });
+        }
+      };
+
+      // Fallback: If oncanplaythrough doesn't fire quickly, try playing anyway
+      setTimeout(async () => {
+        if (loadingAudioId === messageId && audio.readyState >= 2) {
+          try {
+            setLoadingAudioId(null);
+            setPlayingAudioId(messageId);
+            await audio.play();
+          } catch (e) {
+            console.warn('Fallback play failed:', e);
+          }
+        }
+      }, 500);
+
     } catch (err) {
       console.error('Audio playback error:', err);
       setLoadingAudioId(null);
       setPlayingAudioId(null);
+      toast({
+        title: 'Audio Error',
+        description: 'Failed to generate audio. Please try again.',
+        variant: 'destructive'
+      });
     }
-  }, [playingAudioId]);
+  }, [playingAudioId, unlockAudio, loadingAudioId]);
 
   // Handle voice transcription from PatientVoiceRecorder
   const handleVoiceTranscription = useCallback((text: string) => {
