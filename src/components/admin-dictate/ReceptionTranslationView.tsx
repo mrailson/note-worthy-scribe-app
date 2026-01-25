@@ -726,7 +726,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [isSystemAudioMode, setIsSystemAudioMode] = useState(false);
   const [isCapturingSystemAudio, setIsCapturingSystemAudio] = useState(false);
   const [systemAudioTranscript, setSystemAudioTranscript] = useState('');
-  const [systemAudioService, setSystemAudioService] = useState<'whisper' | 'assemblyai'>('whisper');
+  const [systemAudioService, setSystemAudioService] = useState<'whisper' | 'assemblyai'>(() => {
+    const saved = localStorage.getItem('translation-system-audio-service');
+    return (saved === 'assemblyai' || saved === 'whisper') ? saved : 'whisper';
+  });
   const systemAudioStreamRef = useRef<MediaStream | null>(null);
   const systemAudioRecorderRef = useRef<MediaRecorder | null>(null);
   const systemAudioChunksRef = useRef<Blob[]>([]);
@@ -2359,7 +2362,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <div className="mt-3 flex justify-end w-full">
             <TranslationSettingsModal
               systemAudioService={systemAudioService}
-              onServiceChange={setSystemAudioService}
+              onServiceChange={(service) => {
+                setSystemAudioService(service);
+                localStorage.setItem('translation-system-audio-service', service);
+              }}
               isCapturingSystemAudio={isCapturingSystemAudio}
               onToggleSystemAudio={toggleSystemAudio}
             />
