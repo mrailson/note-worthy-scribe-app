@@ -116,6 +116,26 @@ export function useReceptionTranslationHistory() {
     }
   }, [user]);
 
+  // Delete all sessions
+  const deleteAllSessions = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('reception_translation_sessions')
+        .delete()
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      setSessions([]);
+      showToast.success('All translation history deleted');
+    } catch (err: any) {
+      console.error('Failed to delete all sessions:', err);
+      showToast.error('Failed to delete history');
+    }
+  }, [user]);
+
   // Update session title/notes
   const updateSession = useCallback(async (sessionId: string, updates: { session_title?: string; notes?: string }) => {
     if (!user) return;
@@ -149,6 +169,7 @@ export function useReceptionTranslationHistory() {
     error,
     refetch: fetchHistory,
     deleteSession,
+    deleteAllSessions,
     updateSession
   };
 }

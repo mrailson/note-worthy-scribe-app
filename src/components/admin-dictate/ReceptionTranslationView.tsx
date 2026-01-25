@@ -28,7 +28,8 @@ import {
   AlertTriangle,
   ShieldX,
   Monitor,
-  MonitorOff
+  MonitorOff,
+  History
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,6 +56,7 @@ import { SpeakerModeSelector } from './SpeakerModeSelector';
 import { PatientSpeakingPrompt } from './PatientSpeakingPrompt';
 import { getWebSpeechLanguageCode, isWebSpeechSupported } from '@/utils/webSpeechLanguages';
 import { TranslationSettingsModal } from './TranslationSettingsModal';
+import { TranslationHistoryInline } from './TranslationHistoryInline';
 
 // Localised "GP Practice said" for translated messages
 const GP_PRACTICE_SAID: Record<string, string> = {
@@ -770,6 +772,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   const [showBlockedDialog, setShowBlockedDialog] = useState(false);
   const [showWarningDialog, setShowWarningDialog] = useState(false);
   const [pendingWarningTranscript, setPendingWarningTranscript] = useState<string | null>(null);
+  
+  // State for history panel
+  const [showHistory, setShowHistory] = useState(false);
 
   // Track previous patient connection state for toast notification
   const prevPatientConnectedRef = useRef(false);
@@ -2057,6 +2062,15 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               </>
             )}
           </Button>
+          {/* History Button */}
+          <Button
+            variant={showHistory ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setShowHistory(!showHistory)}
+          >
+            <History className="h-4 w-4 mr-2" />
+            History
+          </Button>
           <Button
             variant="outline" 
             size="sm" 
@@ -2084,8 +2098,14 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Conversation panel */}
-        <div className="flex-1 flex flex-col p-4">
+        {/* History Panel - shown when history is toggled */}
+        {showHistory ? (
+          <div className="flex-1 p-4">
+            <TranslationHistoryInline onClose={() => setShowHistory(false)} />
+          </div>
+        ) : (
+          /* Conversation panel */
+          <div className="flex-1 flex flex-col p-4">
           {/* System Audio Indicator - shown when capturing system audio */}
           {isCapturingSystemAudio && (
             <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg border border-amber-300 dark:border-amber-700">
@@ -2299,6 +2319,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             </SpeakerModeSelector>
           </div>
         </div>
+        )}
 
         {/* QR Code panel */}
         <div className="w-72 border-l p-4 flex flex-col items-center bg-muted/30 overflow-y-auto min-h-0">
