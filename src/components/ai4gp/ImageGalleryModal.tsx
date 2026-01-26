@@ -45,9 +45,11 @@ import {
   X,
   Calendar,
   Check,
+  Maximize2,
 } from 'lucide-react';
 import { useImageGallery, UserGeneratedImage } from '@/hooks/useImageGallery';
 import { useImageDefaults, TEMPLATE_TYPES } from '@/hooks/useImageDefaults';
+import { ImageLightbox } from './ImageLightbox';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -92,6 +94,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
   const [editingTitle, setEditingTitle] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('');
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   // Filter images based on current view
   const getFilteredImages = () => {
@@ -144,35 +147,20 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
       .replace(/'/g, '&#039;');
 
   const handleOpenFullSize = (image: UserGeneratedImage) => {
-    if (!image?.image_url) return;
-
-    const title = escapeHtml(image.title ? `${image.title} — Image` : 'Image');
-    
-    // Open a new window synchronously to avoid popup blockers
-    const newWindow = window.open('', '_blank');
-    if (!newWindow) {
-      toast.error('Pop-up blocked. Please allow pop-ups for this site.');
-      return;
+    // Open lightbox instead of new window
+    const index = filteredImages.findIndex(img => img.id === image.id);
+    if (index !== -1) {
+      setLightboxIndex(index);
     }
-    
-    newWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <title>${title}</title>
-          <style>
-            body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #1a1a1a; }
-            img { max-width: 100%; max-height: 100vh; object-fit: contain; }
-          </style>
-        </head>
-        <body>
-          <img src="${image.image_url}" alt="${escapeHtml(image.alt_text || 'Image')}" />
-        </body>
-      </html>
-    `);
-    newWindow.document.close();
+  };
+
+  const handleLightboxNavigate = (index: number) => {
+    setLightboxIndex(index);
+    // Also update selected image to keep sidebar in sync
+    const newImage = filteredImages[index];
+    if (newImage) {
+      setSelectedImage(newImage);
+    }
   };
 
   const handleSaveTitle = async (imageId: string) => {
@@ -538,8 +526,8 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                         className="w-full justify-start"
                         onClick={() => handleOpenFullSize(selectedImage)}
                       >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Open Full Size
+                        <Maximize2 className="h-4 w-4 mr-2" />
+                        View Fullscreen
                       </Button>
 
                       <Button
@@ -577,9 +565,13 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={async () => {
                 if (deleteConfirmImage) {
-                  await deleteImage(deleteConfirmImage.id);
-                  if (selectedImage?.id === deleteConfirmImage.id) {
-                    setSelectedImage(null);
+                  const success = await deleteImage(deleteConfirmImage.id);
+                  if (success) {
+                    if (selectedImage?.id === deleteConfirmImage.id) {
+                      setSelectedImage(null);
+                    }
+                    // Refetch to ensure gallery is updated
+                    await fetchImages();
                   }
                   setDeleteConfirmImage(null);
                 }
@@ -590,6 +582,16 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Fullscreen Lightbox */}
+      {lightboxIndex !== null && (
+        <ImageLightbox
+          images={filteredImages}
+          currentIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onNavigate={handleLightboxNavigate}
+        />
+      )}
     </>
   );
 };
