@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollText, History, Mic, Home, AlertTriangle } from 'lucide-react';
+import { ScrollText, History, Mic, Home, AlertTriangle, Languages } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useDictation } from '@/hooks/useDictation';
@@ -10,10 +10,11 @@ import { DictationTemplates } from './DictationTemplates';
 import { DictationHistoryPanel } from './DictationHistoryPanel';
 import { DictationQuickActions } from './DictationQuickActions';
 import { DictationViewToggle } from './DictationViewToggle';
+import { DictationTranslationWrapper } from './DictationTranslationWrapper';
 
 export function DictationPanel() {
   const dictation = useDictation();
-  const [activeTab, setActiveTab] = useState<'dictate' | 'history'>('dictate');
+  const [activeTab, setActiveTab] = useState<'dictate' | 'history' | 'translate'>('dictate');
 
   return (
     <div className="space-y-4">
@@ -21,10 +22,19 @@ export function DictationPanel() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-xl">
-              <Mic className="h-5 w-5 text-primary" />
-              Notewell Dictate
+              {activeTab === 'translate' ? (
+                <>
+                  <Languages className="h-5 w-5 text-violet-500" />
+                  Translation Service
+                </>
+              ) : (
+                <>
+                  <Mic className="h-5 w-5 text-primary" />
+                  Notewell Dictate
+                </>
+              )}
             </CardTitle>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'dictate' | 'history')}>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'dictate' | 'history' | 'translate')}>
               <TabsList className="h-9">
                 <TabsTrigger value="dictate" className="gap-1.5 px-3">
                   <ScrollText className="h-4 w-4" />
@@ -34,22 +44,30 @@ export function DictationPanel() {
                   <History className="h-4 w-4" />
                   <span className="hidden sm:inline">History</span>
                 </TabsTrigger>
+                <TabsTrigger value="translate" className="gap-1.5 px-3">
+                  <Languages className="h-4 w-4" />
+                  <span className="hidden sm:inline">Translate</span>
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
           <p className="text-sm text-muted-foreground">
-            Real-time speech-to-text for medical consultations and letters
+            {activeTab === 'translate' 
+              ? 'Real-time multilingual translation for patient communication'
+              : 'Real-time speech-to-text for medical consultations and letters'}
           </p>
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Development Disclaimer */}
-          <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/30">
-            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
-              <strong>⚠️ Development Build</strong> – Transcription accuracy is not yet clinical-grade. For demonstration and evaluation only; do not use for real patient care.
-            </AlertDescription>
-          </Alert>
+          {/* Development Disclaimer - show for dictate and history tabs */}
+          {activeTab !== 'translate' && (
+            <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/30">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
+                <strong>⚠️ Development Build</strong> – Transcription accuracy is not yet clinical-grade. For demonstration and evaluation only; do not use for real patient care.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {activeTab === 'dictate' ? (
             <>
@@ -123,7 +141,7 @@ export function DictationPanel() {
                 isRecording={dictation.isRecording}
               />
             </>
-          ) : (
+          ) : activeTab === 'history' ? (
             <DictationHistoryPanel
               sessions={dictation.history}
               isLoading={dictation.isLoadingHistory}
@@ -134,6 +152,10 @@ export function DictationPanel() {
               onDeleteSession={dictation.deleteSession}
               onRefresh={dictation.fetchHistory}
               formatDuration={dictation.formatDuration}
+            />
+          ) : (
+            <DictationTranslationWrapper 
+              onBack={() => setActiveTab('dictate')}
             />
           )}
         </CardContent>
