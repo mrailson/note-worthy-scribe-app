@@ -2217,41 +2217,56 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             <p className="text-lg mb-2">
               {patientLanguageText}
             </p>
-            {/* Audio player button - only show for staff messages (patient messages don't need TTS) */}
-            {isStaffMessage && (
-              <div className="mt-2">
-                <Button
-                  variant={playingAudioId === messageId ? "default" : "outline"}
-                  size="sm"
-                  className="w-full"
-                  onClick={() => {
-                    if (playingAudioId === messageId) {
-                      stopCurrentAudio();
-                    } else {
-                      playAudioForMessage(messageId, patientLanguageText, patientLanguage);
-                    }
-                  }}
-                  disabled={isLoadingAudio}
-                >
-                  {isLoadingAudio ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {LOADING_AUDIO[patientLanguage] || LOADING_AUDIO['en']}
-                    </>
-                  ) : playingAudioId === messageId ? (
-                    <>
-                      <Pause className="h-4 w-4 mr-2" />
-                      {STOP_AUDIO[patientLanguage] || STOP_AUDIO['en']}
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="h-4 w-4 mr-2" />
-                      {PLAY_AUDIO[patientLanguage] || PLAY_AUDIO['en']}
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
+            {/* Audio player button - only show for staff messages with TTS-supported languages */}
+            {isStaffMessage && (() => {
+              const langConfig = HEALTHCARE_LANGUAGES.find(l => l.code === patientLanguage);
+              const hasTTSSupport = langConfig?.hasElevenLabsVoice || langConfig?.hasGoogleTTSVoice;
+              
+              if (!hasTTSSupport) {
+                // Show "No audio available" message for languages without TTS
+                return (
+                  <div className="mt-2 text-center text-sm text-muted-foreground flex items-center justify-center gap-2 py-2">
+                    <Volume2 className="h-4 w-4 opacity-50" />
+                    <span>{langConfig?.name || patientLanguage} audio not available</span>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="mt-2">
+                  <Button
+                    variant={playingAudioId === messageId ? "default" : "outline"}
+                    size="sm"
+                    className="w-full"
+                    onClick={() => {
+                      if (playingAudioId === messageId) {
+                        stopCurrentAudio();
+                      } else {
+                        playAudioForMessage(messageId, patientLanguageText, patientLanguage);
+                      }
+                    }}
+                    disabled={isLoadingAudio}
+                  >
+                    {isLoadingAudio ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {LOADING_AUDIO[patientLanguage] || LOADING_AUDIO['en']}
+                      </>
+                    ) : playingAudioId === messageId ? (
+                      <>
+                        <Pause className="h-4 w-4 mr-2" />
+                        {STOP_AUDIO[patientLanguage] || STOP_AUDIO['en']}
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="h-4 w-4 mr-2" />
+                        {PLAY_AUDIO[patientLanguage] || PLAY_AUDIO['en']}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
