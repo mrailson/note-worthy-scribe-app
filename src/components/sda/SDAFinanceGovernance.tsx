@@ -23,8 +23,11 @@ import {
   Download,
   FileText,
   Lightbulb,
-  Truck
+  Truck,
+  Scale,
+  ExternalLink
 } from "lucide-react";
+import { CollapsibleCard } from "@/components/ui/collapsible-card";
 
 const seniorLeadership = [
   { name: "Dr Mark Gray", role: "Senior Responsible Officer (SRO) / Chair", organisation: "PML Medical Director", isVoting: true, icon: Crown },
@@ -344,6 +347,137 @@ export const SDAFinanceGovernance = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Conflicts of Interest Section */}
+      <CollapsibleCard 
+        title="Conflicts of Interest (Declarations & Management)" 
+        icon={<Scale className="w-5 h-5" />}
+        defaultOpen={false}
+        className="border-0"
+      >
+        <div className="space-y-6">
+          {/* Governance Statement */}
+          <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-slate-700 leading-relaxed">
+              NRES operates in line with <strong>NHS England conflicts of interest guidance</strong>. All Board members, clinical leads, and individuals involved in decision-making are required to declare relevant interests. Declarations are reviewed at least annually and at meetings where decisions are made.
+            </p>
+          </div>
+
+          {/* Status Snapshot */}
+          <div>
+            <h4 className="font-semibold text-sm mb-3 flex items-center gap-2 text-slate-900">
+              <ShieldCheck className="h-4 w-4 text-green-600" />
+              Status Snapshot
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+                <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                <p className="text-xs font-medium text-slate-900">COI Policy</p>
+                <p className="text-xs text-green-600 font-semibold">In Place</p>
+              </div>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+                <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                <p className="text-xs font-medium text-slate-900">Register</p>
+                <p className="text-xs text-green-600 font-semibold">Maintained</p>
+              </div>
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                <Calendar className="h-5 w-5 text-[#005EB8] mx-auto mb-1" />
+                <p className="text-xs font-medium text-slate-900">Last Review</p>
+                <p className="text-xs text-[#005EB8] font-semibold">Jan 2026</p>
+              </div>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+                <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                <p className="text-xs font-medium text-slate-900">Declarations</p>
+                <p className="text-xs text-green-600 font-semibold">Up to Date</p>
+              </div>
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+                <ShieldCheck className="h-5 w-5 text-green-600 mx-auto mb-1" />
+                <p className="text-xs font-medium text-slate-900">Conflicts</p>
+                <p className="text-xs text-green-600 font-semibold">Managed</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Declaration Summary */}
+          <div>
+            <h4 className="font-semibold text-sm mb-3 text-slate-900">Declaration Summary</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-100">
+                    <th className="text-left p-3 font-semibold text-slate-900 rounded-tl-lg">Role</th>
+                    <th className="text-left p-3 font-semibold text-slate-900">Declared Interest</th>
+                    <th className="text-left p-3 font-semibold text-slate-900 rounded-tr-lg">Management</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  <tr className="bg-white">
+                    <td className="p-3 text-slate-700">SRO / Chair</td>
+                    <td className="p-3 text-slate-600">Medical Director, PML</td>
+                    <td className="p-3 text-slate-600">Noted; excluded from PML-specific financial votes</td>
+                  </tr>
+                  <tr className="bg-slate-50">
+                    <td className="p-3 text-slate-700">Clinical Lead</td>
+                    <td className="p-3 text-slate-600">GP Partner in member practice</td>
+                    <td className="p-3 text-slate-600">Noted; excluded from practice-specific votes</td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="p-3 text-slate-700">Digital Lead</td>
+                    <td className="p-3 text-slate-600">Digital/AI product involvement</td>
+                    <td className="p-3 text-slate-600">Declared; decisions recorded in minutes</td>
+                  </tr>
+                  <tr className="bg-slate-50">
+                    <td className="p-3 text-slate-700">Programme Director</td>
+                    <td className="p-3 text-slate-600">Director of Community Services, PML</td>
+                    <td className="p-3 text-slate-600">Noted; excluded from PML contract discussions</td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="p-3 text-slate-700">Managerial Lead</td>
+                    <td className="p-3 text-slate-600">None declared</td>
+                    <td className="p-3 text-slate-500 italic">N/A</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Decision-specific handling */}
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-slate-900">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              Decision-Specific Conflict Handling
+            </h4>
+            <p className="text-sm text-slate-700">
+              Where a conflict arises in relation to a specific decision, the individual is excluded from discussion and decision-making, and this is recorded in the formal meeting minutes.
+            </p>
+          </div>
+
+          {/* Link to full register */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-[#005EB8]" />
+              <span className="text-sm font-medium text-slate-900">Full Conflicts of Interest Register</span>
+              <span className="text-xs text-slate-500">(Held by NRES governance team / PML)</span>
+            </div>
+            <Badge variant="outline" className="border-[#005EB8] text-[#005EB8]">
+              <ExternalLink className="h-3 w-3 mr-1" />
+              Available on Request
+            </Badge>
+          </div>
+
+          {/* Compliance statement */}
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  <strong>Conflicts of Interest Declaration:</strong> All individuals involved in NRES governance and decision-making are required to declare relevant interests in line with NHS England guidance. A register of interests is maintained and reviewed at least annually and at meetings where relevant decisions are made. Where a conflict is identified, appropriate mitigating actions are taken and recorded.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CollapsibleCard>
 
       {/* Key Responsibilities */}
       <Card className="bg-white border-0 shadow-sm">
