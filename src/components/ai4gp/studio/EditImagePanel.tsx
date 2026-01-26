@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { GeneratedImage } from '@/types/ai4gp';
 import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
 
 interface EditImagePanelProps {
   onQuickEdit: (imageContent: string, instructions: string) => Promise<GeneratedImage | null>;
@@ -38,22 +39,57 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
   const [editResult, setEditResult] = useState<GeneratedImage | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [savedImageId, setSavedImageId] = useState<string | null>(null);
+  const dropzoneRef = useRef<HTMLDivElement>(null);
+
+  const processFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please paste an image file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setUploadedImage({
+        content: reader.result as string,
+        name: file.name || 'Pasted Image',
+      });
+      setEditResult(null);
+      setSavedImageId(null);
+    };
+    reader.readAsDataURL(file);
+  }, []);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setUploadedImage({
-          content: reader.result as string,
-          name: file.name,
-        });
-        setEditResult(null);
-        setSavedImageId(null);
-      };
-      reader.readAsDataURL(file);
+      processFile(file);
     }
-  }, []);
+  }, [processFile]);
+
+  // Handle Ctrl+V paste
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (isGenerating) return;
+      
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            processFile(file);
+            toast.success('Image pasted successfully');
+          }
+          break;
+        }
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [isGenerating, processFile]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -141,7 +177,7 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
                 {isDragActive ? 'Drop your image here' : 'Upload an image to edit'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Drag & drop or click to browse • PNG, JPG, WebP
+                Drag & drop, click to browse, or <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">Ctrl+V</kbd> to paste
               </p>
             </div>
           </div>
