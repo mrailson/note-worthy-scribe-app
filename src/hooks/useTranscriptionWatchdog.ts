@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { showToast } from '@/utils/toastWrapper';
 import { detectDevice } from '@/utils/DeviceDetection';
-import { iOSAudioAlert } from '@/utils/iOSAudioAlert';
 
 interface WatchdogConfig {
   /** Time in ms before showing warning (default: 60000 = 1 minute) */
@@ -142,10 +141,8 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
         if (healthStatus === 'critical' && !criticalShownRef.current) {
           criticalShownRef.current = true;
           
-          // Play critical audio alert on iOS (works even with screen locked)
+          // Auto-trigger recovery attempt on mobile
           if (isMobile) {
-            iOSAudioAlert.playCriticalAlert();
-            // Auto-trigger recovery attempt on mobile
             console.log('📱 Auto-triggering recovery attempt on mobile...');
             onAutoRecoveryAttempt?.();
           }
@@ -154,11 +151,6 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
           console.log('🚨 Critical transcription stall detected');
         } else if (healthStatus === 'warning' && !warningShownRef.current) {
           warningShownRef.current = true;
-          
-          // Play warning beep on iOS
-          if (isMobile) {
-            iOSAudioAlert.playWarningBeep();
-          }
           
           // Removed toast - status now shown in TranscriptionHealthIndicator only
           console.log('⚠️ Warning: transcription may be stalled');
@@ -170,11 +162,6 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
         criticalShownRef.current = false;
         console.log('✅ Transcription recovered from stall');
         onStallRecovered?.();
-        
-        // Play recovery chime on iOS
-        if (isMobile) {
-          iOSAudioAlert.playRecoveryChime();
-        }
         
         // Removed toast - recovery shown via health indicator
       }
