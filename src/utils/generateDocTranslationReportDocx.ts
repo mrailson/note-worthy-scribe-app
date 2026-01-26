@@ -132,13 +132,141 @@ function createDocumentHeader(index: number, fileName: string): Paragraph {
   });
 }
 
-// Create text section with label and content
+// Parse content into structured paragraphs with proper formatting
+function parseContentToParagraphs(
+  content: string,
+  backgroundFill: string
+): Paragraph[] {
+  if (!content || content.trim() === '') {
+    return [
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'No text extracted',
+            font: FONTS.default,
+            size: FONTS.size.body,
+            color: NHS_COLORS.textLightGrey,
+            italics: true,
+          }),
+        ],
+        shading: { fill: backgroundFill },
+        spacing: { before: 60, after: 60 },
+        indent: { left: convertInchesToTwip(0.15), right: convertInchesToTwip(0.15) },
+      }),
+    ];
+  }
+
+  const paragraphs: Paragraph[] = [];
+  
+  // Split by double line breaks or single line breaks
+  const lines = content.split(/\n+/).filter(line => line.trim() !== '');
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Skip page markers
+    if (trimmedLine.match(/^---\s*Page\s+\d+\s*---$/i)) {
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: trimmedLine,
+              font: FONTS.default,
+              size: FONTS.size.small,
+              color: NHS_COLORS.textLightGrey,
+              italics: true,
+            }),
+          ],
+          shading: { fill: backgroundFill },
+          spacing: { before: 120, after: 80 },
+          indent: { left: convertInchesToTwip(0.15), right: convertInchesToTwip(0.15) },
+        })
+      );
+      continue;
+    }
+    
+    // Detect headings (lines ending with colon or all caps short lines)
+    const isHeading = (
+      trimmedLine.endsWith(':') && trimmedLine.length < 60
+    ) || (
+      trimmedLine === trimmedLine.toUpperCase() && 
+      trimmedLine.length < 50 && 
+      trimmedLine.length > 3
+    );
+    
+    // Detect bullet points
+    const isBullet = trimmedLine.startsWith('-') || 
+                     trimmedLine.startsWith('•') || 
+                     trimmedLine.match(/^\d+\.\s/);
+    
+    if (isHeading) {
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: trimmedLine,
+              bold: true,
+              font: FONTS.default,
+              size: FONTS.size.body,
+              color: NHS_COLORS.headingBlue,
+            }),
+          ],
+          shading: { fill: backgroundFill },
+          spacing: { before: 160, after: 60 },
+          indent: { left: convertInchesToTwip(0.15), right: convertInchesToTwip(0.15) },
+        })
+      );
+    } else if (isBullet) {
+      // Clean the bullet character and add proper formatting
+      const bulletText = trimmedLine.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, '');
+      const bulletPrefix = trimmedLine.match(/^\d+\./) ? trimmedLine.match(/^\d+\./)?.[0] + ' ' : '• ';
+      
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: bulletPrefix + bulletText,
+              font: FONTS.default,
+              size: FONTS.size.body,
+              color: NHS_COLORS.textGrey,
+            }),
+          ],
+          shading: { fill: backgroundFill },
+          spacing: { before: 40, after: 40 },
+          indent: { left: convertInchesToTwip(0.35), right: convertInchesToTwip(0.15) },
+        })
+      );
+    } else {
+      // Regular paragraph
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: trimmedLine,
+              font: FONTS.default,
+              size: FONTS.size.body,
+              color: NHS_COLORS.textGrey,
+            }),
+          ],
+          shading: { fill: backgroundFill },
+          spacing: { before: 60, after: 80 },
+          indent: { left: convertInchesToTwip(0.15), right: convertInchesToTwip(0.15) },
+        })
+      );
+    }
+  }
+  
+  return paragraphs;
+}
+
+// Create text section with label and formatted content
 function createTextSection(
   label: string,
   content: string,
   backgroundFill: string
 ): Paragraph[] {
-  return [
+  const paragraphs: Paragraph[] = [
+    // Section label/header
     new Paragraph({
       children: [
         new TextRun({
@@ -149,22 +277,30 @@ function createTextSection(
           color: NHS_COLORS.headingBlue,
         }),
       ],
-      spacing: { before: 160, after: 80 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: content || 'No text extracted',
-          font: FONTS.default,
-          size: FONTS.size.body,
-          color: NHS_COLORS.textGrey,
-        }),
-      ],
-      shading: { fill: backgroundFill },
-      spacing: { before: 40, after: 160 },
-      indent: { left: convertInchesToTwip(0.1), right: convertInchesToTwip(0.1) },
+      spacing: { before: 200, after: 100 },
+      border: {
+        bottom: {
+          color: 'E2E8F0',
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 6,
+        },
+      },
     }),
   ];
+  
+  // Add parsed content paragraphs
+  paragraphs.push(...parseContentToParagraphs(content, backgroundFill));
+  
+  // Add spacing after section
+  paragraphs.push(
+    new Paragraph({
+      children: [],
+      spacing: { before: 100, after: 100 },
+    })
+  );
+  
+  return paragraphs;
 }
 
 // Create clinical verification warnings section
