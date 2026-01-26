@@ -19,10 +19,11 @@ import { ScribeSettingsPanel } from "@/components/scribe/ScribeSettingsPanel";
 import { ScribeHistoryPanel } from "@/components/scribe/ScribeHistoryPanel";
 import { ScribeImportPanel } from "@/components/scribe/ScribeImportPanel";
 import { DictationPanel } from "@/components/scribe/DictationPanel";
+import { TranslatePanel } from "@/components/scribe/TranslatePanel";
 import { MyAppointmentsTab } from "@/components/scribe/MyAppointmentsTab";
 
 import { ScribeTab, SOAPNote, ConsultationNote, PatientContext } from "@/types/scribe";
-import { Stethoscope, History, Settings, Upload, ScrollText, ChevronDown, CalendarDays } from "lucide-react";
+import { Stethoscope, History, Settings, Upload, ScrollText, ChevronDown, CalendarDays, Languages } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -209,19 +210,23 @@ const Scribe = () => {
                 <CalendarDays className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
                 <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Appts</span>
               </TabsTrigger>
-              <TabsTrigger value="transcript" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
-                <ScrollText className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
-                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Dictate</span>
+              <TabsTrigger value="translate" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
+                <Languages className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
+                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Translate</span>
               </TabsTrigger>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <div className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer gap-1.5 touch-manipulation min-h-[44px] min-w-[44px] sm:min-h-[40px] sm:min-w-[auto] sm:px-4 ${isMobile ? 'flex-col py-2' : 'gap-2'} ${activeTab === 'settings' || activeTab === 'import' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100/50 dark:hover:bg-blue-900/50'}`}>
+                  <div className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer gap-1.5 touch-manipulation min-h-[44px] min-w-[44px] sm:min-h-[40px] sm:min-w-[auto] sm:px-4 ${isMobile ? 'flex-col py-2' : 'gap-2'} ${activeTab === 'settings' || activeTab === 'import' || activeTab === 'transcript' ? 'bg-blue-600 text-white shadow-sm' : 'text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-100/50 dark:hover:bg-blue-900/50'}`}>
                     <Settings className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
                     <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Settings</span>
                     <ChevronDown className="h-3 w-3" />
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="z-50 bg-popover">
+                  <DropdownMenuItem onClick={() => setActiveTab('transcript')} className="gap-2 cursor-pointer">
+                    <ScrollText className="h-4 w-4" />
+                    Dictate
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setActiveTab('settings')} className="gap-2 cursor-pointer">
                     <Settings className="h-4 w-4" />
                     Settings
@@ -359,6 +364,10 @@ const Scribe = () => {
 
             <TabsContent value="transcript">
               <DictationPanel />
+            </TabsContent>
+
+            <TabsContent value="translate">
+              <TranslatePanel />
             </TabsContent>
 
             <TabsContent value="settings">

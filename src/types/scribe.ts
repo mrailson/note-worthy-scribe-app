@@ -241,7 +241,7 @@ export interface HeidiEditContent {
   plan: string;
 }
 
-export type ScribeTab = 'consultation' | 'import' | 'history' | 'transcript' | 'settings' | 'appointments';
+export type ScribeTab = 'consultation' | 'import' | 'history' | 'transcript' | 'settings' | 'appointments' | 'translate';
 
 // Appointment types
 export type AppointmentStatus = 'pending' | 'in_progress' | 'completed' | 'requires_action';
