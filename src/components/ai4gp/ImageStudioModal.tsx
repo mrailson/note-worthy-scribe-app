@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   MessageSquare, 
   Palette, 
   Building2, 
@@ -33,17 +33,26 @@ interface ImageStudioModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
+  initialEditImage?: { url: string; name: string } | null;
 }
 
 export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   open,
   onOpenChange,
   imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
+  initialEditImage,
 }) => {
   const [showGallery, setShowGallery] = useState(false);
   const [studioMode, setStudioMode] = useState<'create' | 'edit'>('create');
   
   const { fetchImages } = useImageGallery();
+
+  // When initialEditImage is provided, switch to edit mode
+  useEffect(() => {
+    if (initialEditImage && open) {
+      setStudioMode('edit');
+    }
+  }, [initialEditImage, open]);
   
   const {
     settings,
@@ -144,6 +153,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
               onGallerySaved={fetchImages}
               isGenerating={isGenerating}
               progress={generationProgress}
+              initialImage={initialEditImage}
             />
           </div>
         )}
