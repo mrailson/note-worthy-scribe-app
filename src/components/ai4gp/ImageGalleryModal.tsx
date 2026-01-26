@@ -203,9 +203,17 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
     }
   }, [open, fetchImages]);
 
+  // Close modal when lightbox opens to avoid z-index conflicts
+  const handleOpenLightbox = (image: UserGeneratedImage) => {
+    const index = filteredImages.findIndex(img => img.id === image.id);
+    if (index !== -1) {
+      setLightboxIndex(index);
+    }
+  };
+
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open && lightboxIndex === null} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-5xl h-[85vh] p-0 gap-0 flex flex-col overflow-hidden">
           <DialogHeader className="p-4 pb-2 border-b flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -298,6 +306,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                       isLoading={isLoading}
                       selectedImage={selectedImage}
                       onSelect={handleSelectImage}
+                      onDoubleClick={handleOpenLightbox}
                       onToggleFavourite={toggleFavourite}
                       isDefaultFor={isDefaultFor}
                     />
@@ -309,6 +318,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                       isLoading={isLoading}
                       selectedImage={selectedImage}
                       onSelect={handleSelectImage}
+                      onDoubleClick={handleOpenLightbox}
                       onToggleFavourite={toggleFavourite}
                       isDefaultFor={isDefaultFor}
                       emptyMessage="No favourite images yet. Star images to add them here."
@@ -321,6 +331,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                       isLoading={isLoading}
                       selectedImage={selectedImage}
                       onSelect={handleSelectImage}
+                      onDoubleClick={handleOpenLightbox}
                       onToggleFavourite={toggleFavourite}
                       isDefaultFor={isDefaultFor}
                     />
@@ -347,7 +358,10 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                 <ScrollArea className="flex-1">
                   <div className="p-3 space-y-4">
                     {/* Preview */}
-                    <div className="rounded-lg overflow-hidden border bg-background">
+                    <div 
+                      className="rounded-lg overflow-hidden border bg-background cursor-pointer"
+                      onDoubleClick={() => handleOpenLightbox(selectedImage)}
+                    >
                       <img
                         src={selectedImage.image_url}
                         alt={selectedImage.alt_text || 'Generated image'}
@@ -524,7 +538,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                       <Button
                         variant="outline"
                         className="w-full justify-start"
-                        onClick={() => handleOpenFullSize(selectedImage)}
+                        onClick={() => handleOpenLightbox(selectedImage)}
                       >
                         <Maximize2 className="h-4 w-4 mr-2" />
                         View Fullscreen
@@ -583,8 +597,8 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Fullscreen Lightbox */}
-      {lightboxIndex !== null && (
+      {/* Fullscreen Lightbox - rendered outside Dialog to avoid z-index issues */}
+      {lightboxIndex !== null && open && (
         <ImageLightbox
           images={filteredImages}
           currentIndex={lightboxIndex}
@@ -602,6 +616,7 @@ interface ImageGridProps {
   isLoading: boolean;
   selectedImage: UserGeneratedImage | null;
   onSelect: (image: UserGeneratedImage) => void;
+  onDoubleClick: (image: UserGeneratedImage) => void;
   onToggleFavourite: (imageId: string) => void;
   isDefaultFor: (imageId: string) => string[];
   emptyMessage?: string;
@@ -612,6 +627,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
   isLoading,
   selectedImage,
   onSelect,
+  onDoubleClick,
   onToggleFavourite,
   isDefaultFor,
   emptyMessage = "No images found.",
@@ -643,6 +659,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({
             selectedImage?.id === image.id && "ring-2 ring-primary"
           )}
           onClick={() => onSelect(image)}
+          onDoubleClick={() => onDoubleClick(image)}
         >
           <div className="aspect-square relative">
             <img
