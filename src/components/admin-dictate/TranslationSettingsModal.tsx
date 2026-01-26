@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
-import { Settings, Monitor, Check, Volume2 } from 'lucide-react';
+import { Settings, Monitor, Check, Volume2, FileStack } from 'lucide-react';
 
 type SystemAudioService = 'whisper' | 'assemblyai';
 
@@ -16,6 +16,8 @@ interface TranslationSettingsModalProps {
   onToggleSystemAudio: () => void;
   autoPlayAudio: boolean;
   onAutoPlayChange: (enabled: boolean) => void;
+  showDocumentTranslate: boolean;
+  onShowDocumentTranslateChange: (enabled: boolean) => void;
 }
 
 export const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> = ({
@@ -25,6 +27,8 @@ export const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> =
   onToggleSystemAudio,
   autoPlayAudio,
   onAutoPlayChange,
+  showDocumentTranslate,
+  onShowDocumentTranslateChange,
 }) => {
   return (
     <Dialog>
@@ -47,6 +51,23 @@ export const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> =
         </DialogHeader>
         
         <div className="space-y-6 py-4">
+          {/* Document Translate Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+            <div className="flex items-center gap-3">
+              <FileStack className={`h-5 w-5 ${showDocumentTranslate ? 'text-primary' : 'text-muted-foreground'}`} />
+              <div>
+                <Label className="text-base font-medium">Document Translate</Label>
+                <p className="text-sm text-muted-foreground">
+                  Show the Document Translate mode option
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={showDocumentTranslate}
+              onCheckedChange={onShowDocumentTranslateChange}
+            />
+          </div>
+
           {/* Auto-Play Audio Toggle */}
           <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
             <div className="flex items-center gap-3">
