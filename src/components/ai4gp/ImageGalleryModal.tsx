@@ -51,7 +51,6 @@ import {
 import { useImageGallery, UserGeneratedImage } from '@/hooks/useImageGallery';
 import { useImageDefaults, TEMPLATE_TYPES } from '@/hooks/useImageDefaults';
 import { ImageLightbox } from './ImageLightbox';
-import { ImageStudioModal } from './ImageStudioModal';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +59,7 @@ interface ImageGalleryModalProps {
   onOpenChange: (open: boolean) => void;
   onSelectImage?: (image: UserGeneratedImage) => void;
   selectionMode?: boolean;
+  onEditImage?: (imageData: { url: string; name: string }) => void;
 }
 
 const SOURCE_LABELS: Record<string, { label: string; icon: React.ReactNode }> = {
@@ -72,6 +72,7 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
   onOpenChange,
   onSelectImage,
   selectionMode = false,
+  onEditImage,
 }) => {
   const {
     images,
@@ -97,7 +98,6 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
   const [newTitle, setNewTitle] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [editImageData, setEditImageData] = useState<{ url: string; name: string } | null>(null);
 
   // Filter images based on current view
   const getFilteredImages = () => {
@@ -538,19 +538,22 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
                         Download
                       </Button>
 
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start"
-                        onClick={() => {
-                          setEditImageData({
-                            url: selectedImage.image_url,
-                            name: selectedImage.title || 'Gallery Image',
-                          });
-                        }}
-                      >
-                        <PenLine className="h-4 w-4 mr-2" />
-                        Edit Image
-                      </Button>
+                      {onEditImage && (
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                          onClick={() => {
+                            onEditImage({
+                              url: selectedImage.image_url,
+                              name: selectedImage.title || 'Gallery Image',
+                            });
+                            onOpenChange(false);
+                          }}
+                        >
+                          <PenLine className="h-4 w-4 mr-2" />
+                          Edit Image
+                        </Button>
+                      )}
 
                       <Button
                         variant="outline"
@@ -624,18 +627,6 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
         />
       )}
 
-      {/* Image Studio Modal for editing */}
-      <ImageStudioModal
-        open={!!editImageData}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setEditImageData(null);
-            // Refresh gallery in case edits were saved
-            fetchImages();
-          }
-        }}
-        initialEditImage={editImageData}
-      />
     </>
   );
 };

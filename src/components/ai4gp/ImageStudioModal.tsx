@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,8 @@ import {
   Sparkles,
   Images,
   PenLine,
-  Plus
+  Plus,
+  Loader2
 } from 'lucide-react';
 import { useImageStudio } from '@/hooks/useImageStudio';
 import { useImageGallery } from '@/hooks/useImageGallery';
@@ -26,8 +27,10 @@ import { ReferenceTab } from './studio/ReferenceTab';
 import { GenerateTab } from './studio/GenerateTab';
 import { EditImagePanel } from './studio/EditImagePanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ImageGalleryModal } from './ImageGalleryModal';
 import { cn } from '@/lib/utils';
+
+// Lazy load ImageGalleryModal to break circular dependency
+const ImageGalleryModal = lazy(() => import('./ImageGalleryModal').then(m => ({ default: m.ImageGalleryModal })));
 
 interface ImageStudioModalProps {
   open: boolean;
@@ -44,6 +47,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
 }) => {
   const [showGallery, setShowGallery] = useState(false);
   const [studioMode, setStudioMode] = useState<'create' | 'edit'>('create');
+  const [pendingEditImage, setPendingEditImage] = useState<{ url: string; name: string } | null>(null);
   
   const { fetchImages } = useImageGallery();
 
@@ -53,6 +57,13 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
       setStudioMode('edit');
     }
   }, [initialEditImage, open]);
+
+  // Clear pending edit image when modal closes
+  useEffect(() => {
+    if (!open) {
+      setPendingEditImage(null);
+    }
+  }, [open]);
   
   const {
     settings,
@@ -153,7 +164,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
               onGallerySaved={fetchImages}
               isGenerating={isGenerating}
               progress={generationProgress}
-              initialImage={initialEditImage}
+              initialImage={pendingEditImage || initialEditImage}
             />
           </div>
         )}
@@ -243,11 +254,22 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
         )}
       </DialogContent>
       
-      {/* Image Gallery Modal */}
-      <ImageGalleryModal
-        open={showGallery}
-        onOpenChange={setShowGallery}
-      />
+      {/* Image Gallery Modal - wrapped in Suspense for lazy loading */}
+      <Suspense fallback={
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }>
+        <ImageGalleryModal
+          open={showGallery}
+          onOpenChange={setShowGallery}
+          onEditImage={(imageData) => {
+            setPendingEditImage(imageData);
+            setShowGallery(false);
+            setStudioMode('edit');
+          }}
+        />
+      </Suspense>
     </Dialog>
   );
 };
