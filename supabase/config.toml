@@ -431,3 +431,6 @@ verify_jwt = false
 
 [functions.parse-survey-questions]
 verify_jwt = true
+
+[functions.batch-translate-documents]
+verify_jwt = true

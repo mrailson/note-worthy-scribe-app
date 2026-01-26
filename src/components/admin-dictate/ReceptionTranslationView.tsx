@@ -56,6 +56,8 @@ import { SpeakerModeSelector } from './SpeakerModeSelector';
 import { PatientSpeakingPrompt } from './PatientSpeakingPrompt';
 import { getWebSpeechLanguageCode, isWebSpeechSupported } from '@/utils/webSpeechLanguages';
 import { TranslationSettingsModal } from './TranslationSettingsModal';
+import { DocumentTranslationPanel } from './DocumentTranslationPanel';
+import { MessageCircle, FileStack } from 'lucide-react';
 import { TranslationHistoryInline } from './TranslationHistoryInline';
 
 // Localised "GP Practice said" for translated messages
@@ -889,6 +891,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   
   // Speaker mode toggle: 'staff' = listening for English, 'patient' = listening for patient's language
   const [speakerMode, setSpeakerMode] = useState<'staff' | 'patient'>('staff');
+  
+  // Translation service mode toggle: 'live-chat' or 'document-translate'
+  const [translationMode, setTranslationMode] = useState<'live-chat' | 'document-translate'>('live-chat');
   
   // System audio capture state
   const [isSystemAudioMode, setIsSystemAudioMode] = useState(false);
@@ -2278,57 +2283,88 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       {/* Header */}
       <div className="border-b p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-semibold">Live Translation</h1>
+          {/* Mode Toggle */}
+          <div className="flex items-center bg-muted rounded-lg p-1">
+            <button
+              onClick={() => setTranslationMode('live-chat')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                translationMode === 'live-chat'
+                  ? 'bg-background shadow text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <MessageCircle className="h-4 w-4" />
+              Live Chat
+            </button>
+            <button
+              onClick={() => setTranslationMode('document-translate')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                translationMode === 'document-translate'
+                  ? 'bg-background shadow text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <FileStack className="h-4 w-4" />
+              Document Translate
+            </button>
+          </div>
+          
           {languageInfo && (
             <Badge variant="outline">
               {languageInfo.flag} {languageInfo.name}
             </Badge>
           )}
-          {/* Patient Connection Status */}
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            patientConnected 
-              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
-          }`}>
-            <Smartphone className="h-4 w-4" />
-            {patientConnected ? (
-              <>
-                <span>Patient Connected</span>
-                <Check className="h-4 w-4" />
-              </>
-            ) : (
-              <span>Waiting for patient...</span>
-            )}
-          </div>
+          {/* Patient Connection Status - only show in live chat mode */}
+          {translationMode === 'live-chat' && (
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              patientConnected 
+                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+            }`}>
+              <Smartphone className="h-4 w-4" />
+              {patientConnected ? (
+                <>
+                  <span>Patient Connected</span>
+                  <Check className="h-4 w-4" />
+                </>
+              ) : (
+                <span>Waiting for patient...</span>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          {/* History Button */}
-          <Button
-            variant={showHistory ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setShowHistory(!showHistory)}
-          >
-            <History className="h-4 w-4 mr-2" />
-            History
-          </Button>
-          <Button
-            variant="outline" 
-            size="sm" 
-            onClick={handleDownloadReport}
-            disabled={isGeneratingReport || messages.length === 0}
-          >
-            {isGeneratingReport ? (
-              <>
-                <span className="animate-spin mr-2">⏳</span>
-                Generating...
-              </>
-            ) : (
-              <>
-                <FileText className="h-4 w-4 mr-2" />
-                Download Report
-              </>
-            )}
-          </Button>
+          {/* History Button - only in live chat mode */}
+          {translationMode === 'live-chat' && (
+            <Button
+              variant={showHistory ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+            >
+              <History className="h-4 w-4 mr-2" />
+              History
+            </Button>
+          )}
+          {translationMode === 'live-chat' && (
+            <Button
+              variant="outline" 
+              size="sm" 
+              onClick={handleDownloadReport}
+              disabled={isGeneratingReport || messages.length === 0}
+            >
+              {isGeneratingReport ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Download Report
+                </>
+              )}
+            </Button>
+          )}
           <Button variant="destructive" size="sm" onClick={handleEndSession}>
             <X className="h-4 w-4 mr-2" />
             End Session
@@ -2338,8 +2374,17 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* History Panel - shown when history is toggled */}
-        {showHistory ? (
+        {/* Document Translation Mode */}
+        {translationMode === 'document-translate' ? (
+          <div className="flex-1 p-4">
+            <DocumentTranslationPanel
+              sessionId={sessionId}
+              sessionToken={sessionToken}
+              patientLanguage={patientLanguage}
+              onShowQRCode={() => setShowExpandedQR(true)}
+            />
+          </div>
+        ) : showHistory ? (
           <div className="flex-1 p-4">
             <TranslationHistoryInline onClose={() => setShowHistory(false)} />
           </div>
