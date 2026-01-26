@@ -34,6 +34,8 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { DocumentCaptureQRModal } from './DocumentCaptureQRModal';
+import { WordIcon } from '@/components/icons/WordIcon';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface UploadedDocument {
   id: string;
@@ -77,6 +79,8 @@ export function DocumentTranslationPanel({
   const [expandedResults, setExpandedResults] = useState<Record<string, boolean>>({});
   const [showQRModal, setShowQRModal] = useState(false);
   const [remoteUploadCount, setRemoteUploadCount] = useState(0);
+  const [isExportingReport, setIsExportingReport] = useState(false);
+  const [practiceInfo, setPracticeInfo] = useState<{ name?: string; address?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const languageInfo = HEALTHCARE_LANGUAGES.find(l => l.code === patientLanguage);
@@ -166,7 +170,68 @@ export function DocumentTranslationPanel({
     fetchExistingDocuments();
   }, [sessionId, patientLanguage]);
 
-  // Generate thumbnail for image files
+  // Fetch practice info for reports
+  useEffect(() => {
+    const fetchPracticeInfo = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: practice } = await supabase
+        .from('practice_details')
+        .select('practice_name, address')
+        .eq('user_id', user.id)
+        .order('is_default', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (practice) {
+        setPracticeInfo({
+          name: practice.practice_name || undefined,
+          address: practice.address || undefined,
+        });
+      }
+    };
+    fetchPracticeInfo();
+  }, []);
+
+  // Handle download report
+  const handleDownloadReport = async () => {
+    const completedDocs = documents.filter(d => d.status === 'complete' && d.result);
+    if (completedDocs.length === 0) {
+      showToast.error('No translated documents to export');
+      return;
+    }
+
+    setIsExportingReport(true);
+    try {
+      const { generateDocTranslationReportDocx } = await import(
+        '@/utils/generateDocTranslationReportDocx'
+      );
+
+      await generateDocTranslationReportDocx({
+        documents: completedDocs.map(doc => ({
+          id: doc.id,
+          fileName: doc.file.name,
+          thumbnail: doc.thumbnail,
+          originalText: doc.result!.originalText,
+          translatedText: doc.result!.translatedText,
+          detectedLanguage: doc.result!.detectedLanguage,
+          clinicalVerification: doc.result!.clinicalVerification,
+        })),
+        patientLanguage,
+        patientLanguageName: languageInfo?.name || patientLanguage,
+        patientLanguageFlag: languageInfo?.flag || '',
+        practiceInfo: practiceInfo || undefined,
+      });
+
+      showToast.success('Translation report downloaded');
+    } catch (error) {
+      console.error('Report generation failed:', error);
+      showToast.error('Failed to generate report');
+    } finally {
+      setIsExportingReport(false);
+    }
+  };
   const generateThumbnail = async (file: File): Promise<string | undefined> => {
     if (!file.type.startsWith('image/')) return undefined;
     
@@ -439,6 +504,25 @@ export function DocumentTranslationPanel({
           </Badge>
         </div>
         <div className="flex items-center gap-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadReport}
+                  disabled={completedCount === 0 || isExportingReport}
+                >
+                  {isExportingReport ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <WordIcon className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Download Translation Report</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <Button
             variant="outline"
             size="sm"
