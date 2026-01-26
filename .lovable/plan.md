@@ -1,58 +1,45 @@
-# Fix Word Count to Show Net Transcript Words
 
-## Problem
-The "Meeting Word Count" on the recorder screen is calculated from ALL transcription chunks, including those that were rejected during the merge process (due to duplication, low confidence, or overlap). This makes the word count higher than the actual words in the transcript.
+# Plan: Disable Audio Alerts on iPhone Meeting Recorder
 
-**Example from your session:**
-- Total chunks: 10, but only 7 merged into transcript
-- Word count showing: 776 (from all chunks)
-- Actual transcript words: ~536 (only merged chunks)
+## Overview
+Remove the audio alerts (warning beeps, critical alerts, and recovery chimes) that play during transcription chunking on iPhone. These sounds are triggered when the transcription watchdog detects a stall or recovery, but they can be distracting for users.
 
-## Solution
-Change the word count calculation to count words from the actual `transcript` string (the merged result) instead of summing all chunks.
+## Current Behaviour
+When recording on iPhone:
+- **Warning beep** plays after 2 minutes of no transcription chunks
+- **Critical alert** plays after 3 minutes of no transcription chunks
+- **Recovery chime** plays when transcription resumes after a stall
 
-### Step 1: Modify the word count useEffect in MeetingRecorder.tsx
+All three sounds are generated via the `iOSAudioAlert` class using the Web Audio API.
 
-**Location:** `src/components/MeetingRecorder.tsx` lines 177-186
+## Proposed Change
+Disable the audio alerts in `useTranscriptionWatchdog.ts` by removing or commenting out the calls to `iOSAudioAlert` methods. The visual health indicator will continue to work, providing silent feedback to users.
 
-**Current code:**
-```typescript
-// Calculate word count from all chunks
-useEffect(() => {
-  const totalWords = chunkSaveStatuses.reduce((total, chunk) => {
-    const chunkWordCount = chunk.text.trim().split(/\s+/).filter(word => word.length > 0).length;
-    return total + chunkWordCount;
-  }, 0);
-  
-  setWordCount(totalWords);
-  onWordCountUpdate(totalWords);
-}, [chunkSaveStatuses, onWordCountUpdate]);
-```
+## Technical Details
 
-**New code:**
-```typescript
-// Calculate word count from the actual merged transcript (net words)
-useEffect(() => {
-  const netWords = transcript.trim().split(/\s+/).filter(word => word.length > 0).length;
-  
-  setWordCount(netWords);
-  onWordCountUpdate(netWords);
-}, [transcript, onWordCountUpdate]);
-```
+### File to Modify
+**`src/hooks/useTranscriptionWatchdog.ts`**
 
-### Why This Works
-1. The `transcript` state is only updated by `IncrementalTranscriptHandler` when chunks are successfully merged
-2. Rejected chunks (duplicates, low confidence, overlapping) never make it into `transcript`
-3. This gives the exact "net" word count that matches what appears in the transcript panel
+### Changes Required
 
-### Expected Result
-- Recorder screen "Meeting Word Count" will match the transcript tab's word count
-- Both will show only the words that actually appear in the merged transcript
-- The "Audio Chunking Live Overview" section can still show total words from all chunks if desired (for debugging/transparency)
+1. **Remove critical alert sound** (lines 146-147):
+   - Remove: `iOSAudioAlert.playCriticalAlert();`
 
-## Optional Enhancement
-If you want the ChunkSaveStatus component to also show "net" vs "gross" words:
-- Keep showing "Words: X" as total from all chunks (current behaviour)
-- Add a separate "Net: X" badge showing only successfully merged chunk words
+2. **Remove warning beep sound** (lines 159-160):
+   - Remove: `iOSAudioAlert.playWarningBeep();`
 
-This would provide visibility into how many words were captured vs how many made it into the transcript.
+3. **Remove recovery chime sound** (lines 175-176):
+   - Remove: `iOSAudioAlert.playRecoveryChime();`
+
+4. **Clean up import** (line 4):
+   - Remove: `import { iOSAudioAlert } from '@/utils/iOSAudioAlert';`
+
+### What Will Continue to Work
+- The `TranscriptionHealthIndicator` visual status display
+- Console logging for debugging purposes
+- Stall detection and recovery callbacks
+- Auto-recovery attempt triggering on mobile
+
+### Files NOT Changed
+- `src/utils/iOSAudioAlert.ts` — kept intact in case audio alerts are needed elsewhere or re-enabled later
+- `src/utils/alertSounds.ts` — unrelated to chunking alerts (used for patient identity alerts in LG Capture)
