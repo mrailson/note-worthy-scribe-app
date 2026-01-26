@@ -434,3 +434,9 @@ verify_jwt = true
 
 [functions.batch-translate-documents]
 verify_jwt = true
+
+[functions.validate-doc-capture-token]
+verify_jwt = false
+
+[functions.upload-doc-capture]
+verify_jwt = false

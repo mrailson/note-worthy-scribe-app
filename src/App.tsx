@@ -104,6 +104,7 @@ import AuthConfirm from "./pages/AuthConfirm";
 import Scribe from "./pages/Scribe";
 import AI4GPPromptGuide from "./pages/AI4GPPromptGuide";
 import ReceptionPatientView from "./pages/ReceptionPatientView";
+import DocumentCapture from "./pages/DocumentCapture";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 
 const App = () => {
@@ -301,6 +302,7 @@ const App = () => {
               <Route path="/scribe" element={<Scribe />} />
               <Route path="/ai4gp-prompts" element={<AI4GPPromptGuide />} />
               <Route path="/reception-translate" element={<ReceptionPatientView />} />
+              <Route path="/doc-capture/:sessionToken" element={<DocumentCapture />} />
               
               {/* Survey Routes */}
               <Route path="/surveys" element={

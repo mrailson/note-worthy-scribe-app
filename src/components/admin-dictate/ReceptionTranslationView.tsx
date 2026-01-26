@@ -2381,7 +2381,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               sessionId={sessionId}
               sessionToken={sessionToken}
               patientLanguage={patientLanguage}
-              onShowQRCode={() => setShowExpandedQR(true)}
             />
           </div>
         ) : showHistory ? (

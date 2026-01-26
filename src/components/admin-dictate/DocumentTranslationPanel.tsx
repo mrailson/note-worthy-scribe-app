@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -21,7 +21,8 @@ import {
   X,
   ChevronDown,
   ChevronUp,
-  RefreshCw
+  RefreshCw,
+  Smartphone
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
@@ -32,6 +33,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { DocumentCaptureQRModal } from './DocumentCaptureQRModal';
 
 interface UploadedDocument {
   id: string;
@@ -62,22 +64,107 @@ interface DocumentTranslationPanelProps {
   sessionId: string;
   sessionToken: string;
   patientLanguage: string;
-  onShowQRCode: () => void;
 }
 
 export function DocumentTranslationPanel({
   sessionId,
   sessionToken,
-  patientLanguage,
-  onShowQRCode
+  patientLanguage
 }: DocumentTranslationPanelProps) {
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [expandedResults, setExpandedResults] = useState<Record<string, boolean>>({});
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [remoteUploadCount, setRemoteUploadCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const languageInfo = HEALTHCARE_LANGUAGES.find(l => l.code === patientLanguage);
+
+  // Subscribe to document uploads from remote devices (phones/iPads)
+  useEffect(() => {
+    if (!sessionId) return;
+    
+    console.log("Setting up realtime subscription for documents in session:", sessionId);
+    
+    const channel = supabase
+      .channel(`doc-panel-${sessionId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'translation_documents',
+        filter: `session_id=eq.${sessionId}`
+      }, async (payload) => {
+        console.log("New document uploaded from remote device:", payload.new);
+        
+        // Fetch the document details
+        const newDoc = payload.new as any;
+        
+        // Create a placeholder file object (we'll use the URL for display)
+        const remoteDoc: UploadedDocument = {
+          id: newDoc.id,
+          file: new File([], newDoc.file_name, { type: newDoc.file_type || 'image/jpeg' }),
+          thumbnail: newDoc.thumbnail_url || newDoc.file_url,
+          status: 'pending',
+          extractedText: undefined,
+          result: undefined
+        };
+        
+        setDocuments(prev => {
+          // Avoid duplicates
+          if (prev.some(d => d.id === newDoc.id)) return prev;
+          return [...prev, remoteDoc];
+        });
+        
+        setRemoteUploadCount(prev => prev + 1);
+        showToast.success(`Document received from phone: ${newDoc.file_name}`);
+      })
+      .subscribe();
+    
+    return () => {
+      console.log("Cleaning up realtime subscription");
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId]);
+
+  // Fetch existing documents on mount
+  useEffect(() => {
+    const fetchExistingDocuments = async () => {
+      if (!sessionId) return;
+      
+      const { data, error } = await supabase
+        .from('translation_documents')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error("Error fetching existing documents:", error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        const existingDocs: UploadedDocument[] = data.map(doc => ({
+          id: doc.id,
+          file: new File([], doc.file_name, { type: doc.file_type || 'image/jpeg' }),
+          thumbnail: doc.thumbnail_url || doc.file_url,
+          status: (doc.status === 'complete' ? 'complete' : doc.status === 'error' ? 'error' : 'pending') as any,
+          extractedText: doc.original_text || undefined,
+          result: doc.translated_text ? {
+            originalText: doc.original_text || '',
+            translatedText: doc.translated_text,
+            detectedLanguage: doc.detected_language || patientLanguage,
+            clinicalVerification: doc.clinical_verification as any
+          } : undefined,
+          errorMessage: doc.error_message || undefined
+        }));
+        
+        setDocuments(existingDocs);
+      }
+    };
+    
+    fetchExistingDocuments();
+  }, [sessionId, patientLanguage]);
 
   // Generate thumbnail for image files
   const generateThumbnail = async (file: File): Promise<string | undefined> => {
@@ -355,10 +442,15 @@ export function DocumentTranslationPanel({
           <Button
             variant="outline"
             size="sm"
-            onClick={onShowQRCode}
+            onClick={() => setShowQRModal(true)}
           >
-            <QrCode className="h-4 w-4 mr-2" />
-            QR Code Capture
+            <Smartphone className="h-4 w-4 mr-2" />
+            Phone Capture
+            {remoteUploadCount > 0 && (
+              <Badge variant="default" className="ml-2 bg-green-600 h-5 px-1.5">
+                {remoteUploadCount}
+              </Badge>
+            )}
           </Button>
           <Button
             onClick={processAllDocuments}
@@ -378,6 +470,7 @@ export function DocumentTranslationPanel({
           </Button>
         </div>
       </div>
+
 
       {/* Processing progress */}
       {isProcessing && (
@@ -606,6 +699,17 @@ export function DocumentTranslationPanel({
           </span>
         </div>
       )}
+
+      {/* QR Code Modal */}
+      <DocumentCaptureQRModal
+        open={showQRModal}
+        onOpenChange={setShowQRModal}
+        sessionToken={sessionToken}
+        sessionId={sessionId}
+        onDocumentUploaded={() => {
+          // Documents will be added via realtime subscription
+        }}
+      />
     </div>
   );
 }
