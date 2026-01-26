@@ -57,8 +57,13 @@ import { PatientSpeakingPrompt } from './PatientSpeakingPrompt';
 import { getWebSpeechLanguageCode, isWebSpeechSupported } from '@/utils/webSpeechLanguages';
 import { TranslationSettingsModal } from './TranslationSettingsModal';
 import { DocumentTranslationPanel } from './DocumentTranslationPanel';
-import { MessageCircle, FileStack } from 'lucide-react';
+import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { TranslationHistoryInline } from './TranslationHistoryInline';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 // Localised "GP Practice said" for translated messages
 const GP_PRACTICE_SAID: Record<string, string> = {
@@ -907,6 +912,12 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     const saved = localStorage.getItem('translation-auto-play-audio');
     return saved === 'true';
   });
+  const [showDocumentTranslate, setShowDocumentTranslate] = useState<boolean>(() => {
+    const saved = localStorage.getItem('translation-show-document-translate');
+    return saved !== 'false'; // Default to true
+  });
+  const [showPatientSidebar, setShowPatientSidebar] = useState(true);
+  const [howItWorksOpen, setHowItWorksOpen] = useState(true);
   const systemAudioStreamRef = useRef<MediaStream | null>(null);
   const systemAudioRecorderRef = useRef<MediaRecorder | null>(null);
   const systemAudioChunksRef = useRef<Blob[]>([]);
@@ -2283,7 +2294,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       {/* Header */}
       <div className="border-b p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {/* Mode Toggle */}
+          {/* Mode Toggle - only show Document Translate button if enabled */}
           <div className="flex items-center bg-muted rounded-lg p-1">
             <button
               onClick={() => setTranslationMode('live-chat')}
@@ -2296,17 +2307,19 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               <MessageCircle className="h-4 w-4" />
               Live Chat
             </button>
-            <button
-              onClick={() => setTranslationMode('document-translate')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                translationMode === 'document-translate'
-                  ? 'bg-background shadow text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <FileStack className="h-4 w-4" />
-              Document Translate
-            </button>
+            {showDocumentTranslate && (
+              <button
+                onClick={() => setTranslationMode('document-translate')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  translationMode === 'document-translate'
+                    ? 'bg-background shadow text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <FileStack className="h-4 w-4" />
+                Document Translate
+              </button>
+            )}
           </div>
           
           {languageInfo && (
@@ -2639,84 +2652,137 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         </div>
         )}
 
-        {/* QR Code panel */}
-        <div className="w-72 border-l p-4 flex flex-col items-center bg-muted/30 overflow-y-auto min-h-0">
-          <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
-            <QrCode className="h-4 w-4" />
-            Patient QR Code
-          </h2>
-
-          {qrCodeUrl && (
-            <Card
-              className="mb-3 cursor-pointer transition-transform hover:scale-105 group relative overflow-hidden"
-              onClick={() => setShowExpandedQR(true)}
+        {/* QR Code panel - collapsible sidebar */}
+        {showPatientSidebar ? (
+          <div className="w-72 border-l p-4 flex flex-col items-center bg-muted/30 overflow-y-auto min-h-0 relative">
+            {/* Collapse button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 h-6 w-6"
+              onClick={() => setShowPatientSidebar(false)}
+              title="Hide sidebar"
             >
-              <CardContent className="p-3">
-                <img
-                  src={qrCodeUrl}
-                  alt="Patient QR Code"
-                  className="block w-36 h-36"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg">
-                  <Maximize2 className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Instructions in patient's language */}
-          <div className="mb-3 p-2 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 text-center w-full">
-            <p className="text-xs font-medium text-violet-700 dark:text-violet-300 mb-1">
-              {languageInfo?.flag} {languageInfo?.name}
-            </p>
-            <p className="text-xs text-violet-600 dark:text-violet-400">
-              {qrInstructions.scanInstruction}
-            </p>
-          </div>
-
-          <div className="flex gap-2 mb-3">
-            <Button variant="outline" size="sm" className="text-xs h-8" onClick={handleCopyLink}>
-              {copied ? (
-                <><Check className="h-3 w-3 mr-1" /> Copied</>
-              ) : (
-                <><Copy className="h-3 w-3 mr-1" /> Copy Link</>
-              )}
+              <ChevronRight className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setShowExpandedQR(true)}>
-              <Maximize2 className="h-3 w-3 mr-1" />
-              Expand
+            
+            <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
+              <QrCode className="h-4 w-4" />
+              Patient QR Code
+            </h2>
+
+            {qrCodeUrl && (
+              <Card
+                className="mb-3 cursor-pointer transition-transform hover:scale-105 group relative overflow-hidden"
+                onClick={() => setShowExpandedQR(true)}
+              >
+                <CardContent className="p-3">
+                  <img
+                    src={qrCodeUrl}
+                    alt="Patient QR Code"
+                    className="block w-36 h-36"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg">
+                    <Maximize2 className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Instructions in patient's language */}
+            <div className="mb-3 p-2 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 text-center w-full">
+              <p className="text-xs font-medium text-violet-700 dark:text-violet-300 mb-1">
+                {languageInfo?.flag} {languageInfo?.name}
+              </p>
+              <p className="text-xs text-violet-600 dark:text-violet-400">
+                {qrInstructions.scanInstruction}
+              </p>
+            </div>
+
+            <div className="flex gap-2 mb-3">
+              <Button variant="outline" size="sm" className="text-xs h-8" onClick={handleCopyLink}>
+                {copied ? (
+                  <><Check className="h-3 w-3 mr-1" /> Copied</>
+                ) : (
+                  <><Copy className="h-3 w-3 mr-1" /> Copy Link</>
+                )}
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setShowExpandedQR(true)}>
+                <Maximize2 className="h-3 w-3 mr-1" />
+                Expand
+              </Button>
+            </div>
+
+            {/* Collapsible How it works section */}
+            <Collapsible open={howItWorksOpen} onOpenChange={setHowItWorksOpen} className="w-full">
+              <div className="p-3 rounded-lg bg-background border text-xs w-full">
+                <CollapsibleTrigger className="flex items-center justify-between w-full cursor-pointer">
+                  <p className="font-medium">How it works</p>
+                  {howItWorksOpen ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <ol className="list-decimal list-inside space-y-0.5 text-muted-foreground">
+                    <li>Patient scans QR code</li>
+                    <li>You speak in English</li>
+                    <li>Patient sees translation</li>
+                    <li>Patient types/speaks reply</li>
+                    <li>You see English translation</li>
+                  </ol>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+
+            {/* Settings button below How it works */}
+            <div className="mt-3 flex justify-end w-full">
+              <TranslationSettingsModal
+                systemAudioService={systemAudioService}
+                onServiceChange={(service) => {
+                  setSystemAudioService(service);
+                  localStorage.setItem('translation-system-audio-service', service);
+                }}
+                isCapturingSystemAudio={isCapturingSystemAudio}
+                onToggleSystemAudio={toggleSystemAudio}
+                autoPlayAudio={autoPlayAudio}
+                onAutoPlayChange={(enabled) => {
+                  setAutoPlayAudio(enabled);
+                  localStorage.setItem('translation-auto-play-audio', String(enabled));
+                }}
+                showDocumentTranslate={showDocumentTranslate}
+                onShowDocumentTranslateChange={(enabled) => {
+                  setShowDocumentTranslate(enabled);
+                  localStorage.setItem('translation-show-document-translate', String(enabled));
+                  // If turning off and currently on document mode, switch back to live chat
+                  if (!enabled && translationMode === 'document-translate') {
+                    setTranslationMode('live-chat');
+                  }
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          // Collapsed sidebar - just a toggle button
+          <div className="border-l bg-muted/30 flex flex-col items-center py-4 px-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowPatientSidebar(true)}
+              title="Show patient QR panel"
+            >
+              <ChevronLeft className="h-4 w-4" />
             </Button>
+            <div className="mt-2 flex flex-col items-center gap-2">
+              <QrCode className="h-5 w-5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground [writing-mode:vertical-lr] rotate-180">
+                Patient QR
+              </span>
+            </div>
           </div>
-
-          <div className="p-3 rounded-lg bg-background border text-xs w-full">
-            <p className="font-medium mb-1">How it works:</p>
-            <ol className="list-decimal list-inside space-y-0.5 text-muted-foreground">
-              <li>Patient scans QR code</li>
-              <li>You speak in English</li>
-              <li>Patient sees translation</li>
-              <li>Patient types/speaks reply</li>
-              <li>You see English translation</li>
-            </ol>
-          </div>
-
-          {/* Settings button below How it works */}
-          <div className="mt-3 flex justify-end w-full">
-            <TranslationSettingsModal
-              systemAudioService={systemAudioService}
-              onServiceChange={(service) => {
-                setSystemAudioService(service);
-                localStorage.setItem('translation-system-audio-service', service);
-              }}
-              isCapturingSystemAudio={isCapturingSystemAudio}
-              onToggleSystemAudio={toggleSystemAudio}
-              autoPlayAudio={autoPlayAudio}
-              onAutoPlayChange={(enabled) => {
-                setAutoPlayAudio(enabled);
-                localStorage.setItem('translation-auto-play-audio', String(enabled));
-              }}
-            />
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Expanded QR Code Modal */}
