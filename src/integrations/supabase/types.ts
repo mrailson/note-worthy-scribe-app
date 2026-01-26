@@ -8450,6 +8450,68 @@ export type Database = {
           },
         ]
       }
+      translation_documents: {
+        Row: {
+          clinical_verification: Json | null
+          created_at: string | null
+          detected_language: string | null
+          error_message: string | null
+          file_name: string
+          file_type: string
+          file_url: string | null
+          id: string
+          original_text: string | null
+          session_id: string
+          status: string | null
+          thumbnail_url: string | null
+          translated_text: string | null
+          updated_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          clinical_verification?: Json | null
+          created_at?: string | null
+          detected_language?: string | null
+          error_message?: string | null
+          file_name: string
+          file_type: string
+          file_url?: string | null
+          id?: string
+          original_text?: string | null
+          session_id: string
+          status?: string | null
+          thumbnail_url?: string | null
+          translated_text?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          clinical_verification?: Json | null
+          created_at?: string | null
+          detected_language?: string | null
+          error_message?: string | null
+          file_name?: string
+          file_type?: string
+          file_url?: string | null
+          id?: string
+          original_text?: string | null
+          session_id?: string
+          status?: string | null
+          thumbnail_url?: string | null
+          translated_text?: string | null
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "translation_documents_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "reception_translation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       translation_sessions: {
         Row: {
           created_at: string
