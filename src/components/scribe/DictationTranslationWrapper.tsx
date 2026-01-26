@@ -38,13 +38,15 @@ export function DictationTranslationWrapper({ onBack }: DictationTranslationWrap
   // If we have an active translation session, show the full view
   if (translationSession) {
     return (
-      <div className="min-h-[500px] -mx-6 -mb-4">
-        <ReceptionTranslationView
-          sessionId={translationSession.id}
-          sessionToken={translationSession.token}
-          patientLanguage={translationSession.language}
-          onClose={handleCloseTranslation}
-        />
+      <div className="min-h-[600px] -mx-6 -mb-4 overflow-x-auto">
+        <div className="min-w-[900px]">
+          <ReceptionTranslationView
+            sessionId={translationSession.id}
+            sessionToken={translationSession.token}
+            patientLanguage={translationSession.language}
+            onClose={handleCloseTranslation}
+          />
+        </div>
       </div>
     );
   }
