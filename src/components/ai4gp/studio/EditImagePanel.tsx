@@ -25,6 +25,7 @@ interface EditImagePanelProps {
   onGallerySaved?: () => void;
   isGenerating: boolean;
   progress: number;
+  initialImage?: { url: string; name: string } | null;
 }
 
 export const EditImagePanel: React.FC<EditImagePanelProps> = ({
@@ -33,6 +34,7 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
   onGallerySaved,
   isGenerating,
   progress,
+  initialImage,
 }) => {
   const [uploadedImage, setUploadedImage] = useState<{ content: string; name: string } | null>(null);
   const [editInstructions, setEditInstructions] = useState('');
@@ -40,6 +42,16 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [savedImageId, setSavedImageId] = useState<string | null>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
+
+  // Load initial image if provided
+  useEffect(() => {
+    if (initialImage && !uploadedImage) {
+      setUploadedImage({
+        content: initialImage.url,
+        name: initialImage.name || 'Gallery Image',
+      });
+    }
+  }, [initialImage]);
 
   const processFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
