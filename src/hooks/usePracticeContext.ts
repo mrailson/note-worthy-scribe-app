@@ -19,21 +19,23 @@ export const usePracticeContext = () => {
     try {
       console.log('🔄 Loading practice context for user:', user.id);
       
-      // Get user profile information (including personal signatures)
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('full_name, email, phone, letter_signature, email_signature')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // PARALLEL FETCH: Get user profile and roles simultaneously for faster initial load
+      const [profileResult, rolesResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('full_name, email, phone, letter_signature, email_signature')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('user_roles')
+          .select('role, practice_id')
+          .eq('user_id', user.id)
+      ]);
+      
+      const userProfile = profileResult.data;
+      const userRoles = rolesResult.data;
 
       console.log('👤 User profile loaded:', userProfile);
-
-      // Get user roles with practice_id
-      const { data: userRoles } = await supabase
-        .from('user_roles')
-        .select('role, practice_id')
-        .eq('user_id', user.id);
-      
       console.log('👥 User roles loaded:', userRoles);
 
       // Find the user's practice_id from user_roles
@@ -124,40 +126,41 @@ export const usePracticeContext = () => {
       if (sharedPracticeDetails) {
         setPracticeDetails(sharedPracticeDetails);
 
-        // Get PCN information
-        let pcnData = null;
-        if (sharedPracticeDetails.pcn_code) {
-          const { data: pcnResult } = await supabase
-            .from('primary_care_networks')
-            .select('pcn_name')
-            .eq('pcn_code', sharedPracticeDetails.pcn_code)
-            .maybeSingle();
-          pcnData = pcnResult;
-        }
+        // PARALLEL FETCH: Get PCN, other practices, and neighbourhood data simultaneously
+        const [pcnResult, otherPracticesResult, neighbourhoodResult] = await Promise.all([
+          // Get PCN information
+          sharedPracticeDetails.pcn_code
+            ? supabase
+                .from('primary_care_networks')
+                .select('pcn_name')
+                .eq('pcn_code', sharedPracticeDetails.pcn_code)
+                .maybeSingle()
+            : Promise.resolve({ data: null }),
+          // Get other practices in the same PCN
+          sharedPracticeDetails.pcn_code
+            ? supabase
+                .from('practice_details')
+                .select('practice_name')
+                .eq('pcn_code', sharedPracticeDetails.pcn_code)
+                .neq('practice_name', sharedPracticeDetails.practice_name)
+            : Promise.resolve({ data: [] }),
+          // Get neighbourhood information
+          supabase
+            .from('neighbourhoods')
+            .select('name')
+            .limit(1)
+        ]);
 
-        // Get other practices in the same PCN
-        let otherPractices: any[] = [];
-        if (sharedPracticeDetails.pcn_code) {
-          const { data: otherPracticesResult } = await supabase
-            .from('practice_details')
-            .select('practice_name')
-            .eq('pcn_code', sharedPracticeDetails.pcn_code)
-            .neq('practice_name', sharedPracticeDetails.practice_name);
-          otherPractices = otherPracticesResult || [];
-        }
-
-        // Get neighbourhood information
-        const { data: neighbourhoodData } = await supabase
-          .from('neighbourhoods')
-          .select('name')
-          .limit(1);
+        const pcnData = pcnResult.data;
+        const otherPractices = otherPracticesResult.data || [];
+        const neighbourhoodData = neighbourhoodResult.data;
 
         setPracticeContext({
           practiceName: sharedPracticeDetails.practice_name,
           organisationType: sharedPracticeDetails.organisation_type || 'GP Practice',
           pcnName: pcnData?.pcn_name,
           neighbourhoodName: neighbourhoodData?.[0]?.name,
-          otherPracticesInPCN: otherPractices?.map(p => p.practice_name) || [],
+          otherPracticesInPCN: otherPractices?.map((p: any) => p.practice_name) || [],
           logoUrl: sharedPracticeDetails.practice_logo_url || sharedPracticeDetails.logo_url,
           practiceAddress: sharedPracticeDetails.address,
           practicePhone: sharedPracticeDetails.phone,
