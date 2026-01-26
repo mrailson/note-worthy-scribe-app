@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -117,20 +118,20 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
 
   const filteredImages = getFilteredImages();
 
-  const handleDownload = async (image: UserGeneratedImage) => {
+  const handleDownload = (image: UserGeneratedImage) => {
+    if (!image?.image_url) return;
+    
     try {
-      const response = await fetch(image.image_url);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = image.image_url;
       a.download = `${image.title || 'image'}-${Date.now()}.png`;
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Download failed:', err);
+      toast.error('Failed to download image');
     }
   };
 
@@ -142,54 +143,36 @@ export const ImageGalleryModal: React.FC<ImageGalleryModalProps> = ({
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
 
-  const handleOpenFullSize = async (image: UserGeneratedImage) => {
+  const handleOpenFullSize = (image: UserGeneratedImage) => {
     if (!image?.image_url) return;
 
     const title = escapeHtml(image.title ? `${image.title} — Image` : 'Image');
     
-    // For data URLs, convert to blob URL which browsers handle better
-    if (image.image_url.startsWith('data:')) {
-      try {
-        // Convert data URL to blob
-        const response = await fetch(image.image_url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        
-        // Open a new window with the blob URL
-        const newWindow = window.open('', '_blank');
-        if (!newWindow) {
-          URL.revokeObjectURL(blobUrl);
-          return;
-        }
-        
-        newWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1" />
-              <title>${title}</title>
-              <style>
-                body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #1a1a1a; }
-                img { max-width: 100%; max-height: 100vh; object-fit: contain; }
-              </style>
-            </head>
-            <body>
-              <img src="${blobUrl}" alt="${escapeHtml(image.alt_text || 'Image')}" />
-            </body>
-          </html>
-        `);
-        newWindow.document.close();
-        
-        // Clean up blob URL when window closes
-        newWindow.onbeforeunload = () => URL.revokeObjectURL(blobUrl);
-      } catch (error) {
-        console.error('Failed to open image:', error);
-      }
-    } else {
-      // For regular URLs, open directly
-      window.open(image.image_url, '_blank');
+    // Open a new window synchronously to avoid popup blockers
+    const newWindow = window.open('', '_blank');
+    if (!newWindow) {
+      toast.error('Pop-up blocked. Please allow pop-ups for this site.');
+      return;
     }
+    
+    newWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>${title}</title>
+          <style>
+            body { margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #1a1a1a; }
+            img { max-width: 100%; max-height: 100vh; object-fit: contain; }
+          </style>
+        </head>
+        <body>
+          <img src="${image.image_url}" alt="${escapeHtml(image.alt_text || 'Image')}" />
+        </body>
+      </html>
+    `);
+    newWindow.document.close();
   };
 
   const handleSaveTitle = async (imageId: string) => {
