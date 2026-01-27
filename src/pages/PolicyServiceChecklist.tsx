@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Search, Download, FileText, ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Search, Download, FileText, ChevronDown, ChevronRight, Loader2, Plus, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyReferenceLibrary } from "@/hooks/usePolicyReferenceLibrary";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -17,6 +18,9 @@ const categoryOrder = [
   'Patient Services',
   'Business Continuity',
 ];
+
+const kloeOptions = ['All', 'Safe', 'Effective', 'Caring', 'Responsive', 'Well-led'] as const;
+const priorityOptions = ['All', 'Essential', 'Service-specific', 'Recommended'] as const;
 
 const kloeColors: Record<string, string> = {
   'Safe': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
@@ -37,16 +41,25 @@ const PolicyServiceChecklist = () => {
   const { policies, isLoading } = usePolicyReferenceLibrary();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<string[]>(categoryOrder);
+  const [kloeFilter, setKloeFilter] = useState<string>("All");
+  const [priorityFilter, setPriorityFilter] = useState<string>("All");
 
-  const filteredPolicies = policies.filter(p =>
-    p.policy_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.description?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPolicies = useMemo(() => {
+    return policies.filter(p => {
+      const matchesSearch = p.policy_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesKloe = kloeFilter === "All" || p.cqc_kloe === kloeFilter;
+      const matchesPriority = priorityFilter === "All" || p.priority === priorityFilter;
+      return matchesSearch && matchesKloe && matchesPriority;
+    });
+  }, [policies, searchQuery, kloeFilter, priorityFilter]);
 
-  const groupedPolicies = categoryOrder.reduce((acc, category) => {
-    acc[category] = filteredPolicies.filter(p => p.category === category);
-    return acc;
-  }, {} as Record<string, typeof policies>);
+  const groupedPolicies = useMemo(() => {
+    return categoryOrder.reduce((acc, category) => {
+      acc[category] = filteredPolicies.filter(p => p.category === category);
+      return acc;
+    }, {} as Record<string, typeof policies>);
+  }, [filteredPolicies]);
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev =>
@@ -122,15 +135,72 @@ const PolicyServiceChecklist = () => {
           </Card>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search policies..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        {/* Search and Filters */}
+        <div className="space-y-4 mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search policies..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          {/* View Type Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Filter by:</span>
+            </div>
+            
+            <Select value={kloeFilter} onValueChange={setKloeFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="CQC KLOE" />
+              </SelectTrigger>
+              <SelectContent className="bg-background">
+                {kloeOptions.map(option => (
+                  <SelectItem key={option} value={option}>
+                    {option === 'All' ? 'All KLOEs' : option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Priority" />
+              </SelectTrigger>
+              <SelectContent className="bg-background">
+                {priorityOptions.map(option => (
+                  <SelectItem key={option} value={option}>
+                    {option === 'All' ? 'All Priorities' : option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {(kloeFilter !== 'All' || priorityFilter !== 'All') && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setKloeFilter('All');
+                  setPriorityFilter('All');
+                }}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                Clear filters
+              </Button>
+            )}
+            
+            {/* Active filter count indicator */}
+            {filteredPolicies.length !== policies.length && (
+              <Badge variant="secondary" className="ml-auto">
+                Showing {filteredPolicies.length} of {policies.length}
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Loading State */}
