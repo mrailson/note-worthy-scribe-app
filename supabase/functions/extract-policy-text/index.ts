@@ -1,53 +1,86 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { ZipReader, BlobReader, TextWriter } from "https://deno.land/x/zipjs@v2.7.32/index.js";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple DOCX text extraction (DOCX is a ZIP containing XML files)
+// Proper DOCX text extraction using ZIP library
 async function extractFromDocx(buffer: Uint8Array): Promise<string> {
   try {
-    // DOCX files are ZIP archives - we need to find and parse document.xml
-    const decoder = new TextDecoder('utf-8', { fatal: false });
-    const content = decoder.decode(buffer);
+    // Create a blob from the buffer
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     
-    // Look for text content in the XML
-    // DOCX stores text in <w:t> tags within document.xml
-    const textMatches = content.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+    // Create a ZipReader to read the DOCX (which is a ZIP archive)
+    const zipReader = new ZipReader(new BlobReader(blob));
     
-    if (textMatches && textMatches.length > 0) {
-      const extractedText = textMatches
-        .map(match => {
-          const textContent = match.replace(/<w:t[^>]*>/, '').replace(/<\/w:t>/, '');
-          return textContent;
-        })
-        .join(' ')
+    // Get all entries in the ZIP
+    const entries = await zipReader.getEntries();
+    
+    // Find the main document.xml file (contains the document content)
+    const documentEntry = entries.find(entry => 
+      entry.filename === 'word/document.xml'
+    );
+    
+    if (!documentEntry) {
+      await zipReader.close();
+      console.error('No document.xml found in DOCX');
+      return 'Unable to extract text from this DOCX file - document.xml not found.';
+    }
+    
+    // Extract the XML content
+    const xmlContent = await documentEntry.getData!(new TextWriter());
+    await zipReader.close();
+    
+    // Parse the XML to extract text from <w:t> tags
+    const textMatches = xmlContent.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+    
+    if (!textMatches || textMatches.length === 0) {
+      console.log('No w:t tags found, trying alternative extraction');
+      // Fallback: try to find any text content
+      const allText = xmlContent
+        .replace(/<[^>]+>/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
-      
-      if (extractedText.length > 100) {
-        return extractedText;
+      return allText || 'Unable to extract text from this DOCX file.';
+    }
+    
+    // Extract text content, preserving paragraph structure
+    const paragraphs: string[] = [];
+    let currentParagraph = '';
+    
+    // Split by paragraph markers
+    const xmlParts = xmlContent.split(/<w:p[^>]*>/);
+    
+    for (const part of xmlParts) {
+      const textInPart = part.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+      if (textInPart) {
+        const paragraphText = textInPart
+          .map(match => match.replace(/<w:t[^>]*>/, '').replace(/<\/w:t>/, ''))
+          .join('');
+        if (paragraphText.trim()) {
+          paragraphs.push(paragraphText.trim());
+        }
       }
     }
     
-    // Fallback: extract any readable text between tags
-    const allTextMatches = content.match(/>([^<]{2,})</g);
-    if (allTextMatches) {
-      const fallbackText = allTextMatches
-        .map(match => match.slice(1, -1).trim())
-        .filter(text => text.length > 2 && !/^[\s\d\W]+$/.test(text))
+    const extractedText = paragraphs.join('\n\n');
+    
+    if (extractedText.length < 50) {
+      // If we got very little text, try a simpler extraction
+      const simpleText = textMatches
+        .map(match => match.replace(/<w:t[^>]*>/, '').replace(/<\/w:t>/, ''))
         .join(' ')
         .replace(/\s+/g, ' ')
         .trim();
-      
-      return fallbackText || 'Unable to extract text from this DOCX file. Please try converting to PDF.';
+      return simpleText || 'Unable to extract meaningful text from this DOCX file.';
     }
     
-    return 'Unable to extract text from this DOCX file. Please try converting to PDF.';
+    return extractedText;
   } catch (error) {
     console.error('DOCX extraction error:', error);
-    return 'Error extracting text from DOCX file.';
+    return `Error extracting text from DOCX file: ${error instanceof Error ? error.message : 'Unknown error'}`;
   }
 }
 
