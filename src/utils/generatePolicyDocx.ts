@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, convertInchesToTwip, Footer, PageNumber, NumberFormat } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, convertInchesToTwip, Footer, PageNumber, NumberFormat, Header, ImageRun } from 'docx';
 import { saveAs } from 'file-saver';
 
 interface PolicyMetadata {
@@ -33,6 +33,36 @@ const COLORS = {
   white: "FFFFFF",
 };
 
+/**
+ * Fetch image from URL and convert to base64
+ */
+async function fetchImageAsBase64(url: string): Promise<{ data: ArrayBuffer; width: number; height: number } | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    
+    const blob = await response.blob();
+    const arrayBuffer = await blob.arrayBuffer();
+    
+    // Get image dimensions
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        resolve({
+          data: arrayBuffer,
+          width: img.width,
+          height: img.height,
+        });
+      };
+      img.onerror = () => resolve(null);
+      img.src = URL.createObjectURL(blob);
+    });
+  } catch (error) {
+    console.error('Error fetching image:', error);
+    return null;
+  }
+}
+
 export const generatePolicyDocx = async (
   content: string,
   metadata: PolicyMetadata,
@@ -50,10 +80,44 @@ export const generatePolicyDocx = async (
     showFooter = true,
     showPageNumbers = true,
     practiceDetails,
+    logoUrl,
   } = options;
 
   // Parse markdown content into sections
   const sections = parseMarkdownToSections(content);
+
+  // Fetch logo if enabled and URL provided
+  let logoImage: { data: ArrayBuffer; width: number; height: number } | null = null;
+  if (showLogo && logoUrl) {
+    logoImage = await fetchImageAsBase64(logoUrl);
+  }
+
+  // Build header children (logo)
+  const headerChildren: Paragraph[] = [];
+  if (showLogo && logoImage) {
+    // Calculate dimensions - max height 60px, maintain aspect ratio
+    const maxHeight = 60;
+    const aspectRatio = logoImage.width / logoImage.height;
+    const displayHeight = Math.min(logoImage.height, maxHeight);
+    const displayWidth = displayHeight * aspectRatio;
+
+    headerChildren.push(
+      new Paragraph({
+        children: [
+          new ImageRun({
+            data: logoImage.data,
+            transformation: {
+              width: displayWidth,
+              height: displayHeight,
+            },
+            type: 'png',
+          }),
+        ],
+        alignment: AlignmentType.LEFT,
+        spacing: { after: 200 },
+      })
+    );
+  }
 
   // Build footer children
   const footerChildren: Paragraph[] = [];
@@ -183,6 +247,11 @@ export const generatePolicyDocx = async (
             },
           },
         },
+        headers: headerChildren.length > 0 ? {
+          default: new Header({
+            children: headerChildren,
+          }),
+        } : undefined,
         footers: footerChildren.length > 0 ? {
           default: new Footer({
             children: footerChildren,
