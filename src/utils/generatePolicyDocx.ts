@@ -34,6 +34,7 @@ const COLORS = {
   tableBorder: "D1D5DB",
   tableHeaderBg: "EFF6FF",
   white: "FFFFFF",
+  placeholderRed: "DC2626", // Red for unfilled placeholders
 };
 
 /**
@@ -671,6 +672,77 @@ function stripAllMarkdown(text: string): string {
     .trim();
 }
 
+/**
+ * Check if text is a placeholder that needs to be filled in
+ * Common patterns: [PRACTICE TO COMPLETE], [Insert name], [TBC], etc.
+ */
+function isPlaceholder(text: string): boolean {
+  const trimmed = text.trim();
+  // Match text in square brackets that looks like a placeholder
+  // e.g. [PRACTICE TO COMPLETE], [Insert name here], [TBC], [Name], [Date], etc.
+  const placeholderPatterns = [
+    /^\[.+\]$/,                                    // Any text in square brackets
+    /\[PRACTICE TO COMPLETE\]/i,                  // Explicit placeholder
+    /\[INSERT.+\]/i,                              // [Insert ...]
+    /\[TBC\]/i,                                   // To be confirmed
+    /\[TBD\]/i,                                   // To be determined
+    /\[NAME\]/i,                                  // [Name]
+    /\[DATE\]/i,                                  // [Date]
+    /\[ROLE\]/i,                                  // [Role]
+    /\[ADDRESS\]/i,                               // [Address]
+    /\[PHONE\]/i,                                 // [Phone]
+    /\[EMAIL\]/i,                                 // [Email]
+    /\[COMPLETE\]/i,                              // [Complete]
+    /\[SPECIFY\]/i,                               // [Specify]
+    /\[ADD\s+.+\]/i,                              // [Add ...]
+    /\[ENTER\s+.+\]/i,                            // [Enter ...]
+    /\[YOUR\s+.+\]/i,                             // [Your ...]
+  ];
+  
+  return placeholderPatterns.some(pattern => pattern.test(trimmed));
+}
+
+/**
+ * Split text into segments, identifying placeholders in square brackets
+ */
+function splitByPlaceholders(text: string): Array<{ text: string; isPlaceholder: boolean }> {
+  const segments: Array<{ text: string; isPlaceholder: boolean }> = [];
+  
+  // Regex to match content in square brackets
+  const placeholderRegex = /(\[[^\]]+\])/g;
+  
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = placeholderRegex.exec(text)) !== null) {
+    // Add text before the placeholder
+    if (match.index > lastIndex) {
+      segments.push({
+        text: text.substring(lastIndex, match.index),
+        isPlaceholder: false,
+      });
+    }
+    
+    // Add the placeholder
+    segments.push({
+      text: match[1],
+      isPlaceholder: isPlaceholder(match[1]),
+    });
+    
+    lastIndex = match.index + match[0].length;
+  }
+  
+  // Add remaining text after last placeholder
+  if (lastIndex < text.length) {
+    segments.push({
+      text: text.substring(lastIndex),
+      isPlaceholder: false,
+    });
+  }
+  
+  return segments;
+}
+
 function parseInlineFormatting(text: string): TextRun[] {
   const runs: TextRun[] = [];
   
@@ -690,70 +762,89 @@ function parseInlineFormatting(text: string): TextRun[] {
     const boldStart = cleanText.indexOf('**', currentPos);
     
     if (boldStart === -1) {
-      // No more bold markers, add rest as regular text
+      // No more bold markers, add rest as regular text with placeholder detection
       const remaining = cleanText.substring(currentPos);
       if (remaining) {
-        result.push(new TextRun({ 
-          text: remaining, 
-          font: "Calibri", 
-          size: 22, 
-          color: COLORS.textGrey 
-        }));
+        const segments = splitByPlaceholders(remaining);
+        for (const segment of segments) {
+          result.push(new TextRun({ 
+            text: segment.text, 
+            font: "Calibri", 
+            size: 22, 
+            color: segment.isPlaceholder ? COLORS.placeholderRed : COLORS.textGrey,
+            bold: segment.isPlaceholder ? true : undefined,
+          }));
+        }
       }
       break;
     }
     
-    // Add text before the bold marker
+    // Add text before the bold marker with placeholder detection
     if (boldStart > currentPos) {
       const beforeText = cleanText.substring(currentPos, boldStart);
-      result.push(new TextRun({ 
-        text: beforeText, 
-        font: "Calibri", 
-        size: 22, 
-        color: COLORS.textGrey 
-      }));
+      const segments = splitByPlaceholders(beforeText);
+      for (const segment of segments) {
+        result.push(new TextRun({ 
+          text: segment.text, 
+          font: "Calibri", 
+          size: 22, 
+          color: segment.isPlaceholder ? COLORS.placeholderRed : COLORS.textGrey,
+          bold: segment.isPlaceholder ? true : undefined,
+        }));
+      }
     }
     
     // Find the closing **
     const boldEnd = cleanText.indexOf('**', boldStart + 2);
     
     if (boldEnd === -1) {
-      // No closing **, treat remaining as regular text (skip the **)
+      // No closing **, treat remaining as regular text (skip the **) with placeholder detection
       const remaining = cleanText.substring(boldStart + 2);
       if (remaining) {
-        result.push(new TextRun({ 
-          text: remaining, 
-          font: "Calibri", 
-          size: 22, 
-          color: COLORS.textGrey 
-        }));
+        const segments = splitByPlaceholders(remaining);
+        for (const segment of segments) {
+          result.push(new TextRun({ 
+            text: segment.text, 
+            font: "Calibri", 
+            size: 22, 
+            color: segment.isPlaceholder ? COLORS.placeholderRed : COLORS.textGrey,
+            bold: segment.isPlaceholder ? true : undefined,
+          }));
+        }
       }
       break;
     }
     
-    // Extract and add the bold text
+    // Extract and add the bold text with placeholder detection
     const boldText = cleanText.substring(boldStart + 2, boldEnd);
     if (boldText) {
-      result.push(new TextRun({ 
-        text: boldText, 
-        bold: true, 
-        font: "Calibri", 
-        size: 22, 
-        color: COLORS.textGrey 
-      }));
+      const segments = splitByPlaceholders(boldText);
+      for (const segment of segments) {
+        result.push(new TextRun({ 
+          text: segment.text, 
+          bold: true, 
+          font: "Calibri", 
+          size: 22, 
+          color: segment.isPlaceholder ? COLORS.placeholderRed : COLORS.textGrey,
+        }));
+      }
     }
     
     currentPos = boldEnd + 2;
   }
 
-  // If no runs were created, return the full text as-is
+  // If no runs were created, return the full text as-is with placeholder detection
   if (result.length === 0) {
-    result.push(new TextRun({ 
-      text: cleanText || ' ', 
-      font: "Calibri", 
-      size: 22, 
-      color: COLORS.textGrey 
-    }));
+    const segments = splitByPlaceholders(cleanText || ' ');
+    for (const segment of segments) {
+      result.push(new TextRun({ 
+        text: segment.text, 
+        font: "Calibri", 
+        size: 22, 
+        color: segment.isPlaceholder ? COLORS.placeholderRed : COLORS.textGrey,
+        bold: segment.isPlaceholder ? true : undefined,
+      }));
+    }
   }
 
   return result;
