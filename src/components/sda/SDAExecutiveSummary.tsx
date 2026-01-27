@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download } from "lucide-react";
+import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/nres-logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
@@ -11,6 +11,7 @@ import { actionLogData, actionLogMetadata } from "@/data/nresBoardActionsData";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProgrammePlanGantt } from "./programme-plan";
+import { SDAPartnerQuickGuide } from "./SDAPartnerQuickGuide";
 
 const populationData = [
   { name: "The Parks MC", value: 22689, color: "#005EB8" },
@@ -169,34 +170,49 @@ export const SDAExecutiveSummary = () => {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent>
-              <div className="space-y-4">
-                <p className="text-sm text-slate-600">
-                  Access the original ICB issued bid requirements and service specification for the New Models SDA Pilot and Innovator Site.
-                </p>
-                <Card className="bg-slate-50 border border-slate-200 hover:border-[#005EB8] transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-red-600" />
+              <div className="space-y-6">
+                {/* GP Partner Quick Guide */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-[#005EB8]" />
+                    <h3 className="font-semibold text-slate-900">GP Partner Quick Guide: 20 Things You Need to Know</h3>
+                  </div>
+                  <p className="text-sm text-slate-600">
+                    Essential information for GP practice partners about the NRES Neighbourhood SDA Pilot – what it is, how it works, and what's expected from member practices.
+                  </p>
+                  <SDAPartnerQuickGuide />
+                </div>
+
+                {/* Original document download */}
+                <div className="pt-4 border-t border-slate-200">
+                  <p className="text-sm text-slate-600 mb-3">
+                    Access the original ICB issued bid requirements and service specification for the New Models SDA Pilot and Innovator Site.
+                  </p>
+                  <Card className="bg-slate-50 border border-slate-200 hover:border-[#005EB8] transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-red-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-slate-900">New Models Primary Care Service Specification v5</p>
+                            <p className="text-sm text-slate-500">Original ICB Bid Requirements for SDA Pilot & Innovator Site</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-slate-900">New Models Primary Care Service Specification v5</p>
-                          <p className="text-sm text-slate-500">Original ICB Bid Requirements for SDA Pilot & Innovator Site</p>
-                        </div>
+                        <Button 
+                          onClick={handleDownloadBidRequirements}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-2 hover:bg-[#005EB8] hover:text-white transition-colors"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download PDF
+                        </Button>
                       </div>
-                      <Button 
-                        onClick={handleDownloadBidRequirements}
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center gap-2 hover:bg-[#005EB8] hover:text-white transition-colors"
-                      >
-                        <Download className="w-4 h-4" />
-                        Download PDF
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </CardContent>
           </CollapsibleContent>
