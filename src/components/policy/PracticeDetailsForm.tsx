@@ -27,8 +27,10 @@ interface PracticeDetails {
   ods_code: string;
   practice_manager_name: string;
   lead_gp_name: string;
+  senior_gp_partner: string;
   caldicott_guardian: string;
   dpo_name: string;
+  siro: string;
   safeguarding_lead_adults: string;
   safeguarding_lead_children: string;
   infection_control_lead: string;
@@ -52,8 +54,10 @@ const defaultDetails: PracticeDetails = {
   ods_code: "",
   practice_manager_name: "",
   lead_gp_name: "",
+  senior_gp_partner: "",
   caldicott_guardian: "",
   dpo_name: "",
+  siro: "",
   safeguarding_lead_adults: "",
   safeguarding_lead_children: "",
   infection_control_lead: "",
@@ -155,8 +159,10 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
               ods_code: prev.ods_code || nd.ods_code || "",
               practice_manager_name: prev.practice_manager_name || notewellManager || "",
               lead_gp_name: prev.lead_gp_name || nd.lead_gp_name || "",
+              senior_gp_partner: prev.senior_gp_partner || nd.senior_gp_partner || "",
               caldicott_guardian: prev.caldicott_guardian || nd.caldicott_guardian || "",
               dpo_name: prev.dpo_name || nd.dpo_name || "",
+              siro: prev.siro || nd.siro || "",
               safeguarding_lead_adults: prev.safeguarding_lead_adults || nd.safeguarding_lead_adults || "",
               safeguarding_lead_children: prev.safeguarding_lead_children || nd.safeguarding_lead_children || "",
               infection_control_lead: prev.infection_control_lead || nd.infection_control_lead || "",
@@ -192,13 +198,14 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
             ...prev,
             practice_name: prev.practice_name || pd.practice_name || "",
             address: prev.address || pd.address || "",
-            // NOTE: practice_details may not have a separate postcode column in this project
             postcode: prev.postcode || pd.postcode || "",
             ods_code: prev.ods_code || pd.ods_code || "",
             practice_manager_name: prev.practice_manager_name || pd.practice_manager_name || "",
             lead_gp_name: prev.lead_gp_name || pd.lead_gp_name || "",
+            senior_gp_partner: prev.senior_gp_partner || pd.senior_gp_partner || "",
             caldicott_guardian: prev.caldicott_guardian || pd.caldicott_guardian || "",
             dpo_name: prev.dpo_name || pd.dpo_name || "",
+            siro: prev.siro || pd.siro || "",
             safeguarding_lead_adults: prev.safeguarding_lead_adults || pd.safeguarding_lead_adults || "",
             safeguarding_lead_children: prev.safeguarding_lead_children || pd.safeguarding_lead_children || "",
             infection_control_lead: prev.infection_control_lead || pd.infection_control_lead || "",
@@ -238,8 +245,10 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
               ods_code: prev.ods_code || (practiceData as any).practice_code || "",
               practice_manager_name: prev.practice_manager_name || (practiceData as any).practice_manager_name || "",
               lead_gp_name: prev.lead_gp_name || (practiceData as any).lead_gp_name || "",
+              senior_gp_partner: prev.senior_gp_partner || (practiceData as any).senior_gp_partner || "",
               caldicott_guardian: prev.caldicott_guardian || (practiceData as any).caldicott_guardian || "",
               dpo_name: prev.dpo_name || (practiceData as any).dpo_name || "",
+              siro: prev.siro || (practiceData as any).siro || "",
               safeguarding_lead_adults: prev.safeguarding_lead_adults || (practiceData as any).safeguarding_lead_adults || "",
               safeguarding_lead_children: prev.safeguarding_lead_children || (practiceData as any).safeguarding_lead_children || "",
               infection_control_lead: prev.infection_control_lead || (practiceData as any).infection_control_lead || "",
