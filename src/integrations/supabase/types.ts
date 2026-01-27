@@ -6449,20 +6449,36 @@ export type Database = {
       practice_details: {
         Row: {
           address: string | null
+          caldicott_guardian: string | null
+          complaints_lead: string | null
           created_at: string
+          dpo_name: string | null
           email: string | null
           email_signature: string | null
+          fire_safety_officer: string | null
           footer_text: string | null
+          health_safety_lead: string | null
           id: string
+          infection_control_lead: string | null
           is_default: boolean | null
+          lead_gp_name: string | null
           letter_signature: string | null
+          list_size: number | null
           logo_url: string | null
+          ods_code: string | null
           pcn_code: string | null
           phone: string | null
+          postcode: string | null
           practice_logo_url: string | null
+          practice_manager_name: string | null
           practice_name: string
+          safeguarding_lead_adults: string | null
+          safeguarding_lead_children: string | null
+          senior_gp_partner: string | null
+          services_offered: Json | null
           show_page_numbers: boolean | null
           signature_url: string | null
+          siro: string | null
           updated_at: string
           use_for_all_meetings: boolean | null
           user_id: string
@@ -6470,20 +6486,36 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          caldicott_guardian?: string | null
+          complaints_lead?: string | null
           created_at?: string
+          dpo_name?: string | null
           email?: string | null
           email_signature?: string | null
+          fire_safety_officer?: string | null
           footer_text?: string | null
+          health_safety_lead?: string | null
           id?: string
+          infection_control_lead?: string | null
           is_default?: boolean | null
+          lead_gp_name?: string | null
           letter_signature?: string | null
+          list_size?: number | null
           logo_url?: string | null
+          ods_code?: string | null
           pcn_code?: string | null
           phone?: string | null
+          postcode?: string | null
           practice_logo_url?: string | null
+          practice_manager_name?: string | null
           practice_name: string
+          safeguarding_lead_adults?: string | null
+          safeguarding_lead_children?: string | null
+          senior_gp_partner?: string | null
+          services_offered?: Json | null
           show_page_numbers?: boolean | null
           signature_url?: string | null
+          siro?: string | null
           updated_at?: string
           use_for_all_meetings?: boolean | null
           user_id: string
@@ -6491,20 +6523,36 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          caldicott_guardian?: string | null
+          complaints_lead?: string | null
           created_at?: string
+          dpo_name?: string | null
           email?: string | null
           email_signature?: string | null
+          fire_safety_officer?: string | null
           footer_text?: string | null
+          health_safety_lead?: string | null
           id?: string
+          infection_control_lead?: string | null
           is_default?: boolean | null
+          lead_gp_name?: string | null
           letter_signature?: string | null
+          list_size?: number | null
           logo_url?: string | null
+          ods_code?: string | null
           pcn_code?: string | null
           phone?: string | null
+          postcode?: string | null
           practice_logo_url?: string | null
+          practice_manager_name?: string | null
           practice_name?: string
+          safeguarding_lead_adults?: string | null
+          safeguarding_lead_children?: string | null
+          senior_gp_partner?: string | null
+          services_offered?: Json | null
           show_page_numbers?: boolean | null
           signature_url?: string | null
+          siro?: string | null
           updated_at?: string
           use_for_all_meetings?: boolean | null
           user_id?: string

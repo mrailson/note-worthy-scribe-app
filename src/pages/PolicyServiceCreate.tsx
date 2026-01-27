@@ -21,8 +21,10 @@ interface PracticeDetails {
   ods_code: string;
   practice_manager_name: string;
   lead_gp_name: string;
+  senior_gp_partner: string;
   caldicott_guardian: string;
   dpo_name: string;
+  siro: string;
   safeguarding_lead_adults: string;
   safeguarding_lead_children: string;
   infection_control_lead: string;

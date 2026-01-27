@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
-import { FilePlus, RefreshCw, ClipboardList, FileText, Shield, ArrowRight } from "lucide-react";
+import { FilePlus, RefreshCw, ClipboardList, FileText, Shield, ArrowRight, UserCog } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const PolicyService = () => {
@@ -30,6 +30,14 @@ const PolicyService = () => {
       icon: ClipboardList,
       action: () => navigate('/policy-service/checklist'),
       buttonText: "View Checklist",
+      variant: "outline" as const,
+    },
+    {
+      title: "Practice Profile Defaults",
+      description: "Set up key personnel details (Practice Manager, DPO, Caldicott Guardian, SIRO, etc.) for automatic policy insertion.",
+      icon: UserCog,
+      action: () => navigate('/policy-service/profile'),
+      buttonText: "Configure Defaults",
       variant: "outline" as const,
     },
   ];
@@ -63,7 +71,7 @@ const PolicyService = () => {
         </div>
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {actionCards.map((card, index) => (
             <Card 
               key={index} 
