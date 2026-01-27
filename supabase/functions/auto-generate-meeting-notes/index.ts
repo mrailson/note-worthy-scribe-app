@@ -1042,7 +1042,20 @@ ${cleanedTranscript}`;
         throw new Error(`Lovable AI API error: ${response.status} - ${errorData}`);
       }
 
-      const data = await response.json();
+      // Safely parse response - handle empty or malformed JSON
+      const responseText = await response.text();
+      if (!responseText || responseText.trim().length === 0) {
+        console.error('❌ Lovable AI returned empty response body');
+        throw new Error('Lovable AI returned an empty response. Please try again.');
+      }
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ Failed to parse Lovable AI response:', responseText.substring(0, 500));
+        throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`);
+      }
       console.log('📦 Lovable AI response data:', JSON.stringify(data).substring(0, 500));
       
       generatedNotes = data.choices?.[0]?.message?.content || '';
