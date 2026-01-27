@@ -6449,7 +6449,12 @@ export type Database = {
       practice_details: {
         Row: {
           address: string | null
+          branch_site_address: string | null
+          branch_site_name: string | null
+          branch_site_phone: string | null
+          branch_site_postcode: string | null
           caldicott_guardian: string | null
+          clinical_system: string | null
           complaints_lead: string | null
           created_at: string
           dpo_name: string | null
@@ -6457,6 +6462,7 @@ export type Database = {
           email_signature: string | null
           fire_safety_officer: string | null
           footer_text: string | null
+          has_branch_site: boolean | null
           health_safety_lead: string | null
           id: string
           infection_control_lead: string | null
@@ -6486,7 +6492,12 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          branch_site_address?: string | null
+          branch_site_name?: string | null
+          branch_site_phone?: string | null
+          branch_site_postcode?: string | null
           caldicott_guardian?: string | null
+          clinical_system?: string | null
           complaints_lead?: string | null
           created_at?: string
           dpo_name?: string | null
@@ -6494,6 +6505,7 @@ export type Database = {
           email_signature?: string | null
           fire_safety_officer?: string | null
           footer_text?: string | null
+          has_branch_site?: boolean | null
           health_safety_lead?: string | null
           id?: string
           infection_control_lead?: string | null
@@ -6523,7 +6535,12 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          branch_site_address?: string | null
+          branch_site_name?: string | null
+          branch_site_phone?: string | null
+          branch_site_postcode?: string | null
           caldicott_guardian?: string | null
+          clinical_system?: string | null
           complaints_lead?: string | null
           created_at?: string
           dpo_name?: string | null
@@ -6531,6 +6548,7 @@ export type Database = {
           email_signature?: string | null
           fire_safety_officer?: string | null
           footer_text?: string | null
+          has_branch_site?: boolean | null
           health_safety_lead?: string | null
           id?: string
           infection_control_lead?: string | null
