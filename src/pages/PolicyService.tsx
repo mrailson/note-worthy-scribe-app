@@ -59,7 +59,7 @@ const PolicyService = () => {
           <div className="flex items-center justify-center gap-3 mb-4">
             <FileText className="h-10 w-10 text-primary" />
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
-              Policy Management Service
+              GP Practice Policy Management Service
             </h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
