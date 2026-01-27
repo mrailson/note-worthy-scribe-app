@@ -181,6 +181,7 @@ const PolicyServiceCreate = () => {
                 metadata={generatedMetadata}
                 policyName={selectedPolicy?.policy_name || "Policy"}
                 generationId={generationId}
+                practiceDetails={practiceDetails || undefined}
               />
             )}
           </CardContent>
