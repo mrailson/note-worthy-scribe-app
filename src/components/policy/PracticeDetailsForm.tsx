@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Building2 } from "lucide-react";
+import { Loader2, Building2, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePracticeContext } from "@/hooks/usePracticeContext";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Button } from "@/components/ui/button";
 
 const POLICY_LIST_SIZE_KEY = 'policy_service_list_size';
 
@@ -84,6 +86,7 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
   const [details, setDetails] = useState<PracticeDetails>(initialData || defaultDetails);
   const [isLoading, setIsLoading] = useState(!initialData); // Skip loading if we have initialData
   const [hasLoadedFromDb, setHasLoadedFromDb] = useState(!!initialData);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Determine which conditional fields to show based on the policy's required_roles
   const requiredRoles = selectedPolicy?.required_roles || [];
@@ -345,176 +348,193 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="address">Practice Address *</Label>
-        <Input
-          id="address"
-          value={details.address}
-          onChange={(e) => updateField('address', e.target.value)}
-          placeholder="Full address including postcode"
-          required
-        />
-      </div>
+      {/* Collapsible Additional Details */}
+      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full flex items-center justify-between py-2 px-3 bg-muted/50 hover:bg-muted rounded-lg">
+            <span className="text-sm font-medium text-muted-foreground">
+              Additional Details (Address, Manager, Services...)
+            </span>
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-6 pt-4">
+          <div className="space-y-2">
+            <Label htmlFor="address">Practice Address *</Label>
+            <Input
+              id="address"
+              value={details.address}
+              onChange={(e) => updateField('address', e.target.value)}
+              placeholder="Full address including postcode"
+              required
+            />
+          </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="practice_manager_name">Practice Manager *</Label>
-          <Input
-            id="practice_manager_name"
-            value={details.practice_manager_name}
-            onChange={(e) => updateField('practice_manager_name', e.target.value)}
-            placeholder="Full name"
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="lead_gp_name">Lead GP / Clinical Lead *</Label>
-          <Input
-            id="lead_gp_name"
-            value={details.lead_gp_name}
-            onChange={(e) => updateField('lead_gp_name', e.target.value)}
-            placeholder="Full name"
-            required
-          />
-        </div>
-      </div>
-
-      {/* Conditional Role Fields */}
-      {(showCaldicott || showDPO) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {showCaldicott && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="caldicott_guardian">Caldicott Guardian</Label>
+              <Label htmlFor="practice_manager_name">Practice Manager *</Label>
               <Input
-                id="caldicott_guardian"
-                value={details.caldicott_guardian}
-                onChange={(e) => updateField('caldicott_guardian', e.target.value)}
+                id="practice_manager_name"
+                value={details.practice_manager_name}
+                onChange={(e) => updateField('practice_manager_name', e.target.value)}
+                placeholder="Full name"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lead_gp_name">Lead GP / Clinical Lead *</Label>
+              <Input
+                id="lead_gp_name"
+                value={details.lead_gp_name}
+                onChange={(e) => updateField('lead_gp_name', e.target.value)}
+                placeholder="Full name"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Conditional Role Fields */}
+          {(showCaldicott || showDPO) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {showCaldicott && (
+                <div className="space-y-2">
+                  <Label htmlFor="caldicott_guardian">Caldicott Guardian</Label>
+                  <Input
+                    id="caldicott_guardian"
+                    value={details.caldicott_guardian}
+                    onChange={(e) => updateField('caldicott_guardian', e.target.value)}
+                    placeholder="Full name"
+                  />
+                </div>
+              )}
+              {showDPO && (
+                <div className="space-y-2">
+                  <Label htmlFor="dpo_name">Data Protection Officer</Label>
+                  <Input
+                    id="dpo_name"
+                    value={details.dpo_name}
+                    onChange={(e) => updateField('dpo_name', e.target.value)}
+                    placeholder="Full name"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {(showSafeguardingAdults || showSafeguardingChildren) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {showSafeguardingAdults && (
+                <div className="space-y-2">
+                  <Label htmlFor="safeguarding_lead_adults">Safeguarding Lead - Adults</Label>
+                  <Input
+                    id="safeguarding_lead_adults"
+                    value={details.safeguarding_lead_adults}
+                    onChange={(e) => updateField('safeguarding_lead_adults', e.target.value)}
+                    placeholder="Full name"
+                  />
+                </div>
+              )}
+              {showSafeguardingChildren && (
+                <div className="space-y-2">
+                  <Label htmlFor="safeguarding_lead_children">Safeguarding Lead - Children</Label>
+                  <Input
+                    id="safeguarding_lead_children"
+                    value={details.safeguarding_lead_children}
+                    onChange={(e) => updateField('safeguarding_lead_children', e.target.value)}
+                    placeholder="Full name"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {showInfectionControl && (
+            <div className="space-y-2">
+              <Label htmlFor="infection_control_lead">Infection Control Lead</Label>
+              <Input
+                id="infection_control_lead"
+                value={details.infection_control_lead}
+                onChange={(e) => updateField('infection_control_lead', e.target.value)}
                 placeholder="Full name"
               />
             </div>
           )}
-          {showDPO && (
+
+          {showComplaints && (
             <div className="space-y-2">
-              <Label htmlFor="dpo_name">Data Protection Officer</Label>
+              <Label htmlFor="complaints_lead">Complaints Lead</Label>
               <Input
-                id="dpo_name"
-                value={details.dpo_name}
-                onChange={(e) => updateField('dpo_name', e.target.value)}
+                id="complaints_lead"
+                value={details.complaints_lead}
+                onChange={(e) => updateField('complaints_lead', e.target.value)}
                 placeholder="Full name"
               />
             </div>
           )}
-        </div>
-      )}
 
-      {(showSafeguardingAdults || showSafeguardingChildren) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {showSafeguardingAdults && (
-            <div className="space-y-2">
-              <Label htmlFor="safeguarding_lead_adults">Safeguarding Lead - Adults</Label>
-              <Input
-                id="safeguarding_lead_adults"
-                value={details.safeguarding_lead_adults}
-                onChange={(e) => updateField('safeguarding_lead_adults', e.target.value)}
-                placeholder="Full name"
-              />
+          {(showHealthSafety || showFireSafety) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {showHealthSafety && (
+                <div className="space-y-2">
+                  <Label htmlFor="health_safety_lead">Health & Safety Lead</Label>
+                  <Input
+                    id="health_safety_lead"
+                    value={details.health_safety_lead}
+                    onChange={(e) => updateField('health_safety_lead', e.target.value)}
+                    placeholder="Full name"
+                  />
+                </div>
+              )}
+              {showFireSafety && (
+                <div className="space-y-2">
+                  <Label htmlFor="fire_safety_officer">Fire Safety Officer</Label>
+                  <Input
+                    id="fire_safety_officer"
+                    value={details.fire_safety_officer}
+                    onChange={(e) => updateField('fire_safety_officer', e.target.value)}
+                    placeholder="Full name"
+                  />
+                </div>
+              )}
             </div>
           )}
-          {showSafeguardingChildren && (
-            <div className="space-y-2">
-              <Label htmlFor="safeguarding_lead_children">Safeguarding Lead - Children</Label>
-              <Input
-                id="safeguarding_lead_children"
-                value={details.safeguarding_lead_children}
-                onChange={(e) => updateField('safeguarding_lead_children', e.target.value)}
-                placeholder="Full name"
-              />
+
+          {/* List Size */}
+          <div className="space-y-2">
+            <Label htmlFor="list_size">Approximate List Size</Label>
+            <Input
+              id="list_size"
+              type="number"
+              value={details.list_size || ''}
+              onChange={(e) => updateField('list_size', e.target.value ? parseInt(e.target.value) : null)}
+              placeholder="Number of patients"
+            />
+          </div>
+
+          {/* Services Offered */}
+          <div className="space-y-3">
+            <Label>Services Offered</Label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {serviceOptions.map(service => (
+                <div key={service.key} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={service.key}
+                    checked={details.services_offered[service.key] || false}
+                    onCheckedChange={() => toggleService(service.key)}
+                  />
+                  <Label htmlFor={service.key} className="text-sm font-normal cursor-pointer">
+                    {service.label}
+                  </Label>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
-      )}
-
-      {showInfectionControl && (
-        <div className="space-y-2">
-          <Label htmlFor="infection_control_lead">Infection Control Lead</Label>
-          <Input
-            id="infection_control_lead"
-            value={details.infection_control_lead}
-            onChange={(e) => updateField('infection_control_lead', e.target.value)}
-            placeholder="Full name"
-          />
-        </div>
-      )}
-
-      {showComplaints && (
-        <div className="space-y-2">
-          <Label htmlFor="complaints_lead">Complaints Lead</Label>
-          <Input
-            id="complaints_lead"
-            value={details.complaints_lead}
-            onChange={(e) => updateField('complaints_lead', e.target.value)}
-            placeholder="Full name"
-          />
-        </div>
-      )}
-
-      {(showHealthSafety || showFireSafety) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {showHealthSafety && (
-            <div className="space-y-2">
-              <Label htmlFor="health_safety_lead">Health & Safety Lead</Label>
-              <Input
-                id="health_safety_lead"
-                value={details.health_safety_lead}
-                onChange={(e) => updateField('health_safety_lead', e.target.value)}
-                placeholder="Full name"
-              />
-            </div>
-          )}
-          {showFireSafety && (
-            <div className="space-y-2">
-              <Label htmlFor="fire_safety_officer">Fire Safety Officer</Label>
-              <Input
-                id="fire_safety_officer"
-                value={details.fire_safety_officer}
-                onChange={(e) => updateField('fire_safety_officer', e.target.value)}
-                placeholder="Full name"
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* List Size */}
-      <div className="space-y-2">
-        <Label htmlFor="list_size">Approximate List Size</Label>
-        <Input
-          id="list_size"
-          type="number"
-          value={details.list_size || ''}
-          onChange={(e) => updateField('list_size', e.target.value ? parseInt(e.target.value) : null)}
-          placeholder="Number of patients"
-        />
-      </div>
-
-      {/* Services Offered */}
-      <div className="space-y-3">
-        <Label>Services Offered</Label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {serviceOptions.map(service => (
-            <div key={service.key} className="flex items-center space-x-2">
-              <Checkbox
-                id={service.key}
-                checked={details.services_offered[service.key] || false}
-                onCheckedChange={() => toggleService(service.key)}
-              />
-              <Label htmlFor={service.key} className="text-sm font-normal cursor-pointer">
-                {service.label}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 };
