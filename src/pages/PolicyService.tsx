@@ -63,7 +63,7 @@ const PolicyService = () => {
             </h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            CQC-compliant policies generated in minutes
+            CQC-compliant GP Practice policies generated in minutes
           </p>
         </div>
 
