@@ -8,9 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Search, Download, FileText, ChevronDown, ChevronRight, Loader2, Plus, Filter, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyReferenceLibrary } from "@/hooks/usePolicyReferenceLibrary";
-import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
+import { usePolicyCompletions, PolicyCompletion } from "@/hooks/usePolicyCompletions";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
+import { toast } from "sonner";
 
 const categoryOrder = [
   'Clinical',
@@ -48,6 +50,33 @@ const PolicyServiceChecklist = () => {
   const [kloeFilter, setKloeFilter] = useState<string>("All");
   const [priorityFilter, setPriorityFilter] = useState<string>("All");
   const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownload = async (completion: PolicyCompletion) => {
+    setDownloadingId(completion.id);
+    try {
+      const metadata = completion.metadata as {
+        title: string;
+        version: string;
+        effective_date: string;
+        review_date: string;
+        references: string[];
+      };
+      
+      await generatePolicyDocx(
+        completion.policy_content,
+        metadata,
+        completion.policy_title,
+        {}
+      );
+      toast.success("Policy downloaded successfully");
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download policy");
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const filteredPolicies = useMemo(() => {
     return policies.filter(p => {
@@ -360,16 +389,30 @@ const PolicyServiceChecklist = () => {
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
                                   {getStatusIndicator(policy.id)}
-                                  {isCompleted ? (
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      disabled
-                                      className="opacity-50 cursor-not-allowed"
-                                    >
-                                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                                      Created
-                                    </Button>
+                                  {isCompleted && completion ? (
+                                    <>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleDownload(completion)}
+                                        disabled={downloadingId === completion.id}
+                                      >
+                                        {downloadingId === completion.id ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <Download className="h-3 w-3" />
+                                        )}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        disabled
+                                        className="opacity-50 cursor-not-allowed"
+                                      >
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                        Created
+                                      </Button>
+                                    </>
                                   ) : (
                                     <Button
                                       size="sm"
