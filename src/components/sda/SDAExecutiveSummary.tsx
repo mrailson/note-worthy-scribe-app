@@ -159,7 +159,7 @@ export const SDAExecutiveSummary = () => {
             >
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-[#005EB8]" />
-                <span className="font-semibold text-slate-900">SDA Requirements</span>
+                <span className="font-semibold text-slate-900">New Models Overview and Requirements</span>
               </div>
               {requirementsOpen ? (
                 <ChevronUp className="h-5 w-5 text-slate-500" />
