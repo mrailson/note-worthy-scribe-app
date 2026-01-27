@@ -80,12 +80,30 @@ export const usePolicyCompletions = (practiceId?: string | null) => {
     }
   }, [user, practiceId]);
 
+  // Helper to convert UK date format (DD/MM/YYYY) to ISO format (YYYY-MM-DD)
+  const convertToISODate = (dateStr: string): string => {
+    // Check if already in ISO format
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+      return dateStr.split('T')[0]; // Return just the date part if it's a full ISO string
+    }
+    // Convert DD/MM/YYYY to YYYY-MM-DD
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    return dateStr; // Return as-is if format not recognised
+  };
+
   // Save a completed policy
   const saveCompletion = useCallback(async (params: SavePolicyParams): Promise<PolicyCompletion | null> => {
     if (!user) {
       toast.error('You must be logged in to save policies');
       return null;
     }
+
+    // Convert dates to ISO format for PostgreSQL
+    const effectiveDateISO = convertToISODate(params.metadata.effective_date);
+    const reviewDateISO = convertToISODate(params.metadata.review_date);
 
     try {
       // Check if there's an existing completion for this policy
@@ -107,8 +125,8 @@ export const usePolicyCompletions = (practiceId?: string | null) => {
             policy_title: params.policyTitle,
             policy_content: params.policyContent,
             metadata: params.metadata,
-            effective_date: params.metadata.effective_date,
-            review_date: params.metadata.review_date,
+            effective_date: effectiveDateISO,
+            review_date: reviewDateISO,
             version: params.metadata.version,
             updated_at: new Date().toISOString(),
           })
@@ -130,8 +148,8 @@ export const usePolicyCompletions = (practiceId?: string | null) => {
             policy_title: params.policyTitle,
             policy_content: params.policyContent,
             metadata: params.metadata,
-            effective_date: params.metadata.effective_date,
-            review_date: params.metadata.review_date,
+            effective_date: effectiveDateISO,
+            review_date: reviewDateISO,
             version: params.metadata.version,
             status: 'completed',
           })
