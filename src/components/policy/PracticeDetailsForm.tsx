@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import { Loader2, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePracticeContext } from "@/hooks/usePracticeContext";
+
+const POLICY_LIST_SIZE_KEY = 'policy_service_list_size';
 
 interface PolicyReference {
   id: string;
@@ -74,6 +76,7 @@ const serviceOptions = [
 
 export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: PracticeDetailsFormProps) => {
   const { user } = useAuth();
+  const { practiceContext, practiceDetails: notewellPracticeDetails } = usePracticeContext();
   const [details, setDetails] = useState<PracticeDetails>(initialData || defaultDetails);
   const [isLoading, setIsLoading] = useState(!initialData); // Skip loading if we have initialData
   const [hasLoadedFromDb, setHasLoadedFromDb] = useState(!!initialData);
@@ -89,7 +92,32 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
   const showHealthSafety = requiredRoles.includes('health_safety_lead') || selectedPolicy?.category === 'Health & Safety';
   const showFireSafety = requiredRoles.includes('fire_safety_officer') || selectedPolicy?.policy_name?.toLowerCase().includes('fire');
 
-  // Load practice details from database - only if we don't have initialData
+  // Load persisted list size from localStorage
+  const getPersistedListSize = (): number | null => {
+    try {
+      const stored = localStorage.getItem(POLICY_LIST_SIZE_KEY);
+      if (stored) {
+        const parsed = parseInt(stored, 10);
+        return isNaN(parsed) ? null : parsed;
+      }
+    } catch {
+      // localStorage not available
+    }
+    return null;
+  };
+
+  // Persist list size to localStorage
+  const persistListSize = (size: number | null) => {
+    try {
+      if (size !== null && size > 0) {
+        localStorage.setItem(POLICY_LIST_SIZE_KEY, size.toString());
+      }
+    } catch {
+      // localStorage not available
+    }
+  };
+
+  // Load practice details from database and Notewell context
   useEffect(() => {
     const loadPracticeDetails = async () => {
       // Skip loading if we already have initial data from parent
@@ -104,7 +132,38 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
       }
 
       try {
-        // First get user's practice assignment
+        // Get persisted list size
+        const persistedListSize = getPersistedListSize();
+
+        // First try to get data from Notewell practice context (most complete)
+        if (practiceContext?.practiceName || notewellPracticeDetails) {
+          const nd = notewellPracticeDetails || {};
+          
+          setDetails(prev => ({
+            ...prev,
+            practice_name: practiceContext?.practiceName || nd.practice_name || prev.practice_name,
+            address: practiceContext?.practiceAddress || nd.address || prev.address,
+            postcode: nd.postcode || prev.postcode,
+            ods_code: nd.ods_code || prev.ods_code,
+            practice_manager_name: nd.practice_manager_name || prev.practice_manager_name,
+            lead_gp_name: nd.lead_gp_name || prev.lead_gp_name,
+            caldicott_guardian: nd.caldicott_guardian || prev.caldicott_guardian,
+            dpo_name: nd.dpo_name || prev.dpo_name,
+            safeguarding_lead_adults: nd.safeguarding_lead_adults || prev.safeguarding_lead_adults,
+            safeguarding_lead_children: nd.safeguarding_lead_children || prev.safeguarding_lead_children,
+            infection_control_lead: nd.infection_control_lead || prev.infection_control_lead,
+            complaints_lead: nd.complaints_lead || prev.complaints_lead,
+            health_safety_lead: nd.health_safety_lead || prev.health_safety_lead,
+            fire_safety_officer: nd.fire_safety_officer || prev.fire_safety_officer,
+            list_size: nd.list_size || persistedListSize || prev.list_size,
+            services_offered: nd.services_offered || prev.services_offered || {},
+          }));
+          setHasLoadedFromDb(true);
+          setIsLoading(false);
+          return;
+        }
+
+        // Fallback: Get user's practice assignment from gp_practices
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('practice_id')
@@ -137,10 +196,16 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
               complaints_lead: (practiceData as any).complaints_lead || prev.complaints_lead,
               health_safety_lead: (practiceData as any).health_safety_lead || prev.health_safety_lead,
               fire_safety_officer: (practiceData as any).fire_safety_officer || prev.fire_safety_officer,
-              list_size: (practiceData as any).list_size || prev.list_size,
+              list_size: (practiceData as any).list_size || persistedListSize || prev.list_size,
               services_offered: (practiceData as any).services_offered || prev.services_offered,
             }));
           }
+        } else if (persistedListSize) {
+          // Even if no practice found, apply persisted list size
+          setDetails(prev => ({
+            ...prev,
+            list_size: persistedListSize,
+          }));
         }
         setHasLoadedFromDb(true);
       } catch (error) {
@@ -151,7 +216,7 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
     };
 
     loadPracticeDetails();
-  }, [user, hasLoadedFromDb, initialData]);
+  }, [user, hasLoadedFromDb, initialData, practiceContext, notewellPracticeDetails]);
 
   // Auto-submit when details change
   useEffect(() => {
@@ -162,6 +227,11 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
 
   const updateField = (field: keyof PracticeDetails, value: any) => {
     setDetails(prev => ({ ...prev, [field]: value }));
+    
+    // Persist list size when updated
+    if (field === 'list_size' && value !== null && value > 0) {
+      persistListSize(value);
+    }
   };
 
   const toggleService = (key: string) => {
