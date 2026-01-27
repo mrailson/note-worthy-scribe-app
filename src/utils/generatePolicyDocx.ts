@@ -97,8 +97,8 @@ export const generatePolicyDocx = async (
     // Replace Next Review Date placeholder with the actual review date
     .replace(/\[PRACTICE TO COMPLETE\s*-\s*Max 12 months\]/gi, metadata.review_date);
 
-  // Parse markdown content into sections
-  const sections = parseMarkdownToSections(processedContent);
+  // Parse markdown content into sections, passing title to skip duplicate
+  const sections = parseMarkdownToSections(processedContent, metadata.title);
 
   // Fetch logo if enabled and URL provided
   let logoImage: { data: ArrayBuffer; width: number; height: number } | null = null;
@@ -598,12 +598,15 @@ function createMarkdownTable(lines: string[]): Table {
   });
 }
 
-function parseMarkdownToSections(markdown: string): (Paragraph | Table)[] {
+function parseMarkdownToSections(markdown: string, titleToSkip?: string): (Paragraph | Table)[] {
   const elements: (Paragraph | Table)[] = [];
   const lines = markdown.split('\n');
   
   let i = 0;
   let skipDocumentControlSection = false;
+  
+  // Prepare title matching - normalize the title for comparison
+  const normalizedTitleToSkip = titleToSkip?.toUpperCase().replace(/[^A-Z0-9\s&]/g, '').trim();
   
   while (i < lines.length) {
     const line = lines[i];
@@ -616,15 +619,30 @@ function parseMarkdownToSections(markdown: string): (Paragraph | Table)[] {
     }
     
     // Skip DOCUMENT CONTROL heading and its table (we render our own)
-    if (trimmed === 'DOCUMENT CONTROL' || trimmed === '**DOCUMENT CONTROL**') {
+    // Match various formats: plain text, bold, with/without hash
+    const docControlPatterns = [
+      /^#+\s*\*{0,2}DOCUMENT\s+CONTROL\*{0,2}$/i,
+      /^\*{0,2}DOCUMENT\s+CONTROL\*{0,2}$/i,
+      /^DOCUMENT\s+CONTROL$/i,
+    ];
+    if (docControlPatterns.some(pattern => pattern.test(trimmed))) {
       skipDocumentControlSection = true;
       i++;
       continue;
     }
     
     // Skip duplicate policy title (we render our own in the header)
-    if (/^[A-Z][A-Z\s&]+POLICY$/.test(trimmed) || 
-        /^[A-Z][A-Z\s&]+PROCEDURE$/.test(trimmed)) {
+    // Check against the actual policy title if provided
+    const normalizedLine = trimmed.toUpperCase().replace(/[^A-Z0-9\s&]/g, '').trim();
+    if (normalizedTitleToSkip && normalizedLine === normalizedTitleToSkip) {
+      i++;
+      continue;
+    }
+    
+    // Also skip generic POLICY/PROCEDURE titles
+    if (/^[A-Z][A-Z\s&,()-]+POLICY$/i.test(trimmed) || 
+        /^[A-Z][A-Z\s&,()-]+PROCEDURE$/i.test(trimmed) ||
+        /^[A-Z][A-Z\s&,()-]+POLICY\s+AND\s+PROCEDURE$/i.test(trimmed)) {
       i++;
       continue;
     }
