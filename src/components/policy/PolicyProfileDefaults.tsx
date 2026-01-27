@@ -246,14 +246,23 @@ export const PolicyProfileDefaults = () => {
         updated_at: new Date().toISOString(),
       };
 
+      console.log('💾 Saving policy profile defaults:', {
+        practiceDetailsId,
+        infection_control_lead: updateData.infection_control_lead,
+        health_safety_lead: updateData.health_safety_lead,
+      });
+
       if (practiceDetailsId) {
         // Update existing record
-        const { error } = await supabase
+        const { data: updatedRow, error } = await supabase
           .from('practice_details')
           .update(updateData)
-          .eq('id', practiceDetailsId);
+          .eq('id', practiceDetailsId)
+          .select()
+          .single();
 
         if (error) throw error;
+        console.log('✅ Updated practice_details:', updatedRow);
       } else {
         // Create new record
         const { data: newRecord, error } = await supabase
@@ -263,17 +272,18 @@ export const PolicyProfileDefaults = () => {
             user_id: user.id,
             is_default: true,
           })
-          .select('id')
+          .select()
           .single();
 
         if (error) throw error;
+        console.log('✅ Created new practice_details:', newRecord);
         setPracticeDetailsId(newRecord.id);
       }
 
       toast.success('Policy profile defaults saved successfully');
       setHasChanges(false);
     } catch (error) {
-      console.error('Error saving practice details:', error);
+      console.error('❌ Error saving practice details:', error);
       toast.error('Failed to save practice details');
     } finally {
       setIsSaving(false);
@@ -302,6 +312,24 @@ export const PolicyProfileDefaults = () => {
 
   return (
     <div className="space-y-6">
+      {/* Unsaved Changes Banner */}
+      {hasChanges && (
+        <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+            <AlertCircle className="h-5 w-5" />
+            <span className="font-medium">You have unsaved changes</span>
+          </div>
+          <Button onClick={handleSave} disabled={isSaving} variant="default" size="sm">
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Save Now
+          </Button>
+        </div>
+      )}
+
       {/* Header with Save Button */}
       <div className="flex items-center justify-between">
         <div>
@@ -322,7 +350,7 @@ export const PolicyProfileDefaults = () => {
               {filledCount}/{totalCount} roles configured
             </span>
           </div>
-          <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
+          <Button onClick={handleSave} disabled={isSaving || !hasChanges} variant={hasChanges ? "default" : "outline"}>
             {isSaving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
