@@ -75,7 +75,8 @@ const serviceOptions = [
 export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: PracticeDetailsFormProps) => {
   const { user } = useAuth();
   const [details, setDetails] = useState<PracticeDetails>(initialData || defaultDetails);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialData); // Skip loading if we have initialData
+  const [hasLoadedFromDb, setHasLoadedFromDb] = useState(!!initialData);
 
   // Determine which conditional fields to show based on the policy's required_roles
   const requiredRoles = selectedPolicy?.required_roles || [];
@@ -88,9 +89,15 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
   const showHealthSafety = requiredRoles.includes('health_safety_lead') || selectedPolicy?.category === 'Health & Safety';
   const showFireSafety = requiredRoles.includes('fire_safety_officer') || selectedPolicy?.policy_name?.toLowerCase().includes('fire');
 
-  // Load practice details from database
+  // Load practice details from database - only if we don't have initialData
   useEffect(() => {
     const loadPracticeDetails = async () => {
+      // Skip loading if we already have initial data from parent
+      if (hasLoadedFromDb || initialData) {
+        setIsLoading(false);
+        return;
+      }
+
       if (!user) {
         setIsLoading(false);
         return;
@@ -135,6 +142,7 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
             }));
           }
         }
+        setHasLoadedFromDb(true);
       } catch (error) {
         console.error('Error loading practice details:', error);
       } finally {
@@ -143,7 +151,7 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
     };
 
     loadPracticeDetails();
-  }, [user]);
+  }, [user, hasLoadedFromDb, initialData]);
 
   // Auto-submit when details change
   useEffect(() => {
