@@ -27,6 +27,14 @@ interface PolicyProfileData {
   postcode: string;
   ods_code: string;
   list_size: number | null;
+  clinical_system: string;
+  
+  // Branch Site
+  has_branch_site: boolean;
+  branch_site_name: string;
+  branch_site_address: string;
+  branch_site_postcode: string;
+  branch_site_phone: string;
   
   // Key Personnel
   practice_manager_name: string;
@@ -58,6 +66,12 @@ const defaultData: PolicyProfileData = {
   postcode: "",
   ods_code: "",
   list_size: null,
+  clinical_system: "",
+  has_branch_site: false,
+  branch_site_name: "",
+  branch_site_address: "",
+  branch_site_postcode: "",
+  branch_site_phone: "",
   practice_manager_name: "",
   lead_gp_name: "",
   senior_gp_partner: "",
@@ -122,6 +136,12 @@ export const PolicyProfileDefaults = () => {
             postcode: (pd as any).postcode || "",
             ods_code: (pd as any).ods_code || "",
             list_size: (pd as any).list_size || null,
+            clinical_system: (pd as any).clinical_system || "",
+            has_branch_site: (pd as any).has_branch_site || false,
+            branch_site_name: (pd as any).branch_site_name || "",
+            branch_site_address: (pd as any).branch_site_address || "",
+            branch_site_postcode: (pd as any).branch_site_postcode || "",
+            branch_site_phone: (pd as any).branch_site_phone || "",
             practice_manager_name: (pd as any).practice_manager_name || "",
             lead_gp_name: (pd as any).lead_gp_name || "",
             senior_gp_partner: (pd as any).senior_gp_partner || "",
@@ -204,6 +224,12 @@ export const PolicyProfileDefaults = () => {
         postcode: data.postcode,
         ods_code: data.ods_code,
         list_size: data.list_size,
+        clinical_system: data.clinical_system,
+        has_branch_site: data.has_branch_site,
+        branch_site_name: data.branch_site_name,
+        branch_site_address: data.branch_site_address,
+        branch_site_postcode: data.branch_site_postcode,
+        branch_site_phone: data.branch_site_phone,
         practice_manager_name: data.practice_manager_name,
         lead_gp_name: data.lead_gp_name,
         senior_gp_partner: data.senior_gp_partner,
@@ -359,16 +385,104 @@ export const PolicyProfileDefaults = () => {
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="list_size">Patient List Size</Label>
-            <Input
-              id="list_size"
-              type="number"
-              value={data.list_size || ''}
-              onChange={(e) => updateField('list_size', e.target.value ? parseInt(e.target.value, 10) : null)}
-              placeholder="e.g. 12000"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="list_size">Patient List Size</Label>
+              <Input
+                id="list_size"
+                type="number"
+                value={data.list_size || ''}
+                onChange={(e) => updateField('list_size', e.target.value ? parseInt(e.target.value, 10) : null)}
+                placeholder="e.g. 12000"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="clinical_system">Clinical System</Label>
+              <select
+                id="clinical_system"
+                value={data.clinical_system}
+                onChange={(e) => updateField('clinical_system', e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">Select clinical system...</option>
+                <option value="EMIS Web">EMIS Web</option>
+                <option value="SystmOne">SystmOne (TPP)</option>
+                <option value="Vision">Vision</option>
+                <option value="Microtest">Microtest</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Branch Site */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Branch Site</CardTitle>
+          </div>
+          <CardDescription>
+            If your practice has a branch site, add its details here for use in policies
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="has_branch_site"
+              checked={data.has_branch_site}
+              onCheckedChange={(checked) => updateField('has_branch_site', checked)}
+            />
+            <Label htmlFor="has_branch_site" className="font-normal cursor-pointer">
+              This practice has a branch site
+            </Label>
+          </div>
+
+          {data.has_branch_site && (
+            <div className="space-y-4 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="branch_site_name">Branch Site Name</Label>
+                  <Input
+                    id="branch_site_name"
+                    value={data.branch_site_name}
+                    onChange={(e) => updateField('branch_site_name', e.target.value)}
+                    placeholder="e.g. Oakwood Branch Surgery"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="branch_site_phone">Branch Site Phone</Label>
+                  <Input
+                    id="branch_site_phone"
+                    value={data.branch_site_phone}
+                    onChange={(e) => updateField('branch_site_phone', e.target.value)}
+                    placeholder="e.g. 01onal 234567"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="branch_site_address">Branch Site Address</Label>
+                  <Input
+                    id="branch_site_address"
+                    value={data.branch_site_address}
+                    onChange={(e) => updateField('branch_site_address', e.target.value)}
+                    placeholder="Full branch site address"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="branch_site_postcode">Branch Site Postcode</Label>
+                  <Input
+                    id="branch_site_postcode"
+                    value={data.branch_site_postcode}
+                    onChange={(e) => updateField('branch_site_postcode', e.target.value)}
+                    placeholder="e.g. SW1A 2BB"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
