@@ -17,14 +17,6 @@ const PolicyService = () => {
       variant: "default" as const,
     },
     {
-      title: "My Policies",
-      description: "View, download and manage your completed policies with review date tracking.",
-      icon: FolderCheck,
-      action: () => navigate('/policy-service/my-policies'),
-      buttonText: "View Policies",
-      variant: "outline" as const,
-    },
-    {
       title: "Update Existing Policy",
       description: "Upload your current policy for gap analysis against latest regulatory standards and generate an updated version.",
       icon: RefreshCw,
@@ -46,6 +38,14 @@ const PolicyService = () => {
       icon: UserCog,
       action: () => navigate('/policy-service/profile'),
       buttonText: "Configure Defaults",
+      variant: "outline" as const,
+    },
+    {
+      title: "My Policies",
+      description: "View, download and manage your completed policies with review date tracking.",
+      icon: FolderCheck,
+      action: () => navigate('/policy-service/my-policies'),
+      buttonText: "View Policies",
       variant: "outline" as const,
     },
   ];
