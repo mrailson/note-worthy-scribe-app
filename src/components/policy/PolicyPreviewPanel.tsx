@@ -40,6 +40,8 @@ interface PolicyPreviewPanelProps {
   isUpdate?: boolean;
   practiceDetails?: PracticeDetails;
   practiceLogoUrl?: string | null;
+  wasEnhanced?: boolean;
+  enhancementWarning?: string | null;
 }
 
 const STORAGE_KEY_SHOW_LOGO = 'policy_docx_show_logo';
@@ -57,6 +59,8 @@ export const PolicyPreviewPanel = ({
   isUpdate = false,
   practiceDetails,
   practiceLogoUrl,
+  wasEnhanced = false,
+  enhancementWarning,
 }: PolicyPreviewPanelProps) => {
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
