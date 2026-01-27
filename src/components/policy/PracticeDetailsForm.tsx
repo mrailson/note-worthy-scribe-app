@@ -120,47 +120,97 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
   // Load practice details from database and Notewell context
   useEffect(() => {
     const loadPracticeDetails = async () => {
-      // Skip loading if we already have initial data from parent
-      if (hasLoadedFromDb || initialData) {
-        setIsLoading(false);
-        return;
-      }
-
       if (!user) {
         setIsLoading(false);
         return;
       }
 
       try {
-        // Get persisted list size
         const persistedListSize = getPersistedListSize();
 
-        // First try to get data from Notewell practice context (most complete)
-        if (practiceContext?.practiceName || notewellPracticeDetails) {
-          const nd = notewellPracticeDetails || {};
-          
-          setDetails(prev => ({
-            ...prev,
-            practice_name: practiceContext?.practiceName || nd.practice_name || prev.practice_name,
-            address: practiceContext?.practiceAddress || nd.address || prev.address,
-            postcode: nd.postcode || prev.postcode,
-            ods_code: nd.ods_code || prev.ods_code,
-            practice_manager_name: nd.practice_manager_name || prev.practice_manager_name,
-            lead_gp_name: nd.lead_gp_name || prev.lead_gp_name,
-            caldicott_guardian: nd.caldicott_guardian || prev.caldicott_guardian,
-            dpo_name: nd.dpo_name || prev.dpo_name,
-            safeguarding_lead_adults: nd.safeguarding_lead_adults || prev.safeguarding_lead_adults,
-            safeguarding_lead_children: nd.safeguarding_lead_children || prev.safeguarding_lead_children,
-            infection_control_lead: nd.infection_control_lead || prev.infection_control_lead,
-            complaints_lead: nd.complaints_lead || prev.complaints_lead,
-            health_safety_lead: nd.health_safety_lead || prev.health_safety_lead,
-            fire_safety_officer: nd.fire_safety_officer || prev.fire_safety_officer,
-            list_size: nd.list_size || persistedListSize || prev.list_size,
-            services_offered: nd.services_offered || prev.services_offered || {},
-          }));
-          setHasLoadedFromDb(true);
+        // 1) Always try to merge in Notewell practice context when it becomes available.
+        // IMPORTANT: Only fill empty fields so we don't overwrite user edits.
+        const nd: any = notewellPracticeDetails || {};
+        const notewellAddress: string | undefined = practiceContext?.practiceAddress || nd.address;
+        const notewellManager: string | undefined = nd.practice_manager_name;
+
+        if (
+          practiceContext?.practiceName ||
+          notewellAddress ||
+          notewellManager ||
+          nd.practice_name ||
+          nd.ods_code ||
+          nd.postcode ||
+          nd.list_size
+        ) {
+          setDetails(prev => {
+            const prevServices = prev.services_offered || {};
+            const hasPrevServices = Object.keys(prevServices).length > 0;
+
+            return {
+              ...prev,
+              practice_name: prev.practice_name || practiceContext?.practiceName || nd.practice_name || "",
+              address: prev.address || notewellAddress || "",
+              postcode: prev.postcode || nd.postcode || "",
+              ods_code: prev.ods_code || nd.ods_code || "",
+              practice_manager_name: prev.practice_manager_name || notewellManager || "",
+              lead_gp_name: prev.lead_gp_name || nd.lead_gp_name || "",
+              caldicott_guardian: prev.caldicott_guardian || nd.caldicott_guardian || "",
+              dpo_name: prev.dpo_name || nd.dpo_name || "",
+              safeguarding_lead_adults: prev.safeguarding_lead_adults || nd.safeguarding_lead_adults || "",
+              safeguarding_lead_children: prev.safeguarding_lead_children || nd.safeguarding_lead_children || "",
+              infection_control_lead: prev.infection_control_lead || nd.infection_control_lead || "",
+              complaints_lead: prev.complaints_lead || nd.complaints_lead || "",
+              health_safety_lead: prev.health_safety_lead || nd.health_safety_lead || "",
+              fire_safety_officer: prev.fire_safety_officer || nd.fire_safety_officer || "",
+              list_size: prev.list_size ?? nd.list_size ?? persistedListSize ?? null,
+              services_offered: hasPrevServices ? prevServices : (nd.services_offered || {}),
+            };
+          });
+          setIsLoading(false);
+        }
+
+        // If we've already done the fallback DB load, don't do it again.
+        if (hasLoadedFromDb || initialData) {
           setIsLoading(false);
           return;
+        }
+
+        // 2) Preferred DB source: user's Notewell practice_details (contains address from Practice Details screen)
+        const { data: notewellDbDetails } = await supabase
+          .from('practice_details')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('is_default', { ascending: false })
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (notewellDbDetails) {
+          const pd: any = notewellDbDetails;
+          setDetails(prev => ({
+            ...prev,
+            practice_name: prev.practice_name || pd.practice_name || "",
+            address: prev.address || pd.address || "",
+            // NOTE: practice_details may not have a separate postcode column in this project
+            postcode: prev.postcode || pd.postcode || "",
+            ods_code: prev.ods_code || pd.ods_code || "",
+            practice_manager_name: prev.practice_manager_name || pd.practice_manager_name || "",
+            lead_gp_name: prev.lead_gp_name || pd.lead_gp_name || "",
+            caldicott_guardian: prev.caldicott_guardian || pd.caldicott_guardian || "",
+            dpo_name: prev.dpo_name || pd.dpo_name || "",
+            safeguarding_lead_adults: prev.safeguarding_lead_adults || pd.safeguarding_lead_adults || "",
+            safeguarding_lead_children: prev.safeguarding_lead_children || pd.safeguarding_lead_children || "",
+            infection_control_lead: prev.infection_control_lead || pd.infection_control_lead || "",
+            complaints_lead: prev.complaints_lead || pd.complaints_lead || "",
+            health_safety_lead: prev.health_safety_lead || pd.health_safety_lead || "",
+            fire_safety_officer: prev.fire_safety_officer || pd.fire_safety_officer || "",
+            list_size: prev.list_size ?? pd.list_size ?? persistedListSize ?? null,
+            services_offered: Object.keys(prev.services_offered || {}).length > 0
+              ? prev.services_offered
+              : (pd.services_offered || {}),
+          }));
+          // Do NOT return here: some installs store address in gp_practices, while practice_details may only contain logo.
         }
 
         // Fallback: Get user's practice assignment from gp_practices
@@ -182,22 +232,24 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
           if (practiceData) {
             setDetails(prev => ({
               ...prev,
-              practice_name: practiceData.name || prev.practice_name,
-              address: practiceData.address || prev.address,
-              postcode: practiceData.postcode || prev.postcode,
-              ods_code: practiceData.practice_code || prev.ods_code,
-              practice_manager_name: (practiceData as any).practice_manager_name || prev.practice_manager_name,
-              lead_gp_name: (practiceData as any).lead_gp_name || prev.lead_gp_name,
-              caldicott_guardian: (practiceData as any).caldicott_guardian || prev.caldicott_guardian,
-              dpo_name: (practiceData as any).dpo_name || prev.dpo_name,
-              safeguarding_lead_adults: (practiceData as any).safeguarding_lead_adults || prev.safeguarding_lead_adults,
-              safeguarding_lead_children: (practiceData as any).safeguarding_lead_children || prev.safeguarding_lead_children,
-              infection_control_lead: (practiceData as any).infection_control_lead || prev.infection_control_lead,
-              complaints_lead: (practiceData as any).complaints_lead || prev.complaints_lead,
-              health_safety_lead: (practiceData as any).health_safety_lead || prev.health_safety_lead,
-              fire_safety_officer: (practiceData as any).fire_safety_officer || prev.fire_safety_officer,
-              list_size: (practiceData as any).list_size || persistedListSize || prev.list_size,
-              services_offered: (practiceData as any).services_offered || prev.services_offered,
+              practice_name: prev.practice_name || practiceData.name || "",
+              address: prev.address || practiceData.address || "",
+              postcode: prev.postcode || (practiceData as any).postcode || "",
+              ods_code: prev.ods_code || (practiceData as any).practice_code || "",
+              practice_manager_name: prev.practice_manager_name || (practiceData as any).practice_manager_name || "",
+              lead_gp_name: prev.lead_gp_name || (practiceData as any).lead_gp_name || "",
+              caldicott_guardian: prev.caldicott_guardian || (practiceData as any).caldicott_guardian || "",
+              dpo_name: prev.dpo_name || (practiceData as any).dpo_name || "",
+              safeguarding_lead_adults: prev.safeguarding_lead_adults || (practiceData as any).safeguarding_lead_adults || "",
+              safeguarding_lead_children: prev.safeguarding_lead_children || (practiceData as any).safeguarding_lead_children || "",
+              infection_control_lead: prev.infection_control_lead || (practiceData as any).infection_control_lead || "",
+              complaints_lead: prev.complaints_lead || (practiceData as any).complaints_lead || "",
+              health_safety_lead: prev.health_safety_lead || (practiceData as any).health_safety_lead || "",
+              fire_safety_officer: prev.fire_safety_officer || (practiceData as any).fire_safety_officer || "",
+              list_size: prev.list_size ?? (practiceData as any).list_size ?? persistedListSize ?? null,
+              services_offered: Object.keys(prev.services_offered || {}).length > 0
+                ? prev.services_offered
+                : ((practiceData as any).services_offered || {}),
             }));
           }
         } else if (persistedListSize) {
