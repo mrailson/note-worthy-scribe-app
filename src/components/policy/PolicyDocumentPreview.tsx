@@ -362,7 +362,13 @@ export const PolicyDocumentPreview: React.FC<PolicyDocumentPreviewProps> = ({
     right: 'justify-end',
   }[logoPosition];
 
-  const parsedContent = parseMarkdownContent(content, { titleToSkip: metadata.title });
+  // Replace [PRACTICE TO COMPLETE] placeholder with effective date where it appears as a date field
+  const processedContent = content.replace(
+    /\[PRACTICE TO COMPLETE\]/gi,
+    metadata.effective_date
+  );
+
+  const parsedContent = parseMarkdownContent(processedContent, { titleToSkip: metadata.title });
 
   return (
     <div 

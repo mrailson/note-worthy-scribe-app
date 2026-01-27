@@ -90,8 +90,14 @@ export const generatePolicyDocx = async (
     logoUrl,
   } = options;
 
+  // Replace [PRACTICE TO COMPLETE] placeholder with effective date where it appears as a date field
+  const processedContent = content.replace(
+    /\[PRACTICE TO COMPLETE\]/gi,
+    metadata.effective_date
+  );
+
   // Parse markdown content into sections
-  const sections = parseMarkdownToSections(content);
+  const sections = parseMarkdownToSections(processedContent);
 
   // Fetch logo if enabled and URL provided
   let logoImage: { data: ArrayBuffer; width: number; height: number } | null = null;
