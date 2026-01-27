@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Copy, Check, FileText, Calendar, BookOpen, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -42,8 +43,11 @@ interface PolicyPreviewPanelProps {
 }
 
 const STORAGE_KEY_SHOW_LOGO = 'policy_docx_show_logo';
+const STORAGE_KEY_LOGO_POSITION = 'policy_docx_logo_position';
 const STORAGE_KEY_SHOW_FOOTER = 'policy_docx_show_footer';
 const STORAGE_KEY_SHOW_PAGE_NUMBERS = 'policy_docx_show_page_numbers';
+
+export type LogoPosition = 'left' | 'center' | 'right';
 
 export const PolicyPreviewPanel = ({ 
   content, 
@@ -63,6 +67,11 @@ export const PolicyPreviewPanel = ({
     const saved = localStorage.getItem(STORAGE_KEY_SHOW_LOGO);
     return saved !== null ? saved === 'true' : true;
   });
+
+  const [logoPosition, setLogoPosition] = useState<LogoPosition>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_LOGO_POSITION);
+    return (saved as LogoPosition) || 'left';
+  });
   
   const [showFooter, setShowFooter] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEY_SHOW_FOOTER);
@@ -78,6 +87,10 @@ export const PolicyPreviewPanel = ({
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_SHOW_LOGO, String(showLogo));
   }, [showLogo]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_LOGO_POSITION, logoPosition);
+  }, [logoPosition]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_SHOW_FOOTER, String(showFooter));
@@ -103,6 +116,7 @@ export const PolicyPreviewPanel = ({
     try {
       const options: PolicyDocxOptions = {
         showLogo,
+        logoPosition,
         showFooter,
         showPageNumbers,
         practiceDetails: practiceDetails ? {
@@ -213,6 +227,29 @@ export const PolicyPreviewPanel = ({
                 onCheckedChange={setShowLogo}
               />
             </div>
+
+            {showLogo && (
+              <div className="flex items-center justify-between pl-4 border-l-2 border-muted">
+                <div className="space-y-0.5">
+                  <Label htmlFor="logo-position" className="text-sm font-medium">
+                    Logo Position
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Where to place the logo on the page
+                  </p>
+                </div>
+                <Select value={logoPosition} onValueChange={(val) => setLogoPosition(val as LogoPosition)}>
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background">
+                    <SelectItem value="left">Left</SelectItem>
+                    <SelectItem value="center">Centre</SelectItem>
+                    <SelectItem value="right">Right</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
