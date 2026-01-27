@@ -104,6 +104,19 @@ const parseMarkdownContent = (content: string): React.ReactNode[] => {
     if (trimmedLine === 'DOCUMENT CONTROL' || trimmedLine === '**DOCUMENT CONTROL**') {
       continue;
     }
+    
+    // Skip duplicate policy title (we render our own in the header)
+    // This catches titles like "CONTRACEPTION AND SEXUAL HEALTH SERVICES POLICY" 
+    // followed by practice name line
+    if (/^[A-Z][A-Z\s&]+POLICY$/.test(trimmedLine) || 
+        /^[A-Z][A-Z\s&]+PROCEDURE$/.test(trimmedLine)) {
+      continue;
+    }
+    
+    // Skip practice name with ODS code line (e.g. "Oak Lane Medical Practice (ODS: K85999)")
+    if (/\(ODS:\s*[A-Z0-9]+\)/.test(trimmedLine)) {
+      continue;
+    }
 
     // Handle table lines
     if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
@@ -362,6 +375,30 @@ export const PolicyDocumentPreview: React.FC<PolicyDocumentPreviewProps> = ({
       <div className="mb-6">
         <table className="w-full border-collapse text-sm">
           <tbody>
+            {/* Practice Name Row - spans full width */}
+            <tr>
+              <td 
+                className="border px-3 py-2 font-semibold w-1/5"
+                style={{ 
+                  borderColor: COLORS.tableBorder,
+                  backgroundColor: COLORS.tableHeaderBg 
+                }}
+              >
+                Practice
+              </td>
+              <td 
+                className="border px-3 py-2"
+                colSpan={3}
+                style={{ 
+                  borderColor: COLORS.tableBorder,
+                  color: COLORS.textGrey 
+                }}
+              >
+                {[practiceDetails?.practice_name, practiceDetails?.address, practiceDetails?.postcode]
+                  .filter(Boolean)
+                  .join(', ') || '[Practice Name, Address, Postcode]'}
+              </td>
+            </tr>
             <tr>
               <td 
                 className="border px-3 py-2 font-semibold w-1/5"
