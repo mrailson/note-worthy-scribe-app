@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Copy, Check, FileText, Calendar, BookOpen, Settings2 } from "lucide-react";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
 import { generatePolicyDocx, PolicyDocxOptions } from "@/utils/generatePolicyDocx";
+import { PolicyDocumentPreview } from "./PolicyDocumentPreview";
 import {
   Collapsible,
   CollapsibleContent,
@@ -311,14 +311,24 @@ export const PolicyPreviewPanel = ({
         </Button>
       </div>
 
-      {/* Content Preview */}
-      <div className="border rounded-lg">
+      {/* Content Preview - matches Word document formatting */}
+      <div className="border rounded-lg overflow-hidden">
         <div className="p-3 bg-muted border-b">
           <p className="text-sm font-medium">Policy Preview</p>
+          <p className="text-xs text-muted-foreground">Preview matches Word document formatting</p>
         </div>
-        <ScrollArea className="h-[400px]">
-          <div className="p-6 prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown>{content}</ReactMarkdown>
+        <ScrollArea className="h-[500px] bg-slate-100 dark:bg-slate-900">
+          <div className="p-4">
+            <PolicyDocumentPreview
+              content={content}
+              metadata={metadata}
+              practiceDetails={practiceDetails}
+              practiceLogoUrl={practiceLogoUrl}
+              showLogo={showLogo}
+              logoPosition={logoPosition}
+              showFooter={showFooter}
+              showPageNumbers={showPageNumbers}
+            />
           </div>
         </ScrollArea>
       </div>
