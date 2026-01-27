@@ -33,7 +33,7 @@ export const SDAExecutiveSummary = () => {
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
   const [actionLogOpen, setActionLogOpen] = useState(true);
   const [metricsOpen, setMetricsOpen] = useState(true);
-  const [requirementsOpen, setRequirementsOpen] = useState(false);
+  const [requirementsOpen, setRequirementsOpen] = useState(true);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
