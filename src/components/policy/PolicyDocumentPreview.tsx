@@ -438,6 +438,44 @@ export const PolicyDocumentPreview: React.FC<PolicyDocumentPreviewProps> = ({
                 {today}
               </td>
             </tr>
+            <tr>
+              <td 
+                className="border px-3 py-2 font-semibold"
+                style={{ 
+                  borderColor: COLORS.tableBorder,
+                  backgroundColor: COLORS.tableHeaderBg 
+                }}
+              >
+                Author
+              </td>
+              <td 
+                className="border px-3 py-2"
+                style={{ 
+                  borderColor: COLORS.tableBorder,
+                  color: COLORS.textGrey 
+                }}
+              >
+                {practiceDetails?.practice_manager_name || '[Practice Manager]'}
+              </td>
+              <td 
+                className="border px-3 py-2 font-semibold"
+                style={{ 
+                  borderColor: COLORS.tableBorder,
+                  backgroundColor: COLORS.tableHeaderBg 
+                }}
+              >
+                Approved By
+              </td>
+              <td 
+                className="border px-3 py-2"
+                style={{ 
+                  borderColor: COLORS.tableBorder,
+                  color: COLORS.textGrey 
+                }}
+              >
+                {practiceDetails?.lead_gp_name || '[Lead GP]'}
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
