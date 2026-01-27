@@ -93,6 +93,18 @@ const parseMarkdownContent = (content: string): React.ReactNode[] => {
       continue;
     }
 
+    // Skip horizontal rules (---, ***, ___)
+    if (/^[-*_]{3,}$/.test(trimmedLine)) {
+      flushList();
+      flushTable();
+      continue;
+    }
+
+    // Skip DOCUMENT CONTROL section heading (we render our own table)
+    if (trimmedLine === 'DOCUMENT CONTROL' || trimmedLine === '**DOCUMENT CONTROL**') {
+      continue;
+    }
+
     // Handle table lines
     if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
       flushList();
@@ -203,6 +215,17 @@ const parseMarkdownContent = (content: string): React.ReactNode[] => {
   return elements;
 };
 
+const formatInlineTextStatic = (text: string): React.ReactNode => {
+  // Handle bold text with ** and strip them
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+};
+
 const renderTable = (lines: string[], key: number): React.ReactNode => {
   const rows: string[][] = [];
   let isHeader = true;
@@ -225,6 +248,13 @@ const renderTable = (lines: string[], key: number): React.ReactNode => {
 
   if (rows.length === 0) return null;
 
+  // Check if this is the document control table (skip it - we render our own)
+  const allCellsJoined = rows.flat().join(' ').toLowerCase();
+  if (allCellsJoined.includes('version') && allCellsJoined.includes('effective date') && 
+      (allCellsJoined.includes('review date') || allCellsJoined.includes('author'))) {
+    return null;
+  }
+
   return (
     <div key={`table-${key}`} className="my-4 overflow-x-auto">
       <table className="w-full border-collapse text-sm">
@@ -239,7 +269,7 @@ const renderTable = (lines: string[], key: number): React.ReactNode => {
                   backgroundColor: COLORS.tableHeaderBg 
                 }}
               >
-                {cell}
+                {formatInlineTextStatic(cell)}
               </th>
             ))}
           </tr>
@@ -247,18 +277,23 @@ const renderTable = (lines: string[], key: number): React.ReactNode => {
         <tbody>
           {rows.slice(1).map((row, rowIndex) => (
             <tr key={rowIndex}>
-              {row.map((cell, cellIndex) => (
-                <td 
-                  key={cellIndex}
-                  className="border px-3 py-2"
-                  style={{ 
-                    borderColor: COLORS.tableBorder,
-                    color: COLORS.textGrey 
-                  }}
-                >
-                  {cell}
-                </td>
-              ))}
+              {row.map((cell, cellIndex) => {
+                // Check if cell looks like a header (contains bold markers)
+                const isHeaderCell = cell.startsWith('**') && cell.endsWith('**');
+                return (
+                  <td 
+                    key={cellIndex}
+                    className={`border px-3 py-2 ${isHeaderCell ? 'font-semibold' : ''}`}
+                    style={{ 
+                      borderColor: COLORS.tableBorder,
+                      backgroundColor: isHeaderCell ? COLORS.tableHeaderBg : undefined,
+                      color: COLORS.textGrey 
+                    }}
+                  >
+                    {formatInlineTextStatic(cell)}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
