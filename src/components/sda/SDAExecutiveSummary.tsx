@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList } from "lucide-react";
+import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/nres-logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
@@ -32,6 +32,16 @@ export const SDAExecutiveSummary = () => {
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
   const [actionLogOpen, setActionLogOpen] = useState(true);
   const [metricsOpen, setMetricsOpen] = useState(true);
+  const [requirementsOpen, setRequirementsOpen] = useState(false);
+
+  const handleDownloadBidRequirements = () => {
+    const link = document.createElement('a');
+    link.href = '/documents/New_Models_Primary_Care_Service_Specification_v5.pdf';
+    link.download = 'ICB_New_Models_SDA_Pilot_Bid_Requirements.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6">
@@ -132,6 +142,61 @@ export const SDAExecutiveSummary = () => {
                     </CardContent>
                   </Card>
                 </div>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Collapsible SDA Requirements */}
+      <Collapsible open={requirementsOpen} onOpenChange={setRequirementsOpen}>
+        <Card className="bg-white border-0 shadow-sm">
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="w-full flex items-center justify-between p-4 hover:bg-slate-50"
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-[#005EB8]" />
+                <span className="font-semibold text-slate-900">SDA Requirements</span>
+              </div>
+              {requirementsOpen ? (
+                <ChevronUp className="h-5 w-5 text-slate-500" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-slate-500" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Access the original ICB issued bid requirements and service specification for the New Models SDA Pilot and Innovator Site.
+                </p>
+                <Card className="bg-slate-50 border border-slate-200 hover:border-[#005EB8] transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-red-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900">New Models Primary Care Service Specification v5</p>
+                          <p className="text-sm text-slate-500">Original ICB Bid Requirements for SDA Pilot & Innovator Site</p>
+                        </div>
+                      </div>
+                      <Button 
+                        onClick={handleDownloadBidRequirements}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2 hover:bg-[#005EB8] hover:text-white transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download PDF
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </CardContent>
           </CollapsibleContent>
