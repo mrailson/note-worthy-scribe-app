@@ -337,6 +337,9 @@ export const generatePolicyDocx = async (
           createDocumentControlTable(metadata, today, {
             practiceManagerName: practiceDetails?.practiceManagerName,
             leadGpName: practiceDetails?.leadGpName,
+            name: practiceDetails?.name,
+            address: practiceDetails?.address,
+            postcode: practiceDetails?.postcode,
           }),
 
           // Spacing after table
@@ -381,7 +384,7 @@ export const generatePolicyDocx = async (
 function createDocumentControlTable(
   metadata: PolicyMetadata, 
   generatedDate: string,
-  practiceDetails?: { practiceManagerName?: string; leadGpName?: string }
+  practiceDetails?: { practiceManagerName?: string; leadGpName?: string; name?: string; address?: string; postcode?: string }
 ): Table {
   const cellBorder = {
     top: { style: BorderStyle.SINGLE, size: 1, color: COLORS.tableBorder },
@@ -413,10 +416,35 @@ function createDocumentControlTable(
 
   const authorName = practiceDetails?.practiceManagerName || '[Practice Manager]';
   const approvedBy = practiceDetails?.leadGpName || '[Lead GP]';
+  
+  // Build practice location line
+  const practiceLocation = [practiceDetails?.name, practiceDetails?.address, practiceDetails?.postcode]
+    .filter(Boolean)
+    .join(', ');
 
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     rows: [
+      // Practice name row (spans full width)
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ 
+              children: [new TextRun({ text: "Practice", bold: true, font: "Calibri", size: 22 })] 
+            })],
+            width: { size: 20, type: WidthType.PERCENTAGE },
+            ...headerCellStyle,
+          }),
+          new TableCell({
+            children: [new Paragraph({ 
+              children: [new TextRun({ text: practiceLocation || '[Practice Name, Address, Postcode]', font: "Calibri", size: 22 })] 
+            })],
+            width: { size: 80, type: WidthType.PERCENTAGE },
+            columnSpan: 3,
+            ...valueCellStyle,
+          }),
+        ],
+      }),
       new TableRow({
         children: [
           new TableCell({
@@ -583,6 +611,19 @@ function parseMarkdownToSections(markdown: string): (Paragraph | Table)[] {
     // Skip DOCUMENT CONTROL heading and its table (we render our own)
     if (trimmed === 'DOCUMENT CONTROL' || trimmed === '**DOCUMENT CONTROL**') {
       skipDocumentControlSection = true;
+      i++;
+      continue;
+    }
+    
+    // Skip duplicate policy title (we render our own in the header)
+    if (/^[A-Z][A-Z\s&]+POLICY$/.test(trimmed) || 
+        /^[A-Z][A-Z\s&]+PROCEDURE$/.test(trimmed)) {
+      i++;
+      continue;
+    }
+    
+    // Skip practice name with ODS code line (e.g. "Oak Lane Medical Practice (ODS: K85999)")
+    if (/\(ODS:\s*[A-Z0-9]+\)/.test(trimmed)) {
       i++;
       continue;
     }
