@@ -127,6 +127,8 @@ export const PolicyPreviewPanel = ({
           name: practiceDetails.practice_name,
           address: practiceDetails.address,
           postcode: practiceDetails.postcode,
+          practiceManagerName: practiceDetails.practice_manager_name,
+          leadGpName: practiceDetails.lead_gp_name,
         } : undefined,
         logoUrl: practiceLogoUrl || undefined,
       };

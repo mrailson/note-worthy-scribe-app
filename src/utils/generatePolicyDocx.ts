@@ -20,6 +20,8 @@ export interface PolicyDocxOptions {
     name?: string;
     address?: string;
     postcode?: string;
+    practiceManagerName?: string;
+    leadGpName?: string;
   };
   logoUrl?: string;
 }
@@ -332,7 +334,10 @@ export const generatePolicyDocx = async (
           }),
 
           // Document Control Table
-          createDocumentControlTable(metadata, today),
+          createDocumentControlTable(metadata, today, {
+            practiceManagerName: practiceDetails?.practiceManagerName,
+            leadGpName: practiceDetails?.leadGpName,
+          }),
 
           // Spacing after table
           new Paragraph({ text: "", spacing: { after: 300 } }),
@@ -373,7 +378,11 @@ export const generatePolicyDocx = async (
   saveAs(blob, filename);
 };
 
-function createDocumentControlTable(metadata: PolicyMetadata, generatedDate: string): Table {
+function createDocumentControlTable(
+  metadata: PolicyMetadata, 
+  generatedDate: string,
+  practiceDetails?: { practiceManagerName?: string; leadGpName?: string }
+): Table {
   const cellBorder = {
     top: { style: BorderStyle.SINGLE, size: 1, color: COLORS.tableBorder },
     bottom: { style: BorderStyle.SINGLE, size: 1, color: COLORS.tableBorder },
@@ -401,6 +410,9 @@ function createDocumentControlTable(metadata: PolicyMetadata, generatedDate: str
       right: convertInchesToTwip(0.1),
     },
   };
+
+  const authorName = practiceDetails?.practiceManagerName || '[Practice Manager]';
+  const approvedBy = practiceDetails?.leadGpName || '[Lead GP]';
 
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -460,6 +472,34 @@ function createDocumentControlTable(metadata: PolicyMetadata, generatedDate: str
           new TableCell({
             children: [new Paragraph({ 
               children: [new TextRun({ text: generatedDate, font: "Calibri", size: 22 })] 
+            })],
+            ...valueCellStyle,
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ 
+              children: [new TextRun({ text: "Author", bold: true, font: "Calibri", size: 22 })] 
+            })],
+            ...headerCellStyle,
+          }),
+          new TableCell({
+            children: [new Paragraph({ 
+              children: [new TextRun({ text: authorName, font: "Calibri", size: 22 })] 
+            })],
+            ...valueCellStyle,
+          }),
+          new TableCell({
+            children: [new Paragraph({ 
+              children: [new TextRun({ text: "Approved By", bold: true, font: "Calibri", size: 22 })] 
+            })],
+            ...headerCellStyle,
+          }),
+          new TableCell({
+            children: [new Paragraph({ 
+              children: [new TextRun({ text: approvedBy, font: "Calibri", size: 22 })] 
             })],
             ...valueCellStyle,
           }),
@@ -528,12 +568,36 @@ function parseMarkdownToSections(markdown: string): (Paragraph | Table)[] {
   const lines = markdown.split('\n');
   
   let i = 0;
+  let skipDocumentControlSection = false;
+  
   while (i < lines.length) {
     const line = lines[i];
     const trimmed = line.trim();
     
+    // Skip horizontal rules (---, ***, ___)
+    if (/^[-*_]{3,}$/.test(trimmed)) {
+      i++;
+      continue;
+    }
+    
+    // Skip DOCUMENT CONTROL heading and its table (we render our own)
+    if (trimmed === 'DOCUMENT CONTROL' || trimmed === '**DOCUMENT CONTROL**') {
+      skipDocumentControlSection = true;
+      i++;
+      continue;
+    }
+    
     // Skip empty lines
     if (!trimmed) {
+      // If we were skipping document control, an empty line might end that section
+      if (skipDocumentControlSection) {
+        // Check if next non-empty line is not a table
+        let j = i + 1;
+        while (j < lines.length && !lines[j].trim()) j++;
+        if (j < lines.length && !lines[j].includes('|')) {
+          skipDocumentControlSection = false;
+        }
+      }
       elements.push(new Paragraph({ text: "", spacing: { after: 60 } }));
       i++;
       continue;
@@ -553,11 +617,27 @@ function parseMarkdownToSections(markdown: string): (Paragraph | Table)[] {
         tableLines.push(lines[i]);
         i++;
       }
+      
+      // Check if this is the document control table (skip it)
+      const allCellsJoined = tableLines.join(' ').toLowerCase();
+      const isDocControlTable = allCellsJoined.includes('version') && 
+        (allCellsJoined.includes('effective date') || allCellsJoined.includes('review date') || allCellsJoined.includes('author'));
+      
+      if (skipDocumentControlSection || isDocControlTable) {
+        skipDocumentControlSection = false;
+        continue;
+      }
+      
       if (tableLines.length >= 2) {
         elements.push(createMarkdownTable(tableLines));
         elements.push(new Paragraph({ text: "", spacing: { after: 120 } }));
       }
       continue;
+    }
+    
+    // Reset skip flag when we hit a new heading or substantial content
+    if (cleanedLine.startsWith('#')) {
+      skipDocumentControlSection = false;
     }
 
     // Heading 1: # Title
