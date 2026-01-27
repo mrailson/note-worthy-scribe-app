@@ -9,8 +9,11 @@ interface PolicyMetadata {
   references: string[];
 }
 
+export type LogoPosition = 'left' | 'center' | 'right';
+
 export interface PolicyDocxOptions {
   showLogo?: boolean;
+  logoPosition?: LogoPosition;
   showFooter?: boolean;
   showPageNumbers?: boolean;
   practiceDetails?: {
@@ -77,6 +80,7 @@ export const generatePolicyDocx = async (
 
   const {
     showLogo = true,
+    logoPosition = 'left',
     showFooter = true,
     showPageNumbers = true,
     practiceDetails,
@@ -101,6 +105,13 @@ export const generatePolicyDocx = async (
     const displayHeight = Math.min(logoImage.height, maxHeight);
     const displayWidth = displayHeight * aspectRatio;
 
+    // Map logoPosition to AlignmentType
+    const alignmentMap: Record<LogoPosition, typeof AlignmentType.LEFT | typeof AlignmentType.CENTER | typeof AlignmentType.RIGHT> = {
+      left: AlignmentType.LEFT,
+      center: AlignmentType.CENTER,
+      right: AlignmentType.RIGHT,
+    };
+
     firstPageHeaderChildren.push(
       new Paragraph({
         children: [
@@ -113,7 +124,7 @@ export const generatePolicyDocx = async (
             type: 'png',
           }),
         ],
-        alignment: AlignmentType.LEFT,
+        alignment: alignmentMap[logoPosition],
         spacing: { after: 200 },
       })
     );
