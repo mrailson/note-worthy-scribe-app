@@ -313,46 +313,77 @@ const PolicyServiceChecklist = () => {
                     <CollapsibleContent>
                       <CardContent className="pt-0">
                         <div className="divide-y">
-                          {categoryPolicies.map(policy => (
-                            <div
-                              key={policy.id}
-                              className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
-                            >
-                              <div className="flex-1 min-w-0 mr-4">
-                                <div className="font-medium text-sm">{policy.policy_name}</div>
-                                {policy.description && (
-                                  <div className="text-xs text-muted-foreground truncate">
-                                    {policy.description}
+                          {categoryPolicies.map(policy => {
+                            const completion = getCompletionByPolicyId(policy.id);
+                            const isCompleted = !!completion;
+                            
+                            // Format date for display (ISO to UK format)
+                            const formatDate = (dateStr: string) => {
+                              const date = new Date(dateStr);
+                              return date.toLocaleDateString('en-GB', { 
+                                day: '2-digit', 
+                                month: '2-digit', 
+                                year: 'numeric' 
+                              });
+                            };
+                            
+                            return (
+                              <div
+                                key={policy.id}
+                                className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                              >
+                                <div className="flex-1 min-w-0 mr-4">
+                                  <div className="font-medium text-sm">{policy.policy_name}</div>
+                                  {isCompleted && completion ? (
+                                    <div className="text-xs text-muted-foreground">
+                                      Created: {formatDate(completion.created_at)} • Version {completion.version}
+                                    </div>
+                                  ) : policy.description ? (
+                                    <div className="text-xs text-muted-foreground truncate">
+                                      {policy.description}
+                                    </div>
+                                  ) : null}
+                                  <div className="flex gap-2 mt-1">
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-xs ${kloeColors[policy.cqc_kloe] || ''}`}
+                                    >
+                                      {policy.cqc_kloe}
+                                    </Badge>
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`text-xs ${priorityColors[policy.priority] || ''}`}
+                                    >
+                                      {policy.priority}
+                                    </Badge>
                                   </div>
-                                )}
-                                <div className="flex gap-2 mt-1">
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`text-xs ${kloeColors[policy.cqc_kloe] || ''}`}
-                                  >
-                                    {policy.cqc_kloe}
-                                  </Badge>
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`text-xs ${priorityColors[policy.priority] || ''}`}
-                                  >
-                                    {policy.priority}
-                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {getStatusIndicator(policy.id)}
+                                  {isCompleted ? (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      disabled
+                                      className="opacity-50 cursor-not-allowed"
+                                    >
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                                      Created
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleCreatePolicy(policy.id)}
+                                    >
+                                      <Plus className="h-3 w-3 mr-1" />
+                                      Create
+                                    </Button>
+                                  )}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                {getStatusIndicator(policy.id)}
-                                <Button
-                                  size="sm"
-                                  variant={isPolicyCompleted(policy.id) ? "ghost" : "outline"}
-                                  onClick={() => handleCreatePolicy(policy.id)}
-                                >
-                                  <Plus className="h-3 w-3 mr-1" />
-                                  {isPolicyCompleted(policy.id) ? "Update" : "Create"}
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </CardContent>
                     </CollapsibleContent>
