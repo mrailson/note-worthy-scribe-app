@@ -112,9 +112,9 @@ export default function Auth() {
         // Log security event for failed login
         await supabase.functions.invoke('log-security-event', {
           body: {
-            event_type: 'failed_login_attempt',
+            eventType: 'failed_login_attempt',
             severity: loginAttempts >= 3 ? 'high' : 'medium',
-            event_details: {
+            eventDetails: {
               email: loginForm.email,
               attempts: loginAttempts + 1,
               timestamp: new Date().toISOString()
@@ -144,9 +144,9 @@ export default function Auth() {
         // Log successful login
         await supabase.functions.invoke('log-security-event', {
           body: {
-            event_type: 'successful_login',
+            eventType: 'successful_login',
             severity: 'low',
-            event_details: {
+            eventDetails: {
               email: loginForm.email,
               timestamp: new Date().toISOString()
             }
@@ -226,9 +226,9 @@ export default function Auth() {
         // Log security event for failed signup
         await supabase.functions.invoke('log-security-event', {
           body: {
-            event_type: 'failed_signup_attempt',
+            eventType: 'failed_signup_attempt',
             severity: 'medium',
-            event_details: {
+            eventDetails: {
               email: signupForm.email,
               error: error.message,
               timestamp: new Date().toISOString()
@@ -255,9 +255,9 @@ export default function Auth() {
         // Log successful signup
         await supabase.functions.invoke('log-security-event', {
           body: {
-            event_type: 'successful_signup',
+            eventType: 'successful_signup',
             severity: 'low',
-            event_details: {
+            eventDetails: {
               email: signupForm.email,
               timestamp: new Date().toISOString()
             }
