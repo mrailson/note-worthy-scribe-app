@@ -3629,11 +3629,20 @@ export type Database = {
       gp_practices: {
         Row: {
           address: string | null
+          caldicott_guardian: string | null
+          complaints_lead: string | null
           created_at: string
+          dpo_name: string | null
           email: string | null
+          fire_safety_officer: string | null
+          health_safety_lead: string | null
           ics_code: string
           ics_name: string
           id: string
+          infection_control_lead: string | null
+          lead_gp_name: string | null
+          list_size: number | null
+          local_contacts: Json | null
           name: string
           neighbourhood_id: string | null
           organisation_type: string
@@ -3641,16 +3650,29 @@ export type Database = {
           phone: string | null
           postcode: string | null
           practice_code: string
+          practice_manager_name: string | null
+          safeguarding_lead_adults: string | null
+          safeguarding_lead_children: string | null
+          services_offered: Json | null
           updated_at: string | null
           website: string | null
         }
         Insert: {
           address?: string | null
+          caldicott_guardian?: string | null
+          complaints_lead?: string | null
           created_at?: string
+          dpo_name?: string | null
           email?: string | null
+          fire_safety_officer?: string | null
+          health_safety_lead?: string | null
           ics_code: string
           ics_name: string
           id?: string
+          infection_control_lead?: string | null
+          lead_gp_name?: string | null
+          list_size?: number | null
+          local_contacts?: Json | null
           name: string
           neighbourhood_id?: string | null
           organisation_type: string
@@ -3658,16 +3680,29 @@ export type Database = {
           phone?: string | null
           postcode?: string | null
           practice_code: string
+          practice_manager_name?: string | null
+          safeguarding_lead_adults?: string | null
+          safeguarding_lead_children?: string | null
+          services_offered?: Json | null
           updated_at?: string | null
           website?: string | null
         }
         Update: {
           address?: string | null
+          caldicott_guardian?: string | null
+          complaints_lead?: string | null
           created_at?: string
+          dpo_name?: string | null
           email?: string | null
+          fire_safety_officer?: string | null
+          health_safety_lead?: string | null
           ics_code?: string
           ics_name?: string
           id?: string
+          infection_control_lead?: string | null
+          lead_gp_name?: string | null
+          list_size?: number | null
+          local_contacts?: Json | null
           name?: string
           neighbourhood_id?: string | null
           organisation_type?: string
@@ -3675,6 +3710,10 @@ export type Database = {
           phone?: string | null
           postcode?: string | null
           practice_code?: string
+          practice_manager_name?: string | null
+          safeguarding_lead_adults?: string | null
+          safeguarding_lead_children?: string | null
+          services_offered?: Json | null
           updated_at?: string | null
           website?: string | null
         }
@@ -6254,6 +6293,117 @@ export type Database = {
           updated_at?: string
           user_id?: string
           webhook_secret?: string | null
+        }
+        Relationships: []
+      }
+      policy_generations: {
+        Row: {
+          created_at: string
+          gap_analysis: Json | null
+          generated_content: string
+          generation_type: string
+          id: string
+          input_document_url: string | null
+          metadata: Json | null
+          policy_name: string
+          policy_reference_id: string | null
+          practice_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gap_analysis?: Json | null
+          generated_content: string
+          generation_type: string
+          id?: string
+          input_document_url?: string | null
+          metadata?: Json | null
+          policy_name: string
+          policy_reference_id?: string | null
+          practice_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gap_analysis?: Json | null
+          generated_content?: string
+          generation_type?: string
+          id?: string
+          input_document_url?: string | null
+          metadata?: Json | null
+          policy_name?: string
+          policy_reference_id?: string | null
+          practice_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_generations_policy_reference_id_fkey"
+            columns: ["policy_reference_id"]
+            isOneToOne: false
+            referencedRelation: "policy_reference_library"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_generations_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_reference_library: {
+        Row: {
+          category: string
+          cqc_kloe: string
+          created_at: string
+          description: string | null
+          guidance_sources: Json | null
+          id: string
+          is_active: boolean
+          policy_name: string
+          priority: string
+          required_roles: string[] | null
+          required_services: string[] | null
+          template_sections: Json | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          cqc_kloe: string
+          created_at?: string
+          description?: string | null
+          guidance_sources?: Json | null
+          id?: string
+          is_active?: boolean
+          policy_name: string
+          priority: string
+          required_roles?: string[] | null
+          required_services?: string[] | null
+          template_sections?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cqc_kloe?: string
+          created_at?: string
+          description?: string | null
+          guidance_sources?: Json | null
+          id?: string
+          is_active?: boolean
+          policy_name?: string
+          priority?: string
+          required_roles?: string[] | null
+          required_services?: string[] | null
+          template_sections?: Json | null
+          updated_at?: string
         }
         Relationships: []
       }

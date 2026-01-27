@@ -1,0 +1,237 @@
+import { useState } from "react";
+import { Header } from "@/components/Header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Search, Download, FileText, ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { usePolicyReferenceLibrary } from "@/hooks/usePolicyReferenceLibrary";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+const categoryOrder = [
+  'Clinical',
+  'Information Governance',
+  'Health & Safety',
+  'HR',
+  'Patient Services',
+  'Business Continuity',
+];
+
+const kloeColors: Record<string, string> = {
+  'Safe': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  'Effective': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  'Caring': 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+  'Responsive': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  'Well-led': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+};
+
+const priorityColors: Record<string, string> = {
+  'Essential': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+  'Recommended': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  'Service-specific': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
+};
+
+const PolicyServiceChecklist = () => {
+  const navigate = useNavigate();
+  const { policies, isLoading } = usePolicyReferenceLibrary();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(categoryOrder);
+
+  const filteredPolicies = policies.filter(p =>
+    p.policy_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const groupedPolicies = categoryOrder.reduce((acc, category) => {
+    acc[category] = filteredPolicies.filter(p => p.category === category);
+    return acc;
+  }, {} as Record<string, typeof policies>);
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const handleCreatePolicy = (policyId: string) => {
+    navigate(`/policy-service/create?policyId=${policyId}`);
+  };
+
+  const essentialCount = policies.filter(p => p.priority === 'Essential').length;
+  const recommendedCount = policies.filter(p => p.priority === 'Recommended').length;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <main className="container mx-auto px-4 py-8 max-w-5xl">
+        {/* Back Button */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/policy-service')}
+          className="mb-6"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Policy Service
+        </Button>
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <FileText className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold">Policy Checklist</h1>
+              <p className="text-muted-foreground">
+                {policies.length} policies across {categoryOrder.length} categories
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" className="hidden sm:flex">
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-2xl font-bold text-primary">{essentialCount}</div>
+              <div className="text-xs text-muted-foreground">Essential Policies</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-2xl font-bold text-primary">{recommendedCount}</div>
+              <div className="text-xs text-muted-foreground">Recommended</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-2xl font-bold text-primary">{categoryOrder.length}</div>
+              <div className="text-xs text-muted-foreground">Categories</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="text-2xl font-bold text-primary">5</div>
+              <div className="text-xs text-muted-foreground">CQC KLOEs</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-6">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search policies..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+
+        {/* Policy Categories */}
+        {!isLoading && (
+          <div className="space-y-4">
+            {categoryOrder.map(category => {
+              const categoryPolicies = groupedPolicies[category] || [];
+              if (categoryPolicies.length === 0 && searchQuery) return null;
+              
+              const isExpanded = expandedCategories.includes(category);
+              
+              return (
+                <Collapsible key={category} open={isExpanded} onOpenChange={() => toggleCategory(category)}>
+                  <Card>
+                    <CollapsibleTrigger className="w-full">
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {isExpanded ? (
+                              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                            )}
+                            <CardTitle className="text-lg">{category}</CardTitle>
+                            <Badge variant="secondary">{categoryPolicies.length}</Badge>
+                          </div>
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="pt-0">
+                        <div className="divide-y">
+                          {categoryPolicies.map(policy => (
+                            <div
+                              key={policy.id}
+                              className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
+                            >
+                              <div className="flex-1 min-w-0 mr-4">
+                                <div className="font-medium text-sm">{policy.policy_name}</div>
+                                {policy.description && (
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {policy.description}
+                                  </div>
+                                )}
+                                <div className="flex gap-2 mt-1">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs ${kloeColors[policy.cqc_kloe] || ''}`}
+                                  >
+                                    {policy.cqc_kloe}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs ${priorityColors[policy.priority] || ''}`}
+                                  >
+                                    {policy.priority}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleCreatePolicy(policy.id)}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Create
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && filteredPolicies.length === 0 && searchQuery && (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">No policies found matching "{searchQuery}"</p>
+              <Button variant="link" onClick={() => setSearchQuery("")}>
+                Clear search
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default PolicyServiceChecklist;

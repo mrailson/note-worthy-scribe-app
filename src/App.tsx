@@ -106,6 +106,10 @@ import AI4GPPromptGuide from "./pages/AI4GPPromptGuide";
 import ReceptionPatientView from "./pages/ReceptionPatientView";
 import DocumentCapture from "./pages/DocumentCapture";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
+import PolicyService from "./pages/PolicyService";
+import PolicyServiceCreate from "./pages/PolicyServiceCreate";
+import PolicyServiceUpdate from "./pages/PolicyServiceUpdate";
+import PolicyServiceChecklist from "./pages/PolicyServiceChecklist";
 
 const App = () => {
   useEffect(() => {
