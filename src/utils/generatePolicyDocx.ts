@@ -92,8 +92,8 @@ export const generatePolicyDocx = async (
     logoImage = await fetchImageAsBase64(logoUrl);
   }
 
-  // Build header children (logo)
-  const headerChildren: Paragraph[] = [];
+  // Build header children (logo) - for first page only
+  const firstPageHeaderChildren: Paragraph[] = [];
   if (showLogo && logoImage) {
     // Calculate dimensions - max height 60px, maintain aspect ratio
     const maxHeight = 60;
@@ -101,7 +101,7 @@ export const generatePolicyDocx = async (
     const displayHeight = Math.min(logoImage.height, maxHeight);
     const displayWidth = displayHeight * aspectRatio;
 
-    headerChildren.push(
+    firstPageHeaderChildren.push(
       new Paragraph({
         children: [
           new ImageRun({
@@ -119,62 +119,107 @@ export const generatePolicyDocx = async (
     );
   }
 
-  // Build footer children
-  const footerChildren: Paragraph[] = [];
+  // Build footer table - practice details centered, page numbers right
+  let footerTable: Table | null = null;
   
-  if (showFooter && practiceDetails?.name) {
-    const footerParts: string[] = [practiceDetails.name];
-    if (practiceDetails.address) footerParts.push(practiceDetails.address);
-    if (practiceDetails.postcode) footerParts.push(practiceDetails.postcode);
-    
-    footerChildren.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: footerParts.join(' • '),
-            size: 16,
-            color: COLORS.lightGrey,
-            font: "Calibri",
-          }),
-        ],
-        alignment: AlignmentType.CENTER,
-      })
-    );
-  }
-  
-  if (showPageNumbers) {
-    footerChildren.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: "Page ",
-            size: 16,
-            color: COLORS.lightGrey,
-            font: "Calibri",
-          }),
-          new TextRun({
-            children: [PageNumber.CURRENT],
-            size: 16,
-            color: COLORS.lightGrey,
-            font: "Calibri",
-          }),
-          new TextRun({
-            text: " of ",
-            size: 16,
-            color: COLORS.lightGrey,
-            font: "Calibri",
-          }),
-          new TextRun({
-            children: [PageNumber.TOTAL_PAGES],
-            size: 16,
-            color: COLORS.lightGrey,
-            font: "Calibri",
-          }),
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 100 },
-      })
-    );
+  if ((showFooter && practiceDetails?.name) || showPageNumbers) {
+    // Build practice details text
+    const practiceText = showFooter && practiceDetails?.name 
+      ? [practiceDetails.name, practiceDetails.address, practiceDetails.postcode].filter(Boolean).join(' • ')
+      : '';
+
+    footerTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: { style: BorderStyle.NONE },
+        bottom: { style: BorderStyle.NONE },
+        left: { style: BorderStyle.NONE },
+        right: { style: BorderStyle.NONE },
+        insideHorizontal: { style: BorderStyle.NONE },
+        insideVertical: { style: BorderStyle.NONE },
+      },
+      rows: [
+        new TableRow({
+          children: [
+            // Left cell - empty for balance
+            new TableCell({
+              children: [new Paragraph({ text: "" })],
+              width: { size: 25, type: WidthType.PERCENTAGE },
+              borders: {
+                top: { style: BorderStyle.NONE },
+                bottom: { style: BorderStyle.NONE },
+                left: { style: BorderStyle.NONE },
+                right: { style: BorderStyle.NONE },
+              },
+            }),
+            // Center cell - practice details
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: practiceText ? [
+                    new TextRun({
+                      text: practiceText,
+                      size: 16,
+                      color: COLORS.lightGrey,
+                      font: "Calibri",
+                    }),
+                  ] : [],
+                  alignment: AlignmentType.CENTER,
+                }),
+              ],
+              width: { size: 50, type: WidthType.PERCENTAGE },
+              borders: {
+                top: { style: BorderStyle.NONE },
+                bottom: { style: BorderStyle.NONE },
+                left: { style: BorderStyle.NONE },
+                right: { style: BorderStyle.NONE },
+              },
+            }),
+            // Right cell - page numbers
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: showPageNumbers ? [
+                    new TextRun({
+                      text: "Page ",
+                      size: 16,
+                      color: COLORS.lightGrey,
+                      font: "Calibri",
+                    }),
+                    new TextRun({
+                      children: [PageNumber.CURRENT],
+                      size: 16,
+                      color: COLORS.lightGrey,
+                      font: "Calibri",
+                    }),
+                    new TextRun({
+                      text: " of ",
+                      size: 16,
+                      color: COLORS.lightGrey,
+                      font: "Calibri",
+                    }),
+                    new TextRun({
+                      children: [PageNumber.TOTAL_PAGES],
+                      size: 16,
+                      color: COLORS.lightGrey,
+                      font: "Calibri",
+                    }),
+                  ] : [],
+                  alignment: AlignmentType.RIGHT,
+                }),
+              ],
+              width: { size: 25, type: WidthType.PERCENTAGE },
+              borders: {
+                top: { style: BorderStyle.NONE },
+                bottom: { style: BorderStyle.NONE },
+                left: { style: BorderStyle.NONE },
+                right: { style: BorderStyle.NONE },
+              },
+            }),
+          ],
+        }),
+      ],
+    });
   }
 
   const doc = new Document({
@@ -238,6 +283,7 @@ export const generatePolicyDocx = async (
     sections: [
       {
         properties: {
+          titlePage: true, // Enable different first page header
           page: {
             margin: {
               top: convertInchesToTwip(1),
@@ -247,14 +293,14 @@ export const generatePolicyDocx = async (
             },
           },
         },
-        headers: headerChildren.length > 0 ? {
-          default: new Header({
-            children: headerChildren,
+        headers: firstPageHeaderChildren.length > 0 ? {
+          first: new Header({
+            children: firstPageHeaderChildren,
           }),
         } : undefined,
-        footers: footerChildren.length > 0 ? {
+        footers: footerTable ? {
           default: new Footer({
-            children: footerChildren,
+            children: [footerTable],
           }),
         } : undefined,
         children: [
