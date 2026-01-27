@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { TravelTimesThumbnail, TravelTimesSlideshow } from "./TravelTimesSlideshow";
 
@@ -829,7 +830,7 @@ export const SDAEstatesCapacity = () => {
       <CollapsibleCard
         title="Hub Location Status"
         icon={<Building2 className="w-5 h-5" />}
-        badge={<span className="text-xs text-slate-500 font-normal">Updated: 22 Jan 2026</span>}
+        badge={<span className="text-xs text-slate-500 font-normal">Updated: 27 Jan 2026</span>}
       >
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -838,7 +839,19 @@ export const SDAEstatesCapacity = () => {
             <span className="text-slate-600 text-sm">- Hub Location</span>
           </div>
           <div className="flex items-center gap-3">
-            <Badge className="bg-amber-100 text-amber-800 border-amber-300">In Progress - Awaiting NHFT/Funding Arrangements to be in place</Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className="bg-amber-100 text-amber-800 border-amber-300 cursor-help">In Progress - Awaiting NHFT/Funding Arrangements to be in place</Badge>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-md p-3 text-left">
+                  <p className="text-sm"><strong>NHFT remains the tenant</strong> of the physio suite under its existing premises lease.</p>
+                  <p className="text-sm mt-2">The landlord, Dr Supple, is <strong>content for NHFT to sublet or permit use of the room</strong> for the purposes of the Neighbourhood Access Service, via a sub-letting or permitted-use arrangement.</p>
+                  <p className="text-sm mt-2">This confirms <strong>no change to the underlying tenancy or landlord arrangements</strong>, with NAS utilising the space under NHFT's occupancy.</p>
+                  <p className="text-xs text-muted-foreground mt-2 italic">Source: Anita Carter (on behalf of Dr Supple), 23 Jan 2026</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <span className="font-medium text-slate-900">Brook Health Centre</span>
             <span className="text-slate-600 text-sm">- Hub Location</span>
           </div>
