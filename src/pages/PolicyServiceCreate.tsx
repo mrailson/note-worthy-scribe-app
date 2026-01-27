@@ -47,8 +47,23 @@ const PolicyServiceCreate = () => {
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [wasEnhanced, setWasEnhanced] = useState(false);
   const [enhancementWarning, setEnhancementWarning] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(90);
   
   const { generatePolicy, isGenerating, isEnhancing } = usePolicyGeneration();
+
+  // Countdown timer during generation
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isGenerating || isEnhancing) {
+      setCountdown(90);
+      interval = setInterval(() => {
+        setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isGenerating, isEnhancing]);
 
   // Fetch practice logo URL
   useEffect(() => {
@@ -239,12 +254,12 @@ const PolicyServiceCreate = () => {
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating Policy...
+                  Ready in {countdown} seconds...
                 </>
               ) : isEnhancing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Enhancing for CQC...
+                  Enhancing... {countdown}s
                 </>
               ) : (
                 <>
