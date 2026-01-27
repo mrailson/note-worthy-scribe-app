@@ -9892,6 +9892,7 @@ export type Database = {
         Returns: number
       }
       trigger_queue_processing: { Args: never; Returns: Json }
+      try_parse_jsonb: { Args: { p_text: string }; Returns: Json }
       update_chunk_cleaning_stats: {
         Args: {
           p_chunks_processed?: number
