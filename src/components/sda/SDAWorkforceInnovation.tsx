@@ -107,7 +107,10 @@ export const SDAWorkforceInnovation = () => {
               <strong>Application deadline:</strong> Close of business today (27th Jan).
             </p>
             <p className="text-sm text-amber-700 mt-1">
-              <strong>Expected by Friday:</strong> 5 further applications for GP and 5 for ACP to be loaded.
+              <strong>Expected by Friday:</strong> 5 further applications for GP and 5 for ACP to be loaded <span className="font-semibold">(12 Total for GP, 14 Total for ACP)</span>.
+            </p>
+            <p className="text-sm text-amber-700 mt-1">
+              PB (27/1/26) to confirm interview dates availability and who to attend etc. Amanda Taylor/Malcolm Railson will assist in arranging as defined by PB.
             </p>
           </div>
         </div>
