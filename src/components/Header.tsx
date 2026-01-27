@@ -395,6 +395,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             BP Average Service
                           </DropdownMenuItem>
                         )}
+                        {isServiceVisible('policy_service') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/policy-service')}
+                            className="cursor-pointer py-3"
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Policy Service
+                          </DropdownMenuItem>
+                        )}
                   </DropdownMenuContent>
               </DropdownMenu>
             )}

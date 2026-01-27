@@ -18,6 +18,7 @@ export interface ServiceVisibility {
   lg_capture: boolean;
   bp_service: boolean;
   survey_manager: boolean;
+  policy_service: boolean;
 }
 
 const defaultVisibility: ServiceVisibility = {
@@ -36,6 +37,7 @@ const defaultVisibility: ServiceVisibility = {
   lg_capture: true,
   bp_service: true,
   survey_manager: true,
+  policy_service: true,
 };
 
 export const useServiceVisibility = () => {
