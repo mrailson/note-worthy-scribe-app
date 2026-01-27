@@ -94,6 +94,6 @@ export const actionLogData: ActionLogItem[] = [
 
 export const actionLogMetadata = {
   sourceMeeting: "Programme Board Meeting - 23rd December 2025",
-  nextMeeting: "Virtual - 13th January 2026, 13:00-14:00",
-  lastUpdated: "22/01/2026 16:55"
+  nextMeeting: "In Person - Wooton - 27th January 2026, 15:15-17:00",
+  lastUpdated: "27/01/2026 15:15"
 };
