@@ -390,11 +390,12 @@ export const PolicyDocumentPreview: React.FC<PolicyDocumentPreviewProps> = ({
     right: 'justify-end',
   }[logoPosition];
 
-  // Replace [PRACTICE TO COMPLETE] placeholder with effective date where it appears as a date field
-  const processedContent = content.replace(
-    /\[PRACTICE TO COMPLETE\]/gi,
-    metadata.effective_date
-  );
+  // Replace placeholders with actual dates
+  const processedContent = content
+    // Replace exact [PRACTICE TO COMPLETE] with effective date (for VERSION HISTORY table)
+    .replace(/\[PRACTICE TO COMPLETE\]/gi, metadata.effective_date)
+    // Replace Next Review Date placeholder with the actual review date
+    .replace(/\[PRACTICE TO COMPLETE\s*-\s*Max 12 months\]/gi, metadata.review_date);
 
   const parsedContent = parseMarkdownContent(processedContent, { titleToSkip: metadata.title });
 
