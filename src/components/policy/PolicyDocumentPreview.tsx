@@ -40,13 +40,20 @@ const COLORS = {
   tableHeaderBg: "#EFF6FF",
 };
 
-const parseMarkdownContent = (content: string): React.ReactNode[] => {
+const parseMarkdownContent = (
+  content: string,
+  opts?: {
+    /** Used to remove the duplicated title from the body (we already render metadata.title at the top). */
+    titleToSkip?: string;
+  }
+): React.ReactNode[] => {
   const lines = content.split('\n');
   const elements: React.ReactNode[] = [];
   let listItems: string[] = [];
   let inTable = false;
   let tableLines: string[] = [];
   let keyIndex = 0;
+  let skipDocumentControlHeading = false;
 
   const flushList = () => {
     if (listItems.length > 0) {
@@ -86,6 +93,11 @@ const parseMarkdownContent = (content: string): React.ReactNode[] => {
     const line = lines[i];
     const trimmedLine = line.trim();
 
+    const normalisedLine = trimmedLine
+      .replace(/^#{1,6}\s+/, "")
+      .replace(/\*\*/g, "")
+      .trim();
+
     // Skip empty lines
     if (!trimmedLine) {
       flushList();
@@ -100,16 +112,19 @@ const parseMarkdownContent = (content: string): React.ReactNode[] => {
       continue;
     }
 
-    // Skip DOCUMENT CONTROL section heading (we render our own table)
-    if (trimmedLine === 'DOCUMENT CONTROL' || trimmedLine === '**DOCUMENT CONTROL**') {
+    // Skip DOCUMENT CONTROL heading (we render our own table)
+    if (normalisedLine.toUpperCase() === 'DOCUMENT CONTROL') {
+      skipDocumentControlHeading = true;
       continue;
     }
-    
+
     // Skip duplicate policy title (we render our own in the header)
-    // This catches titles like "CONTRACEPTION AND SEXUAL HEALTH SERVICES POLICY" 
-    // followed by practice name line
-    if (/^[A-Z][A-Z\s&]+POLICY$/.test(trimmedLine) || 
-        /^[A-Z][A-Z\s&]+PROCEDURE$/.test(trimmedLine)) {
+    if (opts?.titleToSkip && normalisedLine.localeCompare(opts.titleToSkip, undefined, { sensitivity: 'accent' }) === 0) {
+      continue;
+    }
+
+    // Back-compat: skip all-caps policy/procedure “title” lines even if metadata title doesn't match perfectly
+    if (/^[A-Z][A-Z\s&]+POLICY$/.test(normalisedLine) || /^[A-Z][A-Z\s&]+PROCEDURE$/.test(normalisedLine)) {
       continue;
     }
     
@@ -131,6 +146,10 @@ const parseMarkdownContent = (content: string): React.ReactNode[] => {
     // Handle headings
     if (trimmedLine.startsWith('### ')) {
       flushList();
+      // If we previously encountered a lone DOCUMENT CONTROL heading, do not render it as a heading.
+      if (skipDocumentControlHeading) {
+        skipDocumentControlHeading = false;
+      }
       elements.push(
         <h3 
           key={`h3-${keyIndex++}`} 
@@ -145,6 +164,9 @@ const parseMarkdownContent = (content: string): React.ReactNode[] => {
 
     if (trimmedLine.startsWith('## ')) {
       flushList();
+      if (skipDocumentControlHeading) {
+        skipDocumentControlHeading = false;
+      }
       elements.push(
         <h2 
           key={`h2-${keyIndex++}`} 
@@ -159,6 +181,9 @@ const parseMarkdownContent = (content: string): React.ReactNode[] => {
 
     if (trimmedLine.startsWith('# ')) {
       flushList();
+      if (skipDocumentControlHeading) {
+        skipDocumentControlHeading = false;
+      }
       elements.push(
         <h1 
           key={`h1-${keyIndex++}`} 
@@ -337,7 +362,7 @@ export const PolicyDocumentPreview: React.FC<PolicyDocumentPreviewProps> = ({
     right: 'justify-end',
   }[logoPosition];
 
-  const parsedContent = parseMarkdownContent(content);
+  const parsedContent = parseMarkdownContent(content, { titleToSkip: metadata.title });
 
   return (
     <div 
