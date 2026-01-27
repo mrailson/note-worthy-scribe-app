@@ -440,3 +440,12 @@ verify_jwt = false
 
 [functions.upload-doc-capture]
 verify_jwt = false
+
+[functions.generate-policy]
+verify_jwt = false
+
+[functions.analyse-policy-gaps]
+verify_jwt = false
+
+[functions.extract-policy-text]
+verify_jwt = false

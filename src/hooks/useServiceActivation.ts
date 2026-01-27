@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export type ServiceType = 'ai4pm' | 'ai4gp' | 'nres' | 'meeting_recorder' | 'complaints' | 'cqc' | 'lg_capture' | 'bp_service';
+export type ServiceType = 'ai4pm' | 'ai4gp' | 'nres' | 'meeting_recorder' | 'complaints' | 'cqc' | 'lg_capture' | 'bp_service' | 'policy_service';
 
 // Map service types to user_roles column names
 const serviceToRoleColumn: Record<string, string> = {
