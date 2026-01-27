@@ -1,11 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Download, Copy, Check, FileText, Calendar, BookOpen } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Download, Copy, Check, FileText, Calendar, BookOpen, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
-import { generatePolicyDocx } from "@/utils/generatePolicyDocx";
+import { generatePolicyDocx, PolicyDocxOptions } from "@/utils/generatePolicyDocx";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface PolicyMetadata {
   title: string;
@@ -16,23 +23,69 @@ interface PolicyMetadata {
   changes_summary?: string[];
 }
 
+interface PracticeDetails {
+  practice_name?: string;
+  address?: string;
+  postcode?: string;
+  practice_manager_name?: string;
+  lead_gp_name?: string;
+}
+
 interface PolicyPreviewPanelProps {
   content: string;
   metadata: PolicyMetadata;
   policyName: string;
   generationId: string | null;
   isUpdate?: boolean;
+  practiceDetails?: PracticeDetails;
+  practiceLogoUrl?: string | null;
 }
+
+const STORAGE_KEY_SHOW_LOGO = 'policy_docx_show_logo';
+const STORAGE_KEY_SHOW_FOOTER = 'policy_docx_show_footer';
+const STORAGE_KEY_SHOW_PAGE_NUMBERS = 'policy_docx_show_page_numbers';
 
 export const PolicyPreviewPanel = ({ 
   content, 
   metadata, 
   policyName,
   generationId,
-  isUpdate = false 
+  isUpdate = false,
+  practiceDetails,
+  practiceLogoUrl,
 }: PolicyPreviewPanelProps) => {
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  
+  // Document options with localStorage persistence
+  const [showLogo, setShowLogo] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_SHOW_LOGO);
+    return saved !== null ? saved === 'true' : true;
+  });
+  
+  const [showFooter, setShowFooter] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_SHOW_FOOTER);
+    return saved !== null ? saved === 'true' : true;
+  });
+  
+  const [showPageNumbers, setShowPageNumbers] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_SHOW_PAGE_NUMBERS);
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  // Persist options to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_SHOW_LOGO, String(showLogo));
+  }, [showLogo]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_SHOW_FOOTER, String(showFooter));
+  }, [showFooter]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_SHOW_PAGE_NUMBERS, String(showPageNumbers));
+  }, [showPageNumbers]);
 
   const handleCopy = async () => {
     try {
@@ -48,7 +101,19 @@ export const PolicyPreviewPanel = ({
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      await generatePolicyDocx(content, metadata, policyName);
+      const options: PolicyDocxOptions = {
+        showLogo,
+        showFooter,
+        showPageNumbers,
+        practiceDetails: practiceDetails ? {
+          name: practiceDetails.practice_name,
+          address: practiceDetails.address,
+          postcode: practiceDetails.postcode,
+        } : undefined,
+        logoUrl: practiceLogoUrl || undefined,
+      };
+      
+      await generatePolicyDocx(content, metadata, policyName, options);
       toast.success("Policy downloaded successfully");
     } catch (error) {
       console.error("Download error:", error);
@@ -122,6 +187,67 @@ export const PolicyPreviewPanel = ({
           </div>
         </div>
       )}
+
+      {/* Document Options */}
+      <Collapsible open={optionsOpen} onOpenChange={setOptionsOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            <Settings2 className="h-4 w-4" />
+            Document Options
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="show-logo" className="text-sm font-medium">
+                  Include Practice Logo
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Add your practice logo to the document header
+                </p>
+              </div>
+              <Switch
+                id="show-logo"
+                checked={showLogo}
+                onCheckedChange={setShowLogo}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="show-footer" className="text-sm font-medium">
+                  Include Practice Footer
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Add practice name and address to the footer
+                </p>
+              </div>
+              <Switch
+                id="show-footer"
+                checked={showFooter}
+                onCheckedChange={setShowFooter}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="show-page-numbers" className="text-sm font-medium">
+                  Include Page Numbers
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Add page numbers to each page footer
+                </p>
+              </div>
+              <Switch
+                id="show-page-numbers"
+                checked={showPageNumbers}
+                onCheckedChange={setShowPageNumbers}
+              />
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Action Buttons */}
       <div className="flex gap-3">
