@@ -79,13 +79,27 @@ const parseMarkdownContent = (
   };
 
   const formatInlineText = (text: string): React.ReactNode => {
-    // Handle bold text with **
-    const parts = text.split(/(\*\*[^*]+\*\*)/g);
+    // Split by placeholders first, then handle bold
+    const placeholderRegex = /(\[(?:PRACTICE TO COMPLETE|[A-Z][A-Za-z\s]*(?:TO COMPLETE)?)[^\]]*\])/g;
+    const parts = text.split(placeholderRegex);
+    
     return parts.map((part, i) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i}>{part.slice(2, -2)}</strong>;
+      // Check if this is a placeholder
+      if (part.match(/^\[(?:PRACTICE TO COMPLETE|[A-Z][A-Za-z\s]*(?:TO COMPLETE)?)/)) {
+        return (
+          <span key={i} className="font-bold" style={{ color: '#DC2626' }}>
+            {part}
+          </span>
+        );
       }
-      return part;
+      // Handle bold text with **
+      const boldParts = part.split(/(\*\*[^*]+\*\*)/g);
+      return boldParts.map((boldPart, j) => {
+        if (boldPart.startsWith('**') && boldPart.endsWith('**')) {
+          return <strong key={`${i}-${j}`}>{boldPart.slice(2, -2)}</strong>;
+        }
+        return boldPart;
+      });
     });
   };
 
@@ -254,13 +268,27 @@ const parseMarkdownContent = (
 };
 
 const formatInlineTextStatic = (text: string): React.ReactNode => {
-  // Handle bold text with ** and strip them
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  // Split by placeholders first, then handle bold
+  const placeholderRegex = /(\[(?:PRACTICE TO COMPLETE|[A-Z][A-Za-z\s]*(?:TO COMPLETE)?)[^\]]*\])/g;
+  const parts = text.split(placeholderRegex);
+  
   return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    // Check if this is a placeholder
+    if (part.match(/^\[(?:PRACTICE TO COMPLETE|[A-Z][A-Za-z\s]*(?:TO COMPLETE)?)/)) {
+      return (
+        <span key={i} className="font-bold" style={{ color: '#DC2626' }}>
+          {part}
+        </span>
+      );
     }
-    return part;
+    // Handle bold text with ** and strip them
+    const boldParts = part.split(/(\*\*[^*]+\*\*)/g);
+    return boldParts.map((boldPart, j) => {
+      if (boldPart.startsWith('**') && boldPart.endsWith('**')) {
+        return <strong key={`${i}-${j}`}>{boldPart.slice(2, -2)}</strong>;
+      }
+      return boldPart;
+    });
   });
 };
 
