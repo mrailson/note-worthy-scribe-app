@@ -886,10 +886,13 @@ export const SDAEstatesCapacity = () => {
 
           {/* Travel Times Analysis Section */}
           <div className="pt-4 border-t border-slate-200">
-            <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              Travel Times Analysis
-            </h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                Travel Times Analysis
+              </h4>
+              <span className="text-xs text-muted-foreground">Updated: 27 Jan 2026</span>
+            </div>
             <p className="text-sm text-slate-600 mb-3">
               Comprehensive drive time mapping supporting strategic planning for the SDA Pilot Programme.
             </p>
