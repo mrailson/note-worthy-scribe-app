@@ -833,8 +833,13 @@ export const SDAEstatesCapacity = () => {
       >
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <Badge className="bg-green-100 text-green-800 border-green-300">Confirmed</Badge>
+            <Badge className="bg-amber-100 text-amber-800 border-amber-300">In Progress - Awaiting Funding confirmation of Non GMS Space</Badge>
             <span className="font-medium text-slate-900">Brackley Medical Centre</span>
+            <span className="text-slate-600 text-sm">- Hub Location</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge className="bg-amber-100 text-amber-800 border-amber-300">In Progress - Awaiting Funding confirmation of Non GMS Space</Badge>
+            <span className="font-medium text-slate-900">Brook Health Centre</span>
             <span className="text-slate-600 text-sm">- Hub Location</span>
           </div>
           <div className="flex items-center gap-3">
