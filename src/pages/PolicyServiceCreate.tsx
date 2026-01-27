@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { PracticeDetailsForm } from "@/components/policy/PracticeDetailsForm";
 import { PolicyPreviewPanel } from "@/components/policy/PolicyPreviewPanel";
 import { usePolicyGeneration } from "@/hooks/usePolicyGeneration";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { PolicyReference } from "@/hooks/usePolicyReferenceLibrary";
 
@@ -33,14 +35,41 @@ interface PracticeDetails {
 
 const PolicyServiceCreate = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [selectedPolicy, setSelectedPolicy] = useState<PolicyReference | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
   const [generatedMetadata, setGeneratedMetadata] = useState<any>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
+  const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   
   const { generatePolicy, isGenerating } = usePolicyGeneration();
+
+  // Fetch practice logo URL
+  useEffect(() => {
+    const fetchPracticeLogo = async () => {
+      if (!user) return;
+      
+      try {
+        const { data } = await supabase
+          .from('practice_details')
+          .select('logo_url, practice_logo_url')
+          .eq('user_id', user.id)
+          .order('is_default', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (data) {
+          setPracticeLogoUrl(data.practice_logo_url || data.logo_url || null);
+        }
+      } catch (error) {
+        console.error('Error fetching practice logo:', error);
+      }
+    };
+    
+    fetchPracticeLogo();
+  }, [user]);
 
   const steps = [
     { number: 1, title: "Select Policy Type" },
@@ -182,6 +211,7 @@ const PolicyServiceCreate = () => {
                 policyName={selectedPolicy?.policy_name || "Policy"}
                 generationId={generationId}
                 practiceDetails={practiceDetails || undefined}
+                practiceLogoUrl={practiceLogoUrl}
               />
             )}
           </CardContent>
