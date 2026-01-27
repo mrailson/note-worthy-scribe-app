@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Search, Download, FileText, ChevronDown, ChevronRight, Loader2, Plus, Filter } from "lucide-react";
+import { ArrowLeft, Search, Download, FileText, ChevronDown, ChevronRight, Loader2, Plus, Filter, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePolicyReferenceLibrary } from "@/hooks/usePolicyReferenceLibrary";
+import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const categoryOrder = [
   'Clinical',
@@ -21,6 +23,7 @@ const categoryOrder = [
 
 const kloeOptions = ['All', 'Safe', 'Effective', 'Caring', 'Responsive', 'Well-led'] as const;
 const priorityOptions = ['All', 'Essential', 'Service-specific', 'Recommended'] as const;
+const statusOptions = ['All', 'Completed', 'Not Started'] as const;
 
 const kloeColors: Record<string, string> = {
   'Safe': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
@@ -39,10 +42,12 @@ const priorityColors: Record<string, string> = {
 const PolicyServiceChecklist = () => {
   const navigate = useNavigate();
   const { policies, isLoading } = usePolicyReferenceLibrary();
+  const { completions, isPolicyCompleted, getCompletionByPolicyId, getDaysUntilReview } = usePolicyCompletions();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<string[]>(categoryOrder);
   const [kloeFilter, setKloeFilter] = useState<string>("All");
   const [priorityFilter, setPriorityFilter] = useState<string>("All");
+  const [statusFilter, setStatusFilter] = useState<string>("All");
 
   const filteredPolicies = useMemo(() => {
     return policies.filter(p => {
@@ -50,9 +55,16 @@ const PolicyServiceChecklist = () => {
         p.description?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesKloe = kloeFilter === "All" || p.cqc_kloe === kloeFilter;
       const matchesPriority = priorityFilter === "All" || p.priority === priorityFilter;
-      return matchesSearch && matchesKloe && matchesPriority;
+      
+      // Status filter
+      const isCompleted = isPolicyCompleted(p.id);
+      const matchesStatus = statusFilter === "All" || 
+        (statusFilter === "Completed" && isCompleted) ||
+        (statusFilter === "Not Started" && !isCompleted);
+      
+      return matchesSearch && matchesKloe && matchesPriority && matchesStatus;
     });
-  }, [policies, searchQuery, kloeFilter, priorityFilter]);
+  }, [policies, searchQuery, kloeFilter, priorityFilter, statusFilter, isPolicyCompleted]);
 
   const groupedPolicies = useMemo(() => {
     return categoryOrder.reduce((acc, category) => {
@@ -75,6 +87,67 @@ const PolicyServiceChecklist = () => {
 
   const essentialCount = policies.filter(p => p.priority === 'Essential').length;
   const recommendedCount = policies.filter(p => p.priority === 'Recommended').length;
+  const completedCount = completions.length;
+
+  const getStatusIndicator = (policyId: string) => {
+    const completion = getCompletionByPolicyId(policyId);
+    if (!completion) return null;
+
+    const days = getDaysUntilReview(completion.review_date);
+    
+    if (days < 0) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge variant="destructive" className="gap-1 shrink-0">
+                <AlertTriangle className="h-3 w-3" />
+                Overdue
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Review overdue by {Math.abs(days)} days</p>
+              <p className="text-xs text-muted-foreground">Review date: {completion.review_date}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    } else if (days <= 30) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 gap-1 shrink-0">
+                <Clock className="h-3 w-3" />
+                {days}d
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Review due in {days} days</p>
+              <p className="text-xs text-muted-foreground">Review date: {completion.review_date}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    } else {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <Badge variant="outline" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 gap-1 shrink-0">
+                <CheckCircle2 className="h-3 w-3" />
+                Done
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Policy completed</p>
+              <p className="text-xs text-muted-foreground">Review in {days} days ({completion.review_date})</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -111,8 +184,14 @@ const PolicyServiceChecklist = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="pt-4 pb-4">
+              <div className="text-2xl font-bold text-green-600">{completedCount}</div>
+              <div className="text-xs text-muted-foreground">Completed</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-4">
               <div className="text-2xl font-bold text-primary">{essentialCount}</div>
-              <div className="text-xs text-muted-foreground">Essential Policies</div>
+              <div className="text-xs text-muted-foreground">Essential</div>
             </CardContent>
           </Card>
           <Card>
@@ -123,14 +202,8 @@ const PolicyServiceChecklist = () => {
           </Card>
           <Card>
             <CardContent className="pt-4 pb-4">
-              <div className="text-2xl font-bold text-primary">{categoryOrder.length}</div>
-              <div className="text-xs text-muted-foreground">Categories</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-4 pb-4">
-              <div className="text-2xl font-bold text-primary">5</div>
-              <div className="text-xs text-muted-foreground">CQC KLOEs</div>
+              <div className="text-2xl font-bold text-muted-foreground">{policies.length - completedCount}</div>
+              <div className="text-xs text-muted-foreground">Not Started</div>
             </CardContent>
           </Card>
         </div>
@@ -267,14 +340,17 @@ const PolicyServiceChecklist = () => {
                                   </Badge>
                                 </div>
                               </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleCreatePolicy(policy.id)}
-                              >
-                                <Plus className="h-3 w-3 mr-1" />
-                                Create
-                              </Button>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {getStatusIndicator(policy.id)}
+                                <Button
+                                  size="sm"
+                                  variant={isPolicyCompleted(policy.id) ? "ghost" : "outline"}
+                                  onClick={() => handleCreatePolicy(policy.id)}
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  {isPolicyCompleted(policy.id) ? "Update" : "Create"}
+                                </Button>
+                              </div>
                             </div>
                           ))}
                         </div>

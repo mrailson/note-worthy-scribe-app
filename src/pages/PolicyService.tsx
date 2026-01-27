@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
-import { FilePlus, RefreshCw, ClipboardList, FileText, Shield, ArrowRight, UserCog } from "lucide-react";
+import { FilePlus, RefreshCw, ClipboardList, FileText, Shield, ArrowRight, UserCog, FolderCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const PolicyService = () => {
@@ -15,6 +15,14 @@ const PolicyService = () => {
       action: () => navigate('/policy-service/create'),
       buttonText: "Get Started",
       variant: "default" as const,
+    },
+    {
+      title: "My Policies",
+      description: "View, download and manage your completed policies with review date tracking.",
+      icon: FolderCheck,
+      action: () => navigate('/policy-service/my-policies'),
+      buttonText: "View Policies",
+      variant: "outline" as const,
     },
     {
       title: "Update Existing Policy",

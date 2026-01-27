@@ -215,6 +215,8 @@ const PolicyServiceCreate = () => {
                 content={generatedContent}
                 metadata={generatedMetadata}
                 policyName={selectedPolicy?.policy_name || "Policy"}
+                policyReferenceId={selectedPolicy?.id}
+                practiceId={null}
                 generationId={generationId}
                 practiceDetails={practiceDetails || undefined}
                 practiceLogoUrl={practiceLogoUrl}

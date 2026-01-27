@@ -6296,6 +6296,69 @@ export type Database = {
         }
         Relationships: []
       }
+      policy_completions: {
+        Row: {
+          created_at: string
+          effective_date: string
+          id: string
+          metadata: Json
+          policy_content: string
+          policy_reference_id: string
+          policy_title: string
+          practice_id: string | null
+          review_date: string
+          status: string
+          updated_at: string
+          user_id: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date: string
+          id?: string
+          metadata?: Json
+          policy_content: string
+          policy_reference_id: string
+          policy_title: string
+          practice_id?: string | null
+          review_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          version?: string
+        }
+        Update: {
+          created_at?: string
+          effective_date?: string
+          id?: string
+          metadata?: Json
+          policy_content?: string
+          policy_reference_id?: string
+          policy_title?: string
+          practice_id?: string | null
+          review_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_completions_policy_reference_id_fkey"
+            columns: ["policy_reference_id"]
+            isOneToOne: false
+            referencedRelation: "policy_reference_library"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policy_completions_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       policy_generations: {
         Row: {
           created_at: string

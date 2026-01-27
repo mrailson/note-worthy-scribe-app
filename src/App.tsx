@@ -110,6 +110,7 @@ import PolicyService from "./pages/PolicyService";
 import PolicyServiceCreate from "./pages/PolicyServiceCreate";
 import PolicyServiceUpdate from "./pages/PolicyServiceUpdate";
 import PolicyServiceChecklist from "./pages/PolicyServiceChecklist";
+import PolicyServiceMyPolicies from "./pages/PolicyServiceMyPolicies";
 import PolicyServiceProfile from "./pages/PolicyServiceProfile";
 
 const App = () => {
@@ -352,6 +353,11 @@ const App = () => {
               <Route path="/policy-service/checklist" element={
                 <ProtectedRoute>
                   <PolicyServiceChecklist />
+                </ProtectedRoute>
+              } />
+              <Route path="/policy-service/my-policies" element={
+                <ProtectedRoute>
+                  <PolicyServiceMyPolicies />
                 </ProtectedRoute>
               } />
               <Route path="/policy-service/profile" element={
