@@ -5,10 +5,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Copy, Check, FileText, Calendar, BookOpen, Settings2 } from "lucide-react";
+import { Download, Copy, Check, FileText, Calendar, BookOpen, Settings2, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { generatePolicyDocx, PolicyDocxOptions } from "@/utils/generatePolicyDocx";
 import { PolicyDocumentPreview } from "./PolicyDocumentPreview";
+import { usePolicyCompletions } from "@/hooks/usePolicyCompletions";
 import {
   Collapsible,
   CollapsibleContent,
@@ -37,11 +38,14 @@ interface PolicyPreviewPanelProps {
   metadata: PolicyMetadata;
   policyName: string;
   generationId: string | null;
+  policyReferenceId?: string;
+  practiceId?: string | null;
   isUpdate?: boolean;
   practiceDetails?: PracticeDetails;
   practiceLogoUrl?: string | null;
   wasEnhanced?: boolean;
   enhancementWarning?: string | null;
+  onMarkCompleted?: () => void;
 }
 
 const STORAGE_KEY_SHOW_LOGO = 'policy_docx_show_logo';
@@ -56,15 +60,29 @@ export const PolicyPreviewPanel = ({
   metadata, 
   policyName,
   generationId,
+  policyReferenceId,
+  practiceId,
   isUpdate = false,
   practiceDetails,
   practiceLogoUrl,
   wasEnhanced = false,
   enhancementWarning,
+  onMarkCompleted,
 }: PolicyPreviewPanelProps) => {
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isMarkedComplete, setIsMarkedComplete] = useState(false);
+  
+  const { saveCompletion, isPolicyCompleted } = usePolicyCompletions(practiceId);
+  
+  // Check if already completed
+  useEffect(() => {
+    if (policyReferenceId) {
+      setIsMarkedComplete(isPolicyCompleted(policyReferenceId));
+    }
+  }, [policyReferenceId, isPolicyCompleted]);
   
   // Document options with localStorage persistence
   const [showLogo, setShowLogo] = useState(() => {
@@ -140,6 +158,31 @@ export const PolicyPreviewPanel = ({
       toast.error("Failed to download policy");
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleMarkAsCompleted = async () => {
+    if (!policyReferenceId) {
+      toast.error("Cannot save policy without reference ID");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const result = await saveCompletion({
+        policyReferenceId,
+        policyTitle: metadata.title,
+        policyContent: content,
+        metadata,
+        practiceId,
+      });
+
+      if (result) {
+        setIsMarkedComplete(true);
+        onMarkCompleted?.();
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -293,7 +336,7 @@ export const PolicyPreviewPanel = ({
       </Collapsible>
 
       {/* Action Buttons */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <Button onClick={handleDownload} disabled={isDownloading} className="flex-1 sm:flex-none">
           <Download className="h-4 w-4 mr-2" />
           {isDownloading ? "Downloading..." : "Download .docx"}
@@ -311,6 +354,33 @@ export const PolicyPreviewPanel = ({
             </>
           )}
         </Button>
+        
+        {/* Mark as Completed Button */}
+        {policyReferenceId && (
+          <Button 
+            variant={isMarkedComplete ? "default" : "secondary"}
+            onClick={handleMarkAsCompleted}
+            disabled={isSaving || isMarkedComplete}
+            className={isMarkedComplete ? "bg-green-600 hover:bg-green-700" : ""}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : isMarkedComplete ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Completed
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Mark as Completed
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       {/* Content Preview - matches Word document formatting */}
