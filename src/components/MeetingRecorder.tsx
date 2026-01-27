@@ -1260,6 +1260,7 @@ export const MeetingRecorder = ({
       });
 
       let chunkId = 0;
+      let isFirstChunk = true; // Track first chunk for fast processing
       
         const startNewChunk = () => {
           const currentChunkId = chunkId++;
@@ -1308,8 +1309,15 @@ export const MeetingRecorder = ({
 
         console.log(`🎵 Started chunk ${currentChunkId}`);
 
-        // Stop this chunk after 30 seconds (updated from 5s per ChatGPT recommendations)
-        // Longer chunks reduce mid-sentence truncation and improve sentence integrity
+        // FAST FIRST CHUNK: Process after 10s for quick user feedback
+        // Subsequent chunks use 30s for better transcription accuracy
+        const chunkDuration = isFirstChunk ? 10000 : 30000;
+        
+        if (isFirstChunk) {
+          console.log('⚡ First chunk: Processing after 10s for quick feedback');
+          isFirstChunk = false;
+        }
+
         const stopTimeout = setTimeout(() => {
           if (chunkRecorders.current.has(currentChunkId)) {
             const recorder = chunkRecorders.current.get(currentChunkId);
@@ -1318,7 +1326,7 @@ export const MeetingRecorder = ({
               chunkRecorders.current.delete(currentChunkId);
             }
           }
-        }, 30000);
+        }, chunkDuration);
 
         chunkIntervals.current.set(currentChunkId, stopTimeout);
       };
@@ -1326,43 +1334,51 @@ export const MeetingRecorder = ({
       // Start first chunk immediately
       startNewChunk();
 
-      // Start new chunks every 27 seconds (30 second chunks with 3 second overlap)
-      // Updated from 3s interval per ChatGPT recommendations for better sentence integrity
-      const chunkInterval = setInterval(() => {
-        // More robust check for recording state
-        if (isRecording && isRecordingRef.current && chunksStream && chunksStream.active) {
-          console.log(`🔄 Starting new chunk ${chunkId + 1} - system is active`);
-          
+      // FAST FIRST INTERVAL: Start second chunk after 10s, then use 27s intervals
+      setTimeout(() => {
+        if (isRecording && isRecordingRef.current && chunksStream?.active) {
+          console.log('🔄 Starting second chunk at 10s mark');
           startNewChunk();
           
-          // Force UI update to show transcription is active
-          showToast.info(`Recording chunk ${chunkId + 1}`, { section: 'meeting_manager',
-            description: `Continuous transcription active`,
-            duration: 1500
-          });
-        } else {
-          console.log(`🛑 Stopping chunk interval - recording state:`, {
-            isRecording,
-            isRecordingRef: isRecordingRef.current,
-            streamActive: chunksStream?.active
-          });
+          // Now set up the regular 27s interval for subsequent chunks
+          const chunkInterval = setInterval(() => {
+            if (isRecording && isRecordingRef.current && chunksStream && chunksStream.active) {
+              console.log(`🔄 Starting new chunk ${chunkId + 1} - system is active`);
+              
+              startNewChunk();
+              
+              // Force UI update to show transcription is active
+              showToast.info(`Recording chunk ${chunkId + 1}`, { section: 'meeting_manager',
+                description: `Continuous transcription active`,
+                duration: 1500
+              });
+            } else {
+              console.log(`🛑 Stopping chunk interval - recording state:`, {
+                isRecording,
+                isRecordingRef: isRecordingRef.current,
+                streamActive: chunksStream?.active
+              });
+              
+              clearInterval(chunkInterval);
+              
+              // Clean up audio monitoring
+              if (levelInterval) {
+                clearInterval(levelInterval);
+              }
+              // Clean up the chunks stream when recording stops
+              if (chunksStream) {
+                chunksStream.getTracks().forEach(track => track.stop());
+              }
+              // Clean up audio context
+              if (audioContext && audioContext.state !== 'closed') {
+                audioContext.close();
+              }
+            }
+          }, 27000); // 27 seconds = 30 second chunk - 3 second overlap
           
-          clearInterval(chunkInterval);
-          
-          // Clean up audio monitoring
-          if (levelInterval) {
-            clearInterval(levelInterval);
-          }
-          // Clean up the chunks stream when recording stops
-          if (chunksStream) {
-            chunksStream.getTracks().forEach(track => track.stop());
-          }
-          // Clean up audio context
-          if (audioContext && audioContext.state !== 'closed') {
-            audioContext.close();
-          }
+          segmentIntervalRef.current = chunkInterval;
         }
-      }, 27000); // 27 seconds = 30 second chunk - 3 second overlap
+      }, 10000); // First interval fires at 10s to match fast first chunk
 
       // Add a heartbeat to show recording is active every 5 seconds
       const heartbeatInterval = setInterval(() => {
@@ -1379,9 +1395,7 @@ export const MeetingRecorder = ({
         }
       }, 5000); // Every 5 seconds for frequent feedback
 
-      segmentIntervalRef.current = chunkInterval;
-
-      console.log('✅ Overlapping chunk recording started with independent stream');
+      console.log('✅ Overlapping chunk recording started with fast first chunk (10s)');
       
     } catch (error) {
       console.error('❌ Failed to start overlapping chunk recording:', error);
