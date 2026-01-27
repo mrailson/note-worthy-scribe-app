@@ -449,3 +449,6 @@ verify_jwt = false
 
 [functions.extract-policy-text]
 verify_jwt = false
+
+[functions.enhance-policy]
+verify_jwt = false

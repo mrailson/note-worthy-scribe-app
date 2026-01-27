@@ -43,8 +43,10 @@ const PolicyServiceCreate = () => {
   const [generatedMetadata, setGeneratedMetadata] = useState<any>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
+  const [wasEnhanced, setWasEnhanced] = useState(false);
+  const [enhancementWarning, setEnhancementWarning] = useState<string | null>(null);
   
-  const { generatePolicy, isGenerating } = usePolicyGeneration();
+  const { generatePolicy, isGenerating, isEnhancing } = usePolicyGeneration();
 
   // Fetch practice logo URL
   useEffect(() => {
@@ -101,6 +103,8 @@ const PolicyServiceCreate = () => {
         setGeneratedContent(result.content);
         setGeneratedMetadata(result.metadata);
         setGenerationId(result.generationId);
+        setWasEnhanced(result.enhanced);
+        setEnhancementWarning(result.enhancementWarning || null);
         setStep(3);
       }
     } catch (error) {
@@ -212,6 +216,8 @@ const PolicyServiceCreate = () => {
                 generationId={generationId}
                 practiceDetails={practiceDetails || undefined}
                 practiceLogoUrl={practiceLogoUrl}
+                wasEnhanced={wasEnhanced}
+                enhancementWarning={enhancementWarning}
               />
             )}
           </CardContent>
@@ -225,11 +231,16 @@ const PolicyServiceCreate = () => {
           </Button>
           
           {step < 3 && (
-            <Button onClick={handleNext} disabled={isGenerating}>
+            <Button onClick={handleNext} disabled={isGenerating || isEnhancing}>
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Generating Policy...
+                </>
+              ) : isEnhancing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Enhancing for CQC...
                 </>
               ) : (
                 <>

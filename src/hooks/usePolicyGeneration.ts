@@ -26,6 +26,7 @@ interface GeneratePolicyParams {
   policyReferenceId: string;
   practiceDetails: PracticeDetails;
   customInstructions?: string;
+  skipEnhancement?: boolean;
 }
 
 interface GenerationResult {
@@ -38,11 +39,61 @@ interface GenerationResult {
     references: string[];
   };
   generationId: string;
+  enhanced: boolean;
+  enhancementWarning?: string;
 }
 
 export const usePolicyGeneration = () => {
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+
+  const enhancePolicy = async (
+    generatedPolicy: string,
+    policyType: string,
+    practiceName: string,
+    odsCode: string
+  ): Promise<{ enhanced: boolean; content: string; warning?: string }> => {
+    try {
+      console.log('Enhancing policy with Claude API...', { policyType, practiceName });
+      
+      const { data, error } = await supabase.functions.invoke('enhance-policy', {
+        body: {
+          generatedPolicy,
+          policyType,
+          practiceName,
+          odsCode,
+        },
+      });
+
+      if (error) {
+        console.error('Policy enhancement error:', error);
+        return { 
+          enhanced: false, 
+          content: generatedPolicy, 
+          warning: 'Enhancement service unavailable. Original policy returned.' 
+        };
+      }
+
+      if (data?.enhanced) {
+        console.log('Policy enhanced successfully');
+        return { enhanced: true, content: data.enhancedPolicy };
+      }
+
+      return { 
+        enhanced: false, 
+        content: data?.enhancedPolicy || generatedPolicy,
+        warning: data?.warning || 'Enhancement could not be completed.'
+      };
+    } catch (error) {
+      console.error('Policy enhancement error:', error);
+      return { 
+        enhanced: false, 
+        content: generatedPolicy, 
+        warning: 'Enhancement service temporarily unavailable.' 
+      };
+    }
+  };
 
   const generatePolicy = async (params: GeneratePolicyParams): Promise<GenerationResult | null> => {
     if (!user) {
@@ -53,6 +104,7 @@ export const usePolicyGeneration = () => {
     setIsGenerating(true);
 
     try {
+      // Step 1: Generate initial policy
       const { data, error } = await supabase.functions.invoke('generate-policy', {
         body: {
           policy_reference_id: params.policyReferenceId,
@@ -70,10 +122,43 @@ export const usePolicyGeneration = () => {
         throw new Error(data?.error || 'Policy generation failed');
       }
 
+      let finalContent = data.content;
+      let enhanced = false;
+      let enhancementWarning: string | undefined;
+
+      // Step 2: Enhance policy with Claude API (unless skipped)
+      if (!params.skipEnhancement) {
+        setIsGenerating(false);
+        setIsEnhancing(true);
+        
+        toast.info('Enhancing policy against NHS regulatory requirements...', {
+          duration: 5000,
+        });
+
+        const enhancementResult = await enhancePolicy(
+          data.content,
+          data.metadata?.title || 'Policy',
+          params.practiceDetails.practice_name,
+          params.practiceDetails.ods_code
+        );
+
+        finalContent = enhancementResult.content;
+        enhanced = enhancementResult.enhanced;
+        enhancementWarning = enhancementResult.warning;
+
+        if (enhanced) {
+          toast.success('Policy enhanced with CQC compliance checks');
+        } else if (enhancementWarning) {
+          toast.warning(enhancementWarning, { duration: 6000 });
+        }
+      }
+
       return {
-        content: data.content,
+        content: finalContent,
         metadata: data.metadata,
         generationId: data.generation_id,
+        enhanced,
+        enhancementWarning,
       };
     } catch (error) {
       console.error('Policy generation error:', error);
@@ -81,11 +166,13 @@ export const usePolicyGeneration = () => {
       return null;
     } finally {
       setIsGenerating(false);
+      setIsEnhancing(false);
     }
   };
 
   return {
     generatePolicy,
     isGenerating,
+    isEnhancing,
   };
 };
