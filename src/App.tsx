@@ -332,6 +332,28 @@ const App = () => {
               <Route path="/survey/:token" element={<PublicSurvey />} />
               <Route path="/s/:token" element={<PublicSurvey />} />
               
+              {/* Policy Service Routes */}
+              <Route path="/policy-service" element={
+                <ProtectedRoute>
+                  <PolicyService />
+                </ProtectedRoute>
+              } />
+              <Route path="/policy-service/create" element={
+                <ProtectedRoute>
+                  <PolicyServiceCreate />
+                </ProtectedRoute>
+              } />
+              <Route path="/policy-service/update" element={
+                <ProtectedRoute>
+                  <PolicyServiceUpdate />
+                </ProtectedRoute>
+              } />
+              <Route path="/policy-service/checklist" element={
+                <ProtectedRoute>
+                  <PolicyServiceChecklist />
+                </ProtectedRoute>
+              } />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
