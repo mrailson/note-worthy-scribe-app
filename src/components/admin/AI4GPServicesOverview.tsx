@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Bot, Image, Presentation } from 'lucide-react';
+import { Bot, Image, Presentation, FileText } from 'lucide-react';
 import { GenieUsageReport } from './GenieUsageReport';
 import { ImageUsageReport } from './ImageUsageReport';
 import { PresentationUsageReport } from './PresentationUsageReport';
+import { PolicyUsageReport } from './PolicyUsageReport';
 
 export const AI4GPServicesOverview = () => {
   const [activeTab, setActiveTab] = useState('genie');
@@ -23,7 +24,7 @@ export const AI4GPServicesOverview = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="genie" className="flex items-center gap-2">
                 <Bot className="h-4 w-4" />
                 <span className="hidden sm:inline">Genie Chats</span>
@@ -39,6 +40,11 @@ export const AI4GPServicesOverview = () => {
                 <span className="hidden sm:inline">Presentations</span>
                 <span className="sm:hidden">PPT</span>
               </TabsTrigger>
+              <TabsTrigger value="policies" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Notewell Policies</span>
+                <span className="sm:hidden">Policies</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="genie" className="mt-6">
@@ -51,6 +57,10 @@ export const AI4GPServicesOverview = () => {
 
             <TabsContent value="presentations" className="mt-6">
               <PresentationUsageReport />
+            </TabsContent>
+
+            <TabsContent value="policies" className="mt-6">
+              <PolicyUsageReport />
             </TabsContent>
           </Tabs>
         </CardContent>

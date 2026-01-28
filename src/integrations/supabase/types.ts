@@ -9803,6 +9803,25 @@ export type Database = {
         Args: { _user_id?: string }
         Returns: string[]
       }
+      get_policy_usage_report: {
+        Args: never
+        Returns: {
+          business_continuity_count: number
+          clinical_count: number
+          email: string
+          full_name: string
+          health_safety_count: number
+          hr_count: number
+          info_governance_count: number
+          last_24h: number
+          last_30d: number
+          last_7d: number
+          last_created: string
+          patient_services_count: number
+          total_policies: number
+          user_id: string
+        }[]
+      }
       get_practice_manager_assignable_roles: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"][]
