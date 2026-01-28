@@ -20,6 +20,7 @@ import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { ComplaintSignatureSettings } from "@/components/ComplaintSignatureSettings";
 import { ComplaintImport } from "@/components/ComplaintImport";
+import { PatientDetailsImportModal, PatientDetailsData } from "@/components/complaints/PatientDetailsImportModal";
 import { ComplianceCheckCleanupButton } from "@/components/ComplianceCheckCleanupButton";
 import { HierarchicalReports } from "@/components/complaints/HierarchicalReports";
 import { ComplaintsSummaryView } from "@/components/complaints/ComplaintsSummaryView";
@@ -73,7 +74,8 @@ import {
   Copy,
   FlaskConical,
   LayoutGrid,
-  List
+  List,
+  UserPlus
 } from "lucide-react";
 import { format } from "date-fns";
 import { showToast } from "@/utils/toastWrapper";
@@ -232,6 +234,7 @@ const ComplaintsSystem = () => {
   
   // Import complaint states
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showPatientImportModal, setShowPatientImportModal] = useState(false);
 
   // Fetch audit logs when audit tab is selected
   useEffect(() => {
@@ -706,6 +709,19 @@ const ComplaintsSystem = () => {
     }));
     setShowImportModal(false);
     showToast.success("Complaint data imported successfully!", { section: 'complaints' });
+  };
+
+  // Handle patient details import (patient-only fields)
+  const handlePatientImport = (patientData: PatientDetailsData) => {
+    setFormData(prev => ({
+      ...prev,
+      patient_name: patientData.patient_name || prev.patient_name,
+      patient_dob: patientData.patient_dob || prev.patient_dob,
+      patient_contact_phone: patientData.patient_contact_phone || prev.patient_contact_phone,
+      patient_contact_email: patientData.patient_contact_email || prev.patient_contact_email,
+      patient_address: patientData.patient_address || prev.patient_address,
+    }));
+    setShowPatientImportModal(false);
   };
 
   const handleGenerateAcknowledgement = async (complaintId: string) => {
@@ -2353,15 +2369,28 @@ const ComplaintsSystem = () => {
                       <span className="sm:hidden">Record new patient complaint</span>
                     </CardDescription>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowImportModal(true)}
-                    className="flex items-center gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Import Complaint Data
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowPatientImportModal(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Import Patient Details</span>
+                      <span className="sm:hidden">Patient</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowImportModal(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span className="hidden sm:inline">Import Complaint Data</span>
+                      <span className="sm:hidden">Complaint</span>
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="px-3 sm:px-6">
@@ -3855,6 +3884,13 @@ const ComplaintsSystem = () => {
              onClose={() => setShowImportModal(false)}
            />
          )}
+         
+         {/* Import Patient Details Modal */}
+         <PatientDetailsImportModal
+           isOpen={showPatientImportModal}
+           onClose={() => setShowPatientImportModal(false)}
+           onImport={handlePatientImport}
+         />
        </div>
      );
    };
