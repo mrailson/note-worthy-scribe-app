@@ -5,9 +5,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Sparkles, Zap, DollarSign } from 'lucide-react';
+import { Sparkles, Zap, PoundSterling, Brain } from 'lucide-react';
 
-type ModelOption = 'claude' | 'gemini';
+type ModelOption = 'claude' | 'gemini' | 'openai';
 
 export const PolicyEnhancementModelSettings = () => {
   const [selectedModel, setSelectedModel] = useState<ModelOption>('claude');
@@ -78,7 +78,12 @@ export const PolicyEnhancementModelSettings = () => {
       }
 
       setSelectedModel(value);
-      toast.success(`Policy enhancement model changed to ${value === 'claude' ? 'Claude Sonnet 4' : 'Gemini 3 Flash'}`);
+      const modelNames = {
+        claude: 'Claude Sonnet 4',
+        gemini: 'Gemini 3 Flash',
+        openai: 'OpenAI GPT-5'
+      };
+      toast.success(`Policy enhancement model changed to ${modelNames[value]}`);
     } catch (error) {
       console.error('Error saving setting:', error);
       toast.error('Failed to save setting');
@@ -137,8 +142,31 @@ export const PolicyEnhancementModelSettings = () => {
                   Highest quality
                 </span>
                 <span className="flex items-center gap-1">
-                  <DollarSign className="h-3 w-3" />
+                  <PoundSterling className="h-3 w-3" />
                   ~4.5p per policy
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+            <RadioGroupItem value="openai" id="openai" className="mt-1" />
+            <div className="flex-1">
+              <Label htmlFor="openai" className="flex items-center gap-2 cursor-pointer font-medium">
+                OpenAI GPT-5
+                <Badge variant="outline" className="text-xs">Premium</Badge>
+              </Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                OpenAI's latest model with strong reasoning. Excellent for complex policy requirements.
+              </p>
+              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Brain className="h-3 w-3" />
+                  Advanced reasoning
+                </span>
+                <span className="flex items-center gap-1">
+                  <PoundSterling className="h-3 w-3" />
+                  ~3.5p per policy
                 </span>
               </div>
             </div>
@@ -160,7 +188,7 @@ export const PolicyEnhancementModelSettings = () => {
                   Fastest
                 </span>
                 <span className="flex items-center gap-1">
-                  <DollarSign className="h-3 w-3" />
+                  <PoundSterling className="h-3 w-3" />
                   ~0.5p per policy
                 </span>
               </div>

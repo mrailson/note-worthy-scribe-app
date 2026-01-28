@@ -465,20 +465,14 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
     // Check which model to use from system settings
-    let useGemini = false;
+    let settingData: any = null;
     try {
-      const { data: settingData } = await supabase
+      const { data } = await supabase
         .from('system_settings')
         .select('setting_value')
         .eq('setting_key', 'policy_enhancement_model')
         .single();
-      
-      if (settingData?.setting_value) {
-        const value = typeof settingData.setting_value === 'string' 
-          ? settingData.setting_value 
-          : (settingData.setting_value as { model?: string })?.model;
-        useGemini = value === 'gemini';
-      }
+      settingData = data;
     } catch (e) {
       console.log('Could not read model setting, defaulting to Claude:', e);
     }
@@ -492,7 +486,13 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Enhancing policy: ${policyType} for ${practiceName || 'Unknown Practice'} using ${useGemini ? 'Gemini' : 'Claude'}`);
+    const modelSetting = (settingData?.setting_value as { model?: string })?.model || 'claude';
+    const modelNames: Record<string, string> = {
+      claude: 'Claude Sonnet 4',
+      gemini: 'Gemini 3 Flash',
+      openai: 'OpenAI GPT-5'
+    };
+    console.log(`Enhancing policy: ${policyType} for ${practiceName || 'Unknown Practice'} using ${modelNames[modelSetting] || modelSetting}`);
 
     const userMessage = `Practice: ${practiceName || '[PRACTICE NAME]'} (ODS: ${odsCode || '[ODS CODE]'})
 Policy Type: ${policyType}
@@ -505,7 +505,7 @@ ${generatedPolicy}`;
     let modelUsed: string;
     let usage: any;
 
-    if (useGemini) {
+    if (modelSetting === 'gemini') {
       // Use Gemini via Lovable AI Gateway
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) {
@@ -563,8 +563,66 @@ ${generatedPolicy}`;
       enhancedPolicy = data.choices?.[0]?.message?.content || generatedPolicy;
       modelUsed = "google/gemini-3-flash-preview";
       usage = data.usage;
+    } else if (modelSetting === 'openai') {
+      // Use OpenAI GPT-5 via Lovable AI Gateway
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) {
+        console.error("LOVABLE_API_KEY is not configured");
+        return new Response(
+          JSON.stringify({ error: "API key not configured", enhanced: false }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-5",
+          messages: [
+            { role: "system", content: POLICY_ENHANCEMENT_SYSTEM_PROMPT },
+            { role: "user", content: userMessage },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("OpenAI API error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limits exceeded, please try again later.", enhanced: false }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "Payment required, please add funds to your workspace.", enhanced: false }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({
+            enhanced: false,
+            enhancedPolicy: generatedPolicy,
+            warning: "Enhancement service temporarily unavailable. Original policy returned.",
+            error: `API error: ${response.status}`,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const data = await response.json();
+      enhancedPolicy = data.choices?.[0]?.message?.content || generatedPolicy;
+      modelUsed = "openai/gpt-5";
+      usage = data.usage;
     } else {
-      // Use Claude via Anthropic API
+      // Use Claude via Anthropic API (default)
       const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
       if (!ANTHROPIC_API_KEY) {
         console.error("ANTHROPIC_API_KEY is not configured");
