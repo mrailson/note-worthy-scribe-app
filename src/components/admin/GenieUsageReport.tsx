@@ -279,62 +279,6 @@ export const GenieUsageReport = () => {
 
   return (
     <div className="space-y-6">
-      {/* Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Today */}
-        <div className="border rounded-lg p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Today</span>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-green-600">{systemStats?.last_24h || 0}</span>
-            <span className="text-sm text-muted-foreground">chats</span>
-          </div>
-        </div>
-
-        {/* Last 7 Days */}
-        <div className="border rounded-lg p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Last 7 Days</span>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-blue-600">{systemStats?.last_7d || 0}</span>
-            <span className="text-sm text-muted-foreground">chats</span>
-          </div>
-        </div>
-
-        {/* Last 30 Days */}
-        <div className="border rounded-lg p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Last 30 Days</span>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">{systemStats?.last_30d || 0}</span>
-            <span className="text-sm text-muted-foreground">chats</span>
-          </div>
-        </div>
-
-        {/* All Time */}
-        <div className="border rounded-lg p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">All Time</span>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">{systemStats?.total_chats || 0}</span>
-            <span className="text-sm text-muted-foreground">chats</span>
-          </div>
-          <div className="text-xs text-muted-foreground border-t pt-2 space-y-1">
-            <div className="flex justify-between">
-              <span>Total messages:</span>
-              <span className="font-medium text-foreground">{systemStats?.total_messages || 0}</span>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* All-Time Service Breakdown */}
       <Card>
