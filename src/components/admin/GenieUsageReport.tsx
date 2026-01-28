@@ -4,7 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Bot, Clock, Users, Calendar, TrendingUp, ChevronDown, ChevronUp, MessageCircle, Image, Presentation, Activity, Mic } from 'lucide-react';
+import { Bot, Clock, Users, Calendar, TrendingUp, ChevronDown, ChevronUp, MessageCircle, Image, Presentation, Activity, Mic, ChevronRight } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -105,6 +107,7 @@ export const GenieUsageReport = () => {
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('total');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [isUserTableOpen, setIsUserTableOpen] = useState(false);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -343,90 +346,98 @@ export const GenieUsageReport = () => {
         </CardContent>
       </Card>
 
-      {/* Per-User Table */}
-      <div>
-        <h4 className="text-sm font-medium mb-3">Usage by User</h4>
-        <div className="rounded-md border overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <SortableHeader field="user">User</SortableHeader>
-                <SortableHeader field="ai4gp" className="text-center">AI4GP</SortableHeader>
-                <SortableHeader field="gp_genie" className="text-center">GP Genie</SortableHeader>
-                <SortableHeader field="pm_genie" className="text-center">PM Genie</SortableHeader>
-                <SortableHeader field="patient_line" className="text-center">Patient Line</SortableHeader>
-                <SortableHeader field="total" className="text-center">Total</SortableHeader>
-                <SortableHeader field="messages" className="text-center">Messages</SortableHeader>
-                <SortableHeader field="last_active" className="text-right">Last Active</SortableHeader>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedUserStats.length === 0 ? (
+      {/* Per-User Table - Collapsible */}
+      <Collapsible open={isUserTableOpen} onOpenChange={setIsUserTableOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="flex items-center gap-2 p-0 h-auto hover:bg-transparent">
+            <ChevronRight className={cn("h-4 w-4 transition-transform", isUserTableOpen && "rotate-90")} />
+            <h4 className="text-sm font-medium">Usage by User</h4>
+            <Badge variant="secondary" className="ml-2">{sortedUserStats.length} users</Badge>
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-3">
+          <div className="rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                    No Genie chats found
-                  </TableCell>
+                  <SortableHeader field="user">User</SortableHeader>
+                  <SortableHeader field="ai4gp" className="text-center">AI4GP</SortableHeader>
+                  <SortableHeader field="gp_genie" className="text-center">GP Genie</SortableHeader>
+                  <SortableHeader field="pm_genie" className="text-center">PM Genie</SortableHeader>
+                  <SortableHeader field="patient_line" className="text-center">Patient Line</SortableHeader>
+                  <SortableHeader field="total" className="text-center">Total</SortableHeader>
+                  <SortableHeader field="messages" className="text-center">Messages</SortableHeader>
+                  <SortableHeader field="last_active" className="text-right">Last Active</SortableHeader>
                 </TableRow>
-              ) : (
-                sortedUserStats.map((user) => (
-                  <TableRow key={user.user_id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{user.full_name || 'Unnamed User'}</div>
-                        <div className="text-xs text-muted-foreground">{user.email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.ai4gp_count > 0 ? (
-                        <Badge variant="outline" className="text-amber-600">{user.ai4gp_count}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.gp_genie_count > 0 ? (
-                        <Badge variant="outline" className="text-purple-600">{user.gp_genie_count}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.pm_genie_count > 0 ? (
-                        <Badge variant="outline" className="text-blue-600">{user.pm_genie_count}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {user.patient_line_count > 0 ? (
-                        <Badge variant="outline" className="text-green-600">{user.patient_line_count}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="secondary">{user.total_chats}</Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="text-sm">{user.total_messages}</span>
-                    </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground">
-                      {user.last_active ? (
-                        <div className="flex items-center justify-end gap-1">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(user.last_active), 'dd/MM/yyyy HH:mm')}
-                        </div>
-                      ) : (
-                        <span>-</span>
-                      )}
+              </TableHeader>
+              <TableBody>
+                {sortedUserStats.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      No Genie chats found
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+                ) : (
+                  sortedUserStats.map((user) => (
+                    <TableRow key={user.user_id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{user.full_name || 'Unnamed User'}</div>
+                          <div className="text-xs text-muted-foreground">{user.email}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {user.ai4gp_count > 0 ? (
+                          <Badge variant="outline" className="text-amber-600">{user.ai4gp_count}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {user.gp_genie_count > 0 ? (
+                          <Badge variant="outline" className="text-purple-600">{user.gp_genie_count}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {user.pm_genie_count > 0 ? (
+                          <Badge variant="outline" className="text-blue-600">{user.pm_genie_count}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {user.patient_line_count > 0 ? (
+                          <Badge variant="outline" className="text-green-600">{user.patient_line_count}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="secondary">{user.total_chats}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="text-sm">{user.total_messages}</span>
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground">
+                        {user.last_active ? (
+                          <div className="flex items-center justify-end gap-1">
+                            <Clock className="h-3 w-3" />
+                            {format(new Date(user.last_active), 'dd/MM/yyyy HH:mm')}
+                          </div>
+                        ) : (
+                          <span>-</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 };
