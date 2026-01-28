@@ -33,6 +33,13 @@ interface PracticeDetails {
   fire_safety_officer: string;
   list_size: number | null;
   services_offered: Record<string, boolean>;
+  // Branch site fields
+  clinical_system?: string;
+  has_branch_site?: boolean;
+  branch_site_name?: string;
+  branch_site_address?: string;
+  branch_site_postcode?: string;
+  branch_site_phone?: string;
 }
 
 const PolicyServiceCreate = () => {

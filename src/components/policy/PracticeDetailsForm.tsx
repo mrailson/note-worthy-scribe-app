@@ -41,6 +41,13 @@ interface PracticeDetails {
   fire_safety_officer: string;
   list_size: number | null;
   services_offered: Record<string, boolean>;
+  // Branch site fields
+  clinical_system?: string;
+  has_branch_site?: boolean;
+  branch_site_name?: string;
+  branch_site_address?: string;
+  branch_site_postcode?: string;
+  branch_site_phone?: string;
 }
 
 interface PracticeDetailsFormProps {
@@ -68,6 +75,12 @@ const defaultDetails: PracticeDetails = {
   fire_safety_officer: "",
   list_size: null,
   services_offered: {},
+  clinical_system: "",
+  has_branch_site: false,
+  branch_site_name: "",
+  branch_site_address: "",
+  branch_site_postcode: "",
+  branch_site_phone: "",
 };
 
 const serviceOptions = [
@@ -219,6 +232,13 @@ export const PracticeDetailsForm = ({ selectedPolicy, onSubmit, initialData }: P
             services_offered: Object.keys(prev.services_offered || {}).length > 0
               ? prev.services_offered
               : (pd.services_offered || {}),
+            // Branch site fields
+            clinical_system: prev.clinical_system || pd.clinical_system || "",
+            has_branch_site: prev.has_branch_site ?? pd.has_branch_site ?? false,
+            branch_site_name: prev.branch_site_name || pd.branch_site_name || "",
+            branch_site_address: prev.branch_site_address || pd.branch_site_address || "",
+            branch_site_postcode: prev.branch_site_postcode || pd.branch_site_postcode || "",
+            branch_site_phone: prev.branch_site_phone || pd.branch_site_phone || "",
           }));
           // Do NOT return here: some installs store address in gp_practices, while practice_details may only contain logo.
         }
