@@ -127,6 +127,7 @@ const SystemAdmin = () => {
   const { user, refreshUserModules } = useAuth();
   const { maintenanceMode, updateMaintenanceMode } = useMaintenanceMode();
   const [activeTab, setActiveTab] = useState('overview');
+  const [monitoringSubTab, setMonitoringSubTab] = useState('system');
   const [securityTab, setSecurityTab] = useState('monitoring');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -1956,21 +1957,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <span className="hidden sm:inline">System Monitoring</span>
               <span className="sm:hidden">Monitor</span>
             </TabsTrigger>
-            <TabsTrigger value="lg-capture" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
-              <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">LG Capture</span>
-              <span className="sm:hidden">LG</span>
-            </TabsTrigger>
-            <TabsTrigger value="gp-scribe" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
-              <Mic className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">GP Scribe</span>
-              <span className="sm:hidden">Scribe</span>
-            </TabsTrigger>
-            <TabsTrigger value="meeting-service" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
-              <Database className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Meeting Service</span>
-              <span className="sm:hidden">Meetings</span>
-            </TabsTrigger>
             <TabsTrigger value="ai4gp-services" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
               <Bot className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Pilot Usage Report</span>
@@ -2326,20 +2312,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
           </TabsContent>
 
-          {/* Meeting Service Tab */}
-          <TabsContent value="meeting-service" className="space-y-6">
-            {/* Live and Recent Meetings */}
-            <LiveAndRecentMeetings />
-
-            {/* Orphaned Whisper Connections */}
-            <OrphanedWhisperMonitor />
-
-            {/* Meeting Usage Report */}
-            <MeetingUsageReport />
-
-            {/* Meeting Statistics by User */}
-            <MeetingStatsByUser />
-          </TabsContent>
 
           {/* AI4GP Services Tab */}
           <TabsContent value="ai4gp-services" className="space-y-6">
@@ -4241,154 +4213,206 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
           {/* System Monitoring Tab */}
           <TabsContent value="monitoring" className="space-y-6">
-            <SystemMonitoringDashboard />
-            
-            {/* Database Maintenance Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="h-5 w-5" />
-                  Database Maintenance
-                </CardTitle>
-                <CardDescription>
-                  Manage database cleanup and maintenance tasks
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-semibold mb-2 flex items-center gap-2">
-                    <Trash2 className="h-4 w-4" />
-                    Empty Meetings Cleanup
-                  </h4>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Remove meetings with zero word count that are older than 5 hours. This runs automatically daily at 2 AM.
-                  </p>
-                  <Button
-                    onClick={async () => {
-                      try {
-                        const { data, error } = await supabase.functions.invoke('cleanup-empty-meetings');
-                        if (error) throw error;
-                        toast.success(`Cleanup completed: ${data.message}`);
-                      } catch (error) {
-                        console.error('Cleanup error:', error);
-                        toast.error('Failed to run cleanup: ' + error.message);
-                      }
-                    }}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Run Manual Cleanup
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Legacy Connection Stats and Incidents - Keep for reference */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Connection Stats */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5" />
-                    API Connections
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">OpenAI</span>
-                      <span className="font-medium">{connectionStats.openaiConnections}/200</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Deepgram</span>
-                      <span className="font-medium">{connectionStats.deepgramConnections}/100</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">ElevenLabs</span>
-                      <span className="font-medium">{connectionStats.elevenlabsConnections}/50</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm">Supabase DB</span>
-                      <span className="font-medium">{connectionStats.supabaseDbConnections}/60</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <Tabs value={monitoringSubTab} onValueChange={setMonitoringSubTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-4 h-auto mb-6">
+                <TabsTrigger value="system" className="flex items-center gap-2 text-xs sm:text-sm p-2">
+                  <Activity className="h-4 w-4" />
+                  <span className="hidden sm:inline">System</span>
+                </TabsTrigger>
+                <TabsTrigger value="lg-capture" className="flex items-center gap-2 text-xs sm:text-sm p-2">
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">LG Capture</span>
+                  <span className="sm:hidden">LG</span>
+                </TabsTrigger>
+                <TabsTrigger value="gp-scribe" className="flex items-center gap-2 text-xs sm:text-sm p-2">
+                  <Mic className="h-4 w-4" />
+                  <span className="hidden sm:inline">GP Scribe</span>
+                  <span className="sm:hidden">Scribe</span>
+                </TabsTrigger>
+                <TabsTrigger value="meeting-service" className="flex items-center gap-2 text-xs sm:text-sm p-2">
+                  <Database className="h-4 w-4" />
+                  <span className="hidden sm:inline">Meeting Service</span>
+                  <span className="sm:hidden">Meetings</span>
+                </TabsTrigger>
+              </TabsList>
 
-              {/* Security Events */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    Recent Security Events
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {securityEvents.slice(0, 5).map((event, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 border rounded">
-                        <div>
-                          <p className="text-sm font-medium">{event.event_type}</p>
-                          <p className="text-xs text-muted-foreground">{event.user_email}</p>
+              {/* System Sub-Tab */}
+              <TabsContent value="system" className="space-y-6">
+                <SystemMonitoringDashboard />
+                
+                {/* Database Maintenance Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Database className="h-5 w-5" />
+                      Database Maintenance
+                    </CardTitle>
+                    <CardDescription>
+                      Manage database cleanup and maintenance tasks
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-semibold mb-2 flex items-center gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        Empty Meetings Cleanup
+                      </h4>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Remove meetings with zero word count that are older than 5 hours. This runs automatically daily at 2 AM.
+                      </p>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const { data, error } = await supabase.functions.invoke('cleanup-empty-meetings');
+                            if (error) throw error;
+                            toast.success(`Cleanup completed: ${data.message}`);
+                          } catch (error) {
+                            console.error('Cleanup error:', error);
+                            toast.error('Failed to run cleanup: ' + error.message);
+                          }
+                        }}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Run Manual Cleanup
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Legacy Connection Stats and Incidents - Keep for reference */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Connection Stats */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Activity className="h-5 w-5" />
+                        API Connections
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">OpenAI</span>
+                          <span className="font-medium">{connectionStats.openaiConnections}/200</span>
                         </div>
-                        <Badge variant={event.severity === 'critical' ? 'destructive' : 'secondary'}>
-                          {event.severity}
-                        </Badge>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Deepgram</span>
+                          <span className="font-medium">{connectionStats.deepgramConnections}/100</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">ElevenLabs</span>
+                          <span className="font-medium">{connectionStats.elevenlabsConnections}/50</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Supabase DB</span>
+                          <span className="font-medium">{connectionStats.supabaseDbConnections}/60</span>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
 
-              {/* Supplier Incidents */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Supplier Incidents
-                  </CardTitle>
-                  <Button size="sm" className="h-8" onClick={() => setShowAddIncidentModal(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Incident
-                  </Button>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {supplierIncidents.slice(0, 3).map((incident: any, index) => (
-                      <div key={index} className="p-3 border rounded">
-                        <p className="text-sm font-medium">{incident.supplier_name}</p>
-                        <p className="text-xs text-muted-foreground">{incident.incident_type}</p>
-                        <Badge variant="outline" className="mt-1">
-                          {incident.severity}
-                        </Badge>
+                  {/* Security Events */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Shield className="h-5 w-5" />
+                        Recent Security Events
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {securityEvents.slice(0, 5).map((event, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 border rounded">
+                            <div>
+                              <p className="text-sm font-medium">{event.event_type}</p>
+                              <p className="text-xs text-muted-foreground">{event.user_email}</p>
+                            </div>
+                            <Badge variant={event.severity === 'critical' ? 'destructive' : 'secondary'}>
+                              {event.severity}
+                            </Badge>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  {supplierIncidents.length > 3 && (
-                    <Button variant="outline" size="sm" className="w-full mt-3">
-                      View All Incidents
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                    </CardContent>
+                  </Card>
 
-            {/* Audio Backup Management */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileCheck className="h-5 w-5" />
-                  Audio Backup Management
-                </CardTitle>
-                <CardDescription>
-                  Manage audio backups for meetings with poor transcription quality (Super Admin only)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AudioBackupManager />
-              </CardContent>
-            </Card>
+                  {/* Supplier Incidents */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5" />
+                        Supplier Incidents
+                      </CardTitle>
+                      <Button size="sm" className="h-8" onClick={() => setShowAddIncidentModal(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Incident
+                      </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {supplierIncidents.slice(0, 3).map((incident: any, index) => (
+                          <div key={index} className="p-3 border rounded">
+                            <p className="text-sm font-medium">{incident.supplier_name}</p>
+                            <p className="text-xs text-muted-foreground">{incident.incident_type}</p>
+                            <Badge variant="outline" className="mt-1">
+                              {incident.severity}
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                      {supplierIncidents.length > 3 && (
+                        <Button variant="outline" size="sm" className="w-full mt-3">
+                          View All Incidents
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Audio Backup Management */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileCheck className="h-5 w-5" />
+                      Audio Backup Management
+                    </CardTitle>
+                    <CardDescription>
+                      Manage audio backups for meetings with poor transcription quality (Super Admin only)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AudioBackupManager />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* LG Capture Sub-Tab */}
+              <TabsContent value="lg-capture" className="space-y-6">
+                <LGCaptureStats />
+              </TabsContent>
+
+              {/* GP Scribe Sub-Tab */}
+              <TabsContent value="gp-scribe" className="space-y-6">
+                <GPScribeStats />
+              </TabsContent>
+
+              {/* Meeting Service Sub-Tab */}
+              <TabsContent value="meeting-service" className="space-y-6">
+                {/* Live and Recent Meetings */}
+                <LiveAndRecentMeetings />
+
+                {/* Orphaned Whisper Connections */}
+                <OrphanedWhisperMonitor />
+
+                {/* Meeting Usage Report */}
+                <MeetingUsageReport />
+
+                {/* Meeting Statistics by User */}
+                <MeetingStatsByUser />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           {/* Settings Tab */}
@@ -4397,16 +4421,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             
             <AdminVideoUpload />
             
-          </TabsContent>
-
-          {/* LG Capture Stats Tab */}
-          <TabsContent value="lg-capture" className="space-y-6">
-            <LGCaptureStats />
-          </TabsContent>
-
-          {/* GP Scribe Stats Tab */}
-          <TabsContent value="gp-scribe" className="space-y-6">
-            <GPScribeStats />
           </TabsContent>
         </Tabs>
       </div>
