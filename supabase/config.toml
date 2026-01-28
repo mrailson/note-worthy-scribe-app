@@ -452,3 +452,9 @@ verify_jwt = false
 
 [functions.enhance-policy]
 verify_jwt = false
+
+[functions.extract-patient-details-complaint]
+verify_jwt = true
+
+[functions.import-complaint-data]
+verify_jwt = true
