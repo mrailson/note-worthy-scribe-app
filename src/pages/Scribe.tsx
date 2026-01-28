@@ -285,8 +285,14 @@ const Scribe = () => {
                     // Refresh history after saving
                     history.fetchSessions();
                   }}
-                  onNewConsultation={consultation.newConsultation}
-                  onDiscard={consultation.newConsultation}
+                  onNewConsultation={() => {
+                    consultation.newConsultation();
+                    setActiveTab('consultation');
+                  }}
+                  onDiscard={() => {
+                    consultation.newConsultation();
+                    setActiveTab('consultation');
+                  }}
                   onRegenerate={consultation.regenerateNotes}
                   onExportPDF={handleExportPDF}
                   onExportWord={handleExportWord}

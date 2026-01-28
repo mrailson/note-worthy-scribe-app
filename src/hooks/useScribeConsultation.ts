@@ -600,10 +600,25 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
 
   // New consultation (from review state)
   const newConsultation = useCallback(() => {
+    // Reload settings from localStorage to get latest values
+    try {
+      const saved = localStorage.getItem('scribeSettings');
+      if (saved) {
+        const latestSettings = { ...DEFAULT_SCRIBE_SETTINGS, ...JSON.parse(saved) };
+        setSettings(latestSettings);
+        // Set consent based on whether reminder is disabled
+        setPatientConsent(!latestSettings.showConsentReminder);
+      } else {
+        setPatientConsent(false);
+      }
+    } catch (e) {
+      console.warn('Failed to reload scribe settings:', e);
+      setPatientConsent(false);
+    }
+    
     recording.resetRecording();
     setConsultationState('ready');
     setConsultationNote(null);
-    setPatientConsent(false);
     setConsentTimestamp(undefined);
     setPatientContext(null);
     setContextFiles([]);
