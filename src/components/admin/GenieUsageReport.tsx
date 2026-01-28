@@ -46,12 +46,54 @@ interface SystemStats {
 interface CrossServiceStats {
   images_total: number;
   presentations_total: number;
+  meeting_total_mins: number;
+  meeting_total_words: number;
+  meeting_total_cost: number;
+  scribe_total_seconds: number;
+  scribe_total_words: number;
+  scribe_total_cost: number;
 }
+
+// Whisper API cost per hour in GBP
+const WHISPER_COST_PER_HOUR = 0.24;
+
+const formatDuration = (mins: number): string => {
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const remainingMins = mins % 60;
+  return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+};
+
+const formatDurationFromSeconds = (totalSeconds: number): string => {
+  if (!totalSeconds || totalSeconds === 0) return '0h 0m';
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  return `${hours}h ${minutes}m`;
+};
+
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return num.toString();
+};
+
+const formatCost = (cost: number): string => {
+  return `£${cost.toFixed(2)}`;
+};
 
 export const GenieUsageReport = () => {
   const [userStats, setUserStats] = useState<UserGenieStats[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
-  const [crossServiceStats, setCrossServiceStats] = useState<CrossServiceStats>({ images_total: 0, presentations_total: 0 });
+  const [crossServiceStats, setCrossServiceStats] = useState<CrossServiceStats>({ 
+    images_total: 0, 
+    presentations_total: 0,
+    meeting_total_mins: 0,
+    meeting_total_words: 0,
+    meeting_total_cost: 0,
+    scribe_total_seconds: 0,
+    scribe_total_words: 0,
+    scribe_total_cost: 0
+  });
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('total');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -119,18 +161,36 @@ export const GenieUsageReport = () => {
 
   const fetchCrossServiceStats = async () => {
     try {
-      // Fetch image and presentation totals
-      const [imageResult, presentationResult] = await Promise.all([
+      // Fetch image, presentation, meeting, and scribe totals
+      const [imageResult, presentationResult, meetingResult, scribeResult] = await Promise.all([
         supabase.rpc('get_image_usage_report'),
-        supabase.rpc('get_presentation_usage_report')
+        supabase.rpc('get_presentation_usage_report'),
+        supabase.rpc('get_meeting_usage_report'),
+        supabase.rpc('get_gp_scribe_stats_by_user')
       ]);
 
       const imagesTotal = (imageResult.data || []).reduce((sum: number, r: any) => sum + (r.total_images || 0), 0);
       const presentationsTotal = (presentationResult.data || []).reduce((sum: number, r: any) => sum + (r.total_presentations || 0), 0);
+      
+      // Meeting stats
+      const meetingTotalMins = (meetingResult.data || []).reduce((sum: number, r: any) => sum + (r.total_duration_mins || 0), 0);
+      const meetingTotalWords = (meetingResult.data || []).reduce((sum: number, r: any) => sum + (r.total_words || 0), 0);
+      const meetingTotalCost = (meetingTotalMins / 60) * WHISPER_COST_PER_HOUR;
+      
+      // Scribe stats
+      const scribeTotalSeconds = (scribeResult.data || []).reduce((sum: number, r: any) => sum + (r.total_duration_seconds || 0), 0);
+      const scribeTotalWords = (scribeResult.data || []).reduce((sum: number, r: any) => sum + (r.total_words || 0), 0);
+      const scribeTotalCost = (scribeTotalSeconds / 3600) * WHISPER_COST_PER_HOUR;
 
       setCrossServiceStats({
         images_total: imagesTotal,
-        presentations_total: presentationsTotal
+        presentations_total: presentationsTotal,
+        meeting_total_mins: meetingTotalMins,
+        meeting_total_words: meetingTotalWords,
+        meeting_total_cost: meetingTotalCost,
+        scribe_total_seconds: scribeTotalSeconds,
+        scribe_total_words: scribeTotalWords,
+        scribe_total_cost: scribeTotalCost
       });
     } catch (error) {
       console.error('Error fetching cross-service stats:', error);
@@ -295,11 +355,19 @@ export const GenieUsageReport = () => {
               <Activity className="h-5 w-5 mx-auto mb-1 text-blue-600" />
               <div className="text-2xl font-bold text-blue-600">{systemStats?.meeting_total || 0}</div>
               <div className="text-xs text-muted-foreground">Meeting Service</div>
+              <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t space-y-0.5">
+                <div>{formatDuration(crossServiceStats.meeting_total_mins)} • {formatNumber(crossServiceStats.meeting_total_words)} words</div>
+                <div className="text-amber-600">{formatCost(crossServiceStats.meeting_total_cost)}</div>
+              </div>
             </div>
             <div className="text-center p-3 border rounded-lg">
               <Mic className="h-5 w-5 mx-auto mb-1 text-teal-600" />
               <div className="text-2xl font-bold text-teal-600">{systemStats?.scribe_total || 0}</div>
               <div className="text-xs text-muted-foreground">GP Scribe</div>
+              <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t space-y-0.5">
+                <div>{formatDurationFromSeconds(crossServiceStats.scribe_total_seconds)} • {formatNumber(crossServiceStats.scribe_total_words)} words</div>
+                <div className="text-amber-600">{formatCost(crossServiceStats.scribe_total_cost)}</div>
+              </div>
             </div>
           </div>
         </CardContent>
