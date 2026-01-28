@@ -14,11 +14,20 @@ import {
   Shield, 
   Building2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Plus,
+  Trash2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+
+interface BranchSite {
+  name: string;
+  address: string;
+  postcode: string;
+  phone: string;
+}
 
 interface PolicyProfileData {
   // Practice Info
@@ -29,12 +38,16 @@ interface PolicyProfileData {
   list_size: number | null;
   clinical_system: string;
   
-  // Branch Site
-  has_branch_site: boolean;
-  branch_site_name: string;
-  branch_site_address: string;
-  branch_site_postcode: string;
-  branch_site_phone: string;
+  // Branch Sites (multiple)
+  has_branch_sites: boolean;
+  branch_sites: BranchSite[];
+  
+  // Legacy single branch site fields (for migration compatibility)
+  has_branch_site?: boolean;
+  branch_site_name?: string;
+  branch_site_address?: string;
+  branch_site_postcode?: string;
+  branch_site_phone?: string;
   
   // Key Personnel
   practice_manager_name: string;
@@ -67,11 +80,8 @@ const defaultData: PolicyProfileData = {
   ods_code: "",
   list_size: null,
   clinical_system: "",
-  has_branch_site: false,
-  branch_site_name: "",
-  branch_site_address: "",
-  branch_site_postcode: "",
-  branch_site_phone: "",
+  has_branch_sites: false,
+  branch_sites: [],
   practice_manager_name: "",
   lead_gp_name: "",
   senior_gp_partner: "",
@@ -85,6 +95,13 @@ const defaultData: PolicyProfileData = {
   fire_safety_officer: "",
   complaints_lead: "",
   services_offered: {},
+};
+
+const emptyBranchSite: BranchSite = {
+  name: "",
+  address: "",
+  postcode: "",
+  phone: "",
 };
 
 const serviceOptions = [
@@ -130,6 +147,20 @@ export const PolicyProfileDefaults = () => {
 
         if (pd) {
           setPracticeDetailsId(pd.id);
+          
+          // Handle migration from single branch site to multiple
+          const legacyBranchSite = (pd as any).has_branch_site && (pd as any).branch_site_name ? {
+            name: (pd as any).branch_site_name || "",
+            address: (pd as any).branch_site_address || "",
+            postcode: (pd as any).branch_site_postcode || "",
+            phone: (pd as any).branch_site_phone || "",
+          } : null;
+          
+          // Use new branch_sites array if available, otherwise fall back to legacy single site
+          const branchSitesArray = (pd as any).branch_sites && Array.isArray((pd as any).branch_sites) && (pd as any).branch_sites.length > 0
+            ? (pd as any).branch_sites
+            : legacyBranchSite ? [legacyBranchSite] : [];
+          
           setData({
             practice_name: pd.practice_name || "",
             address: pd.address || "",
@@ -137,11 +168,8 @@ export const PolicyProfileDefaults = () => {
             ods_code: (pd as any).ods_code || "",
             list_size: (pd as any).list_size || null,
             clinical_system: (pd as any).clinical_system || "",
-            has_branch_site: (pd as any).has_branch_site || false,
-            branch_site_name: (pd as any).branch_site_name || "",
-            branch_site_address: (pd as any).branch_site_address || "",
-            branch_site_postcode: (pd as any).branch_site_postcode || "",
-            branch_site_phone: (pd as any).branch_site_phone || "",
+            has_branch_sites: branchSitesArray.length > 0,
+            branch_sites: branchSitesArray,
             practice_manager_name: (pd as any).practice_manager_name || "",
             lead_gp_name: (pd as any).lead_gp_name || "",
             senior_gp_partner: (pd as any).senior_gp_partner || "",
@@ -209,6 +237,37 @@ export const PolicyProfileDefaults = () => {
     setHasChanges(true);
   };
 
+  const addBranchSite = () => {
+    setData(prev => ({
+      ...prev,
+      branch_sites: [...prev.branch_sites, { ...emptyBranchSite }],
+      has_branch_sites: true,
+    }));
+    setHasChanges(true);
+  };
+
+  const removeBranchSite = (index: number) => {
+    setData(prev => {
+      const newBranchSites = prev.branch_sites.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        branch_sites: newBranchSites,
+        has_branch_sites: newBranchSites.length > 0,
+      };
+    });
+    setHasChanges(true);
+  };
+
+  const updateBranchSite = (index: number, field: keyof BranchSite, value: string) => {
+    setData(prev => ({
+      ...prev,
+      branch_sites: prev.branch_sites.map((site, i) => 
+        i === index ? { ...site, [field]: value } : site
+      ),
+    }));
+    setHasChanges(true);
+  };
+
   const handleSave = async () => {
     if (!user) {
       toast.error('You must be logged in to save');
@@ -218,6 +277,9 @@ export const PolicyProfileDefaults = () => {
     setIsSaving(true);
 
     try {
+      // For backward compatibility, also update legacy fields with first branch site
+      const firstBranchSite = data.branch_sites[0] || emptyBranchSite;
+      
       const updateData = {
         practice_name: data.practice_name,
         address: data.address,
@@ -225,11 +287,15 @@ export const PolicyProfileDefaults = () => {
         ods_code: data.ods_code,
         list_size: data.list_size,
         clinical_system: data.clinical_system,
-        has_branch_site: data.has_branch_site,
-        branch_site_name: data.branch_site_name,
-        branch_site_address: data.branch_site_address,
-        branch_site_postcode: data.branch_site_postcode,
-        branch_site_phone: data.branch_site_phone,
+        // New multi-site field - cast to JSON for Supabase
+        branch_sites: JSON.parse(JSON.stringify(data.branch_sites)),
+        // Legacy fields for backward compatibility
+        has_branch_site: data.has_branch_sites,
+        branch_site_name: firstBranchSite.name,
+        branch_site_address: firstBranchSite.address,
+        branch_site_postcode: firstBranchSite.postcode,
+        branch_site_phone: firstBranchSite.phone,
+        // Personnel fields
         practice_manager_name: data.practice_manager_name,
         lead_gp_name: data.lead_gp_name,
         senior_gp_partner: data.senior_gp_partner,
@@ -444,71 +510,96 @@ export const PolicyProfileDefaults = () => {
         </CardContent>
       </Card>
 
-      {/* Branch Site */}
+      {/* Branch Sites */}
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Branch Site</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              <CardTitle className="text-lg">Branch Sites</CardTitle>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addBranchSite}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Branch Site
+            </Button>
           </div>
           <CardDescription>
-            If your practice has a branch site, add its details here for use in policies
+            If your practice has branch sites, add their details here for use in policies
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="has_branch_site"
-              checked={data.has_branch_site}
-              onCheckedChange={(checked) => updateField('has_branch_site', checked)}
-            />
-            <Label htmlFor="has_branch_site" className="font-normal cursor-pointer">
-              This practice has a branch site
-            </Label>
-          </div>
-
-          {data.has_branch_site && (
-            <div className="space-y-4 pt-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="branch_site_name">Branch Site Name</Label>
-                  <Input
-                    id="branch_site_name"
-                    value={data.branch_site_name}
-                    onChange={(e) => updateField('branch_site_name', e.target.value)}
-                    placeholder="e.g. Oakwood Branch Surgery"
-                  />
+          {data.branch_sites.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Building2 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No branch sites added</p>
+              <p className="text-sm">Click "Add Branch Site" to add one</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {data.branch_sites.map((site, index) => (
+                <div key={index} className="relative border rounded-lg p-4 bg-muted/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <Badge variant="secondary">Branch Site {index + 1}</Badge>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeBranchSite(index)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Remove
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor={`branch_site_name_${index}`}>Branch Site Name</Label>
+                        <Input
+                          id={`branch_site_name_${index}`}
+                          value={site.name}
+                          onChange={(e) => updateBranchSite(index, 'name', e.target.value)}
+                          placeholder="e.g. Oakwood Branch Surgery"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`branch_site_phone_${index}`}>Branch Site Phone</Label>
+                        <Input
+                          id={`branch_site_phone_${index}`}
+                          value={site.phone}
+                          onChange={(e) => updateBranchSite(index, 'phone', e.target.value)}
+                          placeholder="e.g. 01onal 234567"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor={`branch_site_address_${index}`}>Branch Site Address</Label>
+                        <Input
+                          id={`branch_site_address_${index}`}
+                          value={site.address}
+                          onChange={(e) => updateBranchSite(index, 'address', e.target.value)}
+                          placeholder="Full branch site address"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor={`branch_site_postcode_${index}`}>Branch Site Postcode</Label>
+                        <Input
+                          id={`branch_site_postcode_${index}`}
+                          value={site.postcode}
+                          onChange={(e) => updateBranchSite(index, 'postcode', e.target.value)}
+                          placeholder="e.g. SW1A 2BB"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="branch_site_phone">Branch Site Phone</Label>
-                  <Input
-                    id="branch_site_phone"
-                    value={data.branch_site_phone}
-                    onChange={(e) => updateField('branch_site_phone', e.target.value)}
-                    placeholder="e.g. 01onal 234567"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="branch_site_address">Branch Site Address</Label>
-                  <Input
-                    id="branch_site_address"
-                    value={data.branch_site_address}
-                    onChange={(e) => updateField('branch_site_address', e.target.value)}
-                    placeholder="Full branch site address"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="branch_site_postcode">Branch Site Postcode</Label>
-                  <Input
-                    id="branch_site_postcode"
-                    value={data.branch_site_postcode}
-                    onChange={(e) => updateField('branch_site_postcode', e.target.value)}
-                    placeholder="e.g. SW1A 2BB"
-                  />
-                </div>
-              </div>
+              ))}
             </div>
           )}
         </CardContent>
