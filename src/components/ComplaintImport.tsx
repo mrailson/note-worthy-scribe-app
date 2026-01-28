@@ -373,12 +373,14 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
     }
   }, [handlePatientImageOCR]);
 
+  // Track which tab is active for paste handling
+  const [activeTab, setActiveTab] = useState('file');
+
   // Listen for paste events for patient details (Ctrl+V screenshots)
   useEffect(() => {
     const handlePaste = async (e: ClipboardEvent) => {
       // Only handle paste if we're on the patient tab
-      const patientTabActive = document.querySelector('[data-state="active"][value="patient"]');
-      if (!patientTabActive || patientProcessing) return;
+      if (activeTab !== 'patient' || patientProcessing) return;
 
       const items = e.clipboardData?.items;
       if (!items) return;
@@ -397,7 +399,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
 
     document.addEventListener('paste', handlePaste);
     return () => document.removeEventListener('paste', handlePaste);
-  }, [patientProcessing, handlePatientImageOCR]);
+  }, [activeTab, patientProcessing, handlePatientImageOCR]);
 
   const patientDropzone = useDropzone({
     onDrop: (files) => {
@@ -614,7 +616,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
             </AlertDescription>
           </Alert>
 
-          <Tabs defaultValue="file" className="w-full">
+          <Tabs defaultValue="file" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className={cn(
               "grid w-full grid-cols-3",
               deviceInfo.isIPhone && "h-auto"
@@ -846,6 +848,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
               {/* Dropzone for patient files/screenshots */}
               <div
                 {...patientDropzone.getRootProps()}
+                data-allow-file-drop
                 className={cn(
                   "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
                   patientDropzone.isDragActive
