@@ -30,8 +30,8 @@ export const AI4GPServicesOverview = () => {
             <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
               <TabsTrigger value="genie" className="flex items-center gap-2">
                 <Bot className="h-4 w-4" />
-                <span className="hidden sm:inline">Ask AI Chats</span>
-                <span className="sm:hidden">Ask AI</span>
+                <span className="hidden sm:inline">Overview</span>
+                <span className="sm:hidden">Overview</span>
               </TabsTrigger>
               <TabsTrigger value="images" className="flex items-center gap-2">
                 <Image className="h-4 w-4" />
