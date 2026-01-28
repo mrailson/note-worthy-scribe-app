@@ -1973,8 +1973,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             </TabsTrigger>
             <TabsTrigger value="ai4gp-services" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
               <Bot className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Notewell AI Pilot Usage Report</span>
-              <span className="sm:hidden">Pilot Report</span>
+              <span className="hidden sm:inline">Pilot Usage Report</span>
+              <span className="sm:hidden">Pilot</span>
             </TabsTrigger>
           </TabsList>
 
