@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,18 +6,21 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle, Camera, X } from 'lucide-react';
+import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle, Camera, X, User, ClipboardPaste } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { useDropzone } from 'react-dropzone';
+import { validateNHSNumber } from '@/utils/nhsNumberValidator';
 import complaintPage1 from '@/assets/complaint-page-1.jpg';
 import complaintPage2 from '@/assets/complaint-page-2.jpg';
 
 interface ComplaintData {
   patient_name?: string;
   patient_dob?: string;
+  patient_nhs_number?: string;
   patient_contact_phone?: string;
   patient_contact_email?: string;
   patient_address?: string;
@@ -33,12 +36,22 @@ interface ComplaintData {
   complaint_source?: string;
 }
 
+export interface PatientDetailsData {
+  patient_name?: string;
+  patient_dob?: string;
+  patient_nhs_number?: string;
+  patient_contact_phone?: string;
+  patient_contact_email?: string;
+  patient_address?: string;
+}
+
 interface ComplaintImportProps {
   onDataExtracted: (data: ComplaintData) => void;
+  onPatientDetailsExtracted?: (data: PatientDetailsData) => void;
   onClose: () => void;
 }
 
-export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracted, onClose }) => {
+export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracted, onPatientDetailsExtracted, onClose }) => {
   const deviceInfo = useDeviceInfo();
   const [textContent, setTextContent] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -47,6 +60,12 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
   const [loadedExample, setLoadedExample] = useState<{number: number, name: string} | null>(null);
   const [hiddenTextFile, setHiddenTextFile] = useState<File | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
+  
+  // Patient details import state
+  const [patientText, setPatientText] = useState('');
+  const [patientProcessing, setPatientProcessing] = useState(false);
+  const [patientFileName, setPatientFileName] = useState<string | null>(null);
+  const [extractedPatientData, setExtractedPatientData] = useState<PatientDetailsData | null>(null);
 
   // Auto-scroll to preview when data is extracted
   useEffect(() => {
@@ -256,6 +275,210 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
     }
   };
 
+  // === Patient Details Import Handlers ===
+  const handlePatientImageOCR = useCallback(async (file: File) => {
+    setPatientProcessing(true);
+    setPatientFileName(file.name);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+
+      const mimeType = file.type || 'image/png';
+      const dataUrl = `data:${mimeType};base64,${base64}`;
+
+      const { data, error } = await supabase.functions.invoke('extract-document-text', {
+        body: { dataUrl, fileType: 'image' }
+      });
+
+      if (error) throw error;
+
+      if (data?.extractedText) {
+        setPatientText(data.extractedText);
+        showToast.success('Screenshot processed via OCR', { section: 'complaints' });
+      } else {
+        throw new Error('No text extracted from image');
+      }
+    } catch (error) {
+      console.error('Image OCR error:', error);
+      showToast.error('Failed to extract text from screenshot', { section: 'complaints' });
+    } finally {
+      setPatientProcessing(false);
+    }
+  }, []);
+
+  const handlePatientFileUpload = useCallback(async (file: File) => {
+    if (file.type.startsWith('image/')) {
+      return handlePatientImageOCR(file);
+    }
+
+    setPatientProcessing(true);
+    setPatientFileName(file.name);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+
+      const fileType = file.name.toLowerCase().endsWith('.docx') ? 'word' :
+                       file.name.toLowerCase().endsWith('.doc') ? 'word' :
+                       file.name.toLowerCase().endsWith('.xlsx') ? 'excel' :
+                       file.name.toLowerCase().endsWith('.xls') ? 'excel' :
+                       file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'unknown';
+
+      if (fileType === 'excel') {
+        const XLSX = await import('xlsx-js-style');
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+
+        let extractedText = '';
+        workbook.SheetNames.forEach((sheetName) => {
+          const sheet = workbook.Sheets[sheetName];
+          const csvData = XLSX.utils.sheet_to_csv(sheet);
+          if (csvData && csvData.trim()) {
+            extractedText += csvData + '\n';
+          }
+        });
+
+        setPatientText(extractedText);
+        showToast.success('Excel file processed', { section: 'complaints' });
+      } else if (fileType === 'word' || fileType === 'pdf') {
+        const mimeType = file.type || 'application/octet-stream';
+        const dataUrl = `data:${mimeType};base64,${base64}`;
+
+        const { data, error } = await supabase.functions.invoke('extract-document-text', {
+          body: { dataUrl, fileType }
+        });
+
+        if (error) throw error;
+
+        if (data?.extractedText) {
+          setPatientText(data.extractedText);
+          showToast.success('Document processed', { section: 'complaints' });
+        } else {
+          throw new Error('No text extracted');
+        }
+      } else {
+        const text = await file.text();
+        setPatientText(text);
+        showToast.success('File loaded', { section: 'complaints' });
+      }
+    } catch (error) {
+      console.error('File processing error:', error);
+      showToast.error('Failed to process file', { section: 'complaints' });
+    } finally {
+      setPatientProcessing(false);
+    }
+  }, [handlePatientImageOCR]);
+
+  // Listen for paste events for patient details (Ctrl+V screenshots)
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      // Only handle paste if we're on the patient tab
+      const patientTabActive = document.querySelector('[data-state="active"][value="patient"]');
+      if (!patientTabActive || patientProcessing) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) {
+            await handlePatientImageOCR(file);
+          }
+          return;
+        }
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [patientProcessing, handlePatientImageOCR]);
+
+  const patientDropzone = useDropzone({
+    onDrop: (files) => {
+      if (files.length > 0) {
+        handlePatientFileUpload(files[0]);
+      }
+    },
+    accept: {
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/pdf': ['.pdf'],
+      'text/plain': ['.txt'],
+      'text/csv': ['.csv'],
+      'image/png': ['.png'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/webp': ['.webp'],
+      'image/gif': ['.gif']
+    },
+    maxFiles: 1,
+    disabled: patientProcessing
+  });
+
+  const handleExtractPatientDetails = async () => {
+    if (!patientText.trim()) {
+      showToast.error('Please paste or upload patient information', { section: 'complaints' });
+      return;
+    }
+
+    setPatientProcessing(true);
+    setExtractedPatientData(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-patient-details-complaint', {
+        body: { text: patientText }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.patientData) {
+        if (data.patientData.patient_nhs_number) {
+          const validation = validateNHSNumber(data.patientData.patient_nhs_number);
+          if (validation.valid && validation.formatted) {
+            data.patientData.patient_nhs_number = validation.formatted;
+          }
+        }
+
+        setExtractedPatientData(data.patientData);
+        showToast.success('Patient details extracted', { section: 'complaints' });
+      } else {
+        throw new Error(data?.error || 'Failed to extract patient details');
+      }
+    } catch (error) {
+      console.error('Extraction error:', error);
+      showToast.error('Failed to extract patient details', { section: 'complaints' });
+    } finally {
+      setPatientProcessing(false);
+    }
+  };
+
+  const handleConfirmPatientImport = () => {
+    if (extractedPatientData && onPatientDetailsExtracted) {
+      onPatientDetailsExtracted(extractedPatientData);
+      onClose();
+      showToast.success('Patient details imported', { section: 'complaints' });
+    }
+  };
+
+  const handlePastePatientFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setPatientText(text);
+        showToast.success('Pasted from clipboard', { section: 'complaints' });
+      }
+    } catch (error) {
+      showToast.error('Unable to access clipboard', { section: 'complaints' });
+    }
+  };
+
   return (
     <div className={cn(
       "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50",
@@ -393,7 +616,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
 
           <Tabs defaultValue="file" className="w-full">
             <TabsList className={cn(
-              "grid w-full grid-cols-2",
+              "grid w-full grid-cols-3",
               deviceInfo.isIPhone && "h-auto"
             )}>
               <TabsTrigger 
@@ -411,7 +634,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                 ) : (
                   <>
                     <FileText className="h-4 w-4" />
-                    File Upload
+                    Full Complaint
                   </>
                 )}
               </TabsTrigger>
@@ -424,6 +647,16 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
               >
                 <Mail className="h-4 w-4" />
                 {deviceInfo.isIPhone ? "Text" : "Text/Email"}
+              </TabsTrigger>
+              <TabsTrigger 
+                value="patient" 
+                className={cn(
+                  "flex items-center gap-2",
+                  deviceInfo.isIPhone && "py-3 min-h-[48px]"
+                )}
+              >
+                <User className="h-4 w-4" />
+                {deviceInfo.isIPhone ? "Patient" : "Patient Only"}
               </TabsTrigger>
             </TabsList>
 
@@ -598,6 +831,168 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                   </>
                 )}
               </Button>
+            </TabsContent>
+
+            {/* Patient Details Only Tab */}
+            <TabsContent value="patient" className="space-y-4">
+              <Alert>
+                <User className="h-4 w-4" />
+                <AlertDescription>
+                  Import <strong>only patient demographics</strong> (name, DOB, NHS number, phone, email, address). 
+                  Paste a screenshot (Ctrl+V), drag & drop a file, or paste text.
+                </AlertDescription>
+              </Alert>
+
+              {/* Dropzone for patient files/screenshots */}
+              <div
+                {...patientDropzone.getRootProps()}
+                className={cn(
+                  "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                  patientDropzone.isDragActive
+                    ? "border-primary bg-primary/5"
+                    : "border-muted-foreground/25 hover:border-primary/50",
+                  patientProcessing && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <input {...patientDropzone.getInputProps()} />
+                {patientProcessing ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                    <p className="text-muted-foreground">Processing {patientFileName}...</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex gap-2">
+                      <Image className="h-8 w-8 text-muted-foreground" />
+                      <FileText className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    {patientDropzone.isDragActive ? (
+                      <p className="text-primary">Drop the file here...</p>
+                    ) : (
+                      <>
+                        <p className="font-medium">Drag & drop a file or paste a screenshot</p>
+                        <p className="text-sm text-muted-foreground">
+                          Word, Excel, PDF, TXT, or screenshots (PNG, JPG)
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Press Ctrl+V to paste a screenshot from clipboard
+                        </p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Patient text area */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="patient-text">Patient Information Text</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePastePatientFromClipboard}
+                    className="gap-2"
+                  >
+                    <ClipboardPaste className="h-4 w-4" />
+                    Paste from Clipboard
+                  </Button>
+                </div>
+                <Textarea
+                  id="patient-text"
+                  value={patientText}
+                  onChange={(e) => setPatientText(e.target.value)}
+                  placeholder="Paste text containing patient details here. Include name, DOB, NHS number, phone, email, address..."
+                  className="min-h-[150px] font-mono text-sm"
+                />
+              </div>
+
+              {/* Extract button and preview */}
+              {patientText && !extractedPatientData && (
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Text length: {patientText.length} characters
+                  </p>
+                  <Button onClick={handleExtractPatientDetails} disabled={patientProcessing}>
+                    {patientProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Extracting...
+                      </>
+                    ) : (
+                      'Extract Patient Details'
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Extracted Patient Data Preview */}
+              {extractedPatientData && (
+                <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="font-medium">Extracted Patient Details</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    {extractedPatientData.patient_name && (
+                      <div>
+                        <Label className="text-muted-foreground">Name</Label>
+                        <p className="font-medium">{extractedPatientData.patient_name}</p>
+                      </div>
+                    )}
+                    {extractedPatientData.patient_dob && (
+                      <div>
+                        <Label className="text-muted-foreground">Date of Birth</Label>
+                        <p className="font-medium">{extractedPatientData.patient_dob}</p>
+                      </div>
+                    )}
+                    {extractedPatientData.patient_nhs_number && (
+                      <div>
+                        <Label className="text-muted-foreground">NHS Number</Label>
+                        <p className="font-medium">{extractedPatientData.patient_nhs_number}</p>
+                      </div>
+                    )}
+                    {extractedPatientData.patient_contact_phone && (
+                      <div>
+                        <Label className="text-muted-foreground">Phone</Label>
+                        <p className="font-medium">{extractedPatientData.patient_contact_phone}</p>
+                      </div>
+                    )}
+                    {extractedPatientData.patient_contact_email && (
+                      <div>
+                        <Label className="text-muted-foreground">Email</Label>
+                        <p className="font-medium">{extractedPatientData.patient_contact_email}</p>
+                      </div>
+                    )}
+                    {extractedPatientData.patient_address && (
+                      <div className="sm:col-span-2">
+                        <Label className="text-muted-foreground">Address</Label>
+                        <p className="font-medium">{extractedPatientData.patient_address}</p>
+                      </div>
+                    )}
+                  </div>
+                  {!extractedPatientData.patient_name && !extractedPatientData.patient_nhs_number && (
+                    <p className="text-muted-foreground text-sm italic">
+                      No patient details were found in the text. Try pasting different content.
+                    </p>
+                  )}
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      onClick={handleConfirmPatientImport} 
+                      disabled={!extractedPatientData.patient_name && !extractedPatientData.patient_nhs_number}
+                      className="flex-1"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Import Patient Details
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setExtractedPatientData(null)}
+                    >
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
 
