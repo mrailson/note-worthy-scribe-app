@@ -1,54 +1,48 @@
 
 
-# Plan: Add Policy Usage Report to AI4GP Services Overview
+# Plan: Add Notewell Policies Usage Report to AI4GP Services Overview
 
 ## Overview
-Add a new "Notewell Policies" tab to the AI4GP Services Overview panel in the System Admin dashboard. This will display usage statistics showing who is creating practice policies and when, following the same patterns as the existing Genie Chats, Image Studio, and Presentation reports.
+Add a new "Notewell Policies" tab to the AI4GP Services Overview panel on the System Admin dashboard (`/admin`). This will display usage statistics showing who is creating practice policies and when, following the same patterns as the existing Genie Chats, Image Studio, and Presentation reports.
 
-## Current State Analysis
-- The `AI4GPServicesOverview.tsx` component uses tabs to show 3 services: Genie Chats, Image Studio, and Presentations
-- Each service has a dedicated report component (e.g., `GenieUsageReport.tsx`) that:
-  - Fetches data via Supabase RPC function (e.g., `get_genie_usage_report`)
+## Current State
+- **AI4GPServicesOverview.tsx** has 3 tabs: Genie Chats, Image Studio, and Presentations
+- Each report component follows the same pattern:
+  - Fetches data via Supabase RPC function
   - Shows overview cards: Today, Last 7 Days, Last 30 Days, All Time
-  - Displays a sortable per-user table with relevant metrics
-  - Uses consistent styling with badges and icons
-- Policy data is stored in `policy_completions` table with fields:
-  - `user_id`, `policy_title`, `created_at`, `status`, `version`
-  - Links to `policy_reference_library` via `policy_reference_id` for category info
-- Currently 1 policy has been created (Cold Chain Management by Malcolm Railson)
+  - Displays a breakdown by service/category
+  - Shows a sortable per-user table with metrics
+- **policy_completions** table contains: `user_id`, `policy_title`, `created_at`, `status`, `policy_reference_id`
+- **policy_reference_library** has 6 categories: Clinical, HR, Health & Safety, Information Governance, Business Continuity, Patient Services
+- Currently 1 policy exists (Cold Chain Management by Malcolm Railson)
 
 ## Implementation Steps
 
-### 1. Database: Create RPC Function
-Create a new SQL migration with a `get_policy_usage_report()` function that:
+### Step 1: Create Database RPC Function
+Create a new SQL migration with `get_policy_usage_report()` function that:
 - Aggregates policy completions per user
 - Joins with `profiles` to get user name/email
-- Joins with `policy_reference_library` to count by category
+- Joins with `policy_reference_library` to get category information
 - Calculates time-based metrics (today, 7d, 30d, all time)
-- Returns sortable data including:
-  - `user_id`, `email`, `full_name`
-  - Counts per category (Clinical, HR, H&S, IG, Business Continuity, Patient Services)
-  - `total_policies`, `last_24h`, `last_7d`, `last_30d`
-  - `last_created` timestamp
+- Returns counts by each of the 6 CQC categories
 
-### 2. Frontend: Create PolicyUsageReport Component
-Create `src/components/admin/PolicyUsageReport.tsx` following the existing patterns:
+### Step 2: Create PolicyUsageReport Component
+Create `src/components/admin/PolicyUsageReport.tsx` matching the existing report patterns:
 - **Overview Cards**: Today / 7 Days / 30 Days / All Time policy counts
 - **Category Breakdown Card**: 6 boxes showing counts per CQC category with colour-coded badges
 - **Per-User Table**: Sortable columns for User, per-category counts, Total, Last Created
-- Uses same icons: `FileText` for policies, plus existing `Clock`, `Calendar`, `TrendingUp`, `Users`
-- Badge colours matching the 6 policy categories
 
-### 3. Frontend: Update AI4GPServicesOverview
+### Step 3: Update AI4GPServicesOverview
 Modify `AI4GPServicesOverview.tsx` to:
 - Import the new `PolicyUsageReport` component
 - Add a 4th tab "Notewell Policies" with `FileText` icon
-- Change TabsList grid from 3 to 4 columns: `grid-cols-4`
-- Add the corresponding TabsContent
+- Change TabsList grid from 3 to 4 columns
+
+---
 
 ## Technical Details
 
-### RPC Function SQL
+### Database RPC Function
 ```sql
 CREATE OR REPLACE FUNCTION public.get_policy_usage_report()
 RETURNS TABLE (
@@ -89,6 +83,7 @@ AS $$
   FROM policy_completions pc
   LEFT JOIN profiles p ON p.user_id = pc.user_id
   LEFT JOIN policy_reference_library prl ON prl.id = pc.policy_reference_id
+  WHERE pc.status = 'completed'
   GROUP BY pc.user_id, p.email, p.full_name
   ORDER BY total_policies DESC;
 $$;
@@ -96,7 +91,7 @@ $$;
 GRANT EXECUTE ON FUNCTION public.get_policy_usage_report() TO authenticated;
 ```
 
-### Component Structure (PolicyUsageReport.tsx)
+### Component Structure
 ```text
 +--------------------------------------------------+
 | Overview Cards (4-column grid)                   |
@@ -106,19 +101,24 @@ GRANT EXECUTE ON FUNCTION public.get_policy_usage_report() TO authenticated;
 | [Clinical] [HR] [H&S] [IG] [BC] [Patient Svcs]   |
 +--------------------------------------------------+
 | Usage by User Table                              |
-| User | Clinical | HR | H&S | IG | BC | PS | Total| Last Created |
+| User | Clinical | HR | H&S | IG | BC | PS | Total | Last Created |
 +--------------------------------------------------+
 ```
 
 ### Category Colour Scheme
-- Clinical: Blue (text-blue-600)
-- HR: Purple (text-purple-600)
-- Health & Safety: Amber (text-amber-600)
-- Information Governance: Green (text-green-600)
-- Business Continuity: Red (text-red-600)
-- Patient Services: Teal (text-teal-600)
+| Category | Colour |
+|----------|--------|
+| Clinical | Blue (`text-blue-600`) |
+| HR | Purple (`text-purple-600`) |
+| Health & Safety | Amber (`text-amber-600`) |
+| Information Governance | Green (`text-green-600`) |
+| Business Continuity | Red (`text-red-600`) |
+| Patient Services | Teal (`text-teal-600`) |
+
+---
 
 ## Files to Create/Modify
+
 | File | Action |
 |------|--------|
 | `supabase/migrations/[timestamp]_add_policy_usage_report.sql` | Create - RPC function |
@@ -126,7 +126,7 @@ GRANT EXECUTE ON FUNCTION public.get_policy_usage_report() TO authenticated;
 | `src/components/admin/AI4GPServicesOverview.tsx` | Modify - Add 4th tab |
 
 ## Expected Outcome
-System administrators will see a new "Notewell Policies" tab in the AI4GP Services Overview showing:
+System administrators will see a new "Notewell Policies" tab in the AI4GP Services Overview on `/admin` showing:
 - Summary statistics of policy generation activity over time
 - Breakdown by the 6 CQC policy categories
 - Per-user table showing which users are creating policies and when
