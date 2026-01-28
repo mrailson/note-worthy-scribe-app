@@ -60,6 +60,8 @@ interface CrossServiceStats {
 const WHISPER_COST_PER_HOUR = 0.24;
 const IMAGE_COST_PENCE = 4; // 4p per image
 const PRESENTATION_COST_PENCE = 12; // 12p per presentation
+const ASK_AI_COST_PENCE = 1.5; // 1.5p per Ask AI chat
+const GP_GENIE_COST_PENCE = 6; // 6p per GP Genie Phone call
 
 const formatDuration = (mins: number): string => {
   if (mins < 60) return `${mins}m`;
@@ -346,44 +348,50 @@ export const GenieUsageReport = () => {
               <Bot className="h-5 w-5 mx-auto mb-1 text-amber-600" />
               <div className="text-2xl font-bold text-amber-600">{systemStats?.ai4gp_total || 0}</div>
               <div className="text-xs text-muted-foreground">Ask AI Chats</div>
+              <div className="text-xs mt-1 pt-1 border-t">
+                <div className="font-medium text-blue-800">{formatCost(((systemStats?.ai4gp_total || 0) * ASK_AI_COST_PENCE) / 100)}</div>
+              </div>
             </div>
             <div className="text-center p-3 border rounded-lg">
               <MessageCircle className="h-5 w-5 mx-auto mb-1 text-purple-600" />
               <div className="text-2xl font-bold text-purple-600">{systemStats?.gp_genie_total || 0}</div>
               <div className="text-xs text-muted-foreground">GP Genie Phone</div>
+              <div className="text-xs mt-1 pt-1 border-t">
+                <div className="font-medium text-blue-800">{formatCost(((systemStats?.gp_genie_total || 0) * GP_GENIE_COST_PENCE) / 100)}</div>
+              </div>
             </div>
             <div className="text-center p-3 border rounded-lg">
               <Image className="h-5 w-5 mx-auto mb-1 text-pink-600" />
               <div className="text-2xl font-bold text-pink-600">{crossServiceStats.images_total}</div>
               <div className="text-xs text-muted-foreground">Image Studio</div>
-              <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t">
-                <div className="text-amber-600">{formatCost(crossServiceStats.images_total_cost)}</div>
+              <div className="text-xs mt-1 pt-1 border-t">
+                <div className="font-medium text-blue-800">{formatCost(crossServiceStats.images_total_cost)}</div>
               </div>
             </div>
             <div className="text-center p-3 border rounded-lg">
               <Presentation className="h-5 w-5 mx-auto mb-1 text-indigo-600" />
               <div className="text-2xl font-bold text-indigo-600">{crossServiceStats.presentations_total}</div>
               <div className="text-xs text-muted-foreground">Presentations</div>
-              <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t">
-                <div className="text-amber-600">{formatCost(crossServiceStats.presentations_total_cost)}</div>
+              <div className="text-xs mt-1 pt-1 border-t">
+                <div className="font-medium text-blue-800">{formatCost(crossServiceStats.presentations_total_cost)}</div>
               </div>
             </div>
             <div className="text-center p-3 border rounded-lg">
               <Activity className="h-5 w-5 mx-auto mb-1 text-blue-600" />
               <div className="text-2xl font-bold text-blue-600">{systemStats?.meeting_total || 0}</div>
               <div className="text-xs text-muted-foreground">Meeting Service</div>
-              <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t space-y-0.5">
+              <div className="text-xs text-muted-foreground mt-1 pt-1 border-t space-y-0.5">
                 <div>{formatDuration(crossServiceStats.meeting_total_mins)} • {formatNumber(crossServiceStats.meeting_total_words)} words</div>
-                <div className="text-amber-600">{formatCost(crossServiceStats.meeting_total_cost)}</div>
+                <div className="font-medium text-blue-800">{formatCost(crossServiceStats.meeting_total_cost)}</div>
               </div>
             </div>
             <div className="text-center p-3 border rounded-lg">
               <Mic className="h-5 w-5 mx-auto mb-1 text-teal-600" />
               <div className="text-2xl font-bold text-teal-600">{systemStats?.scribe_total || 0}</div>
               <div className="text-xs text-muted-foreground">GP Scribe</div>
-              <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t space-y-0.5">
+              <div className="text-xs text-muted-foreground mt-1 pt-1 border-t space-y-0.5">
                 <div>{formatDurationFromSeconds(crossServiceStats.scribe_total_seconds)} • {formatNumber(crossServiceStats.scribe_total_words)} words</div>
-                <div className="text-amber-600">{formatCost(crossServiceStats.scribe_total_cost)}</div>
+                <div className="font-medium text-blue-800">{formatCost(crossServiceStats.scribe_total_cost)}</div>
               </div>
             </div>
           </div>
