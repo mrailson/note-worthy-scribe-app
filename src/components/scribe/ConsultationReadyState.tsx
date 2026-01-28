@@ -200,7 +200,7 @@ export const ConsultationReadyState = ({
           <p className="font-medium mb-2">Quick Tips:</p>
           <ul className="space-y-1 text-xs">
             <li>• Speak naturally during the consultation</li>
-            <li>• The AI will create structured SOAP notes</li>
+            <li>• The AI will create structured notes</li>
             <li>• You can edit and copy notes when finished</li>
           </ul>
         </div>
