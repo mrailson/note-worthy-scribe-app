@@ -291,7 +291,7 @@ export const GenieUsageReport = () => {
             <div className="text-center p-3 border rounded-lg">
               <Bot className="h-5 w-5 mx-auto mb-1 text-amber-600" />
               <div className="text-2xl font-bold text-amber-600">{systemStats?.ai4gp_total || 0}</div>
-              <div className="text-xs text-muted-foreground">Ask AI Chats</div>
+              <div className="text-xs text-muted-foreground">Overview</div>
               <div className="text-xs mt-1 pt-1 border-t">
                 <div className="font-medium text-blue-800">{formatCost(((systemStats?.ai4gp_total || 0) * ASK_AI_COST_PENCE) / 100)}</div>
               </div>
