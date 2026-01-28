@@ -74,6 +74,7 @@ import { GPScribeStats } from '@/components/admin/GPScribeStats';
 import { StorageManagement } from '@/components/admin/StorageManagement';
 import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAccess';
 import { AI4GPServicesOverview } from '@/components/admin/AI4GPServicesOverview';
+import { PolicyEnhancementModelSettings } from '@/components/admin/PolicyEnhancementModelSettings';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
 
 import * as XLSX from 'xlsx-js-style';
@@ -4417,6 +4418,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
+            <PolicyEnhancementModelSettings />
+            
             <ConsultationVisibilitySettings />
             
             <AdminVideoUpload />

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -457,13 +458,29 @@ serve(async (req) => {
   }
 
   try {
-    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!ANTHROPIC_API_KEY) {
-      console.error("ANTHROPIC_API_KEY is not configured");
-      return new Response(
-        JSON.stringify({ error: "API key not configured", enhanced: false }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Create service role client to read system settings
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Check which model to use from system settings
+    let useGemini = false;
+    try {
+      const { data: settingData } = await supabase
+        .from('system_settings')
+        .select('setting_value')
+        .eq('setting_key', 'policy_enhancement_model')
+        .single();
+      
+      if (settingData?.setting_value) {
+        const value = typeof settingData.setting_value === 'string' 
+          ? settingData.setting_value 
+          : (settingData.setting_value as { model?: string })?.model;
+        useGemini = value === 'gemini';
+      }
+    } catch (e) {
+      console.log('Could not read model setting, defaulting to Claude:', e);
     }
 
     const { generatedPolicy, policyType, practiceName, odsCode } = await req.json();
@@ -475,7 +492,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Enhancing policy: ${policyType} for ${practiceName || 'Unknown Practice'}`);
+    console.log(`Enhancing policy: ${policyType} for ${practiceName || 'Unknown Practice'} using ${useGemini ? 'Gemini' : 'Claude'}`);
 
     const userMessage = `Practice: ${practiceName || '[PRACTICE NAME]'} (ODS: ${odsCode || '[ODS CODE]'})
 Policy Type: ${policyType}
@@ -484,48 +501,121 @@ Generated policy to enhance:
 
 ${generatedPolicy}`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 8000,
-        system: POLICY_ENHANCEMENT_SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: userMessage,
-          },
-        ],
-      }),
-    });
+    let enhancedPolicy: string;
+    let modelUsed: string;
+    let usage: any;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Anthropic API error:", response.status, errorText);
-      
-      // Return original policy with warning if enhancement fails
-      return new Response(
-        JSON.stringify({
-          enhanced: false,
-          enhancedPolicy: generatedPolicy,
-          warning: "Enhancement service temporarily unavailable. Original policy returned.",
-          error: `API error: ${response.status}`,
+    if (useGemini) {
+      // Use Gemini via Lovable AI Gateway
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) {
+        console.error("LOVABLE_API_KEY is not configured");
+        return new Response(
+          JSON.stringify({ error: "API key not configured", enhanced: false }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: POLICY_ENHANCEMENT_SYSTEM_PROMPT },
+            { role: "user", content: userMessage },
+          ],
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Gemini API error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limits exceeded, please try again later.", enhanced: false }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "Payment required, please add funds to your workspace.", enhanced: false }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        return new Response(
+          JSON.stringify({
+            enhanced: false,
+            enhancedPolicy: generatedPolicy,
+            warning: "Enhancement service temporarily unavailable. Original policy returned.",
+            error: `API error: ${response.status}`,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const data = await response.json();
+      enhancedPolicy = data.choices?.[0]?.message?.content || generatedPolicy;
+      modelUsed = "google/gemini-3-flash-preview";
+      usage = data.usage;
+    } else {
+      // Use Claude via Anthropic API
+      const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+      if (!ANTHROPIC_API_KEY) {
+        console.error("ANTHROPIC_API_KEY is not configured");
+        return new Response(
+          JSON.stringify({ error: "API key not configured", enhanced: false }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 8000,
+          system: POLICY_ENHANCEMENT_SYSTEM_PROMPT,
+          messages: [
+            {
+              role: "user",
+              content: userMessage,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Anthropic API error:", response.status, errorText);
+        
+        return new Response(
+          JSON.stringify({
+            enhanced: false,
+            enhancedPolicy: generatedPolicy,
+            warning: "Enhancement service temporarily unavailable. Original policy returned.",
+            error: `API error: ${response.status}`,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const data = await response.json();
+      enhancedPolicy = data.content?.[0]?.text || generatedPolicy;
+      modelUsed = "claude-sonnet-4-20250514";
+      usage = data.usage;
     }
 
-    const data = await response.json();
-    
-    // Extract the enhanced policy content from Claude's response
-    const enhancedPolicy = data.content?.[0]?.text || generatedPolicy;
-
-    console.log(`Policy enhanced successfully for: ${policyType}`);
+    console.log(`Policy enhanced successfully for: ${policyType} using ${modelUsed}`);
 
     return new Response(
       JSON.stringify({
@@ -535,8 +625,8 @@ ${generatedPolicy}`;
         policyType,
         practiceName,
         odsCode,
-        model: "claude-sonnet-4-20250514",
-        usage: data.usage,
+        model: modelUsed,
+        usage,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
