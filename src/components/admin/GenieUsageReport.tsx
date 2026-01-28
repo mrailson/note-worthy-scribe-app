@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Bot, Clock, Users, Calendar, TrendingUp, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
+import { Bot, Clock, Users, Calendar, TrendingUp, ChevronDown, ChevronUp, MessageCircle, Image, Presentation, Activity, Mic } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -19,6 +19,8 @@ interface UserGenieStats {
   gp_genie_count: number;
   pm_genie_count: number;
   patient_line_count: number;
+  scribe_count: number;
+  meeting_count: number;
   total_chats: number;
   total_messages: number;
   last_24h: number;
@@ -32,6 +34,8 @@ interface SystemStats {
   gp_genie_total: number;
   pm_genie_total: number;
   patient_line_total: number;
+  scribe_total: number;
+  meeting_total: number;
   total_chats: number;
   total_messages: number;
   last_24h: number;
@@ -39,9 +43,15 @@ interface SystemStats {
   last_30d: number;
 }
 
+interface CrossServiceStats {
+  images_total: number;
+  presentations_total: number;
+}
+
 export const GenieUsageReport = () => {
   const [userStats, setUserStats] = useState<UserGenieStats[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
+  const [crossServiceStats, setCrossServiceStats] = useState<CrossServiceStats>({ images_total: 0, presentations_total: 0 });
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField>('total');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -104,7 +114,28 @@ export const GenieUsageReport = () => {
 
   useEffect(() => {
     fetchGenieUsageStats();
+    fetchCrossServiceStats();
   }, []);
+
+  const fetchCrossServiceStats = async () => {
+    try {
+      // Fetch image and presentation totals
+      const [imageResult, presentationResult] = await Promise.all([
+        supabase.rpc('get_image_usage_report'),
+        supabase.rpc('get_presentation_usage_report')
+      ]);
+
+      const imagesTotal = (imageResult.data || []).reduce((sum: number, r: any) => sum + (r.total_images || 0), 0);
+      const presentationsTotal = (presentationResult.data || []).reduce((sum: number, r: any) => sum + (r.total_presentations || 0), 0);
+
+      setCrossServiceStats({
+        images_total: imagesTotal,
+        presentations_total: presentationsTotal
+      });
+    } catch (error) {
+      console.error('Error fetching cross-service stats:', error);
+    }
+  };
 
   const fetchGenieUsageStats = async () => {
     try {
@@ -125,6 +156,8 @@ export const GenieUsageReport = () => {
         gp_genie_count: row.out_gp_genie_count || 0,
         pm_genie_count: row.out_pm_genie_count || 0,
         patient_line_count: row.out_patient_line_count || 0,
+        scribe_count: row.out_scribe_count || 0,
+        meeting_count: row.out_meeting_count || 0,
         total_chats: row.out_total_chats || 0,
         total_messages: row.out_total_messages || 0,
         last_24h: row.out_last_24h || 0,
@@ -139,6 +172,8 @@ export const GenieUsageReport = () => {
         gp_genie_total: results.reduce((sum, r) => sum + (r.gp_genie_count || 0), 0),
         pm_genie_total: results.reduce((sum, r) => sum + (r.pm_genie_count || 0), 0),
         patient_line_total: results.reduce((sum, r) => sum + (r.patient_line_count || 0), 0),
+        scribe_total: results.reduce((sum, r) => sum + (r.scribe_count || 0), 0),
+        meeting_total: results.reduce((sum, r) => sum + (r.meeting_count || 0), 0),
         total_chats: results.reduce((sum, r) => sum + (r.total_chats || 0), 0),
         total_messages: results.reduce((sum, r) => sum + (r.total_messages || 0), 0),
         last_24h: results.reduce((sum, r) => sum + (r.last_24h || 0), 0),
@@ -228,28 +263,43 @@ export const GenieUsageReport = () => {
         </div>
       </div>
 
-      {/* Service Breakdown */}
+      {/* All-Time Service Breakdown */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Breakdown by Service</CardTitle>
+          <CardTitle className="text-base">All-Time Breakdown by Service</CardTitle>
+          <CardDescription>Total usage across all AI-powered services</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="text-center p-3 border rounded-lg">
+              <Bot className="h-5 w-5 mx-auto mb-1 text-amber-600" />
               <div className="text-2xl font-bold text-amber-600">{systemStats?.ai4gp_total || 0}</div>
-              <div className="text-sm text-muted-foreground">AI4GP Chat</div>
+              <div className="text-xs text-muted-foreground">Ask AI Chats</div>
             </div>
             <div className="text-center p-3 border rounded-lg">
+              <MessageCircle className="h-5 w-5 mx-auto mb-1 text-purple-600" />
               <div className="text-2xl font-bold text-purple-600">{systemStats?.gp_genie_total || 0}</div>
-              <div className="text-sm text-muted-foreground">GP Genie</div>
+              <div className="text-xs text-muted-foreground">GP Genie Phone</div>
             </div>
             <div className="text-center p-3 border rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{systemStats?.pm_genie_total || 0}</div>
-              <div className="text-sm text-muted-foreground">PM Genie</div>
+              <Image className="h-5 w-5 mx-auto mb-1 text-pink-600" />
+              <div className="text-2xl font-bold text-pink-600">{crossServiceStats.images_total}</div>
+              <div className="text-xs text-muted-foreground">Image Studio</div>
             </div>
             <div className="text-center p-3 border rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{systemStats?.patient_line_total || 0}</div>
-              <div className="text-sm text-muted-foreground">Patient Line</div>
+              <Presentation className="h-5 w-5 mx-auto mb-1 text-indigo-600" />
+              <div className="text-2xl font-bold text-indigo-600">{crossServiceStats.presentations_total}</div>
+              <div className="text-xs text-muted-foreground">Presentations</div>
+            </div>
+            <div className="text-center p-3 border rounded-lg">
+              <Activity className="h-5 w-5 mx-auto mb-1 text-blue-600" />
+              <div className="text-2xl font-bold text-blue-600">{systemStats?.meeting_total || 0}</div>
+              <div className="text-xs text-muted-foreground">Meeting Service</div>
+            </div>
+            <div className="text-center p-3 border rounded-lg">
+              <Mic className="h-5 w-5 mx-auto mb-1 text-teal-600" />
+              <div className="text-2xl font-bold text-teal-600">{systemStats?.scribe_total || 0}</div>
+              <div className="text-xs text-muted-foreground">GP Scribe</div>
             </div>
           </div>
         </CardContent>
