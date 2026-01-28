@@ -269,22 +269,40 @@ Today's date is ${new Date().toLocaleDateString('en-GB')}.`;
           .join(', ')
       : 'Standard GP services';
 
+    // Build branch site info if available
+    let branchSiteInfo = 'None';
+    if (practice_details.has_branch_site && practice_details.branch_site_name) {
+      branchSiteInfo = `${practice_details.branch_site_name}`;
+      if (practice_details.branch_site_address) {
+        branchSiteInfo += `, ${practice_details.branch_site_address}`;
+      }
+      if (practice_details.branch_site_postcode) {
+        branchSiteInfo += `, ${practice_details.branch_site_postcode}`;
+      }
+      if (practice_details.branch_site_phone) {
+        branchSiteInfo += ` (Tel: ${practice_details.branch_site_phone})`;
+      }
+    }
+
     const userPrompt = `Generate a ${policyRef.policy_name} policy for:
 
 PRACTICE DETAILS:
 - Practice Name: ${practice_details.practice_name || 'GP Practice'}
 - Address: ${practice_details.address || 'Not specified'}, ${practice_details.postcode || ''}
 - ODS Code: ${practice_details.ods_code || 'Not specified'}
-- Practice Manager: ${practice_details.practice_manager_name || 'Not specified'}
-- Lead GP: ${practice_details.lead_gp_name || 'Not specified'}
-- Caldicott Guardian: ${practice_details.caldicott_guardian || 'Not specified'}
-- Data Protection Officer: ${practice_details.dpo_name || 'Not specified'}
-- Safeguarding Lead (Adults): ${practice_details.safeguarding_lead_adults || 'Not specified'}
-- Safeguarding Lead (Children): ${practice_details.safeguarding_lead_children || 'Not specified'}
-- Infection Control Lead: ${practice_details.infection_control_lead || 'Not specified'}
-- Complaints Lead: ${practice_details.complaints_lead || 'Not specified'}
-- Health & Safety Lead: ${practice_details.health_safety_lead || 'Not specified'}
-- Fire Safety Officer: ${practice_details.fire_safety_officer || 'Not specified'}
+- Clinical System: ${practice_details.clinical_system || 'Not specified'}
+- Branch Site(s): ${branchSiteInfo}
+- Practice Manager: ${practice_details.practice_manager_name || '[PRACTICE TO COMPLETE - Practice Manager name]'}
+- Lead GP: ${practice_details.lead_gp_name || '[PRACTICE TO COMPLETE - Lead GP name]'}
+- SIRO (Senior Information Risk Owner): ${practice_details.siro || '[PRACTICE TO COMPLETE - SIRO name]'}
+- Caldicott Guardian: ${practice_details.caldicott_guardian || '[PRACTICE TO COMPLETE - Caldicott Guardian name]'}
+- Data Protection Officer: ${practice_details.dpo_name || '[PRACTICE TO COMPLETE - DPO name]'}
+- Safeguarding Lead (Adults): ${practice_details.safeguarding_lead_adults || '[PRACTICE TO COMPLETE - Adult Safeguarding Lead name]'}
+- Safeguarding Lead (Children): ${practice_details.safeguarding_lead_children || '[PRACTICE TO COMPLETE - Children Safeguarding Lead name]'}
+- Infection Control Lead: ${practice_details.infection_control_lead || '[PRACTICE TO COMPLETE - Infection Control Lead name]'}
+- Complaints Lead: ${practice_details.complaints_lead || '[PRACTICE TO COMPLETE - Complaints Lead name]'}
+- Health & Safety Lead: ${practice_details.health_safety_lead || '[PRACTICE TO COMPLETE - H&S Lead name]'}
+- Fire Safety Officer: ${practice_details.fire_safety_officer || '[PRACTICE TO COMPLETE - Fire Safety Officer name]'}
 - List Size: ${practice_details.list_size || 'Not specified'} patients
 - Services Offered: ${servicesOffered}
 
@@ -294,6 +312,13 @@ REGULATORY CONTEXT:
 - Priority: ${policyRef.priority}
 - Primary Guidance Sources: ${JSON.stringify(policyRef.guidance_sources || [])}
 - Generation Date: ${new Date().toLocaleDateString('en-GB')}
+
+CRITICAL INSTRUCTIONS FOR CONTACT DETAILS:
+- For any phone numbers, mobile numbers, or contact numbers that are not provided, use the placeholder format: [PRACTICE TO COMPLETE - description]
+- NEVER use dates (like 28/01/2026) as placeholder values for phone numbers
+- For out-of-hours contacts, use placeholders like: [PRACTICE TO COMPLETE - local occupational health service contact] or [PRACTICE TO COMPLETE - out of hours contact number]
+- For direct line numbers, use: [PRACTICE TO COMPLETE - direct line]
+- All placeholders must be in square brackets and start with "PRACTICE TO COMPLETE"
 
 ${custom_instructions ? `ADDITIONAL INSTRUCTIONS:\n${custom_instructions}` : ''}
 
