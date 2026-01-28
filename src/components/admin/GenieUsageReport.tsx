@@ -45,7 +45,9 @@ interface SystemStats {
 
 interface CrossServiceStats {
   images_total: number;
+  images_total_cost: number;
   presentations_total: number;
+  presentations_total_cost: number;
   meeting_total_mins: number;
   meeting_total_words: number;
   meeting_total_cost: number;
@@ -54,8 +56,10 @@ interface CrossServiceStats {
   scribe_total_cost: number;
 }
 
-// Whisper API cost per hour in GBP
+// Cost constants in GBP
 const WHISPER_COST_PER_HOUR = 0.24;
+const IMAGE_COST_PENCE = 11; // 11p per image
+const PRESENTATION_COST_PENCE = 12; // 12p per presentation
 
 const formatDuration = (mins: number): string => {
   if (mins < 60) return `${mins}m`;
@@ -85,8 +89,10 @@ export const GenieUsageReport = () => {
   const [userStats, setUserStats] = useState<UserGenieStats[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
   const [crossServiceStats, setCrossServiceStats] = useState<CrossServiceStats>({ 
-    images_total: 0, 
+    images_total: 0,
+    images_total_cost: 0,
     presentations_total: 0,
+    presentations_total_cost: 0,
     meeting_total_mins: 0,
     meeting_total_words: 0,
     meeting_total_cost: 0,
@@ -170,7 +176,10 @@ export const GenieUsageReport = () => {
       ]);
 
       const imagesTotal = (imageResult.data || []).reduce((sum: number, r: any) => sum + (r.total_images || 0), 0);
+      const imagesTotalCost = (imagesTotal * IMAGE_COST_PENCE) / 100; // Convert pence to pounds
+      
       const presentationsTotal = (presentationResult.data || []).reduce((sum: number, r: any) => sum + (r.total_presentations || 0), 0);
+      const presentationsTotalCost = (presentationsTotal * PRESENTATION_COST_PENCE) / 100; // Convert pence to pounds
       
       // Meeting stats
       const meetingTotalMins = (meetingResult.data || []).reduce((sum: number, r: any) => sum + (r.total_duration_mins || 0), 0);
@@ -184,7 +193,9 @@ export const GenieUsageReport = () => {
 
       setCrossServiceStats({
         images_total: imagesTotal,
+        images_total_cost: imagesTotalCost,
         presentations_total: presentationsTotal,
+        presentations_total_cost: presentationsTotalCost,
         meeting_total_mins: meetingTotalMins,
         meeting_total_words: meetingTotalWords,
         meeting_total_cost: meetingTotalCost,
@@ -345,11 +356,17 @@ export const GenieUsageReport = () => {
               <Image className="h-5 w-5 mx-auto mb-1 text-pink-600" />
               <div className="text-2xl font-bold text-pink-600">{crossServiceStats.images_total}</div>
               <div className="text-xs text-muted-foreground">Image Studio</div>
+              <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t">
+                <div className="text-amber-600">{formatCost(crossServiceStats.images_total_cost)}</div>
+              </div>
             </div>
             <div className="text-center p-3 border rounded-lg">
               <Presentation className="h-5 w-5 mx-auto mb-1 text-indigo-600" />
               <div className="text-2xl font-bold text-indigo-600">{crossServiceStats.presentations_total}</div>
               <div className="text-xs text-muted-foreground">Presentations</div>
+              <div className="text-[10px] text-muted-foreground mt-1 pt-1 border-t">
+                <div className="text-amber-600">{formatCost(crossServiceStats.presentations_total_cost)}</div>
+              </div>
             </div>
             <div className="text-center p-3 border rounded-lg">
               <Activity className="h-5 w-5 mx-auto mb-1 text-blue-600" />
