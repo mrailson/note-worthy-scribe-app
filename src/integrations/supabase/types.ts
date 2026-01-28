@@ -9930,6 +9930,22 @@ export type Database = {
           word_count: number
         }[]
       }
+      get_translation_usage_report: {
+        Args: never
+        Returns: {
+          avg_messages_per_session: number
+          email: string
+          full_name: string
+          languages_used: string[]
+          last_24h: number
+          last_30d: number
+          last_7d: number
+          last_session_at: string
+          total_messages: number
+          total_sessions: number
+          user_id: string
+        }[]
+      }
       get_user_modules: {
         Args: { p_user_id?: string }
         Returns: {
