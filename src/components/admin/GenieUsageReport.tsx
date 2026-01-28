@@ -58,7 +58,7 @@ interface CrossServiceStats {
 
 // Cost constants in GBP
 const WHISPER_COST_PER_HOUR = 0.24;
-const IMAGE_COST_PENCE = 11; // 11p per image
+const IMAGE_COST_PENCE = 4; // 4p per image
 const PRESENTATION_COST_PENCE = 12; // 12p per presentation
 
 const formatDuration = (mins: number): string => {
