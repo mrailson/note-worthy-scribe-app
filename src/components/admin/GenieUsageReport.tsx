@@ -372,6 +372,7 @@ export const GenieUsageReport = () => {
               <Presentation className="h-5 w-5 mx-auto mb-1 text-indigo-600" />
               <div className="text-2xl font-bold text-indigo-600">{crossServiceStats.presentations_total}</div>
               <div className="text-xs text-muted-foreground">Presentations</div>
+              <div className="text-xs text-muted-foreground">~{crossServiceStats.presentations_total * 8} slides</div>
               <div className="text-xs mt-1 pt-1 border-t">
                 <div className="font-medium text-blue-800">{formatCost(crossServiceStats.presentations_total_cost)}</div>
               </div>
