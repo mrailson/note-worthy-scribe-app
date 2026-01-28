@@ -6516,6 +6516,7 @@ export type Database = {
           branch_site_name: string | null
           branch_site_phone: string | null
           branch_site_postcode: string | null
+          branch_sites: Json | null
           caldicott_guardian: string | null
           clinical_system: string | null
           complaints_lead: string | null
@@ -6559,6 +6560,7 @@ export type Database = {
           branch_site_name?: string | null
           branch_site_phone?: string | null
           branch_site_postcode?: string | null
+          branch_sites?: Json | null
           caldicott_guardian?: string | null
           clinical_system?: string | null
           complaints_lead?: string | null
@@ -6602,6 +6604,7 @@ export type Database = {
           branch_site_name?: string | null
           branch_site_phone?: string | null
           branch_site_postcode?: string | null
+          branch_sites?: Json | null
           caldicott_guardian?: string | null
           clinical_system?: string | null
           complaints_lead?: string | null
