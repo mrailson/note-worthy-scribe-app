@@ -713,6 +713,45 @@ Please try uploading the content in a different format, or paste the data direct
   }
 }
 
+// Helper: fetch image from URL and convert to base64
+async function fetchImageAsBase64(url: string): Promise<string | null> {
+  try {
+    console.log(`Fetching image from URL: ${url.substring(0, 80)}...`);
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`Failed to fetch image: ${response.status}`);
+      return null;
+    }
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    // Convert to base64
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    console.log(`Successfully converted image to base64 (${base64.length} chars, type: ${contentType})`);
+    return `data:${contentType};base64,${base64}`;
+  } catch (error) {
+    console.error('Error fetching image from URL:', error);
+    return null;
+  }
+}
+
+// Helper: check if file is an image
+function isImageFile(file: UploadedFile): boolean {
+  const fileName = file.name.toLowerCase();
+  const isImageExtension = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'].some(ext => fileName.endsWith(ext));
+  const isImageType = file.type?.startsWith('image/') || false;
+  return isImageExtension || isImageType;
+}
+
+// Helper: check if content is an image URL
+function isImageUrl(content: string): boolean {
+  return content.startsWith('http://') || content.startsWith('https://');
+}
+
 function extractImageContent(file: UploadedFile): string {
   try {
     const fileName = file.name.toLowerCase();
@@ -752,6 +791,10 @@ Base64 Image Data:
 ${file.content}
 
 Remember: Only describe what is actually visible in the image. Do not create fictional content.`;
+    } else if (isImageUrl(file.content)) {
+      // For URL-based images, return a marker that we'll handle later
+      console.log('Image is URL-based - will be fetched and converted');
+      return `__IMAGE_URL__:${file.content}`;
     } else {
       console.log('Image does not have proper base64 format');
       return `[Image File: ${fileName} (${fileSize}MB) - Image format error. 
@@ -1479,21 +1522,74 @@ async function callLovableAIGateway(messages: Message[], systemPrompt: string, m
 
   const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing";
 
-  const formattedMessages = [
-    { role: 'system', content: enhancedSystemPrompt },
-    ...messages.map(msg => {
-      let content = msg.content || '[No message content]';
-      
-      if (msg.files && msg.files.length > 0) {
-        const fileContent = msg.files.map(file => 
-          `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
-        ).join('');
-        content += fileContent;
-      }
-      
-      return { role: msg.role, content };
-    })
+  // Build formatted messages with proper multimodal support
+  const formattedMessages: any[] = [
+    { role: 'system', content: enhancedSystemPrompt }
   ];
+
+  for (const msg of messages) {
+    const contentParts: any[] = [];
+    let textContent = msg.content || '';
+    
+    // Check if content contains image URLs that need to be processed
+    if (msg.files && msg.files.length > 0) {
+      for (const file of msg.files) {
+        // Check for image URL marker from extractImageContent
+        if (file.content.startsWith('__IMAGE_URL__:')) {
+          const imageUrl = file.content.replace('__IMAGE_URL__:', '');
+          console.log(`Processing URL-based image: ${file.name}`);
+          
+          // Fetch the image and convert to base64
+          const base64Data = await fetchImageAsBase64(imageUrl);
+          if (base64Data) {
+            // Add as multimodal image_url part
+            contentParts.push({
+              type: 'image_url',
+              image_url: { url: base64Data }
+            });
+            console.log(`Added image as multimodal content: ${file.name}`);
+          } else {
+            textContent += `\n\n[Failed to load image: ${file.name}]`;
+          }
+        } else if (file.content.startsWith('data:image/')) {
+          // Already base64 encoded image
+          contentParts.push({
+            type: 'image_url',
+            image_url: { url: file.content }
+          });
+          console.log(`Added base64 image as multimodal content: ${file.name}`);
+        } else if (isImageFile(file) && isImageUrl(file.content)) {
+          // Direct URL image that wasn't marked
+          console.log(`Processing direct URL image: ${file.name}`);
+          const base64Data = await fetchImageAsBase64(file.content);
+          if (base64Data) {
+            contentParts.push({
+              type: 'image_url',
+              image_url: { url: base64Data }
+            });
+          } else {
+            textContent += `\n\n[Failed to load image: ${file.name}]`;
+          }
+        } else {
+          // Non-image file - append as text
+          textContent += `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`;
+        }
+      }
+    }
+    
+    // Add text content
+    if (textContent.trim()) {
+      contentParts.unshift({ type: 'text', text: textContent });
+    }
+    
+    // Use multimodal format if we have multiple parts, otherwise use simple string
+    if (contentParts.length > 1 || (contentParts.length === 1 && contentParts[0].type === 'image_url')) {
+      formattedMessages.push({ role: msg.role, content: contentParts });
+      console.log(`Message formatted as multimodal with ${contentParts.length} parts`);
+    } else {
+      formattedMessages.push({ role: msg.role, content: textContent || '[No message content]' });
+    }
+  }
 
   console.log('Making Lovable AI Gateway API call...');
   console.log('Request body preview:', { model, messageCount: formattedMessages.length, hasTimeout: true });
@@ -1547,21 +1643,69 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
 
   const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing";
 
-  const formattedMessages = [
-    { role: 'system', content: enhancedSystemPrompt },
-    ...messages.map(msg => {
-      let content = msg.content || '[No message content]';
-      
-      if (msg.files && msg.files.length > 0) {
-        const fileContent = msg.files.map(file => 
-          `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
-        ).join('');
-        content += fileContent;
-      }
-      
-      return { role: msg.role, content };
-    })
+  // Build formatted messages with proper multimodal support
+  const formattedMessages: any[] = [
+    { role: 'system', content: enhancedSystemPrompt }
   ];
+
+  for (const msg of messages) {
+    const contentParts: any[] = [];
+    let textContent = msg.content || '';
+    
+    // Check if content contains image URLs that need to be processed
+    if (msg.files && msg.files.length > 0) {
+      for (const file of msg.files) {
+        // Check for image URL marker from extractImageContent
+        if (file.content.startsWith('__IMAGE_URL__:')) {
+          const imageUrl = file.content.replace('__IMAGE_URL__:', '');
+          console.log(`[stream] Processing URL-based image: ${file.name}`);
+          
+          // Fetch the image and convert to base64
+          const base64Data = await fetchImageAsBase64(imageUrl);
+          if (base64Data) {
+            contentParts.push({
+              type: 'image_url',
+              image_url: { url: base64Data }
+            });
+          } else {
+            textContent += `\n\n[Failed to load image: ${file.name}]`;
+          }
+        } else if (file.content.startsWith('data:image/')) {
+          // Already base64 encoded image
+          contentParts.push({
+            type: 'image_url',
+            image_url: { url: file.content }
+          });
+        } else if (isImageFile(file) && isImageUrl(file.content)) {
+          // Direct URL image
+          const base64Data = await fetchImageAsBase64(file.content);
+          if (base64Data) {
+            contentParts.push({
+              type: 'image_url',
+              image_url: { url: base64Data }
+            });
+          } else {
+            textContent += `\n\n[Failed to load image: ${file.name}]`;
+          }
+        } else {
+          // Non-image file - append as text
+          textContent += `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`;
+        }
+      }
+    }
+    
+    // Add text content
+    if (textContent.trim()) {
+      contentParts.unshift({ type: 'text', text: textContent });
+    }
+    
+    // Use multimodal format if we have multiple parts
+    if (contentParts.length > 1 || (contentParts.length === 1 && contentParts[0].type === 'image_url')) {
+      formattedMessages.push({ role: msg.role, content: contentParts });
+    } else {
+      formattedMessages.push({ role: msg.role, content: textContent || '[No message content]' });
+    }
+  }
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
