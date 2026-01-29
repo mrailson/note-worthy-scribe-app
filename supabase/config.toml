@@ -1,8 +1,5 @@
 project_id = "dphcnbricafkbtizkoal"
 
-[functions.infographic-to-video]
-verify_jwt = true
-
 [functions.generate-magic-link]
 verify_jwt = false
 
