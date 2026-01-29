@@ -1,244 +1,163 @@
 
-# Plan: Enhance Live Meeting Recording Experience
+# Chat View Settings Dropdown
 
 ## Overview
-This plan addresses the issues shown in the screenshots where:
-1. The meeting title stays as "General Meeting" until the recording ends
-2. The word count shows 0 throughout the meeting  
-3. There's no indication that the meeting is live recording in the history view
-4. Action items are only generated after the meeting ends
+Add a configurable chat view settings icon next to "My Meetings" that opens a dropdown menu with submenus for customising the chat bubble display. Settings will persist across sessions using localStorage to adapt to different screen resolutions.
 
-We will implement **live updates during recording** that show word count, generate a smart title, and extract action items - all while the meeting is still in progress.
+## Location
+The settings icon will appear in the CardHeader toolbar, positioned between the "My Meetings" dropdown and the "Quick Pick" dropdown.
 
-## Current Architecture Understanding
+## Proposed Settings Structure
 
-### How Recordings Work Now
-- Meeting record is created with `status: 'recording'` when recording starts
-- `title` is set to "General Meeting" (default from `meetingSettings`)
-- `word_count` field exists but is only updated when recording stops
-- Title generation (`generate-meeting-title`) only runs at the end
-- Action items are extracted post-recording via `auto-generate-meeting-notes`
+### 1. Text Size (Submenu)
+- **Smaller** - 0.875x scale
+- **Default** - 1.0x scale  
+- **Larger** - 1.125x scale
+- **Largest** - 1.25x scale
 
-### Key Components
-| Component | Purpose |
-|-----------|---------|
-| `MeetingRecorder.tsx` | Main recording component with word count state |
-| `MeetingHistoryList.tsx` | Shows meeting list, currently shows "(Recording Now)" badge |
-| `live_meeting_notes` table | Stores live notes during recording |
-| `meeting_action_items` table | Stores structured action items |
-| `generate-meeting-title` | Edge function for smart titles |
+*Note: This specifically controls chat bubble font size, separate from the global text size in Settings.*
 
-## Implementation Approach
+### 2. Message Display (Submenu)
+- **Show my requests** - Toggle to show/hide user messages
+- **Auto-collapse my prompts** - Collapse user messages by default
+- **Compact view** - Reduces padding and spacing in bubbles
 
-### 1. Live Word Count Updates to Database
+### 3. Auto-Scroll Behaviour (Submenu)
+- **Auto-scroll to new messages** - On/Off
+- **Scroll during streaming** - On/Off (scrolls as AI types)
 
-**Problem:** Word count is tracked locally in `MeetingRecorder.tsx` via `wordCount` state, but never written to the `meetings` table until recording ends.
+### 4. Bubble Style (Submenu)
+- **Standard** - Current appearance
+- **Minimal** - Less visual decoration
+- **Cards** - More prominent card styling
 
-**Solution:** Periodically update the `meetings.word_count` field during recording.
+---
 
-**Changes:**
-- Add a new `useEffect` in `MeetingRecorder.tsx` that triggers every 30 seconds during recording
-- Update the `meetings` table with the current word count
-- This allows Meeting History to show real-time word count
+## Technical Implementation
 
+### New Files
+
+#### 1. `src/types/chatViewSettings.ts`
+Define the TypeScript interface for chat view settings:
 ```
-// Pseudocode for interval update
-useEffect(() => {
-  if (!isRecording) return;
-  
-  const interval = setInterval(async () => {
-    const meetingId = sessionStorage.getItem('currentMeetingId');
-    if (meetingId && wordCount > 0) {
-      await supabase.from('meetings').update({ 
-        word_count: wordCount,
-        updated_at: new Date().toISOString()
-      }).eq('id', meetingId);
-    }
-  }, 30000); // Every 30 seconds
-  
-  return () => clearInterval(interval);
-}, [isRecording, wordCount]);
-```
-
-### 2. Live Title Generation (Periodic Smart Title)
-
-**Problem:** Title stays as "General Meeting" until recording ends and `generate-meeting-title` runs.
-
-**Solution:** Call `generate-meeting-title` periodically during recording after minimum transcript content is available.
-
-**Trigger Conditions:**
-- First call at 3 minutes or 200 words (whichever comes first)
-- Subsequent updates every 5 minutes OR when word count increases by 500 words
-- Throttle to prevent excessive API calls
-
-**Changes:**
-1. **New state in `MeetingRecorder.tsx`:**
-   - `lastTitleGenerationWordCount` - tracks when title was last updated
-   - `lastTitleGenerationTime` - tracks when title was last generated
-
-2. **New periodic check in `MeetingRecorder.tsx`:**
-   - Every 60 seconds, check if conditions are met for title regeneration
-   - Call `generate-meeting-title` with current transcript
-   - Update local `meetingSettings.title` and database
-
-3. **Database update:**
-   - Update `meetings.title` and `meetings.auto_generated_name` during recording
-
-### 3. Live Action Items Extraction
-
-**Problem:** Action items are only extracted after recording ends.
-
-**Solution:** Create a new lightweight edge function that extracts just the title and action items during recording.
-
-**New Edge Function: `extract-live-meeting-insights`**
-
-Purpose: Quick extraction of meeting title and action items from transcript (runs during recording)
-
-```
-Input: {
-  meetingId: string,
-  transcript: string (last 3000 words for efficiency),
-  currentTitle: string,
-  existingActionItems: string[]
-}
-
-Output: {
-  suggestedTitle: string,
-  actionItems: [
-    { action_text: string, assignee_name: string, due_date: string }
-  ]
+interface ChatViewSettings {
+  fontSize: 'smaller' | 'default' | 'larger' | 'largest';
+  showUserMessages: boolean;
+  autoCollapsePrompts: boolean;
+  compactView: boolean;
+  autoScrollNewMessages: boolean;
+  scrollDuringStreaming: boolean;
+  bubbleStyle: 'standard' | 'minimal' | 'cards';
 }
 ```
 
-Key characteristics:
-- Uses Gemini 2.5 Flash for speed (~1-2s response)
-- Only processes last ~3000 words of transcript for efficiency
-- Returns incremental action items (new ones only)
-- Runs every 3-5 minutes during recording
+#### 2. `src/hooks/useChatViewSettings.ts`
+Custom hook managing settings state and localStorage persistence:
+- Load settings on mount
+- Persist changes immediately
+- Provide getter/setter functions for each setting
+- Export defaults for reset functionality
 
-**Changes:**
-1. Create `supabase/functions/extract-live-meeting-insights/index.ts`
-2. Add call logic in `MeetingRecorder.tsx` 
-3. Insert new action items to `meeting_action_items` table during recording
-4. Update meeting title if AI suggests a better one
+#### 3. `src/components/ai4gp/ChatViewSettingsDropdown.tsx`
+New dropdown component with submenus:
+- Uses `@radix-ui/react-dropdown-menu` (already installed)
+- Settings icon trigger (`SlidersHorizontal` or `LayoutGrid` from lucide-react)
+- Submenus for each category using `DropdownMenuSub`, `DropdownMenuSubTrigger`, `DropdownMenuSubContent`
+- Radio items for exclusive options (font size, bubble style)
+- Checkbox items for toggles (show messages, auto-scroll)
 
-### 4. Meeting History Live Updates
+### Modified Files
 
-**Problem:** Meeting History shows stale data during recording.
+#### 4. `src/components/AI4GPService.tsx`
+- Import and use `useChatViewSettings` hook
+- Add `ChatViewSettingsDropdown` to the toolbar after `MeetingsDropdown`
+- Pass relevant settings down to `MessagesList`
+- Wire up the `autoCollapsePrompts` setting to existing `autoCollapseUserPrompts` prop
 
-**Solution:** Use Supabase Realtime to subscribe to `meetings` table changes.
+#### 5. `src/components/ai4gp/MessagesList.tsx`
+- Accept new props: `chatFontSize`, `showUserMessages`, `compactView`, `bubbleStyle`
+- Apply font size scaling via CSS custom properties or inline styles
+- Filter out user messages when `showUserMessages` is false
+- Adjust padding/margins based on `compactView`
+- Apply different styling classes based on `bubbleStyle`
 
-**Changes in `MeetingHistoryList.tsx`:**
-1. Subscribe to realtime updates for meetings with `status: 'recording'`
-2. Automatically refresh the specific meeting row when word_count or title changes
-3. Add visual indicator showing live updates are occurring
+#### 6. `src/components/MessageRenderer.tsx`
+- Accept new props for chat-specific styling
+- Apply font size class to message content wrapper
+- Apply compact mode padding adjustments
+- Apply bubble style variations (border, shadow, background)
 
-### 5. Enhanced Recording Indicator in History
+---
 
-**Current:** Shows "(Recording Now)" text badge
-**Enhanced:** 
-- Animated pulsing red dot next to title
-- Live word count that updates in real-time
-- "Live" badge that pulses
+## UI/UX Design
 
-## Technical Details
-
-### New Edge Function: `extract-live-meeting-insights`
-
-```typescript
-// Core prompt structure
-const systemPrompt = `You extract meeting insights from a live transcript.
-
-Return JSON only:
-{
-  "suggestedTitle": "Specific descriptive title (4-12 words)",
-  "actionItems": [
-    {
-      "action_text": "Clear action description",
-      "assignee_name": "Name or TBC",
-      "due_date": "Date mentioned or TBC"
-    }
-  ]
-}
-
-Rules:
-- Title must be specific (never "General Meeting" or "Team Update")
-- Only include NEW action items not in existingActionItems
-- Use British English
-- Focus on the most recent discussion`;
+### Dropdown Icon
+```
+[Calendar] My Meetings    [SlidersHorizontal]    [MoreVertical] Quick Pick    [Settings]
 ```
 
-### Update Intervals During Recording
+The icon will be a simple `SlidersHorizontal` icon (representing view customisation) with no text label on mobile, and optionally "View" text on desktop.
 
-| Update Type | Interval | Condition |
-|-------------|----------|-----------|
-| Word Count | 30 seconds | Always during recording |
-| Title Generation | 5 minutes | After 200+ words, only if 500+ new words |
-| Action Items | 3 minutes | After 300+ words |
-
-### Performance Considerations
-
-1. **Throttling:** All periodic updates are throttled to prevent API spam
-2. **Transcript Truncation:** Only send last 3000 words for live insights
-3. **Debouncing:** Word count updates debounced to 30s
-4. **Conditional Updates:** Skip updates if transcript hasn't grown significantly
-
-### State Management
-
-New refs in `MeetingRecorder.tsx`:
-```typescript
-const lastLiveUpdateRef = useRef<{
-  wordCountSync: number;
-  titleGeneration: number;
-  actionItemsExtraction: number;
-  lastTitleWordCount: number;
-}>({
-  wordCountSync: 0,
-  titleGeneration: 0,
-  actionItemsExtraction: 0,
-  lastTitleWordCount: 0
-});
+### Menu Structure
+```
++---------------------------+
+| Text Size            ▶    |
+| ├ Smaller                 |
+| ├ Default            ✓    |
+| ├ Larger                  |
+| └ Largest                 |
++---------------------------+
+| Message Display      ▶    |
+| ├ ☑ Show my requests      |
+| ├ ☐ Auto-collapse prompts |
+| └ ☐ Compact view          |
++---------------------------+
+| Auto-Scroll          ▶    |
+| ├ ☑ Scroll to new msgs    |
+| └ ☑ Scroll during typing  |
++---------------------------+
+| Bubble Style         ▶    |
+| ├ Standard           ✓    |
+| ├ Minimal                 |
+| └ Cards                   |
++---------------------------+
+|  ↺ Reset to defaults      |
++---------------------------+
 ```
 
-## Implementation Order
+---
 
-1. **Phase 1: Word Count Sync** (Quick win)
-   - Add 30-second interval to sync word count to database
-   - Update Meeting History to show live count
+## Persistence Strategy
+- **localStorage key**: `ai4gp-chat-view-settings`
+- **Merge with defaults**: On load, merge stored settings with defaults to handle new options gracefully
+- **Immediate save**: Changes persist immediately without requiring a "Save" action
 
-2. **Phase 2: Live Title Generation**
-   - Add periodic title generation logic
-   - Update database and local state
+---
 
-3. **Phase 3: Edge Function + Action Items**
-   - Create `extract-live-meeting-insights` edge function
-   - Add call logic during recording
-   - Insert action items to database
+## Integration with Existing Settings
+The existing `autoCollapseUserPrompts` setting from the global Settings modal will:
+1. Continue to work as before
+2. Be synchronised with the new dropdown's "Auto-collapse my prompts" toggle
+3. Both controls will update the same underlying state
 
-4. **Phase 4: Realtime Subscription**
-   - Add Supabase Realtime subscription for live updates
-   - Enhance visual indicators
+---
 
-## Files to Modify
+## Responsive Considerations
+- On mobile: Icon only, no text
+- On desktop: Icon + "View" text
+- Dropdown positions correctly via `align="end"` 
+- Touch-friendly tap targets (min 44px height) on menu items
 
-| File | Changes |
-|------|---------|
-| `src/components/MeetingRecorder.tsx` | Add periodic update logic, new refs, live insight calls |
-| `src/components/MeetingHistoryList.tsx` | Add Realtime subscription, enhanced recording indicator |
-| `supabase/functions/extract-live-meeting-insights/index.ts` | New edge function |
+---
 
-## Expected User Experience After Implementation
+## Files Summary
 
-1. User starts recording
-2. At ~30 seconds: Word count shows "15 words" in history (instead of 0)
-3. At ~3 minutes: Title updates from "General Meeting" to e.g., "Primary Care Network Pharmacy Integration Discussion"
-4. At ~4 minutes: First action items appear in the Actions tab
-5. Throughout: Meeting History shows live updating word count
-6. At end: Full notes generation runs as before (no change)
+| File | Action |
+|------|--------|
+| `src/types/chatViewSettings.ts` | Create |
+| `src/hooks/useChatViewSettings.ts` | Create |
+| `src/components/ai4gp/ChatViewSettingsDropdown.tsx` | Create |
+| `src/components/AI4GPService.tsx` | Modify |
+| `src/components/ai4gp/MessagesList.tsx` | Modify |
+| `src/components/MessageRenderer.tsx` | Modify |
 
-## Backwards Compatibility
-
-- All changes are additive
-- Existing stopRecording flow unchanged
-- Post-meeting notes generation still runs
-- Action items from live extraction are deduplicated against post-meeting extraction
