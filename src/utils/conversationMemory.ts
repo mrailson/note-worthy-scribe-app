@@ -49,19 +49,34 @@ function isImageFile(file: UploadedFile): boolean {
 
 /**
  * Format image content for multimodal API
+ * Handles base64, data URLs, and remote URLs
  */
 function formatImageForAPI(file: UploadedFile): ImageContent {
-  let dataUrl = file.content;
+  const content = file.content;
   
-  // Ensure proper data URL format
-  if (!dataUrl.startsWith('data:')) {
-    const mimeType = file.type || 'image/jpeg';
-    dataUrl = `data:${mimeType};base64,${dataUrl}`;
+  // Already a proper data URL - use as-is
+  if (content.startsWith('data:')) {
+    return {
+      type: 'image_url',
+      image_url: { url: content }
+    };
   }
   
+  // Remote URL (http/https) - the edge function will convert to base64
+  // We pass it through as the edge function handles URL-to-base64 conversion
+  if (content.startsWith('http://') || content.startsWith('https://')) {
+    console.log(`[conversationMemory] Image is a remote URL, passing through for server-side conversion: ${file.name}`);
+    return {
+      type: 'image_url',
+      image_url: { url: content }
+    };
+  }
+  
+  // Raw base64 without data: prefix - add it
+  const mimeType = file.type || 'image/jpeg';
   return {
     type: 'image_url',
-    image_url: { url: dataUrl }
+    image_url: { url: `data:${mimeType};base64,${content}` }
   };
 }
 
