@@ -126,6 +126,9 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   
   // Assistant message collapse state - check localStorage for auto-expand preference
   const [isAssistantCollapsed, setIsAssistantCollapsed] = useState(() => {
+    // Always show full content in modal view
+    if (isModal) return false;
+    
     // Check if user has auto-expand enabled
     try {
       const stored = localStorage.getItem('ai4gp-collapse-preferences');
