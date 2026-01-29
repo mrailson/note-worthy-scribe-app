@@ -863,6 +863,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         bubbleStyle={chatViewSettings.bubbleStyle}
                         autoScroll={chatViewSettings.autoScrollNewMessages}
                         scrollDuringStreaming={chatViewSettings.scrollDuringStreaming}
+                        containerSize={chatViewSettings.containerSize}
                       />
                     </div>
                   )}

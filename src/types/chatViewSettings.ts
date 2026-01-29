@@ -6,6 +6,7 @@ export interface ChatViewSettings {
   autoScrollNewMessages: boolean;
   scrollDuringStreaming: boolean;
   bubbleStyle: 'standard' | 'minimal' | 'cards';
+  containerSize: 'normal' | 'wide' | 'full';
 }
 
 export const DEFAULT_CHAT_VIEW_SETTINGS: ChatViewSettings = {
@@ -16,6 +17,7 @@ export const DEFAULT_CHAT_VIEW_SETTINGS: ChatViewSettings = {
   autoScrollNewMessages: true,
   scrollDuringStreaming: true,
   bubbleStyle: 'standard',
+  containerSize: 'normal',
 };
 
 export const FONT_SIZE_SCALE: Record<ChatViewSettings['fontSize'], number> = {
@@ -36,4 +38,10 @@ export const BUBBLE_STYLE_LABELS: Record<ChatViewSettings['bubbleStyle'], string
   standard: 'Standard',
   minimal: 'Minimal',
   cards: 'Cards',
+};
+
+export const CONTAINER_SIZE_LABELS: Record<ChatViewSettings['containerSize'], string> = {
+  normal: 'Normal',
+  wide: 'Wide',
+  full: 'Full Width',
 };
