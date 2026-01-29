@@ -202,8 +202,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
 
-  // Font size scale for chat bubbles
-  const fontSizeScale = FONT_SIZE_SCALE[chatFontSize];
+  // Font size for chat bubbles
+  const fontSize = FONT_SIZE_SCALE[chatFontSize];
 
   // Container max-width based on containerSize setting
   const containerMaxWidth = containerSize === 'full' ? '100%' : containerSize === 'wide' ? '1200px' : '900px';
@@ -218,7 +218,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
         )}
         style={{ 
           contain: 'strict',
-          fontSize: fontSizeScale !== 1 ? `${fontSizeScale}rem` : undefined,
+          fontSize: fontSize !== '1rem' ? fontSize : undefined,
           maxWidth: containerMaxWidth,
         }}
       >
