@@ -20,11 +20,11 @@ export const DEFAULT_CHAT_VIEW_SETTINGS: ChatViewSettings = {
   containerSize: 'normal',
 };
 
-export const FONT_SIZE_SCALE: Record<ChatViewSettings['fontSize'], number> = {
-  smaller: 0.875,
-  default: 1,
-  larger: 1.125,
-  largest: 1.25,
+export const FONT_SIZE_SCALE: Record<ChatViewSettings['fontSize'], string> = {
+  smaller: '0.875rem',
+  default: '1rem',
+  larger: '1.125rem',
+  largest: '1.25rem',
 };
 
 export const FONT_SIZE_LABELS: Record<ChatViewSettings['fontSize'], string> = {
