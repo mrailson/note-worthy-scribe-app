@@ -10099,6 +10099,7 @@ export type Database = {
         Args: { p_complaint_id: string }
         Returns: undefined
       }
+      is_nres_claims_admin: { Args: never; Returns: boolean }
       is_pcn_manager: { Args: { _user_id?: string }; Returns: boolean }
       is_pcn_manager_for_practice: {
         Args: { _practice_id: string; _user_id: string }
