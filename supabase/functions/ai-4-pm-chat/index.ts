@@ -1547,17 +1547,25 @@ async function callLovableAIGateway(messages: Message[], systemPrompt: string, m
           textContent += part.text;
         } else if (part.type === 'image_url' && part.image_url?.url && typeof part.image_url.url === 'string') {
           const url = part.image_url.url;
-          // If it's a remote URL, convert it to base64 so Gemini can reliably consume it.
+          // Always convert http/https URLs to base64 - the AI gateway requires actual image data
           if (isImageUrl(url)) {
+            console.log(`Converting multimodal image_url to base64: ${url.substring(0, 60)}...`);
             const base64Data = await fetchImageAsBase64(url);
             if (base64Data) {
               contentParts.push({ type: 'image_url', image_url: { url: base64Data } });
+              console.log(`Successfully converted multimodal image to base64`);
             } else {
-              textContent += `\n\n[Failed to load image]`;
+              console.error(`Failed to convert multimodal image URL to base64: ${url}`);
+              textContent += `\n\n[Failed to load image from URL]`;
             }
-          } else {
-            // Already a data URL/base64 or provider-specific format
+          } else if (url.startsWith('data:image/')) {
+            // Already base64 - use as-is
+            console.log(`Using existing base64 multimodal image`);
             contentParts.push(part);
+          } else {
+            // Unknown format - skip with warning
+            console.warn(`Skipping unknown image_url format: ${url.substring(0, 40)}...`);
+            textContent += `\n\n[Image format not supported]`;
           }
         }
       }
@@ -1696,15 +1704,25 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
           textContent += part.text;
         } else if (part.type === 'image_url' && part.image_url?.url && typeof part.image_url.url === 'string') {
           const url = part.image_url.url;
+          // Always convert http/https URLs to base64 - the AI gateway requires actual image data
           if (isImageUrl(url)) {
+            console.log(`[stream] Converting multimodal image_url to base64: ${url.substring(0, 60)}...`);
             const base64Data = await fetchImageAsBase64(url);
             if (base64Data) {
               contentParts.push({ type: 'image_url', image_url: { url: base64Data } });
+              console.log(`[stream] Successfully converted multimodal image to base64`);
             } else {
-              textContent += `\n\n[Failed to load image]`;
+              console.error(`[stream] Failed to convert multimodal image URL to base64: ${url}`);
+              textContent += `\n\n[Failed to load image from URL]`;
             }
-          } else {
+          } else if (url.startsWith('data:image/')) {
+            // Already base64 - use as-is
+            console.log(`[stream] Using existing base64 multimodal image`);
             contentParts.push(part);
+          } else {
+            // Unknown format - skip with warning
+            console.warn(`[stream] Skipping unknown image_url format: ${url.substring(0, 40)}...`);
+            textContent += `\n\n[Image format not supported]`;
           }
         }
       }
@@ -1774,6 +1792,26 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
       formattedMessages.push({ role: msg.role, content: contentParts });
     } else {
       formattedMessages.push({ role: msg.role, content: textContent || '[No message content]' });
+    }
+  }
+
+  // Debug: Log the formatted messages to check for any raw URLs
+  console.log(`[stream] Sending ${formattedMessages.length} messages to API`);
+  for (let i = 0; i < formattedMessages.length; i++) {
+    const msg = formattedMessages[i];
+    const content = msg.content;
+    if (Array.isArray(content)) {
+      for (let j = 0; j < content.length; j++) {
+        const part = content[j];
+        if (part.type === 'image_url') {
+          const urlPreview = part.image_url?.url?.substring(0, 50) || 'undefined';
+          console.log(`[stream] Message ${i} part ${j}: image_url starts with: ${urlPreview}...`);
+          // CRITICAL: Check if we're accidentally sending a raw URL
+          if (part.image_url?.url?.startsWith('http://') || part.image_url?.url?.startsWith('https://')) {
+            console.error(`[stream] ERROR: Raw URL detected in final message! This will fail at the gateway.`);
+          }
+        }
+      }
     }
   }
 
