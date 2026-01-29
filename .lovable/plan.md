@@ -1,180 +1,161 @@
 
+# Plan: Test Ask AI Service and Add Test/Demo Mode
 
-## Photo Capture Feature for Ask AI Chat
+## Overview
+This plan covers three items:
+1. Testing the `gpt5-fast-clinical` edge function for clinical responses
+2. Testing the image processing flow with a storage URL
+3. Adding a test/demo mode to Ask AI that bypasses authentication
 
-### Overview
-Add a comprehensive photo capture facility to the Ask AI service chat that allows users to:
-1. Generate a QR code to scan on their smartphone for remote photo capture
-2. Take photos directly via laptop/PC camera in a modal (similar to LG Capture)
-3. Have captured photos added as file attachments ready to send with their next message
+---
 
-### User Experience Flow
+## 1. Test `gpt5-fast-clinical` Edge Function
 
-**Via the + Button Menu:**
-```text
-┌──────────────────────────────┐
-│  + More Options              │
-├──────────────────────────────┤
-│  📷  Capture Photo           │ ← Opens camera modal (PC/laptop)
-│  📱  Phone Camera (QR)       │ ← Opens QR code modal
-│  📎  Attach Files            │ (existing)
-│  🌐  Translate Document      │ (existing)
-│  💬  Start New Chat          │ (existing)
-└──────────────────────────────┘
+### Purpose
+Verify that the clinical response model works correctly for NHS GP queries, returns British English formatting, and adheres to clinical guidelines.
+
+### Test Cases
+I will execute the following tests against the `gpt5-fast-clinical` edge function:
+
+| Test | Query | Expected Outcome |
+|------|-------|------------------|
+| Basic Clinical Query | "What is the first-line treatment for hypertension in adults?" | NICE guideline response with appropriate drug classes |
+| BNF Compliance | "What is the adult dose of amoxicillin for a chest infection?" | BNF-compliant dosing (500mg TDS, etc.) |
+| Real-time Search | "What are the latest NICE guidelines for diabetes?" | Should trigger Tavily web search |
+| Context Memory | Multi-turn conversation about UTI then follow-up | Should maintain context |
+
+### Execution Method
+Use the `supabase--curl_edge_functions` tool to call the deployed function directly with test payloads.
+
+---
+
+## 2. Test Image Processing Flow
+
+### Purpose
+Verify that the AI can correctly process and summarise images from Supabase Storage URLs (the flow used by iPhone photo capture).
+
+### Test Approach
+Send a request to `ai-4-pm-chat` with a real Supabase storage URL to verify:
+- The edge function detects the URL as an image
+- `fetchImageAsBase64` correctly fetches and converts the image
+- The multimodal message is correctly formatted for the AI gateway
+- The AI returns a meaningful image description/summary
+
+### Test Payload
+```json
+{
+  "messages": [{ 
+    "role": "user", 
+    "content": "Please describe this image",
+    "files": [{
+      "name": "test-image.jpg",
+      "type": "image/jpeg",
+      "content": "https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/ai-chat-captures/[existing-image]"
+    }]
+  }],
+  "model": "google/gemini-3-flash-preview",
+  "stream": false
+}
 ```
 
-### Feature 1: Phone Camera via QR Code
+### Execution Method
+Use the `supabase--curl_edge_functions` tool to send the request and verify the response.
 
-**QR Code Modal Features:**
-- Large, clear QR code display (300x300px)
-- Title: "Capture Photos with Phone"
-- Instruction text explaining the workflow
-- Live counter showing photos received
-- Actions:
-  - **Copy Link** - Copies capture URL to clipboard
-  - **Email Link** - Opens mailto: with pre-filled subject and link
-  - **Print QR** - Opens print dialog with formatted QR poster
-  - **Send via Accurx** - Copies link with patient-friendly SMS text to clipboard
+---
 
-**Mobile Capture Page (`/ai-capture/:sessionToken`):**
-- Validates session token (time-limited, user-specific)
-- Camera interface matching LG Capture UX:
-  - Beep sound on capture (Web Audio API)
-  - Glare detection warning
-  - Camera switch button (front/back)
-  - Rotation button
-  - Grid of captured thumbnails
-  - Upload all button
-- Photos automatically appear in the parent chat as attachments via Supabase realtime subscription
+## 3. Add Test/Demo Mode to Ask AI
 
-### Feature 2: Direct PC/Laptop Camera Capture
+### Purpose
+Allow testing of the Ask AI service without requiring NHS Staff authentication, enabling automated testing and demonstrations.
 
-**Camera Modal (within chat):**
-- Opens in a dialog/modal
-- Matches LG Camera Modal UX:
-  - Beep on capture
-  - Glare detection
-  - Camera switching
-  - Live preview
-  - Session capture counter
-- Photos immediately added to `uploadedFiles` state as attachments
-- Close modal to return to chat with photos attached
+### Implementation Approach
 
-### Technical Implementation
+#### Option A: URL Query Parameter (Recommended)
+Add a `?demo=true` query parameter that:
+- Bypasses the login requirement
+- Creates a mock user context for the session
+- Is only available in non-production environments (preview URLs)
 
-**New Components:**
+#### Changes Required
 
-| File | Purpose |
-|------|---------|
-| `src/components/ai4gp/ChatCameraModal.tsx` | PC/laptop camera capture modal |
-| `src/components/ai4gp/ChatQRCaptureModal.tsx` | QR code generation modal with email/print/Accurx |
-| `src/pages/AIChatCapture.tsx` | Mobile-friendly capture page for phone scanning |
+**File: `src/pages/AI4GP.tsx`**
+```typescript
+// Add demo mode detection
+const [isDemoMode] = useState(() => {
+  const params = new URLSearchParams(window.location.search);
+  const isDemo = params.get('demo') === 'true';
+  const isPreview = window.location.hostname.includes('lovableproject.com') || 
+                    window.location.hostname.includes('localhost');
+  return isDemo && isPreview;
+});
 
-**New Edge Functions:**
+// Modify the auth check
+if (!user && !isDemoMode) {
+  return <SimpleLoginForm />;
+}
 
-| Function | Purpose |
-|----------|---------|
-| `validate-ai-chat-capture-token` | Validates session tokens for mobile capture |
-| `upload-ai-chat-capture` | Handles image uploads from mobile capture |
-
-**Database Changes:**
-
-| Table | Changes |
-|-------|---------|
-| `ai_chat_capture_sessions` | New table to store capture session tokens |
-| `ai_chat_captured_images` | New table to store captured images |
-
-**Modifications:**
-
-| File | Changes |
-|------|---------|
-| `src/components/ai4gp/InputArea.tsx` | Add "Capture Photo" and "Phone Camera (QR)" menu items |
-| `src/App.tsx` | Add route for `/ai-capture/:sessionToken` |
-| `supabase/config.toml` | Register new edge functions |
-
-### Key Patterns Reused
-
-From existing LG Capture implementation:
-- `playClickSound()` function (Web Audio API beep)
-- Glare detection algorithm
-- Camera enumeration and switching
-- Canvas-based image capture
-
-From existing Document Capture:
-- Session token validation pattern
-- Realtime subscription for upload notifications
-- Storage bucket upload pattern
-
-From Survey QR Modal:
-- QR code generation with `qrcode` library
-- Print functionality with styled HTML
-- Download as PNG
-
-### Database Schema
-
-```sql
--- Session tokens for AI chat capture
-CREATE TABLE ai_chat_capture_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  session_token TEXT NOT NULL UNIQUE,
-  expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '1 hour'),
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Captured images
-CREATE TABLE ai_chat_captured_images (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id UUID NOT NULL REFERENCES ai_chat_capture_sessions(id) ON DELETE CASCADE,
-  file_name TEXT NOT NULL,
-  file_url TEXT NOT NULL,
-  thumbnail_url TEXT,
-  processed BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Enable RLS
-ALTER TABLE ai_chat_capture_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ai_chat_captured_images ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies
-CREATE POLICY "Users can view own capture sessions"
-  ON ai_chat_capture_sessions FOR SELECT
-  USING (user_id = auth.uid());
-
-CREATE POLICY "Users can create capture sessions"
-  ON ai_chat_capture_sessions FOR INSERT
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Users can view own captured images"
-  ON ai_chat_captured_images FOR SELECT
-  USING (session_id IN (
-    SELECT id FROM ai_chat_capture_sessions WHERE user_id = auth.uid()
-  ));
+// Pass demo mode to AI4GPService
+<AI4GPService isDemoMode={isDemoMode} />
 ```
 
-### QR Code Modal Actions Detail
+**File: `src/components/AI4GPService.tsx`**
+- Accept `isDemoMode` prop
+- When in demo mode, use a mock practice context
 
-| Action | Behaviour |
-|--------|-----------|
-| Copy Link | Copies `https://domain.com/ai-capture/{token}` to clipboard |
-| Email Link | Opens `mailto:?subject=Photo Capture Link&body=Click to capture photos: {link}` |
-| Print QR | Opens new window with printable A4 poster containing QR, title, and instructions |
-| Send via Accurx | Copies to clipboard: `Please click this link to send us a photo: {link}` |
+**File: `src/contexts/AuthContext.tsx`**
+- Add demo user support for context consumers
 
-### File Summary
+### Security Considerations
+- Demo mode ONLY works on preview URLs (not production `meetingmagic.lovable.app`)
+- Demo mode is clearly indicated in the UI
+- No real patient data accessible in demo mode
+- Demo mode uses a mock user context
 
-**Create (6 files):**
-- `src/components/ai4gp/ChatCameraModal.tsx`
-- `src/components/ai4gp/ChatQRCaptureModal.tsx`
-- `src/pages/AIChatCapture.tsx`
-- `supabase/functions/validate-ai-chat-capture-token/index.ts`
-- `supabase/functions/upload-ai-chat-capture/index.ts`
-- Database migration for new tables
+---
 
-**Modify (2 files):**
-- `src/components/ai4gp/InputArea.tsx`
-- `src/App.tsx`
-- `supabase/config.toml`
+## Technical Details
 
+### Edge Function Testing
+The tests will be executed using the `supabase--curl_edge_functions` tool, which:
+- Automatically handles authentication
+- Returns the full response body
+- Works with both streaming and non-streaming endpoints
+
+### Demo Mode Security
+```typescript
+const isAllowedDemoHost = 
+  window.location.hostname.includes('lovableproject.com') ||
+  window.location.hostname.includes('localhost') ||
+  window.location.hostname.includes('preview');
+
+const isDemoAllowed = isDemo && isAllowedDemoHost;
+```
+
+---
+
+## Execution Order
+
+1. **Immediate**: Run `gpt5-fast-clinical` tests
+2. **Immediate**: Run image processing test
+3. **After Approval**: Implement demo mode changes
+
+---
+
+## Expected Outcomes
+
+### gpt5-fast-clinical Tests
+- All clinical queries return appropriate British English responses
+- BNF/NICE guidelines are referenced
+- Real-time search triggers when keywords detected
+- Responses include appropriate clinical disclaimers
+
+### Image Processing Test
+- Storage URL correctly converted to base64
+- AI returns meaningful image description
+- No "Base64 decoding failed" errors
+
+### Demo Mode
+- `/ai4gp?demo=true` loads the full Ask AI interface
+- Demo mode banner visible
+- All chat features functional without login
+- Works only on preview URLs
