@@ -1830,6 +1830,40 @@ serve(async (req) => {
     verificationLevel = requestData.verificationLevel || 'standard';
     const streamRequested = requestData.stream === true;
 
+     // Some clients send attachments only in the top-level `files` field (not per-message).
+     // Our image URL → base64 logic lives in the per-message file processing pipeline.
+     // To ensure image uploads (e.g. iPhone capture URLs) are handled correctly, merge
+     // top-level files into the most recent user message when no message already contains files.
+     if (Array.isArray(files) && files.length > 0) {
+       const anyMessageHasFiles = messages.some((m: any) => Array.isArray(m?.files) && m.files.length > 0);
+       if (!anyMessageHasFiles && messages.length > 0) {
+         // Prefer last user message; otherwise last message.
+         let targetIndex = messages.length - 1;
+         for (let i = messages.length - 1; i >= 0; i--) {
+           if (messages[i]?.role === 'user') {
+             targetIndex = i;
+             break;
+           }
+         }
+
+         const existing = (messages[targetIndex] as any).files;
+         const existingFiles: UploadedFile[] = Array.isArray(existing) ? existing : [];
+         const merged = [...existingFiles, ...files].filter(Boolean);
+
+         // De-dupe by (name,type,content) to avoid duplicating attachments.
+         const seen = new Set<string>();
+         const deduped = merged.filter((f: any) => {
+           const key = `${f?.name || ''}|${f?.type || ''}|${String(f?.content || '').slice(0, 64)}`;
+           if (seen.has(key)) return false;
+           seen.add(key);
+           return true;
+         });
+
+         messages[targetIndex] = { ...messages[targetIndex], files: deduped } as any;
+         console.log(`🧷 Merged top-level files into message index ${targetIndex} (role: ${messages[targetIndex]?.role})`);
+       }
+     }
+
     console.log('📝 Stream requested:', streamRequested);
 
     // Check API key availability - use consistent variable names
