@@ -32,9 +32,11 @@ serve(async (req) => {
 
     const formData = await req.formData();
     const tokenValue = formData.get("token");
+    const shortCodeValue = formData.get("shortCode");
     const fileValue = formData.get("file");
 
     const token = typeof tokenValue === "string" ? tokenValue : null;
+    const shortCode = typeof shortCodeValue === "string" ? shortCodeValue : null;
 
     // Some clients can send a Blob without filename metadata.
     const fileBlob =
@@ -52,9 +54,9 @@ serve(async (req) => {
       (fileValue && typeof (fileValue as any).size === "number" && (fileValue as any).size) ||
       null;
 
-    if (!token || !fileBlob) {
+    if ((!token && !shortCode) || !fileBlob) {
       return new Response(
-        JSON.stringify({ success: false, error: "Token and file are required" }),
+        JSON.stringify({ success: false, error: "Token/shortCode and file are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -64,23 +66,27 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log("Processing upload for token:", token.substring(0, 8) + "...", {
+    // Determine lookup field and value
+    const lookupValue = shortCode || token!;
+    const lookupField = shortCode ? "short_code" : "session_token";
+
+    console.log(`Processing upload by ${lookupField}:`, lookupValue.substring(0, 6) + "...", {
       name: originalName,
       type: contentType,
       size: fileSize,
     });
 
-    // Validate the session token
+    // Validate the session
     const { data: session, error: sessionError } = await supabase
       .from("ai_chat_capture_sessions")
       .select("id, user_id, expires_at, is_active")
-      .eq("session_token", token)
+      .eq(lookupField, lookupValue)
       .single();
 
     if (sessionError || !session) {
       console.error("Session lookup error:", sessionError);
       return new Response(
-        JSON.stringify({ success: false, error: "Invalid session token" }),
+        JSON.stringify({ success: false, error: "Invalid or expired session" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

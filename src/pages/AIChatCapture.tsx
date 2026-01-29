@@ -90,11 +90,12 @@ interface CapturedImage {
 }
 
 export default function AIChatCapture() {
-  const { sessionToken } = useParams<{ sessionToken: string }>();
+  const { sessionToken, shortCode } = useParams<{ sessionToken?: string; shortCode?: string }>();
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
   const [validationError, setValidationError] = useState<string>('');
   const [cameraAutoStarted, setCameraAutoStarted] = useState(false);
+  const [resolvedSessionId, setResolvedSessionId] = useState<string>('');
   
   const [isCapturing, setIsCapturing] = useState(false);
   const [isCameraLoading, setIsCameraLoading] = useState(false);
@@ -109,21 +110,21 @@ export default function AIChatCapture() {
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Validate session token on mount
+  // Validate session token or short code on mount
   useEffect(() => {
-    if (!sessionToken) {
+    if (!sessionToken && !shortCode) {
       setIsValidating(false);
-      setValidationError('No session token provided');
+      setValidationError('No session provided');
       return;
     }
     
     validateToken();
-  }, [sessionToken]);
+  }, [sessionToken, shortCode]);
 
   const validateToken = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('validate-ai-chat-capture-token', {
-        body: { token: sessionToken }
+        body: shortCode ? { shortCode } : { token: sessionToken }
       });
       
       if (error || !data?.valid) {
@@ -131,6 +132,7 @@ export default function AIChatCapture() {
         setIsValid(false);
       } else {
         setIsValid(true);
+        setResolvedSessionId(data.session_id);
       }
     } catch (err) {
       console.error('Validation error:', err);
@@ -313,7 +315,12 @@ export default function AIChatCapture() {
       });
       
       const formData = new FormData();
-      formData.append('token', sessionToken!);
+      // Use shortCode if available, otherwise token
+      if (shortCode) {
+        formData.append('shortCode', shortCode);
+      } else {
+        formData.append('token', sessionToken!);
+      }
       formData.append('file', blob, `photo-${Date.now()}.jpg`);
 
       // supabase.functions.invoke DOES support FormData and will attach apikey/auth headers.

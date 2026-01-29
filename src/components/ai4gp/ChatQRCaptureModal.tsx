@@ -28,15 +28,16 @@ export function ChatQRCaptureModal({
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [sessionToken, setSessionToken] = useState<string>('');
+  const [shortCode, setShortCode] = useState<string>('');
   const [sessionId, setSessionId] = useState<string>('');
   const [uploadCount, setUploadCount] = useState(0);
   const [receivedImages, setReceivedImages] = useState<UploadedFile[]>([]);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   
-  // Get the base URL for the capture page
+  // Get the base URL for the capture page - use short code for shorter URL
   const getCaptureUrl = () => {
     const baseUrl = window.location.origin;
-    return `${baseUrl}/ai-capture/${sessionToken}`;
+    return `${baseUrl}/c/${shortCode}`;
   };
   
   // Create a capture session when modal opens
@@ -50,6 +51,7 @@ export function ChatQRCaptureModal({
   useEffect(() => {
     if (!open) {
       setSessionToken('');
+      setShortCode('');
       setSessionId('');
       setUploadCount(0);
       setReceivedImages([]);
@@ -89,6 +91,7 @@ export function ChatQRCaptureModal({
       }
       
       setSessionToken(token);
+      setShortCode(session.short_code);
       setSessionId(session.id);
     } catch (err) {
       console.error('Error creating session:', err);
@@ -99,9 +102,9 @@ export function ChatQRCaptureModal({
     }
   };
   
-  // Generate QR code when session is created
+  // Generate QR code when short code is available
   useEffect(() => {
-    if (sessionToken) {
+    if (shortCode) {
       const url = getCaptureUrl();
       QRCode.toDataURL(url, {
         width: 300,
@@ -112,7 +115,7 @@ export function ChatQRCaptureModal({
         }
       }).then(setQrCodeUrl);
     }
-  }, [sessionToken]);
+  }, [shortCode]);
   
   // Subscribe to image uploads via realtime
   useEffect(() => {
@@ -317,7 +320,7 @@ export function ChatQRCaptureModal({
               variant="outline"
               size="sm"
               onClick={copyLink}
-              disabled={!sessionToken}
+              disabled={!shortCode}
             >
               {copied ? (
                 <>
@@ -336,7 +339,7 @@ export function ChatQRCaptureModal({
               variant="outline"
               size="sm"
               onClick={emailLink}
-              disabled={!sessionToken}
+              disabled={!shortCode}
             >
               <Mail className="h-4 w-4 mr-2" />
               Email Link
@@ -356,7 +359,7 @@ export function ChatQRCaptureModal({
               variant="outline"
               size="sm"
               onClick={copyForAccurx}
-              disabled={!sessionToken}
+              disabled={!shortCode}
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Accurx SMS
