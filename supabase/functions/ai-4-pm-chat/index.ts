@@ -1529,7 +1529,37 @@ async function callLovableAIGateway(messages: Message[], systemPrompt: string, m
 
   for (const msg of messages) {
     const contentParts: any[] = [];
-    let textContent = msg.content || '';
+    let textContent = '';
+    const rawContent: any = (msg as any).content;
+
+    // Some clients can send multimodal content as an array of parts.
+    // We must not assume `content` is a string.
+    if (typeof rawContent === 'string') {
+      textContent = rawContent;
+    } else if (Array.isArray(rawContent)) {
+      for (const part of rawContent) {
+        if (!part || typeof part !== 'object') continue;
+        if (part.type === 'text' && typeof part.text === 'string') {
+          textContent += part.text;
+        } else if (part.type === 'image_url' && part.image_url?.url && typeof part.image_url.url === 'string') {
+          const url = part.image_url.url;
+          // If it's a remote URL, convert it to base64 so Gemini can reliably consume it.
+          if (isImageUrl(url)) {
+            const base64Data = await fetchImageAsBase64(url);
+            if (base64Data) {
+              contentParts.push({ type: 'image_url', image_url: { url: base64Data } });
+            } else {
+              textContent += `\n\n[Failed to load image]`;
+            }
+          } else {
+            // Already a data URL/base64 or provider-specific format
+            contentParts.push(part);
+          }
+        }
+      }
+    } else if (rawContent != null) {
+      textContent = String(rawContent);
+    }
     
     // Check if content contains image URLs that need to be processed
     if (msg.files && msg.files.length > 0) {
@@ -1578,7 +1608,7 @@ async function callLovableAIGateway(messages: Message[], systemPrompt: string, m
     }
     
     // Add text content
-    if (textContent.trim()) {
+    if (textContent && textContent.trim()) {
       contentParts.unshift({ type: 'text', text: textContent });
     }
     
@@ -1650,7 +1680,33 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
 
   for (const msg of messages) {
     const contentParts: any[] = [];
-    let textContent = msg.content || '';
+    let textContent = '';
+    const rawContent: any = (msg as any).content;
+
+    if (typeof rawContent === 'string') {
+      textContent = rawContent;
+    } else if (Array.isArray(rawContent)) {
+      for (const part of rawContent) {
+        if (!part || typeof part !== 'object') continue;
+        if (part.type === 'text' && typeof part.text === 'string') {
+          textContent += part.text;
+        } else if (part.type === 'image_url' && part.image_url?.url && typeof part.image_url.url === 'string') {
+          const url = part.image_url.url;
+          if (isImageUrl(url)) {
+            const base64Data = await fetchImageAsBase64(url);
+            if (base64Data) {
+              contentParts.push({ type: 'image_url', image_url: { url: base64Data } });
+            } else {
+              textContent += `\n\n[Failed to load image]`;
+            }
+          } else {
+            contentParts.push(part);
+          }
+        }
+      }
+    } else if (rawContent != null) {
+      textContent = String(rawContent);
+    }
     
     // Check if content contains image URLs that need to be processed
     if (msg.files && msg.files.length > 0) {
@@ -1695,7 +1751,7 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
     }
     
     // Add text content
-    if (textContent.trim()) {
+    if (textContent && textContent.trim()) {
       contentParts.unshift({ type: 'text', text: textContent });
     }
     
@@ -1733,13 +1789,15 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    // Safari/iOS is picky about preflight responses; always return a body.
+    return new Response('ok', { headers: corsHeaders });
   }
 
   // Move selectedModel declaration outside try block to fix variable scope issue
   let selectedModel = 'gpt-4-turbo';
   let messages: Message[] = [];
   let verificationLevel = 'standard';
+  let files: UploadedFile[] | undefined = undefined;
 
   try {
     console.log('📝 Environment check - OpenAI key present:', !!openaiApiKey);
@@ -1754,7 +1812,7 @@ serve(async (req) => {
     messages = requestData.messages || [];
     const model = requestData.model;
     const systemPrompt = requestData.systemPrompt;
-    const files = requestData.files;
+    files = requestData.files;
     verificationLevel = requestData.verificationLevel || 'standard';
     const streamRequested = requestData.stream === true;
 
