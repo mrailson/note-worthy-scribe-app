@@ -407,9 +407,9 @@ ${pastedText.trim()}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             placeholder={placeholderTip}
-            className="min-h-[140px] max-h-80 resize-none bg-white border-border pr-28 pl-10 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
+            className="min-h-[60px] max-h-80 resize-none bg-white border-border pr-28 pl-10 rounded-lg leading-relaxed py-3 ai4gp-text-scaled"
             disabled={isLoading}
-            style={{ minHeight: '140px' }}
+            rows={2}
           />
           
           {/* Insert details button - only shown when there's text and practice context exists */}
