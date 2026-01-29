@@ -6,7 +6,7 @@ import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ArrowDown } from 'lucide-react';
-import { ChatViewSettings, FONT_SIZE_SCALE } from '@/types/chatViewSettings';
+import { ChatViewSettings } from '@/types/chatViewSettings';
 
 interface MessagesListProps {
   messages: Message[];
@@ -202,25 +202,28 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
 
-  // Font size for chat bubbles
-  const fontSize = FONT_SIZE_SCALE[chatFontSize];
-
-  // Container max-width based on containerSize setting
-  const containerMaxWidth = containerSize === 'full' ? '100%' : containerSize === 'wide' ? '1200px' : '900px';
+  // Font size for chat bubbles - map to CSS custom property scale
+  const fontSizeScale: Record<ChatViewSettings['fontSize'], number> = {
+    smaller: 0.875,
+    default: 1,
+    larger: 1.125,
+    largest: 1.25,
+  };
+  const textScale = fontSizeScale[chatFontSize];
   
   return (
     <div className="relative h-full min-h-0">
       <div
         ref={parentRef}
         className={cn(
-          "h-full min-h-0 overflow-auto mx-auto",
+          "h-full min-h-0 overflow-auto",
           deviceInfo.isIPhone ? "px-4 py-3" : "px-2 sm:p-2"
         )}
         style={{ 
           contain: 'strict',
-          fontSize: fontSize !== '1rem' ? fontSize : undefined,
-          maxWidth: containerMaxWidth,
-        }}
+          // Override the CSS variable for text scaling within this container
+          '--ai4gp-text-scale': textScale,
+        } as React.CSSProperties}
       >
         <div
           style={{

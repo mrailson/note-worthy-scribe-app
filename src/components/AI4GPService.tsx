@@ -506,7 +506,13 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
             )}
 
             {/* Main Chat Area */}
-            <div className="flex-1 flex flex-col min-w-0 min-h-0">
+            <div 
+              className="flex-1 flex flex-col min-w-0 min-h-0 mx-auto transition-all duration-200"
+              style={{
+                maxWidth: chatViewSettings.containerSize === 'full' ? '100%' : chatViewSettings.containerSize === 'wide' ? '1400px' : '1100px',
+                width: '100%',
+              }}
+            >
             <Card className="flex-1 flex flex-col min-h-0 sm:border border-0 sm:rounded-lg rounded-none shadow-none sm:shadow-sm">
               <CardHeader className={cn(
                 "border-b flex-shrink-0",
