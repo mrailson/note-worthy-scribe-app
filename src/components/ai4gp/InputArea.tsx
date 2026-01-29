@@ -507,18 +507,17 @@ ${pastedText.trim()}
             className="hidden"
           />
           
-          <div className="absolute right-3 top-4 bottom-4 flex flex-col justify-center items-center">
-            <div className="flex flex-col gap-1 items-center justify-center h-full">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-20 w-20 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
+                    className="h-8 w-8 p-0 hover:bg-accent/50 rounded-md flex items-center justify-center"
                     disabled={isLoading}
                     title="More options"
                   >
-                    <Plus className="w-12 h-12" />
+                    <Plus className="w-5 h-5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" side="top" className="w-48 bg-white border border-border shadow-lg z-50">
@@ -575,7 +574,6 @@ ${pastedText.trim()}
                 disabled={isLoading}
                 className=""
               />
-            </div>
           </div>
         </div>
         
@@ -589,7 +587,7 @@ ${pastedText.trim()}
           }} 
           disabled={isLoading || (!input.trim() && uploadedFiles.length === 0) || uploadedFiles.some(file => file.isLoading) || isFileProcessing}
           size="default"
-          className={`h-[140px] px-6 flex-shrink-0 rounded-lg ${
+          className={`self-stretch px-4 flex-shrink-0 rounded-lg ${
             uploadedFiles.some(file => file.isLoading) ? 'opacity-50 cursor-not-allowed' : ''
           }`}
         >
