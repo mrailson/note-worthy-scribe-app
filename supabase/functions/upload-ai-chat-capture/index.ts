@@ -3,20 +3,56 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const inferExtension = (name: string | undefined, mimeType: string | undefined) => {
+  const safeName = name?.trim();
+  const fromName = safeName?.includes('.') ? safeName.split('.').pop()?.toLowerCase() : undefined;
+  if (fromName) return fromName;
+
+  const t = (mimeType || '').toLowerCase();
+  if (t.includes('jpeg') || t.includes('jpg')) return 'jpg';
+  if (t.includes('png')) return 'png';
+  if (t.includes('webp')) return 'webp';
+  if (t.includes('heic')) return 'heic';
+  if (t.includes('heif')) return 'heif';
+  return 'jpg';
 };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    // Safari/iOS is picky about preflight responses; always return a body.
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const formData = await req.formData();
-    const token = formData.get("token") as string;
-    const file = formData.get("file") as File;
+    console.log("upload-ai-chat-capture: incoming request", { method: req.method });
 
-    if (!token || !file) {
+    const formData = await req.formData();
+    const tokenValue = formData.get("token");
+    const fileValue = formData.get("file");
+
+    const token = typeof tokenValue === "string" ? tokenValue : null;
+
+    // Some clients can send a Blob without filename metadata.
+    const fileBlob =
+      fileValue instanceof File
+        ? fileValue
+        : fileValue instanceof Blob
+          ? fileValue
+          : null;
+
+    const originalName = fileValue instanceof File ? fileValue.name : undefined;
+    const contentType =
+      (fileValue && typeof (fileValue as any).type === "string" && (fileValue as any).type) ||
+      "application/octet-stream";
+    const fileSize =
+      (fileValue && typeof (fileValue as any).size === "number" && (fileValue as any).size) ||
+      null;
+
+    if (!token || !fileBlob) {
       return new Response(
         JSON.stringify({ success: false, error: "Token and file are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -28,7 +64,11 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log("Processing upload for token:", token.substring(0, 8) + "...");
+    console.log("Processing upload for token:", token.substring(0, 8) + "...", {
+      name: originalName,
+      type: contentType,
+      size: fileSize,
+    });
 
     // Validate the session token
     const { data: session, error: sessionError } = await supabase
@@ -62,15 +102,15 @@ serve(async (req) => {
     // Generate unique filename
     const timestamp = Date.now();
     const randomId = crypto.randomUUID().substring(0, 8);
-    const extension = file.name.split('.').pop() || 'jpg';
+    const extension = inferExtension(originalName, contentType);
     const fileName = `${session.id}/${timestamp}-${randomId}.${extension}`;
 
     // Upload file to storage
-    const arrayBuffer = await file.arrayBuffer();
+    const arrayBuffer = await fileBlob.arrayBuffer();
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("ai-chat-captures")
       .upload(fileName, arrayBuffer, {
-        contentType: file.type,
+        contentType,
         upsert: false
       });
 
