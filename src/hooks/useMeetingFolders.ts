@@ -19,17 +19,34 @@ export const useMeetingFolders = () => {
 
   const fetchFolders = useCallback(async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('No user authenticated, skipping folder fetch');
+        setFolders([]);
+        setLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('meeting_folders')
         .select('*')
         .order('display_order', { ascending: true })
         .order('name', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching folders:', error);
+        // Don't show toast for RLS-related errors during recording stop
+        if (!error.message?.includes('JWT')) {
+          showToast.error('Failed to load folders');
+        }
+        setFolders([]);
+        return;
+      }
       setFolders(data || []);
     } catch (error: any) {
       console.error('Error fetching folders:', error);
-      showToast.error('Failed to load folders');
+      // Silent fail - don't block the UI
+      setFolders([]);
     } finally {
       setLoading(false);
     }
