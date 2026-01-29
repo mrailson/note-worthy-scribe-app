@@ -261,11 +261,16 @@ export default function AIChatCapture() {
       formData.append('token', sessionToken!);
       formData.append('file', blob, `photo-${Date.now()}.jpg`);
       
-      const { data, error } = await supabase.functions.invoke('upload-ai-chat-capture', {
+      // Use raw fetch for FormData uploads (supabase.functions.invoke doesn't handle FormData properly)
+      const supabaseUrl = 'https://dphcnbricafkbtizkoal.supabase.co';
+      const uploadResponse = await fetch(`${supabaseUrl}/functions/v1/upload-ai-chat-capture`, {
+        method: 'POST',
         body: formData
       });
       
-      if (error || !data?.success) {
+      const data = await uploadResponse.json();
+      
+      if (!uploadResponse.ok || !data?.success) {
         throw new Error(data?.error || 'Upload failed');
       }
       
@@ -332,8 +337,8 @@ export default function AIChatCapture() {
   const uploadedCount = capturedImages.filter(img => img.uploaded).length;
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-lg mx-auto space-y-4">
+    <div className="min-h-[100dvh] bg-background p-4 pb-safe overflow-auto">
+      <div className="max-w-lg mx-auto space-y-4 pb-8">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
