@@ -104,13 +104,14 @@ All colors MUST be HSL.
 
 /* Display Settings Classes */
 .ai4gp-text-smallest { --ai4gp-text-scale: 0.75; }
-.ai4gp-text-smaller { --ai4gp-text-scale: 0.875; }
-.ai4gp-text-small { --ai4gp-text-scale: 1.0; }
-.ai4gp-text-default { --ai4gp-text-scale: 1.125; }
-.ai4gp-text-medium { --ai4gp-text-scale: 1.25; }
-.ai4gp-text-large { --ai4gp-text-scale: 1.375; }
-.ai4gp-text-larger { --ai4gp-text-scale: 1.5; }
-.ai4gp-text-largest { --ai4gp-text-scale: 1.625; }
+.ai4gp-text-smaller { --ai4gp-text-scale: 0.8; }
+.ai4gp-text-compact { --ai4gp-text-scale: 0.875; }
+.ai4gp-text-small { --ai4gp-text-scale: 0.9375; }
+.ai4gp-text-default { --ai4gp-text-scale: 1.0; }
+.ai4gp-text-medium { --ai4gp-text-scale: 1.125; }
+.ai4gp-text-large { --ai4gp-text-scale: 1.25; }
+.ai4gp-text-larger { --ai4gp-text-scale: 1.375; }
+.ai4gp-text-largest { --ai4gp-text-scale: 1.5; }
 
 .ai4gp-compact { --ai4gp-spacing-scale: 0.75; }
 .ai4gp-comfortable { --ai4gp-spacing-scale: 1; }

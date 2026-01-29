@@ -433,6 +433,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
     switch (size) {
       case 'smallest': return 'ai4gp-text-smallest';
       case 'smaller': return 'ai4gp-text-smaller';
+      case 'compact': return 'ai4gp-text-compact';
       case 'small': return 'ai4gp-text-small';
       case 'default': return 'ai4gp-text-default';
       case 'medium': return 'ai4gp-text-medium';

@@ -55,8 +55,8 @@ interface SettingsModalProps {
   onChatHistoryRetentionDaysChange: (days: number) => void;
   onSaveSettings?: () => void;
   // Display Settings
-  textSize: 'smallest' | 'smaller' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest';
-  onTextSizeChange: (size: 'smallest' | 'smaller' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest') => void;
+  textSize: 'smallest' | 'smaller' | 'compact' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest';
+  onTextSizeChange: (size: 'smallest' | 'smaller' | 'compact' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest') => void;
   interfaceDensity: 'compact' | 'comfortable' | 'spacious';
   onInterfaceDensityChange: (density: 'compact' | 'comfortable' | 'spacious') => void;
   containerWidth: 'narrow' | 'standard' | 'wide' | 'full';
@@ -205,13 +205,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </SelectTrigger>
                     <SelectContent className="bg-popover border border-border z-[9999]">
                       <SelectItem value="smallest">Smallest (0.75x)</SelectItem>
-                      <SelectItem value="smaller">Smaller (0.875x)</SelectItem>
-                      <SelectItem value="small">Small (1.0x)</SelectItem>
-                      <SelectItem value="default">Default (1.125x)</SelectItem>
-                      <SelectItem value="medium">Medium (1.25x)</SelectItem>
-                      <SelectItem value="large">Large (1.375x)</SelectItem>
-                      <SelectItem value="larger">Larger (1.5x)</SelectItem>
-                      <SelectItem value="largest">Largest (1.625x)</SelectItem>
+                      <SelectItem value="smaller">Smaller (0.8x)</SelectItem>
+                      <SelectItem value="compact">Compact (0.875x)</SelectItem>
+                      <SelectItem value="small">Small (0.9375x)</SelectItem>
+                      <SelectItem value="default">Default (1.0x)</SelectItem>
+                      <SelectItem value="medium">Medium (1.125x)</SelectItem>
+                      <SelectItem value="large">Large (1.25x)</SelectItem>
+                      <SelectItem value="larger">Larger (1.375x)</SelectItem>
+                      <SelectItem value="largest">Largest (1.5x)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
