@@ -1,161 +1,244 @@
 
-# Plan: Test Ask AI Service and Add Test/Demo Mode
+# Plan: Enhance Live Meeting Recording Experience
 
 ## Overview
-This plan covers three items:
-1. Testing the `gpt5-fast-clinical` edge function for clinical responses
-2. Testing the image processing flow with a storage URL
-3. Adding a test/demo mode to Ask AI that bypasses authentication
+This plan addresses the issues shown in the screenshots where:
+1. The meeting title stays as "General Meeting" until the recording ends
+2. The word count shows 0 throughout the meeting  
+3. There's no indication that the meeting is live recording in the history view
+4. Action items are only generated after the meeting ends
 
----
+We will implement **live updates during recording** that show word count, generate a smart title, and extract action items - all while the meeting is still in progress.
 
-## 1. Test `gpt5-fast-clinical` Edge Function
+## Current Architecture Understanding
 
-### Purpose
-Verify that the clinical response model works correctly for NHS GP queries, returns British English formatting, and adheres to clinical guidelines.
+### How Recordings Work Now
+- Meeting record is created with `status: 'recording'` when recording starts
+- `title` is set to "General Meeting" (default from `meetingSettings`)
+- `word_count` field exists but is only updated when recording stops
+- Title generation (`generate-meeting-title`) only runs at the end
+- Action items are extracted post-recording via `auto-generate-meeting-notes`
 
-### Test Cases
-I will execute the following tests against the `gpt5-fast-clinical` edge function:
+### Key Components
+| Component | Purpose |
+|-----------|---------|
+| `MeetingRecorder.tsx` | Main recording component with word count state |
+| `MeetingHistoryList.tsx` | Shows meeting list, currently shows "(Recording Now)" badge |
+| `live_meeting_notes` table | Stores live notes during recording |
+| `meeting_action_items` table | Stores structured action items |
+| `generate-meeting-title` | Edge function for smart titles |
 
-| Test | Query | Expected Outcome |
-|------|-------|------------------|
-| Basic Clinical Query | "What is the first-line treatment for hypertension in adults?" | NICE guideline response with appropriate drug classes |
-| BNF Compliance | "What is the adult dose of amoxicillin for a chest infection?" | BNF-compliant dosing (500mg TDS, etc.) |
-| Real-time Search | "What are the latest NICE guidelines for diabetes?" | Should trigger Tavily web search |
-| Context Memory | Multi-turn conversation about UTI then follow-up | Should maintain context |
+## Implementation Approach
 
-### Execution Method
-Use the `supabase--curl_edge_functions` tool to call the deployed function directly with test payloads.
+### 1. Live Word Count Updates to Database
 
----
+**Problem:** Word count is tracked locally in `MeetingRecorder.tsx` via `wordCount` state, but never written to the `meetings` table until recording ends.
 
-## 2. Test Image Processing Flow
+**Solution:** Periodically update the `meetings.word_count` field during recording.
 
-### Purpose
-Verify that the AI can correctly process and summarise images from Supabase Storage URLs (the flow used by iPhone photo capture).
+**Changes:**
+- Add a new `useEffect` in `MeetingRecorder.tsx` that triggers every 30 seconds during recording
+- Update the `meetings` table with the current word count
+- This allows Meeting History to show real-time word count
 
-### Test Approach
-Send a request to `ai-4-pm-chat` with a real Supabase storage URL to verify:
-- The edge function detects the URL as an image
-- `fetchImageAsBase64` correctly fetches and converts the image
-- The multimodal message is correctly formatted for the AI gateway
-- The AI returns a meaningful image description/summary
+```
+// Pseudocode for interval update
+useEffect(() => {
+  if (!isRecording) return;
+  
+  const interval = setInterval(async () => {
+    const meetingId = sessionStorage.getItem('currentMeetingId');
+    if (meetingId && wordCount > 0) {
+      await supabase.from('meetings').update({ 
+        word_count: wordCount,
+        updated_at: new Date().toISOString()
+      }).eq('id', meetingId);
+    }
+  }, 30000); // Every 30 seconds
+  
+  return () => clearInterval(interval);
+}, [isRecording, wordCount]);
+```
 
-### Test Payload
-```json
-{
-  "messages": [{ 
-    "role": "user", 
-    "content": "Please describe this image",
-    "files": [{
-      "name": "test-image.jpg",
-      "type": "image/jpeg",
-      "content": "https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/ai-chat-captures/[existing-image]"
-    }]
-  }],
-  "model": "google/gemini-3-flash-preview",
-  "stream": false
+### 2. Live Title Generation (Periodic Smart Title)
+
+**Problem:** Title stays as "General Meeting" until recording ends and `generate-meeting-title` runs.
+
+**Solution:** Call `generate-meeting-title` periodically during recording after minimum transcript content is available.
+
+**Trigger Conditions:**
+- First call at 3 minutes or 200 words (whichever comes first)
+- Subsequent updates every 5 minutes OR when word count increases by 500 words
+- Throttle to prevent excessive API calls
+
+**Changes:**
+1. **New state in `MeetingRecorder.tsx`:**
+   - `lastTitleGenerationWordCount` - tracks when title was last updated
+   - `lastTitleGenerationTime` - tracks when title was last generated
+
+2. **New periodic check in `MeetingRecorder.tsx`:**
+   - Every 60 seconds, check if conditions are met for title regeneration
+   - Call `generate-meeting-title` with current transcript
+   - Update local `meetingSettings.title` and database
+
+3. **Database update:**
+   - Update `meetings.title` and `meetings.auto_generated_name` during recording
+
+### 3. Live Action Items Extraction
+
+**Problem:** Action items are only extracted after recording ends.
+
+**Solution:** Create a new lightweight edge function that extracts just the title and action items during recording.
+
+**New Edge Function: `extract-live-meeting-insights`**
+
+Purpose: Quick extraction of meeting title and action items from transcript (runs during recording)
+
+```
+Input: {
+  meetingId: string,
+  transcript: string (last 3000 words for efficiency),
+  currentTitle: string,
+  existingActionItems: string[]
+}
+
+Output: {
+  suggestedTitle: string,
+  actionItems: [
+    { action_text: string, assignee_name: string, due_date: string }
+  ]
 }
 ```
 
-### Execution Method
-Use the `supabase--curl_edge_functions` tool to send the request and verify the response.
+Key characteristics:
+- Uses Gemini 2.5 Flash for speed (~1-2s response)
+- Only processes last ~3000 words of transcript for efficiency
+- Returns incremental action items (new ones only)
+- Runs every 3-5 minutes during recording
 
----
+**Changes:**
+1. Create `supabase/functions/extract-live-meeting-insights/index.ts`
+2. Add call logic in `MeetingRecorder.tsx` 
+3. Insert new action items to `meeting_action_items` table during recording
+4. Update meeting title if AI suggests a better one
 
-## 3. Add Test/Demo Mode to Ask AI
+### 4. Meeting History Live Updates
 
-### Purpose
-Allow testing of the Ask AI service without requiring NHS Staff authentication, enabling automated testing and demonstrations.
+**Problem:** Meeting History shows stale data during recording.
 
-### Implementation Approach
+**Solution:** Use Supabase Realtime to subscribe to `meetings` table changes.
 
-#### Option A: URL Query Parameter (Recommended)
-Add a `?demo=true` query parameter that:
-- Bypasses the login requirement
-- Creates a mock user context for the session
-- Is only available in non-production environments (preview URLs)
+**Changes in `MeetingHistoryList.tsx`:**
+1. Subscribe to realtime updates for meetings with `status: 'recording'`
+2. Automatically refresh the specific meeting row when word_count or title changes
+3. Add visual indicator showing live updates are occurring
 
-#### Changes Required
+### 5. Enhanced Recording Indicator in History
 
-**File: `src/pages/AI4GP.tsx`**
-```typescript
-// Add demo mode detection
-const [isDemoMode] = useState(() => {
-  const params = new URLSearchParams(window.location.search);
-  const isDemo = params.get('demo') === 'true';
-  const isPreview = window.location.hostname.includes('lovableproject.com') || 
-                    window.location.hostname.includes('localhost');
-  return isDemo && isPreview;
-});
-
-// Modify the auth check
-if (!user && !isDemoMode) {
-  return <SimpleLoginForm />;
-}
-
-// Pass demo mode to AI4GPService
-<AI4GPService isDemoMode={isDemoMode} />
-```
-
-**File: `src/components/AI4GPService.tsx`**
-- Accept `isDemoMode` prop
-- When in demo mode, use a mock practice context
-
-**File: `src/contexts/AuthContext.tsx`**
-- Add demo user support for context consumers
-
-### Security Considerations
-- Demo mode ONLY works on preview URLs (not production `meetingmagic.lovable.app`)
-- Demo mode is clearly indicated in the UI
-- No real patient data accessible in demo mode
-- Demo mode uses a mock user context
-
----
+**Current:** Shows "(Recording Now)" text badge
+**Enhanced:** 
+- Animated pulsing red dot next to title
+- Live word count that updates in real-time
+- "Live" badge that pulses
 
 ## Technical Details
 
-### Edge Function Testing
-The tests will be executed using the `supabase--curl_edge_functions` tool, which:
-- Automatically handles authentication
-- Returns the full response body
-- Works with both streaming and non-streaming endpoints
+### New Edge Function: `extract-live-meeting-insights`
 
-### Demo Mode Security
 ```typescript
-const isAllowedDemoHost = 
-  window.location.hostname.includes('lovableproject.com') ||
-  window.location.hostname.includes('localhost') ||
-  window.location.hostname.includes('preview');
+// Core prompt structure
+const systemPrompt = `You extract meeting insights from a live transcript.
 
-const isDemoAllowed = isDemo && isAllowedDemoHost;
+Return JSON only:
+{
+  "suggestedTitle": "Specific descriptive title (4-12 words)",
+  "actionItems": [
+    {
+      "action_text": "Clear action description",
+      "assignee_name": "Name or TBC",
+      "due_date": "Date mentioned or TBC"
+    }
+  ]
+}
+
+Rules:
+- Title must be specific (never "General Meeting" or "Team Update")
+- Only include NEW action items not in existingActionItems
+- Use British English
+- Focus on the most recent discussion`;
 ```
 
----
+### Update Intervals During Recording
 
-## Execution Order
+| Update Type | Interval | Condition |
+|-------------|----------|-----------|
+| Word Count | 30 seconds | Always during recording |
+| Title Generation | 5 minutes | After 200+ words, only if 500+ new words |
+| Action Items | 3 minutes | After 300+ words |
 
-1. **Immediate**: Run `gpt5-fast-clinical` tests
-2. **Immediate**: Run image processing test
-3. **After Approval**: Implement demo mode changes
+### Performance Considerations
 
----
+1. **Throttling:** All periodic updates are throttled to prevent API spam
+2. **Transcript Truncation:** Only send last 3000 words for live insights
+3. **Debouncing:** Word count updates debounced to 30s
+4. **Conditional Updates:** Skip updates if transcript hasn't grown significantly
 
-## Expected Outcomes
+### State Management
 
-### gpt5-fast-clinical Tests
-- All clinical queries return appropriate British English responses
-- BNF/NICE guidelines are referenced
-- Real-time search triggers when keywords detected
-- Responses include appropriate clinical disclaimers
+New refs in `MeetingRecorder.tsx`:
+```typescript
+const lastLiveUpdateRef = useRef<{
+  wordCountSync: number;
+  titleGeneration: number;
+  actionItemsExtraction: number;
+  lastTitleWordCount: number;
+}>({
+  wordCountSync: 0,
+  titleGeneration: 0,
+  actionItemsExtraction: 0,
+  lastTitleWordCount: 0
+});
+```
 
-### Image Processing Test
-- Storage URL correctly converted to base64
-- AI returns meaningful image description
-- No "Base64 decoding failed" errors
+## Implementation Order
 
-### Demo Mode
-- `/ai4gp?demo=true` loads the full Ask AI interface
-- Demo mode banner visible
-- All chat features functional without login
-- Works only on preview URLs
+1. **Phase 1: Word Count Sync** (Quick win)
+   - Add 30-second interval to sync word count to database
+   - Update Meeting History to show live count
+
+2. **Phase 2: Live Title Generation**
+   - Add periodic title generation logic
+   - Update database and local state
+
+3. **Phase 3: Edge Function + Action Items**
+   - Create `extract-live-meeting-insights` edge function
+   - Add call logic during recording
+   - Insert action items to database
+
+4. **Phase 4: Realtime Subscription**
+   - Add Supabase Realtime subscription for live updates
+   - Enhance visual indicators
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/MeetingRecorder.tsx` | Add periodic update logic, new refs, live insight calls |
+| `src/components/MeetingHistoryList.tsx` | Add Realtime subscription, enhanced recording indicator |
+| `supabase/functions/extract-live-meeting-insights/index.ts` | New edge function |
+
+## Expected User Experience After Implementation
+
+1. User starts recording
+2. At ~30 seconds: Word count shows "15 words" in history (instead of 0)
+3. At ~3 minutes: Title updates from "General Meeting" to e.g., "Primary Care Network Pharmacy Integration Discussion"
+4. At ~4 minutes: First action items appear in the Actions tab
+5. Throughout: Meeting History shows live updating word count
+6. At end: Full notes generation runs as before (no change)
+
+## Backwards Compatibility
+
+- All changes are additive
+- Existing stopRecording flow unchanged
+- Post-meeting notes generation still runs
+- Action items from live extraction are deduplicated against post-meeting extraction
