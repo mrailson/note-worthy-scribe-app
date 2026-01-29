@@ -1,163 +1,84 @@
 
-# Chat View Settings Dropdown
+# Plan: Integrate Practice Logo Support into Infographic Generation
 
-## Overview
-Add a configurable chat view settings icon next to "My Meetings" that opens a dropdown menu with submenus for customising the chat bubble display. Settings will persist across sessions using localStorage to adapt to different screen resolutions.
+## Summary
 
-## Location
-The settings icon will appear in the CardHeader toolbar, positioned between the "My Meetings" dropdown and the "Quick Pick" dropdown.
+This plan adds an optional step before infographic generation where users can choose to include their practice branding and/or logo. The infrastructure already exists in the edge function—we just need to wire the existing branding system into the content infographic flow.
 
-## Proposed Settings Structure
+## Current State
 
-### 1. Text Size (Submenu)
-- **Smaller** - 0.875x scale
-- **Default** - 1.0x scale  
-- **Larger** - 1.125x scale
-- **Largest** - 1.25x scale
+The "Create as Infographic" feature in the AI response menu generates infographics without any practice branding. However:
+- The edge function (`ai4gp-image-generation`) already fully supports practice branding and logo placement via `practiceContext`, `brandingLevel`, `includeLogo`, and `logoPlacement` parameters
+- Practice logos are stored in the `practice_details` table (`logo_url` or `practice_logo_url` columns)
+- The `usePracticeContext` hook provides access to `practiceContext.logoUrl`
+- The `ImageBrandingDialog` component already exists and provides a user interface for selecting branding options
 
-*Note: This specifically controls chat bubble font size, separate from the global text size in Settings.*
+## Approach
 
-### 2. Message Display (Submenu)
-- **Show my requests** - Toggle to show/hide user messages
-- **Auto-collapse my prompts** - Collapse user messages by default
-- **Compact view** - Reduces padding and spacing in bubbles
+Add a two-step flow:
+1. When user selects orientation, show a quick branding confirmation step
+2. Allow users to toggle "Include practice branding" and "Include logo space"
+3. Pass these settings through to the existing edge function infrastructure
 
-### 3. Auto-Scroll Behaviour (Submenu)
-- **Auto-scroll to new messages** - On/Off
-- **Scroll during streaming** - On/Off (scrolls as AI types)
+## Technical Changes
 
-### 4. Bubble Style (Submenu)
-- **Standard** - Current appearance
-- **Minimal** - Less visual decoration
-- **Cards** - More prominent card styling
+### 1. Update ContentInfographicModal Props and Logic
 
----
+**File:** `src/components/ContentInfographicModal.tsx`
 
-## Technical Implementation
+- Add new optional props for branding configuration
+- Import and use `usePracticeContext` to access practice details and logo URL
+- Add a pre-generation step showing branding options (similar to ImageBrandingDialog but simpler)
+- Pass branding settings to `generateInfographic`
 
-### New Files
+### 2. Extend useContentInfographic Hook
 
-#### 1. `src/types/chatViewSettings.ts`
-Define the TypeScript interface for chat view settings:
-```
-interface ChatViewSettings {
-  fontSize: 'smaller' | 'default' | 'larger' | 'largest';
-  showUserMessages: boolean;
-  autoCollapsePrompts: boolean;
-  compactView: boolean;
-  autoScrollNewMessages: boolean;
-  scrollDuringStreaming: boolean;
-  bubbleStyle: 'standard' | 'minimal' | 'cards';
-}
-```
+**File:** `src/hooks/useContentInfographic.ts`
 
-#### 2. `src/hooks/useChatViewSettings.ts`
-Custom hook managing settings state and localStorage persistence:
-- Load settings on mount
-- Persist changes immediately
-- Provide getter/setter functions for each setting
-- Export defaults for reset functionality
+- Add `practiceContext`, `brandingLevel`, `includeLogo`, and `logoPlacement` to the `ContentInfographicOptions` interface
+- Update the edge function call to include these parameters in the request body
+- The edge function already handles these parameters—no backend changes needed
 
-#### 3. `src/components/ai4gp/ChatViewSettingsDropdown.tsx`
-New dropdown component with submenus:
-- Uses `@radix-ui/react-dropdown-menu` (already installed)
-- Settings icon trigger (`SlidersHorizontal` or `LayoutGrid` from lucide-react)
-- Submenus for each category using `DropdownMenuSub`, `DropdownMenuSubTrigger`, `DropdownMenuSubContent`
-- Radio items for exclusive options (font size, bubble style)
-- Checkbox items for toggles (show messages, auto-scroll)
+### 3. Update MessageRenderer to Pass Practice Context
 
-### Modified Files
+**File:** `src/components/MessageRenderer.tsx`
 
-#### 4. `src/components/AI4GPService.tsx`
-- Import and use `useChatViewSettings` hook
-- Add `ChatViewSettingsDropdown` to the toolbar after `MeetingsDropdown`
-- Pass relevant settings down to `MessagesList`
-- Wire up the `autoCollapsePrompts` setting to existing `autoCollapseUserPrompts` prop
+- Import `usePracticeContext`
+- Pass `practiceContext` to `ContentInfographicModal`
 
-#### 5. `src/components/ai4gp/MessagesList.tsx`
-- Accept new props: `chatFontSize`, `showUserMessages`, `compactView`, `bubbleStyle`
-- Apply font size scaling via CSS custom properties or inline styles
-- Filter out user messages when `showUserMessages` is false
-- Adjust padding/margins based on `compactView`
-- Apply different styling classes based on `bubbleStyle`
+## User Experience
 
-#### 6. `src/components/MessageRenderer.tsx`
-- Accept new props for chat-specific styling
-- Apply font size class to message content wrapper
-- Apply compact mode padding adjustments
-- Apply bubble style variations (border, shadow, background)
+When clicking "Create as Infographic" → Portrait/Landscape:
 
----
+1. **Pre-generation step** (new quick modal or section):
+   - Toggle: "Include practice branding" (Practice name, contact details)
+   - Toggle: "Reserve space for logo" (if branding enabled and logo URL exists)
+   - Button: "Generate" / "Skip branding"
 
-## UI/UX Design
+2. **Generation proceeds** as currently with the progress modal
 
-### Dropdown Icon
-```
-[Calendar] My Meetings    [SlidersHorizontal]    [MoreVertical] Quick Pick    [Settings]
-```
+This keeps the flow quick whilst giving users control over branding.
 
-The icon will be a simple `SlidersHorizontal` icon (representing view customisation) with no text label on mobile, and optionally "View" text on desktop.
+## Files to Modify
 
-### Menu Structure
-```
-+---------------------------+
-| Text Size            ▶    |
-| ├ Smaller                 |
-| ├ Default            ✓    |
-| ├ Larger                  |
-| └ Largest                 |
-+---------------------------+
-| Message Display      ▶    |
-| ├ ☑ Show my requests      |
-| ├ ☐ Auto-collapse prompts |
-| └ ☐ Compact view          |
-+---------------------------+
-| Auto-Scroll          ▶    |
-| ├ ☑ Scroll to new msgs    |
-| └ ☑ Scroll during typing  |
-+---------------------------+
-| Bubble Style         ▶    |
-| ├ Standard           ✓    |
-| ├ Minimal                 |
-| └ Cards                   |
-+---------------------------+
-|  ↺ Reset to defaults      |
-+---------------------------+
-```
+| File | Changes |
+|------|---------|
+| `src/components/ContentInfographicModal.tsx` | Add branding options UI, use practice context |
+| `src/hooks/useContentInfographic.ts` | Extend options interface, pass branding to edge function |
+| `src/components/MessageRenderer.tsx` | Import usePracticeContext, pass to modal |
 
----
+## Alternative Simpler Approach
 
-## Persistence Strategy
-- **localStorage key**: `ai4gp-chat-view-settings`
-- **Merge with defaults**: On load, merge stored settings with defaults to handle new options gracefully
-- **Immediate save**: Changes persist immediately without requiring a "Save" action
+If you prefer minimal UI changes, we could:
+- Add a simple "Include Practice Branding" checkbox in the orientation flyout submenu
+- Store the preference in localStorage
+- Use sensible defaults (name-only branding level, logo in top-right if available)
 
----
+This would require fewer UI changes but less user control.
 
-## Integration with Existing Settings
-The existing `autoCollapseUserPrompts` setting from the global Settings modal will:
-1. Continue to work as before
-2. Be synchronised with the new dropdown's "Auto-collapse my prompts" toggle
-3. Both controls will update the same underlying state
+## Edge Cases Handled
 
----
-
-## Responsive Considerations
-- On mobile: Icon only, no text
-- On desktop: Icon + "View" text
-- Dropdown positions correctly via `align="end"` 
-- Touch-friendly tap targets (min 44px height) on menu items
-
----
-
-## Files Summary
-
-| File | Action |
-|------|--------|
-| `src/types/chatViewSettings.ts` | Create |
-| `src/hooks/useChatViewSettings.ts` | Create |
-| `src/components/ai4gp/ChatViewSettingsDropdown.tsx` | Create |
-| `src/components/AI4GPService.tsx` | Modify |
-| `src/components/ai4gp/MessagesList.tsx` | Modify |
-| `src/components/MessageRenderer.tsx` | Modify |
-
+- **No practice details configured:** Branding section shows disabled/empty state with helpful message
+- **No logo uploaded:** "Include logo" option is hidden or disabled
+- **Practice details partially filled:** Only available fields are included in branding
+- **User skips branding:** Generation proceeds exactly as today (no branding)
