@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export type TextSize = 'smallest' | 'smaller' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest';
+export type TextSize = 'smallest' | 'smaller' | 'compact' | 'small' | 'default' | 'medium' | 'large' | 'larger' | 'largest';
 export type InterfaceDensity = 'compact' | 'comfortable' | 'spacious';
 export type ContainerWidth = 'narrow' | 'standard' | 'wide' | 'full';
 
