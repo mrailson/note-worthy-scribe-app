@@ -214,7 +214,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                       )}
                      {hasModuleAccess('meeting_recorder') && isServiceVisible('meeting_notes') && (
                        <DropdownMenuItem 
-                          onClick={() => navigate('/')}
+                          onClick={() => navigate('/?tab=recorder')}
                          className="cursor-pointer py-3"
                        >
                          <FileText className="h-4 w-4 mr-2" />
