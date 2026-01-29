@@ -543,6 +543,14 @@ export default function AIChatCapture() {
                         <Loader2 className="h-6 w-6 animate-spin text-white" />
                       </div>
                     )}
+
+                    {!!img.error && !img.uploading && !img.uploaded && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/90 rounded-lg p-2">
+                        <p className="text-xs text-destructive text-center leading-snug">
+                          {img.error}
+                        </p>
+                      </div>
+                    )}
                     
                     {!img.uploaded && !img.uploading && (
                       <Button
@@ -559,14 +567,16 @@ export default function AIChatCapture() {
               </div>
               
               {pendingCount > 0 && (
-                <Button
-                  onClick={uploadAllImages}
-                  className="w-full"
-                  size="lg"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload {pendingCount} Photo{pendingCount > 1 ? 's' : ''}
-                </Button>
+                <div className="hidden sm:block">
+                  <Button
+                    onClick={uploadAllImages}
+                    className="w-full"
+                    size="lg"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload {pendingCount} Photo{pendingCount > 1 ? 's' : ''}
+                  </Button>
+                </div>
               )}
               
               {uploadedCount > 0 && pendingCount === 0 && (
@@ -577,6 +587,16 @@ export default function AIChatCapture() {
               )}
             </CardContent>
           </Card>
+        )}
+
+        {/* iPhone/Safari: keep upload CTA above the browser UI */}
+        {pendingCount > 0 && (
+          <div className="sm:hidden sticky bottom-0 -mx-4 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] bg-background/95 backdrop-blur border-t border-border">
+            <Button onClick={uploadAllImages} className="w-full" size="lg">
+              <Upload className="h-4 w-4 mr-2" />
+              Upload {pendingCount} Photo{pendingCount > 1 ? 's' : ''}
+            </Button>
+          </div>
         )}
       </div>
     </div>

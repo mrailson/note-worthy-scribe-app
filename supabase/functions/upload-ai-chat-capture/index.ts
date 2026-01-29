@@ -107,9 +107,10 @@ serve(async (req) => {
 
     // Upload file to storage
     const arrayBuffer = await fileBlob.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("ai-chat-captures")
-      .upload(fileName, arrayBuffer, {
+      .upload(fileName, bytes, {
         contentType,
         upsert: false
       });
@@ -117,7 +118,7 @@ serve(async (req) => {
     if (uploadError) {
       console.error("Upload error:", uploadError);
       return new Response(
-        JSON.stringify({ success: false, error: "Failed to upload file" }),
+        JSON.stringify({ success: false, error: `Failed to upload file: ${uploadError.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -142,7 +143,7 @@ serve(async (req) => {
     if (insertError) {
       console.error("Insert error:", insertError);
       return new Response(
-        JSON.stringify({ success: false, error: "Failed to record upload" }),
+        JSON.stringify({ success: false, error: `Failed to record upload: ${insertError.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
