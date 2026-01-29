@@ -62,9 +62,12 @@ export function ChatCameraModal({
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const cameras = devices.filter(device => device.kind === 'videoinput');
+      console.log(`📷 Found ${cameras.length} camera(s):`, cameras.map(c => c.label || 'Unnamed'));
       setAvailableCameras(cameras);
+      return cameras;
     } catch (err) {
       console.error('Failed to enumerate cameras:', err);
+      return [];
     }
   }, []);
 
@@ -282,20 +285,25 @@ export function ChatCameraModal({
                 >
                   <RotateCcw className="h-4 w-4" />
                 </Button>
-                {availableCameras.length > 1 && (
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (availableCameras.length > 1) {
                       toggleCamera();
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="bg-black/50 border-white/30 text-white hover:bg-black/70"
-                  >
-                    <SwitchCamera className="h-4 w-4 mr-1" />
-                    {selectedCameraIndex + 1}/{availableCameras.length}
-                  </Button>
-                )}
+                    } else {
+                      toast.info('Only one camera detected');
+                    }
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="bg-black/50 border-white/30 text-white hover:bg-black/70"
+                  title={availableCameras.length > 1 ? `Switch camera (${selectedCameraIndex + 1}/${availableCameras.length})` : 'Switch camera'}
+                >
+                  <SwitchCamera className="h-4 w-4" />
+                  {availableCameras.length > 1 && (
+                    <span className="ml-1">{selectedCameraIndex + 1}/{availableCameras.length}</span>
+                  )}
+                </Button>
               </div>
             )}
             
