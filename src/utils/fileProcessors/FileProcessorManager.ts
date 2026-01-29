@@ -4,6 +4,7 @@ import { PDFProcessor } from './PDFProcessor';
 import { ImageProcessor } from './ImageProcessor';
 import { TextProcessor } from './TextProcessor';
 import { AudioProcessor } from './AudioProcessor';
+import { PowerPointProcessor } from './PowerPointProcessor';
 
 export interface ProcessedFile {
   name: string;
@@ -11,7 +12,7 @@ export interface ProcessedFile {
   content: string;
   size: number;
   isLoading: false;
-  processedType: 'text' | 'image' | 'pdf' | 'word' | 'excel' | 'audio' | 'unknown';
+  processedType: 'text' | 'image' | 'pdf' | 'word' | 'excel' | 'audio' | 'powerpoint' | 'unknown';
 }
 
 export class FileProcessorManager {
@@ -33,6 +34,10 @@ export class FileProcessorManager {
     
     // PDF files
     '.pdf': 'pdf',
+    
+    // PowerPoint files
+    '.ppt': 'powerpoint',
+    '.pptx': 'powerpoint',
     
     // Images
     '.jpg': 'image',
@@ -89,6 +94,10 @@ export class FileProcessorManager {
           
         case 'pdf':
           content = await PDFProcessor.extractText(file);
+          break;
+          
+        case 'powerpoint':
+          content = await PowerPointProcessor.extractText(file);
           break;
           
         case 'image':
