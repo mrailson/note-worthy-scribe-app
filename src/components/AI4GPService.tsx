@@ -34,7 +34,7 @@ import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
-import { ChatViewSettingsDropdown } from '@/components/ai4gp/ChatViewSettingsDropdown';
+import { UnifiedSettingsDropdown } from '@/components/ai4gp/UnifiedSettingsDropdown';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
 import { AI4GPUserGuide } from '@/components/ai4gp/AI4GPUserGuide';
 import { TranslationToolInterface } from '@/components/TranslationToolInterface';
@@ -570,63 +570,18 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         isLoading={meetingsLoading}
                       />
                       
-                      {/* Chat View Settings */}
-                      <ChatViewSettingsDropdown
-                        settings={chatViewSettings}
-                        onUpdateSetting={updateChatViewSetting}
-                        onResetToDefaults={resetChatViewSettings}
+                      {/* Unified Settings Dropdown */}
+                      <UnifiedSettingsDropdown
+                        chatViewSettings={chatViewSettings}
+                        onUpdateChatViewSetting={updateChatViewSetting}
+                        onResetChatViewDefaults={resetChatViewSettings}
+                        onNewSearch={handleNewSearch}
+                        onShowGPGenie={() => navigate('/gp-genie')}
+                        onShowUserGuide={() => setShowUserGuide(true)}
+                        onOpenSettings={() => setShowSettings(true)}
                       />
                     </CardTitle>
                   </div>
-
-                  
-                   <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={cn(
-                            deviceInfo.isIPhone ? "px-3 h-10 min-w-[44px]" : "px-2 sm:px-3"
-                          )}
-                        >
-                          <MoreVertical className={cn(
-                            deviceInfo.isIPhone ? "w-4 h-4" : "w-3 h-3 sm:w-4 sm:h-4"
-                          )} />
-                          <span className="hidden sm:inline text-xs ml-1">Quick Pick</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                       <DropdownMenuContent align="end" className="w-48">
-                         <DropdownMenuItem onClick={handleNewSearch}>
-                           <Plus className="w-4 h-4 mr-2" />
-                           New Search
-                         </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => navigate('/gp-genie')}>
-                           <GenieIcon className="w-4 h-4 mr-2" />
-                           GP Genie
-                         </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => setShowUserGuide(true)}>
-                           <BookOpen className="w-4 h-4 mr-2" />
-                           User Guide & Help
-                         </DropdownMenuItem>
-                       </DropdownMenuContent>
-                     </DropdownMenu>
-                      
-                       {/* Settings Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowSettings(true)}
-                        className={cn(
-                          deviceInfo.isIPhone ? "px-3 h-10 min-w-[44px]" : "px-2 sm:px-3"
-                        )}
-                      >
-                        <Settings className={cn(
-                          deviceInfo.isIPhone ? "w-4 h-4" : "w-3 h-3 sm:w-4 sm:h-4 sm:mr-1"
-                        )} />
-                        <span className="hidden sm:inline text-xs">Settings</span>
-                      </Button>
-                   </div>
                 </div>
               </CardHeader>
 
