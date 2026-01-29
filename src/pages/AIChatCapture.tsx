@@ -314,23 +314,17 @@ export default function AIChatCapture() {
       const formData = new FormData();
       formData.append('token', sessionToken!);
       formData.append('file', blob, `photo-${Date.now()}.jpg`);
-      
-      // Use raw fetch for FormData uploads (supabase.functions.invoke doesn't handle FormData properly)
-      const supabaseUrl = 'https://dphcnbricafkbtizkoal.supabase.co';
-      const uploadResponse = await fetch(`${supabaseUrl}/functions/v1/upload-ai-chat-capture`, {
-        method: 'POST',
-        body: formData
+
+      // supabase.functions.invoke DOES support FormData and will attach apikey/auth headers.
+      const { data, error } = await supabase.functions.invoke('upload-ai-chat-capture', {
+        body: formData,
       });
-      
-      let data: any = null;
-      try {
-        data = await uploadResponse.json();
-      } catch {
-        // Ignore JSON parse errors (e.g., an HTML error page)
-      }
-      
-      if (!uploadResponse.ok || !data?.success) {
-        throw new Error(data?.error || `Upload failed (${uploadResponse.status})`);
+
+      if (error || !data?.success) {
+        const message = (data && typeof data === 'object' && 'error' in data)
+          ? (data as any).error
+          : undefined;
+        throw new Error(message || error?.message || 'Upload failed');
       }
       
       setCapturedImages(prev => prev.map(img => 

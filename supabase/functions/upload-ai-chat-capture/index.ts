@@ -133,9 +133,9 @@ serve(async (req) => {
       .from("ai_chat_captured_images")
       .insert({
         session_id: session.id,
-        file_name: file.name,
+        file_name: originalName ?? fileName,
         file_url: urlData.publicUrl,
-        file_size: file.size
+        file_size: fileSize
       })
       .select()
       .single();
