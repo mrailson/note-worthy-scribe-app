@@ -66,6 +66,15 @@ const ADMIN_EMAILS = [
   'carolyn.abbisogni@nhs.net'
 ];
 
+const normaliseEmail = (email: unknown): string | null => {
+  if (typeof email !== 'string') return null;
+  const trimmed = email.trim();
+  if (!trimmed) return null;
+  return trimmed.toLowerCase();
+};
+
+const ADMIN_EMAILS_SET = new Set(ADMIN_EMAILS.map((e) => e.trim().toLowerCase()));
+
 export function AdminClaimsReport() {
   const { user, isSystemAdmin } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -78,7 +87,9 @@ export function AdminClaimsReport() {
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
 
   // Check if current user has admin access
-  const hasAccess = isSystemAdmin || (user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
+  const authEmail =
+    normaliseEmail(user?.email) ?? normaliseEmail((user as any)?.user_metadata?.email);
+  const hasAccess = isSystemAdmin || (authEmail ? ADMIN_EMAILS_SET.has(authEmail) : false);
 
   const fetchAllData = async () => {
     if (!hasAccess) return;
