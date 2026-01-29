@@ -5205,6 +5205,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           recording_created_at,
           notes_style_3,
           folder_id,
+          word_count,
           meeting_overviews (
             overview,
             audio_overview_url,
@@ -5212,14 +5213,20 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             audio_overview_duration
           )
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(200); // Limit to 200 most recent meetings to prevent memory issues
 
       if (error) throw error;
 
       // Batch lightweight counts to avoid heavy per-meeting queries
       const meetingIds = (meetingsData || []).map(m => m.id);
 
-      const [transcriptCounts, summaryExists, documentCounts, wordCountResult] = await Promise.all([
+      // Calculate total word count from already-fetched data (no extra query needed)
+      const totalWordsFromData = (meetingsData || []).reduce((sum: number, m: any) => {
+        return sum + (m.word_count && typeof m.word_count === 'number' ? m.word_count : 0);
+      }, 0);
+
+      const [transcriptCounts, summaryExists, documentCounts] = await Promise.all([
         // Transcript chunk counts per meeting
         supabase
           .from('meeting_transcription_chunks')
@@ -5257,26 +5264,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
             });
             return counts;
-          }),
-
-        // Total word count from whisper transcripts (lightweight - just count characters and estimate)
-        supabase
-          .from('meetings')
-          .select('whisper_transcript_text')
-          .in('id', meetingIds)
-          .then(({ data }) => {
-            let totalWords = 0;
-            data?.forEach((row: any) => {
-              if (row.whisper_transcript_text) {
-                totalWords += row.whisper_transcript_text.split(/\s+/).filter((w: string) => w.length > 0).length;
-              }
-            });
-            return totalWords;
           })
       ]);
 
-      // Update total transcript words state
-      setTotalTranscriptWords(wordCountResult);
+      // Update total transcript words state from already-loaded data
+      setTotalTranscriptWords(totalWordsFromData);
 
       // Build enriched objects without fetching heavy transcript contents
       const meetingsWithCounts = (meetingsData || []).map((meeting: any) => ({
@@ -5288,7 +5280,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         audio_overview_url: meeting.meeting_overviews?.audio_overview_url || null,
         audio_overview_text: meeting.meeting_overviews?.audio_overview_text || null,
         audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null,
-        word_count: null,
+        // Use the word_count from the main query, not a separate fetch
+        word_count: meeting.word_count || 0,
         document_count: documentCounts[meeting.id] || 0,
         documents: [],
         access_type: 'owner',
@@ -5315,7 +5308,34 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     }
   }, [user]);
 
-  // Real-time updates for new meetings
+  // Real-time updates for new meetings - with debounce to prevent excessive refreshes during recording
+  const pendingRefreshRef = useRef<NodeJS.Timeout | null>(null);
+  const lastRefreshTimeRef = useRef<number>(0);
+  
+  const debouncedLoadMeetingHistory = useCallback((reason: string) => {
+    const now = Date.now();
+    const timeSinceLastRefresh = now - lastRefreshTimeRef.current;
+    
+    // Skip if we just refreshed (within 5 seconds)
+    if (timeSinceLastRefresh < 5000) {
+      console.log('⏸️ Skipping refresh - too soon since last refresh:', timeSinceLastRefresh, 'ms');
+      return;
+    }
+    
+    // Clear any pending refresh
+    if (pendingRefreshRef.current) {
+      clearTimeout(pendingRefreshRef.current);
+    }
+    
+    // Debounce: wait 1 second before refreshing
+    pendingRefreshRef.current = setTimeout(() => {
+      console.log('🔄 Debounced refresh triggered:', reason);
+      lastRefreshTimeRef.current = Date.now();
+      loadMeetingHistory();
+      pendingRefreshRef.current = null;
+    }, 1000);
+  }, []);
+  
   useEffect(() => {
     if (!user) return;
 
@@ -5330,32 +5350,24 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('🔄 New meeting inserted, refreshing history...', payload);
-          // Refresh meeting history when a new meeting is added
-          loadMeetingHistory();
+          console.log('🔄 New meeting inserted, scheduling debounced refresh...', payload);
+          // Only auto-refresh on INSERT, not UPDATE (to avoid refresh storms during recording)
+          debouncedLoadMeetingHistory('new meeting inserted');
           showToast.success('Meeting history updated automatically', { section: 'meeting_manager' });
         }
       )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'meetings',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          console.log('🔄 Meeting updated, refreshing history...', payload);
-          // Refresh meeting history when a meeting is updated
-          loadMeetingHistory();
-        }
-      )
+      // REMOVED: UPDATE listener - was causing refresh storms during recording
+      // Word count syncs every 30s, title updates during recording, etc.
+      // Users can manually refresh if needed, or it refreshes on INSERT
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      if (pendingRefreshRef.current) {
+        clearTimeout(pendingRefreshRef.current);
+      }
     };
-  }, [user]);
+  }, [user, debouncedLoadMeetingHistory]);
 
   // Filter meetings based on search query and folder
   useEffect(() => {
