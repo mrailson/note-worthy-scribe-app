@@ -1528,7 +1528,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         isOpen={showInfographicModal}
         onClose={() => setShowInfographicModal(false)}
         content={message.content}
-        title="AI Generated Content"
+        title="Infographic"
         imageModel={imageGenerationModel}
         orientation={infographicOrientation}
       />
