@@ -311,6 +311,7 @@ const App = () => {
               <Route path="/reception-translate" element={<ReceptionPatientView />} />
               <Route path="/doc-capture/:sessionToken" element={<DocumentCapture />} />
               <Route path="/ai-capture/:sessionToken" element={<AIChatCapture />} />
+              <Route path="/c/:shortCode" element={<AIChatCapture />} />
               
               {/* Survey Routes */}
               <Route path="/surveys" element={

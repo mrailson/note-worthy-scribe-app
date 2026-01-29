@@ -8,15 +8,15 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { token } = await req.json();
+    const { token, shortCode } = await req.json();
 
-    if (!token) {
+    if (!token && !shortCode) {
       return new Response(
-        JSON.stringify({ valid: false, error: "Token is required" }),
+        JSON.stringify({ valid: false, error: "Token or short code is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -26,19 +26,21 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log("Validating AI chat capture token:", token.substring(0, 8) + "...");
+    const lookupValue = shortCode || token;
+    const lookupField = shortCode ? "short_code" : "session_token";
+    console.log(`Validating AI chat capture by ${lookupField}:`, lookupValue.substring(0, 6) + "...");
 
-    // Look up the session by token
+    // Look up the session by short_code or session_token
     const { data: session, error: sessionError } = await supabase
       .from("ai_chat_capture_sessions")
       .select("id, user_id, expires_at, is_active")
-      .eq("session_token", token)
+      .eq(lookupField, lookupValue)
       .single();
 
     if (sessionError || !session) {
       console.error("Session lookup error:", sessionError);
       return new Response(
-        JSON.stringify({ valid: false, error: "Invalid session token" }),
+        JSON.stringify({ valid: false, error: "Invalid or expired session" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
