@@ -108,6 +108,8 @@ export function AdminClaimsReport() {
   const [expensesSortDir, setExpensesSortDir] = useState<'asc' | 'desc'>('desc');
   const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
   const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
+  const [filterName, setFilterName] = useState('');
+  const [filterPractice, setFilterPractice] = useState('');
 
   // Check if current user has admin access
   const authEmail =
@@ -181,6 +183,19 @@ export function AdminClaimsReport() {
     }
   }, [isOpen, hasAccess]);
 
+  // Get unique user names and practices for filter dropdowns
+  const uniqueUsers = useMemo(() => {
+    const names = new Set<string>();
+    Object.values(userProfiles).forEach(p => names.add(p.name));
+    return Array.from(names).sort();
+  }, [userProfiles]);
+
+  const uniquePractices = useMemo(() => {
+    const practices = new Set<string>();
+    Object.values(userProfiles).forEach(p => practices.add(p.practice_name));
+    return Array.from(practices).sort();
+  }, [userProfiles]);
+
   // Filter entries by date range and aggregate by user
   const userClaims = useMemo(() => {
     const start = parseISO(startDate);
@@ -188,7 +203,14 @@ export function AdminClaimsReport() {
 
     const filteredEntries = entries.filter(e => {
       const date = parseISO(e.work_date);
-      return isWithinInterval(date, { start, end });
+      if (!isWithinInterval(date, { start, end })) return false;
+      
+      // Apply name/practice filters
+      const profile = userProfiles[e.user_id] || { name: '', practice_name: '' };
+      if (filterName && profile.name !== filterName) return false;
+      if (filterPractice && profile.practice_name !== filterPractice) return false;
+      
+      return true;
     });
 
     // Group by user
@@ -220,7 +242,7 @@ export function AdminClaimsReport() {
     });
 
     return Array.from(userMap.values()).sort((a, b) => b.total_amount - a.total_amount);
-  }, [entries, userSettings, userProfiles, startDate, endDate]);
+  }, [entries, userSettings, userProfiles, startDate, endDate, filterName, filterPractice]);
 
   // Filter expenses by date range and aggregate by user
   const userExpenseClaims = useMemo(() => {
@@ -229,7 +251,14 @@ export function AdminClaimsReport() {
 
     const filteredExpenses = expenses.filter(e => {
       const date = parseISO(e.expense_date);
-      return isWithinInterval(date, { start, end });
+      if (!isWithinInterval(date, { start, end })) return false;
+      
+      // Apply name/practice filters
+      const profile = userProfiles[e.user_id] || { name: '', practice_name: '' };
+      if (filterName && profile.name !== filterName) return false;
+      if (filterPractice && profile.practice_name !== filterPractice) return false;
+      
+      return true;
     });
 
     // Group by user
@@ -257,7 +286,7 @@ export function AdminClaimsReport() {
     });
 
     return Array.from(userMap.values()).sort((a, b) => b.total_expenses - a.total_expenses);
-  }, [expenses, userProfiles, startDate, endDate]);
+  }, [expenses, userProfiles, startDate, endDate, filterName, filterPractice]);
 
   const grandTotalHours = userClaims.reduce((sum, u) => sum + u.total_hours, 0);
   const grandTotalAmount = userClaims.reduce((sum, u) => sum + u.total_amount, 0);
@@ -279,7 +308,14 @@ export function AdminClaimsReport() {
     return entries
       .filter(e => {
         const date = parseISO(e.work_date);
-        return isWithinInterval(date, { start, end });
+        if (!isWithinInterval(date, { start, end })) return false;
+        
+        // Apply name/practice filters
+        const profile = userProfiles[e.user_id] || { name: '', practice_name: '' };
+        if (filterName && profile.name !== filterName) return false;
+        if (filterPractice && profile.practice_name !== filterPractice) return false;
+        
+        return true;
       })
       .map(e => {
         const profile = userProfiles[e.user_id] || { name: e.user_id.substring(0, 8) + '...', practice_name: 'Unknown' };
@@ -292,7 +328,7 @@ export function AdminClaimsReport() {
           amount: Number(e.duration_hours) * hourlyRate
         };
       });
-  }, [entries, userProfiles, userSettings, startDate, endDate]);
+  }, [entries, userProfiles, userSettings, startDate, endDate, filterName, filterPractice]);
 
   const sortedDetailedEntries = useMemo(() => {
     const sorted = [...detailedEntries];
@@ -323,7 +359,14 @@ export function AdminClaimsReport() {
     return expenses
       .filter(e => {
         const date = parseISO(e.expense_date);
-        return isWithinInterval(date, { start, end });
+        if (!isWithinInterval(date, { start, end })) return false;
+        
+        // Apply name/practice filters
+        const profile = userProfiles[e.user_id] || { name: '', practice_name: '' };
+        if (filterName && profile.name !== filterName) return false;
+        if (filterPractice && profile.practice_name !== filterPractice) return false;
+        
+        return true;
       })
       .map(e => {
         const profile = userProfiles[e.user_id] || { name: e.user_id.substring(0, 8) + '...', practice_name: 'Unknown' };
@@ -333,7 +376,7 @@ export function AdminClaimsReport() {
           practice_name: profile.practice_name
         };
       });
-  }, [expenses, userProfiles, startDate, endDate]);
+  }, [expenses, userProfiles, startDate, endDate, filterName, filterPractice]);
 
   const sortedDetailedExpenses = useMemo(() => {
     const sorted = [...detailedExpenses];
@@ -575,6 +618,34 @@ export function AdminClaimsReport() {
                   className="mt-1 w-40"
                 />
               </div>
+              <div>
+                <Label htmlFor="filter-name" className="text-xs">Filter by Name</Label>
+                <select
+                  id="filter-name"
+                  value={filterName}
+                  onChange={(e) => setFilterName(e.target.value)}
+                  className="mt-1 w-44 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="">All Users</option>
+                  {uniqueUsers.map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="filter-practice" className="text-xs">Filter by Practice</Label>
+                <select
+                  id="filter-practice"
+                  value={filterPractice}
+                  onChange={(e) => setFilterPractice(e.target.value)}
+                  className="mt-1 w-52 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="">All Practices</option>
+                  {uniquePractices.map(practice => (
+                    <option key={practice} value={practice}>{practice}</option>
+                  ))}
+                </select>
+              </div>
               <Button onClick={fetchAllData} variant="outline" size="sm" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Refresh
@@ -583,6 +654,16 @@ export function AdminClaimsReport() {
                 <Download className="w-4 h-4 mr-2" />
                 Export CSV
               </Button>
+              {(filterName || filterPractice) && (
+                <Button 
+                  onClick={() => { setFilterName(''); setFilterPractice(''); }} 
+                  variant="ghost" 
+                  size="sm"
+                  className="text-muted-foreground"
+                >
+                  Clear Filters
+                </Button>
+              )}
             </div>
 
             {loading ? (
