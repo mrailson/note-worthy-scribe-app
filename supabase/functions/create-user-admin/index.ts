@@ -36,9 +36,49 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const userData: CreateUserRequest = await req.json();
+    // =====================================================
+    // CRITICAL: Authorisation check - only system admins can create users
+    // =====================================================
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      console.error("Missing or invalid Authorization header");
+      return new Response(
+        JSON.stringify({ error: 'Unauthorised: Missing authentication', success: false }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
-    // Create admin client with service role key
+    // Create a client with the user's token to verify their identity
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Verify the JWT and get user claims
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error("JWT verification failed:", claimsError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorised: Invalid token', success: false }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const callerId = claimsData.claims.sub;
+    if (!callerId) {
+      console.error("No user ID in token claims");
+      return new Response(
+        JSON.stringify({ error: 'Unauthorised: Invalid user', success: false }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("Authorisation check for user:", callerId);
+
+    // Create admin client with service role key for authorisation check
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -49,6 +89,58 @@ const handler = async (req: Request): Promise<Response> => {
         }
       }
     );
+
+    // Check if the caller is a system admin using the is_system_admin RPC
+    const { data: isAdmin, error: adminCheckError } = await supabaseAdmin
+      .rpc('is_system_admin', { user_uuid: callerId });
+
+    if (adminCheckError) {
+      console.error("Error checking admin status:", adminCheckError);
+      return new Response(
+        JSON.stringify({ error: 'Authorisation check failed', success: false }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    if (!isAdmin) {
+      console.error("Unauthorised: User is not a system admin:", callerId);
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: Only system administrators can create users', success: false }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("Authorisation confirmed: User is system admin");
+
+    // =====================================================
+    // Proceed with user creation (caller is authorised)
+    // =====================================================
+    const userData: CreateUserRequest = await req.json();
+
+    // Input validation
+    if (!userData.email || !userData.password || !userData.name || !userData.role) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: email, password, name, role', success: false }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userData.email)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid email format', success: false }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Validate password length
+    if (userData.password.length < 8) {
+      return new Response(
+        JSON.stringify({ error: 'Password must be at least 8 characters', success: false }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     console.log("Creating user with admin privileges:", userData.email);
 
