@@ -2293,34 +2293,40 @@ export const MeetingHistoryList = ({
                         </>
                       )}
                       
-                      {/* Word Count */}
-                      <>
-                        <span>•</span>
-                        <FileText className="h-3 w-3 flex-shrink-0" />
-                        <span className="truncate">
-                          {(() => {
-                            const wc = (meeting.word_count && meeting.word_count > 0)
-                              ? meeting.word_count
-                              : (wordCounts[meeting.id] ?? computeWordCount(meeting));
-                            const display = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K words` : `${wc} words`;
-                            return (
-                              <>
-                                {meeting.status === 'recording' ? (
-                                  <LiveRecordingIndicator wordCount={wc} />
-                                ) : (
-                                  display
-                                )}
-                                {isStuckMeeting(meeting) && (
-                                  <Badge variant="outline" className="ml-2 text-orange-600 border-orange-400">
-                                    <AlertCircle className="h-3 w-3 mr-1" />
-                                    Recovery in progress
-                                  </Badge>
-                                )}
-                              </>
-                            );
-                          })()}
-                        </span>
-                      </>
+                      {/* Live Recording Indicator - shown prominently for recording meetings */}
+                      {meeting.status === 'recording' && (
+                        <>
+                          <span>•</span>
+                          <LiveRecordingIndicator wordCount={meeting.word_count || 0} />
+                        </>
+                      )}
+                      
+                      {/* Word Count - only show for non-recording meetings */}
+                      {meeting.status !== 'recording' && (
+                        <>
+                          <span>•</span>
+                          <FileText className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">
+                            {(() => {
+                              const wc = (meeting.word_count && meeting.word_count > 0)
+                                ? meeting.word_count
+                                : (wordCounts[meeting.id] ?? computeWordCount(meeting));
+                              const display = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K words` : `${wc} words`;
+                              return (
+                                <>
+                                  {display}
+                                  {isStuckMeeting(meeting) && (
+                                    <Badge variant="outline" className="ml-2 text-orange-600 border-orange-400">
+                                      <AlertCircle className="h-3 w-3 mr-1" />
+                                      Recovery in progress
+                                    </Badge>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </span>
+                        </>
+                      )}
                       
                       {/* Meeting Type - Editable */}
                       <>
