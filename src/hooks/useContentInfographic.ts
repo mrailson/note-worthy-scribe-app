@@ -8,6 +8,7 @@ interface ContentInfographicOptions {
   style?: string;
   detailLevel?: string;
   imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
+  orientation?: 'portrait' | 'landscape';
 }
 
 // Style prompt mappings
@@ -96,7 +97,8 @@ export const useContentInfographic = () => {
     const { 
       style = 'professional', 
       detailLevel = 'standard',
-      imageModel = 'google/gemini-2.5-flash-image-preview'
+      imageModel = 'google/gemini-2.5-flash-image-preview',
+      orientation = 'portrait'
     } = options;
     
     setIsGenerating(true);
@@ -108,6 +110,10 @@ export const useContentInfographic = () => {
       const detailPrompt = DETAIL_PROMPTS[detailLevel] || DETAIL_PROMPTS['standard'];
       const documentContent = formatContentForInfographic(content, title);
       
+      const orientationPrompt = orientation === 'landscape' 
+        ? 'Landscape orientation (16:9 aspect ratio) suitable for presentations and widescreen displays'
+        : 'Portrait orientation (9:16 aspect ratio) suitable for A4 printing';
+
       const imagePrompt = `Create a professional, visually compelling infographic that summarises the following content.
 
 VISUAL STYLE: ${stylePrompt}
@@ -115,7 +121,7 @@ VISUAL STYLE: ${stylePrompt}
 DETAIL LEVEL: ${detailPrompt}
 
 CRITICAL REQUIREMENTS:
-- Portrait orientation (9:16 aspect ratio) suitable for A4 printing
+- ${orientationPrompt}
 - Clear visual hierarchy with the main topic prominently displayed
 - Use icons and visual elements to represent key points
 - Organise information into logical sections with clear flow
