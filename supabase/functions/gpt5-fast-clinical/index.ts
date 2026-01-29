@@ -30,11 +30,22 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / CHARS_PER_TOKEN);
 }
 
-// Calculate total tokens in messages
+// Calculate total tokens in messages (text only for estimation)
 function calculateMessageTokens(messages: any[]): number {
   return messages.reduce((total, msg) => {
-    const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-    return total + estimateTokens(content);
+    if (typeof msg.content === 'string') {
+      return total + estimateTokens(msg.content);
+    }
+    // For multimodal content, only count text parts (images handled separately)
+    if (Array.isArray(msg.content)) {
+      const textTokens = msg.content
+        .filter((p: any) => p.type === 'text')
+        .reduce((sum: number, p: any) => sum + estimateTokens(p.text || ''), 0);
+      // Add estimated tokens for images (vision models handle internally)
+      const imageCount = msg.content.filter((p: any) => p.type === 'image_url').length;
+      return total + textTokens + (imageCount * 1000); // ~1000 tokens per image estimate
+    }
+    return total + estimateTokens(JSON.stringify(msg.content));
   }, 0);
 }
 
@@ -61,10 +72,35 @@ function splitTextIntoChunks(text: string, maxChunkTokens: number = 30000): stri
   return chunks;
 }
 
+// Check if message contains image content
+function hasImageContent(messages: any[]): boolean {
+  return messages.some(msg => {
+    if (Array.isArray(msg.content)) {
+      return msg.content.some((p: any) => p.type === 'image_url');
+    }
+    return false;
+  });
+}
+
+// Extract text content from a message (for document processing)
+function extractTextFromMessage(msg: any): string {
+  if (typeof msg.content === 'string') {
+    return msg.content;
+  }
+  if (Array.isArray(msg.content)) {
+    return msg.content
+      .filter((p: any) => p.type === 'text')
+      .map((p: any) => p.text || '')
+      .join('\n');
+  }
+  return '';
+}
+
 // Extract document content from messages - handles various content formats
-function extractDocumentContent(messages: any[]): { userQuery: string; documentContent: string; hasLargeDoc: boolean; originalMessages: any[] } {
+function extractDocumentContent(messages: any[]): { userQuery: string; documentContent: string; hasLargeDoc: boolean; originalMessages: any[]; hasImages: boolean } {
   let documentContent = '';
   let userQuery = '';
+  const hasImages = hasImageContent(messages);
   
   // Common file/document markers
   const fileMarkers = [
@@ -74,7 +110,7 @@ function extractDocumentContent(messages: any[]): { userQuery: string; documentC
   
   for (const msg of messages) {
     if (msg.role === 'user') {
-      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      const content = extractTextFromMessage(msg);
       
       // Check if this message contains file content
       const hasFileMarker = fileMarkers.some(marker => content.includes(marker));
@@ -113,7 +149,7 @@ function extractDocumentContent(messages: any[]): { userQuery: string; documentC
   if (!documentContent && messages.length > 0) {
     const lastUserMsg = messages.filter(m => m.role === 'user').pop();
     if (lastUserMsg) {
-      const content = typeof lastUserMsg.content === 'string' ? lastUserMsg.content : JSON.stringify(lastUserMsg.content);
+      const content = extractTextFromMessage(lastUserMsg);
       const contentTokens = estimateTokens(content);
       
       // If last message is very large, it's probably a document
@@ -136,9 +172,9 @@ function extractDocumentContent(messages: any[]): { userQuery: string; documentC
   const docTokens = estimateTokens(documentContent);
   const hasLargeDoc = docTokens > 50000; // More aggressive threshold
   
-  console.log(`[gpt5-fast-clinical] Document tokens: ${docTokens}, hasLargeDoc: ${hasLargeDoc}, userQuery: "${userQuery.substring(0, 50)}..."`);
+  console.log(`[gpt5-fast-clinical] Document tokens: ${docTokens}, hasLargeDoc: ${hasLargeDoc}, hasImages: ${hasImages}, userQuery: "${userQuery.substring(0, 50)}..."`);
   
-  return { userQuery, documentContent, hasLargeDoc, originalMessages: messages };
+  return { userQuery, documentContent, hasLargeDoc, originalMessages: messages, hasImages };
 }
 
 // Summarise a chunk of document
@@ -211,13 +247,13 @@ async function processLargeDocument(userQuery: string, documentContent: string):
 // Check if query needs real-time information
 function needsWebSearch(messages: any[]): { needed: boolean; query: string } {
   const lastMessage = messages[messages.length - 1];
-  const content = lastMessage?.content?.toLowerCase() || '';
+  const textContent = extractTextFromMessage(lastMessage).toLowerCase();
   
-  const needsSearch = REALTIME_INDICATORS.some(indicator => content.includes(indicator));
+  const needsSearch = REALTIME_INDICATORS.some(indicator => textContent.includes(indicator));
   
   if (needsSearch) {
     // Extract a good search query from the user's message
-    const searchQuery = lastMessage?.content?.substring(0, 200) || '';
+    const searchQuery = extractTextFromMessage(lastMessage).substring(0, 200);
     return { needed: true, query: searchQuery };
   }
   
@@ -304,20 +340,20 @@ serve(async (req) => {
   
   // Check if we have a large document that needs chunking
   const totalTokens = calculateMessageTokens(messages);
-  console.log(`[gpt5-fast-clinical] Total message tokens: ${totalTokens}`);
+  const containsImages = hasImageContent(messages);
+  console.log(`[gpt5-fast-clinical] Total message tokens: ${totalTokens}, containsImages: ${containsImages}`);
   
-  if (totalTokens > MAX_CONTEXT_TOKENS || totalTokens > 100000) {
+  // IMPORTANT: Skip chunking for image-containing messages - vision models need the raw image data
+  if (!containsImages && (totalTokens > MAX_CONTEXT_TOKENS || totalTokens > 100000)) {
     console.log('[gpt5-fast-clinical] Large document detected, applying chunking strategy...');
     
     try {
-      const { userQuery, documentContent, hasLargeDoc, originalMessages } = extractDocumentContent(messages);
+      const { userQuery, documentContent, hasLargeDoc, originalMessages, hasImages } = extractDocumentContent(messages);
       
       // If we detected a large document OR total tokens exceed limit, process it
-      if (hasLargeDoc || totalTokens > MAX_CONTEXT_TOKENS) {
-        const contentToProcess = documentContent || 
-          (typeof messages[messages.length - 1]?.content === 'string' 
-            ? messages[messages.length - 1].content 
-            : JSON.stringify(messages[messages.length - 1]?.content || ''));
+      // But NEVER chunk image messages
+      if (!hasImages && (hasLargeDoc || totalTokens > MAX_CONTEXT_TOKENS)) {
+        const contentToProcess = documentContent || extractTextFromMessage(messages[messages.length - 1]);
         
         console.log(`[gpt5-fast-clinical] Processing content of ${estimateTokens(contentToProcess)} tokens`);
         
@@ -359,7 +395,7 @@ serve(async (req) => {
   // Content type detection for dynamic token allocation
   function detectContentType(messages: any[]): { maxTokens: number; contentType: string } {
     const lastMessage = messages[messages.length - 1];
-    const content = lastMessage?.content?.toLowerCase() || '';
+    const content = extractTextFromMessage(lastMessage).toLowerCase();
     
     // Check for comprehensive content indicators
     const comprehensiveIndicators = [
