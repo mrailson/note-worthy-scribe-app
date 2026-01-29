@@ -68,6 +68,7 @@ import { Message, UploadedFile } from '@/types/ai4gp';
 import { LeaveCalendarDownloadButton } from '@/components/ai4gp/LeaveCalendarDownloadButton';
 import { VoiceAudioPlayer } from '@/components/ai4gp/VoiceAudioPlayer';
 import { PowerPointDownloadCard } from '@/components/ai4gp/PowerPointDownloadCard';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MessageRendererProps {
   message: Message;
@@ -374,10 +375,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     console.log('Starting clinical verification...');
     try {
       setIsVerifying(true);
-      
-      // Import supabase client
-      const { supabase } = await import('@/integrations/supabase/client');
-      
+
       console.log('Calling ai-response-clinical-verification function...');
       const { data, error } = await supabase.functions.invoke('ai-response-clinical-verification', {
         body: {

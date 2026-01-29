@@ -1,5 +1,6 @@
 import { withDefaultThresholds, meetsConfidenceThreshold } from './confidenceGating';
 import { ChunkStatus } from '@/hooks/useChunkTracker';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TranscriptData {
   text: string;
@@ -346,10 +347,7 @@ export class BrowserSpeechTranscriber {
 
     try {
       this.chunkCounter++;
-      
-      // Import supabase dynamically to avoid build issues
-      const { supabase } = await import('@/integrations/supabase/client');
-      
+
       const { error } = await supabase
         .from('low_confidence_chunks')
         .insert({
