@@ -144,18 +144,30 @@ export function AdminClaimsReport() {
     }
   }, [isOpen, hasAccess]);
 
-  // Get unique names and practices for filters
-  const uniqueNames = useMemo(() => {
+  // Get unique names and practices from entries that exist in the date range
+  const { uniqueNames, uniquePractices } = useMemo(() => {
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+    
     const names = new Set<string>();
-    Object.values(userProfiles).forEach(p => names.add(p.name));
-    return Array.from(names).sort();
-  }, [userProfiles]);
-
-  const uniquePractices = useMemo(() => {
     const practices = new Set<string>();
-    Object.values(userProfiles).forEach(p => practices.add(p.practice_name));
-    return Array.from(practices).sort();
-  }, [userProfiles]);
+    
+    entries.forEach(e => {
+      const date = parseISO(e.work_date);
+      if (isWithinInterval(date, { start, end })) {
+        const profile = userProfiles[e.user_id];
+        if (profile) {
+          names.add(profile.name);
+          practices.add(profile.practice_name);
+        }
+      }
+    });
+    
+    return {
+      uniqueNames: Array.from(names).sort(),
+      uniquePractices: Array.from(practices).sort()
+    };
+  }, [entries, userProfiles, startDate, endDate]);
 
   // Filter entries by date range and aggregate by user
   const { userClaims, detailedEntries } = useMemo(() => {
