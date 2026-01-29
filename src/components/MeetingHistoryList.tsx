@@ -215,6 +215,14 @@ export const MeetingHistoryList = ({
   const userFullNameLower = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase();
   const isIOS = detectDevice().isIOS;
 
+  // Keep latest onRefresh without forcing realtime subscription teardown/recreate each render
+  const onRefreshRef = useRef<(() => void) | undefined>(onRefresh);
+  const refreshDebounceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
+
   
   // Local state for meetings - initialize with prop value, sync on changes
   const [localMeetings, setLocalMeetings] = useState<Meeting[]>(meetings);
@@ -391,74 +399,50 @@ export const MeetingHistoryList = ({
     fetchWordCounts();
   }, [meetings]);
 
-  // Real-time subscription for automatic refresh when meetings are updated
+  // Real-time subscription for meeting updates (debounced, and only subscribe once per user)
   useEffect(() => {
-    if (!onRefresh || !user?.id) return;
+    if (!user?.id) return;
+
+    const scheduleRefresh = () => {
+      if (!onRefreshRef.current) return;
+      if (safeModeModalOpenRef.current) return;
+      if (refreshDebounceRef.current) return;
+
+      // Coalesce rapid realtime events (e.g., live word-count updates)
+      refreshDebounceRef.current = window.setTimeout(() => {
+        refreshDebounceRef.current = null;
+        onRefreshRef.current?.();
+      }, 800);
+    };
 
     console.log('🔄 Setting up real-time subscription for meeting updates');
 
-    // Create a channel for real-time updates
     const channel = supabase
-      .channel('meeting-updates')
+      .channel(`meeting-updates:${user.id}`)
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'meetings',
-          filter: `user_id=eq.${user.id}`
+          filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
           console.log('🔔 Meeting updated via realtime:', payload);
-          // Skip refresh if modal is open to prevent closing
-          if (safeModeModalOpenRef.current) {
-            console.log('⏸️ Skipping refresh - SafeModeNotesModal is open');
-            return;
-          }
-          // Trigger refresh after a short delay to allow database to settle
-          setTimeout(() => {
-            onRefresh();
-          }, 500);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'meeting_notes_multi'
-        },
-        (payload) => {
-          console.log('🔔 Meeting notes updated via realtime:', payload);
-          if (safeModeModalOpenRef.current) return;
-          setTimeout(() => {
-            onRefresh();
-          }, 500);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'meeting_overviews'
-        },
-        (payload) => {
-          console.log('🔔 Meeting overview updated via realtime:', payload);
-          if (safeModeModalOpenRef.current) return;
-          setTimeout(() => {
-            onRefresh();
-          }, 500);
+          scheduleRefresh();
         }
       )
       .subscribe();
 
-    // Cleanup subscription on unmount
     return () => {
       console.log('🔌 Cleaning up real-time subscription');
+      if (refreshDebounceRef.current) {
+        window.clearTimeout(refreshDebounceRef.current);
+        refreshDebounceRef.current = null;
+      }
       supabase.removeChannel(channel);
     };
-  }, [onRefresh, user?.id]);
+  }, [user?.id]);
   
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
