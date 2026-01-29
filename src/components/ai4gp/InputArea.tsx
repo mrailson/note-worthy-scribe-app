@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState, us
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList, Camera, Smartphone } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList, Camera, QrCode, Monitor } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -537,15 +537,15 @@ ${pastedText.trim()}
                     disabled={isLoading}
                     className="cursor-pointer"
                   >
-                    <Camera className="w-4 h-4 mr-2" />
-                    Capture Photo
+                    <Monitor className="w-4 h-4 mr-2" />
+                    PC Capture Photo
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => setShowQRCaptureModal(true)}
                     disabled={isLoading}
                     className="cursor-pointer"
                   >
-                    <Smartphone className="w-4 h-4 mr-2" />
+                    <QrCode className="w-4 h-4 mr-2" />
                     Phone Camera (QR)
                   </DropdownMenuItem>
                   <DropdownMenuItem 
