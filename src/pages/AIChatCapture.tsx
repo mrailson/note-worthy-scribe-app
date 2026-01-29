@@ -29,6 +29,58 @@ const playClickSound = () => {
   }
 };
 
+const loadImage = (src: string) =>
+  new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = src;
+  });
+
+const dataUrlToOptimisedJpegBlob = async (
+  dataUrl: string,
+  opts: { maxDimension?: number; quality?: number } = {}
+): Promise<Blob> => {
+  const maxDimension = opts.maxDimension ?? 1600;
+  const quality = opts.quality ?? 0.82;
+
+  const img = await loadImage(dataUrl);
+  const srcW = img.naturalWidth || img.width;
+  const srcH = img.naturalHeight || img.height;
+
+  // Defensive fallback
+  if (!srcW || !srcH) {
+    const res = await fetch(dataUrl);
+    return await res.blob();
+  }
+
+  const scale = Math.min(1, maxDimension / Math.max(srcW, srcH));
+  const outW = Math.max(1, Math.round(srcW * scale));
+  const outH = Math.max(1, Math.round(srcH * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = outW;
+  canvas.height = outH;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    const res = await fetch(dataUrl);
+    return await res.blob();
+  }
+
+  ctx.drawImage(img, 0, 0, outW, outH);
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error('Failed to encode image'))),
+      'image/jpeg',
+      quality
+    );
+  });
+
+  return blob;
+};
+
 interface CapturedImage {
   id: string;
   dataUrl: string;
@@ -253,9 +305,11 @@ export default function AIChatCapture() {
     ));
     
     try {
-      // Convert dataUrl to Blob
-      const response = await fetch(image.dataUrl);
-      const blob = await response.blob();
+      // iOS Safari can fail with large images; compress before upload.
+      const blob = await dataUrlToOptimisedJpegBlob(image.dataUrl, {
+        maxDimension: 1600,
+        quality: 0.82,
+      });
       
       const formData = new FormData();
       formData.append('token', sessionToken!);
@@ -268,10 +322,15 @@ export default function AIChatCapture() {
         body: formData
       });
       
-      const data = await uploadResponse.json();
+      let data: any = null;
+      try {
+        data = await uploadResponse.json();
+      } catch {
+        // Ignore JSON parse errors (e.g., an HTML error page)
+      }
       
       if (!uploadResponse.ok || !data?.success) {
-        throw new Error(data?.error || 'Upload failed');
+        throw new Error(data?.error || `Upload failed (${uploadResponse.status})`);
       }
       
       setCapturedImages(prev => prev.map(img => 
@@ -280,10 +339,11 @@ export default function AIChatCapture() {
       toast.success('Photo uploaded');
     } catch (err) {
       console.error('Upload error:', err);
+      const message = err instanceof Error ? err.message : 'Upload failed';
       setCapturedImages(prev => prev.map(img => 
-        img.id === image.id ? { ...img, uploading: false, error: 'Upload failed' } : img
+        img.id === image.id ? { ...img, uploading: false, error: message } : img
       ));
-      toast.error('Failed to upload photo');
+      toast.error(message);
     }
   };
 
@@ -337,7 +397,7 @@ export default function AIChatCapture() {
   const uploadedCount = capturedImages.filter(img => img.uploaded).length;
 
   return (
-    <div className="min-h-[100dvh] bg-background p-4 pb-safe overflow-auto">
+    <div className="min-h-[100dvh] bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+4rem)]">
       <div className="max-w-lg mx-auto space-y-4 pb-8">
         <Card>
           <CardHeader className="pb-2">
