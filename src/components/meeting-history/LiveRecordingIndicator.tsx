@@ -23,12 +23,10 @@ export const LiveRecordingIndicator = ({ wordCount = 0, className }: LiveRecordi
         LIVE
       </Badge>
       
-      {/* Word count display */}
-      {wordCount > 0 && (
-        <span className="text-xs text-muted-foreground">
-          {wordCount.toLocaleString()} words
-        </span>
-      )}
+      {/* Word count display - always show during live recording */}
+      <span className="text-xs text-muted-foreground">
+        {wordCount.toLocaleString()} words
+      </span>
     </div>
   );
 };
