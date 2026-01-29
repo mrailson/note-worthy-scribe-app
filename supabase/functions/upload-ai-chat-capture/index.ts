@@ -23,17 +23,35 @@ const inferExtension = (name: string | undefined, mimeType: string | undefined) 
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    // Safari/iOS is picky about preflight responses; always return a body.
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     console.log("upload-ai-chat-capture: incoming request", { method: req.method });
 
-    const formData = await req.formData();
+    let formData: FormData;
+    try {
+      formData = await req.formData();
+    } catch (formError) {
+      console.error("Failed to parse formData:", formError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to parse form data" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const tokenValue = formData.get("token");
     const shortCodeValue = formData.get("shortCode");
     const fileValue = formData.get("file");
+
+    console.log("FormData parsed:", {
+      hasToken: !!tokenValue,
+      hasShortCode: !!shortCodeValue,
+      hasFile: !!fileValue,
+      fileType: fileValue ? typeof fileValue : 'null',
+      fileIsFile: fileValue instanceof File,
+      fileIsBlob: fileValue instanceof Blob,
+    });
 
     const token = typeof tokenValue === "string" ? tokenValue : null;
     const shortCode = typeof shortCodeValue === "string" ? shortCodeValue : null;
@@ -46,15 +64,16 @@ serve(async (req) => {
           ? fileValue
           : null;
 
-    const originalName = fileValue instanceof File ? fileValue.name : undefined;
+    const originalName = fileValue instanceof File ? fileValue.name : `photo-${Date.now()}.jpg`;
     const contentType =
       (fileValue && typeof (fileValue as any).type === "string" && (fileValue as any).type) ||
-      "application/octet-stream";
+      "image/jpeg";
     const fileSize =
       (fileValue && typeof (fileValue as any).size === "number" && (fileValue as any).size) ||
       null;
 
     if ((!token && !shortCode) || !fileBlob) {
+      console.error("Missing required fields:", { token: !!token, shortCode: !!shortCode, fileBlob: !!fileBlob });
       return new Response(
         JSON.stringify({ success: false, error: "Token/shortCode and file are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -105,6 +124,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("Session validated:", session.id);
+
     // Generate unique filename
     const timestamp = Date.now();
     const randomId = crypto.randomUUID().substring(0, 8);
@@ -114,6 +135,9 @@ serve(async (req) => {
     // Upload file to storage
     const arrayBuffer = await fileBlob.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
+    
+    console.log("Uploading to storage:", { fileName, size: bytes.length });
+    
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("ai-chat-captures")
       .upload(fileName, bytes, {
@@ -139,7 +163,7 @@ serve(async (req) => {
       .from("ai_chat_captured_images")
       .insert({
         session_id: session.id,
-        file_name: originalName ?? fileName,
+        file_name: originalName,
         file_url: urlData.publicUrl,
         file_size: fileSize
       })
@@ -169,7 +193,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Unhandled error:", error);
     return new Response(
       JSON.stringify({ success: false, error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
