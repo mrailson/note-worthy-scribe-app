@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { SEO } from '@/components/SEO';
 import { useAuth } from '@/contexts/AuthContext';
 import { SimpleLoginForm } from '@/components/SimpleLoginForm';
@@ -8,9 +8,27 @@ import AI4GPService from '@/components/AI4GPService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FlaskConical } from 'lucide-react';
 
 const AI4GP = () => {
   const { user, loading: authLoading } = useAuth();
+  
+  // Demo mode detection - only works on preview/localhost environments
+  const isDemoMode = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const isDemo = params.get('demo') === 'true';
+    const isAllowedHost = 
+      window.location.hostname.includes('lovableproject.com') ||
+      window.location.hostname.includes('lovable.app') && !window.location.hostname.includes('meetingmagic.lovable.app') ||
+      window.location.hostname.includes('localhost') ||
+      window.location.hostname.includes('preview');
+    
+    // Production URL is explicitly blocked
+    const isProduction = window.location.hostname === 'meetingmagic.lovable.app';
+    
+    return isDemo && isAllowedHost && !isProduction;
+  }, []);
   
   // Function to regenerate meeting notes using GPT auto-generation for consistent formatting
   const regenerateMeetingNotes = async (meetingId: string) => {
@@ -72,7 +90,8 @@ const AI4GP = () => {
     );
   }
 
-  if (!user) {
+  // Allow access if user is logged in OR if demo mode is active
+  if (!user && !isDemoMode) {
     return (
       <div className="min-h-screen bg-background">
         <Header onNewMeeting={() => {}} />
@@ -105,10 +124,21 @@ const AI4GP = () => {
       
       <Separator />
       
+      {/* Demo Mode Banner */}
+      {isDemoMode && (
+        <Alert className="mx-4 mt-2 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <FlaskConical className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <strong>Demo Mode Active</strong> — You're testing Ask AI without authentication. 
+            This mode is only available on preview environments. No real patient data is accessible.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <main className="flex-1 flex flex-col min-h-0 mobile-scroll overflow-x-hidden">
         <div className="flex-1 w-full max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden">
           <MaintenanceBanner />
-          <AI4GPService />
+          <AI4GPService isDemoMode={isDemoMode} />
         </div>
         
       </main>

@@ -65,7 +65,11 @@ import { MeetingData } from '@/types/meetingTypes';
 import { cn } from '@/lib/utils';
 
 
-const AI4GPService = () => {
+interface AI4GPServiceProps {
+  isDemoMode?: boolean;
+}
+
+const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const inputRef = useRef<InputAreaRef | FloatingMobileInputRef>(null);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -391,7 +395,7 @@ const AI4GPService = () => {
     });
   };
 
-  if (loading) {
+  if (loading && !isDemoMode) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
@@ -399,7 +403,8 @@ const AI4GPService = () => {
     );
   }
 
-  if (!user) {
+  // Skip auth check in demo mode
+  if (!user && !isDemoMode) {
     return <LoginForm />;
   }
 
