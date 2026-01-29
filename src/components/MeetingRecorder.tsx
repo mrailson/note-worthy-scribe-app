@@ -5222,7 +5222,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           )
         `)
         .order('created_at', { ascending: false })
-        .limit(200); // Limit to 200 most recent meetings to prevent memory issues
+        .limit(10); // Temporarily reduced to 10 to test performance
 
       if (error) throw error;
 
