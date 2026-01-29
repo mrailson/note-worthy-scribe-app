@@ -79,24 +79,6 @@ const Index = () => {
   }, []);
   const location = useLocation();
   const navigate = useNavigate();
-  
-  // Redirect logged-in users to Ask AI as the default home
-  // Combined redirect logic - only one useEffect to prevent multiple triggers
-  useEffect(() => {
-    if (!loading && user) {
-      // Check if there's a specific tab or edit param - if so, stay on this page
-      const hasTabParam = searchParams.get('tab');
-      const hasEditParam = searchParams.get('edit');
-      const hasAutoStart = searchParams.get('autoStart');
-      const hasContinueMeeting = (location.state as any)?.continueMeeting;
-      
-      // Only redirect if there are no special params that require this page
-      if (!hasTabParam && !hasEditParam && !hasAutoStart && !hasContinueMeeting) {
-        navigate('/ai4gp', { replace: true });
-      }
-    }
-  }, [user, loading, navigate, searchParams, location.state]);
-  
   const editMeetingId = searchParams.get('edit');
   const autoStart = searchParams.get('autoStart') === 'true';
   const [currentView, setCurrentView] = useState<"recording" | "summary">("recording");
@@ -168,7 +150,18 @@ const Index = () => {
     }
   }, [editMeetingId, user]);
 
-  // Note: redirect logic consolidated into single useEffect above (lines 83-98)
+  // Conditional homepage redirect: AI4GP users → AI4GP, others → Meeting Manager
+  // Skip redirect if user is continuing a meeting
+  useEffect(() => {
+    const state = location.state as any;
+    const isContinuingMeeting = state?.continueMeeting;
+    
+    if (user && !loading && !editMeetingId && !isContinuingMeeting && hasModuleAccess('ai4gp_access')) {
+      navigate('/ai4gp', {
+        replace: true
+      });
+    }
+  }, [user, loading, editMeetingId, location.state, hasModuleAccess, navigate]);
   const loadMeetingForEditing = async (meetingId: string) => {
     try {
       const {

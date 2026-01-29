@@ -299,7 +299,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
         
         <DropdownMenuItem 
           className="cursor-pointer"
-          onClick={() => navigate('/?autoStart=true')}
+          onClick={() => navigate('/')}
         >
           <Play className="w-4 h-4 mr-2" />
           Start New Meeting

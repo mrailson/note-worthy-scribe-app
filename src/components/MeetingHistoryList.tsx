@@ -39,7 +39,6 @@ import {
   Folder,
   FilePlus2
 } from "lucide-react";
-import { LiveRecordingIndicator } from "@/components/meeting-history/LiveRecordingIndicator";
 import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
 import { UploadedFile } from '@/types/ai4gp';
 import { formatTranscriptContext, extractCleanContent } from '@/utils/meeting/formatTranscriptContext';
@@ -214,14 +213,6 @@ export const MeetingHistoryList = ({
   const { folders, assignMeetingToFolder } = useMeetingFolders();
   const userFullNameLower = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase();
   const isIOS = detectDevice().isIOS;
-
-  // Keep latest onRefresh without forcing realtime subscription teardown/recreate each render
-  const onRefreshRef = useRef<(() => void) | undefined>(onRefresh);
-  const refreshDebounceRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    onRefreshRef.current = onRefresh;
-  }, [onRefresh]);
 
   
   // Local state for meetings - initialize with prop value, sync on changes
@@ -399,50 +390,74 @@ export const MeetingHistoryList = ({
     fetchWordCounts();
   }, [meetings]);
 
-  // Real-time subscription for meeting updates (debounced, and only subscribe once per user)
+  // Real-time subscription for automatic refresh when meetings are updated
   useEffect(() => {
-    if (!user?.id) return;
-
-    const scheduleRefresh = () => {
-      if (!onRefreshRef.current) return;
-      if (safeModeModalOpenRef.current) return;
-      if (refreshDebounceRef.current) return;
-
-      // Coalesce rapid realtime events (e.g., live word-count updates)
-      refreshDebounceRef.current = window.setTimeout(() => {
-        refreshDebounceRef.current = null;
-        onRefreshRef.current?.();
-      }, 800);
-    };
+    if (!onRefresh || !user?.id) return;
 
     console.log('🔄 Setting up real-time subscription for meeting updates');
 
+    // Create a channel for real-time updates
     const channel = supabase
-      .channel(`meeting-updates:${user.id}`)
+      .channel('meeting-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'meetings',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔔 Meeting updated via realtime:', payload);
+          // Skip refresh if modal is open to prevent closing
+          if (safeModeModalOpenRef.current) {
+            console.log('⏸️ Skipping refresh - SafeModeNotesModal is open');
+            return;
+          }
+          // Trigger refresh after a short delay to allow database to settle
+          setTimeout(() => {
+            onRefresh();
+          }, 500);
+        }
+      )
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'meetings',
-          filter: `user_id=eq.${user.id}`,
+          table: 'meeting_notes_multi'
         },
         (payload) => {
-          console.log('🔔 Meeting updated via realtime:', payload);
-          scheduleRefresh();
+          console.log('🔔 Meeting notes updated via realtime:', payload);
+          if (safeModeModalOpenRef.current) return;
+          setTimeout(() => {
+            onRefresh();
+          }, 500);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'meeting_overviews'
+        },
+        (payload) => {
+          console.log('🔔 Meeting overview updated via realtime:', payload);
+          if (safeModeModalOpenRef.current) return;
+          setTimeout(() => {
+            onRefresh();
+          }, 500);
         }
       )
       .subscribe();
 
+    // Cleanup subscription on unmount
     return () => {
       console.log('🔌 Cleaning up real-time subscription');
-      if (refreshDebounceRef.current) {
-        window.clearTimeout(refreshDebounceRef.current);
-        refreshDebounceRef.current = null;
-      }
       supabase.removeChannel(channel);
     };
-  }, [user?.id]);
+  }, [onRefresh, user?.id]);
   
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
@@ -2277,40 +2292,33 @@ export const MeetingHistoryList = ({
                         </>
                       )}
                       
-                      {/* Live Recording Indicator - shown prominently for recording meetings */}
-                      {meeting.status === 'recording' && (
-                        <>
-                          <span>•</span>
-                          <LiveRecordingIndicator wordCount={meeting.word_count || 0} />
-                        </>
-                      )}
-                      
-                      {/* Word Count - only show for non-recording meetings */}
-                      {meeting.status !== 'recording' && (
-                        <>
-                          <span>•</span>
-                          <FileText className="h-3 w-3 flex-shrink-0" />
-                          <span className="truncate">
-                            {(() => {
-                              const wc = (meeting.word_count && meeting.word_count > 0)
-                                ? meeting.word_count
-                                : (wordCounts[meeting.id] ?? computeWordCount(meeting));
-                              const display = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K words` : `${wc} words`;
-                              return (
-                                <>
-                                  {display}
-                                  {isStuckMeeting(meeting) && (
-                                    <Badge variant="outline" className="ml-2 text-orange-600 border-orange-400">
-                                      <AlertCircle className="h-3 w-3 mr-1" />
-                                      Recovery in progress
-                                    </Badge>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </span>
-                        </>
-                      )}
+                      {/* Word Count */}
+                      <>
+                        <span>•</span>
+                        <FileText className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">
+                          {(() => {
+                            const wc = (meeting.word_count && meeting.word_count > 0)
+                              ? meeting.word_count
+                              : (wordCounts[meeting.id] ?? computeWordCount(meeting));
+                            const display = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K words` : `${wc} words`;
+                            return (
+                              <>
+                                {display}
+                                {meeting.status === 'recording' && (
+                                  <span className="text-green-600 font-medium"> (Recording Now)</span>
+                                )}
+                                {isStuckMeeting(meeting) && (
+                                  <Badge variant="outline" className="ml-2 text-orange-600 border-orange-400">
+                                    <AlertCircle className="h-3 w-3 mr-1" />
+                                    Recovery in progress
+                                  </Badge>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </span>
+                      </>
                       
                       {/* Meeting Type - Editable */}
                       <>

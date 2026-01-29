@@ -68,7 +68,7 @@ export const useServiceVisibility = () => {
       return defaultVisibility;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes (service visibility rarely changes)
+    staleTime: 0, // Always fetch fresh data
     refetchOnWindowFocus: true,
   });
 

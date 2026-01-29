@@ -234,15 +234,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
- // Load user modules and admin status once when user logs in
- // (No polling - these values don't change frequently enough to justify constant refresh)
- useEffect(() => {
-   if (user?.id) {
-     fetchUserModules(user.id);
-     checkSystemAdmin(user.id);
-     checkConsultationExamplesVisibility();
-   }
- }, [user?.id]);
+  // Periodically refresh user modules and admin status (reduced frequency)
+  useEffect(() => {
+    if (user?.id) {
+      // Immediate refresh
+      fetchUserModules(user.id);
+      checkSystemAdmin(user.id);
+      checkConsultationExamplesVisibility();
+      
+      const interval = setInterval(() => {
+        fetchUserModules(user.id);
+        checkSystemAdmin(user.id);
+        checkConsultationExamplesVisibility();
+      }, 30000); // 30 seconds to reduce network churn
+      
+      return () => clearInterval(interval);
+    }
+  }, [user?.id]);
 
   // Update session activity every 5 minutes and cleanup expired sessions
   useEffect(() => {

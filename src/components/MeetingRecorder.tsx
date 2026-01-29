@@ -73,7 +73,6 @@ import { useAssemblyRealtimePreview, PreviewStatus } from "@/hooks/useAssemblyRe
 import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
-import { useLiveMeetingUpdates } from "@/hooks/useLiveMeetingUpdates";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -556,37 +555,15 @@ export const MeetingRecorder = ({
     onWordCountUpdate(assemblyWords);
   }, [assemblyPreview.fullTranscript, onWordCountUpdate]);
 
-  // Get current meeting ID from sessionStorage for live updates and kill signal
-  const currentMeetingIdFromStorage = sessionStorage.getItem('currentMeetingId');
-
-  // ============= LIVE MEETING UPDATES =============
-  // Sync word count and extract insights (title, action items) during recording
-  useLiveMeetingUpdates({
-    isRecording,
-    meetingId: currentMeetingIdFromStorage,
-    wordCount,
-    transcript: assemblyPreview.fullTranscript,
-    currentTitle: meetingSettings.title,
-    attendees: meetingSettings.attendees ? meetingSettings.attendees.split(',').map(a => a.trim()).filter(Boolean) : [],
-    meetingContext: {
-      agenda: meetingSettings.agenda,
-      description: meetingSettings.description,
-      meetingType: meetingSettings.meetingType
-    },
-    onTitleUpdate: (newTitle) => {
-      console.log('📝 Live title update received:', newTitle);
-      updateMeetingSettings(prev => ({ ...prev, title: newTitle }));
-    },
-    onActionItemsUpdate: (actionItems) => {
-      console.log('📋 Live action items received:', actionItems.length);
-    }
-  });
-
+  // ============= WHISPER COST PROTECTION =============
   // Maximum recording duration (4 hours) to prevent runaway billing
   const MAX_RECORDING_DURATION_SECONDS = 4 * 60 * 60; // 4 hours
   // Warning thresholds at 1h, 2h, 3h
   const DURATION_WARNINGS = [3600, 7200, 10800]; // seconds
   const shownDurationWarningsRef = useRef<Set<number>>(new Set());
+
+  // Get current meeting ID from sessionStorage for kill signal
+  const currentMeetingIdFromStorage = sessionStorage.getItem('currentMeetingId');
 
   // Server-side kill signal listener
   useMeetingKillSignal(
@@ -4754,7 +4731,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       setIsContinuationMode(false);
       setContinuationMeetingTitle('');
 
-      const { data: savedMeetingArr, error: saveError } = await supabase
+      const { data: savedMeeting, error: saveError } = await supabase
         .from('meetings')
         .update({
           title: meetingData.title,
@@ -4762,20 +4739,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           status: 'completed'
         })
         .eq('id', meetingId)
-        .select();
+        .select()
+        .single();
 
       console.log('🚨 DATABASE UPDATE RESULT:');
       console.log('🚨 SaveError:', saveError);
-      console.log('🚨 SavedMeeting:', savedMeetingArr);
-
-      if (saveError) {
-        throw new Error(`Failed to update meeting: ${saveError.message}`);
-      }
-
-      const savedMeeting = savedMeetingArr?.[0];
-      if (!savedMeeting) {
-        throw new Error(`Meeting not found after update: ${meetingId}`);
-      }
+      console.log('🚨 SavedMeeting:', savedMeeting);
 
       // Safety Net 1: Consolidate transcript chunks before generating notes
       setStopRecordingStep('Consolidating transcript chunks...');
@@ -5190,7 +5159,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     
     setLoadingHistory(true);
     try {
-      // Query meetings directly without heavy joins for fast initial load
+      // Query meetings directly - RLS policies ensure proper access control
       const { data: meetingsData, error } = await supabase
         .from('meetings')
         .select(`
@@ -5213,104 +5182,90 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           recording_created_at,
           notes_style_3,
           folder_id,
-          word_count
+          meeting_overviews (
+            overview,
+            audio_overview_url,
+            audio_overview_text,
+            audio_overview_duration
+          )
         `)
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       // Batch lightweight counts to avoid heavy per-meeting queries
       const meetingIds = (meetingsData || []).map(m => m.id);
 
-      // Calculate total word count from already-fetched data (no extra query needed)
-      const totalWordsFromData = (meetingsData || []).reduce((sum: number, m: any) => {
-        return sum + (m.word_count && typeof m.word_count === 'number' ? m.word_count : 0);
-      }, 0);
+      const [transcriptCounts, summaryExists, documentCounts, wordCountResult] = await Promise.all([
+        // Transcript chunk counts per meeting
+        supabase
+          .from('meeting_transcription_chunks')
+          .select('meeting_id', { count: 'exact' })
+          .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            const counts: Record<string, number> = {};
+            data?.forEach((row: any) => {
+              counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
+            });
+            return counts;
+          }),
 
-      // Skip batch queries if no meetings
-      let transcriptCounts: Record<string, number> = {};
-      let summaryExists: Record<string, boolean> = {};
-      let documentCounts: Record<string, number> = {};
+        // Summary existence per meeting
+        supabase
+          .from('meeting_summaries')
+          .select('meeting_id')
+          .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            const exists: Record<string, boolean> = {};
+            data?.forEach((row: any) => {
+              exists[row.meeting_id] = true;
+            });
+            return exists;
+          }),
 
-      if (meetingIds.length > 0) {
-        try {
-          const [transcriptResult, summaryResult, documentResult] = await Promise.all([
-            // Transcript chunk counts per meeting
-            supabase
-              .from('meeting_transcription_chunks')
-              .select('meeting_id')
-              .in('meeting_id', meetingIds)
-              .then(({ data, error }) => {
-                if (error) {
-                  console.warn('Error fetching transcript counts:', error);
-                  return {} as Record<string, number>;
-                }
-                const counts: Record<string, number> = {};
-                data?.forEach((row: any) => {
-                  counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
-                });
-                return counts;
-              }),
+        // Document counts per meeting
+        supabase
+          .from('meeting_documents')
+          .select('meeting_id', { count: 'exact' })
+          .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            const counts: Record<string, number> = {};
+            data?.forEach((row: any) => {
+              counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
+            });
+            return counts;
+          }),
 
-            // Summary existence per meeting
-            supabase
-              .from('meeting_summaries')
-              .select('meeting_id')
-              .in('meeting_id', meetingIds)
-              .then(({ data, error }) => {
-                if (error) {
-                  console.warn('Error fetching summary status:', error);
-                  return {} as Record<string, boolean>;
-                }
-                const exists: Record<string, boolean> = {};
-                data?.forEach((row: any) => {
-                  exists[row.meeting_id] = true;
-                });
-                return exists;
-              }),
+        // Total word count from whisper transcripts (lightweight - just count characters and estimate)
+        supabase
+          .from('meetings')
+          .select('whisper_transcript_text')
+          .in('id', meetingIds)
+          .then(({ data }) => {
+            let totalWords = 0;
+            data?.forEach((row: any) => {
+              if (row.whisper_transcript_text) {
+                totalWords += row.whisper_transcript_text.split(/\s+/).filter((w: string) => w.length > 0).length;
+              }
+            });
+            return totalWords;
+          })
+      ]);
 
-            // Document counts per meeting
-            supabase
-              .from('meeting_documents')
-              .select('meeting_id')
-              .in('meeting_id', meetingIds)
-              .then(({ data, error }) => {
-                if (error) {
-                  console.warn('Error fetching document counts:', error);
-                  return {} as Record<string, number>;
-                }
-                const counts: Record<string, number> = {};
-                data?.forEach((row: any) => {
-                  counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
-                });
-                return counts;
-              })
-          ]);
+      // Update total transcript words state
+      setTotalTranscriptWords(wordCountResult);
 
-          transcriptCounts = transcriptResult;
-          summaryExists = summaryResult;
-          documentCounts = documentResult;
-        } catch (batchError) {
-          console.warn('Error in batch metadata queries:', batchError);
-          // Continue with empty counts - don't fail the whole load
-        }
-      }
-
-      // Update total transcript words state from already-loaded data
-      setTotalTranscriptWords(totalWordsFromData);
-
-      // Build enriched objects without heavy data
+      // Build enriched objects without fetching heavy transcript contents
       const meetingsWithCounts = (meetingsData || []).map((meeting: any) => ({
         ...meeting,
         transcript_count: transcriptCounts[meeting.id] || 0,
         summary_exists: !!summaryExists[meeting.id],
         meeting_summary: meeting.notes_style_3 || null,
-        overview: null, // Loaded on-demand when viewing meeting
-        audio_overview_url: null,
-        audio_overview_text: null,
-        audio_overview_duration: null,
-        word_count: meeting.word_count || 0,
+        overview: meeting.meeting_overviews?.overview || null,
+        audio_overview_url: meeting.meeting_overviews?.audio_overview_url || null,
+        audio_overview_text: meeting.meeting_overviews?.audio_overview_text || null,
+        audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null,
+        word_count: null,
         document_count: documentCounts[meeting.id] || 0,
         documents: [],
         access_type: 'owner',
@@ -5337,34 +5292,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     }
   }, [user]);
 
-  // Real-time updates for new meetings - with debounce to prevent excessive refreshes during recording
-  const pendingRefreshRef = useRef<NodeJS.Timeout | null>(null);
-  const lastRefreshTimeRef = useRef<number>(0);
-  
-  const debouncedLoadMeetingHistory = useCallback((reason: string) => {
-    const now = Date.now();
-    const timeSinceLastRefresh = now - lastRefreshTimeRef.current;
-    
-    // Skip if we just refreshed (within 5 seconds)
-    if (timeSinceLastRefresh < 5000) {
-      console.log('⏸️ Skipping refresh - too soon since last refresh:', timeSinceLastRefresh, 'ms');
-      return;
-    }
-    
-    // Clear any pending refresh
-    if (pendingRefreshRef.current) {
-      clearTimeout(pendingRefreshRef.current);
-    }
-    
-    // Debounce: wait 1 second before refreshing
-    pendingRefreshRef.current = setTimeout(() => {
-      console.log('🔄 Debounced refresh triggered:', reason);
-      lastRefreshTimeRef.current = Date.now();
-      loadMeetingHistory();
-      pendingRefreshRef.current = null;
-    }, 1000);
-  }, []);
-  
+  // Real-time updates for new meetings
   useEffect(() => {
     if (!user) return;
 
@@ -5379,24 +5307,32 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('🔄 New meeting inserted, scheduling debounced refresh...', payload);
-          // Only auto-refresh on INSERT, not UPDATE (to avoid refresh storms during recording)
-          debouncedLoadMeetingHistory('new meeting inserted');
+          console.log('🔄 New meeting inserted, refreshing history...', payload);
+          // Refresh meeting history when a new meeting is added
+          loadMeetingHistory();
           showToast.success('Meeting history updated automatically', { section: 'meeting_manager' });
         }
       )
-      // REMOVED: UPDATE listener - was causing refresh storms during recording
-      // Word count syncs every 30s, title updates during recording, etc.
-      // Users can manually refresh if needed, or it refreshes on INSERT
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'meetings',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔄 Meeting updated, refreshing history...', payload);
+          // Refresh meeting history when a meeting is updated
+          loadMeetingHistory();
+        }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
-      if (pendingRefreshRef.current) {
-        clearTimeout(pendingRefreshRef.current);
-      }
     };
-  }, [user, debouncedLoadMeetingHistory]);
+  }, [user]);
 
   // Filter meetings based on search query and folder
   useEffect(() => {

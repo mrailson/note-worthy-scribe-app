@@ -1,200 +1,244 @@
 
-# Practice Manager Responsibility Tracker Service
+# Plan: Enhance Live Meeting Recording Experience
 
 ## Overview
-Create a comprehensive task and responsibility tracking system for Practice Managers. This service will allow:
-1. Definition of recurring responsibilities (from the uploaded document and user-specified tasks)
-2. Assignment of responsibilities to specific staff members or roles
-3. Setting frequencies and due dates
-4. Practice-wide calendar view showing all tasks across roles
-5. Drill-down capability by role/person
+This plan addresses the issues shown in the screenshots where:
+1. The meeting title stays as "General Meeting" until the recording ends
+2. The word count shows 0 throughout the meeting  
+3. There's no indication that the meeting is live recording in the history view
+4. Action items are only generated after the meeting ends
 
-## Data Model
+We will implement **live updates during recording** that show word count, generate a smart title, and extract action items - all while the meeting is still in progress.
 
-### Database Tables
+## Current Architecture Understanding
 
-**1. `pm_responsibility_categories`** - Categories for grouping responsibilities
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| name | text | Category name (e.g., HR, IT, Contracts/Quality, Facilities) |
-| description | text | Optional description |
-| practice_id | uuid | FK to gp_practices |
-| created_at | timestamp | Creation timestamp |
+### How Recordings Work Now
+- Meeting record is created with `status: 'recording'` when recording starts
+- `title` is set to "General Meeting" (default from `meetingSettings`)
+- `word_count` field exists but is only updated when recording stops
+- Title generation (`generate-meeting-title`) only runs at the end
+- Action items are extracted post-recording via `auto-generate-meeting-notes`
 
-**2. `pm_responsibilities`** - Master list of responsibilities
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| practice_id | uuid | FK to gp_practices |
-| category_id | uuid | FK to pm_responsibility_categories |
-| title | text | Responsibility title |
-| description | text | Detailed description |
-| frequency_type | text | annual, monthly, quarterly, weekly, one-off, custom |
-| frequency_value | integer | For custom (e.g., every X months) |
-| typical_due_month | integer | Month number for annual tasks (1-12) |
-| typical_due_day | integer | Day of month if applicable |
-| is_mandatory | boolean | Whether this is a mandatory task |
-| reference_url | text | Link to guidance/documentation |
-| created_by | uuid | User who created |
-| created_at | timestamp | Creation timestamp |
-| updated_at | timestamp | Last update |
-| is_active | boolean | Soft delete flag |
+### Key Components
+| Component | Purpose |
+|-----------|---------|
+| `MeetingRecorder.tsx` | Main recording component with word count state |
+| `MeetingHistoryList.tsx` | Shows meeting list, currently shows "(Recording Now)" badge |
+| `live_meeting_notes` table | Stores live notes during recording |
+| `meeting_action_items` table | Stores structured action items |
+| `generate-meeting-title` | Edge function for smart titles |
 
-**3. `pm_responsibility_assignments`** - Who is responsible for what
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| responsibility_id | uuid | FK to pm_responsibilities |
-| assigned_to_user_id | uuid | FK to profiles (optional) |
-| assigned_to_role | text | Practice role if not specific user |
-| assigned_by | uuid | User who made assignment |
-| notes | text | Assignment notes |
-| created_at | timestamp | Creation timestamp |
-| updated_at | timestamp | Last update |
+## Implementation Approach
 
-**4. `pm_responsibility_instances`** - Specific occurrences/due dates
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| responsibility_id | uuid | FK to pm_responsibilities |
-| assignment_id | uuid | FK to pm_responsibility_assignments |
-| due_date | date | When this instance is due |
-| completed_at | timestamp | When completed (null if pending) |
-| completed_by | uuid | User who completed |
-| status | text | pending, in_progress, completed, overdue, not_applicable |
-| evidence_notes | text | Notes/evidence of completion |
-| evidence_url | text | Link to evidence document |
-| reminder_sent | boolean | Whether reminder was sent |
-| created_at | timestamp | Creation timestamp |
-| updated_at | timestamp | Last update |
+### 1. Live Word Count Updates to Database
 
-### RLS Policies
-- Users can only access data for their own practice
-- Practice managers can manage all responsibilities for their practice
-- Regular users can view and update their assigned responsibilities
+**Problem:** Word count is tracked locally in `MeetingRecorder.tsx` via `wordCount` state, but never written to the `meetings` table until recording ends.
 
-## Components Structure
+**Solution:** Periodically update the `meetings.word_count` field during recording.
 
-```text
-src/
-├── pages/
-│   └── PracticeResponsibilityTracker.tsx          # Main page
-├── components/
-│   └── responsibility-tracker/
-│       ├── ResponsibilityTrackerDashboard.tsx     # Main dashboard with tabs
-│       ├── ResponsibilityList.tsx                 # List of all responsibilities
-│       ├── ResponsibilityForm.tsx                 # Add/edit responsibility form
-│       ├── AssignmentForm.tsx                     # Assign responsibility to user/role
-│       ├── ResponsibilityInstanceCard.tsx         # Individual task card
-│       ├── PracticeCalendarView.tsx               # Full practice calendar
-│       ├── RoleFilteredView.tsx                   # View filtered by role
-│       ├── UpcomingTasksPanel.tsx                 # Panel showing upcoming tasks
-│       ├── OverdueTasksAlert.tsx                  # Alert for overdue items
-│       ├── CategoryManager.tsx                    # Manage categories
-│       └── BulkImportModal.tsx                    # Import from template
-├── hooks/
-│   ├── useResponsibilities.ts                     # CRUD for responsibilities
-│   ├── useResponsibilityAssignments.ts            # Assignment management
-│   └── useResponsibilityInstances.ts              # Instance tracking
-└── types/
-    └── responsibilityTypes.ts                     # TypeScript interfaces
+**Changes:**
+- Add a new `useEffect` in `MeetingRecorder.tsx` that triggers every 30 seconds during recording
+- Update the `meetings` table with the current word count
+- This allows Meeting History to show real-time word count
+
+```
+// Pseudocode for interval update
+useEffect(() => {
+  if (!isRecording) return;
+  
+  const interval = setInterval(async () => {
+    const meetingId = sessionStorage.getItem('currentMeetingId');
+    if (meetingId && wordCount > 0) {
+      await supabase.from('meetings').update({ 
+        word_count: wordCount,
+        updated_at: new Date().toISOString()
+      }).eq('id', meetingId);
+    }
+  }, 30000); // Every 30 seconds
+  
+  return () => clearInterval(interval);
+}, [isRecording, wordCount]);
 ```
 
-## Features
+### 2. Live Title Generation (Periodic Smart Title)
 
-### 1. Responsibility Management
-- Add new responsibilities with title, description, category, frequency
-- Pre-populated template from uploaded document categories:
-  - **HR**: Pension forms, appraisals, payroll, DBS checks, etc.
-  - **Contracts/Quality**: QOF, CQRS, complaints, CQC compliance
-  - **IT/Facilities**: DSP Toolkit, IG training, H&S inspections
-- Edit and archive responsibilities
-- Set frequency (annual, monthly, quarterly, weekly, one-off, custom)
+**Problem:** Title stays as "General Meeting" until recording ends and `generate-meeting-title` runs.
 
-### 2. Assignment Form
-Form fields:
-- Select responsibility from dropdown
-- Assign to specific user OR role
-- Set start date and custom due date (if different from default)
-- Add assignment notes
-- Optional: Set up recurring instances automatically
+**Solution:** Call `generate-meeting-title` periodically during recording after minimum transcript content is available.
 
-### 3. Practice Calendar View
-- Monthly calendar showing all tasks across the practice
-- Colour-coded by:
-  - Category (HR = blue, IT = green, Quality = purple, etc.)
-  - Status (completed = green tick, pending = amber, overdue = red)
-- Click to drill down to specific task
-- Filter controls for role/person/category
+**Trigger Conditions:**
+- First call at 3 minutes or 200 words (whichever comes first)
+- Subsequent updates every 5 minutes OR when word count increases by 500 words
+- Throttle to prevent excessive API calls
 
-### 4. Role/Person Drill-Down
-- Select a role (e.g., "Practice Manager", "Nurse Manager", "IT Lead")
-- See all responsibilities assigned to that role
-- View calendar specific to that role
-- Export to PDF/print for role handbooks
+**Changes:**
+1. **New state in `MeetingRecorder.tsx`:**
+   - `lastTitleGenerationWordCount` - tracks when title was last updated
+   - `lastTitleGenerationTime` - tracks when title was last generated
 
-### 5. Pre-populated Tasks (from user request)
-The following will be included as default templates:
-| Task | Frequency | Typical Due |
-|------|-----------|-------------|
-| Type 2 Pension Forms | Annual | February |
-| EDEC Submission | Annual | November/December |
-| KOB14 Complaints Submission | Annual | October |
-| IT Governance Training (DSP Toolkit) | Annual | Configurable |
-| CQRS Declaration | Periodic | Configurable |
-| QoF Achievement Check (clinic system) | Annual | 31st March |
+2. **New periodic check in `MeetingRecorder.tsx`:**
+   - Every 60 seconds, check if conditions are met for title regeneration
+   - Call `generate-meeting-title` with current transcript
+   - Update local `meetingSettings.title` and database
 
-### 6. Dashboard Summary
-- Total responsibilities defined
-- Tasks due this month/week
-- Overdue tasks count (with red alert)
-- Completion rate percentage
-- Recent activity log
+3. **Database update:**
+   - Update `meetings.title` and `meetings.auto_generated_name` during recording
 
-## Technical Implementation
+### 3. Live Action Items Extraction
 
-### Route
+**Problem:** Action items are only extracted after recording ends.
+
+**Solution:** Create a new lightweight edge function that extracts just the title and action items during recording.
+
+**New Edge Function: `extract-live-meeting-insights`**
+
+Purpose: Quick extraction of meeting title and action items from transcript (runs during recording)
+
+```
+Input: {
+  meetingId: string,
+  transcript: string (last 3000 words for efficiency),
+  currentTitle: string,
+  existingActionItems: string[]
+}
+
+Output: {
+  suggestedTitle: string,
+  actionItems: [
+    { action_text: string, assignee_name: string, due_date: string }
+  ]
+}
+```
+
+Key characteristics:
+- Uses Gemini 2.5 Flash for speed (~1-2s response)
+- Only processes last ~3000 words of transcript for efficiency
+- Returns incremental action items (new ones only)
+- Runs every 3-5 minutes during recording
+
+**Changes:**
+1. Create `supabase/functions/extract-live-meeting-insights/index.ts`
+2. Add call logic in `MeetingRecorder.tsx` 
+3. Insert new action items to `meeting_action_items` table during recording
+4. Update meeting title if AI suggests a better one
+
+### 4. Meeting History Live Updates
+
+**Problem:** Meeting History shows stale data during recording.
+
+**Solution:** Use Supabase Realtime to subscribe to `meetings` table changes.
+
+**Changes in `MeetingHistoryList.tsx`:**
+1. Subscribe to realtime updates for meetings with `status: 'recording'`
+2. Automatically refresh the specific meeting row when word_count or title changes
+3. Add visual indicator showing live updates are occurring
+
+### 5. Enhanced Recording Indicator in History
+
+**Current:** Shows "(Recording Now)" text badge
+**Enhanced:** 
+- Animated pulsing red dot next to title
+- Live word count that updates in real-time
+- "Live" badge that pulses
+
+## Technical Details
+
+### New Edge Function: `extract-live-meeting-insights`
+
 ```typescript
-<Route path="/practice-responsibilities" element={
-  <ProtectedRoute requiredModule="practice_manager_access">
-    <PracticeResponsibilityTracker />
-  </ProtectedRoute>
-} />
+// Core prompt structure
+const systemPrompt = `You extract meeting insights from a live transcript.
+
+Return JSON only:
+{
+  "suggestedTitle": "Specific descriptive title (4-12 words)",
+  "actionItems": [
+    {
+      "action_text": "Clear action description",
+      "assignee_name": "Name or TBC",
+      "due_date": "Date mentioned or TBC"
+    }
+  ]
+}
+
+Rules:
+- Title must be specific (never "General Meeting" or "Team Update")
+- Only include NEW action items not in existingActionItems
+- Use British English
+- Focus on the most recent discussion`;
 ```
 
-### Page Structure
-The main page will use tabs:
-1. **Dashboard** - Summary cards, upcoming tasks, overdue alerts
-2. **All Responsibilities** - Master list with search/filter
-3. **Calendar** - Practice-wide calendar view
-4. **By Role** - Drill-down view by role
-5. **Settings** - Categories, templates, bulk import
+### Update Intervals During Recording
 
-### Database Migration
-Single migration to create all four tables with:
-- Appropriate foreign keys
-- RLS policies scoped to practice
-- Indexes for common queries (practice_id, due_date, status)
+| Update Type | Interval | Condition |
+|-------------|----------|-----------|
+| Word Count | 30 seconds | Always during recording |
+| Title Generation | 5 minutes | After 200+ words, only if 500+ new words |
+| Action Items | 3 minutes | After 300+ words |
 
-### Hooks Pattern
-Following the existing `useNRESHoursTracker` pattern:
-- Fetch data on mount
-- CRUD operations with toast notifications
-- Loading/saving states
-- Optimistic updates where appropriate
+### Performance Considerations
 
-## Navigation Integration
-Add link to the Practice Manager menu/header navigation under "Practice Admin" section.
+1. **Throttling:** All periodic updates are throttled to prevent API spam
+2. **Transcript Truncation:** Only send last 3000 words for live insights
+3. **Debouncing:** Word count updates debounced to 30s
+4. **Conditional Updates:** Skip updates if transcript hasn't grown significantly
+
+### State Management
+
+New refs in `MeetingRecorder.tsx`:
+```typescript
+const lastLiveUpdateRef = useRef<{
+  wordCountSync: number;
+  titleGeneration: number;
+  actionItemsExtraction: number;
+  lastTitleWordCount: number;
+}>({
+  wordCountSync: 0,
+  titleGeneration: 0,
+  actionItemsExtraction: 0,
+  lastTitleWordCount: 0
+});
+```
 
 ## Implementation Order
-1. Database migration (4 tables + RLS)
-2. TypeScript types
-3. Core hooks (responsibilities, assignments, instances)
-4. Main page with dashboard tab
-5. Responsibility form and list
-6. Assignment form
-7. Calendar view component
-8. Role filter view
-9. Pre-populate default templates
-10. Navigation integration
+
+1. **Phase 1: Word Count Sync** (Quick win)
+   - Add 30-second interval to sync word count to database
+   - Update Meeting History to show live count
+
+2. **Phase 2: Live Title Generation**
+   - Add periodic title generation logic
+   - Update database and local state
+
+3. **Phase 3: Edge Function + Action Items**
+   - Create `extract-live-meeting-insights` edge function
+   - Add call logic during recording
+   - Insert action items to database
+
+4. **Phase 4: Realtime Subscription**
+   - Add Supabase Realtime subscription for live updates
+   - Enhance visual indicators
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/MeetingRecorder.tsx` | Add periodic update logic, new refs, live insight calls |
+| `src/components/MeetingHistoryList.tsx` | Add Realtime subscription, enhanced recording indicator |
+| `supabase/functions/extract-live-meeting-insights/index.ts` | New edge function |
+
+## Expected User Experience After Implementation
+
+1. User starts recording
+2. At ~30 seconds: Word count shows "15 words" in history (instead of 0)
+3. At ~3 minutes: Title updates from "General Meeting" to e.g., "Primary Care Network Pharmacy Integration Discussion"
+4. At ~4 minutes: First action items appear in the Actions tab
+5. Throughout: Meeting History shows live updating word count
+6. At end: Full notes generation runs as before (no change)
+
+## Backwards Compatibility
+
+- All changes are additive
+- Existing stopRecording flow unchanged
+- Post-meeting notes generation still runs
+- Action items from live extraction are deduplicated against post-meeting extraction

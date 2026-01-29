@@ -135,7 +135,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           {/* Mobile-friendly title - show for both logged in and logged out */}
           <div
             className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-2"
-            onClick={() => navigate(user ? '/ai4gp' : '/')}
+            onClick={() => navigate('/')}
           >
             <span className="text-sm sm:text-xl font-bold text-white flex items-center">
               Notewell AI
@@ -146,7 +146,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             {/* Navigation */}
             <div className="hidden sm:flex gap-2">
               <Button 
-                onClick={() => navigate(user ? '/ai4gp' : '/')}
+                onClick={() => navigate('/')}
                 variant="secondary"
                 size="sm"
                 className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
@@ -174,6 +174,25 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                      variant="secondary"
                      size="sm"
                      className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
+                     onClick={async () => {
+                       try {
+                         await refreshUserModules();
+                         await refreshVisibility();
+                         if (user?.id) {
+                           const { data: settings } = await supabase
+                             .from('user_settings')
+                             .select('setting_value')
+                             .eq('user_id', user.id)
+                             .eq('setting_key', 'ai4gp_preferences');
+                           if (settings && settings.length > 0) {
+                             const prefs: any = settings[0].setting_value;
+                             setHideGPClinical(!!prefs?.hideGPClinical);
+                           }
+                         }
+                       } catch (e) {
+                         console.error('Failed to refresh service menu prefs', e);
+                       }
+                     }}
                    >
                      <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                      <span className="hidden sm:inline">Select Service</span>
@@ -195,7 +214,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                       )}
                      {hasModuleAccess('meeting_recorder') && isServiceVisible('meeting_notes') && (
                        <DropdownMenuItem 
-                          onClick={() => navigate('/?tab=recorder')}
+                          onClick={() => navigate('/')}
                          className="cursor-pointer py-3"
                        >
                          <FileText className="h-4 w-4 mr-2" />

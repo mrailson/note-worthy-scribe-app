@@ -5,7 +5,6 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RecordingProvider } from "./contexts/RecordingContext";
-import { PracticeContextProvider } from "./contexts/PracticeContext";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import App from "./App.tsx";
@@ -42,21 +41,19 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <PracticeContextProvider>
-            <RecordingProvider>
-              <Toaster />
-              <SonnerToaster 
-                position="top-right"
-                icons={{
-                  success: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
-                  error: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
-                  warning: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
-                  info: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
-                }}
-              />
-              <App />
-            </RecordingProvider>
-          </PracticeContextProvider>
+          <RecordingProvider>
+            <Toaster />
+            <SonnerToaster 
+              position="top-right"
+              icons={{
+                success: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
+                error: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
+                warning: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
+                info: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
+              }}
+            />
+            <App />
+          </RecordingProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
