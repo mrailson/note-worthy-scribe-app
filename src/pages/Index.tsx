@@ -81,6 +81,7 @@ const Index = () => {
   const navigate = useNavigate();
   
   // Redirect logged-in users to Ask AI as the default home
+  // Combined redirect logic - only one useEffect to prevent multiple triggers
   useEffect(() => {
     if (!loading && user) {
       // Check if there's a specific tab or edit param - if so, stay on this page
@@ -167,18 +168,7 @@ const Index = () => {
     }
   }, [editMeetingId, user]);
 
-  // Conditional homepage redirect: AI4GP users → AI4GP, others → Meeting Manager
-  // Skip redirect if user is continuing a meeting
-  useEffect(() => {
-    const state = location.state as any;
-    const isContinuingMeeting = state?.continueMeeting;
-    
-    if (user && !loading && !editMeetingId && !isContinuingMeeting && hasModuleAccess('ai4gp_access')) {
-      navigate('/ai4gp', {
-        replace: true
-      });
-    }
-  }, [user, loading, editMeetingId, location.state, hasModuleAccess, navigate]);
+  // Note: redirect logic consolidated into single useEffect above (lines 83-98)
   const loadMeetingForEditing = async (meetingId: string) => {
     try {
       const {
