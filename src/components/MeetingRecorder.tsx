@@ -5190,7 +5190,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     
     setLoadingHistory(true);
     try {
-      // Query meetings directly - RLS policies ensure proper access control
+      // Query meetings directly without heavy joins for fast initial load
       const { data: meetingsData, error } = await supabase
         .from('meetings')
         .select(`
@@ -5213,16 +5213,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           recording_created_at,
           notes_style_3,
           folder_id,
-          word_count,
-          meeting_overviews (
-            overview,
-            audio_overview_url,
-            audio_overview_text,
-            audio_overview_duration
-          )
+          word_count
         `)
         .order('created_at', { ascending: false })
-        .limit(10); // Temporarily reduced to 10 to test performance
+        .limit(10);
 
       if (error) throw error;
 
@@ -5306,17 +5300,16 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       // Update total transcript words state from already-loaded data
       setTotalTranscriptWords(totalWordsFromData);
 
-      // Build enriched objects without fetching heavy transcript contents
+      // Build enriched objects without heavy data
       const meetingsWithCounts = (meetingsData || []).map((meeting: any) => ({
         ...meeting,
         transcript_count: transcriptCounts[meeting.id] || 0,
         summary_exists: !!summaryExists[meeting.id],
         meeting_summary: meeting.notes_style_3 || null,
-        overview: meeting.meeting_overviews?.overview || null,
-        audio_overview_url: meeting.meeting_overviews?.audio_overview_url || null,
-        audio_overview_text: meeting.meeting_overviews?.audio_overview_text || null,
-        audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null,
-        // Use the word_count from the main query, not a separate fetch
+        overview: null, // Loaded on-demand when viewing meeting
+        audio_overview_url: null,
+        audio_overview_text: null,
+        audio_overview_duration: null,
         word_count: meeting.word_count || 0,
         document_count: documentCounts[meeting.id] || 0,
         documents: [],
