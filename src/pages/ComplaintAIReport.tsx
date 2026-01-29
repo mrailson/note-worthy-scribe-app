@@ -69,7 +69,19 @@ export default function ComplaintAIReport() {
           complaint_outcomes (*),
           complaint_acknowledgements (*),
           complaint_notes (*),
-          complaint_involved_parties (*)
+          complaint_involved_parties (
+            id,
+            complaint_id,
+            staff_name,
+            staff_email,
+            staff_role,
+            response_requested_at,
+            response_submitted_at,
+            response_text,
+            created_at,
+            access_token_expires_at,
+            access_token_last_used_at
+          )
         `)
         .eq('id', id)
         .single();
