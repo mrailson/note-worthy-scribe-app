@@ -6,6 +6,7 @@ import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ArrowDown } from 'lucide-react';
+import { ChatViewSettings, FONT_SIZE_SCALE } from '@/types/chatViewSettings';
 
 interface MessagesListProps {
   messages: Message[];
@@ -24,6 +25,11 @@ interface MessagesListProps {
   imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   autoScroll?: boolean;
   onAutoScrollChange?: (value: boolean) => void;
+  // New chat view settings props
+  chatFontSize?: ChatViewSettings['fontSize'];
+  compactView?: boolean;
+  bubbleStyle?: ChatViewSettings['bubbleStyle'];
+  scrollDuringStreaming?: boolean;
 }
 
 const AUTO_SCROLL_STORAGE_KEY = 'ai4gp-chat-auto-scroll';
@@ -44,7 +50,11 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   autoCollapseUserPrompts = false,
   imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
   autoScroll: autoScrollProp,
-  onAutoScrollChange
+  onAutoScrollChange,
+  chatFontSize = 'default',
+  compactView = false,
+  bubbleStyle = 'standard',
+  scrollDuringStreaming: scrollDuringStreamingProp = true,
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const previousMessageCountRef = useRef(0);
@@ -179,17 +189,20 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   const lastMessageContentLength = lastMessage?.content?.length || 0;
   
   useEffect(() => {
-    if (isStreaming && autoScroll && !isUserScrolling && messages.length > 0) {
+    if (isStreaming && autoScroll && scrollDuringStreamingProp && !isUserScrolling && messages.length > 0) {
       const scrollTimeout = setTimeout(() => {
         virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
       }, 100);
       return () => clearTimeout(scrollTimeout);
     }
-  }, [isStreaming, lastMessageContentLength, autoScroll, isUserScrolling, messages.length, virtualizer]);
+  }, [isStreaming, lastMessageContentLength, autoScroll, scrollDuringStreamingProp, isUserScrolling, messages.length, virtualizer]);
 
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
 
+  // Font size scale for chat bubbles
+  const fontSizeScale = FONT_SIZE_SCALE[chatFontSize];
+  
   return (
     <div className="relative h-full min-h-0">
       <div
@@ -198,7 +211,10 @@ export const MessagesList: React.FC<MessagesListProps> = ({
           "h-full min-h-0 overflow-auto",
           deviceInfo.isIPhone ? "px-4 py-3" : "px-2 sm:p-2"
         )}
-        style={{ contain: 'strict' }}
+        style={{ 
+          contain: 'strict',
+          fontSize: fontSizeScale !== 1 ? `${fontSizeScale}rem` : undefined,
+        }}
       >
         <div
           style={{
@@ -253,7 +269,9 @@ export const MessagesList: React.FC<MessagesListProps> = ({
                   width: '100%',
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
-                className="py-2"
+                className={cn(
+                  compactView ? "py-1" : "py-2"
+                )}
               >
                 <MessageRenderer
                   message={message}
@@ -268,6 +286,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
                   onSetDrugName={onSetDrugName}
                   autoCollapseUserPrompts={autoCollapseUserPrompts}
                   imageGenerationModel={imageGenerationModel}
+                  compactView={compactView}
+                  bubbleStyle={bubbleStyle}
                 />
               </div>
             );
