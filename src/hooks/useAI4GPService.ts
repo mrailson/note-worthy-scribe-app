@@ -79,7 +79,7 @@ export const useAI4GPService = () => {
   }, []);
 
   const handleGPT5FastClinical = async (
-    messages: { role: 'user' | 'assistant' | 'system'; content: string }[],
+    messages: { role: 'user' | 'assistant' | 'system'; content: string | any[] }[],
     systemPrompt?: string,
     onStream?: (chunk: string, webSearchPerformed?: boolean) => void
   ): Promise<{ response: string; webSearchPerformed: boolean }> => {
@@ -92,9 +92,18 @@ export const useAI4GPService = () => {
                          selectedModel;
 
       // Content type detection for dynamic token allocation
-      function detectContentType(messages: { content: string }[]): { maxTokens: number; contentType: string } {
+      function detectContentType(messages: { content: string | any[] }[]): { maxTokens: number; contentType: string } {
         const lastMessage = messages[messages.length - 1];
-        const content = lastMessage?.content?.toLowerCase() || '';
+        // Handle both string and multimodal content
+        const content = typeof lastMessage?.content === 'string' 
+          ? lastMessage.content.toLowerCase() 
+          : (Array.isArray(lastMessage?.content) 
+              ? lastMessage.content
+                  .filter((p: any) => p.type === 'text')
+                  .map((p: any) => p.text)
+                  .join(' ')
+                  .toLowerCase()
+              : '');
         
         // Check for comprehensive content indicators
         const comprehensiveIndicators = [
@@ -647,8 +656,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           const nonSystemMessages = messagesForAPI.filter(m => m.role !== 'system');
           
           const result = await handleGPT5FastClinical(
-            nonSystemMessages as { role: 'user' | 'assistant' | 'system'; content: string }[], 
-            systemMessage?.content || systemPrompt, 
+            nonSystemMessages as { role: 'user' | 'assistant' | 'system'; content: string | any[] }[], 
+            typeof systemMessage?.content === 'string' ? systemMessage.content : systemPrompt, 
             streamHandler
           );
           

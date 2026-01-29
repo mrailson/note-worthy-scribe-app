@@ -24,14 +24,45 @@ interface UploadedFile {
   size: number;
 }
 
+// Multimodal content types for vision-capable models
+type TextContent = { type: 'text'; text: string };
+type ImageContent = { type: 'image_url'; image_url: { url: string } };
+type MultimodalContent = TextContent | ImageContent;
+
 interface OptimisedHistory {
   contextSummary: string;
-  recentMessages: { role: 'user' | 'assistant' | 'system'; content: string }[];
+  recentMessages: { role: 'user' | 'assistant' | 'system'; content: string | MultimodalContent[] }[];
   fileContext: string;
   totalTokens: number;
   originalMessageCount: number;
   optimisedMessageCount: number;
   memorySavings: number; // percentage saved
+}
+
+/**
+ * Check if a file is an image based on its MIME type
+ */
+function isImageFile(file: UploadedFile): boolean {
+  return file.type?.startsWith('image/') || 
+    /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
+}
+
+/**
+ * Format image content for multimodal API
+ */
+function formatImageForAPI(file: UploadedFile): ImageContent {
+  let dataUrl = file.content;
+  
+  // Ensure proper data URL format
+  if (!dataUrl.startsWith('data:')) {
+    const mimeType = file.type || 'image/jpeg';
+    dataUrl = `data:${mimeType};base64,${dataUrl}`;
+  }
+  
+  return {
+    type: 'image_url',
+    image_url: { url: dataUrl }
+  };
 }
 
 /**
@@ -163,13 +194,43 @@ export function optimiseConversationHistory(
     const { fileContext, fileNames } = extractFileContext(messages);
     
     const formattedMessages = messages.map(msg => {
+      // Check if this message has image files that need multimodal formatting
+      const hasImages = msg.role === 'user' && msg.files?.some(isImageFile);
+      
+      if (hasImages && msg.files) {
+        // Build multimodal content array
+        const contentParts: MultimodalContent[] = [];
+        
+        // Add the text content first
+        if (msg.content.trim()) {
+          contentParts.push({ type: 'text', text: msg.content });
+        }
+        
+        // Add each file (images as image_url, others as text)
+        for (const file of msg.files) {
+          if (isImageFile(file)) {
+            contentParts.push(formatImageForAPI(file));
+          } else {
+            // Non-image files as text
+            contentParts.push({
+              type: 'text',
+              text: `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+            });
+          }
+        }
+        
+        return { role: msg.role, content: contentParts };
+      }
+      
+      // No images - use string content
       let content = msg.content;
       
-      // Only include file content for user messages
+      // Include non-image file content for user messages
       if (msg.role === 'user' && msg.files && msg.files.length > 0) {
-        const fileContents = msg.files.map(file => 
-          `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
-        ).join('');
+        const fileContents = msg.files
+          .filter(file => !isImageFile(file))
+          .map(file => `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`)
+          .join('');
         content += fileContents;
       }
       
@@ -222,12 +283,54 @@ export function optimiseConversationHistory(
   // Format recent messages, including file content only for files not already mentioned
   const includedFiles = new Set<string>();
   const formattedRecentMessages = recentMessages.map(msg => {
+    // Check if this message has image files that need multimodal formatting
+    const hasImages = msg.role === 'user' && msg.files?.some(isImageFile);
+    
+    if (hasImages && msg.files) {
+      // Build multimodal content array
+      const contentParts: MultimodalContent[] = [];
+      
+      // Add the text content first
+      let textContent = msg.content;
+      
+      // Add reference to previously uploaded non-image files
+      const referencedFiles = msg.files
+        .filter(file => !isImageFile(file) && includedFiles.has(file.name))
+        .map(file => file.name);
+      
+      if (referencedFiles.length > 0) {
+        textContent += `\n\n[Referencing previously uploaded files: ${referencedFiles.join(', ')}]`;
+      }
+      
+      if (textContent.trim()) {
+        contentParts.push({ type: 'text', text: textContent });
+      }
+      
+      // Add each file (images as image_url, others as text)
+      for (const file of msg.files) {
+        if (isImageFile(file)) {
+          contentParts.push(formatImageForAPI(file));
+          includedFiles.add(file.name);
+        } else if (!includedFiles.has(file.name)) {
+          // Non-image files as text (only if not already included)
+          includedFiles.add(file.name);
+          contentParts.push({
+            type: 'text',
+            text: `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+          });
+        }
+      }
+      
+      return { role: msg.role, content: contentParts };
+    }
+    
+    // No images - use string content
     let content = msg.content;
     
+    // Only include non-image file content if we haven't included it before
     if (msg.role === 'user' && msg.files && msg.files.length > 0) {
-      // Only include file content if we haven't included it before
       const newFileContents = msg.files
-        .filter(file => !includedFiles.has(file.name))
+        .filter(file => !isImageFile(file) && !includedFiles.has(file.name))
         .map(file => {
           includedFiles.add(file.name);
           return `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`;
@@ -235,12 +338,12 @@ export function optimiseConversationHistory(
         .join('');
       
       // For files already included, just reference them
-      const referencedFiles = msg.files
-        .filter(file => !newFileContents.includes(file.name))
+      const referencedNonImageFiles = msg.files
+        .filter(file => !isImageFile(file) && includedFiles.has(file.name) && !newFileContents.includes(file.name))
         .map(file => file.name);
       
-      if (referencedFiles.length > 0) {
-        content += `\n\n[Referencing previously uploaded files: ${referencedFiles.join(', ')}]`;
+      if (referencedNonImageFiles.length > 0) {
+        content += `\n\n[Referencing previously uploaded files: ${referencedNonImageFiles.join(', ')}]`;
       }
       
       content += newFileContents;
@@ -249,9 +352,17 @@ export function optimiseConversationHistory(
     return { role: msg.role, content };
   });
   
-  // Calculate new token count
+  // Calculate new token count (handle both string and multimodal content)
   const contextTokens = estimateTokens(contextSummary);
-  const recentTokens = formattedRecentMessages.reduce((sum, msg) => sum + estimateTokens(msg.content), 0);
+  const recentTokens = formattedRecentMessages.reduce((sum, msg) => {
+    if (typeof msg.content === 'string') {
+      return sum + estimateTokens(msg.content);
+    }
+    // For multimodal, only count text parts (images are separate)
+    return sum + msg.content
+      .filter((part): part is TextContent => part.type === 'text')
+      .reduce((s, p) => s + estimateTokens(p.text), 0);
+  }, 0);
   const fileContextTokens = estimateTokens(fileContext);
   const totalTokens = contextTokens + recentTokens + fileContextTokens;
   
@@ -284,12 +395,13 @@ export function optimiseConversationHistory(
 
 /**
  * Prepare messages for API call with conversation context
+ * Returns messages in a format compatible with vision-capable models
  */
 export function prepareMessagesForAPI(
   messages: Message[],
   systemPrompt: string,
   maxTokens: number = 30000
-): { role: 'user' | 'assistant' | 'system'; content: string }[] {
+): { role: 'user' | 'assistant' | 'system'; content: string | MultimodalContent[] }[] {
   const optimised = optimiseConversationHistory(messages, maxTokens);
   
   // Build enhanced system prompt with context
@@ -304,12 +416,14 @@ export function prepareMessagesForAPI(
   }
   
   // Log memory stats for debugging
+  const hasImageContent = optimised.recentMessages.some(m => Array.isArray(m.content));
   console.log('📊 Conversation Memory Stats:', {
     originalMessages: optimised.originalMessageCount,
     optimisedMessages: optimised.optimisedMessageCount,
     totalTokens: optimised.totalTokens,
     memorySavings: `${optimised.memorySavings}%`,
-    hasContextSummary: !!optimised.contextSummary
+    hasContextSummary: !!optimised.contextSummary,
+    hasImageContent
   });
   
   return [
