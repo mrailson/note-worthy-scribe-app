@@ -136,6 +136,71 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_chat_capture_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          session_token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          session_token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          session_token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_chat_captured_images: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          processed: boolean | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          processed?: boolean | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          processed?: boolean | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_chat_captured_images_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_chat_capture_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assembly_transcripts: {
         Row: {
           chunk_index: number

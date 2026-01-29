@@ -456,5 +456,11 @@ verify_jwt = false
 [functions.extract-patient-details-complaint]
 verify_jwt = true
 
+[functions.validate-ai-chat-capture-token]
+verify_jwt = false
+
+[functions.upload-ai-chat-capture]
+verify_jwt = false
+
 [functions.import-complaint-data]
 verify_jwt = true
