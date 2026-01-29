@@ -4754,7 +4754,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       setIsContinuationMode(false);
       setContinuationMeetingTitle('');
 
-      const { data: savedMeeting, error: saveError } = await supabase
+      const { data: savedMeetingArr, error: saveError } = await supabase
         .from('meetings')
         .update({
           title: meetingData.title,
@@ -4762,12 +4762,20 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           status: 'completed'
         })
         .eq('id', meetingId)
-        .select()
-        .single();
+        .select();
 
       console.log('🚨 DATABASE UPDATE RESULT:');
       console.log('🚨 SaveError:', saveError);
-      console.log('🚨 SavedMeeting:', savedMeeting);
+      console.log('🚨 SavedMeeting:', savedMeetingArr);
+
+      if (saveError) {
+        throw new Error(`Failed to update meeting: ${saveError.message}`);
+      }
+
+      const savedMeeting = savedMeetingArr?.[0];
+      if (!savedMeeting) {
+        throw new Error(`Meeting not found after update: ${meetingId}`);
+      }
 
       // Safety Net 1: Consolidate transcript chunks before generating notes
       setStopRecordingStep('Consolidating transcript chunks...');
@@ -5226,46 +5234,74 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         return sum + (m.word_count && typeof m.word_count === 'number' ? m.word_count : 0);
       }, 0);
 
-      const [transcriptCounts, summaryExists, documentCounts] = await Promise.all([
-        // Transcript chunk counts per meeting
-        supabase
-          .from('meeting_transcription_chunks')
-          .select('meeting_id', { count: 'exact' })
-          .in('meeting_id', meetingIds)
-          .then(({ data }) => {
-            const counts: Record<string, number> = {};
-            data?.forEach((row: any) => {
-              counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
-            });
-            return counts;
-          }),
+      // Skip batch queries if no meetings
+      let transcriptCounts: Record<string, number> = {};
+      let summaryExists: Record<string, boolean> = {};
+      let documentCounts: Record<string, number> = {};
 
-        // Summary existence per meeting
-        supabase
-          .from('meeting_summaries')
-          .select('meeting_id')
-          .in('meeting_id', meetingIds)
-          .then(({ data }) => {
-            const exists: Record<string, boolean> = {};
-            data?.forEach((row: any) => {
-              exists[row.meeting_id] = true;
-            });
-            return exists;
-          }),
+      if (meetingIds.length > 0) {
+        try {
+          const [transcriptResult, summaryResult, documentResult] = await Promise.all([
+            // Transcript chunk counts per meeting
+            supabase
+              .from('meeting_transcription_chunks')
+              .select('meeting_id')
+              .in('meeting_id', meetingIds)
+              .then(({ data, error }) => {
+                if (error) {
+                  console.warn('Error fetching transcript counts:', error);
+                  return {} as Record<string, number>;
+                }
+                const counts: Record<string, number> = {};
+                data?.forEach((row: any) => {
+                  counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
+                });
+                return counts;
+              }),
 
-        // Document counts per meeting
-        supabase
-          .from('meeting_documents')
-          .select('meeting_id', { count: 'exact' })
-          .in('meeting_id', meetingIds)
-          .then(({ data }) => {
-            const counts: Record<string, number> = {};
-            data?.forEach((row: any) => {
-              counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
-            });
-            return counts;
-          })
-      ]);
+            // Summary existence per meeting
+            supabase
+              .from('meeting_summaries')
+              .select('meeting_id')
+              .in('meeting_id', meetingIds)
+              .then(({ data, error }) => {
+                if (error) {
+                  console.warn('Error fetching summary status:', error);
+                  return {} as Record<string, boolean>;
+                }
+                const exists: Record<string, boolean> = {};
+                data?.forEach((row: any) => {
+                  exists[row.meeting_id] = true;
+                });
+                return exists;
+              }),
+
+            // Document counts per meeting
+            supabase
+              .from('meeting_documents')
+              .select('meeting_id')
+              .in('meeting_id', meetingIds)
+              .then(({ data, error }) => {
+                if (error) {
+                  console.warn('Error fetching document counts:', error);
+                  return {} as Record<string, number>;
+                }
+                const counts: Record<string, number> = {};
+                data?.forEach((row: any) => {
+                  counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
+                });
+                return counts;
+              })
+          ]);
+
+          transcriptCounts = transcriptResult;
+          summaryExists = summaryResult;
+          documentCounts = documentResult;
+        } catch (batchError) {
+          console.warn('Error in batch metadata queries:', batchError);
+          // Continue with empty counts - don't fail the whole load
+        }
+      }
 
       // Update total transcript words state from already-loaded data
       setTotalTranscriptWords(totalWordsFromData);
