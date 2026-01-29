@@ -94,6 +94,7 @@ export default function AIChatCapture() {
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
   const [validationError, setValidationError] = useState<string>('');
+  const [cameraAutoStarted, setCameraAutoStarted] = useState(false);
   
   const [isCapturing, setIsCapturing] = useState(false);
   const [isCameraLoading, setIsCameraLoading] = useState(false);
@@ -353,6 +354,14 @@ export default function AIChatCapture() {
     return () => stopCamera();
   }, [stopCamera]);
 
+  // Auto-start camera once session is validated
+  useEffect(() => {
+    if (isValid && !cameraAutoStarted && !isCapturing && !isCameraLoading) {
+      setCameraAutoStarted(true);
+      startCamera();
+    }
+  }, [isValid, cameraAutoStarted, isCapturing, isCameraLoading, startCamera]);
+
   // Show loading state
   if (isValidating) {
     return (
@@ -438,32 +447,50 @@ export default function AIChatCapture() {
                 
                 {/* Camera controls */}
                 {isCapturing && (
-                  <div className="absolute top-2 right-2 flex gap-2">
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsRotated(!isRotated);
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="bg-black/50 border-white/30 text-white hover:bg-black/70"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
-                    {availableCameras.length > 1 && (
+                  <>
+                    <div className="absolute top-2 right-2 flex gap-2">
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleCamera();
+                          setIsRotated(!isRotated);
                         }}
                         variant="outline"
                         size="sm"
                         className="bg-black/50 border-white/30 text-white hover:bg-black/70"
                       >
-                        <SwitchCamera className="h-4 w-4" />
+                        <RotateCcw className="h-4 w-4" />
                       </Button>
-                    )}
-                  </div>
+                      {availableCameras.length > 1 && (
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCamera();
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="bg-black/50 border-white/30 text-white hover:bg-black/70"
+                        >
+                          <SwitchCamera className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {/* Upload from gallery button */}
+                    <div className="absolute top-2 left-2">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="bg-black/50 border-white/30 text-white hover:bg-black/70"
+                      >
+                        <Upload className="h-4 w-4 mr-1.5" />
+                        Upload
+                      </Button>
+                    </div>
+                  </>
                 )}
                 
                 {/* Tap to capture hint */}
