@@ -75,7 +75,7 @@ Deno.serve(async (req: Request) => {
         // Get token from AssemblyAI (9 minutes expiry)
         const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=540', {
           method: 'GET',
-          headers: { Authorization: AAI_KEY }
+          headers: { Authorization: `Bearer ${AAI_KEY}` }
         });
         
         if (!tokenResponse.ok) {
