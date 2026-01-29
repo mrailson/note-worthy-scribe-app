@@ -1,90 +1,180 @@
 
 
-## Import Patient Details Feature for Complaints
+## Photo Capture Feature for Ask AI Chat
 
 ### Overview
-Add a quick patient details import feature to the Submit New Complaint form, allowing clinicians to rapidly populate patient fields (name, DOB, NHS number, phone, email, address) from pasted text, screenshots, or uploaded files - following the same pattern used in the Scribe appointments import.
+Add a comprehensive photo capture facility to the Ask AI service chat that allows users to:
+1. Generate a QR code to scan on their smartphone for remote photo capture
+2. Take photos directly via laptop/PC camera in a modal (similar to LG Capture)
+3. Have captured photos added as file attachments ready to send with their next message
 
-### What Will Change
+### User Experience Flow
 
-**Two new components:**
-
-1. **"Import Patient Details" button** - Positioned next to the existing "Import Complaint Data" button in the form header
-2. **Patient import functionality** - Available both as a standalone discrete box AND within the existing Import Complaint Data modal
-
-### User Experience
-
-**Main Form Header:**
+**Via the + Button Menu:**
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  Submit New Complaint                                           │
-│  Record a new patient complaint following NHS procedures        │
-│                                                                 │
-│  [📋 Import Patient Details]  [📤 Import Complaint Data]       │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────┐
+│  + More Options              │
+├──────────────────────────────┤
+│  📷  Capture Photo           │ ← Opens camera modal (PC/laptop)
+│  📱  Phone Camera (QR)       │ ← Opens QR code modal
+│  📎  Attach Files            │ (existing)
+│  🌐  Translate Document      │ (existing)
+│  💬  Start New Chat          │ (existing)
+└──────────────────────────────┘
 ```
 
-**Supported Input Methods:**
-- **Ctrl+V** - Paste a screenshot from clipboard (processed via OCR)
-- **Drag & Drop** - Drop Word, Excel, PDF, image, or text files
-- **File Upload** - Click to browse and upload
-- **Paste Text** - Manually paste text containing patient details
+### Feature 1: Phone Camera via QR Code
 
-### What Gets Extracted
+**QR Code Modal Features:**
+- Large, clear QR code display (300x300px)
+- Title: "Capture Photos with Phone"
+- Instruction text explaining the workflow
+- Live counter showing photos received
+- Actions:
+  - **Copy Link** - Copies capture URL to clipboard
+  - **Email Link** - Opens mailto: with pre-filled subject and link
+  - **Print QR** - Opens print dialog with formatted QR poster
+  - **Send via Accurx** - Copies link with patient-friendly SMS text to clipboard
 
-The AI will identify and extract:
-- Patient Name
-- Date of Birth (DOB)
-- NHS Number
-- Contact Phone
-- Contact Email
-- Patient Address
+**Mobile Capture Page (`/ai-capture/:sessionToken`):**
+- Validates session token (time-limited, user-specific)
+- Camera interface matching LG Capture UX:
+  - Beep sound on capture (Web Audio API)
+  - Glare detection warning
+  - Camera switch button (front/back)
+  - Rotation button
+  - Grid of captured thumbnails
+  - Upload all button
+- Photos automatically appear in the parent chat as attachments via Supabase realtime subscription
 
-### Technical Approach
+### Feature 2: Direct PC/Laptop Camera Capture
 
-**New Component: `PatientDetailsImportModal.tsx`**
-- Located at `src/components/complaints/PatientDetailsImportModal.tsx`
-- Uses `react-dropzone` for drag-and-drop (consistent with Scribe pattern)
-- Listens for global paste events to capture clipboard screenshots
-- Calls `extract-document-text` for file processing (Word, PDF)
-- Calls a new lightweight AI function for patient detail extraction from text
+**Camera Modal (within chat):**
+- Opens in a dialog/modal
+- Matches LG Camera Modal UX:
+  - Beep on capture
+  - Glare detection
+  - Camera switching
+  - Live preview
+  - Session capture counter
+- Photos immediately added to `uploadedFiles` state as attachments
+- Close modal to return to chat with photos attached
 
-**New Edge Function: `extract-patient-details-complaint/index.ts`**
-- Focused AI prompt to extract just patient demographics from text
-- Uses Lovable AI Gateway (Gemini) for fast, cost-effective processing
-- Returns structured data: `{ patient_name, patient_dob, patient_nhs_number, patient_contact_phone, patient_contact_email, patient_address }`
+### Technical Implementation
 
-**Integration Points:**
-1. Button added in `ComplaintsSystem.tsx` header next to "Import Complaint Data"
-2. Optional tab/section added within existing `ComplaintImport.tsx` modal for patient-only import
-3. New state and handler `handlePatientImport` to populate only patient fields in the form
-
-### Files to Create
+**New Components:**
 
 | File | Purpose |
 |------|---------|
-| `src/components/complaints/PatientDetailsImportModal.tsx` | New modal component for patient import |
-| `supabase/functions/extract-patient-details-complaint/index.ts` | Lightweight AI extraction for patient demographics |
+| `src/components/ai4gp/ChatCameraModal.tsx` | PC/laptop camera capture modal |
+| `src/components/ai4gp/ChatQRCaptureModal.tsx` | QR code generation modal with email/print/Accurx |
+| `src/pages/AIChatCapture.tsx` | Mobile-friendly capture page for phone scanning |
 
-### Files to Modify
+**New Edge Functions:**
+
+| Function | Purpose |
+|----------|---------|
+| `validate-ai-chat-capture-token` | Validates session tokens for mobile capture |
+| `upload-ai-chat-capture` | Handles image uploads from mobile capture |
+
+**Database Changes:**
+
+| Table | Changes |
+|-------|---------|
+| `ai_chat_capture_sessions` | New table to store capture session tokens |
+| `ai_chat_captured_images` | New table to store captured images |
+
+**Modifications:**
 
 | File | Changes |
 |------|---------|
-| `src/pages/ComplaintsSystem.tsx` | Add Import Patient Details button, state, and handler |
-| `src/components/ComplaintImport.tsx` | Add optional "Patient Only" tab within existing modal |
+| `src/components/ai4gp/InputArea.tsx` | Add "Capture Photo" and "Phone Camera (QR)" menu items |
+| `src/App.tsx` | Add route for `/ai-capture/:sessionToken` |
+| `supabase/config.toml` | Register new edge functions |
 
 ### Key Patterns Reused
 
-From `AppointmentImportModal.tsx`:
-- `react-dropzone` configuration for multi-format file support
-- Global paste event listener for screenshot capture
-- OCR processing via `extract-document-text`
-- Tab-based UI (Paste Text / Upload File)
-- Processing state and feedback
+From existing LG Capture implementation:
+- `playClickSound()` function (Web Audio API beep)
+- Glare detection algorithm
+- Camera enumeration and switching
+- Canvas-based image capture
 
-### Validation & Formatting
+From existing Document Capture:
+- Session token validation pattern
+- Realtime subscription for upload notifications
+- Storage bucket upload pattern
 
-- NHS numbers will be validated using the existing `validateNHSNumber` utility
-- DOB will accept flexible formats (DD/MM/YYYY, YYYY-MM-DD, or just year)
-- Phone numbers will be normalised to UK format where possible
+From Survey QR Modal:
+- QR code generation with `qrcode` library
+- Print functionality with styled HTML
+- Download as PNG
+
+### Database Schema
+
+```sql
+-- Session tokens for AI chat capture
+CREATE TABLE ai_chat_capture_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  session_token TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '1 hour'),
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Captured images
+CREATE TABLE ai_chat_captured_images (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID NOT NULL REFERENCES ai_chat_capture_sessions(id) ON DELETE CASCADE,
+  file_name TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  thumbnail_url TEXT,
+  processed BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE ai_chat_capture_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_chat_captured_images ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "Users can view own capture sessions"
+  ON ai_chat_capture_sessions FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Users can create capture sessions"
+  ON ai_chat_capture_sessions FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can view own captured images"
+  ON ai_chat_captured_images FOR SELECT
+  USING (session_id IN (
+    SELECT id FROM ai_chat_capture_sessions WHERE user_id = auth.uid()
+  ));
+```
+
+### QR Code Modal Actions Detail
+
+| Action | Behaviour |
+|--------|-----------|
+| Copy Link | Copies `https://domain.com/ai-capture/{token}` to clipboard |
+| Email Link | Opens `mailto:?subject=Photo Capture Link&body=Click to capture photos: {link}` |
+| Print QR | Opens new window with printable A4 poster containing QR, title, and instructions |
+| Send via Accurx | Copies to clipboard: `Please click this link to send us a photo: {link}` |
+
+### File Summary
+
+**Create (6 files):**
+- `src/components/ai4gp/ChatCameraModal.tsx`
+- `src/components/ai4gp/ChatQRCaptureModal.tsx`
+- `src/pages/AIChatCapture.tsx`
+- `supabase/functions/validate-ai-chat-capture-token/index.ts`
+- `supabase/functions/upload-ai-chat-capture/index.ts`
+- Database migration for new tables
+
+**Modify (2 files):**
+- `src/components/ai4gp/InputArea.tsx`
+- `src/App.tsx`
+- `supabase/config.toml`
 
