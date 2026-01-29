@@ -9,6 +9,11 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
+  // Publishing is currently failing due to a CSS minifier parse error.
+  // Disabling CSS minification unblocks production builds without affecting runtime behaviour.
+  build: {
+    cssMinify: false,
+  },
   plugins: [
     react(),
     mode === 'development' &&
