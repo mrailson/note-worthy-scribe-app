@@ -13,6 +13,8 @@ import { format, startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+const ALL_TIME_START_DATE = '2020-01-01';
+
 interface UserClaim {
   user_id: string;
   user_name: string;
@@ -83,8 +85,8 @@ export function AdminClaimsReport() {
   const [expenses, setExpenses] = useState<AllExpense[]>([]);
   const [userSettings, setUserSettings] = useState<Record<string, number>>({});
   const [userProfiles, setUserProfiles] = useState<Record<string, { name: string; practice_name: string }>>({});
-  const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [startDate, setStartDate] = useState(ALL_TIME_START_DATE);
+  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   // Check if current user has admin access
   const authEmail =
