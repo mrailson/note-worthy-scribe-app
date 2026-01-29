@@ -7,22 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Trash2, Clock, Loader2, ArrowUp, ArrowDown, ArrowUpDown, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
+import { Clock, Loader2, ArrowUp, ArrowDown, ArrowUpDown, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { NRESHoursEntry } from '@/types/nresHoursTypes';
 import { ACTIVITY_TYPES, CLAIMANT_TYPES, getClaimantRate } from '@/types/nresHoursTypes';
 import { NRESClaimant } from '@/hooks/useNRESClaimants';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogContent,
@@ -36,15 +25,13 @@ interface HoursEntriesTableProps {
   hourlyRate: number | null;
   loading: boolean;
   claimants?: NRESClaimant[];
-  onDelete: (id: string) => Promise<void>;
   onUpdate: (id: string, updates: Partial<NRESHoursEntry>) => Promise<NRESHoursEntry | null>;
 }
 
 type SortField = 'date' | 'duration' | 'amount' | 'claimant';
 type SortDirection = 'asc' | 'desc' | null;
 
-export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = [], onDelete, onUpdate }: HoursEntriesTableProps) {
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = [], onUpdate }: HoursEntriesTableProps) {
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [isOpen, setIsOpen] = useState(true);
@@ -114,11 +101,6 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
     });
   }, [entries, sortField, sortDirection, hourlyRate]);
 
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
-    await onDelete(id);
-    setDeletingId(null);
-  };
 
   const openEditDialog = (entry: NRESHoursEntry) => {
     setEditingEntry(entry);
@@ -329,46 +311,14 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
                             {amount ? `£${amount.toFixed(2)}` : '-'}
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => openEditDialog(entry)}
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    className="h-8 w-8 text-destructive hover:text-destructive"
-                                    disabled={deletingId === entry.id}
-                                  >
-                                    {deletingId === entry.id ? (
-                                      <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                      <Trash2 className="w-4 h-4" />
-                                    )}
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Entry</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete this hours entry? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDelete(entry.id)}>
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openEditDialog(entry)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );

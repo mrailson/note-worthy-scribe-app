@@ -34,7 +34,6 @@ export function NRESHoursTracker() {
     saving: savingEntry,
     addEntry,
     updateEntry,
-    deleteEntry,
     totalHours
   } = useNRESHoursTracker();
 
@@ -114,7 +113,6 @@ export function NRESHoursTracker() {
           hourlyRate={hourlyRate}
           loading={loadingEntries}
           claimants={activeClaimants}
-          onDelete={deleteEntry}
           onUpdate={updateEntry}
         />
       </div>
