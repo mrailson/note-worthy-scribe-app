@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Refrigerator, Plus, QrCode, AlertTriangle, Settings, Thermometer, CheckCircle, XCircle, User, Pencil, Download, Wifi, WifiOff } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { showToast } from '@/utils/toastWrapper';
-import QRCode from 'qrcode-svg';
+import QRCode from 'qrcode';
 import { Document, Paragraph, TextRun, Table as DocxTable, TableCell as DocxTableCell, TableRow as DocxTableRow, Packer, WidthType, AlignmentType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
 
@@ -52,6 +52,7 @@ export const FridgeManagement = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedFridge, setSelectedFridge] = useState<Fridge | null>(null);
   const [qrCodeFridge, setQrCodeFridge] = useState<Fridge | null>(null);
+  const [qrCodeSvg, setQrCodeSvg] = useState<string>('');
   const [editFridge, setEditFridge] = useState<Fridge | null>(null);
   const [temperatureHistory, setTemperatureHistory] = useState<TemperatureReading[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -90,6 +91,31 @@ export const FridgeManagement = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      if (!qrCodeFridge) {
+        setQrCodeSvg('');
+        return;
+      }
+
+      try {
+        const svg = await generateQRCodeSVG(generateQRCodeData(qrCodeFridge.id));
+        if (!cancelled) setQrCodeSvg(svg);
+      } catch (e) {
+        console.error('Failed to generate fridge QR code:', e);
+        if (!cancelled) setQrCodeSvg('');
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [qrCodeFridge]);
 
   const loadFridges = async () => {
     try {
@@ -345,17 +371,16 @@ export const FridgeManagement = () => {
     return daysSince > 1;
   };
 
-  const generateQRCodeSVG = (qrCodeData: string) => {
-    const qr = new QRCode({
-      content: qrCodeData,
+  const generateQRCodeSVG = async (qrCodeData: string): Promise<string> => {
+    return await QRCode.toString(qrCodeData, {
+      type: 'svg',
       width: 200,
-      height: 200,
-      padding: 4,
-      background: '#ffffff',
-      color: '#000000',
-      ecl: 'M'
+      margin: 1,
+      color: {
+        dark: '#000000',
+        light: '#ffffff',
+      },
     });
-    return qr.svg();
   };
 
   const handleEditFridge = async () => {
@@ -562,8 +587,8 @@ export const FridgeManagement = () => {
     }
   };
 
-  const printQRCode = (fridge: Fridge) => {
-    const qrSvg = generateQRCodeSVG(generateQRCodeData(fridge.id));
+  const printQRCode = async (fridge: Fridge) => {
+    const qrSvg = await generateQRCodeSVG(generateQRCodeData(fridge.id));
     const printContent = `
       <div style="text-align: center; padding: 20px; font-family: Arial, sans-serif;">
         <h2>${fridge.fridge_name}</h2>
@@ -1033,7 +1058,15 @@ export const FridgeManagement = () => {
       </Dialog>
 
       {/* QR Code Modal */}
-      <Dialog open={!!qrCodeFridge} onOpenChange={(open) => !open && setQrCodeFridge(null)}>
+      <Dialog
+        open={!!qrCodeFridge}
+        onOpenChange={(open) => {
+          if (!open) {
+            setQrCodeFridge(null);
+            setQrCodeSvg('');
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -1053,10 +1086,13 @@ export const FridgeManagement = () => {
                 </p>
               </div>
 
-              <div 
-                className="bg-white p-6 rounded-lg flex items-center justify-center"
-                dangerouslySetInnerHTML={{ __html: generateQRCodeSVG(generateQRCodeData(qrCodeFridge.id)) }}
-              />
+              <div className="bg-white p-6 rounded-lg flex items-center justify-center">
+                {qrCodeSvg ? (
+                  <div dangerouslySetInnerHTML={{ __html: qrCodeSvg }} />
+                ) : (
+                  <div className="h-[200px] w-[200px] animate-pulse rounded-md bg-muted" />
+                )}
+              </div>
 
               <div className="text-center">
                 <p className="text-sm font-medium mb-2">Scan to record temperature</p>

@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Download, Printer, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import QRCodeSVG from 'qrcode-svg';
+import QRCode from 'qrcode';
 
 interface QRCodeModalProps {
   open: boolean;
@@ -37,18 +37,40 @@ export const QRCodeModal = ({
     : `${window.location.origin}/survey/${publicToken}`;
 
   useEffect(() => {
-    if (open && (publicToken || shortCode)) {
-      const qr = new QRCodeSVG({
-        content: surveyUrl,
-        width: 300,
-        height: 300,
-        padding: 4,
-        color: '#000000',
-        background: '#ffffff',
-        ecl: 'M',
-      });
-      setQrSvg(qr.svg());
-    }
+    let cancelled = false;
+
+    const run = async () => {
+      if (!open || !(publicToken || shortCode)) return;
+
+      try {
+        const svg = await QRCode.toString(surveyUrl, {
+          type: 'svg',
+          width: 300,
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#ffffff',
+          },
+        });
+
+        if (!cancelled) setQrSvg(svg);
+      } catch (e) {
+        console.error('Failed to generate QR code:', e);
+        if (cancelled) return;
+        setQrSvg('');
+        toast({
+          title: 'QR code error',
+          description: 'Could not generate QR code. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, publicToken, shortCode, surveyUrl]);
 
   const copyLink = () => {
