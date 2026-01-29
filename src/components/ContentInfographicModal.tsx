@@ -29,7 +29,7 @@ export const ContentInfographicModal: React.FC<ContentInfographicModalProps> = (
   isOpen,
   onClose,
   content,
-  title = 'AI Generated Content',
+  title = 'Infographic',
   imageModel = 'google/gemini-2.5-flash-image-preview',
   orientation = 'portrait',
 }) => {
