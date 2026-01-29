@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
+import { cn } from '@/lib/utils';
 import { useQuickPickScrollUX } from '@/hooks/useQuickPickScrollUX';
 import { shouldCollapseContent, getPreviewText, MIN_COLLAPSIBLE_LENGTH } from '@/hooks/useMessageCollapse';
 import { 
@@ -82,6 +83,9 @@ interface MessageRendererProps {
   onSetDrugName?: (drugName: string) => void; // New prop for setting drug name
   autoCollapseUserPrompts?: boolean; // New prop to auto-collapse user prompts
   imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1'; // Image model for infographics
+  // Chat view settings props
+  compactView?: boolean;
+  bubbleStyle?: 'standard' | 'minimal' | 'cards';
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
@@ -98,7 +102,9 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   onQuickResponse,
   onSetDrugName,
   autoCollapseUserPrompts = false,
-  imageGenerationModel = 'google/gemini-2.5-flash-image-preview'
+  imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
+  compactView = false,
+  bubbleStyle = 'standard',
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
@@ -790,11 +796,21 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         
         <div 
           ref={messageRef}
-          className={`rounded-lg flex flex-col ${
+          className={cn(
+            "rounded-lg flex flex-col",
+            // Base user/assistant styling
             message.role === 'user' 
               ? 'bg-primary text-primary-foreground ai4gp-user-bubble ml-auto max-w-[85%]' 
-              : isModal ? 'bg-transparent border-0' : 'bg-muted border border-border mr-auto max-w-[98%]'
-          } ${isModal ? 'p-0' : 'px-4 py-3'}`}
+              : isModal 
+                ? 'bg-transparent border-0' 
+                : 'mr-auto max-w-[98%]',
+            // Bubble style variations for assistant messages
+            message.role === 'assistant' && !isModal && bubbleStyle === 'standard' && 'bg-muted border border-border',
+            message.role === 'assistant' && !isModal && bubbleStyle === 'minimal' && 'bg-transparent border-0',
+            message.role === 'assistant' && !isModal && bubbleStyle === 'cards' && 'bg-card border border-border shadow-sm',
+            // Padding adjustments
+            isModal ? 'p-0' : compactView ? 'px-3 py-2' : 'px-4 py-3'
+          )}
           style={{
             width: '100%',
             minWidth: 0

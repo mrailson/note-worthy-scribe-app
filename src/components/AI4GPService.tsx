@@ -34,6 +34,7 @@ import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
+import { ChatViewSettingsDropdown } from '@/components/ai4gp/ChatViewSettingsDropdown';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
 import { AI4GPUserGuide } from '@/components/ai4gp/AI4GPUserGuide';
 import { TranslationToolInterface } from '@/components/TranslationToolInterface';
@@ -53,6 +54,7 @@ import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { useToast } from '@/hooks/use-toast';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useChatViewSettings } from '@/hooks/useChatViewSettings';
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,6 +82,9 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const queryClient = useQueryClient();
   const { generateWithGamma, isGenerating: isPowerPointGenerating } = useGammaPowerPoint();
   const { generateFullPresentation, isGenerating: isFullPowerPointGenerating, currentPhase } = useGammaPowerPointWithVoiceover();
+  
+  // Chat view settings
+  const { settings: chatViewSettings, updateSetting: updateChatViewSetting, resetToDefaults: resetChatViewSettings } = useChatViewSettings();
 
   // Wrapper functions for PowerPoint export that match expected signatures
   const handleExportPowerPoint = (content: string, title?: string, slideCount?: number) => {
@@ -557,6 +562,13 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         meetings={meetings}
                         isLoading={meetingsLoading}
                       />
+                      
+                      {/* Chat View Settings */}
+                      <ChatViewSettingsDropdown
+                        settings={chatViewSettings}
+                        onUpdateSetting={updateChatViewSetting}
+                        onResetToDefaults={resetChatViewSettings}
+                      />
                     </CardTitle>
                   </div>
 
@@ -825,7 +837,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                       deviceInfo.isIPhone && "pb-24"
                     )}>
                       <MessagesList
-                        messages={messages}
+                        messages={chatViewSettings.showUserMessages ? messages : messages.filter(m => m.role !== 'user')}
                         isLoading={isLoading}
                         expandedMessage={expandedMessage}
                         setExpandedMessage={setExpandedMessage}
@@ -840,12 +852,17 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                             setDrugNameFn(drugName);
                           }
                         }}
-                        autoCollapseUserPrompts={autoCollapseUserPrompts}
+                        autoCollapseUserPrompts={chatViewSettings.autoCollapsePrompts || autoCollapseUserPrompts}
                         onQuickResponse={(response) => {
                           // Use the selected model from settings
                           handleQuickResponse(response, practiceContext, selectedModel);
                         }}
                         imageGenerationModel={imageGenerationModel}
+                        chatFontSize={chatViewSettings.fontSize}
+                        compactView={chatViewSettings.compactView}
+                        bubbleStyle={chatViewSettings.bubbleStyle}
+                        autoScroll={chatViewSettings.autoScrollNewMessages}
+                        scrollDuringStreaming={chatViewSettings.scrollDuringStreaming}
                       />
                     </div>
                   )}
