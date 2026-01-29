@@ -112,6 +112,7 @@ import PolicyServiceUpdate from "./pages/PolicyServiceUpdate";
 import PolicyServiceChecklist from "./pages/PolicyServiceChecklist";
 import PolicyServiceMyPolicies from "./pages/PolicyServiceMyPolicies";
 import PolicyServiceProfile from "./pages/PolicyServiceProfile";
+import AIChatCapture from "./pages/AIChatCapture";
 
 const App = () => {
   useEffect(() => {
@@ -309,6 +310,7 @@ const App = () => {
               <Route path="/ai4gp-prompts" element={<AI4GPPromptGuide />} />
               <Route path="/reception-translate" element={<ReceptionPatientView />} />
               <Route path="/doc-capture/:sessionToken" element={<DocumentCapture />} />
+              <Route path="/ai-capture/:sessionToken" element={<AIChatCapture />} />
               
               {/* Survey Routes */}
               <Route path="/surveys" element={

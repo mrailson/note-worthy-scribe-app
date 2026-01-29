@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState, us
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList, Camera, Smartphone } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -14,6 +14,8 @@ import { FileProcessingProgress } from './FileProcessingProgress';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
 import { FileQuickActions } from './FileQuickActions';
 import { InputTipsHover } from './InputTipsHover';
+import { ChatCameraModal } from './ChatCameraModal';
+import { ChatQRCaptureModal } from './ChatQRCaptureModal';
 
 // Role-based placeholder tips
 const CLINICAL_TIPS = [
@@ -90,6 +92,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   } = useEnhancedFileProcessing();
   const [browserTranscript, setBrowserTranscript] = useState('');
   const [showDocumentTranslate, setShowDocumentTranslate] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [showQRCaptureModal, setShowQRCaptureModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
   
@@ -529,6 +533,22 @@ ${pastedText.trim()}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem 
+                    onClick={() => setShowCameraModal(true)}
+                    disabled={isLoading}
+                    className="cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Capture Photo
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setShowQRCaptureModal(true)}
+                    disabled={isLoading}
+                    className="cursor-pointer"
+                  >
+                    <Smartphone className="w-4 h-4 mr-2" />
+                    Phone Camera (QR)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isLoading}
                     className="cursor-pointer"
@@ -586,6 +606,18 @@ ${pastedText.trim()}
         isOpen={showDocumentTranslate}
         onClose={() => setShowDocumentTranslate(false)}
         onInsertToChat={(text) => setInput(input + (input ? '\n\n' : '') + text)}
+      />
+      
+      <ChatCameraModal
+        open={showCameraModal}
+        onOpenChange={setShowCameraModal}
+        onImagesCapture={(files) => setUploadedFiles(prev => [...prev, ...files])}
+      />
+      
+      <ChatQRCaptureModal
+        open={showQRCaptureModal}
+        onOpenChange={setShowQRCaptureModal}
+        onImagesReceived={(files) => setUploadedFiles(prev => [...prev, ...files])}
       />
     </div>
     </>
