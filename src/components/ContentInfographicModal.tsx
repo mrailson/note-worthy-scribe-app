@@ -10,6 +10,7 @@ interface ContentInfographicModalProps {
   content: string;
   title?: string;
   imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
+  orientation?: 'portrait' | 'landscape';
 }
 
 const GENERATION_TIPS = [
@@ -30,6 +31,7 @@ export const ContentInfographicModal: React.FC<ContentInfographicModalProps> = (
   content,
   title = 'AI Generated Content',
   imageModel = 'google/gemini-2.5-flash-image-preview',
+  orientation = 'portrait',
 }) => {
   const { generateInfographic, isGenerating, currentPhase, error } = useContentInfographic();
   const [progress, setProgress] = useState(0);
@@ -41,7 +43,7 @@ export const ContentInfographicModal: React.FC<ContentInfographicModalProps> = (
     if (isOpen && !hasStarted && !isGenerating) {
       setHasStarted(true);
       setProgress(0);
-      generateInfographic(content, title, { imageModel });
+      generateInfographic(content, title, { imageModel, orientation });
     }
   }, [isOpen, hasStarted, isGenerating, content, title, imageModel, generateInfographic]);
 

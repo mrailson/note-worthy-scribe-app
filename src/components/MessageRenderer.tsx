@@ -44,7 +44,8 @@ import {
   Type,
   Hash,
   ImageIcon,
-  ArrowDown
+  ArrowDown,
+  Monitor
 } from 'lucide-react';
 import { ContentInfographicModal } from '@/components/ContentInfographicModal';
 import PolicyBadge from '@/components/PolicyBadge';
@@ -117,6 +118,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [showCustomAIModal, setShowCustomAIModal] = useState(false);
   const [showFindReplaceModal, setShowFindReplaceModal] = useState(false);
   const [showInfographicModal, setShowInfographicModal] = useState(false);
+  const [infographicOrientation, setInfographicOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [verificationData, setVerificationData] = useState(null);
   const [policyEnforcement, setPolicyEnforcement] = useState(true);
   const [isUserMessageCollapsed, setIsUserMessageCollapsed] = useState(
@@ -1292,10 +1294,22 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => setShowInfographicModal(true)}>
-                            <ImageIcon className="h-4 w-4 mr-2" />
-                            Create as Infographic
-                          </DropdownMenuItem>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <ImageIcon className="h-4 w-4 mr-2" />
+                              Create as Infographic
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => { setInfographicOrientation('portrait'); setShowInfographicModal(true); }}>
+                                <FileText className="h-4 w-4 mr-2" />
+                                Portrait (A4)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setInfographicOrientation('landscape'); setShowInfographicModal(true); }}>
+                                <Monitor className="h-4 w-4 mr-2" />
+                                Landscape (16:9)
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
@@ -1525,6 +1539,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         content={message.content}
         title="AI Generated Content"
         imageModel={imageGenerationModel}
+        orientation={infographicOrientation}
       />
     </div>
   );
