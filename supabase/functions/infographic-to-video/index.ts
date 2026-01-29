@@ -252,11 +252,15 @@ serve(async (req) => {
     // Create white first frame
     const whiteImageBase64 = createWhiteImage(width, height);
     
-    // Prepare the Veo API request
+    // Prepare the Veo API request with high-fidelity animation prompt
+    const animationPrompt = `Animate this infographic with high structural fidelity. Keep the background layer completely static and stable to prevent distortion.
+Apply a clean, sequential animation where the main content blocks, icons, and data visualizations gently fade in and slightly scale up into position. The animation flow should follow the natural reading order of the document.
+Ensure all text remains 100% legible, crisp, and locked in place without morphing. The style should be high-end corporate motion graphics.`;
+
     const veoRequest = {
       instances: [
         {
-          prompt: "Smooth, gradual reveal animation. The image fades in seamlessly from pure white, with visual elements appearing naturally and progressively until the complete infographic is fully visible. Professional, elegant transition with consistent pacing throughout.",
+          prompt: animationPrompt,
           image: {
             bytesBase64Encoded: whiteImageBase64,
             mimeType: 'image/png',
