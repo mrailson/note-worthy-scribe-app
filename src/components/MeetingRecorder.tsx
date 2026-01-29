@@ -73,6 +73,7 @@ import { useAssemblyRealtimePreview, PreviewStatus } from "@/hooks/useAssemblyRe
 import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
+import { useLiveMeetingUpdates } from "@/hooks/useLiveMeetingUpdates";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -555,15 +556,37 @@ export const MeetingRecorder = ({
     onWordCountUpdate(assemblyWords);
   }, [assemblyPreview.fullTranscript, onWordCountUpdate]);
 
-  // ============= WHISPER COST PROTECTION =============
+  // Get current meeting ID from sessionStorage for live updates and kill signal
+  const currentMeetingIdFromStorage = sessionStorage.getItem('currentMeetingId');
+
+  // ============= LIVE MEETING UPDATES =============
+  // Sync word count and extract insights (title, action items) during recording
+  useLiveMeetingUpdates({
+    isRecording,
+    meetingId: currentMeetingIdFromStorage,
+    wordCount,
+    transcript: assemblyPreview.fullTranscript,
+    currentTitle: meetingSettings.title,
+    attendees: meetingSettings.attendees ? meetingSettings.attendees.split(',').map(a => a.trim()).filter(Boolean) : [],
+    meetingContext: {
+      agenda: meetingSettings.agenda,
+      description: meetingSettings.description,
+      meetingType: meetingSettings.meetingType
+    },
+    onTitleUpdate: (newTitle) => {
+      console.log('📝 Live title update received:', newTitle);
+      updateMeetingSettings(prev => ({ ...prev, title: newTitle }));
+    },
+    onActionItemsUpdate: (actionItems) => {
+      console.log('📋 Live action items received:', actionItems.length);
+    }
+  });
+
   // Maximum recording duration (4 hours) to prevent runaway billing
   const MAX_RECORDING_DURATION_SECONDS = 4 * 60 * 60; // 4 hours
   // Warning thresholds at 1h, 2h, 3h
   const DURATION_WARNINGS = [3600, 7200, 10800]; // seconds
   const shownDurationWarningsRef = useRef<Set<number>>(new Set());
-
-  // Get current meeting ID from sessionStorage for kill signal
-  const currentMeetingIdFromStorage = sessionStorage.getItem('currentMeetingId');
 
   // Server-side kill signal listener
   useMeetingKillSignal(

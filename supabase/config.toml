@@ -464,3 +464,6 @@ verify_jwt = false
 
 [functions.import-complaint-data]
 verify_jwt = true
+
+[functions.extract-live-meeting-insights]
+verify_jwt = false

@@ -39,6 +39,7 @@ import {
   Folder,
   FilePlus2
 } from "lucide-react";
+import { LiveRecordingIndicator } from "@/components/meeting-history/LiveRecordingIndicator";
 import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
 import { UploadedFile } from '@/types/ai4gp';
 import { formatTranscriptContext, extractCleanContent } from '@/utils/meeting/formatTranscriptContext';
@@ -2304,9 +2305,10 @@ export const MeetingHistoryList = ({
                             const display = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K words` : `${wc} words`;
                             return (
                               <>
-                                {display}
-                                {meeting.status === 'recording' && (
-                                  <span className="text-green-600 font-medium"> (Recording Now)</span>
+                                {meeting.status === 'recording' ? (
+                                  <LiveRecordingIndicator wordCount={wc} />
+                                ) : (
+                                  display
                                 )}
                                 {isStuckMeeting(meeting) && (
                                   <Badge variant="outline" className="ml-2 text-orange-600 border-orange-400">
