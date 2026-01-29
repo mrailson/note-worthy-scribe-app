@@ -1,24 +1,14 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { PracticeContext } from '@/types/ai4gp';
 
 type GenerationPhase = 'preparing' | 'generating' | 'downloading' | 'complete';
-
-export type BrandingLevel = 'none' | 'name-only' | 'name-address' | 'full';
-export type LogoPlacement = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 interface ContentInfographicOptions {
   style?: string;
   detailLevel?: string;
   imageModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   orientation?: 'portrait' | 'landscape';
-  // Branding options
-  practiceContext?: PracticeContext;
-  includeBranding?: boolean;
-  brandingLevel?: BrandingLevel;
-  includeLogo?: boolean;
-  logoPlacement?: LogoPlacement;
 }
 
 // Style prompt mappings
@@ -99,7 +89,7 @@ export const useContentInfographic = () => {
     return sections.join('\n');
   };
 
-  const generateInfographic = async (
+  const generateInfographic = useCallback(async (
     content: string,
     title?: string,
     options: ContentInfographicOptions = {}
@@ -109,11 +99,6 @@ export const useContentInfographic = () => {
       detailLevel = 'standard',
       imageModel = 'google/gemini-2.5-flash-image-preview',
       orientation = 'portrait',
-      practiceContext,
-      includeBranding = false,
-      brandingLevel = 'name-only',
-      includeLogo = false,
-      logoPlacement = 'top-right'
     } = options;
     
     setIsGenerating(true);
@@ -129,40 +114,12 @@ export const useContentInfographic = () => {
         ? 'Landscape orientation (16:9 aspect ratio) suitable for presentations and widescreen displays'
         : 'Portrait orientation (9:16 aspect ratio) suitable for A4 printing';
 
-      // Build branding section for prompt
-      let brandingPrompt = '';
-      if (includeBranding && practiceContext?.practiceName) {
-        const brandingParts: string[] = [];
-        brandingParts.push(`Organisation: ${practiceContext.practiceName}`);
-        
-        if (brandingLevel === 'name-address' || brandingLevel === 'full') {
-          if (practiceContext.practiceAddress) {
-            brandingParts.push(`Address: ${practiceContext.practiceAddress}`);
-          }
-        }
-        
-        if (brandingLevel === 'full') {
-          if (practiceContext.practiceEmail) {
-            brandingParts.push(`Email: ${practiceContext.practiceEmail}`);
-          }
-          if (practiceContext.practicePhone) {
-            brandingParts.push(`Phone: ${practiceContext.practicePhone}`);
-          }
-        }
-        
-        brandingPrompt = `
-BRANDING REQUIREMENTS:
-- Include a professional header area for the organisation branding
-- ${brandingParts.join('\n- ')}
-${includeLogo ? `- Reserve a clear space in the ${logoPlacement.replace('-', ' ')} corner for the organisation logo (approximately 80x80 pixels)` : ''}`;
-      }
-
       const imagePrompt = `Create a professional, visually compelling infographic that summarises the following content.
 
 VISUAL STYLE: ${stylePrompt}
 
 DETAIL LEVEL: ${detailPrompt}
-${brandingPrompt}
+
 CRITICAL REQUIREMENTS:
 - ${orientationPrompt}
 - Clear visual hierarchy with the main topic prominently displayed
@@ -189,11 +146,6 @@ ${documentContent}`;
           prompt: imagePrompt,
           requestType: 'infographic',
           imageModel,
-          // Pass branding context to edge function (for potential future logo overlay)
-          practiceContext: includeBranding ? practiceContext : undefined,
-          brandingLevel: includeBranding ? brandingLevel : undefined,
-          includeLogo,
-          logoPlacement,
         },
       });
       
@@ -258,7 +210,7 @@ ${documentContent}`;
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, []);
 
   return {
     generateInfographic,
