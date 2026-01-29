@@ -8,11 +8,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronDown, ChevronRight, ChevronUp, Users, Download, Loader2, Calendar, Clock, Receipt, LayoutList, Users2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronUp, Users, Download, Loader2, Calendar, Clock, Receipt, LayoutList, Users2, Trash2 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { format, startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const ALL_TIME_START_DATE = '2020-01-01';
 
@@ -94,6 +106,8 @@ export function AdminClaimsReport() {
   const [hoursSortDir, setHoursSortDir] = useState<'asc' | 'desc'>('desc');
   const [expensesSortKey, setExpensesSortKey] = useState<'date' | 'user' | 'practice' | 'amount'>('date');
   const [expensesSortDir, setExpensesSortDir] = useState<'asc' | 'desc'>('desc');
+  const [deletingEntryId, setDeletingEntryId] = useState<string | null>(null);
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
 
   // Check if current user has admin access
   const authEmail =
@@ -357,6 +371,44 @@ export function AdminClaimsReport() {
   const SortIndicator = ({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) => {
     if (!active) return null;
     return dir === 'asc' ? <ChevronUp className="w-3 h-3 ml-1 inline" /> : <ChevronDown className="w-3 h-3 ml-1 inline" />;
+  };
+
+  const handleDeleteEntry = async (id: string) => {
+    setDeletingEntryId(id);
+    try {
+      const { error } = await supabase
+        .from('nres_hours_entries')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      setEntries(prev => prev.filter(e => e.id !== id));
+      toast.success('Entry deleted');
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      toast.error('Failed to delete entry');
+    } finally {
+      setDeletingEntryId(null);
+    }
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    setDeletingExpenseId(id);
+    try {
+      const { error } = await supabase
+        .from('nres_expenses')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      setExpenses(prev => prev.filter(e => e.id !== id));
+      toast.success('Expense deleted');
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      toast.error('Failed to delete expense');
+    } finally {
+      setDeletingExpenseId(null);
+    }
   };
 
   const exportCSV = () => {
@@ -664,6 +716,7 @@ export function AdminClaimsReport() {
                             <TableHead className="cursor-pointer select-none hover:bg-muted/50 text-right" onClick={() => toggleHoursSort('amount')}>
                               Amount<SortIndicator active={hoursSortKey === 'amount'} dir={hoursSortDir} />
                             </TableHead>
+                            <TableHead className="w-[50px]"></TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -678,12 +731,45 @@ export function AdminClaimsReport() {
                               </TableCell>
                               <TableCell className="text-right">{Number(entry.duration_hours).toFixed(2)}</TableCell>
                               <TableCell className="text-right font-medium">£{formatCurrency(entry.amount)}</TableCell>
+                              <TableCell>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon"
+                                      className="h-8 w-8 text-destructive hover:text-destructive"
+                                      disabled={deletingEntryId === entry.id}
+                                    >
+                                      {deletingEntryId === entry.id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="w-4 h-4" />
+                                      )}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Entry</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Delete entry for {entry.user_name} on {format(parseISO(entry.work_date), 'dd/MM/yyyy')}? This cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDeleteEntry(entry.id)}>
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </TableCell>
                             </TableRow>
                           ))}
                           <TableRow className="font-bold bg-muted">
                             <TableCell colSpan={5}>TOTAL</TableCell>
                             <TableCell className="text-right">{grandTotalHours.toFixed(2)}</TableCell>
                             <TableCell className="text-right text-lg">£{formatCurrency(grandTotalAmount)}</TableCell>
+                            <TableCell></TableCell>
                           </TableRow>
                         </TableBody>
                       </Table>
