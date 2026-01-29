@@ -894,23 +894,14 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                 </div>
               )}
               
-              {/* Expand/Collapse button for assistant messages */}
-              {isCollapsible && !isModal && (
+              {/* Expand button for assistant messages - only show when collapsed */}
+              {isCollapsible && !isModal && isAssistantCollapsed && (
                 <button
                   onClick={toggleAssistantCollapse}
-                  className={`message-expand-button ${!isAssistantCollapsed ? 'expanded' : ''}`}
+                  className="message-expand-button"
                 >
-                  {isAssistantCollapsed ? (
-                    <>
-                      <ChevronDown className="w-4 h-4" />
-                      <span>Show full response</span>
-                    </>
-                  ) : (
-                    <>
-                      <ChevronUp className="w-4 h-4" />
-                      <span>Collapse response</span>
-                    </>
-                  )}
+                  <ChevronDown className="w-4 h-4" />
+                  <span>Show full response</span>
                 </button>
               )}
             </div>
