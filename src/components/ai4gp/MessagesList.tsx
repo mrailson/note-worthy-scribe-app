@@ -279,17 +279,16 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       {showScrollButton && messages.length > 0 && (
         <Button
           onClick={scrollToBottom}
-          size="sm"
+          size="icon"
           variant="secondary"
           className={cn(
             "absolute bottom-4 left-1/2 -translate-x-1/2 z-10",
-            "shadow-lg border border-border/50",
+            "shadow-lg border border-border/50 rounded-full",
             "animate-in fade-in slide-in-from-bottom-2 duration-200",
-            "flex items-center gap-1.5"
+            "h-8 w-8"
           )}
         >
           <ArrowDown className="h-4 w-4" />
-          <span className="text-xs">New messages</span>
         </Button>
       )}
     </div>
