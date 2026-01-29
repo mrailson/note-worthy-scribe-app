@@ -133,6 +133,8 @@ async function extractFileContent(file: UploadedFile): Promise<string> {
     const fileName = file.name.toLowerCase();
     const fileType = file.type;
     
+    console.log(`[extractFileContent] Processing: ${fileName}, type: ${fileType}, content starts: ${file.content?.substring(0, 50)}...`);
+    
     // Handle Word documents
     if (fileName.endsWith('.docx') || fileType.includes('wordprocessingml')) {
       return await extractWordContent(file);
@@ -160,6 +162,7 @@ async function extractFileContent(file: UploadedFile): Promise<string> {
     
     // Handle images (for OCR or analysis)
     if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png') || fileName.endsWith('.gif') || fileName.endsWith('.webp') || fileType.includes('image/')) {
+      console.log(`[extractFileContent] Detected as image file, calling extractImageContent`);
       return extractImageContent(file);
     }
     
@@ -758,11 +761,12 @@ function extractImageContent(file: UploadedFile): string {
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
     const fileType = file.content.split(';')[0]?.replace('data:', '') || 'unknown';
     
-    console.log(`Processing image: ${fileName}, size: ${fileSize}MB, type: ${fileType}`);
+    console.log(`[extractImageContent] Processing image: ${fileName}, size: ${fileSize}MB, parsed type: ${fileType}`);
+    console.log(`[extractImageContent] Content preview: ${file.content?.substring(0, 100)}...`);
     
     // For image files, provide base64 data for AI analysis
     if (file.content.startsWith('data:image/')) {
-      console.log('Image has valid base64 data format - preparing for AI analysis');
+      console.log('[extractImageContent] Image has valid base64 data format - preparing for AI analysis');
       
       // Enhanced image analysis instructions
       return `IMAGE_ANALYSIS_REQUEST: Analyze this uploaded image for content extraction.
@@ -793,10 +797,10 @@ ${file.content}
 Remember: Only describe what is actually visible in the image. Do not create fictional content.`;
     } else if (isImageUrl(file.content)) {
       // For URL-based images, return a marker that we'll handle later
-      console.log('Image is URL-based - will be fetched and converted');
+      console.log(`[extractImageContent] Image is URL-based - returning __IMAGE_URL__ marker for: ${file.content.substring(0, 80)}`);
       return `__IMAGE_URL__:${file.content}`;
     } else {
-      console.log('Image does not have proper base64 format');
+      console.log(`[extractImageContent] Image does not match base64 or URL format. Content: ${file.content?.substring(0, 100)}`);
       return `[Image File: ${fileName} (${fileSize}MB) - Image format error. 
 
 The uploaded file appears to be corrupted or in an unsupported format.
@@ -1710,11 +1714,14 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
     
     // Check if content contains image URLs that need to be processed
     if (msg.files && msg.files.length > 0) {
+      console.log(`[stream] Processing ${msg.files.length} files for message`);
       for (const file of msg.files) {
+        console.log(`[stream] File: ${file.name}, type: ${file.type}, content starts with: ${file.content?.substring(0, 80)}...`);
+        
         // Check for image URL marker from extractImageContent
         if (file.content.startsWith('__IMAGE_URL__:')) {
           const imageUrl = file.content.replace('__IMAGE_URL__:', '');
-          console.log(`[stream] Processing URL-based image: ${file.name}`);
+          console.log(`[stream] Processing URL-based image marker: ${file.name}, url: ${imageUrl.substring(0, 80)}...`);
           
           // Fetch the image and convert to base64
           const base64Data = await fetchImageAsBase64(imageUrl);
@@ -1723,28 +1730,35 @@ async function streamLovableAIGateway(messages: Message[], systemPrompt: string,
               type: 'image_url',
               image_url: { url: base64Data }
             });
+            console.log(`[stream] Successfully converted URL image to base64: ${file.name}`);
           } else {
+            console.error(`[stream] Failed to fetch image from URL: ${imageUrl}`);
             textContent += `\n\n[Failed to load image: ${file.name}]`;
           }
         } else if (file.content.startsWith('data:image/')) {
           // Already base64 encoded image
+          console.log(`[stream] Using existing base64 image: ${file.name}`);
           contentParts.push({
             type: 'image_url',
             image_url: { url: file.content }
           });
         } else if (isImageFile(file) && isImageUrl(file.content)) {
-          // Direct URL image
+          // Direct URL image - not processed by extractImageContent
+          console.log(`[stream] Processing direct URL image: ${file.name}, url: ${file.content.substring(0, 80)}...`);
           const base64Data = await fetchImageAsBase64(file.content);
           if (base64Data) {
             contentParts.push({
               type: 'image_url',
               image_url: { url: base64Data }
             });
+            console.log(`[stream] Successfully converted direct URL to base64: ${file.name}`);
           } else {
+            console.error(`[stream] Failed to fetch direct URL image: ${file.content}`);
             textContent += `\n\n[Failed to load image: ${file.name}]`;
           }
         } else {
           // Non-image file - append as text
+          console.log(`[stream] Appending non-image file as text: ${file.name}`);
           textContent += `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`;
         }
       }
