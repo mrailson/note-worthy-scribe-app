@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
-import { ChevronDown, ChevronRight, Users, Download, Loader2, Calendar } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ChevronDown, ChevronRight, Users, Download, Loader2, Calendar, Clock, Receipt } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +23,15 @@ interface UserClaim {
   entries: AllEntry[];
 }
 
+interface UserExpenseClaim {
+  user_id: string;
+  user_name: string;
+  practice_name: string;
+  total_expenses: number;
+  expense_count: number;
+  expenses: AllExpense[];
+}
+
 interface AllEntry {
   id: string;
   user_id: string;
@@ -31,6 +41,16 @@ interface AllEntry {
   duration_hours: number;
   activity_type: string;
   description: string | null;
+}
+
+interface AllExpense {
+  id: string;
+  user_id: string;
+  expense_date: string;
+  category: string;
+  description: string | null;
+  amount: number;
+  receipt_reference: string | null;
 }
 
 // Format currency with thousand separators
@@ -50,6 +70,7 @@ export function AdminClaimsReport() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [entries, setEntries] = useState<AllEntry[]>([]);
+  const [expenses, setExpenses] = useState<AllExpense[]>([]);
   const [userSettings, setUserSettings] = useState<Record<string, number>>({});
   const [userProfiles, setUserProfiles] = useState<Record<string, { name: string; practice_name: string }>>({});
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
@@ -63,43 +84,42 @@ export function AdminClaimsReport() {
 
     setLoading(true);
     try {
-      // Fetch all entries (admin RLS policy should allow this)
-      const { data: entriesData, error: entriesError } = await supabase
-        .from('nres_hours_entries')
-        .select('*')
-        .order('work_date', { ascending: false });
+      // Fetch all entries and expenses in parallel
+      const [entriesResult, expensesResult, settingsResult, usersResult] = await Promise.all([
+        supabase
+          .from('nres_hours_entries')
+          .select('*')
+          .order('work_date', { ascending: false }),
+        supabase
+          .from('nres_expenses')
+          .select('*')
+          .order('expense_date', { ascending: false }),
+        supabase
+          .from('nres_user_settings')
+          .select('user_id, hourly_rate'),
+        supabase.rpc('get_users_with_practices')
+      ]);
 
-      if (entriesError) {
-        console.error('Error fetching entries:', entriesError);
-        return;
+      if (entriesResult.error) {
+        console.error('Error fetching entries:', entriesResult.error);
       }
-
-      // Fetch all user settings for hourly rates
-      const { data: settingsData, error: settingsError } = await supabase
-        .from('nres_user_settings')
-        .select('user_id, hourly_rate');
-
-      if (settingsError) {
-        console.error('Error fetching settings:', settingsError);
+      if (expensesResult.error) {
+        console.error('Error fetching expenses:', expensesResult.error);
       }
 
       // Build settings map
       const settingsMap: Record<string, number> = {};
-      settingsData?.forEach(s => {
+      settingsResult.data?.forEach(s => {
         if (s.hourly_rate) {
           settingsMap[s.user_id] = s.hourly_rate;
         }
       });
 
-      // Fetch all users with their practice assignments using the RPC function
-      const { data: usersWithPractices } = await supabase
-        .rpc('get_users_with_practices');
-
       // Build profile map from users with practices
       const profileMap: Record<string, { name: string; practice_name: string }> = {};
       
-      if (usersWithPractices) {
-        usersWithPractices.forEach((u) => {
+      if (usersResult.data) {
+        usersResult.data.forEach((u) => {
           const assignments = u.practice_assignments as Array<{ practice_name: string }> | null;
           const practiceName = assignments?.[0]?.practice_name || 'Not Set';
           profileMap[u.user_id] = {
@@ -109,7 +129,8 @@ export function AdminClaimsReport() {
         });
       }
 
-      setEntries(entriesData || []);
+      setEntries(entriesResult.data || []);
+      setExpenses(expensesResult.data || []);
       setUserSettings(settingsMap);
       setUserProfiles(profileMap);
     } catch (error) {
@@ -166,8 +187,47 @@ export function AdminClaimsReport() {
     return Array.from(userMap.values()).sort((a, b) => b.total_amount - a.total_amount);
   }, [entries, userSettings, userProfiles, startDate, endDate]);
 
+  // Filter expenses by date range and aggregate by user
+  const userExpenseClaims = useMemo(() => {
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+
+    const filteredExpenses = expenses.filter(e => {
+      const date = parseISO(e.expense_date);
+      return isWithinInterval(date, { start, end });
+    });
+
+    // Group by user
+    const userMap = new Map<string, UserExpenseClaim>();
+
+    filteredExpenses.forEach(expense => {
+      const userId = expense.user_id;
+      const profile = userProfiles[userId] || { name: userId.substring(0, 8) + '...', practice_name: 'Unknown' };
+
+      if (userMap.has(userId)) {
+        const existing = userMap.get(userId)!;
+        existing.total_expenses += Number(expense.amount);
+        existing.expense_count += 1;
+        existing.expenses.push(expense);
+      } else {
+        userMap.set(userId, {
+          user_id: userId,
+          user_name: profile.name,
+          practice_name: profile.practice_name,
+          total_expenses: Number(expense.amount),
+          expense_count: 1,
+          expenses: [expense]
+        });
+      }
+    });
+
+    return Array.from(userMap.values()).sort((a, b) => b.total_expenses - a.total_expenses);
+  }, [expenses, userProfiles, startDate, endDate]);
+
   const grandTotalHours = userClaims.reduce((sum, u) => sum + u.total_hours, 0);
   const grandTotalAmount = userClaims.reduce((sum, u) => sum + u.total_amount, 0);
+  const grandTotalExpenses = userExpenseClaims.reduce((sum, u) => sum + u.total_expenses, 0);
+  const overallGrandTotal = grandTotalAmount + grandTotalExpenses;
 
   const exportCSV = () => {
     const BOM = '\uFEFF';
@@ -176,6 +236,7 @@ export function AdminClaimsReport() {
       `Period: ${format(parseISO(startDate), 'dd/MM/yyyy')} to ${format(parseISO(endDate), 'dd/MM/yyyy')}`,
       `Generated: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
       '',
+      '=== TIME CLAIMS ===',
       'User Name,Practice,Date,Start Time,End Time,Hours,Activity Type,Description,Amount'
     ];
 
@@ -191,7 +252,24 @@ export function AdminClaimsReport() {
     });
 
     lines.push('');
-    lines.push(`GRAND TOTAL,,,,,${grandTotalHours.toFixed(2)},,,£${grandTotalAmount.toFixed(2)}`);
+    lines.push(`TIME CLAIMS TOTAL,,,,,${grandTotalHours.toFixed(2)},,,£${grandTotalAmount.toFixed(2)}`);
+    lines.push('');
+    lines.push('=== EXPENSES ===');
+    lines.push('User Name,Practice,Date,Category,Description,Receipt Ref,Amount');
+
+    userExpenseClaims.forEach(claim => {
+      claim.expenses
+        .sort((a, b) => a.expense_date.localeCompare(b.expense_date))
+        .forEach(expense => {
+          const description = expense.description ? `"${expense.description.replace(/"/g, '""')}"` : '';
+          lines.push(`"${claim.user_name}","${claim.practice_name}",${format(parseISO(expense.expense_date), 'dd/MM/yyyy')},"${expense.category}",${description},"${expense.receipt_reference || ''}",£${Number(expense.amount).toFixed(2)}`);
+        });
+    });
+
+    lines.push('');
+    lines.push(`EXPENSES TOTAL,,,,,,£${grandTotalExpenses.toFixed(2)}`);
+    lines.push('');
+    lines.push(`OVERALL GRAND TOTAL,,,,,,£${overallGrandTotal.toFixed(2)}`);
 
     const blob = new Blob([BOM + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -225,6 +303,33 @@ export function AdminClaimsReport() {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="space-y-4">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 border border-blue-200">
+                <div className="flex items-center gap-1 text-blue-600 mb-1">
+                  <Clock className="w-3 h-3" />
+                  <span className="text-xs font-medium">Time Claims</span>
+                </div>
+                <p className="text-lg font-bold">£{formatCurrency(grandTotalAmount)}</p>
+                <p className="text-xs text-muted-foreground">{grandTotalHours.toFixed(1)} hrs</p>
+              </div>
+              <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-3 border border-amber-200">
+                <div className="flex items-center gap-1 text-amber-600 mb-1">
+                  <Receipt className="w-3 h-3" />
+                  <span className="text-xs font-medium">Expenses</span>
+                </div>
+                <p className="text-lg font-bold">£{formatCurrency(grandTotalExpenses)}</p>
+                <p className="text-xs text-muted-foreground">{userExpenseClaims.reduce((s, u) => s + u.expense_count, 0)} items</p>
+              </div>
+              <div className="bg-purple-50 dark:bg-purple-950/30 rounded-lg p-3 border border-purple-200 col-span-2">
+                <div className="flex items-center gap-1 text-purple-600 mb-1">
+                  <Users className="w-3 h-3" />
+                  <span className="text-xs font-medium">Overall Total</span>
+                </div>
+                <p className="text-xl font-bold">£{formatCurrency(overallGrandTotal)}</p>
+              </div>
+            </div>
+
             {/* Quick Date Filters */}
             <div className="flex flex-wrap gap-2 mb-2">
               <Button
@@ -292,7 +397,7 @@ export function AdminClaimsReport() {
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Refresh
               </Button>
-              <Button onClick={exportCSV} variant="outline" size="sm" disabled={loading || userClaims.length === 0}>
+              <Button onClick={exportCSV} variant="outline" size="sm" disabled={loading || (userClaims.length === 0 && userExpenseClaims.length === 0)}>
                 <Download className="w-4 h-4 mr-2" />
                 Export CSV
               </Button>
@@ -302,78 +407,166 @@ export function AdminClaimsReport() {
               <div className="py-8 flex items-center justify-center">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
-            ) : userClaims.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground">
-                No claims found for this period.
-              </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User Name</TableHead>
-                      <TableHead>Practice</TableHead>
-                      <TableHead className="text-center">Entries</TableHead>
-                      <TableHead className="text-right">Total Hours</TableHead>
-                      <TableHead className="text-right">Total Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {userClaims.map((claim) => (
-                      <TableRow key={claim.user_id}>
-                        <TableCell className="font-medium">{claim.user_name}</TableCell>
-                        <TableCell className="text-muted-foreground">{claim.practice_name}</TableCell>
-                        <TableCell className="text-center">
-                          <HoverCard>
-                            <HoverCardTrigger asChild>
-                              <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">
-                                {claim.entry_count}
-                              </Badge>
-                            </HoverCardTrigger>
-                            <HoverCardContent className="w-80 max-h-64 overflow-y-auto" align="start">
-                              <div className="space-y-2">
-                                <h4 className="text-sm font-semibold">Entry Details</h4>
-                                <div className="text-xs space-y-1">
-                                  {claim.entries
-                                    .sort((a, b) => a.work_date.localeCompare(b.work_date))
-                                    .map((entry) => (
-                                      <div key={entry.id} className="flex justify-between items-start py-1 border-b border-border/50 last:border-0">
-                                        <div className="flex-1 min-w-0 mr-2">
-                                          <span className="font-medium">{format(parseISO(entry.work_date), 'dd/MM/yyyy')}</span>
-                                          <span className="text-muted-foreground ml-2">
-                                            {entry.start_time.substring(0, 5)} - {entry.end_time.substring(0, 5)}
-                                          </span>
-                                          {entry.activity_type && (
-                                            <div className="text-muted-foreground">{entry.activity_type}</div>
-                                          )}
-                                          {entry.description && (
-                                            <div className="text-muted-foreground italic">{entry.description}</div>
-                                          )}
-                                        </div>
-                                        <span className="font-medium whitespace-nowrap">{Number(entry.duration_hours).toFixed(2)} hrs</span>
+              <Tabs defaultValue="hours" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="hours" className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Time Claims ({userClaims.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="expenses" className="flex items-center gap-2">
+                    <Receipt className="w-4 h-4" />
+                    Expenses ({userExpenseClaims.length})
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="hours" className="mt-4">
+                  {userClaims.length === 0 ? (
+                    <div className="py-8 text-center text-muted-foreground">
+                      No time claims found for this period.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User Name</TableHead>
+                            <TableHead>Practice</TableHead>
+                            <TableHead className="text-center">Entries</TableHead>
+                            <TableHead className="text-right">Total Hours</TableHead>
+                            <TableHead className="text-right">Total Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {userClaims.map((claim) => (
+                            <TableRow key={claim.user_id}>
+                              <TableCell className="font-medium">{claim.user_name}</TableCell>
+                              <TableCell className="text-muted-foreground">{claim.practice_name}</TableCell>
+                              <TableCell className="text-center">
+                                <HoverCard>
+                                  <HoverCardTrigger asChild>
+                                    <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">
+                                      {claim.entry_count}
+                                    </Badge>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent className="w-80 max-h-64 overflow-y-auto" align="start">
+                                    <div className="space-y-2">
+                                      <h4 className="text-sm font-semibold">Entry Details</h4>
+                                      <div className="text-xs space-y-1">
+                                        {claim.entries
+                                          .sort((a, b) => a.work_date.localeCompare(b.work_date))
+                                          .map((entry) => (
+                                            <div key={entry.id} className="flex justify-between items-start py-1 border-b border-border/50 last:border-0">
+                                              <div className="flex-1 min-w-0 mr-2">
+                                                <span className="font-medium">{format(parseISO(entry.work_date), 'dd/MM/yyyy')}</span>
+                                                <span className="text-muted-foreground ml-2">
+                                                  {entry.start_time.substring(0, 5)} - {entry.end_time.substring(0, 5)}
+                                                </span>
+                                                {entry.activity_type && (
+                                                  <div className="text-muted-foreground">{entry.activity_type}</div>
+                                                )}
+                                                {entry.description && (
+                                                  <div className="text-muted-foreground italic">{entry.description}</div>
+                                                )}
+                                              </div>
+                                              <span className="font-medium whitespace-nowrap">{Number(entry.duration_hours).toFixed(2)} hrs</span>
+                                            </div>
+                                          ))}
                                       </div>
-                                    ))}
-                                </div>
-                              </div>
-                            </HoverCardContent>
-                          </HoverCard>
-                        </TableCell>
-                        <TableCell className="text-right">{claim.total_hours.toFixed(2)} hrs</TableCell>
-                        <TableCell className="text-right font-medium">£{formatCurrency(claim.total_amount)}</TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow className="font-bold bg-muted">
-                      <TableCell>GRAND TOTAL</TableCell>
-                      <TableCell></TableCell>
-                      <TableCell className="text-center">
-                        <Badge>{userClaims.reduce((s, u) => s + u.entry_count, 0)}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{grandTotalHours.toFixed(2)} hrs</TableCell>
-                      <TableCell className="text-right text-lg">£{formatCurrency(grandTotalAmount)}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
+                                    </div>
+                                  </HoverCardContent>
+                                </HoverCard>
+                              </TableCell>
+                              <TableCell className="text-right">{claim.total_hours.toFixed(2)} hrs</TableCell>
+                              <TableCell className="text-right font-medium">£{formatCurrency(claim.total_amount)}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="font-bold bg-muted">
+                            <TableCell>TOTAL</TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="text-center">
+                              <Badge>{userClaims.reduce((s, u) => s + u.entry_count, 0)}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">{grandTotalHours.toFixed(2)} hrs</TableCell>
+                            <TableCell className="text-right text-lg">£{formatCurrency(grandTotalAmount)}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="expenses" className="mt-4">
+                  {userExpenseClaims.length === 0 ? (
+                    <div className="py-8 text-center text-muted-foreground">
+                      No expenses found for this period.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>User Name</TableHead>
+                            <TableHead>Practice</TableHead>
+                            <TableHead className="text-center">Items</TableHead>
+                            <TableHead className="text-right">Total Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {userExpenseClaims.map((claim) => (
+                            <TableRow key={claim.user_id}>
+                              <TableCell className="font-medium">{claim.user_name}</TableCell>
+                              <TableCell className="text-muted-foreground">{claim.practice_name}</TableCell>
+                              <TableCell className="text-center">
+                                <HoverCard>
+                                  <HoverCardTrigger asChild>
+                                    <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">
+                                      {claim.expense_count}
+                                    </Badge>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent className="w-80 max-h-64 overflow-y-auto" align="start">
+                                    <div className="space-y-2">
+                                      <h4 className="text-sm font-semibold">Expense Details</h4>
+                                      <div className="text-xs space-y-1">
+                                        {claim.expenses
+                                          .sort((a, b) => a.expense_date.localeCompare(b.expense_date))
+                                          .map((expense) => (
+                                            <div key={expense.id} className="flex justify-between items-start py-1 border-b border-border/50 last:border-0">
+                                              <div className="flex-1 min-w-0 mr-2">
+                                                <span className="font-medium">{format(parseISO(expense.expense_date), 'dd/MM/yyyy')}</span>
+                                                <div className="text-muted-foreground">{expense.category}</div>
+                                                {expense.description && (
+                                                  <div className="text-muted-foreground italic">{expense.description}</div>
+                                                )}
+                                                {expense.receipt_reference && (
+                                                  <div className="text-muted-foreground">Ref: {expense.receipt_reference}</div>
+                                                )}
+                                              </div>
+                                              <span className="font-medium whitespace-nowrap">£{Number(expense.amount).toFixed(2)}</span>
+                                            </div>
+                                          ))}
+                                      </div>
+                                    </div>
+                                  </HoverCardContent>
+                                </HoverCard>
+                              </TableCell>
+                              <TableCell className="text-right font-medium">£{formatCurrency(claim.total_expenses)}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="font-bold bg-muted">
+                            <TableCell>TOTAL</TableCell>
+                            <TableCell></TableCell>
+                            <TableCell className="text-center">
+                              <Badge>{userExpenseClaims.reduce((s, u) => s + u.expense_count, 0)}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right text-lg">£{formatCurrency(grandTotalExpenses)}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             )}
           </CardContent>
         </CollapsibleContent>
