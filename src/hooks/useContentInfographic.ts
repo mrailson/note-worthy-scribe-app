@@ -188,9 +188,9 @@ ${documentContent}`;
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      const fileName = title 
+      const fileName = title && title !== 'Infographic'
         ? `${title.replace(/[^a-zA-Z0-9]/g, '_')}_infographic.png`
-        : `content_infographic_${new Date().toISOString().split('T')[0]}.png`;
+        : `infographic_${new Date().toISOString().split('T')[0]}.png`;
       link.download = fileName;
       document.body.appendChild(link);
       link.click();
