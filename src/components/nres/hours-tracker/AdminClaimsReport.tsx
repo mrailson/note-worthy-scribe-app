@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ChevronDown, ChevronRight, Users, Download, Loader2, Calendar, Clock, Receipt } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronUp, Users, Download, Loader2, Calendar, Clock, Receipt, LayoutList, Users2 } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { format, startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -87,6 +88,12 @@ export function AdminClaimsReport() {
   const [userProfiles, setUserProfiles] = useState<Record<string, { name: string; practice_name: string }>>({});
   const [startDate, setStartDate] = useState(ALL_TIME_START_DATE);
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [hoursViewMode, setHoursViewMode] = useState<'summary' | 'detailed'>('summary');
+  const [expensesViewMode, setExpensesViewMode] = useState<'summary' | 'detailed'>('summary');
+  const [hoursSortKey, setHoursSortKey] = useState<'date' | 'user' | 'practice' | 'hours' | 'amount'>('date');
+  const [hoursSortDir, setHoursSortDir] = useState<'asc' | 'desc'>('desc');
+  const [expensesSortKey, setExpensesSortKey] = useState<'date' | 'user' | 'practice' | 'amount'>('date');
+  const [expensesSortDir, setExpensesSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Check if current user has admin access
   const authEmail =
@@ -242,6 +249,115 @@ export function AdminClaimsReport() {
   const grandTotalAmount = userClaims.reduce((sum, u) => sum + u.total_amount, 0);
   const grandTotalExpenses = userExpenseClaims.reduce((sum, u) => sum + u.total_expenses, 0);
   const overallGrandTotal = grandTotalAmount + grandTotalExpenses;
+
+  // Detailed entries (flat list with user info attached)
+  interface DetailedEntry extends AllEntry {
+    user_name: string;
+    practice_name: string;
+    amount: number;
+    hourly_rate: number;
+  }
+
+  const detailedEntries = useMemo<DetailedEntry[]>(() => {
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+
+    return entries
+      .filter(e => {
+        const date = parseISO(e.work_date);
+        return isWithinInterval(date, { start, end });
+      })
+      .map(e => {
+        const profile = userProfiles[e.user_id] || { name: e.user_id.substring(0, 8) + '...', practice_name: 'Unknown' };
+        const hourlyRate = userSettings[e.user_id] || 50;
+        return {
+          ...e,
+          user_name: profile.name,
+          practice_name: profile.practice_name,
+          hourly_rate: hourlyRate,
+          amount: Number(e.duration_hours) * hourlyRate
+        };
+      });
+  }, [entries, userProfiles, userSettings, startDate, endDate]);
+
+  const sortedDetailedEntries = useMemo(() => {
+    const sorted = [...detailedEntries];
+    sorted.sort((a, b) => {
+      let cmp = 0;
+      switch (hoursSortKey) {
+        case 'date': cmp = a.work_date.localeCompare(b.work_date); break;
+        case 'user': cmp = a.user_name.localeCompare(b.user_name); break;
+        case 'practice': cmp = a.practice_name.localeCompare(b.practice_name); break;
+        case 'hours': cmp = Number(a.duration_hours) - Number(b.duration_hours); break;
+        case 'amount': cmp = a.amount - b.amount; break;
+      }
+      return hoursSortDir === 'asc' ? cmp : -cmp;
+    });
+    return sorted;
+  }, [detailedEntries, hoursSortKey, hoursSortDir]);
+
+  // Detailed expenses
+  interface DetailedExpense extends AllExpense {
+    user_name: string;
+    practice_name: string;
+  }
+
+  const detailedExpenses = useMemo<DetailedExpense[]>(() => {
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+
+    return expenses
+      .filter(e => {
+        const date = parseISO(e.expense_date);
+        return isWithinInterval(date, { start, end });
+      })
+      .map(e => {
+        const profile = userProfiles[e.user_id] || { name: e.user_id.substring(0, 8) + '...', practice_name: 'Unknown' };
+        return {
+          ...e,
+          user_name: profile.name,
+          practice_name: profile.practice_name
+        };
+      });
+  }, [expenses, userProfiles, startDate, endDate]);
+
+  const sortedDetailedExpenses = useMemo(() => {
+    const sorted = [...detailedExpenses];
+    sorted.sort((a, b) => {
+      let cmp = 0;
+      switch (expensesSortKey) {
+        case 'date': cmp = a.expense_date.localeCompare(b.expense_date); break;
+        case 'user': cmp = a.user_name.localeCompare(b.user_name); break;
+        case 'practice': cmp = a.practice_name.localeCompare(b.practice_name); break;
+        case 'amount': cmp = Number(a.amount) - Number(b.amount); break;
+      }
+      return expensesSortDir === 'asc' ? cmp : -cmp;
+    });
+    return sorted;
+  }, [detailedExpenses, expensesSortKey, expensesSortDir]);
+
+  const toggleHoursSort = (key: typeof hoursSortKey) => {
+    if (hoursSortKey === key) {
+      setHoursSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setHoursSortKey(key);
+      setHoursSortDir('asc');
+    }
+  };
+
+  const toggleExpensesSort = (key: typeof expensesSortKey) => {
+    if (expensesSortKey === key) {
+      setExpensesSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setExpensesSortKey(key);
+      setExpensesSortDir('asc');
+    }
+  };
+
+  const SortIndicator = ({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) => {
+    if (!active) return null;
+    return dir === 'asc' ? <ChevronUp className="w-3 h-3 ml-1 inline" /> : <ChevronDown className="w-3 h-3 ml-1 inline" />;
+  };
 
   const exportCSV = () => {
     const BOM = '\uFEFF';
@@ -434,12 +550,30 @@ export function AdminClaimsReport() {
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="hours" className="mt-4">
-                  {userClaims.length === 0 ? (
+                <TabsContent value="hours" className="mt-4 space-y-3">
+                  {/* View toggle */}
+                  <div className="flex items-center justify-between">
+                    <ToggleGroup type="single" value={hoursViewMode} onValueChange={(v) => v && setHoursViewMode(v as 'summary' | 'detailed')} size="sm">
+                      <ToggleGroupItem value="summary" aria-label="Summary view">
+                        <Users2 className="w-4 h-4 mr-1" />
+                        Summary
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="detailed" aria-label="Detailed view">
+                        <LayoutList className="w-4 h-4 mr-1" />
+                        Detailed
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                    <span className="text-xs text-muted-foreground">
+                      {sortedDetailedEntries.length} entries
+                    </span>
+                  </div>
+
+                  {sortedDetailedEntries.length === 0 ? (
                     <div className="py-8 text-center text-muted-foreground">
                       No time claims found for this period.
                     </div>
-                  ) : (
+                  ) : hoursViewMode === 'summary' ? (
+                    /* Summary view (existing grouped table) */
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
@@ -507,15 +641,80 @@ export function AdminClaimsReport() {
                         </TableBody>
                       </Table>
                     </div>
+                  ) : (
+                    /* Detailed view (line-by-line with sortable columns) */
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleHoursSort('date')}>
+                              Date<SortIndicator active={hoursSortKey === 'date'} dir={hoursSortDir} />
+                            </TableHead>
+                            <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleHoursSort('user')}>
+                              User<SortIndicator active={hoursSortKey === 'user'} dir={hoursSortDir} />
+                            </TableHead>
+                            <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleHoursSort('practice')}>
+                              Practice<SortIndicator active={hoursSortKey === 'practice'} dir={hoursSortDir} />
+                            </TableHead>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Activity</TableHead>
+                            <TableHead className="cursor-pointer select-none hover:bg-muted/50 text-right" onClick={() => toggleHoursSort('hours')}>
+                              Hours<SortIndicator active={hoursSortKey === 'hours'} dir={hoursSortDir} />
+                            </TableHead>
+                            <TableHead className="cursor-pointer select-none hover:bg-muted/50 text-right" onClick={() => toggleHoursSort('amount')}>
+                              Amount<SortIndicator active={hoursSortKey === 'amount'} dir={hoursSortDir} />
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sortedDetailedEntries.map((entry) => (
+                            <TableRow key={entry.id}>
+                              <TableCell className="whitespace-nowrap">{format(parseISO(entry.work_date), 'dd/MM/yyyy')}</TableCell>
+                              <TableCell className="font-medium">{entry.user_name}</TableCell>
+                              <TableCell className="text-muted-foreground">{entry.practice_name}</TableCell>
+                              <TableCell className="whitespace-nowrap text-muted-foreground">{entry.start_time.substring(0, 5)} - {entry.end_time.substring(0, 5)}</TableCell>
+                              <TableCell className="text-muted-foreground max-w-[200px] truncate" title={entry.activity_type || ''}>
+                                {entry.activity_type || '-'}
+                              </TableCell>
+                              <TableCell className="text-right">{Number(entry.duration_hours).toFixed(2)}</TableCell>
+                              <TableCell className="text-right font-medium">£{formatCurrency(entry.amount)}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="font-bold bg-muted">
+                            <TableCell colSpan={5}>TOTAL</TableCell>
+                            <TableCell className="text-right">{grandTotalHours.toFixed(2)}</TableCell>
+                            <TableCell className="text-right text-lg">£{formatCurrency(grandTotalAmount)}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
                   )}
                 </TabsContent>
 
-                <TabsContent value="expenses" className="mt-4">
-                  {userExpenseClaims.length === 0 ? (
+                <TabsContent value="expenses" className="mt-4 space-y-3">
+                  {/* View toggle */}
+                  <div className="flex items-center justify-between">
+                    <ToggleGroup type="single" value={expensesViewMode} onValueChange={(v) => v && setExpensesViewMode(v as 'summary' | 'detailed')} size="sm">
+                      <ToggleGroupItem value="summary" aria-label="Summary view">
+                        <Users2 className="w-4 h-4 mr-1" />
+                        Summary
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="detailed" aria-label="Detailed view">
+                        <LayoutList className="w-4 h-4 mr-1" />
+                        Detailed
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                    <span className="text-xs text-muted-foreground">
+                      {sortedDetailedExpenses.length} items
+                    </span>
+                  </div>
+
+                  {sortedDetailedExpenses.length === 0 ? (
                     <div className="py-8 text-center text-muted-foreground">
                       No expenses found for this period.
                     </div>
-                  ) : (
+                  ) : expensesViewMode === 'summary' ? (
+                    /* Summary view */
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
@@ -573,6 +772,48 @@ export function AdminClaimsReport() {
                             <TableCell className="text-center">
                               <Badge>{userExpenseClaims.reduce((s, u) => s + u.expense_count, 0)}</Badge>
                             </TableCell>
+                            <TableCell className="text-right text-lg">£{formatCurrency(grandTotalExpenses)}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    /* Detailed view */
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleExpensesSort('date')}>
+                              Date<SortIndicator active={expensesSortKey === 'date'} dir={expensesSortDir} />
+                            </TableHead>
+                            <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleExpensesSort('user')}>
+                              User<SortIndicator active={expensesSortKey === 'user'} dir={expensesSortDir} />
+                            </TableHead>
+                            <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleExpensesSort('practice')}>
+                              Practice<SortIndicator active={expensesSortKey === 'practice'} dir={expensesSortDir} />
+                            </TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead className="cursor-pointer select-none hover:bg-muted/50 text-right" onClick={() => toggleExpensesSort('amount')}>
+                              Amount<SortIndicator active={expensesSortKey === 'amount'} dir={expensesSortDir} />
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {sortedDetailedExpenses.map((expense) => (
+                            <TableRow key={expense.id}>
+                              <TableCell className="whitespace-nowrap">{format(parseISO(expense.expense_date), 'dd/MM/yyyy')}</TableCell>
+                              <TableCell className="font-medium">{expense.user_name}</TableCell>
+                              <TableCell className="text-muted-foreground">{expense.practice_name}</TableCell>
+                              <TableCell className="text-muted-foreground">{expense.category}</TableCell>
+                              <TableCell className="text-muted-foreground max-w-[200px] truncate" title={expense.description || ''}>
+                                {expense.description || '-'}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">£{formatCurrency(Number(expense.amount))}</TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow className="font-bold bg-muted">
+                            <TableCell colSpan={5}>TOTAL</TableCell>
                             <TableCell className="text-right text-lg">£{formatCurrency(grandTotalExpenses)}</TableCell>
                           </TableRow>
                         </TableBody>
