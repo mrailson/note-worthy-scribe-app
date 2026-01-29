@@ -30,6 +30,7 @@ interface MessagesListProps {
   compactView?: boolean;
   bubbleStyle?: ChatViewSettings['bubbleStyle'];
   scrollDuringStreaming?: boolean;
+  containerSize?: ChatViewSettings['containerSize'];
 }
 
 const AUTO_SCROLL_STORAGE_KEY = 'ai4gp-chat-auto-scroll';
@@ -55,6 +56,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   compactView = false,
   bubbleStyle = 'standard',
   scrollDuringStreaming: scrollDuringStreamingProp = true,
+  containerSize = 'normal',
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const previousMessageCountRef = useRef(0);
@@ -202,18 +204,22 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 
   // Font size scale for chat bubbles
   const fontSizeScale = FONT_SIZE_SCALE[chatFontSize];
+
+  // Container max-width based on containerSize setting
+  const containerMaxWidth = containerSize === 'full' ? '100%' : containerSize === 'wide' ? '1200px' : '900px';
   
   return (
     <div className="relative h-full min-h-0">
       <div
         ref={parentRef}
         className={cn(
-          "h-full min-h-0 overflow-auto",
+          "h-full min-h-0 overflow-auto mx-auto",
           deviceInfo.isIPhone ? "px-4 py-3" : "px-2 sm:p-2"
         )}
         style={{ 
           contain: 'strict',
           fontSize: fontSizeScale !== 1 ? `${fontSizeScale}rem` : undefined,
+          maxWidth: containerMaxWidth,
         }}
       >
         <div

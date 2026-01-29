@@ -14,8 +14,8 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { SlidersHorizontal, RotateCcw, Type, MessageSquare, ArrowDownToLine, Palette } from 'lucide-react';
-import { ChatViewSettings, FONT_SIZE_LABELS, BUBBLE_STYLE_LABELS } from '@/types/chatViewSettings';
+import { SlidersHorizontal, RotateCcw, Type, MessageSquare, ArrowDownToLine, Palette, Maximize2 } from 'lucide-react';
+import { ChatViewSettings, FONT_SIZE_LABELS, BUBBLE_STYLE_LABELS, CONTAINER_SIZE_LABELS } from '@/types/chatViewSettings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -133,6 +133,26 @@ export const ChatViewSettingsDropdown: React.FC<ChatViewSettingsDropdownProps> =
               {(Object.keys(BUBBLE_STYLE_LABELS) as Array<ChatViewSettings['bubbleStyle']>).map((style) => (
                 <DropdownMenuRadioItem key={style} value={style}>
                   {BUBBLE_STYLE_LABELS[style]}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {/* Container Size Submenu */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="gap-2">
+            <Maximize2 className="h-4 w-4" />
+            <span>Container Size</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuRadioGroup
+              value={settings.containerSize}
+              onValueChange={(value) => onUpdateSetting('containerSize', value as ChatViewSettings['containerSize'])}
+            >
+              {(Object.keys(CONTAINER_SIZE_LABELS) as Array<ChatViewSettings['containerSize']>).map((size) => (
+                <DropdownMenuRadioItem key={size} value={size}>
+                  {CONTAINER_SIZE_LABELS[size]}
                 </DropdownMenuRadioItem>
               ))}
             </DropdownMenuRadioGroup>
