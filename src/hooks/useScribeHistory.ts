@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/toastWrapper";
 import { ScribeSession, ConsultationCategory, ConsultationType } from "@/types/scribe";
@@ -209,9 +209,28 @@ export const useScribeHistory = () => {
     fetchSessions();
   }, [fetchSessions]);
 
-  // Real-time subscription for new/updated/deleted consultations
+  // Real-time subscription for new/updated/deleted consultations with debounce
   useEffect(() => {
     let userId: string | null = null;
+    let channelRef: ReturnType<typeof supabase.channel> | null = null;
+    const pendingTimeouts: NodeJS.Timeout[] = [];
+    let lastRefreshTime = 0;
+
+    // Debounced refresh to prevent multiple rapid fetches
+    const debouncedRefresh = () => {
+      const now = Date.now();
+      if (now - lastRefreshTime < 2000) {
+        console.log('[Realtime] Debouncing rapid refresh request');
+        return;
+      }
+      lastRefreshTime = now;
+      
+      // Add small delay to batch rapid changes
+      const timeoutId = setTimeout(() => {
+        fetchSessions();
+      }, 500);
+      pendingTimeouts.push(timeoutId);
+    };
 
     const setupRealtimeSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -219,7 +238,7 @@ export const useScribeHistory = () => {
       userId = user.id;
 
       const channel = supabase
-        .channel('gp_consultations_realtime')
+        .channel(`gp_consultations_realtime_${user.id}`)
         .on(
           'postgres_changes',
           {
@@ -229,8 +248,8 @@ export const useScribeHistory = () => {
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Realtime] New consultation inserted, refreshing...');
-            fetchSessions();
+            console.log('[Realtime] New consultation inserted');
+            debouncedRefresh();
           }
         )
         .on(
@@ -242,8 +261,8 @@ export const useScribeHistory = () => {
             filter: `user_id=eq.${user.id}`,
           },
           () => {
-            console.log('[Realtime] Consultation updated, refreshing...');
-            fetchSessions();
+            console.log('[Realtime] Consultation updated');
+            debouncedRefresh();
           }
         )
         .on(
@@ -266,13 +285,14 @@ export const useScribeHistory = () => {
       return channel;
     };
 
-    let channelRef: ReturnType<typeof supabase.channel> | null = null;
-
     setupRealtimeSubscription().then((channel) => {
       channelRef = channel;
     });
 
     return () => {
+      // Clear all pending timeouts to prevent memory leaks
+      pendingTimeouts.forEach(id => clearTimeout(id));
+      
       if (channelRef) {
         console.log('[Realtime] Cleaning up subscription');
         supabase.removeChannel(channelRef);

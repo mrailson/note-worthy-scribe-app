@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,9 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic, BookOpen, Languages, PanelLeft, Lightbulb } from 'lucide-react';
+import { Sparkles, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic, BookOpen, Languages, PanelLeft, Lightbulb, Loader2 } from 'lucide-react';
 
-// Component imports
+// Core component imports (always loaded)
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -25,27 +25,34 @@ import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { MicroBanner, ShortCard, CollapsibleShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
 import { AI4GPSidebar } from '@/components/ai4gp/AI4GPSidebar';
 import { RoleToggle } from '@/components/ai4gp/RoleToggle';
-import { PromptsModal } from '@/components/ai4gp/PromptsModal';
-
-import NewsPanel from '@/components/NewsPanel';
-import { BPCalculatorPanel } from '@/components/ai4gp/BPCalculatorPanel';
-import ImageCreate from '@/pages/ImageCreate';
-import PracticeImageMaker from '@/pages/PracticeImageMaker';
-import { QuickImageModal } from '@/components/QuickImageModal';
-import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
 import { UnifiedSettingsDropdown } from '@/components/ai4gp/UnifiedSettingsDropdown';
-import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
-import { AI4GPUserGuide } from '@/components/ai4gp/AI4GPUserGuide';
-import { TranslationToolInterface } from '@/components/TranslationToolInterface';
-import { MeetingPreviewDrawer } from '@/components/ai4gp/MeetingPreviewDrawer';
 import { PowerPointGenerationOverlay } from '@/components/PowerPointGenerationOverlay';
 
-import { ImageStudioModal } from '@/components/ai4gp/ImageStudioModal';
-import { PresentationStudioModal } from '@/components/ai4gp/PresentationStudioModal';
-import { AdminDictatePanel } from '@/components/ai4gp/AdminDictatePanel';
-import { TranslationServicePanel } from '@/components/ai4gp/TranslationServicePanel';
-import { EmbeddedPMGenie } from '@/components/ai4gp/EmbeddedPMGenie';
+// Lazy-load heavy modal/panel components to improve initial load time
+const NewsPanel = lazy(() => import('@/components/NewsPanel'));
+const BPCalculatorPanel = lazy(() => import('@/components/ai4gp/BPCalculatorPanel').then(m => ({ default: m.BPCalculatorPanel })));
+const ImageCreate = lazy(() => import('@/pages/ImageCreate'));
+const PracticeImageMaker = lazy(() => import('@/pages/PracticeImageMaker'));
+const QuickImageModal = lazy(() => import('@/components/QuickImageModal').then(m => ({ default: m.QuickImageModal })));
+const AIModelVerificationChart = lazy(() => import('@/components/AIModelVerificationChart').then(m => ({ default: m.AIModelVerificationChart })));
+const DocumentTranslateModal = lazy(() => import('@/components/ai4gp/DocumentTranslateModal').then(m => ({ default: m.DocumentTranslateModal })));
+const AI4GPUserGuide = lazy(() => import('@/components/ai4gp/AI4GPUserGuide').then(m => ({ default: m.AI4GPUserGuide })));
+const TranslationToolInterface = lazy(() => import('@/components/TranslationToolInterface').then(m => ({ default: m.TranslationToolInterface })));
+const MeetingPreviewDrawer = lazy(() => import('@/components/ai4gp/MeetingPreviewDrawer').then(m => ({ default: m.MeetingPreviewDrawer })));
+const ImageStudioModal = lazy(() => import('@/components/ai4gp/ImageStudioModal').then(m => ({ default: m.ImageStudioModal })));
+const PresentationStudioModal = lazy(() => import('@/components/ai4gp/PresentationStudioModal').then(m => ({ default: m.PresentationStudioModal })));
+const AdminDictatePanel = lazy(() => import('@/components/ai4gp/AdminDictatePanel').then(m => ({ default: m.AdminDictatePanel })));
+const TranslationServicePanel = lazy(() => import('@/components/ai4gp/TranslationServicePanel').then(m => ({ default: m.TranslationServicePanel })));
+const EmbeddedPMGenie = lazy(() => import('@/components/ai4gp/EmbeddedPMGenie').then(m => ({ default: m.EmbeddedPMGenie })));
+const PromptsModal = lazy(() => import('@/components/ai4gp/PromptsModal').then(m => ({ default: m.PromptsModal })));
+
+// Loading fallback for lazy components
+const LazyLoader = () => (
+  <div className="flex items-center justify-center p-8">
+    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+  </div>
+);
 
   // Hook imports
 import { useIsMobile, useDeviceInfo } from '@/hooks/use-mobile';
@@ -967,17 +974,21 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
         />
 
       {/* Quick Image Modal */}
-      <QuickImageModal 
-        open={showQuickImageModal} 
-        onOpenChange={setShowQuickImageModal} 
-      />
+      <Suspense fallback={<LazyLoader />}>
+        <QuickImageModal 
+          open={showQuickImageModal} 
+          onOpenChange={setShowQuickImageModal} 
+        />
+      </Suspense>
 
       {/* Document Translation Modal */}
-      <DocumentTranslateModal
-        isOpen={showDocumentTranslate}
-        onClose={() => setShowDocumentTranslate(false)}
-        onInsertToChat={(text) => setInput(input + (input ? '\n\n' : '') + text)}
-      />
+      <Suspense fallback={<LazyLoader />}>
+        <DocumentTranslateModal
+          isOpen={showDocumentTranslate}
+          onClose={() => setShowDocumentTranslate(false)}
+          onInsertToChat={(text) => setInput(input + (input ? '\n\n' : '') + text)}
+        />
+      </Suspense>
 
       {/* AI Model Verification Chart Modal */}
       <Dialog open={showVerificationChart} onOpenChange={setShowVerificationChart}>
@@ -986,7 +997,9 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
             <DialogTitle className="text-left text-xl">AI Model Verification Performance</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-6">
-            <AIModelVerificationChart />
+            <Suspense fallback={<LazyLoader />}>
+              <AIModelVerificationChart />
+            </Suspense>
           </div>
         </DialogContent>
       </Dialog>
@@ -1015,10 +1028,12 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
       )}
 
       {/* User Guide Modal */}
-      <AI4GPUserGuide
-        isOpen={showUserGuide}
-        onClose={() => setShowUserGuide(false)}
-      />
+      <Suspense fallback={<LazyLoader />}>
+        <AI4GPUserGuide
+          isOpen={showUserGuide}
+          onClose={() => setShowUserGuide(false)}
+        />
+      </Suspense>
 
       {/* All Quick Actions Modal - Triggered from sidebar */}
       <Dialog open={showAllQuickActions} onOpenChange={setShowAllQuickActions}>
@@ -1042,11 +1057,13 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
       </Dialog>
 
       {/* Meeting Preview Drawer */}
-      <MeetingPreviewDrawer
-        meetingId={previewMeetingId}
-        open={showMeetingPreview}
-        onOpenChange={setShowMeetingPreview}
-      />
+      <Suspense fallback={<LazyLoader />}>
+        <MeetingPreviewDrawer
+          meetingId={previewMeetingId}
+          open={showMeetingPreview}
+          onOpenChange={setShowMeetingPreview}
+        />
+      </Suspense>
 
       {/* PowerPoint Generation Overlay */}
       <PowerPointGenerationOverlay 
@@ -1057,25 +1074,31 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
 
 
       {/* Prompts Modal */}
-      <PromptsModal
-        open={showPromptsModal}
-        onOpenChange={setShowPromptsModal}
-        setInput={setInput}
-        defaultTab={selectedRole === 'practice-manager' ? 'pm' : 'gp'}
-      />
+      <Suspense fallback={<LazyLoader />}>
+        <PromptsModal
+          open={showPromptsModal}
+          onOpenChange={setShowPromptsModal}
+          setInput={setInput}
+          defaultTab={selectedRole === 'practice-manager' ? 'pm' : 'gp'}
+        />
+      </Suspense>
 
       {/* Image Studio Modal */}
-      <ImageStudioModal
-        open={showImageStudio}
-        onOpenChange={setShowImageStudio}
-        imageGenerationModel={imageGenerationModel}
-      />
+      <Suspense fallback={<LazyLoader />}>
+        <ImageStudioModal
+          open={showImageStudio}
+          onOpenChange={setShowImageStudio}
+          imageGenerationModel={imageGenerationModel}
+        />
+      </Suspense>
 
       {/* Presentation Studio Modal */}
-      <PresentationStudioModal
-        open={showPresentationStudio}
-        onOpenChange={setShowPresentationStudio}
-      />
+      <Suspense fallback={<LazyLoader />}>
+        <PresentationStudioModal
+          open={showPresentationStudio}
+          onOpenChange={setShowPresentationStudio}
+        />
+      </Suspense>
 
     </>
   );

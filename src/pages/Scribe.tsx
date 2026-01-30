@@ -65,6 +65,17 @@ const Scribe = () => {
     }
   }, [user, loading, navigate]);
 
+  // Cleanup on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      console.log('🧹 Scribe page unmounting - cleaning up recording resources');
+      // If recording is active, reset to prevent orphaned resources
+      if (consultation.consultationState === 'recording') {
+        consultation.cancelConsultation?.();
+      }
+    };
+  }, []);
+
   // Fetch practice details for exports
   useEffect(() => {
     const fetchPracticeDetails = async () => {
