@@ -17,6 +17,7 @@ export interface ImageStudioSettings {
   keyMessages: string[];
   targetAudience: TargetAudienceId;
   purpose: PurposeTypeId;
+  summariseSupportingContent?: boolean;
   
   // Style & Design
   stylePreset: StylePresetId;
@@ -66,6 +67,7 @@ export interface ImageStudioRequest {
   // Context
   prompt: string;
   supportingContent?: string;
+  summariseSupportingContent?: boolean;
   keyMessages?: string[];
   targetAudience?: TargetAudienceId;
   purpose?: PurposeTypeId;

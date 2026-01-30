@@ -88,16 +88,17 @@ const DEFAULT_SETTINGS: ImageStudioSettings = {
   keyMessages: [],
   targetAudience: 'patients',
   purpose: 'poster',
+  summariseSupportingContent: false,
   
   // Style & Design
   stylePreset: 'nhs-professional',
   colourPalette: NHS_PALETTES[0], // NHS Classic
-  layoutPreference: 'portrait',
+  layoutPreference: 'landscape', // Default to landscape
   
   // Branding & Logo
-  brandingLevel: 'name-only',
+  brandingLevel: 'none', // Default to no practice details
   customBranding: {
-    name: true,
+    name: false,
     address: false,
     phone: false,
     email: false,
@@ -268,6 +269,7 @@ export function useImageStudio() {
         const request: ImageStudioRequest = {
           prompt: settings.description,
           supportingContent: settings.supportingContent || undefined,
+          summariseSupportingContent: settings.summariseSupportingContent || undefined,
           keyMessages: settings.keyMessages.length > 0 ? settings.keyMessages : undefined,
           targetAudience: settings.targetAudience,
           purpose: settings.purpose,

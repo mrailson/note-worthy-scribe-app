@@ -244,9 +244,15 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
             </div>
             <div className="flex gap-2">
               {activeTab !== 'generate' && (
-                <Button onClick={() => setActiveTab('generate')}>
+                <Button 
+                  onClick={() => {
+                    setActiveTab('generate');
+                    handleGenerate();
+                  }}
+                  disabled={!settings.description.trim() && settings.referenceImages.length === 0}
+                >
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Go to Generate
+                  Generate
                 </Button>
               )}
             </div>

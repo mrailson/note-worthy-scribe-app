@@ -301,6 +301,19 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate }) =>
                 })}
               </div>
             )}
+
+            {/* Summarise Supporting Info Checkbox - only show when there's content */}
+            {(settings.supportingContent?.trim() || uploadedFiles.length > 0) && (
+              <label className="flex items-center gap-2 pt-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.summariseSupportingContent || false}
+                  onChange={(e) => onUpdate({ summariseSupportingContent: e.target.checked })}
+                  className="h-4 w-4 rounded border-muted-foreground/30"
+                />
+                <span className="text-sm">Summarise supporting info for the image</span>
+              </label>
+            )}
             
             <p className="text-xs text-muted-foreground">
               Include dates, statistics, contact details, or any specific text to appear.
