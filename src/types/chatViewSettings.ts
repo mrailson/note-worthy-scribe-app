@@ -16,7 +16,7 @@ export const DEFAULT_CHAT_VIEW_SETTINGS: ChatViewSettings = {
   compactView: false,
   autoScrollNewMessages: true,
   scrollDuringStreaming: true,
-  bubbleStyle: 'standard',
+  bubbleStyle: 'cards',
   containerSize: 'normal',
 };
 
