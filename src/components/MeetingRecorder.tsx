@@ -5839,7 +5839,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           </TabsTrigger> */}
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-5 w-5" />
-            <span className="hidden sm:inline">Meeting History</span>
+            <span className="hidden sm:inline">My Meeting History</span>
             <span className="sm:hidden">History</span>
             {meetings.some(m => isNewMeeting(m.created_at)) && (
               <Badge className="bg-green-600 hover:bg-green-600 text-white text-[10px] px-1.5 py-0 h-4 ml-1">
