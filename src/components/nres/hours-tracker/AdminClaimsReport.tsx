@@ -213,20 +213,23 @@ export function AdminClaimsReport() {
     const end = parseISO(endDate);
 
     // Helper to get display name and practice for an entry
+    // Group by name to combine entries where user profile name matches claimant name
     const getEntryDetails = (e: AllEntry) => {
       if (e.claimant_name) {
         const claimant = claimants[e.claimant_name];
         return {
           displayName: e.claimant_name,
           practiceName: claimant?.member_practice || 'Not Set',
-          groupKey: `claimant:${e.claimant_name}` // Group by claimant name
+          groupKey: `name:${e.claimant_name}` // Group by name
         };
       } else {
         const profile = userProfiles[e.user_id] || { name: e.user_id.substring(0, 8) + '...', practice_name: 'Unknown' };
+        // Check if this user's name exists as a claimant - if so, use claimant's practice
+        const matchingClaimant = claimants[profile.name];
         return {
           displayName: profile.name,
-          practiceName: profile.practice_name,
-          groupKey: `user:${e.user_id}` // Group by user_id
+          practiceName: matchingClaimant?.member_practice || profile.practice_name,
+          groupKey: `name:${profile.name}` // Group by name to unify with claimant entries
         };
       }
     };
