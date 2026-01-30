@@ -32,7 +32,7 @@ export const ContentInfographicModal: React.FC<ContentInfographicModalProps> = (
   content,
   title = 'Infographic',
   imageModel = 'google/gemini-2.5-flash-image-preview',
-  orientation = 'portrait',
+  orientation = 'landscape',
 }) => {
   const { generateInfographic, isGenerating, currentPhase, error } = useContentInfographic();
   

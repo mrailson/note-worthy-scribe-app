@@ -719,15 +719,8 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                 </div>
               )}
 
-              {/* Embedded PM Genie - Voice Assistant */}
-              {showEmbeddedPMGenie && (
-                <div className="flex-1 overflow-hidden bg-background">
-                  <EmbeddedPMGenie onClose={() => setShowEmbeddedPMGenie(false)} />
-                </div>
-              )}
-
               {/* Main Chat Content - Only show when services are not active */}
-              {!showImageCreate && !showImageService && !showNews && !showBPCalculator && !showTranslation && !showAdminDictate && !showTranslationService && !showEmbeddedPMGenie && (
+              {!showImageCreate && !showImageService && !showNews && !showBPCalculator && !showTranslation && !showAdminDictate && !showTranslationService && (
                 <CardContent className={cn(
                   "flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden",
                   deviceInfo.isIPhone && "pb-safe"
@@ -852,6 +845,15 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         scrollDuringStreaming={chatViewSettings.scrollDuringStreaming}
                         containerSize={chatViewSettings.containerSize}
                       />
+                    </div>
+                  )}
+                  
+                  {/* PM Genie Floating Bubble - Above input area */}
+                  {showEmbeddedPMGenie && !showSettings && !showImageService && (
+                    <div className="border-t border-border bg-muted/30">
+                      <div className="max-h-[400px] overflow-hidden">
+                        <EmbeddedPMGenie onClose={() => setShowEmbeddedPMGenie(false)} />
+                      </div>
                     </div>
                   )}
                   
