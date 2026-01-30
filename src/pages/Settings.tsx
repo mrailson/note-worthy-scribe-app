@@ -1501,19 +1501,19 @@ export default function Settings() {
                     <h4 className="font-semibold mb-3 text-primary">NHS Compliance Standards</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {[
-                        { name: "DCB0129", desc: "Clinical Risk Management", status: "Compliant" },
+                        { name: "DCB0129", desc: "Clinical Risk Management", status: "Draft Ready" },
                         { name: "DCB0160", desc: "Clinical Safety Management", status: "Compliant" },
-                        { name: "DSPT", desc: "Data Security Protection Toolkit", status: "Compliant" },
+                        { name: "DSPT", desc: "Data Security Protection Toolkit", status: "Pending" },
                         { name: "GDPR", desc: "Data Protection Regulation", status: "Compliant" },
                         { name: "ISO 27001", desc: "Information Security Standard", status: "Certified" },
-                        { name: "MHRA", desc: "Medical Device Regulation (PCN Services Ltd)", status: "Certified" }
+                        { name: "MHRA", desc: "Medical Device Regulation (PCN Services Ltd)", status: "Registered" }
                       ].map((cert) => (
                         <div key={cert.name} className="p-3 border rounded-lg text-center">
                           <h6 className="font-medium text-xs mb-1">{cert.name}</h6>
                           <p className="text-xs text-muted-foreground mb-2">{cert.desc}</p>
                           <Badge 
-                            variant={cert.status === "Under Review" ? "secondary" : "default"} 
-                            className={cert.status === "Under Review" ? "bg-amber-500" : "bg-green-600"}
+                            variant={cert.status === "Under Review" || cert.status === "Pending" ? "secondary" : "default"} 
+                            className={cert.status === "Under Review" ? "bg-amber-500" : cert.status === "Pending" ? "bg-amber-500" : cert.status === "Draft Ready" ? "bg-blue-500" : "bg-green-600"}
                           >
                             {cert.status}
                           </Badge>

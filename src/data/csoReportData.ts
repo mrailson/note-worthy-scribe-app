@@ -428,10 +428,10 @@ export const gdprCompliance: ComplianceItem[] = [
   {
     requirement: "Integrity & Confidentiality",
     ai4gp: "N/A (excluded from pilot)",
-    meetingNotes: "Encryption, authentication, RLS; shorter session timeouts for PII modules",
-    complaints: "Encryption, authentication, RLS, masking; shorter session timeouts for PII access",
+    meetingNotes: "Encryption, authentication, RLS; session timeout policy enforced",
+    complaints: "Encryption, authentication, RLS, masking; session timeout policy enforced",
     status: "COMPLIANT",
-    evidence: "Technical security measures documented; session timeout < 4 hours for PII-bearing modules"
+    evidence: "Technical security measures documented; Maximum session timeout: 5 hours (standard modules); 4 hours or less for PII-bearing modules"
   }
 ];
 
@@ -462,9 +462,9 @@ export const securityControls: SecurityControl[] = [
   },
   {
     category: "Session Management",
-    implementation: "User sessions table, activity tracking, auto-timeout (4 hours for PII modules, 5 hours standard), secure storage",
+    implementation: "User sessions table, activity tracking, auto-timeout. Maximum session timeout: 5 hours (standard modules); 4 hours or less for PII-bearing modules. Secure storage.",
     effectiveness: "HIGH",
-    gaps: "Session timeout policy documented for PII-bearing modules"
+    gaps: "None - session timeout policy documented and consistently applied"
   },
   {
     category: "Audit Logging",
@@ -489,7 +489,7 @@ export const thirdPartyRisks: ThirdPartyRisk[] = [
     risk: "Data processing outside UK/EEA",
     mitigation: [
       "Data Processing Agreement signed",
-      "No PII in prompts guidance",
+      "Enforced data minimisation and masking controls for PII-bearing modules; free-text identifiers blocked by design; ability to disable external LLM processing where controls cannot be guaranteed",
       "OpenAI enterprise tier consideration",
       "UK region if available"
     ]
@@ -505,7 +505,7 @@ export const thirdPartyRisks: ThirdPartyRisk[] = [
       "AWS UK region",
       "Automatic backups",
       "Encryption at rest and transit",
-      "BAA available"
+      "Enterprise contractual assurances available where required"
     ]
   }
 ];

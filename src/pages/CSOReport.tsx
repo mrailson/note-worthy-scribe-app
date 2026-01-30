@@ -187,10 +187,10 @@ const CSOReport = () => {
           <h1 className="text-3xl font-bold mb-2">Clinical Safety Officer & Data Protection Officer Assessment Report</h1>
           <p className="text-xl text-muted-foreground mb-4">Notewell AI System Services</p>
           <div className="flex flex-wrap gap-4 text-sm">
-            <div><span className="font-semibold">Version:</span> 2.1</div>
-            <div><span className="font-semibold">Date:</span> {new Date().toLocaleDateString('en-GB')}</div>
+            <div><span className="font-semibold">Version:</span> 2.2</div>
+            <div><span className="font-semibold">Date:</span> 30 January 2026</div>
             <div><span className="font-semibold">Status:</span> <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">MHRA REGISTERED</Badge></div>
-            <div><span className="font-semibold">Medical Device Classification:</span> MHRA Class I Medical Device (UK MDR 2002) - Manufacturer Self-Certification & MHRA Registration December 2025</div>
+            <div><span className="font-semibold">Medical Device Classification:</span> MHRA Class I Medical Device (UK MDR 2002) - Registered since December 2025 (Manufacturer Self-Certification)</div>
           </div>
         </div>
 
@@ -206,7 +206,7 @@ const CSOReport = () => {
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    <span><strong>Last updated:</strong> {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    <span><strong>Last updated:</strong> 30 January 2026</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
@@ -220,15 +220,15 @@ const CSOReport = () => {
                   asChild
                 >
                   <a 
-                    href="/documents/NoteWell_CSO_Report_v2.1_Enhanced2.pdf"
-                    download="NoteWell_CSO_Report_v2.1.pdf"
+                    href="/documents/NoteWell_CSO_Report_v2.2.pdf"
+                    download="NoteWell_CSO_Report_v2.2.pdf"
                   >
                     <Download className="w-4 h-4" />
-                    Download CSO Report (v2.1)
+                    Download CSO Report (v2.2)
                   </a>
                 </Button>
                 <Badge className="self-end bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
-                  Version 2.1
+                  Version 2.2
                 </Badge>
               </div>
             </div>
@@ -323,13 +323,13 @@ const CSOReport = () => {
             <CardContent className="space-y-6">
               <div className="prose dark:prose-invert max-w-none">
                 <p className="text-base leading-relaxed mb-4">
-                  <strong>Executive Summary (Updated 20/01/2026)</strong>
+                  <strong>Executive Summary (Updated 30/01/2026)</strong>
                 </p>
                 <p className="text-base leading-relaxed mb-4">
                   NoteWell AI is a Class I, low-risk, non-business-critical administrative and governance support tool for NHS primary care. It provides meeting transcription, structured complaints management, and document generation. NoteWell does not offer clinical decision-making, has no EMIS/S1 write-back, and all outputs require human review.
                 </p>
                 <p className="text-base leading-relaxed mb-4">
-                  A full DCB0129 clinical safety analysis has been completed with a maintained Hazard Log and mandatory human-in-the-loop controls. All data is UK-hosted, encrypted, role-restricted through RLS, and subject to comprehensive audit logging. NoteWell operates strictly as a Data Processor and does not reuse any data for AI training.
+                  A full DCB0129 clinical safety analysis has been completed in draft, with a maintained Hazard Log, pending formal adoption by the hosting NHS organisation's Clinical Safety Officer. All data is UK-hosted, encrypted, role-restricted through RLS, and subject to comprehensive audit logging. NoteWell operates strictly as a Data Processor and does not reuse any data for AI training.
                 </p>
                 <p className="text-base leading-relaxed mb-4">
                   The appropriate technical assurance route is a proportionate external web application penetration test, covering OWASP Top 10, authentication, access control, API endpoints and TLS configuration. Red-team, network-level, physical or social engineering testing is not required due to the system's risk profile, standalone architecture, and absence of NHS infrastructure integration.
@@ -343,7 +343,7 @@ const CSOReport = () => {
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-6 mt-6">
                 <h4 className="font-semibold text-lg mb-4 flex items-center gap-2 text-blue-900 dark:text-blue-300">
                   <Shield className="w-5 h-5" />
-                  Assurance Status Overview (20/01/2026)
+                  Assurance Status Overview (30/01/2026)
                 </h4>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
@@ -1086,7 +1086,7 @@ const CSOReport = () => {
                       <span className="font-semibold text-sm">Model prompts</span>
                       <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">Low</Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">Mitigation: DPA with OpenAI + no PII guidance</p>
+                    <p className="text-sm text-muted-foreground">Mitigation: DPA with OpenAI + enforced data minimisation/masking controls; free-text identifiers blocked by design</p>
                   </div>
                 </div>
               </div>
@@ -2678,7 +2678,7 @@ const CSOReport = () => {
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <span><strong>Shorter session timeouts for PII-bearing modules:</strong> Sessions expire after 4 hours for complaints and other modules handling patient identifiable information</span>
+                          <span><strong>Session timeout policy:</strong> Maximum session timeout: 5 hours (standard modules); 4 hours or less for PII-bearing modules</span>
                         </li>
                       </ul>
                     </AccordionContent>
@@ -3171,17 +3171,17 @@ const CSOReport = () => {
                       <TableCell>
                         <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
                           <CheckCircle className="w-3 h-3 mr-1" />
-                          Fully met
+                          Met in principle (subject to go-live gating conditions)
                         </Badge>
                       </TableCell>
-                      <TableCell>MHRA Class I, DCB0129</TableCell>
+                      <TableCell>MHRA Class I, DCB0129 (draft pending CSO adoption)</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell className="font-medium">Data Protection</TableCell>
                       <TableCell>
                         <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
                           <CheckCircle className="w-3 h-3 mr-1" />
-                          Fully met
+                          Met in principle (subject to go-live gating conditions)
                         </Badge>
                       </TableCell>
                       <TableCell>DPIA, UK-only hosting (target: NHS tenant)</TableCell>
@@ -3191,7 +3191,7 @@ const CSOReport = () => {
                       <TableCell>
                         <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
                           <CheckCircle className="w-3 h-3 mr-1" />
-                          Fully met (proportionate)
+                          Met in principle (subject to go-live gating conditions)
                         </Badge>
                       </TableCell>
                       <TableCell>Encryption, access control, pen-test plan</TableCell>
@@ -3453,7 +3453,7 @@ const CSOReport = () => {
                 <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                   <div>
                     <span className="font-semibold">System Safety Classification:</span>
-                    <p className="text-sm text-muted-foreground mt-1">MHRA Class I Medical Device Software (UK MDR 2002) - Certified since December 2025</p>
+                    <p className="text-sm text-muted-foreground mt-1">MHRA Class I Medical Device Software (UK MDR 2002) - Registered since December 2025 (Manufacturer Self-Certification)</p>
                   </div>
                   <div>
                     <span className="font-semibold">Overall Safety Rating:</span>
