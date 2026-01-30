@@ -570,14 +570,6 @@ ${pastedText.trim()}
                     <Paperclip className="w-4 h-4 mr-2" />
                     Attach Files
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => setShowDocumentTranslate(true)}
-                    disabled={isLoading}
-                    className="cursor-pointer"
-                  >
-                    <Languages className="w-4 h-4 mr-2" />
-                    Translate Document
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               
