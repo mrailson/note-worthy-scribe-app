@@ -248,13 +248,6 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         return await generateInfographic(params);
       }
     },
-    overrides: {
-      agent: {
-        prompt: {
-          prompt: dynamicPrompt,
-        },
-      },
-    },
     onConnect: async () => {
       console.log('Connected to PM Genie');
       setStatus('connected');
