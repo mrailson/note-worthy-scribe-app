@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState, us
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList, Camera, QrCode, Monitor, AlertCircle, X } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList, Camera, QrCode, Monitor, AlertCircle, X, Phone } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -65,6 +65,7 @@ interface InputAreaProps {
   onNewChat?: () => void;
   userRole?: string;
   practiceContext?: PracticeContext;
+  onShowPMGenie?: () => void;
 }
 
 export interface InputAreaRef {
@@ -82,7 +83,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   setIsClinical,
   onNewChat,
   userRole,
-  practiceContext
+  practiceContext,
+  onShowPMGenie
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -532,6 +534,16 @@ ${pastedText.trim()}
                     >
                       <MessageSquareMore className="w-4 h-4 mr-2" />
                       Start New Chat
+                    </DropdownMenuItem>
+                  )}
+                  {onShowPMGenie && (
+                    <DropdownMenuItem 
+                      onClick={onShowPMGenie}
+                      disabled={isLoading}
+                      className="cursor-pointer"
+                    >
+                      <Phone className="w-4 h-4 mr-2" />
+                      PM Genie Voice
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem 

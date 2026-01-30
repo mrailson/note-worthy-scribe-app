@@ -45,6 +45,7 @@ import { ImageStudioModal } from '@/components/ai4gp/ImageStudioModal';
 import { PresentationStudioModal } from '@/components/ai4gp/PresentationStudioModal';
 import { AdminDictatePanel } from '@/components/ai4gp/AdminDictatePanel';
 import { TranslationServicePanel } from '@/components/ai4gp/TranslationServicePanel';
+import { EmbeddedPMGenie } from '@/components/ai4gp/EmbeddedPMGenie';
 
   // Hook imports
 import { useIsMobile, useDeviceInfo } from '@/hooks/use-mobile';
@@ -150,6 +151,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const [showPresentationStudio, setShowPresentationStudio] = useState(false);
   const [showAdminDictate, setShowAdminDictate] = useState(false);
   const [showTranslationService, setShowTranslationService] = useState(false);
+  const [showEmbeddedPMGenie, setShowEmbeddedPMGenie] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>(() => {
     const saved = localStorage.getItem('ai4gp-selected-role');
@@ -182,6 +184,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
     setShowSearchHistory(false);
     setShowAdminDictate(false);
     setShowTranslationService(false);
+    setShowEmbeddedPMGenie(false);
   };
 
   const handleShowAdminDictate = () => {
@@ -194,6 +197,12 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
     const wasOpen = showTranslationService;
     closeAllPanels();
     if (!wasOpen) setShowTranslationService(true);
+  };
+
+  const handleShowEmbeddedPMGenie = () => {
+    const wasOpen = showEmbeddedPMGenie;
+    closeAllPanels();
+    if (!wasOpen) setShowEmbeddedPMGenie(true);
   };
 
   // Panel toggle handlers that close other panels first
@@ -703,8 +712,15 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                 </div>
               )}
 
+              {/* Embedded PM Genie - Voice Assistant */}
+              {showEmbeddedPMGenie && (
+                <div className="flex-1 overflow-hidden bg-background">
+                  <EmbeddedPMGenie onClose={() => setShowEmbeddedPMGenie(false)} />
+                </div>
+              )}
+
               {/* Main Chat Content - Only show when services are not active */}
-              {!showImageCreate && !showImageService && !showNews && !showBPCalculator && !showTranslation && !showAdminDictate && !showTranslationService && (
+              {!showImageCreate && !showImageService && !showNews && !showBPCalculator && !showTranslation && !showAdminDictate && !showTranslationService && !showEmbeddedPMGenie && (
                 <CardContent className={cn(
                   "flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden",
                   deviceInfo.isIPhone && "pb-safe"
@@ -848,6 +864,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         onNewChat={handleNewSearch}
                         userRole={practiceContext?.userRole}
                         practiceContext={practiceContext}
+                        onShowPMGenie={handleShowEmbeddedPMGenie}
                       />
                     </div>
                   )}
