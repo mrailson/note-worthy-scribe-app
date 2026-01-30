@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -7,6 +7,12 @@ import { useDisplayPreferences } from './useDisplayPreferences';
 import { prepareMessagesForAPI, getMemoryStats } from '@/utils/conversationMemory';
 import { detectVoiceRequest } from '@/utils/voiceRequestDetection';
 import { VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
+import { optimiseMessagesForMemory } from '@/utils/streamingUtils';
+
+// Memory leak prevention: Max messages to keep in state (older ones are discarded from UI but saved in DB)
+const MAX_MESSAGES_IN_MEMORY = 50;
+// Number of recent messages to keep fully intact (including base64 content)
+const KEEP_RECENT_MESSAGES_INTACT = 10;
 
 export const useAI4GPService = () => {
   const { user } = useAuth();
@@ -29,6 +35,20 @@ export const useAI4GPService = () => {
   const [hideGPClinical, setHideGPClinical] = useState(false);
   const [imageGenerationModel, setImageGenerationModel] = useState<'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1'>('google/gemini-3-pro-image-preview');
   
+  // Refs for tracking active timeouts to prevent memory leaks
+  const streamTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const verificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Cleanup function to clear all pending timeouts
+  useEffect(() => {
+    return () => {
+      if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      if (verificationTimeoutRef.current) clearTimeout(verificationTimeoutRef.current);
+    };
+  }, []);
+  
   // Display Settings - now managed by useDisplayPreferences
   const {
     textSize,
@@ -49,6 +69,40 @@ export const useAI4GPService = () => {
   useEffect(() => {
     setIsClinical(verificationLevel === 'latest' || verificationLevel === 'maximum');
   }, [verificationLevel]);
+
+  // Periodic memory cleanup - runs every 60 seconds when there are messages
+  useEffect(() => {
+    const cleanupInterval = setInterval(() => {
+      setMessages(prev => {
+        if (prev.length > KEEP_RECENT_MESSAGES_INTACT) {
+          console.log('🧹 Running periodic memory cleanup on messages...');
+          return optimiseMessagesForMemory(prev, KEEP_RECENT_MESSAGES_INTACT);
+        }
+        return prev;
+      });
+    }, 60000); // Every 60 seconds
+    
+    return () => clearInterval(cleanupInterval);
+  }, []);
+
+  // Memory-safe message setter that limits message count and optimises memory usage
+  const setMessagesWithLimit = useCallback((newMessages: Message[] | ((prev: Message[]) => Message[])) => {
+    setMessages(prev => {
+      const updatedMessages = typeof newMessages === 'function' ? newMessages(prev) : newMessages;
+      
+      // Optimise older messages to reduce memory usage (strip base64 content)
+      const optimised = optimiseMessagesForMemory(updatedMessages, KEEP_RECENT_MESSAGES_INTACT);
+      
+      // If we exceed the limit, keep only the most recent messages
+      // But always save to DB before truncating
+      if (optimised.length > MAX_MESSAGES_IN_MEMORY) {
+        console.log(`⚠️ Message count (${optimised.length}) exceeds limit (${MAX_MESSAGES_IN_MEMORY}), truncating to prevent memory leak`);
+        // Keep the most recent messages
+        return optimised.slice(-MAX_MESSAGES_IN_MEMORY);
+      }
+      return optimised;
+    });
+  }, []);
 
   // Clinical verification function
   const performClinicalVerification = useCallback(async (messageId: string, originalPrompt: string, aiResponse: string) => {
