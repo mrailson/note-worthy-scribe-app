@@ -279,7 +279,12 @@ export function AdminClaimsReport() {
   };
 
   const handleDeleteEntry = async (entryId: string) => {
-    if (!confirm('Are you sure you want to delete this entry?')) return;
+    const entry = detailedEntries.find((e) => e.id === entryId);
+    const confirmText = entry
+      ? `Delete this entry?\n\n${entry.user_name}\n${format(parseISO(entry.work_date), 'dd/MM/yyyy')} ${entry.start_time.substring(0, 5)}–${entry.end_time.substring(0, 5)}\n${entry.activity_type || 'No activity'}\n${entry.description || 'No description'}`
+      : 'Are you sure you want to delete this entry?';
+
+    if (!confirm(confirmText)) return;
     
     try {
       const { error } = await supabase
@@ -587,6 +592,7 @@ export function AdminClaimsReport() {
                             </TableHead>
                             <TableHead>Time</TableHead>
                             <TableHead>Activity</TableHead>
+                            <TableHead>Description</TableHead>
                             <TableHead 
                               className="text-right cursor-pointer hover:bg-muted/50"
                               onClick={() => handleSort('duration_hours')}
@@ -619,6 +625,9 @@ export function AdminClaimsReport() {
                                 {entry.start_time.substring(0, 5)} - {entry.end_time.substring(0, 5)}
                               </TableCell>
                               <TableCell>{entry.activity_type || '-'}</TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {entry.description || '-'}
+                              </TableCell>
                               <TableCell className="text-right">{Number(entry.duration_hours).toFixed(2)}</TableCell>
                               <TableCell className="text-right font-medium">£{formatCurrency(entry.amount)}</TableCell>
                               <TableCell className="text-muted-foreground text-xs">{entry.entered_by_name}</TableCell>
@@ -635,7 +644,7 @@ export function AdminClaimsReport() {
                             </TableRow>
                           ))}
                           <TableRow className="font-bold bg-muted">
-                            <TableCell colSpan={5}>GRAND TOTAL</TableCell>
+                            <TableCell colSpan={6}>GRAND TOTAL</TableCell>
                             <TableCell className="text-right">{grandTotalHours.toFixed(2)}</TableCell>
                             <TableCell className="text-right text-lg">£{formatCurrency(grandTotalAmount)}</TableCell>
                             <TableCell></TableCell>
