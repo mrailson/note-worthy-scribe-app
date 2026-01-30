@@ -563,7 +563,7 @@ const CSOReport = () => {
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
-                      <span>Proportionate external web application penetration test post-migration to NHS hosting (target 2026)</span>
+                      <span>Proportionate external web application penetration test post-migration to NHS hosting (go-live gating requirement post-migration to NHS hosting)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
@@ -3345,7 +3345,7 @@ const CSOReport = () => {
                 <p className="text-sm text-muted-foreground mb-4">The following can be made accessible directly inside NoteWell under Governance → Assurance Pack:</p>
                 <div className="grid md:grid-cols-2 gap-2">
                   {[
-                    { name: "MHRA Class I Certificate", link: "/documents/MHRA-Class-I-Registration-Certificate.pdf", isDownload: true },
+                    { name: "Manufacturer Declaration of Conformity (Class I) + MHRA Registration Evidence", link: "/documents/MHRA-Class-I-Registration-Certificate.pdf", isDownload: true },
                     { name: "DCB0129 Safety Case", link: "/safety-case", isDownload: false },
                     { name: "Hazard Log", link: "/hazard-log", isDownload: false },
                     { name: "DPIA", link: "/dpia", isDownload: false },
@@ -3417,7 +3417,7 @@ const CSOReport = () => {
                   <p className="text-base leading-relaxed">
                     NoteWell AI is a <strong>low-risk, MHRA Class I medical device</strong> designed for safe deployment across primary care in a non-business-critical, governance-focused role. 
                     A draft DPIA and draft clinical safety case (DCB0129) are in place for Meeting Notes & Complaints (with CSO/SIRO/Caldicott sign-off to follow once NHS hosting is confirmed). 
-                    It maintains UK-only data storage with a target NHS-hosted tenant for production, implements strong encryption and comprehensive RLS policies, full audit logs, and a planned CREST-standard external web application penetration test after migration to NHS hosting (target 2026).
+                    It maintains UK-only data storage with a target NHS-hosted tenant for production, implements strong encryption and comprehensive RLS policies, full audit logs, and a planned CREST-standard external web application penetration test (go-live gating requirement post-migration to NHS hosting).
                   </p>
                   <p className="text-base leading-relaxed mt-4">
                     <strong>Hosting Model:</strong> Current development uses Lovable/Supabase (AWS London) for prototype purposes only. For pilot deployment, the system will migrate to NHS-hosted infrastructure (LHIS preferred) via GitHub export, enabling clearer ICB risk ownership and easier pen-test acceptance.
