@@ -115,7 +115,16 @@ export function HoursEntryForm({ saving, claimants, onSubmit }: HoursEntryFormPr
             </Label>
             <Select value={claimantSelection} onValueChange={setClaimantSelection}>
               <SelectTrigger>
-                <SelectValue placeholder="Select who this claim is for..." />
+                <SelectValue placeholder="Select who this claim is for...">
+                  {claimantSelection === 'personal' && 'Personal Rate (Your own hours)'}
+                  {claimantSelection === 'gp' && 'GP (£100/hr) - Unnamed'}
+                  {claimantSelection === 'pm' && 'Practice Manager (£50/hr) - Unnamed'}
+                  {claimants.find(c => c.id === claimantSelection) && (
+                    <>
+                      {claimants.find(c => c.id === claimantSelection)?.role === 'gp' ? 'GP' : 'PM'} (£{claimants.find(c => c.id === claimantSelection)?.role === 'gp' ? '100' : '50'}/hr) - {claimants.find(c => c.id === claimantSelection)?.name}
+                    </>
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="personal">
