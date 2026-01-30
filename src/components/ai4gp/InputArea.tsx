@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState, us
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList, Camera, QrCode, Monitor } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, Eraser, Upload, ClipboardList, Camera, QrCode, Monitor, AlertCircle, X } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -16,6 +16,8 @@ import { FileQuickActions } from './FileQuickActions';
 import { InputTipsHover } from './InputTipsHover';
 import { ChatCameraModal } from './ChatCameraModal';
 import { ChatQRCaptureModal } from './ChatQRCaptureModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import careUseGuidanceImage from '@/assets/ai-care-use-guidance.png';
 
 // Role-based placeholder tips
 const CLINICAL_TIPS = [
@@ -94,6 +96,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const [showDocumentTranslate, setShowDocumentTranslate] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showQRCaptureModal, setShowQRCaptureModal] = useState(false);
+  const [showCareUseGuide, setShowCareUseGuide] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
   
@@ -595,10 +598,13 @@ ${pastedText.trim()}
         </Button>
       </div>
       
-      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
-        <InputTipsHover />
-        <span className="text-amber-600">AI can make mistakes — please verify important information</span>
-      </div>
+      <button 
+        onClick={() => setShowCareUseGuide(true)}
+        className="flex items-center justify-center gap-1.5 text-[10px] text-amber-600 hover:text-amber-700 hover:underline pt-1 pb-0.5 transition-colors cursor-pointer"
+      >
+        <AlertCircle className="w-3 h-3" />
+        <span>AI can make mistakes — view care use guidance</span>
+      </button>
       
       <DocumentTranslateModal
         isOpen={showDocumentTranslate}
@@ -617,6 +623,30 @@ ${pastedText.trim()}
         onOpenChange={setShowQRCaptureModal}
         onImagesReceived={(files) => setUploadedFiles(prev => [...prev, ...files])}
       />
+      
+      {/* Care Use Guide Modal */}
+      <Dialog open={showCareUseGuide} onOpenChange={setShowCareUseGuide}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 overflow-hidden">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Notewell AI Care Use Guidance</DialogTitle>
+          </DialogHeader>
+          <div className="relative w-full h-full flex items-center justify-center bg-background p-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2 z-10"
+              onClick={() => setShowCareUseGuide(false)}
+            >
+              <X className="w-5 h-5" />
+            </Button>
+            <img 
+              src={careUseGuidanceImage} 
+              alt="Notewell AI Practice Managers Care Use Guidance" 
+              className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
     </>
   );
