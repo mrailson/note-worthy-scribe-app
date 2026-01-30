@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { Buffer } from "node:buffer";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -14,8 +15,35 @@ interface EmailRequest {
   subject: string;
   content: string;
   userEmail?: string; // Optional - will fetch from profile if not provided
-  imageUrl?: string;  // Optional - URL of an infographic to embed
+  imageUrl?: string;  // Optional - URL or data URL of an infographic
 }
+
+type ResendAttachment = {
+  filename: string;
+  content: string; // base64
+};
+
+const parseDataUrl = (dataUrl: string): { mime: string; base64: string } | null => {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match?.[1] || !match?.[2]) return null;
+  return { mime: match[1], base64: match[2] };
+};
+
+const extFromMime = (mime: string): string => {
+  if (mime.includes('png')) return 'png';
+  if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
+  if (mime.includes('webp')) return 'webp';
+  return 'png';
+};
+
+const fetchUrlAsBase64 = async (url: string): Promise<{ base64: string; mime: string }> => {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Failed to fetch image (${resp.status})`);
+  const mime = resp.headers.get('content-type') || 'image/png';
+  const ab = await resp.arrayBuffer();
+  const base64 = Buffer.from(ab).toString('base64');
+  return { base64, mime };
+};
 
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
@@ -85,12 +113,46 @@ serve(async (req: Request): Promise<Response> => {
     console.log("Subject:", subject);
     console.log("Has infographic image:", imageUrl ? `Yes (${imageUrl.length} chars)` : 'No');
 
+    const isDataUrl = Boolean(imageUrl && imageUrl.startsWith('data:'));
+
+    // Prepare an attachment for better email client support (Outlook often blocks data: images)
+    let attachments: ResendAttachment[] | undefined;
+    if (imageUrl) {
+      try {
+        let base64 = '';
+        let mime = 'image/png';
+        if (isDataUrl) {
+          const parsed = parseDataUrl(imageUrl);
+          if (!parsed) throw new Error('Invalid data URL');
+          base64 = parsed.base64;
+          mime = parsed.mime;
+        } else {
+          const fetched = await fetchUrlAsBase64(imageUrl);
+          base64 = fetched.base64;
+          mime = fetched.mime;
+        }
+
+        const ext = extFromMime(mime);
+        const filename = `infographic.${ext}`;
+        attachments = [{ filename, content: base64 }];
+        console.log('Prepared infographic attachment:', filename);
+      } catch (e) {
+        console.warn('Failed to prepare infographic attachment:', e);
+      }
+    }
+
     // Build image section if an infographic URL is provided
-    const imageSection = imageUrl ? `
-      <div style="margin: 20px 0; text-align: center;">
-        <img src="${imageUrl}" alt="Generated Infographic" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
-      </div>
-    ` : '';
+    // - For data URLs: don't inline (many email clients will strip/block it); rely on attachment instead.
+    // - For normal URLs: inline for convenience.
+    const imageSection = imageUrl
+      ? isDataUrl
+        ? `<p style="margin-top: 16px; font-size: 12px; color: #6b7280;">(Infographic attached)</p>`
+        : `
+          <div style="margin: 20px 0; text-align: center;">
+            <img src="${imageUrl}" alt="Generated Infographic" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+          </div>
+        `
+      : '';
 
     // Format content as HTML with proper styling
     const htmlContent = `
@@ -168,6 +230,7 @@ serve(async (req: Request): Promise<Response> => {
       to: [recipientEmail],
       subject: subject,
       html: htmlContent,
+      attachments,
     });
 
     console.log("Email sent successfully:", emailResponse);
