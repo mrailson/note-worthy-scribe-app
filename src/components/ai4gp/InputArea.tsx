@@ -600,10 +600,10 @@ ${pastedText.trim()}
       
       <button 
         onClick={() => setShowCareUseGuide(true)}
-        className="flex items-center justify-center gap-1.5 text-[10px] text-amber-600 hover:text-amber-700 hover:underline pt-1 pb-0.5 transition-colors cursor-pointer"
+        className="w-full flex items-center justify-center gap-1.5 text-[10px] text-amber-600 hover:text-amber-700 hover:underline pt-1 pb-0.5 transition-colors cursor-pointer"
       >
         <AlertCircle className="w-3 h-3" />
-        <span>AI can make mistakes — view care use guidance</span>
+        <span>AI can make mistakes</span>
       </button>
       
       <DocumentTranslateModal
@@ -626,7 +626,7 @@ ${pastedText.trim()}
       
       {/* Care Use Guide Modal */}
       <Dialog open={showCareUseGuide} onOpenChange={setShowCareUseGuide}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 overflow-hidden">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 overflow-hidden [&>button]:hidden">
           <DialogHeader className="sr-only">
             <DialogTitle>Notewell AI Care Use Guidance</DialogTitle>
           </DialogHeader>
