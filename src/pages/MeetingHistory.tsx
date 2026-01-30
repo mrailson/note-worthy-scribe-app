@@ -1062,13 +1062,26 @@ const MeetingHistory = () => {
   };
 
   // Real-time updates for meeting changes with enhanced reliability
+  // MEMORY FIX: Debounced with proper timeout cleanup
   useEffect(() => {
     if (!user) return;
 
     console.log('🔌 Setting up real-time meeting subscriptions...');
     
+    // Track pending timeouts for cleanup
+    const pendingTimeouts: NodeJS.Timeout[] = [];
+    let lastRefreshTime = 0;
+    const DEBOUNCE_MS = 2000;
+    
+    const debouncedFetch = () => {
+      const now = Date.now();
+      if (now - lastRefreshTime < DEBOUNCE_MS) return;
+      lastRefreshTime = now;
+      fetchMeetings(currentPage);
+    };
+    
     const channel = supabase
-      .channel('meeting-history-changes')
+      .channel(`meeting-history-changes-${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -1077,11 +1090,10 @@ const MeetingHistory = () => {
           table: 'meetings',
           filter: `user_id=eq.${user.id}`
         },
-        (payload) => {
-          console.log('🔄 New meeting inserted, refreshing meeting history...', payload);
-          // Refresh meetings when a new meeting is added
-          fetchMeetings(currentPage);
-          showToast.success('New meeting detected - refreshing list', { section: 'meeting_manager' });
+        () => {
+          console.log('🔄 New meeting inserted, refreshing...');
+          const timeoutId = setTimeout(debouncedFetch, 500);
+          pendingTimeouts.push(timeoutId);
         }
       )
       .on(
@@ -1092,11 +1104,8 @@ const MeetingHistory = () => {
           table: 'meetings',
           filter: `user_id=eq.${user.id}`
         },
-        // Real-time updates for meeting status changes
         (payload) => {
-          console.log('🔄 Meeting updated, checking notes status...', payload);
-          
-          // Update the specific meeting in our list
+          // Update the specific meeting in our list (no fetch needed)
           setMeetings(prev => prev.map(meeting => 
             meeting.id === payload.new.id 
               ? { ...meeting, ...payload.new }
@@ -1108,12 +1117,6 @@ const MeetingHistory = () => {
               payload.new.notes_generation_status === 'completed') {
             loadNotesForModal(payload.new.id);
           }
-          
-          // Show toast for notes completion
-          if (payload.new.notes_generation_status === 'completed' && 
-              payload.old.notes_generation_status !== 'completed') {
-            showToast.success('Meeting notes have been generated!', { section: 'meeting_manager' });
-          }
         }
       )
       .on(
@@ -1124,26 +1127,21 @@ const MeetingHistory = () => {
           table: 'meetings',
           filter: `user_id=eq.${user.id}`
         },
-        (payload) => {
-          console.log('🔄 Meeting deleted, refreshing meeting history...', payload);
-          // Refresh meetings when a meeting is deleted
-          fetchMeetings(currentPage);
+        () => {
+          const timeoutId = setTimeout(debouncedFetch, 500);
+          pendingTimeouts.push(timeoutId);
         }
       )
       .subscribe((status) => {
         console.log('📡 Real-time subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time updates connected successfully');
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('⚠️ Real-time subscription failed - manual refresh required');
-        }
       });
 
     return () => {
-      console.log('🔌 Cleaning up real-time subscriptions...');
+      console.log('🔌 Cleaning up real-time subscriptions and timeouts...');
+      pendingTimeouts.forEach(id => clearTimeout(id));
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user?.id, currentPage]);
 
   // Fallback initial load - only runs once on mount as a safety net
   useEffect(() => {

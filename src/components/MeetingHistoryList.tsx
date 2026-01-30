@@ -391,33 +391,43 @@ export const MeetingHistoryList = ({
   }, [meetings]);
 
   // Real-time subscription for automatic refresh when meetings are updated
+  // MEMORY FIX: Use debounced refresh and properly track timeouts
   useEffect(() => {
     if (!onRefresh || !user?.id) return;
 
     console.log('🔄 Setting up real-time subscription for meeting updates');
+    
+    // Track pending timeouts for cleanup
+    const pendingTimeouts: NodeJS.Timeout[] = [];
+    let lastRefreshTime = 0;
+    const DEBOUNCE_MS = 2000; // Debounce multiple rapid updates
+
+    const debouncedRefresh = () => {
+      const now = Date.now();
+      if (now - lastRefreshTime < DEBOUNCE_MS) {
+        return; // Skip if refreshed recently
+      }
+      if (safeModeModalOpenRef.current) {
+        return; // Skip if modal is open
+      }
+      lastRefreshTime = now;
+      onRefresh();
+    };
 
     // Create a channel for real-time updates
     const channel = supabase
-      .channel('meeting-updates')
+      .channel(`meeting-updates-${user.id}`)
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'meetings',
           filter: `user_id=eq.${user.id}`
         },
-        (payload) => {
-          console.log('🔔 Meeting updated via realtime:', payload);
-          // Skip refresh if modal is open to prevent closing
-          if (safeModeModalOpenRef.current) {
-            console.log('⏸️ Skipping refresh - SafeModeNotesModal is open');
-            return;
-          }
-          // Trigger refresh after a short delay to allow database to settle
-          setTimeout(() => {
-            onRefresh();
-          }, 500);
+        () => {
+          const timeoutId = setTimeout(debouncedRefresh, 500);
+          pendingTimeouts.push(timeoutId);
         }
       )
       .on(
@@ -427,12 +437,9 @@ export const MeetingHistoryList = ({
           schema: 'public',
           table: 'meeting_notes_multi'
         },
-        (payload) => {
-          console.log('🔔 Meeting notes updated via realtime:', payload);
-          if (safeModeModalOpenRef.current) return;
-          setTimeout(() => {
-            onRefresh();
-          }, 500);
+        () => {
+          const timeoutId = setTimeout(debouncedRefresh, 500);
+          pendingTimeouts.push(timeoutId);
         }
       )
       .on(
@@ -442,19 +449,17 @@ export const MeetingHistoryList = ({
           schema: 'public',
           table: 'meeting_overviews'
         },
-        (payload) => {
-          console.log('🔔 Meeting overview updated via realtime:', payload);
-          if (safeModeModalOpenRef.current) return;
-          setTimeout(() => {
-            onRefresh();
-          }, 500);
+        () => {
+          const timeoutId = setTimeout(debouncedRefresh, 500);
+          pendingTimeouts.push(timeoutId);
         }
       )
       .subscribe();
 
-    // Cleanup subscription on unmount
+    // Cleanup subscription and pending timeouts on unmount
     return () => {
-      console.log('🔌 Cleaning up real-time subscription');
+      console.log('🔌 Cleaning up real-time subscription and timeouts');
+      pendingTimeouts.forEach(id => clearTimeout(id));
       supabase.removeChannel(channel);
     };
   }, [onRefresh, user?.id]);
@@ -624,8 +629,13 @@ export const MeetingHistoryList = ({
   // Initialize meeting export hook
   const { generateWordDocument, generatePDF } = useMeetingExport(null, { outputLevel: 1 } as any);
 
-  // Auto-recover stuck meetings after 2 minutes
+  // Auto-recover stuck meetings after 2 minutes - run once on mount only
+  // MEMORY FIX: Use ref to prevent re-running on every localMeetings change
+  const hasRunAutoRecoveryRef = useRef(false);
   useEffect(() => {
+    if (hasRunAutoRecoveryRef.current || localMeetings.length === 0) return;
+    hasRunAutoRecoveryRef.current = true;
+    
     const stuckMeetings = localMeetings.filter(m => 
       m.status === 'recording' && isStuckMeeting(m) && !recoveringMeetings.has(m.id)
     );
@@ -641,7 +651,7 @@ export const MeetingHistoryList = ({
         recoverStuckMeeting(meeting.id);
       }
     });
-  }, [localMeetings]);
+  }, [localMeetings.length]);
 
   // Function to recover stuck meetings
   const recoverStuckMeeting = async (meetingId: string) => {
