@@ -2760,6 +2760,195 @@ const CSOReport = () => {
                       </div>
                     </AccordionContent>
                   </AccordionItem>
+
+                  <AccordionItem value="ai-safety-guardrails">
+                    <AccordionTrigger className="text-base font-semibold">AI Safety Guardrails & Content Moderation</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm mb-4">
+                        NoteWell implements a comprehensive <strong>six-layer protection system</strong> to prevent inappropriate AI use, protect against malicious inputs, and ensure clinical safety in healthcare settings.
+                      </p>
+
+                      <div className="space-y-4">
+                        {/* Layer 1: Clinical Safety Monitoring */}
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-red-600" />
+                            1. Clinical Safety Monitoring
+                          </h4>
+                          <ul className="space-y-2 text-sm ml-6">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>60+ monitored medical terms across blood tests, diagnoses, medications, and clinical measurements</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>High-risk emergency keyword detection (cardiac arrest, stroke, overdose, etc.)</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Risk classification (low/medium/high) with appropriate action recommendations</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>AI fabrication prevention for medical information</span>
+                            </li>
+                          </ul>
+                          <p className="text-xs text-muted-foreground mt-2 ml-6">Source: medicalSafety.ts</p>
+                        </div>
+
+                        {/* Layer 2: Input Security Validation */}
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-blue-600" />
+                            2. Input Security Validation
+                          </h4>
+                          <ul className="space-y-2 text-sm ml-6">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>SQL injection pattern detection and blocking</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Cross-site scripting (XSS) prevention</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Command injection protection</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Input length limits (10,000 characters maximum)</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>HTML entity encoding for output safety</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>File upload validation (type, size, extension checking)</span>
+                            </li>
+                          </ul>
+                          <p className="text-xs text-muted-foreground mt-2 ml-6">Source: securityValidation.ts</p>
+                        </div>
+
+                        {/* Layer 3: Rate Limiting */}
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-amber-600" />
+                            3. Rate Limiting & Brute-Force Protection
+                          </h4>
+                          <ul className="space-y-2 text-sm ml-6">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>API rate limiting: 30 requests per minute</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Authentication rate limiting: 5 attempts per 5 minutes</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>VPN-friendly corporate network detection with adjusted limits</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Email-based rate limiting for additional protection</span>
+                            </li>
+                          </ul>
+                          <p className="text-xs text-muted-foreground mt-2 ml-6">Source: enhancedSecurityValidation.ts</p>
+                        </div>
+
+                        {/* Layer 4: Offensive Language Filtering */}
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-purple-600" />
+                            4. Offensive Language Filtering
+                          </h4>
+                          <div className="space-y-3 ml-6">
+                            <div>
+                              <p className="text-sm font-medium text-red-700 dark:text-red-400">Blocked Terms (~30 severe terms)</p>
+                              <p className="text-sm text-muted-foreground">Translation/processing completely blocked for severe profanity, racial slurs, hate speech, and threats</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Warning Terms (~30 mild terms)</p>
+                              <p className="text-sm text-muted-foreground">Processing continues with content warning for mild profanity and insults</p>
+                            </div>
+                            <li className="flex items-start gap-2 list-none">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">Applied to translation service and content moderation</span>
+                            </li>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2 ml-6">Source: translate-text/index.ts</p>
+                        </div>
+
+                        {/* Layer 5: AI Hallucination Detection */}
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-cyan-600" />
+                            5. AI Hallucination Detection
+                          </h4>
+                          <ul className="space-y-2 text-sm ml-6">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>125+ known hallucination phrases detected and filtered</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>"Thank you for watching" variations, webinar/meeting closing loops, call-to-action hallucinations</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Repetitive content detection (low unique word ratio)</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Fabricated URL detection with NHS/medical URL whitelist</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Repeated phrase pattern detection and confidence threshold checking</span>
+                            </li>
+                          </ul>
+                          <p className="text-xs text-muted-foreground mt-2 ml-6">Source: whisperHallucinationPatterns.ts</p>
+                        </div>
+
+                        {/* Layer 6: Clinical Disclaimers */}
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-green-600" />
+                            6. Clinical Disclaimers & User Acknowledgement
+                          </h4>
+                          <ul className="space-y-2 text-sm ml-6">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Persistent micro-banner disclaimers on all AI outputs</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Modal terms of use requiring user acknowledgement</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Clear guidance on clinical responsibility</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Links to original sources (NICE, BNF, MHRA, NHS.uk)</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Audit trail text for clinical records</span>
+                            </li>
+                          </ul>
+                          <p className="text-xs text-muted-foreground mt-2 ml-6">Source: DisclaimerComponents.tsx</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg">
+                        <p className="text-sm"><strong>DCB0129 Alignment:</strong> These controls demonstrate that safety measures are proportionate to identified hazards, supporting clinical safety case requirements.</p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
                 </Accordion>
               </div>
 
