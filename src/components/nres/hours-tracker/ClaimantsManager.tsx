@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Users, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
-import { useNRESClaimants, NRESClaimant } from '@/hooks/useNRESClaimants';
+import { useNRESClaimants, NRESClaimant, MEMBER_PRACTICES, MemberPractice } from '@/hooks/useNRESClaimants';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,16 +30,18 @@ export function ClaimantsManager() {
   // Form state
   const [name, setName] = useState('');
   const [role, setRole] = useState<'gp' | 'pm'>('gp');
+  const [memberPractice, setMemberPractice] = useState<MemberPractice | ''>('');
 
   const resetForm = () => {
     setName('');
     setRole('gp');
+    setMemberPractice('');
     setEditingClaimant(null);
   };
 
   const handleAdd = async () => {
     if (!name.trim()) return;
-    const result = await addClaimant(name.trim(), role);
+    const result = await addClaimant(name.trim(), role, memberPractice || undefined);
     if (result) {
       resetForm();
       setIsAddOpen(false);
@@ -50,11 +52,16 @@ export function ClaimantsManager() {
     setEditingClaimant(claimant);
     setName(claimant.name);
     setRole(claimant.role);
+    setMemberPractice(claimant.member_practice || '');
   };
 
   const handleUpdate = async () => {
     if (!editingClaimant || !name.trim()) return;
-    const result = await updateClaimant(editingClaimant.id, { name: name.trim(), role });
+    const result = await updateClaimant(editingClaimant.id, { 
+      name: name.trim(), 
+      role,
+      member_practice: memberPractice || null
+    });
     if (result) {
       resetForm();
     }
@@ -125,6 +132,21 @@ export function ClaimantsManager() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label htmlFor="claimant-practice" className="text-sm">Member Practice</Label>
+                  <Select value={memberPractice} onValueChange={(v) => setMemberPractice(v as MemberPractice)}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select practice..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEMBER_PRACTICES.map((practice) => (
+                        <SelectItem key={practice} value={practice}>
+                          {practice}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
@@ -147,6 +169,7 @@ export function ClaimantsManager() {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-xs">Name</TableHead>
+                <TableHead className="text-xs">Practice</TableHead>
                 <TableHead className="text-xs">Role</TableHead>
                 <TableHead className="text-xs">Rate</TableHead>
                 <TableHead className="text-xs">Active</TableHead>
@@ -157,6 +180,9 @@ export function ClaimantsManager() {
               {claimants.map((claimant) => (
                 <TableRow key={claimant.id} className={!claimant.is_active ? 'opacity-50' : ''}>
                   <TableCell className="font-medium">{claimant.name}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {claimant.member_practice || '—'}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={claimant.role === 'gp' ? 'default' : 'secondary'}>
                       {claimant.role === 'gp' ? 'GP' : 'PM'}
@@ -237,6 +263,21 @@ export function ClaimantsManager() {
                   <SelectContent>
                     <SelectItem value="gp">GP (£100/hr)</SelectItem>
                     <SelectItem value="pm">Practice Manager (£50/hr)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-practice" className="text-sm">Member Practice</Label>
+                <Select value={memberPractice} onValueChange={(v) => setMemberPractice(v as MemberPractice)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select practice..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MEMBER_PRACTICES.map((practice) => (
+                      <SelectItem key={practice} value={practice}>
+                        {practice}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
