@@ -569,18 +569,20 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         meetings={meetings}
                         isLoading={meetingsLoading}
                       />
-                      
-                      {/* Unified Settings Dropdown */}
-                      <UnifiedSettingsDropdown
-                        chatViewSettings={chatViewSettings}
-                        onUpdateChatViewSetting={updateChatViewSetting}
-                        onResetChatViewDefaults={resetChatViewSettings}
-                        onNewSearch={handleNewSearch}
-                        onShowGPGenie={() => navigate('/gp-genie')}
-                        onShowUserGuide={() => setShowUserGuide(true)}
-                        onOpenSettings={() => setShowSettings(true)}
-                      />
                     </CardTitle>
+                  </div>
+                  
+                  {/* Unified Settings Dropdown - positioned at far right */}
+                  <div className="flex-shrink-0">
+                    <UnifiedSettingsDropdown
+                      chatViewSettings={chatViewSettings}
+                      onUpdateChatViewSetting={updateChatViewSetting}
+                      onResetChatViewDefaults={resetChatViewSettings}
+                      onNewSearch={handleNewSearch}
+                      onShowGPGenie={() => navigate('/gp-genie')}
+                      onShowUserGuide={() => setShowUserGuide(true)}
+                      onOpenSettings={() => setShowSettings(true)}
+                    />
                   </div>
                 </div>
               </CardHeader>
