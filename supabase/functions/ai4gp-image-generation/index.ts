@@ -46,7 +46,7 @@ interface ImageGenerationRequest {
   isStudioRequest?: boolean;
   supportingContent?: string;
   keyMessages?: string[];
-  targetAudience?: 'patients' | 'staff' | 'public' | 'clinical' | 'elderly' | 'parents' | 'young-adults';
+  targetAudience?: 'patients' | 'staff' | 'public' | 'clinical' | 'elderly' | 'parents' | 'young-adults' | 'executive-board';
   purpose?: 'poster' | 'social' | 'leaflet' | 'newsletter' | 'banner' | 'waiting-room' | 'infographic' | 'campaign' | 'form-header' | 'general';
   stylePreset?: 'nhs-professional' | 'modern-minimal' | 'friendly-welcoming' | 'bold-impactful' | 'clinical-medical' | 'custom';
   colourPalette?: {
@@ -487,7 +487,8 @@ CURRENT DATE: ${dateStr}
         'clinical': 'Target audience: Clinical professionals. Technical accuracy important.',
         'elderly': 'Target audience: Elderly patients (65+). Large text, high contrast, simple layout.',
         'parents': 'Target audience: Parents and carers. Reassuring, practical, family-focused.',
-        'young-adults': 'Target audience: Young adults (18-35). Modern, engaging, digital-native design.'
+        'young-adults': 'Target audience: Young adults (18-35). Modern, engaging, digital-native design.',
+        'executive-board': 'Target audience: Executive Board and senior leadership. Strategic, professional, data-driven visuals. Use formal business language, polished presentation style, and emphasis on metrics, outcomes, and governance.'
       };
       
       // Build layout guidance
