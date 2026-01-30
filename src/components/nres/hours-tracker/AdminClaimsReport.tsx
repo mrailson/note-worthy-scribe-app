@@ -35,6 +35,14 @@ interface AllEntry {
   activity_type: string;
   description: string | null;
   entered_by: string | null;
+  claimant_name: string | null;
+  claimant_type: string | null;
+}
+
+interface ClaimantInfo {
+  name: string;
+  member_practice: string | null;
+  role: string;
 }
 
 interface DetailedEntry extends AllEntry {
@@ -68,6 +76,7 @@ export function AdminClaimsReport() {
   const [entries, setEntries] = useState<AllEntry[]>([]);
   const [userSettings, setUserSettings] = useState<Record<string, number>>({});
   const [userProfiles, setUserProfiles] = useState<Record<string, { name: string; practice_name: string }>>({});
+  const [claimants, setClaimants] = useState<Record<string, ClaimantInfo>>({});
   const [startDate, setStartDate] = useState('2020-01-01');
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [viewMode, setViewMode] = useState<'summary' | 'detailed'>('summary');
@@ -104,6 +113,25 @@ export function AdminClaimsReport() {
         console.error('Error fetching settings:', settingsError);
       }
 
+      // Fetch all claimants to get their member_practice
+      const { data: claimantsData, error: claimantsError } = await supabase
+        .from('nres_claimants')
+        .select('name, member_practice, role');
+
+      if (claimantsError) {
+        console.error('Error fetching claimants:', claimantsError);
+      }
+
+      // Build claimants map by name (for lookup)
+      const claimantsMap: Record<string, ClaimantInfo> = {};
+      claimantsData?.forEach(c => {
+        claimantsMap[c.name] = {
+          name: c.name,
+          member_practice: c.member_practice,
+          role: c.role
+        };
+      });
+
       // Build settings map
       const settingsMap: Record<string, number> = {};
       settingsData?.forEach(s => {
@@ -133,6 +161,7 @@ export function AdminClaimsReport() {
       setEntries(entriesData || []);
       setUserSettings(settingsMap);
       setUserProfiles(profileMap);
+      setClaimants(claimantsMap);
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {
@@ -157,10 +186,17 @@ export function AdminClaimsReport() {
     entries.forEach(e => {
       const date = parseISO(e.work_date);
       if (isWithinInterval(date, { start, end })) {
-        const profile = userProfiles[e.user_id];
-        if (profile) {
-          names.add(profile.name);
-          practices.add(profile.practice_name);
+        // If entry has a claimant_name, use that; otherwise use user profile
+        if (e.claimant_name) {
+          const claimant = claimants[e.claimant_name];
+          names.add(e.claimant_name);
+          practices.add(claimant?.member_practice || 'Not Set');
+        } else {
+          const profile = userProfiles[e.user_id];
+          if (profile) {
+            names.add(profile.name);
+            practices.add(profile.practice_name);
+          }
         }
       }
     });
@@ -169,43 +205,61 @@ export function AdminClaimsReport() {
       uniqueNames: Array.from(names).sort(),
       uniquePractices: Array.from(practices).sort()
     };
-  }, [entries, userProfiles, startDate, endDate]);
+  }, [entries, userProfiles, claimants, startDate, endDate]);
 
-  // Filter entries by date range and aggregate by user
+  // Filter entries by date range and aggregate by user/claimant
   const { userClaims, detailedEntries } = useMemo(() => {
     const start = parseISO(startDate);
     const end = parseISO(endDate);
+
+    // Helper to get display name and practice for an entry
+    const getEntryDetails = (e: AllEntry) => {
+      if (e.claimant_name) {
+        const claimant = claimants[e.claimant_name];
+        return {
+          displayName: e.claimant_name,
+          practiceName: claimant?.member_practice || 'Not Set',
+          groupKey: `claimant:${e.claimant_name}` // Group by claimant name
+        };
+      } else {
+        const profile = userProfiles[e.user_id] || { name: e.user_id.substring(0, 8) + '...', practice_name: 'Unknown' };
+        return {
+          displayName: profile.name,
+          practiceName: profile.practice_name,
+          groupKey: `user:${e.user_id}` // Group by user_id
+        };
+      }
+    };
 
     const filteredEntries = entries.filter(e => {
       const date = parseISO(e.work_date);
       if (!isWithinInterval(date, { start, end })) return false;
       
-      const profile = userProfiles[e.user_id];
-      if (!profile) return true; // Include if no profile yet
+      const details = getEntryDetails(e);
       
       // Apply name filter
-      if (filterName !== 'all' && profile.name !== filterName) return false;
+      if (filterName !== 'all' && details.displayName !== filterName) return false;
       
       // Apply practice filter
-      if (filterPractice !== 'all' && profile.practice_name !== filterPractice) return false;
+      if (filterPractice !== 'all' && details.practiceName !== filterPractice) return false;
       
       return true;
     });
 
     // Build detailed entries list
     const detailed: DetailedEntry[] = filteredEntries.map(entry => {
-      const profile = userProfiles[entry.user_id] || { name: entry.user_id.substring(0, 8) + '...', practice_name: 'Unknown' };
+      const details = getEntryDetails(entry);
       const enteredByProfile = entry.entered_by ? userProfiles[entry.entered_by] : null;
       const hourlyRate = userSettings[entry.user_id] || 50;
       const amount = Number(entry.duration_hours) * hourlyRate;
       
       return {
         ...entry,
-        user_name: profile.name,
-        practice_name: profile.practice_name,
+        user_name: details.displayName,
+        practice_name: details.practiceName,
         hourly_rate: hourlyRate,
         amount,
-        entered_by_name: enteredByProfile?.name || (entry.entered_by ? entry.entered_by.substring(0, 8) + '...' : profile.name)
+        entered_by_name: enteredByProfile?.name || (entry.entered_by ? entry.entered_by.substring(0, 8) + '...' : details.displayName)
       };
     });
 
@@ -232,26 +286,25 @@ export function AdminClaimsReport() {
       return sortDirection === 'desc' ? -comparison : comparison;
     });
 
-    // Group by user for summary
-    const userMap = new Map<string, UserClaim>();
+    // Group by claimant/user for summary
+    const claimMap = new Map<string, UserClaim>();
 
     filteredEntries.forEach(entry => {
-      const userId = entry.user_id;
-      const hourlyRate = userSettings[userId] || 50; // Default £50/hr
+      const details = getEntryDetails(entry);
+      const hourlyRate = userSettings[entry.user_id] || 50; // Default £50/hr
       const amount = Number(entry.duration_hours) * hourlyRate;
-      const profile = userProfiles[userId] || { name: userId.substring(0, 8) + '...', practice_name: 'Unknown' };
 
-      if (userMap.has(userId)) {
-        const existing = userMap.get(userId)!;
+      if (claimMap.has(details.groupKey)) {
+        const existing = claimMap.get(details.groupKey)!;
         existing.total_hours += Number(entry.duration_hours);
         existing.total_amount += amount;
         existing.entry_count += 1;
         existing.entries.push(entry);
       } else {
-        userMap.set(userId, {
-          user_id: userId,
-          user_name: profile.name,
-          practice_name: profile.practice_name,
+        claimMap.set(details.groupKey, {
+          user_id: details.groupKey,
+          user_name: details.displayName,
+          practice_name: details.practiceName,
           total_hours: Number(entry.duration_hours),
           total_amount: amount,
           entry_count: 1,
@@ -261,10 +314,10 @@ export function AdminClaimsReport() {
     });
 
     return {
-      userClaims: Array.from(userMap.values()).sort((a, b) => b.total_amount - a.total_amount),
+      userClaims: Array.from(claimMap.values()).sort((a, b) => b.total_amount - a.total_amount),
       detailedEntries: detailed
     };
-  }, [entries, userSettings, userProfiles, startDate, endDate, filterName, filterPractice, sortField, sortDirection]);
+  }, [entries, userSettings, userProfiles, claimants, startDate, endDate, filterName, filterPractice, sortField, sortDirection]);
 
   const grandTotalHours = userClaims.reduce((sum, u) => sum + u.total_hours, 0);
   const grandTotalAmount = userClaims.reduce((sum, u) => sum + u.total_amount, 0);
