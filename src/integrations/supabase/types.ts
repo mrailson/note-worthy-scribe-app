@@ -10636,6 +10636,7 @@ export type Database = {
         | "complaints"
         | "cqc"
         | "lg_capture"
+        | "policy_service"
       staff_role:
         | "gp"
         | "phlebotomist"
@@ -10869,6 +10870,7 @@ export const Constants = {
         "complaints",
         "cqc",
         "lg_capture",
+        "policy_service",
       ],
       staff_role: [
         "gp",
