@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useConversation } from '@11labs/react';
 import { Button } from '@/components/ui/button';
 import { Phone, PhoneOff, Loader2, Sparkles, Volume2, VolumeX, Mic, MicOff, Mail, Image } from 'lucide-react';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { playoutSilentPreRoll, fadeInVolume } from '@/utils/AudioFocusManager';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { usePracticeContext } from '@/hooks/usePracticeContext';
 import wakeRing from '@/assets/sounds/uk_phone_ring_two_rings.wav';
 
 interface EmbeddedPMGenieProps {
@@ -19,6 +20,7 @@ type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | '
 export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   const { user } = useAuth();
   const { profile } = useUserProfile();
+  const { practiceContext } = usePracticeContext();
   const [status, setStatus] = useState<ConnectionStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(0.8);
@@ -30,9 +32,35 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   const volumeGuardTimerRef = useRef<number | null>(null);
   const prevVolumeRef = useRef(0.8);
 
-  // Get user's display name and email
+  // Get user's display name, email and practice
   const userDisplayName = profile?.full_name || profile?.display_name || user?.email?.split('@')[0] || 'User';
   const userEmail = profile?.email || user?.email;
+  const practiceName = practiceContext?.practiceName || practiceContext?.pcnName;
+  const userTitle = profile?.title || profile?.role;
+
+  // Build dynamic prompt with user context for the agent
+  const dynamicPrompt = useMemo(() => {
+    const parts: string[] = [];
+    
+    parts.push(`You are speaking with ${userDisplayName}.`);
+    
+    if (userTitle) {
+      parts.push(`Their role is ${userTitle}.`);
+    }
+    
+    if (practiceName) {
+      parts.push(`They work at ${practiceName}.`);
+    }
+    
+    if (userEmail) {
+      parts.push(`Their email address is ${userEmail} - you already know this, so NEVER ask for their email. When they ask you to email them something, use this email address directly.`);
+    }
+    
+    parts.push(`You can send emails using the send_email tool and create infographics using the generate_infographic tool.`);
+    parts.push(`When generating infographics, you can also offer to email them the result.`);
+    
+    return parts.join(' ');
+  }, [userDisplayName, userEmail, practiceName, userTitle]);
 
   // Email sending function for client tool
   const sendEmailToUser = async (params: { subject: string; content: string }) => {
@@ -237,10 +265,18 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         console.warn('Silent pre-roll failed', e);
       }
 
-      // Start the session
+      // Start the session with dynamic user context
+      console.log('🎯 Starting PM Genie with user context:', { userDisplayName, userEmail, practiceName });
+      
       await conversation.startSession({
         agentId: 'agent_01jzsg04q1fwy9bfydkhszan7s',
-        signedUrl: data.signed_url
+        signedUrl: data.signed_url,
+        dynamicVariables: {
+          user_name: userDisplayName,
+          user_email: userEmail || '',
+          practice_name: practiceName || '',
+          user_title: userTitle || ''
+        }
       });
 
       // Volume kick after start
