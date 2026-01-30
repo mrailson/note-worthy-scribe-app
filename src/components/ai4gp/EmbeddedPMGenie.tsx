@@ -138,12 +138,15 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         return 'Failed to generate infographic: ' + error.message;
       }
 
-      if (data?.imageUrl) {
+      // Handle nested response structure: data.image.url or data.imageUrl
+      const imageUrl = data?.image?.url || data?.imageUrl;
+
+      if (imageUrl) {
         setInfographicsGenerated(prev => prev + 1);
         toast.success('Infographic generated!');
         
         // Return URL for the agent to potentially email
-        return `Infographic generated successfully. The image URL is: ${data.imageUrl}. You can now offer to email this to the user.`;
+        return `Infographic generated successfully. The image URL is: ${imageUrl}. You can now offer to email this to the user.`;
       } else {
         toast.error('Failed to generate infographic');
         return 'Failed to generate infographic: No image returned';
