@@ -605,7 +605,7 @@ export const SDAEvidenceLibrary = () => {
       {/* Communications Section */}
       <div className="space-y-3">
         <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-          <Mail className="w-5 h-5 text-orange-500" />
+          <Mail className="w-5 h-5 text-sky-500" />
           Communications
         </h3>
         <div className="space-y-2">
@@ -618,8 +618,8 @@ export const SDAEvidenceLibrary = () => {
                 <Card className="bg-white border-0 shadow-sm overflow-hidden">
                   <CollapsibleTrigger asChild>
                     <button className="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left">
-                      <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
-                        <FolderIcon className="w-5 h-5 text-orange-600" />
+                      <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center">
+                        <FolderIcon className="w-5 h-5 text-sky-600" />
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold text-slate-900">{comm.date} - {comm.subject}</p>
@@ -639,16 +639,16 @@ export const SDAEvidenceLibrary = () => {
                       {/* Parties */}
                       <div className="flex flex-wrap gap-2">
                         {comm.parties.map((party, idx) => (
-                          <Badge key={idx} variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                          <Badge key={idx} variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">
                             {party}
                           </Badge>
                         ))}
                       </div>
                       
                       {/* Overview */}
-                      <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                        <h4 className="font-semibold text-orange-900 mb-2">Overview</h4>
-                        <p className="text-sm text-orange-800">{comm.overview}</p>
+                      <div className="bg-sky-50 rounded-lg p-4 border border-sky-200">
+                        <h4 className="font-semibold text-sky-900 mb-2">Overview</h4>
+                        <p className="text-sm text-sky-800">{comm.overview}</p>
                       </div>
                       
                       {/* Documents */}
