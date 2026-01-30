@@ -150,7 +150,7 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
               src={currentResult.url} 
               alt={currentResult.alt}
               className="w-full max-h-[60vh] object-contain bg-muted cursor-pointer"
-              onClick={() => window.open(currentResult.url, '_blank')}
+              onClick={handleOpenFullSize}
               title="Click to open full size"
             />
             <div className="p-4 flex flex-wrap gap-2">
