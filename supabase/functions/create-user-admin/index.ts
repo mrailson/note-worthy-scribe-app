@@ -26,6 +26,7 @@ interface CreateUserRequest {
     shared_drive_access: boolean;
     mic_test_service_access: boolean;
     api_testing_service_access: boolean;
+    survey_manager_access: boolean;
   };
 }
 
@@ -92,7 +93,8 @@ const handler = async (req: Request): Promise<Response> => {
         cqc_compliance_access: userData.module_access?.cqc_compliance_access ?? false,
         shared_drive_access: userData.module_access?.shared_drive_access ?? false,
         mic_test_service_access: userData.module_access?.mic_test_service_access ?? false,
-        api_testing_service_access: userData.module_access?.api_testing_service_access ?? false
+        api_testing_service_access: userData.module_access?.api_testing_service_access ?? false,
+        survey_manager_access: userData.module_access?.survey_manager_access ?? false
       });
 
     if (roleError) {
