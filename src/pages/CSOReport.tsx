@@ -189,8 +189,8 @@ const CSOReport = () => {
           <div className="flex flex-wrap gap-4 text-sm">
             <div><span className="font-semibold">Version:</span> 2.1</div>
             <div><span className="font-semibold">Date:</span> {new Date().toLocaleDateString('en-GB')}</div>
-            <div><span className="font-semibold">Status:</span> <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">MHRA CERTIFIED</Badge></div>
-            <div><span className="font-semibold">Medical Device Classification:</span> MHRA Class I Medical Device (UK MDR 2002) - Certified December 2025</div>
+            <div><span className="font-semibold">Status:</span> <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">MHRA REGISTERED</Badge></div>
+            <div><span className="font-semibold">Medical Device Classification:</span> MHRA Class I Medical Device (UK MDR 2002) - Manufacturer Self-Certification & MHRA Registration December 2025</div>
           </div>
         </div>
 
@@ -349,9 +349,9 @@ const CSOReport = () => {
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
                       <span className="text-sm font-medium text-muted-foreground">Clinical Safety (DCB0129)</span>
-                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <Clock className="w-4 h-4 text-amber-600" />
                     </div>
-                    <p className="text-sm font-semibold mb-2">Completed</p>
+                    <p className="text-sm font-semibold mb-2">Draft Complete – Pending Host CSO Adoption</p>
                     <div className="space-y-1">
                       <button
                         onClick={() => scrollToSection('hazard-log')}
@@ -368,16 +368,17 @@ const CSOReport = () => {
                         className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                       >
                         <FileCheck className="w-3 h-3" />
-                        <span className="underline">MHRA Class 1 Medical Device Registration Evidence</span>
+                        <span className="underline">MHRA Class I Registration & Declaration of Conformity</span>
                       </a>
                     </div>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
                       <span className="text-sm font-medium text-muted-foreground">Hazard Log</span>
-                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <Clock className="w-4 h-4 text-amber-600" />
                     </div>
-                    <p className="text-sm font-semibold mb-2">Updated and approved</p>
+                    <p className="text-sm font-semibold mb-2">Draft Updated – Pending Host CSO Sign-off</p>
+                    <p className="text-xs text-muted-foreground mb-2">Meeting Notes & Complaints only (AI4GP excluded from pilot scope)</p>
                     <button
                       onClick={() => scrollToSection('hazard-log')}
                       className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
@@ -435,7 +436,8 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">Pen Test</span>
                       <Clock className="w-4 h-4 text-amber-600" />
                     </div>
-                    <p className="text-sm font-semibold">To be Scheduled (external web app only)</p>
+                    <p className="text-sm font-semibold mb-1">Commissioned by Host NHS Organisation</p>
+                    <p className="text-xs text-muted-foreground">External web app scope; remediation tracked to closure</p>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
@@ -464,9 +466,10 @@ const CSOReport = () => {
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
                       <span className="text-sm font-medium text-muted-foreground">Cyber Essentials</span>
-                      <Clock className="w-4 h-4 text-amber-600" />
+                      <AlertCircle className="w-4 h-4 text-red-600" />
                     </div>
-                    <p className="text-sm font-semibold mb-2">Target: Q1 2026</p>
+                    <p className="text-sm font-semibold mb-2">Mandatory Pre-Go-Live Requirement</p>
+                    <p className="text-xs text-muted-foreground mb-2">Or equivalent controls accepted by host organisation</p>
                     <a 
                       href="https://iasme.co.uk/cyber-essentials/frequently-asked-questions/" 
                       target="_blank"
@@ -556,7 +559,7 @@ const CSOReport = () => {
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
-                      <span>DCB0129 Clinical Risk Management draft to be validated and adopted by NHS host organisation CSO</span>
+                      <span>DCB0129 Safety Case maintained by PCN Services Ltd (draft complete) – requires formal adoption and sign-off by hosting NHS organisation's Clinical Safety Officer on migration</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
@@ -568,7 +571,7 @@ const CSOReport = () => {
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
-                      <span>Confirmation of hosting model and DSPT ownership (NHS tenant preferred)</span>
+                      <span>Confirmation of hosting model and DSPT ownership (NHS tenant preferred) – <strong>Hard gate: no live NHS patient data processing until DSPT ownership confirmed and current submission in place</strong></span>
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
@@ -1167,10 +1170,9 @@ const CSOReport = () => {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="meeting" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="meeting">Meeting Notes ({meetingNotesRisks.length} Risks)</TabsTrigger>
                   <TabsTrigger value="complaints">Complaints ({complaintsRisks.length} Risks)</TabsTrigger>
-                  <TabsTrigger value="ai4gp">AI4GP ({ai4gpRisks.length} Risks) NOT IN SCOPE FOR PILOT</TabsTrigger>
                 </TabsList>
                 <TabsContent value="meeting" className="mt-6">
                   <RiskTable risks={meetingNotesRisks} title="Meeting Notes System - Clinical Risk Assessment" />
@@ -1178,10 +1180,19 @@ const CSOReport = () => {
                 <TabsContent value="complaints" className="mt-6">
                   <RiskTable risks={complaintsRisks} title="Complaints Management System - Clinical Risk Assessment" />
                 </TabsContent>
-                <TabsContent value="ai4gp" className="mt-6">
-                  <RiskTable risks={ai4gpRisks} title="AI4GP Service (Out of Scope for Initial Pilot) - Clinical Risk Assessment" />
-                </TabsContent>
               </Tabs>
+
+              <div className="mt-6 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-700 dark:text-blue-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-1">AI4GP Excluded from Pilot Scope</h4>
+                    <p className="text-sm text-blue-800 dark:text-blue-400">
+                      AI4GP is explicitly excluded from this pilot and from the current assurance scope. AI4GP risks are not included in the above tables. A separate risk assessment will be completed if AI4GP is brought into scope for future phases.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               <div className="mt-6 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4">
                 <div className="flex items-start gap-3">
@@ -1189,7 +1200,7 @@ const CSOReport = () => {
                   <div>
                     <h4 className="font-semibold text-yellow-900 dark:text-yellow-300 mb-1">High Priority Risks Identified</h4>
                     <p className="text-sm text-yellow-800 dark:text-yellow-400">
-                      Several HIGH risk ratings have been identified across all three services. While strong controls are in place, further actions are required to reduce residual risks to acceptable levels before full deployment.
+                      Several HIGH risk ratings have been identified for Meeting Notes and Complaints. While strong controls are in place, further actions are required to reduce residual risks to acceptable levels before full deployment. These represent go-live gating conditions, not open aspirations.
                     </p>
                   </div>
                 </div>
@@ -1210,11 +1221,13 @@ const CSOReport = () => {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
+                <p className="text-sm text-muted-foreground mb-4 italic">
+                  <strong>Note:</strong> AI4GP is excluded from this pilot and from the current assurance scope. The table below covers Meeting Notes and Complaints only.
+                </p>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="min-w-[180px]">Requirement</TableHead>
-                      <TableHead className="min-w-[150px]">AI4GP</TableHead>
                       <TableHead className="min-w-[150px]">Meeting Notes</TableHead>
                       <TableHead className="min-w-[150px]">Complaints</TableHead>
                       <TableHead>Status</TableHead>
@@ -1225,7 +1238,6 @@ const CSOReport = () => {
                     {gdprCompliance.map((item, idx) => (
                       <TableRow key={idx}>
                         <TableCell className="font-medium">{item.requirement}</TableCell>
-                        <TableCell className="text-sm">{item.ai4gp}</TableCell>
                         <TableCell className="text-sm">{item.meetingNotes}</TableCell>
                         <TableCell className="text-sm">{item.complaints}</TableCell>
                         <TableCell>{getStatusBadge(item.status)}</TableCell>
@@ -1244,7 +1256,7 @@ const CSOReport = () => {
                     <div>
                       <h4 className="font-semibold text-orange-900 dark:text-orange-300 mb-1">Action Required</h4>
                       <p className="text-sm text-orange-800 dark:text-orange-400 mb-3">
-                        Formal Data Protection Impact Assessment (DPIA) documentation is required for all three services before deployment. DPO sign-off mandatory.
+                        Formal Data Protection Impact Assessment (DPIA) documentation is required for Meeting Notes and Complaints services before deployment. DPO sign-off mandatory.
                       </p>
                       <Button 
                         variant="outline" 
@@ -1270,13 +1282,13 @@ const CSOReport = () => {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <p className="text-sm text-muted-foreground">
-                      Comprehensive DPIA completed covering all processing activities:
+                      Comprehensive DPIA completed covering:
                     </p>
                     <ul className="text-sm space-y-1 ml-4 list-disc text-muted-foreground">
                       <li>Meeting Manager (audio recording & transcription)</li>
-                      <li>GP Scribe (clinical consultation notes)</li>
                       <li>Complaints Management System</li>
                     </ul>
+                    <p className="text-xs text-muted-foreground italic">Note: AI4GP excluded from pilot scope</p>
                     <Button variant="outline" size="sm" className="w-full mt-2" asChild>
                       <Link to="/dpia">
                         <FileText className="w-4 h-4 mr-2" />
@@ -2312,6 +2324,26 @@ const CSOReport = () => {
                     </div>
                   </div>
 
+                  {/* Hard Governance Gate */}
+                  <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border-2 border-red-400 dark:border-red-900 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-bold mb-2 text-red-900 dark:text-red-300">Hard Governance Gate – DSPT Ownership Required</p>
+                        <p className="text-sm text-red-800 dark:text-red-400 mb-2">
+                          <strong>No live NHS patient data will be processed until:</strong>
+                        </p>
+                        <ul className="text-sm text-red-800 dark:text-red-400 space-y-1 ml-4 list-disc">
+                          <li>DSPT ownership is confirmed for the hosting organisation (or supplier if interim tenancy is used)</li>
+                          <li>A current DSPT submission is in place and meets "Standards Met" status</li>
+                        </ul>
+                        <p className="text-sm text-red-800 dark:text-red-400 mt-2 italic">
+                          Development environments use synthetic/test data only. This is a go-live gating condition.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Final Statement */}
                   <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-2 border-amber-300 dark:border-amber-900 rounded-lg p-4">
                     <div className="flex items-start gap-3">
@@ -2367,16 +2399,20 @@ const CSOReport = () => {
                   <div className="border rounded-lg p-4 bg-background">
                     <h4 className="font-semibold mb-3 flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4 text-amber-600" />
-                      Deletion vs Backups
+                      Deletion vs Immutable Backups
                     </h4>
                     <div className="space-y-2">
                       <div className="flex items-start gap-2">
-                        <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">A written position is required on how data erasure/deletion requests interact with historic backups (TBC)</span>
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm"><strong>NHS-aligned position:</strong> Deletion requests will remove data from live systems. Historic backups are immutable for ransomware resilience but will expire per the defined retention schedule (typically 30-90 days for operational backups).</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">Deletion confirmation will note that data may persist in immutable backups until natural expiry, consistent with NHS standard practice for ransomware-resilient infrastructure.</span>
                       </div>
                       <div className="flex items-start gap-2">
                         <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">This will be aligned with standard NHS guidance on backups and data protection</span>
+                        <span className="text-sm">Final backup retention periods to be agreed with hosting organisation (TBC)</span>
                       </div>
                     </div>
                   </div>
@@ -2640,7 +2676,128 @@ const CSOReport = () => {
                           <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
                           <span>Error/exception sanitisation (no sensitive stack trace leakage)</span>
                         </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span><strong>Shorter session timeouts for PII-bearing modules:</strong> Sessions expire after 4 hours for complaints and other modules handling patient identifiable information</span>
+                        </li>
                       </ul>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="incident-monitoring">
+                    <AccordionTrigger className="text-base font-semibold">Incident Monitoring & Response Ownership (Pilot Phase)</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4 mb-4">
+                        <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-300">Interim Accountable Model for Pilot</h4>
+                        <p className="text-sm text-blue-800 dark:text-blue-400">
+                          During the pilot phase, incident monitoring and response ownership will operate under an interim model pending formal NHS hosting migration.
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <Users className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Neighbourhood Digital Team:</span> First-line monitoring of system health, user access issues, and operational alerts. Responsible for triaging incidents and escalating to appropriate parties.
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <Shield className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Hosting Organisation (LHIS/NHS Tenant):</span> Security incident response, data breach handling, and integration with NHS incident management processes. Formal reporting to ICO where required.
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <FileText className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">PCN Services Ltd (Developer):</span> Technical issue resolution, bug fixes, and security patch deployment. Escalation pathway for platform-level issues.
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
+                        <p className="text-sm"><strong>Note:</strong> A formal incident response matrix and escalation pathways will be documented once the hosting organisation is confirmed. This interim model ensures clear accountability during the pilot phase.</p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="pen-testing">
+                    <AccordionTrigger className="text-base font-semibold">Penetration Testing Ownership</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4 mb-4">
+                        <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-300">Hosting NHS Organisation Responsibility</h4>
+                        <p className="text-sm text-blue-800 dark:text-blue-400">
+                          Penetration testing is commissioned and owned by the hosting NHS organisation. PCN Services Ltd supports the process but does not control the testing scope or timeline.
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Commissioning:</span> The hosting NHS organisation (e.g., LHIS/UHL) commissions the penetration test via their approved CREST or CHECK accredited provider.
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Scope:</span> External web application testing covering OWASP Top 10, authentication, access control, API endpoints, and TLS configuration. Red-team and internal network testing not required.
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Remediation:</span> All findings will be tracked to closure with defined timelines. Critical/high severity findings must be remediated before go-live. Medium/low findings tracked via the hosting organisation's risk register.
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Re-testing:</span> Re-testing of remediated critical/high findings will be conducted and tracked to closure by the hosting organisation.
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg">
+                        <p className="text-sm"><strong>Go-Live Gate:</strong> No live NHS patient data will be processed until penetration testing is complete and all critical/high findings are remediated and re-tested.</p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="third-party-ai">
+                    <AccordionTrigger className="text-base font-semibold">Third-Party AI Controls & Data Protection</AccordionTrigger>
+                    <AccordionContent>
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4 mb-4">
+                        <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-300">Technical Constraints for External LLM Use</h4>
+                        <p className="text-sm text-blue-800 dark:text-blue-400">
+                          External LLM use is technically constrained for PII-bearing modules through enforced controls. These are not policy statements but architectural safeguards.
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <Shield className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Data Minimisation/Masking:</span> Patient identifiers are masked or removed before any data is sent to external AI services. Only structured, anonymised content is transmitted for processing.
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <Shield className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Structured Prompts:</span> All AI prompts use structured templates that prevent free-text identifiers from being included. System prompts enforce clinical safety boundaries.
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <Shield className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Free-Text Identifier Blocking:</span> NHS numbers, dates of birth, and other direct identifiers are blocked by design from being transmitted to external LLMs.
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Disable External Processing:</span> The system includes the ability to disable external LLM processing entirely for specific modules or organisations where these controls cannot be guaranteed or where local policy requires it.
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg">
+                        <p className="text-sm"><strong>DPA in Place:</strong> Data Processing Agreement with OpenAI (signed 10 November 2025) confirms no data reuse for training and UK-aligned processing terms.</p>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
 
@@ -2696,16 +2853,20 @@ const CSOReport = () => {
 
                         {/* Planned approach */}
                         <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
-                          <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-300">Planned Approach (Subject to ICP/LHIS Agreement)</h4>
-                          <p className="text-sm mb-3">Define log retention period for:</p>
+                          <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-300">Minimum Retention Standards (Pre-Go-Live Requirement)</h4>
+                          <p className="text-sm mb-3">The following minimum retention periods will apply:</p>
                           <ul className="space-y-2 text-sm">
                             <li className="flex items-start gap-2">
-                              <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                              <span><strong>Application/audit logs:</strong> e.g. 6–12 months (TBC)</span>
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span><strong>Audit logs (access, modifications):</strong> Minimum 12 months</span>
                             </li>
                             <li className="flex items-start gap-2">
-                              <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                              <span><strong>Security event logs:</strong> e.g. longer if required by CAF/DSPT (TBC)</span>
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span><strong>Security event logs:</strong> Minimum 12 months (or longer per CAF/DSPT requirements)</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span><strong>Authentication logs:</strong> Minimum 12 months</span>
                             </li>
                           </ul>
                           <p className="text-sm mt-3 font-semibold">Balance:</p>
@@ -2720,7 +2881,7 @@ const CSOReport = () => {
                         <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-4">
                           <h4 className="font-semibold text-sm mb-2 text-amber-900 dark:text-amber-300">TBC Items</h4>
                           <ul className="space-y-1 ml-4 text-sm">
-                            <li>• Final retention periods for each log type (to be aligned with DSPT/CAF v4 – TBC)</li>
+                            <li>• Final retention periods to be formally agreed with hosting organisation (minimum standards above will apply)</li>
                             <li>• Confirmation of which logs may contain PII and how these are redacted/rotated if required</li>
                             <li>• Once agreed, the log retention policy will be documented here and reflected in the DPIA and DSPT submissions</li>
                           </ul>
@@ -2730,16 +2891,27 @@ const CSOReport = () => {
                   </AccordionItem>
 
                   <AccordionItem value="cyber-essentials">
-                    <AccordionTrigger className="text-base font-semibold">Cyber Essentials Roadmap</AccordionTrigger>
+                    <AccordionTrigger className="text-base font-semibold">Cyber Essentials Requirement</AccordionTrigger>
                     <AccordionContent>
+                      <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border-2 border-red-400 dark:border-red-900 rounded-lg p-4 mb-4">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                          <div>
+                            <p className="text-sm font-bold mb-1 text-red-900 dark:text-red-300">Mandatory Pre-Go-Live Requirement</p>
+                            <p className="text-sm text-red-800 dark:text-red-400">
+                              Cyber Essentials certification (or equivalent controls accepted by the host organisation) is a mandatory go-live gating condition. The system will not process live NHS patient data until this requirement is satisfied.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                       <p className="text-sm mb-4">
                         NoteWell AI is working toward Cyber Essentials certification to support NHS adoption.
                       </p>
                       <div className="space-y-3">
                         <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
-                          <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                           <div className="text-sm">
-                            <span className="font-semibold">Cyber Essentials (Basic):</span> Target completion Q1 2026 (TBC)
+                            <span className="font-semibold">Cyber Essentials (Basic):</span> Mandatory pre-go-live (or equivalent controls accepted by host organisation)
                           </div>
                         </div>
                         <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
@@ -2755,8 +2927,8 @@ const CSOReport = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
-                        <p className="text-sm"><strong>Next Steps:</strong> A formal Cyber Essentials readiness assessment will begin once the hosting organisation is confirmed.</p>
+                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
+                        <p className="text-sm"><strong>Next Steps:</strong> A formal Cyber Essentials readiness assessment will begin once the hosting organisation is confirmed. Host organisation may accept equivalent controls if they determine CE certification is not required for their risk tolerance.</p>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
