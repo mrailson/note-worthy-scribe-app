@@ -368,8 +368,8 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         signedUrl: data.signed_url,
         dynamicVariables: {
           user_name: userDisplayName,
-          // Replace @ with " at " for TTS pronunciation
-          user_email: userEmail ? userEmail.replace(/@/g, ' at ') : '',
+          // Don't pass actual email - tell agent they have a registered email instead
+          user_email: userEmail ? 'your registered NHS email' : '',
           practice_name: practiceName || '',
           user_title: userTitle || ''
         }
