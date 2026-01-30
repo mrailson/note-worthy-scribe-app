@@ -104,19 +104,30 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   };
 
   // Infographic generation function for client tool
-  const generateInfographic = async (params: { topic: string; keyPoints?: string[] }) => {
+  // Note: ElevenLabs sends keyPoints as a string (comma-separated), not array
+  const generateInfographic = async (params: { topic: string; keyPoints?: string }) => {
     try {
-      console.log('🎨 PM Genie generating infographic:', params.topic);
-      toast.info('Generating infographic...', { duration: 10000 });
+      console.log('🎨 PM Genie generating infographic:', params.topic, 'keyPoints:', params.keyPoints);
+      toast.info('Generating infographic...', { duration: 15000 });
+
+      // Parse keyPoints - could be comma-separated string from ElevenLabs
+      let keyMessages: string[] = [];
+      if (params.keyPoints) {
+        if (typeof params.keyPoints === 'string') {
+          keyMessages = params.keyPoints.split(',').map(k => k.trim()).filter(k => k);
+        } else if (Array.isArray(params.keyPoints)) {
+          keyMessages = params.keyPoints;
+        }
+      }
 
       const { data, error } = await supabase.functions.invoke('ai4gp-image-generation', {
         body: {
           prompt: params.topic,
           requestType: 'infographic',
-          layoutPreference: 'portrait',
+          layoutPreference: 'landscape',
           targetAudience: 'staff',
           isStudioRequest: true,
-          keyMessages: params.keyPoints || [],
+          keyMessages: keyMessages,
           brandingLevel: 'none'
         }
       });
@@ -132,7 +143,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         toast.success('Infographic generated!');
         
         // Return URL for the agent to potentially email
-        return `Infographic generated successfully. The image URL is: ${data.imageUrl}`;
+        return `Infographic generated successfully. The image URL is: ${data.imageUrl}. You can now offer to email this to the user.`;
       } else {
         toast.error('Failed to generate infographic');
         return 'Failed to generate infographic: No image returned';
@@ -149,7 +160,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
       send_email: async (params: { subject: string; content: string }) => {
         return await sendEmailToUser(params);
       },
-      generate_infographic: async (params: { topic: string; keyPoints?: string[] }) => {
+      generate_infographic: async (params: { topic: string; keyPoints?: string }) => {
         return await generateInfographic(params);
       }
     },
