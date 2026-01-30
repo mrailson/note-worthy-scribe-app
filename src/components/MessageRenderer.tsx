@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -182,6 +182,18 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   // Calculate remaining content stats
   const remainingChars = message.content.length - previewContent.length;
   const showMoreIndicator = isCollapsible && isAssistantCollapsed && remainingChars > 0;
+
+  // Memoize heavy markdown rendering to prevent memory churn
+  const renderedAssistantMarkdown = useMemo(() => {
+    if (message.role !== 'assistant') return '';
+    const contentToRender = isCollapsible && isAssistantCollapsed ? previewContent : message.content;
+    return renderNHSMarkdown(contentToRender, { enableNHSStyling: true });
+  }, [message.role, message.content, isCollapsible, isAssistantCollapsed, previewContent]);
+
+  const renderedUserMarkdown = useMemo(() => {
+    if (message.role !== 'user') return '';
+    return renderNHSMarkdown(message.content, { enableNHSStyling: true, isUserMessage: true });
+  }, [message.role, message.content]);
   
   React.useEffect(() => {
     // Don't auto-scroll if user manually expanded during streaming
@@ -843,12 +855,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                     }}
                   >
                     <div 
-                      dangerouslySetInnerHTML={{ 
-                        __html: renderNHSMarkdown(
-                          isCollapsible && isAssistantCollapsed ? previewContent : displayContent, 
-                          { enableNHSStyling: true }
-                        )
-                      }}
+                      dangerouslySetInnerHTML={{ __html: renderedAssistantMarkdown }}
                     />
                     {message.isStreaming && !displayContent && (
                       <div className="inline-flex items-center gap-2 text-muted-foreground mt-2">
@@ -885,9 +892,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               ) : (
                 <div className="ai4gp-text-scaled">
                   <div 
-                    dangerouslySetInnerHTML={{ 
-                      __html: renderNHSMarkdown(displayContent, { enableNHSStyling: true, isUserMessage: message.role === 'user' })
-                    }}
+                    dangerouslySetInnerHTML={{ __html: renderedUserMarkdown }}
                   />
                 </div>
               )}
