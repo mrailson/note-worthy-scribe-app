@@ -131,11 +131,22 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
 
     try {
       // ElevenLabs tool schema may not include imageUrl; fall back to extracting from content or last generated image.
-      const resolvedImageUrl =
+      let resolvedImageUrl =
         params.imageUrl ||
         extractImageUrlFromText(params.content) ||
         lastInfographicUrlRef.current ||
         undefined;
+
+      // If the user asked for an infographic email but the agent didn't provide one, generate it now.
+      // This prevents “email sent” without an attachment.
+      const mentionsInfographic = /\binfographic\b/i.test(`${params.subject}\n${params.content}`);
+      if (!resolvedImageUrl && mentionsInfographic) {
+        const topicFromSubject = params.subject.replace(/\binfographic\b/ig, '').trim() || params.subject;
+        toast.info('Generating infographic to attach…', { duration: 15000 });
+
+        await generateInfographic({ topic: topicFromSubject });
+        resolvedImageUrl = lastInfographicUrlRef.current || undefined;
+      }
 
       console.log('📧 PM Genie sending email to:', userEmail, resolvedImageUrl ? 'with infographic' : '');
       
@@ -192,6 +203,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         body: {
           prompt: params.topic,
           requestType: 'infographic',
+          purpose: 'infographic',
           layoutPreference: 'landscape',
           targetAudience: 'staff',
           isStudioRequest: true,
@@ -235,6 +247,13 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
       generate_infographic: async (params: { topic: string; keyPoints?: string }) => {
         return await generateInfographic(params);
       }
+    },
+    overrides: {
+      agent: {
+        prompt: {
+          prompt: dynamicPrompt,
+        },
+      },
     },
     onConnect: async () => {
       console.log('Connected to PM Genie');
@@ -536,17 +555,16 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
                 <div className="flex items-center gap-1.5">
                   <Image className="w-3.5 h-3.5" />
                   <span>{infographicsGenerated} infographic{infographicsGenerated !== 1 ? 's' : ''}</span>
-                  {lastInfographicUrlRef.current && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleDownloadLastInfographic}
-                      className="h-6 w-6 text-primary hover:text-primary"
-                      title="Download last infographic"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                    </Button>
-                  )}
+                   <Button
+                     variant="ghost"
+                     size="icon"
+                     onClick={handleDownloadLastInfographic}
+                     disabled={!lastInfographicUrlRef.current}
+                     className="h-6 w-6 text-primary hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                     title={lastInfographicUrlRef.current ? 'Download last infographic' : 'No infographic available to download'}
+                   >
+                     <Download className="w-3.5 h-3.5" />
+                   </Button>
                 </div>
               )}
             </div>
