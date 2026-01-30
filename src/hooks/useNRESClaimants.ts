@@ -4,13 +4,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export const MEMBER_PRACTICES = [
-  'Brackley',
-  'Springfield',
-  'Brook',
-  'Towcester',
-  'Denton',
-  'Bugbrooke',
-  'The Parks',
+  'Brackley Medical Centre',
+  'Springfield Surgery',
+  'The Brook Health Centre',
+  'Towcester Medical Centre',
+  'Denton Surgery',
+  'Bugbrooke Medical Practice',
+  'The Parks Medical Practice',
   'Brackley & Towcester PCN'
 ] as const;
 
