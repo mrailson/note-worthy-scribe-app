@@ -204,16 +204,43 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
     onClose();
   };
 
-  // Auto-start connection on mount
+  // Auto-start connection on mount and cleanup on unmount
   useEffect(() => {
     startConversation();
     
+    // Cleanup function - ensure we end the session when component unmounts
     return () => {
+      console.log('EmbeddedPMGenie unmounting - cleaning up...');
+      
       if (volumeGuardTimerRef.current) {
         clearInterval(volumeGuardTimerRef.current);
+        volumeGuardTimerRef.current = null;
+      }
+      
+      // Always try to end the session on unmount to prevent orphaned connections
+      try {
+        conversation.endSession().catch(err => {
+          console.warn('Error ending session on unmount:', err);
+        });
+      } catch (err) {
+        console.warn('Error ending session on unmount:', err);
       }
     };
   }, []);
+  
+  // Warn user before navigating away while call is active
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (status === 'connected' || status === 'connecting') {
+        e.preventDefault();
+        e.returnValue = 'You have an active voice call. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [status]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] p-8 bg-gradient-to-b from-background to-muted/20">
