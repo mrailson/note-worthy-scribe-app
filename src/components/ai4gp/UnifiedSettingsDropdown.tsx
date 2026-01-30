@@ -78,11 +78,11 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
       <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="w-56">
         {/* Quick Actions Submenu */}
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="gap-2">
-            <Zap className="h-4 w-4" />
+          <DropdownMenuSubTrigger className="gap-2" openLeft>
             <span>Quick Actions</span>
+            <Zap className="h-4 w-4 ml-auto" />
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
+          <DropdownMenuSubContent side="left">
             <DropdownMenuItem onClick={onNewSearch}>
               <Plus className="w-4 h-4 mr-2" />
               New Search
@@ -102,18 +102,18 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
 
         {/* View Settings Submenu */}
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="gap-2">
-            <SlidersHorizontal className="h-4 w-4" />
+          <DropdownMenuSubTrigger className="gap-2" openLeft>
             <span>View</span>
+            <SlidersHorizontal className="h-4 w-4 ml-auto" />
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-56">
+          <DropdownMenuSubContent className="w-56" side="left">
             {/* Text Size */}
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="gap-2">
-                <Type className="h-4 w-4" />
+              <DropdownMenuSubTrigger className="gap-2" openLeft>
                 <span>Text Size</span>
+                <Type className="h-4 w-4 ml-auto" />
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
+              <DropdownMenuSubContent side="left">
                 <DropdownMenuRadioGroup
                   value={chatViewSettings.fontSize}
                   onValueChange={(value) => onUpdateChatViewSetting('fontSize', value as ChatViewSettings['fontSize'])}
@@ -129,11 +129,11 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
 
             {/* Message Display */}
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="gap-2">
-                <MessageSquare className="h-4 w-4" />
+              <DropdownMenuSubTrigger className="gap-2" openLeft>
                 <span>Message Display</span>
+                <MessageSquare className="h-4 w-4 ml-auto" />
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
+              <DropdownMenuSubContent side="left">
                 <DropdownMenuCheckboxItem
                   checked={chatViewSettings.showUserMessages}
                   onCheckedChange={(checked) => onUpdateChatViewSetting('showUserMessages', checked)}
@@ -157,11 +157,11 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
 
             {/* Auto-Scroll */}
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="gap-2">
-                <ArrowDownToLine className="h-4 w-4" />
+              <DropdownMenuSubTrigger className="gap-2" openLeft>
                 <span>Auto-Scroll</span>
+                <ArrowDownToLine className="h-4 w-4 ml-auto" />
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
+              <DropdownMenuSubContent side="left">
                 <DropdownMenuCheckboxItem
                   checked={chatViewSettings.autoScrollNewMessages}
                   onCheckedChange={(checked) => onUpdateChatViewSetting('autoScrollNewMessages', checked)}
@@ -179,11 +179,11 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
 
             {/* Bubble Style */}
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="gap-2">
-                <Palette className="h-4 w-4" />
+              <DropdownMenuSubTrigger className="gap-2" openLeft>
                 <span>Bubble Style</span>
+                <Palette className="h-4 w-4 ml-auto" />
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
+              <DropdownMenuSubContent side="left">
                 <DropdownMenuRadioGroup
                   value={chatViewSettings.bubbleStyle}
                   onValueChange={(value) => onUpdateChatViewSetting('bubbleStyle', value as ChatViewSettings['bubbleStyle'])}
@@ -199,11 +199,11 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
 
             {/* Container Size */}
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="gap-2">
-                <Maximize2 className="h-4 w-4" />
+              <DropdownMenuSubTrigger className="gap-2" openLeft>
                 <span>Container Size</span>
+                <Maximize2 className="h-4 w-4 ml-auto" />
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
+              <DropdownMenuSubContent side="left">
                 <DropdownMenuRadioGroup
                   value={chatViewSettings.containerSize}
                   onValueChange={(value) => onUpdateChatViewSetting('containerSize', value as ChatViewSettings['containerSize'])}
@@ -221,8 +221,8 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
 
             {/* Reset to Defaults */}
             <DropdownMenuItem onClick={onResetChatViewDefaults} className="gap-2">
-              <RotateCcw className="h-4 w-4" />
               <span>Reset view defaults</span>
+              <RotateCcw className="h-4 w-4 ml-auto" />
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
@@ -231,8 +231,8 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
 
         {/* Full Settings Modal */}
         <DropdownMenuItem onClick={onOpenSettings} className="gap-2">
-          <Settings className="h-4 w-4" />
           <span>All Settings...</span>
+          <Settings className="h-4 w-4 ml-auto" />
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

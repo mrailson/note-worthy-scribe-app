@@ -1,6 +1,6 @@
 import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
-import { Check, ChevronRight, Circle } from "lucide-react"
+import { Check, ChevronRight, ChevronLeft, Circle } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -20,8 +20,9 @@ const DropdownMenuSubTrigger = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubTrigger>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> & {
     inset?: boolean
+    openLeft?: boolean
   }
->(({ className, inset, children, ...props }, ref) => (
+>(({ className, inset, openLeft, children, ...props }, ref) => (
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
@@ -31,8 +32,9 @@ const DropdownMenuSubTrigger = React.forwardRef<
     )}
     {...props}
   >
+    {openLeft && <ChevronLeft className="mr-2 h-4 w-4" />}
     {children}
-    <ChevronRight className="ml-auto h-4 w-4" />
+    {!openLeft && <ChevronRight className="ml-auto h-4 w-4" />}
   </DropdownMenuPrimitive.SubTrigger>
 ))
 DropdownMenuSubTrigger.displayName =
@@ -40,14 +42,18 @@ DropdownMenuSubTrigger.displayName =
 
 const DropdownMenuSubContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
->(({ className, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent> & {
+    side?: "left" | "right"
+  }
+>(({ className, side = "right", ...props }, ref) => (
   <DropdownMenuPrimitive.SubContent
     ref={ref}
     className={cn(
       "z-[9999] pointer-events-auto min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
       // Mobile optimisations and interactivity
       "touch-manipulation select-none sm:min-w-[8rem] min-w-[12rem] max-h-[50vh] overflow-y-auto",
+      // Position based on side prop
+      side === "left" && "right-full mr-1",
       className
     )}
     {...props}
