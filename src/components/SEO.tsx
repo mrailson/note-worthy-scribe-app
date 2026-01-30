@@ -22,6 +22,11 @@ export const SEO = ({
       <meta name="keywords" content={keywords} />
       <link rel="canonical" href={canonical} />
       
+      {/* Favicon - ensure consistent robot icon across all pages */}
+      <link rel="icon" type="image/png" href="/favicon-option1.png?v=4" />
+      <link rel="shortcut icon" href="/favicon-option1.png?v=4" />
+      <link rel="apple-touch-icon" sizes="180x180" href="/favicon-option1.png?v=4" />
+      
       {/* Open Graph */}
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
