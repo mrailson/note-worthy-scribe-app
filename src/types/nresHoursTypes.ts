@@ -18,6 +18,7 @@ export interface NRESHoursEntry {
   description: string | null;
   claimant_type: 'gp' | 'pm' | null;
   claimant_name: string | null;
+  entered_by: string | null;
   created_at: string;
   updated_at: string;
 }
