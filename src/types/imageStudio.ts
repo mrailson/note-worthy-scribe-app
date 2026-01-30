@@ -87,6 +87,7 @@ export interface ImageStudioRequest {
   practiceContext?: PracticeContext;
   brandingLevel?: BrandingLevel;
   customBranding?: CustomBrandingOptions;
+  customPracticeName?: string;
   logoPlacement?: LogoPlacementId;
   includeLogo?: boolean;
   
