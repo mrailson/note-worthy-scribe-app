@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -9,9 +9,13 @@ export function useNRESExpenses() {
   const [expenses, setExpenses] = useState<NRESExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const hasFetchedRef = useRef(false);
 
-  const fetchExpenses = useCallback(async () => {
+  const fetchExpenses = useCallback(async (forceRefresh = false) => {
     if (!user?.id) return;
+    
+    // Prevent duplicate fetches on initial load
+    if (!forceRefresh && hasFetchedRef.current) return;
     
     try {
       setLoading(true);
@@ -23,6 +27,7 @@ export function useNRESExpenses() {
 
       if (error) throw error;
       setExpenses(data || []);
+      hasFetchedRef.current = true;
     } catch (error) {
       console.error('Error fetching expenses:', error);
       toast.error('Failed to load expenses');
@@ -35,7 +40,10 @@ export function useNRESExpenses() {
     if (user?.id) {
       fetchExpenses();
     }
-  }, [user?.id, fetchExpenses]);
+    return () => {
+      hasFetchedRef.current = false;
+    };
+  }, [user?.id]); // Only depend on user?.id
 
   const addExpense = async (expense: Omit<NRESExpense, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user?.id) return;
@@ -118,7 +126,7 @@ export function useNRESExpenses() {
     addExpense,
     updateExpense,
     deleteExpense,
-    refetch: fetchExpenses,
+    refetch: () => fetchExpenses(true),
     totalExpenses
   };
 }

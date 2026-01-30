@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -34,6 +34,9 @@ export function useNRESClaimants() {
   const [practiceId, setPracticeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  
+  // Track if initial fetch has been done to prevent duplicate fetches
+  const hasFetchedRef = useRef(false);
 
   // Get user's practice ID
   const fetchPracticeId = useCallback(async () => {
@@ -55,8 +58,11 @@ export function useNRESClaimants() {
     }
   }, [user?.id]);
 
-  const fetchClaimants = useCallback(async () => {
+  const fetchClaimants = useCallback(async (forceRefresh = false) => {
     if (!user?.id) return;
+    
+    // Prevent duplicate fetches on initial load
+    if (!forceRefresh && hasFetchedRef.current) return;
     
     try {
       setLoading(true);
@@ -64,6 +70,7 @@ export function useNRESClaimants() {
       
       if (!pId) {
         setClaimants([]);
+        hasFetchedRef.current = true;
         return;
       }
 
@@ -83,19 +90,25 @@ export function useNRESClaimants() {
       }));
       
       setClaimants(castClaimants);
+      hasFetchedRef.current = true;
     } catch (error) {
       console.error('Error fetching claimants:', error);
       toast.error('Failed to load claimants');
     } finally {
       setLoading(false);
     }
-  }, [user?.id, practiceId, fetchPracticeId]);
+  }, [user?.id, fetchPracticeId]); // Removed practiceId from deps to prevent re-fetch loop
 
   useEffect(() => {
     if (user?.id) {
       fetchClaimants();
     }
-  }, [user?.id, fetchClaimants]);
+    
+    // Reset fetch flag when user changes
+    return () => {
+      hasFetchedRef.current = false;
+    };
+  }, [user?.id]); // Only depend on user?.id, not fetchClaimants
 
   const addClaimant = async (name: string, role: 'gp' | 'pm', memberPractice?: MemberPractice) => {
     if (!user?.id) return null;
@@ -202,6 +215,6 @@ export function useNRESClaimants() {
     addClaimant,
     updateClaimant,
     deleteClaimant,
-    refetch: fetchClaimants
+    refetch: () => fetchClaimants(true)
   };
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -9,15 +9,13 @@ export function useNRESUserSettings() {
   const [settings, setSettings] = useState<NRESUserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const hasFetchedRef = useRef(false);
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchSettings();
-    }
-  }, [user?.id]);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async (forceRefresh = false) => {
     if (!user?.id) return;
+    
+    // Prevent duplicate fetches on initial load
+    if (!forceRefresh && hasFetchedRef.current) return;
     
     try {
       setLoading(true);
@@ -29,12 +27,22 @@ export function useNRESUserSettings() {
 
       if (error) throw error;
       setSettings(data);
+      hasFetchedRef.current = true;
     } catch (error) {
       console.error('Error fetching NRES settings:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchSettings();
+    }
+    return () => {
+      hasFetchedRef.current = false;
+    };
+  }, [user?.id]);
 
   const saveHourlyRate = async (rate: number) => {
     if (!user?.id) return;

@@ -193,6 +193,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return userModules.includes(module);
   };
 
+  // Track if we've already fetched for the current user to prevent duplicate fetches
+  const fetchedUserIdRef = React.useRef<string | null>(null);
+
+  const fetchUserData = async (userId: string, forceRefresh = false) => {
+    // Prevent duplicate fetches for the same user unless forced
+    if (!forceRefresh && fetchedUserIdRef.current === userId) {
+      return;
+    }
+    fetchedUserIdRef.current = userId;
+    
+    // Fetch all user data in parallel
+    await Promise.all([
+      fetchUserModules(userId),
+      checkSystemAdmin(userId),
+      checkConsultationExamplesVisibility()
+    ]);
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -201,14 +219,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Fetch user modules and check admin status when user logs in
+        // Fetch user data when user logs in
         if (session?.user) {
+          // Use setTimeout to avoid state update during render
           setTimeout(() => {
-            fetchUserModules(session.user.id);
-            checkSystemAdmin(session.user.id);
-            checkConsultationExamplesVisibility();
+            fetchUserData(session.user.id);
           }, 0);
         } else {
+          fetchedUserIdRef.current = null;
           setUserModules([]);
           setIsSystemAdmin(false);
           setCanViewConsultationExamples(true);
@@ -221,28 +239,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      // Also fetch modules and check admin status for existing session
+      // Fetch data for existing session
       if (session?.user) {
         setTimeout(() => {
-          fetchUserModules(session.user.id);
-          checkSystemAdmin(session.user.id);
-          checkConsultationExamplesVisibility();
+          fetchUserData(session.user.id);
         }, 0);
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  // Fetch user modules and admin status once when user changes
-  // No polling - data is fetched on login and can be manually refreshed via refreshUserModules()
-  useEffect(() => {
-    if (user?.id) {
-      fetchUserModules(user.id);
-      checkSystemAdmin(user.id);
-      checkConsultationExamplesVisibility();
-    }
-  }, [user?.id]);
 
   // Update session activity every 5 minutes and cleanup expired sessions
   useEffect(() => {
@@ -451,7 +457,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     resetPassword,
     updatePassword,
     hasModuleAccess,
-    refreshUserModules: () => user?.id ? fetchUserModules(user.id) : Promise.resolve(),
+    refreshUserModules: () => user?.id ? fetchUserData(user.id, true) : Promise.resolve(),
     checkConsultationExamplesVisibility,
   };
 
