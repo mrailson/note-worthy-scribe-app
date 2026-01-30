@@ -504,12 +504,13 @@ CURRENT DATE: ${dateStr}
       let colourInstructions = '';
       if (colourPalette) {
         colourInstructions = `
-COLOUR PALETTE (use these exact colours):
-- Primary colour: ${colourPalette.primary}
-- Secondary colour: ${colourPalette.secondary}
-- Accent colour: ${colourPalette.accent}
-- Background: ${colourPalette.background}
-- Text colour: ${colourPalette.text}`;
+COLOUR SCHEME (apply these colours throughout the design - DO NOT display them as a visible palette/legend):
+- Use ${colourPalette.primary} as the primary colour for headings and key elements
+- Use ${colourPalette.secondary} for secondary elements and accents
+- Use ${colourPalette.accent} for highlights and call-to-action elements
+- Use ${colourPalette.background} for the background
+- Use ${colourPalette.text} for body text
+IMPORTANT: Apply these colours naturally in the design. DO NOT show colour swatches, hex codes, or a colour palette legend anywhere on the image.`;
       }
       
       // Build key messages section
