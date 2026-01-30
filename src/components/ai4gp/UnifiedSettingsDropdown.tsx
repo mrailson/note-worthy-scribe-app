@@ -75,7 +75,7 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
           {!isMobile && <span className="text-xs">Settings</span>}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="w-56">
         {/* Quick Actions Submenu */}
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="gap-2">
