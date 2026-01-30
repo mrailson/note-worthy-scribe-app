@@ -725,8 +725,8 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                   "flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden",
                   deviceInfo.isIPhone && "pb-safe"
                 )}>
-                  {messages.length === 0 ? (
-                    /* Welcome Screen - Compact, mobile-optimized */
+                  {messages.length === 0 && !showEmbeddedPMGenie ? (
+                    /* Welcome Screen - Compact, mobile-optimized - Hidden when PM Genie is active */
                     <div className={cn(
                       "flex-1 overflow-y-auto space-y-3 sm:space-y-4",
                       isMobile ? "p-4 pb-24" : "p-3 sm:p-6"
