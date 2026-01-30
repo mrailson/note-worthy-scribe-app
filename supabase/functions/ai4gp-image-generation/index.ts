@@ -45,6 +45,7 @@ interface ImageGenerationRequest {
   // Image Studio specific fields
   isStudioRequest?: boolean;
   supportingContent?: string;
+  summariseSupportingContent?: boolean;
   keyMessages?: string[];
   targetAudience?: 'patients' | 'staff' | 'public' | 'clinical' | 'elderly' | 'parents' | 'young-adults' | 'executive-board';
   purpose?: 'poster' | 'social' | 'leaflet' | 'newsletter' | 'banner' | 'waiting-room' | 'infographic' | 'campaign' | 'form-header' | 'general';
@@ -337,6 +338,7 @@ serve(async (req) => {
       // Studio-specific fields
       isStudioRequest,
       supportingContent,
+      summariseSupportingContent,
       keyMessages,
       targetAudience,
       purpose,
@@ -521,8 +523,11 @@ ${keyMessages.map((msg, i) => `${i + 1}. ${msg}`).join('\n')}`;
       // Build supporting content section
       let supportingSection = '';
       if (supportingContent) {
+        const summariseInstruction = summariseSupportingContent 
+          ? '\n(The user has requested this content be summarised into key points for the image rather than including all details verbatim.)' 
+          : '';
         supportingSection = `
-SUPPORTING CONTENT TO INCORPORATE:
+SUPPORTING CONTENT TO INCORPORATE:${summariseInstruction}
 ${supportingContent.substring(0, 3000)}`;
       }
       
