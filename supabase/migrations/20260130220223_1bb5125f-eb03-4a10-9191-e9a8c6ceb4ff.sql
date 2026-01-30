@@ -1,0 +1,1 @@
+DELETE FROM user_sessions WHERE user_id = 'f03e3f37-4e17-441e-b074-933af6a0dc37';
