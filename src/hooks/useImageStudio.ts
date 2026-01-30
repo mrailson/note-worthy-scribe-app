@@ -285,6 +285,7 @@ export function useImageStudio() {
           practiceContext: practiceContext || undefined,
           brandingLevel: settings.brandingLevel,
           customBranding: settings.customBranding,
+          customPracticeName: settings.customPracticeName || undefined,
           logoPlacement: settings.logoPlacement,
           includeLogo: settings.includeLogo,
           referenceImages: optimisedReferences,
