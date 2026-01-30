@@ -14,6 +14,7 @@ interface EmailRequest {
   subject: string;
   content: string;
   userEmail?: string; // Optional - will fetch from profile if not provided
+  imageUrl?: string;  // Optional - URL of an infographic to embed
 }
 
 serve(async (req: Request): Promise<Response> => {
@@ -23,7 +24,7 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { subject, content, userEmail }: EmailRequest = await req.json();
+    const { subject, content, userEmail, imageUrl }: EmailRequest = await req.json();
 
     // Validate required fields
     if (!subject || !content) {
@@ -32,6 +33,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     let recipientEmail = userEmail;
+    let userName = 'there';
 
     // If no email provided, try to get from user profile
     if (!recipientEmail) {
@@ -51,18 +53,23 @@ serve(async (req: Request): Promise<Response> => {
         if (user?.email) {
           recipientEmail = user.email;
           console.log("Using email from auth user:", recipientEmail);
-        } else {
-          // Try to get from user_profiles
-          if (user?.id) {
-            const { data: profile, error: profileError } = await supabase
-              .from("user_profiles")
-              .select("email")
-              .eq("id", user.id)
-              .single();
+        }
+        
+        // Get user profile for name and practice info
+        if (user?.id) {
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("email, full_name, display_name")
+            .eq("user_id", user.id)
+            .single();
 
-            if (!profileError && profile?.email) {
+          if (!profileError && profile) {
+            if (!recipientEmail && profile.email) {
               recipientEmail = profile.email;
               console.log("Using email from profile:", recipientEmail);
+            }
+            if (profile.full_name || profile.display_name) {
+              userName = (profile.full_name || profile.display_name || '').split(' ')[0];
             }
           }
         }
@@ -76,6 +83,13 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log("Sending email to:", recipientEmail);
     console.log("Subject:", subject);
+
+    // Build image section if an infographic URL is provided
+    const imageSection = imageUrl ? `
+      <div style="margin: 20px 0; text-align: center;">
+        <img src="${imageUrl}" alt="Generated Infographic" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);" />
+      </div>
+    ` : '';
 
     // Format content as HTML with proper styling
     const htmlContent = `
@@ -111,6 +125,11 @@ serve(async (req: Request): Promise<Response> => {
       border-radius: 8px;
       margin-bottom: 20px;
     }
+    .greeting {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
     .content {
       background: #f9fafb;
       padding: 20px;
@@ -130,8 +149,10 @@ serve(async (req: Request): Promise<Response> => {
   <div class="header">
     <h1 style="margin: 0; color: white;">NoteWell PM Assistant</h1>
   </div>
+  <div class="greeting">Hi ${userName},</div>
   <div class="content">
     ${content.replace(/\n/g, '<br>')}
+    ${imageSection}
   </div>
   <div class="footer">
     <p>This email was sent by your NoteWell PM Assistant based on your voice request.</p>
