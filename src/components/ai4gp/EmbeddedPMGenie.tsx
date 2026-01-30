@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useConversation } from '@11labs/react';
 import { Button } from '@/components/ui/button';
-import { Phone, PhoneOff, Loader2, Sparkles, Volume2, VolumeX, Mic, MicOff, Mail } from 'lucide-react';
+import { Phone, PhoneOff, Loader2, Sparkles, Volume2, VolumeX, Mic, MicOff, Mail, Image } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { playoutSilentPreRoll, fadeInVolume } from '@/utils/AudioFocusManager';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import wakeRing from '@/assets/sounds/uk_phone_ring_two_rings.wav';
 
 interface EmbeddedPMGenieProps {
@@ -17,26 +18,37 @@ type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | '
 
 export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   const [status, setStatus] = useState<ConnectionStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [emailsSent, setEmailsSent] = useState(0);
+  const [infographicsGenerated, setInfographicsGenerated] = useState(0);
   const wakeAudioRef = useRef<HTMLAudioElement | null>(null);
   const volumeGuardTimerRef = useRef<number | null>(null);
   const prevVolumeRef = useRef(0.8);
 
+  // Get user's display name and email
+  const userDisplayName = profile?.full_name || profile?.display_name || user?.email?.split('@')[0] || 'User';
+  const userEmail = profile?.email || user?.email;
+
   // Email sending function for client tool
   const sendEmailToUser = async (params: { subject: string; content: string }) => {
+    if (!userEmail) {
+      toast.error('No email address found');
+      return 'Failed to send email: No email address configured in your profile';
+    }
+
     try {
-      console.log('📧 PM Genie sending email:', params.subject);
+      console.log('📧 PM Genie sending email to:', userEmail);
       
       const { data, error } = await supabase.functions.invoke('pm-genie-send-email', {
         body: {
           subject: params.subject,
           content: params.content,
-          userEmail: user?.email
+          userEmail: userEmail
         }
       });
 
@@ -49,9 +61,9 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
       if (data?.success) {
         setEmailsSent(prev => prev + 1);
         toast.success('Email sent successfully!', {
-          description: `Check your inbox at ${user?.email}`
+          description: `Check your inbox at ${userEmail}`
         });
-        return `Email sent successfully to ${user?.email}`;
+        return `Email sent successfully to ${userEmail}`;
       } else {
         toast.error('Failed to send email');
         return 'Failed to send email: ' + (data?.error || 'Unknown error');
@@ -63,10 +75,54 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
     }
   };
 
+  // Infographic generation function for client tool
+  const generateInfographic = async (params: { topic: string; keyPoints?: string[] }) => {
+    try {
+      console.log('🎨 PM Genie generating infographic:', params.topic);
+      toast.info('Generating infographic...', { duration: 10000 });
+
+      const { data, error } = await supabase.functions.invoke('ai4gp-image-generation', {
+        body: {
+          prompt: params.topic,
+          requestType: 'infographic',
+          layoutPreference: 'portrait',
+          targetAudience: 'staff',
+          isStudioRequest: true,
+          keyMessages: params.keyPoints || [],
+          brandingLevel: 'none'
+        }
+      });
+
+      if (error) {
+        console.error('Infographic generation error:', error);
+        toast.error('Failed to generate infographic');
+        return 'Failed to generate infographic: ' + error.message;
+      }
+
+      if (data?.imageUrl) {
+        setInfographicsGenerated(prev => prev + 1);
+        toast.success('Infographic generated!');
+        
+        // Return URL for the agent to potentially email
+        return `Infographic generated successfully. The image URL is: ${data.imageUrl}`;
+      } else {
+        toast.error('Failed to generate infographic');
+        return 'Failed to generate infographic: No image returned';
+      }
+    } catch (err: any) {
+      console.error('Infographic generation exception:', err);
+      toast.error('Failed to generate infographic');
+      return 'Failed to generate infographic: ' + err.message;
+    }
+  };
+
   const conversation = useConversation({
     clientTools: {
       send_email: async (params: { subject: string; content: string }) => {
         return await sendEmailToUser(params);
+      },
+      generate_infographic: async (params: { topic: string; keyPoints?: string[] }) => {
+        return await generateInfographic(params);
       }
     },
     onConnect: async () => {
@@ -336,16 +392,33 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
           <p className="text-sm text-muted-foreground">
             {status === 'idle' && 'Ready to connect'}
             {status === 'connecting' && 'Establishing voice connection'}
-            {status === 'connected' && 'Your PM assistant is listening — ask me to email you anything!'}
+            {status === 'connected' && `Hi ${userDisplayName.split(' ')[0]}! Ask me anything — I can email you content or create infographics.`}
             {status === 'disconnected' && 'The conversation has ended'}
             {status === 'error' && (error || 'Please try again')}
           </p>
           
-          {/* Email indicator */}
-          {emailsSent > 0 && (
-            <div className="flex items-center justify-center gap-1.5 mt-2 text-xs text-primary">
-              <Mail className="w-3.5 h-3.5" />
-              <span>{emailsSent} email{emailsSent !== 1 ? 's' : ''} sent</span>
+          {/* User context indicator */}
+          {status === 'connected' && userEmail && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Emails will be sent to {userEmail}
+            </p>
+          )}
+          
+          {/* Activity indicators */}
+          {(emailsSent > 0 || infographicsGenerated > 0) && (
+            <div className="flex items-center justify-center gap-4 mt-2 text-xs text-primary">
+              {emailsSent > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>{emailsSent} email{emailsSent !== 1 ? 's' : ''} sent</span>
+                </div>
+              )}
+              {infographicsGenerated > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Image className="w-3.5 h-3.5" />
+                  <span>{infographicsGenerated} infographic{infographicsGenerated !== 1 ? 's' : ''}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
