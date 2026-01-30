@@ -387,23 +387,23 @@ export const complaintsRisks: RiskAssessment[] = [
 export const gdprCompliance: ComplianceItem[] = [
   {
     requirement: "Lawful Basis for Processing",
-    ai4gp: "Legitimate Interest (clinical support)",
-    meetingNotes: "Legitimate Interest (organisational records)",
-    complaints: "Legal Obligation (NHS complaints regulations)",
+    ai4gp: "N/A (excluded from pilot)",
+    meetingNotes: "Article 6(1)(e) Public Task (organisational records)",
+    complaints: "Article 6(1)(c) Legal Obligation + Article 9(2)(h) Health/Social Care (NHS Complaints Regulations 2009)",
     status: "COMPLIANT",
-    evidence: "Privacy notices, user consent mechanisms"
+    evidence: "Privacy notices, DPIA completed – lawful basis confirmed as go-live gating condition"
   },
   {
     requirement: "Data Minimisation",
-    ai4gp: "Queries may contain excessive patient data",
-    meetingNotes: "Meeting transcripts capture all spoken content",
-    complaints: "Structured forms collect necessary data only",
-    status: "PARTIAL",
-    evidence: "AI4GP needs query sanitisation guidance"
+    ai4gp: "N/A (excluded from pilot)",
+    meetingNotes: "Meeting transcripts capture spoken content; structured prompts enforce minimisation",
+    complaints: "Structured forms collect necessary data only; PII masking enforced",
+    status: "COMPLIANT",
+    evidence: "Structured prompts and data masking controls implemented"
   },
   {
     requirement: "Purpose Limitation",
-    ai4gp: "Clear purpose (clinical guidance)",
+    ai4gp: "N/A (excluded from pilot)",
     meetingNotes: "Clear purpose (meeting documentation)",
     complaints: "Clear purpose (complaints handling)",
     status: "COMPLIANT",
@@ -411,27 +411,27 @@ export const gdprCompliance: ComplianceItem[] = [
   },
   {
     requirement: "Accuracy",
-    ai4gp: "AI-generated content may contain errors",
-    meetingNotes: "Transcription accuracy 85-95%",
-    complaints: "User-entered data, validation required",
+    ai4gp: "N/A (excluded from pilot)",
+    meetingNotes: "Transcription accuracy 85-95%; human verification required",
+    complaints: "User-entered data with validation; human review mandatory",
     status: "PARTIAL",
     evidence: "All systems require human verification protocols"
   },
   {
     requirement: "Storage Limitation",
-    ai4gp: "30-day default retention (configurable)",
-    meetingNotes: "Indefinite retention (operational need)",
-    complaints: "7-year retention (regulatory requirement)",
+    ai4gp: "N/A (excluded from pilot)",
+    meetingNotes: "Retention configurable by hosting organisation (aligned to NHS Records Management Code of Practice)",
+    complaints: "10-year retention (aligned to NHS Records Management Code of Practice for complaints)",
     status: "COMPLIANT",
-    evidence: "Data retention policies defined"
+    evidence: "Data retention policies defined; 'indefinite' reflects system capability only – actual retention aligned to NHS policy"
   },
   {
     requirement: "Integrity & Confidentiality",
-    ai4gp: "Encryption, authentication, RLS",
-    meetingNotes: "Encryption, authentication, RLS",
-    complaints: "Encryption, authentication, RLS, masking",
+    ai4gp: "N/A (excluded from pilot)",
+    meetingNotes: "Encryption, authentication, RLS; shorter session timeouts for PII modules",
+    complaints: "Encryption, authentication, RLS, masking; shorter session timeouts for PII access",
     status: "COMPLIANT",
-    evidence: "Technical security measures documented"
+    evidence: "Technical security measures documented; session timeout < 4 hours for PII-bearing modules"
   }
 ];
 
@@ -462,15 +462,15 @@ export const securityControls: SecurityControl[] = [
   },
   {
     category: "Session Management",
-    implementation: "User sessions table, activity tracking, auto-timeout (5 hours), secure storage",
-    effectiveness: "MEDIUM",
-    gaps: "Consider shorter timeout for sensitive operations"
+    implementation: "User sessions table, activity tracking, auto-timeout (4 hours for PII modules, 5 hours standard), secure storage",
+    effectiveness: "HIGH",
+    gaps: "Session timeout policy documented for PII-bearing modules"
   },
   {
     category: "Audit Logging",
-    implementation: "Comprehensive system audit log, security events table, access tracking",
+    implementation: "Comprehensive system audit log, security events table, access tracking. Minimum 12-month retention for audit and security logs.",
     effectiveness: "HIGH",
-    gaps: "Log retention policy to be defined"
+    gaps: "None - log retention policy defined with minimum standards"
   },
   {
     category: "User Interface Security",
@@ -525,7 +525,7 @@ export const preDeploymentChecklist: ChecklistItem[] = [
     status: "PARTIAL",
     owner: "CSO",
     targetDate: "Before deployment",
-    note: "Draft complete; final review pending appointment of host-organisation CSO.",
+    note: "Draft complete – pending host CSO adoption. PCN Services Ltd maintains draft Safety Case pre-hosting; hosting NHS organisation's CSO must formally adopt and sign the Safety Case on migration.",
     category: "Governance, Clinical Safety & Data Protection"
   },
   {
@@ -549,6 +549,7 @@ export const preDeploymentChecklist: ChecklistItem[] = [
     status: "COMPLETE",
     owner: "Regulatory Lead",
     targetDate: "Complete",
+    note: "Manufacturer self-certification and MHRA registration complete. Declaration of Conformity available.",
     category: "Governance, Clinical Safety & Data Protection"
   },
   {
@@ -597,7 +598,7 @@ export const preDeploymentChecklist: ChecklistItem[] = [
     status: "OUTSTANDING",
     owner: "Host Organisation",
     targetDate: "Before deployment",
-    note: "DSPT responsibility will sit with the NHS organisation hosting the platform.",
+    note: "Hard gate: No live NHS patient data processing until DSPT ownership confirmed and current submission in place. Development environments use synthetic/test data only.",
     category: "Contracts, DPAs & Hosting"
   },
   
@@ -612,9 +613,9 @@ export const preDeploymentChecklist: ChecklistItem[] = [
   {
     item: "Penetration test (External Web Application – CREST)",
     status: "OUTSTANDING",
-    owner: "Host Org InfoSec / Commissioned Provider",
+    owner: "Host NHS Organisation (commissioning owner)",
     targetDate: "After NHS hosting migration",
-    note: "Must be conducted after migration into NHS hosting environment. Scope: external web app, auth, API, OWASP Top 10. Red-team / internal network testing NOT required.",
+    note: "Commissioned and owned by hosting NHS organisation. Scope: external web app, auth, API, OWASP Top 10. Remediation and re-testing tracked to closure. Go-live gate: all critical/high findings remediated.",
     category: "Security Assurance"
   },
   {
@@ -689,7 +690,7 @@ export const preDeploymentChecklist: ChecklistItem[] = [
     status: "OUTSTANDING",
     owner: "Hosting Organisation / Neighbourhood Digital Team",
     targetDate: "Before deployment",
-    note: "Must specify who monitors logs, handles alerts, triages support.",
+    note: "Interim accountable model: Neighbourhood digital team for first-line monitoring; hosting organisation for security incidents. Formal matrix to be documented.",
     category: "Operational Readiness"
   },
   {
