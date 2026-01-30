@@ -158,49 +158,48 @@ serve(async (req: Request): Promise<Response> => {
     const formatContentAsHtml = (text: string): string => {
       let formatted = text;
       
-      // Convert headers (## Header -> <h2>Header</h2>)
+      // Convert headers (## Header -> <h2>Header</h2>) - must be at start of line
       formatted = formatted.replace(/^### (.+)$/gm, '<h3 style="color: #1a365d; margin: 16px 0 8px 0; font-size: 16px;">$1</h3>');
       formatted = formatted.replace(/^## (.+)$/gm, '<h2 style="color: #1a365d; margin: 20px 0 12px 0; font-size: 18px;">$1</h2>');
       formatted = formatted.replace(/^# (.+)$/gm, '<h1 style="color: #1a365d; margin: 24px 0 16px 0; font-size: 22px;">$1</h1>');
       
-      // Convert bold (**text** or __text__)
-      formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      formatted = formatted.replace(/__(.+?)__/g, '<strong>$1</strong>');
+      // Convert bold (**text** or __text__) - use non-greedy match and handle multiline
+      // Also handle **HEADING** style patterns at start of lines
+      formatted = formatted.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+      formatted = formatted.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
       
-      // Convert italic (*text* or _text_) - be careful not to match already processed bold
-      formatted = formatted.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
-      formatted = formatted.replace(/(?<!_)_([^_]+)_(?!_)/g, '<em>$1</em>');
+      // Convert italic (*text* or _text_) - be careful not to match bold markers or list items
+      formatted = formatted.replace(/(?<![*_])\*([^*\n]+)\*(?![*])/g, '<em>$1</em>');
+      formatted = formatted.replace(/(?<![*_])_([^_\n]+)_(?![_])/g, '<em>$1</em>');
       
-      // Convert bullet points (- item or * item)
-      const bulletRegex = /^[\-\*]\s+(.+)$/gm;
-      const hasBullets = bulletRegex.test(formatted);
-      if (hasBullets) {
-        formatted = formatted.replace(bulletRegex, '<li style="margin: 6px 0;">$1</li>');
-        // Wrap consecutive <li> elements in <ul>
-        formatted = formatted.replace(/(<li[^>]*>.*?<\/li>\n?)+/gs, (match) => {
-          return `<ul style="margin: 12px 0; padding-left: 24px; list-style-type: disc;">${match}</ul>`;
-        });
-      }
+      // Convert bullet points (- item or * item at start of line only)
+      formatted = formatted.replace(/^- (.+)$/gm, '<li style="margin: 6px 0;">$1</li>');
+      formatted = formatted.replace(/^\* (.+)$/gm, '<li style="margin: 6px 0;">$1</li>');
       
-      // Convert numbered lists (1. item)
-      const numberedRegex = /^\d+\.\s+(.+)$/gm;
-      const hasNumbered = numberedRegex.test(formatted);
-      if (hasNumbered) {
-        formatted = formatted.replace(numberedRegex, '<li style="margin: 6px 0;">$1</li>');
-        // Wrap in <ol>
-        formatted = formatted.replace(/(<li[^>]*>.*?<\/li>\n?)+/gs, (match) => {
-          if (!match.includes('<ul')) {
-            return `<ol style="margin: 12px 0; padding-left: 24px;">${match}</ol>`;
-          }
-          return match;
-        });
-      }
+      // Wrap consecutive <li> elements in <ul>
+      formatted = formatted.replace(/(<li[^>]*>.*?<\/li>\n?)+/gs, (match) => {
+        return `<ul style="margin: 12px 0; padding-left: 24px; list-style-type: disc;">${match}</ul>`;
+      });
+      
+      // Convert numbered lists (1. item at start of line)
+      formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, '<li style="margin: 6px 0;">$1</li>');
+      
+      // Wrap numbered list items in <ol> (if not already wrapped)
+      formatted = formatted.replace(/(<li[^>]*>.*?<\/li>\n?)+/gs, (match) => {
+        if (!match.includes('<ul')) {
+          return `<ol style="margin: 12px 0; padding-left: 24px;">${match}</ol>`;
+        }
+        return match;
+      });
       
       // Convert line breaks to <br> for remaining newlines
       formatted = formatted.replace(/\n/g, '<br>');
       
       // Clean up excessive <br> tags
       formatted = formatted.replace(/(<br>\s*){3,}/g, '<br><br>');
+      
+      // Remove any remaining stray ** markers that weren't matched
+      formatted = formatted.replace(/\*\*/g, '');
       
       return formatted;
     };
