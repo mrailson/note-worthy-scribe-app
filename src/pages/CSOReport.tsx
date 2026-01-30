@@ -3570,7 +3570,7 @@ const CSOReport = () => {
         <div className="mt-8 p-4 bg-muted/30 rounded-lg text-center text-sm text-muted-foreground">
           <p className="font-semibold">NHS OFFICIAL-SENSITIVE</p>
           <p className="mt-1">This document contains sensitive information and should be handled in accordance with NHS Information Governance policies.</p>
-          <p className="mt-1">© {new Date().getFullYear()} Notewell Healthcare Management System. All rights reserved.</p>
+          <p className="mt-1">© {new Date().getFullYear()} GP Notewell AI. All rights reserved.</p>
         </div>
       </div>
 
