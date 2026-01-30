@@ -184,10 +184,11 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
 
   // Infographic generation function for client tool
   // Note: ElevenLabs sends keyPoints as a string (comma-separated), not array
+  // Uses Image Studio defaults for high-quality output with proper British English
   const generateInfographic = async (params: { topic: string; keyPoints?: string }) => {
     try {
       console.log('🎨 PM Genie generating infographic:', params.topic, 'keyPoints:', params.keyPoints);
-      toast.info('Generating infographic...', { duration: 15000 });
+      toast.info('Generating infographic - this may take 30-60 seconds...', { duration: 60000 });
 
       // Parse keyPoints - could be comma-separated string from ElevenLabs
       let keyMessages: string[] = [];
@@ -199,16 +200,22 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         }
       }
 
+      // Use Image Studio default settings for high-quality output
       const { data, error } = await supabase.functions.invoke('ai4gp-image-generation', {
         body: {
           prompt: params.topic,
           requestType: 'infographic',
           purpose: 'infographic',
           layoutPreference: 'landscape',
-          targetAudience: 'staff',
+          targetAudience: 'patients',
           isStudioRequest: true,
           keyMessages: keyMessages,
-          brandingLevel: 'none'
+          brandingLevel: 'none',
+          // Match Image Studio defaults for quality
+          stylePreset: 'nhs-professional',
+          imageModel: 'google/gemini-2.5-flash-image-preview',
+          // Ensure proper British English and professional NHS styling
+          additionalInstructions: 'Use British English spelling throughout. Ensure all text is grammatically correct with no typos. Use professional NHS-style layout with clear visual hierarchy.'
         }
       });
 
@@ -245,7 +252,14 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         return await sendEmailToUser(params);
       },
       generate_infographic: async (params: { topic: string; keyPoints?: string }) => {
-        return await generateInfographic(params);
+        // The agent should tell the user it will take a moment BEFORE calling this tool
+        // But since the tool is called synchronously, we provide instructions in the response
+        const result = await generateInfographic(params);
+        // Add explicit instruction for the agent to inform user about completion
+        if (result.includes('successfully')) {
+          return result + ' Tell the user the infographic is ready and ask if they would like you to email it to them.';
+        }
+        return result;
       }
     },
     onConnect: async () => {

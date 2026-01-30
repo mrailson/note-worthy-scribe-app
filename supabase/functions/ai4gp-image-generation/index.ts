@@ -128,7 +128,7 @@ function extractCleanKeywords(documentContent: string): string[] {
 
 // Common spelling corrections reference
 const SPELLING_REFERENCE = `
-MANDATORY SPELLING - COPY THESE EXACTLY:
+MANDATORY SPELLING AND GRAMMAR - COPY THESE EXACTLY:
 - "Collaborative" (NOT Collobrative/Collabrative)
 - "Unifying" / "Unified" (NOT Unuifying/Uniified)
 - "Professional" (NOT Proffesional/Profesional)
@@ -149,6 +149,21 @@ MANDATORY SPELLING - COPY THESE EXACTLY:
 - "Provider" (NOT Providor/Providar)
 - "Services" (NOT Servces/Serivces)
 - "Forum" (NOT Fonum/Fourm)
+- "Pressure" (NOT prossure/pressue)
+- "Control" (NOT contol/contriol)
+- "Blood sugar" (NOT blood ssure/bblood sugar)
+- "Every day" (NOT evay/eveyday)
+- "Do not smoke" / "No smoking" (NOT Nio not smoke)
+- "painkillers" (NOT painkers/painkeirs)
+- "Check-ups" (NOT checkin/checkkin)
+
+⚠️ CRITICAL TEXT QUALITY REQUIREMENTS:
+- ALL text must be grammatically correct with NO typos or spelling errors
+- Proofread every word before rendering - if unsure, use simpler phrasing
+- Use complete sentences with proper punctuation
+- Use British English spelling throughout (e.g., colour, organisation, centre)
+- Double-check that no words are repeated accidentally (e.g., "in in" or "high high")
+- Ensure consistent capitalisation within headings and bullet points
 `;
 
 // Build practice branding section for prompts based on user's selected branding level
