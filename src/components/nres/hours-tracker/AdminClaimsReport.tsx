@@ -53,7 +53,7 @@ interface DetailedEntry extends AllEntry {
   entered_by_name: string;
 }
 
-type SortField = 'work_date' | 'user_name' | 'practice_name' | 'duration_hours' | 'amount';
+type SortField = 'work_date' | 'user_name' | 'practice_name' | 'duration_hours' | 'amount' | 'entered_by_name';
 type SortDirection = 'asc' | 'desc';
 
 // Format currency with thousand separators
@@ -281,6 +281,9 @@ export function AdminClaimsReport() {
           break;
         case 'amount':
           comparison = a.amount - b.amount;
+          break;
+        case 'entered_by_name':
+          comparison = a.entered_by_name.localeCompare(b.entered_by_name);
           break;
       }
       return sortDirection === 'desc' ? -comparison : comparison;
@@ -664,7 +667,15 @@ export function AdminClaimsReport() {
                                 <ArrowUpDown className="w-3 h-3" />
                               </div>
                             </TableHead>
-                            <TableHead>Entered By</TableHead>
+                            <TableHead 
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => handleSort('entered_by_name')}
+                            >
+                              <div className="flex items-center gap-1">
+                                Entered By
+                                <ArrowUpDown className="w-3 h-3" />
+                              </div>
+                            </TableHead>
                             <TableHead className="w-10"></TableHead>
                           </TableRow>
                         </TableHeader>
