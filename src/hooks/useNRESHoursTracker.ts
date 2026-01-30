@@ -44,7 +44,7 @@ export function useNRESHoursTracker() {
     }
   }, [user?.id, fetchEntries]);
 
-  const addEntry = async (entry: Omit<NRESHoursEntry, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  const addEntry = async (entry: Omit<NRESHoursEntry, 'id' | 'user_id' | 'entered_by' | 'created_at' | 'updated_at'>) => {
     if (!user?.id) return;
 
     try {
@@ -53,7 +53,8 @@ export function useNRESHoursTracker() {
         .from('nres_hours_entries')
         .insert({
           ...entry,
-          user_id: user.id
+          user_id: user.id,
+          entered_by: user.id // Track who entered this entry
         })
         .select()
         .single();

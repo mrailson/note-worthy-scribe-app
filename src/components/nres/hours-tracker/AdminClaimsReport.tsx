@@ -34,6 +34,7 @@ interface AllEntry {
   duration_hours: number;
   activity_type: string;
   description: string | null;
+  entered_by: string | null;
 }
 
 interface DetailedEntry extends AllEntry {
@@ -41,6 +42,7 @@ interface DetailedEntry extends AllEntry {
   practice_name: string;
   hourly_rate: number;
   amount: number;
+  entered_by_name: string;
 }
 
 type SortField = 'work_date' | 'user_name' | 'practice_name' | 'duration_hours' | 'amount';
@@ -193,6 +195,7 @@ export function AdminClaimsReport() {
     // Build detailed entries list
     const detailed: DetailedEntry[] = filteredEntries.map(entry => {
       const profile = userProfiles[entry.user_id] || { name: entry.user_id.substring(0, 8) + '...', practice_name: 'Unknown' };
+      const enteredByProfile = entry.entered_by ? userProfiles[entry.entered_by] : null;
       const hourlyRate = userSettings[entry.user_id] || 50;
       const amount = Number(entry.duration_hours) * hourlyRate;
       
@@ -201,7 +204,8 @@ export function AdminClaimsReport() {
         user_name: profile.name,
         practice_name: profile.practice_name,
         hourly_rate: hourlyRate,
-        amount
+        amount,
+        entered_by_name: enteredByProfile?.name || (entry.entered_by ? entry.entered_by.substring(0, 8) + '...' : profile.name)
       };
     });
 
@@ -300,22 +304,21 @@ export function AdminClaimsReport() {
       `Period: ${format(parseISO(startDate), 'dd/MM/yyyy')} to ${format(parseISO(endDate), 'dd/MM/yyyy')}`,
       `Generated: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
       '',
-      'User Name,Practice,Date,Start Time,End Time,Hours,Activity Type,Description,Amount'
+      'User Name,Practice,Date,Start Time,End Time,Hours,Activity Type,Description,Amount,Entered By'
     ];
 
-    userClaims.forEach(claim => {
-      const hourlyRate = userSettings[claim.user_id] || 50;
-      claim.entries
-        .sort((a, b) => a.work_date.localeCompare(b.work_date))
-        .forEach(entry => {
-          const amount = Number(entry.duration_hours) * hourlyRate;
-          const description = entry.description ? `"${entry.description.replace(/"/g, '""')}"` : '';
-          lines.push(`"${claim.user_name}","${claim.practice_name}",${format(parseISO(entry.work_date), 'dd/MM/yyyy')},${entry.start_time.substring(0, 5)},${entry.end_time.substring(0, 5)},${Number(entry.duration_hours).toFixed(2)},"${entry.activity_type || ''}",${description},£${amount.toFixed(2)}`);
-        });
-    });
+    // Use detailedEntries which already has the entered_by_name resolved
+    detailedEntries
+      .sort((a, b) => a.user_name.localeCompare(b.user_name) || a.work_date.localeCompare(b.work_date))
+      .forEach(entry => {
+        const description = entry.description ? `"${entry.description.replace(/"/g, '""')}"` : '';
+        lines.push(`"${entry.user_name}","${entry.practice_name}",${format(parseISO(entry.work_date), 'dd/MM/yyyy')},${entry.start_time.substring(0, 5)},${entry.end_time.substring(0, 5)},${Number(entry.duration_hours).toFixed(2)},"${entry.activity_type || ''}",${description},£${entry.amount.toFixed(2)},"${entry.entered_by_name}"`);
+      });
 
     lines.push('');
-    lines.push(`GRAND TOTAL,,,,,${grandTotalHours.toFixed(2)},,,£${grandTotalAmount.toFixed(2)}`);
+    lines.push(`GRAND TOTAL,,,,,${grandTotalHours.toFixed(2)},,,,£${grandTotalAmount.toFixed(2)}`);
+    lines.push('');
+    lines.push('Note: "Entered By" shows the user who created each time entry for audit purposes.');
 
     const blob = new Blob([BOM + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -602,6 +605,7 @@ export function AdminClaimsReport() {
                                 <ArrowUpDown className="w-3 h-3" />
                               </div>
                             </TableHead>
+                            <TableHead>Entered By</TableHead>
                             <TableHead className="w-10"></TableHead>
                           </TableRow>
                         </TableHeader>
@@ -617,6 +621,7 @@ export function AdminClaimsReport() {
                               <TableCell>{entry.activity_type || '-'}</TableCell>
                               <TableCell className="text-right">{Number(entry.duration_hours).toFixed(2)}</TableCell>
                               <TableCell className="text-right font-medium">£{formatCurrency(entry.amount)}</TableCell>
+                              <TableCell className="text-muted-foreground text-xs">{entry.entered_by_name}</TableCell>
                               <TableCell>
                                 <Button
                                   variant="ghost"
@@ -633,6 +638,7 @@ export function AdminClaimsReport() {
                             <TableCell colSpan={5}>GRAND TOTAL</TableCell>
                             <TableCell className="text-right">{grandTotalHours.toFixed(2)}</TableCell>
                             <TableCell className="text-right text-lg">£{formatCurrency(grandTotalAmount)}</TableCell>
+                            <TableCell></TableCell>
                             <TableCell></TableCell>
                           </TableRow>
                         </TableBody>

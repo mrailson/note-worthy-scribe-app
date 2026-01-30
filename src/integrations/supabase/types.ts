@@ -6206,6 +6206,7 @@ export type Database = {
           description: string | null
           duration_hours: number
           end_time: string
+          entered_by: string | null
           id: string
           start_time: string
           updated_at: string
@@ -6220,6 +6221,7 @@ export type Database = {
           description?: string | null
           duration_hours: number
           end_time: string
+          entered_by?: string | null
           id?: string
           start_time: string
           updated_at?: string
@@ -6234,6 +6236,7 @@ export type Database = {
           description?: string | null
           duration_hours?: number
           end_time?: string
+          entered_by?: string | null
           id?: string
           start_time?: string
           updated_at?: string

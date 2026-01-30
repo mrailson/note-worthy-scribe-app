@@ -171,17 +171,18 @@ export function TrackerReportModal({ entries, expenses, hourlyRate }: TrackerRep
 
     // Detailed time entries
     lines.push('DETAILED TIME ENTRIES');
-    lines.push('Date,Claimant,Type,Start,End,Hours,Activity,Notes,Rate,Amount');
+    lines.push('Date,Claimant,Type,Start,End,Hours,Activity,Notes,Rate,Amount,Entered By');
 
     filteredData.entries.forEach(e => {
       const rate = getEntryRate(e);
       const amount = rate ? (Number(e.duration_hours) * rate).toFixed(2) : '';
       const claimantName = e.claimant_name || 'Self';
       const claimantType = e.claimant_type ? (e.claimant_type === 'gp' ? 'GP' : 'PM') : 'Personal';
-      lines.push(`${format(parseISO(e.work_date), 'dd/MM/yyyy')},"${claimantName}",${claimantType},${formatTime(e.start_time)},${formatTime(e.end_time)},${Number(e.duration_hours).toFixed(2)},${e.activity_type},"${e.description || ''}",£${rate?.toFixed(2) || 'N/A'},£${amount}`);
+      const enteredBy = user?.email || 'Unknown';
+      lines.push(`${format(parseISO(e.work_date), 'dd/MM/yyyy')},"${claimantName}",${claimantType},${formatTime(e.start_time)},${formatTime(e.end_time)},${Number(e.duration_hours).toFixed(2)},${e.activity_type},"${e.description || ''}",£${rate?.toFixed(2) || 'N/A'},£${amount},"${enteredBy}"`);
     });
 
-    lines.push(`Time Subtotal,,,,,${filteredData.totalHours.toFixed(2)} hours,,,,£${filteredData.totalTimeAmount.toFixed(2)}`);
+    lines.push(`Time Subtotal,,,,,,${filteredData.totalHours.toFixed(2)} hours,,,£${filteredData.totalTimeAmount.toFixed(2)},`);
     lines.push('');
 
     // Expenses
