@@ -131,7 +131,8 @@ export const TARGET_AUDIENCES = [
   { id: 'clinical', label: 'Clinical', description: 'Healthcare professionals' },
   { id: 'elderly', label: 'Elderly', description: 'Senior patients (65+)' },
   { id: 'parents', label: 'Parents/Carers', description: 'Parents and carers of patients' },
-  { id: 'young-adults', label: 'Young Adults', description: 'Age 18-35' }
+  { id: 'young-adults', label: 'Young Adults', description: 'Age 18-35' },
+  { id: 'executive-board', label: 'Executive Board', description: 'Senior leadership and board members' }
 ] as const;
 
 export const PURPOSE_TYPES = [
