@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Download, Folder, FolderOpen, ChevronRight, Calendar, FileSpreadsheet, File, Heart, Play, Pause, Headphones, ClipboardList, Users } from "lucide-react";
+import { FileText, Download, Folder, FolderOpen, ChevronRight, Calendar, FileSpreadsheet, File, Heart, Play, Pause, Headphones, ClipboardList, Users, Mail } from "lucide-react";
 import { ActionLogTable } from "./ActionLogTable";
 import { actionLogData, actionLogMetadata } from "@/data/nresBoardActionsData";
 import { Button } from "@/components/ui/button";
@@ -111,6 +111,38 @@ const vcseMeetings: Meeting[] = [
   }
 ];
 
+// Communications entries
+interface CommunicationEntry {
+  id: number;
+  date: string;
+  subject: string;
+  parties: string[];
+  overview: string;
+  documents: Document[];
+}
+
+const communicationEntries: CommunicationEntry[] = [
+  {
+    id: 1,
+    date: "29 January 2026",
+    subject: "PPG Engagement Materials for SDA Pilot",
+    parties: ["Amanda Taylor (Brackley Medical Centre)", "Helen Barrett (SNVB)"],
+    overview: "Email exchange coordinating the distribution of Patient Participation Group briefing materials for the upcoming SDA Pilot launch. Amanda shared a comprehensive PPG briefing document and PowerPoint presentation with Helen for use in community engagement sessions. The materials explain the Same Day Access Pilot, including both Part A (Neighbourhood Access Service) and Part B (Complex Care & Long-Term Conditions), the £2.34 million annual investment, and how the 7 NRES practices will work together to deliver approximately 1,350 additional appointments per week from April 2026.",
+    documents: [
+      {
+        title: "PPG Information Presentation (PowerPoint)",
+        type: "presentation",
+        filePath: "/evidence/communications/PPG_Information_Presentation.pptx"
+      },
+      {
+        title: "PPG Briefing Document (Word)",
+        type: "document",
+        filePath: "/evidence/communications/PPG_Briefing_Document.docx"
+      }
+    ]
+  }
+];
+
 const getTypeColor = (type: DocumentType) => {
   switch (type) {
     case "presentation": return "bg-blue-100 text-blue-700";
@@ -146,6 +178,7 @@ export const SDAEvidenceLibrary = () => {
   const [openProgrammeMeetings, setOpenProgrammeMeetings] = useState<number[]>([23]);
   const [openWorkgroupMeetings, setOpenWorkgroupMeetings] = useState<number[]>([]);
   const [openVcseMeetings, setOpenVcseMeetings] = useState<number[]>([1, 2]);
+  const [openCommunications, setOpenCommunications] = useState<number[]>([1]);
   const [showUserAccessModal, setShowUserAccessModal] = useState(false);
   
   // NRES user access data
@@ -222,8 +255,17 @@ export const SDAEvidenceLibrary = () => {
     );
   };
 
+  const toggleCommunication = (commId: number) => {
+    setOpenCommunications(prev => 
+      prev.includes(commId) 
+        ? prev.filter(id => id !== commId)
+        : [...prev, commId]
+    );
+  };
+
   const allMeetings = [...programmeBoardMeetings, ...workgroupMeetings, ...vcseMeetings];
-  const totalMeetingDocs = allMeetings.reduce((sum, m) => sum + m.documents.length, 0);
+  const totalMeetingDocs = allMeetings.reduce((sum, m) => sum + m.documents.length, 0) + 
+    communicationEntries.reduce((sum, c) => sum + c.documents.length, 0);
 
   const renderMeetingList = (
     meetings: Meeting[], 
@@ -559,6 +601,90 @@ export const SDAEvidenceLibrary = () => {
           </CollapsibleContent>
         </div>
       </Collapsible>
+
+      {/* Communications Section */}
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+          <Mail className="w-5 h-5 text-orange-500" />
+          Communications
+        </h3>
+        <div className="space-y-2">
+          {communicationEntries.map((comm) => {
+            const isOpen = openCommunications.includes(comm.id);
+            const FolderIcon = isOpen ? FolderOpen : Folder;
+            
+            return (
+              <Collapsible key={`comm-${comm.id}`} open={isOpen} onOpenChange={() => toggleCommunication(comm.id)}>
+                <Card className="bg-white border-0 shadow-sm overflow-hidden">
+                  <CollapsibleTrigger asChild>
+                    <button className="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left">
+                      <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                        <FolderIcon className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-slate-900">{comm.date} - {comm.subject}</p>
+                        <p className="text-sm text-slate-500">{comm.documents.length} documents</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                          {comm.documents.length} files
+                        </span>
+                        <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                      </div>
+                    </button>
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent>
+                    <div className="px-4 pb-4 pt-2 border-t border-slate-100 space-y-4">
+                      {/* Parties */}
+                      <div className="flex flex-wrap gap-2">
+                        {comm.parties.map((party, idx) => (
+                          <Badge key={idx} variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                            {party}
+                          </Badge>
+                        ))}
+                      </div>
+                      
+                      {/* Overview */}
+                      <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                        <h4 className="font-semibold text-orange-900 mb-2">Overview</h4>
+                        <p className="text-sm text-orange-800">{comm.overview}</p>
+                      </div>
+                      
+                      {/* Documents */}
+                      {comm.documents.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {comm.documents.map((doc, docIndex) => {
+                            const FileIcon = getFileIcon(doc.type);
+                            return (
+                              <div 
+                                key={docIndex}
+                                className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors group cursor-pointer"
+                                onClick={() => handleDownload(doc.filePath)}
+                              >
+                                <div className={`w-8 h-8 rounded-md flex items-center justify-center ${getTypeColor(doc.type)}`}>
+                                  <FileIcon className="w-4 h-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-slate-900 text-sm truncate group-hover:text-[#005EB8] transition-colors">
+                                    {doc.title}
+                                  </p>
+                                  <p className="text-xs text-slate-500 capitalize">{doc.type}</p>
+                                </div>
+                                <Download className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8">
