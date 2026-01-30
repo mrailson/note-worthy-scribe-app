@@ -1294,13 +1294,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                               Create as Infographic
                             </DropdownMenuSubTrigger>
                             <DropdownMenuSubContent>
-                              <DropdownMenuItem onClick={() => { setInfographicOrientation('portrait'); setShowInfographicModal(true); }}>
-                                <FileText className="h-4 w-4 mr-2" />
-                                Portrait (A4)
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => { setInfographicOrientation('landscape'); setShowInfographicModal(true); }}>
                                 <Monitor className="h-4 w-4 mr-2" />
                                 Landscape (16:9)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => { setInfographicOrientation('portrait'); setShowInfographicModal(true); }}>
+                                <FileText className="h-4 w-4 mr-2" />
+                                Portrait (A4)
                               </DropdownMenuItem>
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
