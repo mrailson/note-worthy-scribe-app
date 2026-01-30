@@ -82,7 +82,7 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
             <span>Quick Actions</span>
             <Zap className="h-4 w-4 ml-auto" />
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent side="left">
+          <DropdownMenuSubContent className="submenu-left">
             <DropdownMenuItem onClick={onNewSearch}>
               <Plus className="w-4 h-4 mr-2" />
               New Search
@@ -106,14 +106,14 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
             <span>View</span>
             <SlidersHorizontal className="h-4 w-4 ml-auto" />
           </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-56" side="left">
+          <DropdownMenuSubContent className="w-56 submenu-left">
             {/* Text Size */}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger className="gap-2" openLeft>
                 <span>Text Size</span>
                 <Type className="h-4 w-4 ml-auto" />
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent side="left">
+              <DropdownMenuSubContent className="submenu-left">
                 <DropdownMenuRadioGroup
                   value={chatViewSettings.fontSize}
                   onValueChange={(value) => onUpdateChatViewSetting('fontSize', value as ChatViewSettings['fontSize'])}
@@ -133,7 +133,7 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
                 <span>Message Display</span>
                 <MessageSquare className="h-4 w-4 ml-auto" />
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent side="left">
+              <DropdownMenuSubContent className="submenu-left">
                 <DropdownMenuCheckboxItem
                   checked={chatViewSettings.showUserMessages}
                   onCheckedChange={(checked) => onUpdateChatViewSetting('showUserMessages', checked)}
@@ -161,7 +161,7 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
                 <span>Auto-Scroll</span>
                 <ArrowDownToLine className="h-4 w-4 ml-auto" />
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent side="left">
+              <DropdownMenuSubContent className="submenu-left">
                 <DropdownMenuCheckboxItem
                   checked={chatViewSettings.autoScrollNewMessages}
                   onCheckedChange={(checked) => onUpdateChatViewSetting('autoScrollNewMessages', checked)}
@@ -183,7 +183,7 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
                 <span>Bubble Style</span>
                 <Palette className="h-4 w-4 ml-auto" />
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent side="left">
+              <DropdownMenuSubContent className="submenu-left">
                 <DropdownMenuRadioGroup
                   value={chatViewSettings.bubbleStyle}
                   onValueChange={(value) => onUpdateChatViewSetting('bubbleStyle', value as ChatViewSettings['bubbleStyle'])}
@@ -203,7 +203,7 @@ export const UnifiedSettingsDropdown: React.FC<UnifiedSettingsDropdownProps> = (
                 <span>Container Size</span>
                 <Maximize2 className="h-4 w-4 ml-auto" />
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent side="left">
+              <DropdownMenuSubContent className="submenu-left">
                 <DropdownMenuRadioGroup
                   value={chatViewSettings.containerSize}
                   onValueChange={(value) => onUpdateChatViewSetting('containerSize', value as ChatViewSettings['containerSize'])}
