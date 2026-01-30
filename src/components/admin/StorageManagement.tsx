@@ -121,6 +121,7 @@ export const StorageManagement: React.FC = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [isDeletingAllAi4gp, setIsDeletingAllAi4gp] = useState(false);
+  const [clearingUserOldChats, setClearingUserOldChats] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -278,6 +279,45 @@ export const StorageManagement: React.FC = () => {
     }
   };
 
+  const handleClearUserOldChats = async (user: UserStorageData) => {
+    setClearingUserOldChats(user.user_id);
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      // First get count of chats to delete
+      const { data: chatsToDelete, error: fetchError } = await supabase
+        .from('ai_4_pm_searches')
+        .select('id, title')
+        .eq('user_id', user.user_id)
+        .eq('is_protected', false)
+        .lt('created_at', sevenDaysAgo.toISOString());
+      
+      if (fetchError) throw fetchError;
+      
+      if (!chatsToDelete || chatsToDelete.length === 0) {
+        toast.info(`No unprotected chats older than 7 days for ${user.email}`);
+        return;
+      }
+      
+      const chatIds = chatsToDelete.map(c => c.id);
+      const { error } = await supabase
+        .from('ai_4_pm_searches')
+        .delete()
+        .in('id', chatIds);
+
+      if (error) throw error;
+
+      toast.success(`Deleted ${chatsToDelete.length} old chats for ${user.email}`);
+      fetchData();
+    } catch (error) {
+      console.error('Error clearing user old chats:', error);
+      toast.error('Failed to clear old chats');
+    } finally {
+      setClearingUserOldChats(null);
+    }
+  };
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -410,6 +450,7 @@ export const StorageManagement: React.FC = () => {
                   <SortableHeader field="transcript_size_bytes" className="text-right">Transcripts</SortableHeader>
                   <SortableHeader field="total_size_bytes" className="text-right">Total</SortableHeader>
                   <TableHead className="text-right">Oldest Chat</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -437,6 +478,35 @@ export const StorageManagement: React.FC = () => {
                     <TableCell className="text-right font-medium">{formatBytes(user.total_size_bytes)}</TableCell>
                     <TableCell className="text-right text-muted-foreground text-sm">
                       {formatDate(user.oldest_ai_chat)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            className="text-xs text-destructive hover:underline disabled:opacity-50"
+                            disabled={clearingUserOldChats === user.user_id}
+                          >
+                            {clearingUserOldChats === user.user_id ? 'Clearing...' : 'Clear >7d'}
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Clear old chats for {user.email}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete all unprotected AI chats older than 7 days for this user. Protected chats will not be deleted.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleClearUserOldChats(user)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete Old Chats
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}
