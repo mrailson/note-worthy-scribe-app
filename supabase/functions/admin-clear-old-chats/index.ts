@@ -26,14 +26,14 @@ serve(async (req) => {
       throw new Error('User not authenticated')
     }
 
-    // Check if user has admin role
-    const { data: profile } = await supabase
-      .from('profiles')
+    // Check if user has system_admin role in user_roles table
+    const { data: userRoles } = await supabase
+      .from('user_roles')
       .select('role')
-      .eq('id', user.id)
-      .single()
+      .eq('user_id', user.id)
 
-    if (!profile || profile.role !== 'admin') {
+    const isSystemAdmin = userRoles?.some(r => r.role === 'system_admin')
+    if (!isSystemAdmin) {
       throw new Error('Unauthorized: Admin access required')
     }
 
