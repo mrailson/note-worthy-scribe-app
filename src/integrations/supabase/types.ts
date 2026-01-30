@@ -6131,6 +6131,7 @@ export type Database = {
           created_by: string
           id: string
           is_active: boolean
+          member_practice: string | null
           name: string
           practice_id: string
           role: string
@@ -6141,6 +6142,7 @@ export type Database = {
           created_by: string
           id?: string
           is_active?: boolean
+          member_practice?: string | null
           name: string
           practice_id: string
           role: string
@@ -6151,6 +6153,7 @@ export type Database = {
           created_by?: string
           id?: string
           is_active?: boolean
+          member_practice?: string | null
           name?: string
           practice_id?: string
           role?: string

@@ -3,11 +3,25 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+export const MEMBER_PRACTICES = [
+  'Brackley',
+  'Springfield',
+  'Brook',
+  'Towcester',
+  'Denton',
+  'Bugbrooke',
+  'The Parks',
+  'Brackley & Towcester PCN'
+] as const;
+
+export type MemberPractice = typeof MEMBER_PRACTICES[number];
+
 export interface NRESClaimant {
   id: string;
   practice_id: string;
   name: string;
   role: 'gp' | 'pm';
+  member_practice: MemberPractice | null;
   is_active: boolean;
   created_by: string;
   created_at: string;
@@ -61,10 +75,11 @@ export function useNRESClaimants() {
 
       if (error) throw error;
       
-      // Cast the role field properly
+      // Cast the role and member_practice fields properly
       const castClaimants = (data || []).map(c => ({
         ...c,
-        role: c.role as 'gp' | 'pm'
+        role: c.role as 'gp' | 'pm',
+        member_practice: c.member_practice as MemberPractice | null
       }));
       
       setClaimants(castClaimants);
@@ -82,7 +97,7 @@ export function useNRESClaimants() {
     }
   }, [user?.id, fetchClaimants]);
 
-  const addClaimant = async (name: string, role: 'gp' | 'pm') => {
+  const addClaimant = async (name: string, role: 'gp' | 'pm', memberPractice?: MemberPractice) => {
     if (!user?.id) return null;
     
     const pId = practiceId || await fetchPracticeId();
@@ -99,6 +114,7 @@ export function useNRESClaimants() {
           practice_id: pId,
           name: name.trim(),
           role,
+          member_practice: memberPractice || null,
           created_by: user.id
         })
         .select()
@@ -106,7 +122,11 @@ export function useNRESClaimants() {
 
       if (error) throw error;
       
-      const newClaimant = { ...data, role: data.role as 'gp' | 'pm' };
+      const newClaimant = { 
+        ...data, 
+        role: data.role as 'gp' | 'pm',
+        member_practice: data.member_practice as MemberPractice | null
+      };
       setClaimants(prev => [...prev, newClaimant].sort((a, b) => a.name.localeCompare(b.name)));
       toast.success('Claimant added');
       return newClaimant;
@@ -119,7 +139,7 @@ export function useNRESClaimants() {
     }
   };
 
-  const updateClaimant = async (id: string, updates: { name?: string; role?: 'gp' | 'pm'; is_active?: boolean }) => {
+  const updateClaimant = async (id: string, updates: { name?: string; role?: 'gp' | 'pm'; member_practice?: MemberPractice | null; is_active?: boolean }) => {
     if (!user?.id) return null;
 
     try {
@@ -133,7 +153,11 @@ export function useNRESClaimants() {
 
       if (error) throw error;
       
-      const updatedClaimant = { ...data, role: data.role as 'gp' | 'pm' };
+      const updatedClaimant = { 
+        ...data, 
+        role: data.role as 'gp' | 'pm',
+        member_practice: data.member_practice as MemberPractice | null
+      };
       setClaimants(prev => 
         prev.map(c => c.id === id ? updatedClaimant : c)
           .sort((a, b) => a.name.localeCompare(b.name))
