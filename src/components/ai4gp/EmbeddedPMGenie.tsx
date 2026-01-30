@@ -57,26 +57,27 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
     }
     
     parts.push(`You can send emails using the send_email tool and create infographics using the generate_infographic tool.`);
-    parts.push(`When generating infographics, you can also offer to email them the result.`);
+    parts.push(`IMPORTANT: When sending an infographic by email, you MUST include the imageUrl parameter in the send_email call with the exact image URL returned from generate_infographic. Example: send_email({ subject: "...", content: "...", imageUrl: "data:image/png;base64,..." }).`);
     
     return parts.join(' ');
   }, [userDisplayName, userEmail, practiceName, userTitle]);
 
   // Email sending function for client tool
-  const sendEmailToUser = async (params: { subject: string; content: string }) => {
+  const sendEmailToUser = async (params: { subject: string; content: string; imageUrl?: string }) => {
     if (!userEmail) {
       toast.error('No email address found');
       return 'Failed to send email: No email address configured in your profile';
     }
 
     try {
-      console.log('📧 PM Genie sending email to:', userEmail);
+      console.log('📧 PM Genie sending email to:', userEmail, params.imageUrl ? 'with infographic' : '');
       
       const { data, error } = await supabase.functions.invoke('pm-genie-send-email', {
         body: {
           subject: params.subject,
           content: params.content,
-          userEmail: userEmail
+          userEmail: userEmail,
+          imageUrl: params.imageUrl // Pass the infographic URL if provided
         }
       });
 
@@ -145,8 +146,8 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         setInfographicsGenerated(prev => prev + 1);
         toast.success('Infographic generated!');
         
-        // Return URL for the agent to potentially email
-        return `Infographic generated successfully. The image URL is: ${imageUrl}. You can now offer to email this to the user.`;
+        // Return clear instruction for the agent to use in send_email
+        return `Infographic generated successfully. IMAGE_URL_FOR_EMAIL: ${imageUrl} - When emailing this infographic, you MUST include this exact URL as the imageUrl parameter in the send_email call.`;
       } else {
         toast.error('Failed to generate infographic');
         return 'Failed to generate infographic: No image returned';
@@ -160,7 +161,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
 
   const conversation = useConversation({
     clientTools: {
-      send_email: async (params: { subject: string; content: string }) => {
+      send_email: async (params: { subject: string; content: string; imageUrl?: string }) => {
         return await sendEmailToUser(params);
       },
       generate_infographic: async (params: { topic: string; keyPoints?: string }) => {

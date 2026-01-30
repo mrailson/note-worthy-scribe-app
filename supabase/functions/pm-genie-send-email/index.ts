@@ -83,6 +83,7 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log("Sending email to:", recipientEmail);
     console.log("Subject:", subject);
+    console.log("Has infographic image:", imageUrl ? `Yes (${imageUrl.length} chars)` : 'No');
 
     // Build image section if an infographic URL is provided
     const imageSection = imageUrl ? `
