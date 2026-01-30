@@ -282,34 +282,35 @@ export const StorageManagement: React.FC = () => {
   const handleClearUserOldChats = async (user: UserStorageData) => {
     setClearingUserOldChats(user.user_id);
     try {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const { data: sessionData } = await supabase.auth.getSession();
       
-      // First get count of chats to delete
-      const { data: chatsToDelete, error: fetchError } = await supabase
-        .from('ai_4_pm_searches')
-        .select('id, title')
-        .eq('user_id', user.user_id)
-        .eq('is_protected', false)
-        .lt('created_at', sevenDaysAgo.toISOString());
-      
-      if (fetchError) throw fetchError;
-      
-      if (!chatsToDelete || chatsToDelete.length === 0) {
-        toast.info(`No unprotected chats older than 7 days for ${user.email}`);
-        return;
+      const response = await fetch(
+        `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/admin-clear-old-chats`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            userId: user.user_id,
+            daysOld: 7
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to clear old chats');
       }
-      
-      const chatIds = chatsToDelete.map(c => c.id);
-      const { error } = await supabase
-        .from('ai_4_pm_searches')
-        .delete()
-        .in('id', chatIds);
 
-      if (error) throw error;
-
-      toast.success(`Deleted ${chatsToDelete.length} old chats for ${user.email}`);
-      fetchData();
+      if (result.deletedCount === 0) {
+        toast.info(`No unprotected chats older than 7 days for ${user.email}`);
+      } else {
+        toast.success(`Deleted ${result.deletedCount} old chats for ${user.email}`);
+        fetchData();
+      }
     } catch (error) {
       console.error('Error clearing user old chats:', error);
       toast.error('Failed to clear old chats');
