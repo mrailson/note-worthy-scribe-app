@@ -169,17 +169,23 @@ MANDATORY SPELLING AND GRAMMAR - COPY THESE EXACTLY:
 
 // Build practice branding section for prompts based on user's selected branding level
 function buildBrandingSection(practiceContext: ImageGenerationRequest['practiceContext'], requestType: string, requestBrandingLevel?: string, requestIncludeLogo?: boolean, requestCustomBranding?: ImageGenerationRequest['practiceContext']['customBranding'], editedDetails?: string[], customPracticeName?: string): string {
-  if (!practiceContext) return '';
+  // Allow a custom practice name to be used even if the practice context is not available.
+  // This prevents the "Custom Practice Name" field from appearing to do nothing.
+  const ctx = practiceContext ?? (customPracticeName && customPracticeName.trim()
+    ? { practiceName: customPracticeName.trim() }
+    : null);
+
+  if (!ctx) return '';
   
   // Use branding settings from request body if provided (Studio requests), otherwise fall back to practiceContext
-  const brandingLevel = requestBrandingLevel || practiceContext.brandingLevel || 'full';
-  const customBranding = requestCustomBranding || practiceContext.customBranding;
-  const includeLogo = (requestIncludeLogo !== undefined ? requestIncludeLogo : practiceContext.includeLogo) && practiceContext.logoUrl;
+  const brandingLevel = requestBrandingLevel || ctx.brandingLevel || 'full';
+  const customBranding = requestCustomBranding || ctx.customBranding;
+  const includeLogo = (requestIncludeLogo !== undefined ? requestIncludeLogo : ctx.includeLogo) && ctx.logoUrl;
   
   // Use custom practice name if provided, otherwise fall back to practiceContext.practiceName
   const effectivePracticeName = (customPracticeName && customPracticeName.trim()) 
     ? customPracticeName.trim() 
-    : practiceContext.practiceName;
+    : ctx.practiceName;
   
   // If user chose 'none' and no logo, return empty string
   if (brandingLevel === 'none' && !includeLogo) {
@@ -232,20 +238,20 @@ ${logoInstruction}`;
   if (includeName && effectivePracticeName && effectivePracticeName.trim()) {
     availableDetails.push(`Practice Name: "${effectivePracticeName}"`);
   }
-  if (includePhone && practiceContext.practicePhone && practiceContext.practicePhone.trim()) {
-    availableDetails.push(`Phone: "${practiceContext.practicePhone}"`);
+  if (includePhone && ctx.practicePhone && ctx.practicePhone.trim()) {
+    availableDetails.push(`Phone: "${ctx.practicePhone}"`);
   }
-  if (includeEmail && practiceContext.practiceEmail && practiceContext.practiceEmail.trim()) {
-    availableDetails.push(`Email: "${practiceContext.practiceEmail}"`);
+  if (includeEmail && ctx.practiceEmail && ctx.practiceEmail.trim()) {
+    availableDetails.push(`Email: "${ctx.practiceEmail}"`);
   }
-  if (includeAddress && practiceContext.practiceAddress && practiceContext.practiceAddress.trim()) {
-    availableDetails.push(`Address: "${practiceContext.practiceAddress}"`);
+  if (includeAddress && ctx.practiceAddress && ctx.practiceAddress.trim()) {
+    availableDetails.push(`Address: "${ctx.practiceAddress}"`);
   }
-  if (includeWebsite && practiceContext.practiceWebsite && practiceContext.practiceWebsite.trim()) {
-    availableDetails.push(`Website: "${practiceContext.practiceWebsite}"`);
+  if (includeWebsite && ctx.practiceWebsite && ctx.practiceWebsite.trim()) {
+    availableDetails.push(`Website: "${ctx.practiceWebsite}"`);
   }
-  if (includePcn && practiceContext.pcnName && practiceContext.pcnName.trim()) {
-    availableDetails.push(`PCN: "${practiceContext.pcnName}"`);
+  if (includePcn && ctx.pcnName && ctx.pcnName.trim()) {
+    availableDetails.push(`PCN: "${ctx.pcnName}"`);
   }
   
   // Handle logo-only case (branding is 'none' but logo is enabled)

@@ -38,7 +38,18 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
   const isLogoAvailable = !!practiceContext?.logoUrl && !logoError;
 
   const handleBrandingLevelChange = (value: BrandingLevel) => {
-    onUpdate({ brandingLevel: value });
+    if (value === 'custom') {
+      // If a user switches to "Custom" and nothing is ticked, default to including the name
+      // (otherwise branding is effectively disabled and the practice name cannot appear).
+      const anySelected = Object.values(settings.customBranding).some(Boolean);
+      const nextCustomBranding = anySelected
+        ? settings.customBranding
+        : { ...settings.customBranding, name: true };
+
+      onUpdate({ brandingLevel: value, customBranding: nextCustomBranding });
+    } else {
+      onUpdate({ brandingLevel: value });
+    }
     setShowCustomOptions(value === 'custom');
   };
 
@@ -52,9 +63,14 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
   };
 
   const isOptionAvailable = (option: keyof CustomBrandingOptions): boolean => {
+    // Allow Practice Name to be included purely via Custom Practice Name,
+    // even if practiceContext hasn't been populated.
+    if (option === 'name') {
+      return Boolean((settings.customPracticeName || '').trim() || practiceContext?.practiceName);
+    }
+
     if (!practiceContext) return false;
     switch (option) {
-      case 'name': return !!practiceContext.practiceName;
       case 'address': return !!practiceContext.practiceAddress;
       case 'phone': return !!practiceContext.practicePhone;
       case 'email': return !!practiceContext.practiceEmail;
@@ -151,7 +167,19 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
           id="custom-practice-name"
           placeholder={practiceContext?.practiceName || "Enter practice name"}
           value={settings.customPracticeName || ''}
-          onChange={(e) => onUpdate({ customPracticeName: e.target.value })}
+          onChange={(e) => {
+            const nextName = e.target.value;
+            // If the user provides a custom practice name while in Custom branding mode,
+            // make sure the "Practice Name" option is enabled so it can appear in outputs.
+            if (settings.brandingLevel === 'custom' && nextName.trim() && !settings.customBranding.name) {
+              onUpdate({
+                customPracticeName: nextName,
+                customBranding: { ...settings.customBranding, name: true },
+              });
+              return;
+            }
+            onUpdate({ customPracticeName: nextName });
+          }}
         />
         <p className="text-xs text-muted-foreground">
           Leave blank to use your default practice name
