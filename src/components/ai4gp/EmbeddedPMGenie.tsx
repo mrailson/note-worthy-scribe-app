@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useConversation } from '@11labs/react';
 import { Button } from '@/components/ui/button';
-import { Phone, PhoneOff, Loader2, Sparkles, Volume2, VolumeX, Mic, MicOff } from 'lucide-react';
+import { Phone, PhoneOff, Loader2, Sparkles, Volume2, VolumeX, Mic, MicOff, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { playoutSilentPreRoll, fadeInVolume } from '@/utils/AudioFocusManager';
+import { useAuth } from '@/contexts/AuthContext';
 import wakeRing from '@/assets/sounds/uk_phone_ring_two_rings.wav';
 
 interface EmbeddedPMGenieProps {
@@ -15,16 +16,59 @@ interface EmbeddedPMGenieProps {
 type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
 
 export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
+  const { user } = useAuth();
   const [status, setStatus] = useState<ConnectionStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [volume, setVolume] = useState(0.8);
   const [isMuted, setIsMuted] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
+  const [emailsSent, setEmailsSent] = useState(0);
   const wakeAudioRef = useRef<HTMLAudioElement | null>(null);
   const volumeGuardTimerRef = useRef<number | null>(null);
   const prevVolumeRef = useRef(0.8);
 
+  // Email sending function for client tool
+  const sendEmailToUser = async (params: { subject: string; content: string }) => {
+    try {
+      console.log('📧 PM Genie sending email:', params.subject);
+      
+      const { data, error } = await supabase.functions.invoke('pm-genie-send-email', {
+        body: {
+          subject: params.subject,
+          content: params.content,
+          userEmail: user?.email
+        }
+      });
+
+      if (error) {
+        console.error('Email send error:', error);
+        toast.error('Failed to send email');
+        return 'Failed to send email: ' + error.message;
+      }
+
+      if (data?.success) {
+        setEmailsSent(prev => prev + 1);
+        toast.success('Email sent successfully!', {
+          description: `Check your inbox at ${user?.email}`
+        });
+        return `Email sent successfully to ${user?.email}`;
+      } else {
+        toast.error('Failed to send email');
+        return 'Failed to send email: ' + (data?.error || 'Unknown error');
+      }
+    } catch (err: any) {
+      console.error('Email send exception:', err);
+      toast.error('Failed to send email');
+      return 'Failed to send email: ' + err.message;
+    }
+  };
+
   const conversation = useConversation({
+    clientTools: {
+      send_email: async (params: { subject: string; content: string }) => {
+        return await sendEmailToUser(params);
+      }
+    },
     onConnect: async () => {
       console.log('Connected to PM Genie');
       setStatus('connected');
@@ -292,10 +336,18 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
           <p className="text-sm text-muted-foreground">
             {status === 'idle' && 'Ready to connect'}
             {status === 'connecting' && 'Establishing voice connection'}
-            {status === 'connected' && 'Your PM assistant is listening'}
+            {status === 'connected' && 'Your PM assistant is listening — ask me to email you anything!'}
             {status === 'disconnected' && 'The conversation has ended'}
             {status === 'error' && (error || 'Please try again')}
           </p>
+          
+          {/* Email indicator */}
+          {emailsSent > 0 && (
+            <div className="flex items-center justify-center gap-1.5 mt-2 text-xs text-primary">
+              <Mail className="w-3.5 h-3.5" />
+              <span>{emailsSent} email{emailsSent !== 1 ? 's' : ''} sent</span>
+            </div>
+          )}
         </div>
 
         {/* Controls */}
