@@ -91,7 +91,6 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
   const mainActions = [
     { icon: Plus, label: 'New Search', action: onNewSearch },
     { icon: History, label: 'Search History', action: onShowHistory },
-    { icon: Settings, label: 'Settings', action: onShowSettings },
   ];
 
   const quickActions = [
