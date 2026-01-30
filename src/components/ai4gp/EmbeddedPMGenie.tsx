@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useConversation } from '@11labs/react';
 import { Button } from '@/components/ui/button';
-import { Phone, PhoneOff, Loader2, Sparkles, Volume2, VolumeX, Mic, MicOff, Mail, Image } from 'lucide-react';
+import { Phone, PhoneOff, Loader2, Sparkles, Volume2, VolumeX, Mic, MicOff, Mail, Image, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,66 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   const wakeAudioRef = useRef<HTMLAudioElement | null>(null);
   const volumeGuardTimerRef = useRef<number | null>(null);
   const prevVolumeRef = useRef(0.8);
+  const lastInfographicUrlRef = useRef<string | null>(null);
+
+  const extractImageUrlFromText = (text?: string): string | null => {
+    if (!text) return null;
+
+    // Prefer our explicit marker if present
+    const markerMatch = text.match(/IMAGE_URL_FOR_EMAIL:\s*([^\s]+)/i);
+    if (markerMatch?.[1]) return markerMatch[1];
+
+    // Fallback: data URL
+    const dataUrlMatch = text.match(/(data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+)/);
+    if (dataUrlMatch?.[1]) return dataUrlMatch[1];
+
+    // Fallback: absolute image URL
+    const httpMatch = text.match(/https?:\/\/[^\s]+\.(png|jpg|jpeg|webp)(\?[^\s]*)?/i);
+    if (httpMatch?.[0]) return httpMatch[0];
+
+    return null;
+  };
+
+  const handleDownloadLastInfographic = async () => {
+    const url = lastInfographicUrlRef.current;
+    if (!url) {
+      toast.error('No infographic available to download');
+      return;
+    }
+
+    const fileName = `infographic-${new Date().toISOString().slice(0, 10)}.png`;
+
+    try {
+      // Data URL downloads are easiest
+      if (url.startsWith('data:image/')) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast.success('Infographic download started');
+        return;
+      }
+
+      // Otherwise, fetch the asset and download as a blob
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Download failed (${resp.status})`);
+      const blob = await resp.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+      toast.success('Infographic download started');
+    } catch (e) {
+      console.error('Infographic download failed:', e);
+      toast.error('Failed to download infographic');
+    }
+  };
 
   // Get user's display name, email and practice
   const userDisplayName = profile?.full_name || profile?.display_name || user?.email?.split('@')[0] || 'User';
@@ -70,14 +130,21 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
     }
 
     try {
-      console.log('📧 PM Genie sending email to:', userEmail, params.imageUrl ? 'with infographic' : '');
+      // ElevenLabs tool schema may not include imageUrl; fall back to extracting from content or last generated image.
+      const resolvedImageUrl =
+        params.imageUrl ||
+        extractImageUrlFromText(params.content) ||
+        lastInfographicUrlRef.current ||
+        undefined;
+
+      console.log('📧 PM Genie sending email to:', userEmail, resolvedImageUrl ? 'with infographic' : '');
       
       const { data, error } = await supabase.functions.invoke('pm-genie-send-email', {
         body: {
           subject: params.subject,
           content: params.content,
           userEmail: userEmail,
-          imageUrl: params.imageUrl // Pass the infographic URL if provided
+          imageUrl: resolvedImageUrl
         }
       });
 
@@ -143,6 +210,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
       const imageUrl = data?.image?.url || data?.imageUrl;
 
       if (imageUrl) {
+        lastInfographicUrlRef.current = imageUrl;
         setInfographicsGenerated(prev => prev + 1);
         toast.success('Infographic generated!');
         
@@ -468,6 +536,17 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
                 <div className="flex items-center gap-1.5">
                   <Image className="w-3.5 h-3.5" />
                   <span>{infographicsGenerated} infographic{infographicsGenerated !== 1 ? 's' : ''}</span>
+                  {lastInfographicUrlRef.current && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleDownloadLastInfographic}
+                      className="h-6 w-6 text-primary hover:text-primary"
+                      title="Download last infographic"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
