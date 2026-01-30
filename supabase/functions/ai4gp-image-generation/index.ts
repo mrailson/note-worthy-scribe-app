@@ -653,8 +653,9 @@ ${keywordReference}
 
 INFOGRAPHIC DESIGN REQUIREMENTS:
 - Create an ACTUAL visual infographic image, NOT a text description
-- Professional colour scheme (blues, teals, clean modern palette)
+- Use a professional colour scheme (blues, teals, clean modern palette)
 - High contrast for accessibility and readability
+- DO NOT display colour swatches, hex codes, or colour palette legends anywhere in the image
 
 Content guidelines:
 - Keep all content professional and workplace-appropriate
@@ -676,8 +677,9 @@ ${SPELLING_REFERENCE}
 
 INFOGRAPHIC DESIGN REQUIREMENTS:
 - Create an ACTUAL visual infographic image, NOT a text description
-- Professional colour scheme (blues, teals, clean modern palette)
+- Use a professional colour scheme (blues, teals, clean modern palette)
 - High contrast for accessibility
+- DO NOT display colour swatches, hex codes, or colour palette legends anywhere in the image
 
 Content guidelines:
 - Keep all content professional and workplace-appropriate
@@ -708,8 +710,9 @@ ${keywordReference}
 
 DESIGN REQUIREMENTS:
 - Create an ACTUAL visual ${requestType} image, NOT a text description
-- Professional colour scheme (blues, teals, clean modern palette)
+- Use a professional colour scheme (blues, teals, clean modern palette)
 - High contrast for accessibility and readability
+- DO NOT display colour swatches, hex codes, or colour palette legends anywhere in the image
 
 Content guidelines:
 - Keep all content professional and workplace-appropriate
