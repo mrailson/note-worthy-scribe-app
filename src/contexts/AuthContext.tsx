@@ -234,21 +234,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Periodically refresh user modules and admin status (reduced frequency)
+  // Fetch user modules and admin status once when user changes
+  // No polling - data is fetched on login and can be manually refreshed via refreshUserModules()
   useEffect(() => {
     if (user?.id) {
-      // Immediate refresh
       fetchUserModules(user.id);
       checkSystemAdmin(user.id);
       checkConsultationExamplesVisibility();
-      
-      const interval = setInterval(() => {
-        fetchUserModules(user.id);
-        checkSystemAdmin(user.id);
-        checkConsultationExamplesVisibility();
-      }, 30000); // 30 seconds to reduce network churn
-      
-      return () => clearInterval(interval);
     }
   }, [user?.id]);
 
