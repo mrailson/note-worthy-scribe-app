@@ -457,8 +457,8 @@ export const securityControls: SecurityControl[] = [
   {
     category: "Input Validation",
     implementation: "Form validation, file upload restrictions, XSS/SQL injection prevention",
-    effectiveness: "MEDIUM",
-    gaps: "Enhanced validation needed for AI4GP queries"
+    effectiveness: "HIGH",
+    gaps: "Enhanced validation for free-text inputs and file uploads (Meeting Notes & Complaints) – implemented"
   },
   {
     category: "Session Management",
