@@ -98,7 +98,7 @@ export const useContentInfographic = () => {
       style = 'professional', 
       detailLevel = 'standard',
       imageModel = 'google/gemini-2.5-flash-image-preview',
-      orientation = 'portrait',
+      orientation = 'landscape',
     } = options;
     
     setIsGenerating(true);

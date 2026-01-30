@@ -474,12 +474,12 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   }, [status]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] p-8 bg-gradient-to-b from-background to-muted/20">
+    <div className="flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-background to-muted/20">
       {/* Connection Status Indicator */}
-      <div className="flex flex-col items-center gap-6">
-        {/* Animated orb */}
+      <div className="flex flex-col items-center gap-3 sm:gap-4">
+        {/* Animated orb - smaller for bubble mode */}
         <div className={cn(
-          "relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-500",
+          "relative w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center transition-all duration-500",
           status === 'idle' && "bg-muted",
           status === 'connecting' && "bg-amber-500/20 animate-pulse",
           status === 'connected' && "bg-green-500/20",
@@ -492,7 +492,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
           )}
           
           <div className={cn(
-            "w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300",
+            "w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all duration-300",
             status === 'idle' && "bg-muted-foreground/10",
             status === 'connecting' && "bg-amber-500/30",
             status === 'connected' && "bg-green-500/30",
@@ -500,30 +500,30 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
             status === 'error' && "bg-destructive/30"
           )}>
             {status === 'connecting' ? (
-              <Loader2 className="w-10 h-10 text-amber-600 animate-spin" />
+              <Loader2 className="w-7 h-7 sm:w-8 sm:h-8 text-amber-600 animate-spin" />
             ) : status === 'connected' ? (
-              <Phone className="w-10 h-10 text-green-600" />
+              <Phone className="w-7 h-7 sm:w-8 sm:h-8 text-green-600" />
             ) : status === 'error' ? (
-              <PhoneOff className="w-10 h-10 text-destructive" />
+              <PhoneOff className="w-7 h-7 sm:w-8 sm:h-8 text-destructive" />
             ) : (
-              <Sparkles className="w-10 h-10 text-muted-foreground" />
+              <Sparkles className="w-7 h-7 sm:w-8 sm:h-8 text-muted-foreground" />
             )}
           </div>
         </div>
 
-        {/* Status text */}
-        <div className="text-center">
-          <h3 className="text-xl font-semibold mb-1">
+        {/* Status text - more compact */}
+        <div className="text-center max-w-sm">
+          <h3 className="text-base sm:text-lg font-semibold mb-0.5">
             {status === 'idle' && 'PM Genie'}
             {status === 'connecting' && 'Connecting...'}
             {status === 'connected' && 'Connected to PM Genie'}
             {status === 'disconnected' && 'Call Ended'}
             {status === 'error' && 'Connection Failed'}
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {status === 'idle' && 'Ready to connect'}
             {status === 'connecting' && 'Establishing voice connection'}
-            {status === 'connected' && `Hi ${userDisplayName.split(' ')[0]}! Ask me anything — I can email you content or create infographics.`}
+            {status === 'connected' && `Ask me anything — I can email you content or create infographics.`}
             {status === 'disconnected' && 'The conversation has ended'}
             {status === 'error' && (error || 'Please try again')}
           </p>
@@ -564,8 +564,8 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
           )}
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-3 mt-4">
+        {/* Controls - more compact */}
+        <div className="flex items-center gap-2 mt-2">
           {status === 'connected' && (
             <>
               <Button
@@ -573,22 +573,22 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
                 size="icon"
                 onClick={toggleMicMute}
                 className={cn(
-                  "rounded-full w-12 h-12",
+                  "rounded-full w-10 h-10",
                   isMicMuted && "bg-destructive/10 border-destructive text-destructive"
                 )}
                 title={isMicMuted ? "Unmute microphone" : "Mute microphone"}
               >
-                {isMicMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                {isMicMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </Button>
 
               <Button
                 variant="destructive"
-                size="lg"
+                size="sm"
                 onClick={endConversation}
-                className="rounded-full px-8"
+                className="rounded-full px-4"
               >
-                <PhoneOff className="w-5 h-5 mr-2" />
-                End Call
+                <PhoneOff className="w-4 h-4 mr-1.5" />
+                End
               </Button>
 
               <Button
@@ -596,12 +596,12 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
                 size="icon"
                 onClick={toggleMute}
                 className={cn(
-                  "rounded-full w-12 h-12",
+                  "rounded-full w-10 h-10",
                   isMuted && "bg-muted"
                 )}
                 title={isMuted ? "Unmute speaker" : "Mute speaker"}
               >
-                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </Button>
             </>
           )}
@@ -609,11 +609,11 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
           {status === 'disconnected' && (
             <Button
               variant="default"
-              size="lg"
+              size="sm"
               onClick={startConversation}
-              className="rounded-full px-8"
+              className="rounded-full px-4"
             >
-              <Phone className="w-5 h-5 mr-2" />
+              <Phone className="w-4 h-4 mr-1.5" />
               Reconnect
             </Button>
           )}
@@ -621,22 +621,22 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
           {status === 'error' && (
             <Button
               variant="default"
-              size="lg"
+              size="sm"
               onClick={startConversation}
-              className="rounded-full px-8"
+              className="rounded-full px-4"
             >
-              <Phone className="w-5 h-5 mr-2" />
+              <Phone className="w-4 h-4 mr-1.5" />
               Try Again
             </Button>
           )}
         </div>
 
-        {/* Close button - always visible but styled appropriately */}
+        {/* Close button - compact */}
         <Button
           variant="ghost"
           size="sm"
           onClick={handleClose}
-          className="mt-6 text-muted-foreground hover:text-foreground"
+          className="mt-2 text-xs text-muted-foreground hover:text-foreground"
         >
           {status === 'connected' ? 'End & Close' : 'Close'}
         </Button>
