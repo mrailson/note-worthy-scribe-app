@@ -1124,3 +1124,11 @@ body:has([role="dialog"]) {
 .streaming-dot:nth-child(3) {
   animation-delay: 0.4s;
 }
+
+/* Force submenu to open to the left */
+.submenu-left {
+  --radix-dropdown-menu-content-transform-origin: right top;
+  right: 100% !important;
+  left: auto !important;
+  margin-right: 2px;
+}
