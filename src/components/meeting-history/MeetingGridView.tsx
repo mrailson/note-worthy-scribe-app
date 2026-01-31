@@ -121,7 +121,7 @@ export const MeetingGridView = ({
           <Card
             key={meeting.id}
             className={cn(
-              "group relative overflow-hidden transition-all hover:shadow-md cursor-pointer",
+              "group relative overflow-hidden transition-shadow hover:shadow-md cursor-pointer",
               "border-border/50 hover:border-border",
               isSelected && "ring-2 ring-primary border-primary"
             )}

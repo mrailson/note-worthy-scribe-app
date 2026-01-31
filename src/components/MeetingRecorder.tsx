@@ -26,7 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
 import { useRecordingProtection } from "@/hooks/useRecordingProtection";
@@ -5783,6 +5783,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
 
               
   return (
+    <TooltipProvider delayDuration={300}>
     <div className="space-y-6">
       {/* Continuation Mode Banner */}
       {isContinuationMode && !isRecording && (
@@ -7330,5 +7331,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       
       {/* Deepgram transcription removed - backup transcription service disabled */}
     </div>
+    </TooltipProvider>
   );
 };
