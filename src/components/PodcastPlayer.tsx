@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Play, Pause, Volume2, VolumeX, Download, Podcast, RotateCcw } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Download, Headphones } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PodcastPlayerProps {
@@ -90,12 +90,6 @@ export const PodcastPlayer: React.FC<PodcastPlayerProps> = ({
     }
   };
 
-  const handleRestart = () => {
-    if (!audioRef.current) return;
-    audioRef.current.currentTime = 0;
-    setCurrentTime(0);
-  };
-
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = src;
@@ -112,110 +106,82 @@ export const PodcastPlayer: React.FC<PodcastPlayerProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
-
   return (
-    <div className={cn("p-4 bg-primary/5 rounded-lg border border-primary/20", className)}>
+    <div className={cn("flex items-center gap-2 p-2 bg-muted/50 rounded-md", className)}>
       <audio ref={audioRef} src={src} preload="metadata" />
       
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className="p-2 bg-primary/10 rounded-full">
-          <Podcast className="h-5 w-5 text-primary" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-semibold text-foreground truncate">{title}</h4>
-          <p className="text-xs text-muted-foreground">Listen to learn more about Notewell AI</p>
-        </div>
+      {/* Play/Pause */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={togglePlay}
+        disabled={!isLoaded}
+        className="h-8 w-8 p-0 shrink-0"
+      >
+        {isPlaying ? (
+          <Pause className="h-4 w-4" />
+        ) : (
+          <Play className="h-4 w-4" />
+        )}
+      </Button>
+
+      {/* Icon & Title */}
+      <div className="flex items-center gap-1.5 min-w-0">
+        <Headphones className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        <span className="text-xs text-muted-foreground truncate hidden sm:inline">{title}</span>
       </div>
 
-      {/* Progress bar with timeline */}
-      <div className="mb-3">
+      {/* Timeline */}
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className="text-xs text-muted-foreground tabular-nums w-8 text-right shrink-0">
+          {formatTime(currentTime)}
+        </span>
         <Slider
           value={[currentTime]}
           onValueChange={handleSeek}
           max={duration || 100}
           step={0.1}
-          className="w-full cursor-pointer"
+          className="flex-1 min-w-[60px]"
           disabled={!isLoaded}
         />
-        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
+        <span className="text-xs text-muted-foreground tabular-nums w-8 shrink-0">
+          {formatTime(duration)}
+        </span>
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center gap-2">
-        {/* Play/Pause */}
-        <Button
-          variant="default"
-          size="sm"
-          onClick={togglePlay}
-          disabled={!isLoaded}
-          className="gap-2"
-        >
-          {isPlaying ? (
-            <>
-              <Pause className="h-4 w-4" />
-              Pause
-            </>
-          ) : (
-            <>
-              <Play className="h-4 w-4" />
-              Play
-            </>
-          )}
-        </Button>
-
-        {/* Restart */}
+      {/* Volume - desktop only */}
+      <div className="hidden sm:flex items-center gap-1">
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleRestart}
-          disabled={!isLoaded}
-          title="Restart"
+          onClick={toggleMute}
+          className="h-7 w-7 p-0"
         >
-          <RotateCcw className="h-4 w-4" />
+          {isMuted ? (
+            <VolumeX className="h-3.5 w-3.5 text-muted-foreground" />
+          ) : (
+            <Volume2 className="h-3.5 w-3.5" />
+          )}
         </Button>
-
-        {/* Volume controls */}
-        <div className="flex items-center gap-2 ml-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleMute}
-            className="p-1 h-8 w-8"
-          >
-            {isMuted ? (
-              <VolumeX className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <Volume2 className="h-4 w-4" />
-            )}
-          </Button>
-          <Slider
-            value={[isMuted ? 0 : volume]}
-            onValueChange={handleVolumeChange}
-            max={1}
-            step={0.01}
-            className="w-20 hidden sm:flex"
-          />
-        </div>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Download */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDownload}
-          className="gap-2"
-        >
-          <Download className="h-4 w-4" />
-          <span className="hidden sm:inline">Download</span>
-        </Button>
+        <Slider
+          value={[isMuted ? 0 : volume]}
+          onValueChange={handleVolumeChange}
+          max={1}
+          step={0.01}
+          className="w-14"
+        />
       </div>
+
+      {/* Download */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleDownload}
+        className="h-7 w-7 p-0 shrink-0"
+        title="Download"
+      >
+        <Download className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 };
