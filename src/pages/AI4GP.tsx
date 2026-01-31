@@ -136,7 +136,7 @@ const AI4GP = () => {
       )}
       
       <main className="flex-1 flex flex-col min-h-0 mobile-scroll overflow-x-hidden">
-        <div className="flex-1 w-full max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 w-full max-w-[1536px] mx-auto px-0 sm:px-6 lg:px-8 py-0 sm:py-6 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden">
           <MaintenanceBanner />
           <AI4GPService isDemoMode={isDemoMode} />
         </div>
