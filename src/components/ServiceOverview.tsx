@@ -28,7 +28,7 @@ export const ServiceOverview = () => {
     {
       icon: <MessageSquare className="h-6 w-6" />,
       title: "AI4GP Service",
-      description: "Advanced AI assistant specifically designed for UK NHS GPs with comprehensive clinical support",
+      description: "Advanced AI assistant specifically designed for UK NHS GPs with comprehensive clinical information support",
       benefits: ["NICE guidance finder", "BNF drug lookups", "Clinical information support", "NHS-compliant responses", "Voice-activated queries"]
     },
     {
@@ -350,7 +350,7 @@ export const ServiceOverview = () => {
             Questions, want to learn more, or try it for yourself?
           </p>
           <p className="text-sm text-muted-foreground">
-            Contact: Notewell Team · <a href="mailto:Malcolm.Railson@nhs.net" className="text-primary hover:text-primary-hover font-medium underline">Malcolm.Railson@nhs.net</a>
+            Contact: Notewell Team · <a href="mailto:Malcolm.Railson@nhs.net" className="text-primary hover:text-primary-hover font-medium underline">Malcolm.Railson@nhs.net</a> (Pilot Lead)
           </p>
         </div>
       </div>

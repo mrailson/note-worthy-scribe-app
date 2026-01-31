@@ -188,7 +188,7 @@ export const LoginForm = () => {
                 <span className="text-sm font-medium text-foreground">Don't know your password?</span>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                New user or forgotten your password? Request secure access via a magic link sent to your NHS email.
+                New user or forgotten your password? Request secure access via a time-limited magic link sent to your NHS email.
               </p>
               <Button
                 variant="outline"

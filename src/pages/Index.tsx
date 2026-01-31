@@ -402,7 +402,7 @@ const Index = () => {
                     <div>
                       <h3 className="font-semibold text-base mb-1">AI4GP Service</h3>
                       <p className="text-sm text-muted-foreground">
-                        Advanced AI assistant specifically designed for UK NHS GPs with comprehensive clinical support
+                        Advanced AI assistant specifically designed for UK NHS GPs with comprehensive clinical information support
                       </p>
                     </div>
                   </div>
