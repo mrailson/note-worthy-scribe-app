@@ -124,7 +124,7 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
         
         {!descriptionProvided && (
           <p className="text-sm text-muted-foreground">
-            Please provide a description in the Context tab first.
+            Please provide a description or upload a file in the Context tab first.
           </p>
         )}
       </div>
