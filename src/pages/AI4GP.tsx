@@ -112,7 +112,7 @@ const AI4GP = () => {
 
 
   return (
-    <div className="min-h-screen bg-background flex flex-col mobile-container safe-area-top safe-area-bottom">
+    <div className="min-h-screen bg-background flex flex-col ai4gp-no-transform safe-area-top safe-area-bottom">
       <SEO 
         title="AI4GP | AI Assistant for General Practice | NoteWell AI"
         description="Advanced AI-powered consultation assistance for GP practices. Real-time voice interaction, clinical guidance, and intelligent documentation support for NHS primary care."

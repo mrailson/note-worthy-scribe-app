@@ -303,7 +303,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
         ref={containerRef}
         className="fixed inset-x-0 bottom-0 z-[9999] bg-card border-t shadow-strong"
         style={{
-          paddingBottom: `calc(env(safe-area-inset-bottom) + 8px)`,
+          paddingBottom: 'env(safe-area-inset-bottom)',
           paddingLeft: 'env(safe-area-inset-left)',
           paddingRight: 'env(safe-area-inset-right)'
         }}
