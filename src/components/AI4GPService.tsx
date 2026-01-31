@@ -535,7 +535,10 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                 width: '100%',
               }}
             >
-            <Card className="flex-1 flex flex-col min-h-0 sm:border border-0 sm:rounded-lg rounded-none shadow-none sm:shadow-sm">
+            <Card className={cn(
+              "flex-1 flex flex-col min-h-0 sm:border border-0 sm:rounded-lg rounded-none shadow-none sm:shadow-sm",
+              isMobile && "max-h-[calc(100vh-220px)]"
+            )}>
               <CardHeader className={cn(
                 "border-b flex-shrink-0",
                 deviceInfo.isIPhone 
@@ -748,7 +751,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                     /* Welcome Screen - Compact, mobile-optimized - Hidden when PM Genie is active */
                     <div className={cn(
                       "flex-1 overflow-y-auto",
-                      isMobile ? "p-0 pb-28" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
+                      isMobile ? "p-0" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
                     )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className="w-full max-w-2xl mx-auto space-y-4">
                         {/* Mobile: Show quick picks inside the white bubble area */}
