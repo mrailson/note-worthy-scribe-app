@@ -599,7 +599,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               <DrawerClose asChild>
                                 <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ai4gp')}>
                                   <Sparkles className="h-4 w-4 mr-2" />
-                                  AI4GP Service
+                                  Ask AI
                                 </Button>
                               </DrawerClose>
                               {hasModuleAccess('meeting_recorder') && (
