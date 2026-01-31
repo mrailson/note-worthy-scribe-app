@@ -116,10 +116,10 @@ export const ServiceOverview = () => {
       {/* Hero Section - Moved below services */}
       <div className="text-center space-y-4">
         <h2 className="text-2xl font-semibold text-foreground">
-          AI-Powered Primary Care Support
+          Practical AI Tools for NHS Primary Care
         </h2>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Revolutionary AI4GP and AI4PM services designed specifically for UK NHS professionals, providing instant access to clinical guidance and practice management support
+          Secure, clinician-led AI for meetings, complaints, practice management and GP support — designed for real NHS workflows, not experiments
         </p>
         <div className="flex flex-wrap justify-center gap-2 mt-4">
           <Badge variant="secondary" className="text-sm">
@@ -336,6 +336,13 @@ export const ServiceOverview = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Pilot Context */}
+      <div className="p-4 bg-accent/30 rounded-lg border border-accent text-center">
+        <p className="text-sm text-muted-foreground">
+          Notewell AI is currently in controlled pilot use across GP practices in Northamptonshire, with clinical safety oversight and phased feature rollout.
+        </p>
+      </div>
 
       {/* Call to Action */}
       <div className="text-center space-y-4">

@@ -406,7 +406,7 @@ const Index = () => {
                       </p>
                     </div>
                   </div>
-                  <ul className="space-y-1.5 ml-11">
+                  <ul className="space-y-1.5 ml-11 mb-3">
                     <li className="flex items-center gap-2 text-xs">
                       <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
                       <span>NICE guidance finder</span>
@@ -420,6 +420,13 @@ const Index = () => {
                       <span>Clinical decision support</span>
                     </li>
                   </ul>
+                  {/* Safety Guardrail */}
+                  <div className="ml-11 pt-2 border-t border-border">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <span>🔒</span>
+                      <span>Information support only · No patient data · GP-designed</span>
+                    </p>
+                  </div>
                 </div>
 
                 {/* Meeting Recording & Management */}
@@ -450,6 +457,44 @@ const Index = () => {
                     </li>
                   </ul>
                 </div>
+              </div>
+
+              {/* Who is this for? Section */}
+              <div className="mt-6 p-4 bg-accent/30 rounded-lg border border-accent">
+                <h3 className="text-sm font-semibold text-foreground mb-3 text-center">Who uses Notewell?</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="text-center p-3 bg-background rounded-lg">
+                    <div className="text-lg mb-1">🧑‍⚕️</div>
+                    <h4 className="text-xs font-semibold text-foreground mb-1">GPs & Clinicians</h4>
+                    <p className="text-xs text-muted-foreground">Structured support, references, admin reduction</p>
+                  </div>
+                  <div className="text-center p-3 bg-background rounded-lg">
+                    <div className="text-lg mb-1">🗂</div>
+                    <h4 className="text-xs font-semibold text-foreground mb-1">Practice Managers</h4>
+                    <p className="text-xs text-muted-foreground">Complaints, meetings, governance</p>
+                  </div>
+                  <div className="text-center p-3 bg-background rounded-lg">
+                    <div className="text-lg mb-1">🧩</div>
+                    <h4 className="text-xs font-semibold text-foreground mb-1">PCNs & Neighbourhoods</h4>
+                    <p className="text-xs text-muted-foreground">Shared workflows, consistency, oversight</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Governance Trust Bar */}
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-success/10 text-success rounded-full border border-success/20">
+                  ✅ NHS DSPT aligned
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-success/10 text-success rounded-full border border-success/20">
+                  ✅ UK-hosted & encrypted
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-success/10 text-success rounded-full border border-success/20">
+                  ✅ No automatic EMIS/S1 write-back
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-success/10 text-success rounded-full border border-success/20">
+                  ✅ Human review required
+                </span>
               </div>
             </div>
           </div>
