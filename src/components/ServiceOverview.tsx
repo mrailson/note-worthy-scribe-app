@@ -29,7 +29,7 @@ export const ServiceOverview = () => {
       icon: <MessageSquare className="h-6 w-6" />,
       title: "AI4GP Service",
       description: "Advanced AI assistant specifically designed for UK NHS GPs with comprehensive clinical support",
-      benefits: ["NICE guidance finder", "BNF drug lookups", "Clinical decision support", "NHS-compliant responses", "Voice-activated queries"]
+      benefits: ["NICE guidance finder", "BNF drug lookups", "Clinical information support", "NHS-compliant responses", "Voice-activated queries"]
     },
     {
       icon: <Users className="h-6 w-6" />,
@@ -340,7 +340,7 @@ export const ServiceOverview = () => {
       {/* Pilot Context */}
       <div className="p-4 bg-accent/30 rounded-lg border border-accent text-center">
         <p className="text-sm text-muted-foreground">
-          Notewell AI is currently in controlled pilot use across GP practices in Northamptonshire, with clinical safety oversight and phased feature rollout.
+          Notewell AI is initially in controlled pilot use across GP practices in Northamptonshire, with clinical safety oversight and phased feature rollout.
         </p>
       </div>
 
@@ -355,7 +355,7 @@ export const ServiceOverview = () => {
             Questions, want to learn more, or try it for yourself?
           </p>
           <p className="text-sm text-muted-foreground">
-            Contact: <a href="mailto:Malcolm.Railson@nhs.net" className="text-primary hover:text-primary-hover font-medium underline">Malcolm.Railson@nhs.net</a>
+            Contact: Notewell Team · <a href="mailto:Malcolm.Railson@nhs.net" className="text-primary hover:text-primary-hover font-medium underline">Malcolm.Railson@nhs.net</a>
           </p>
         </div>
       </div>
