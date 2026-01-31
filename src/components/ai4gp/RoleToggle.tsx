@@ -27,13 +27,13 @@ export const RoleToggle = ({ selectedRole, onRoleChange }: RoleToggleProps) => {
         role="radio"
         aria-checked={selectedRole === 'gp'}
         className={cn(
-          "relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors duration-200",
+          "relative z-10 flex items-center gap-1.5 px-3 py-2.5 min-h-[44px] rounded-full text-xs sm:text-sm font-medium transition-colors duration-200 mobile-touch-target",
           selectedRole === 'gp'
             ? 'text-foreground'
             : 'text-muted-foreground hover:text-muted-foreground/80'
         )}
       >
-        <Stethoscope className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        <Stethoscope className="h-4 w-4 sm:h-4 sm:w-4" />
         <span className="hidden xs:inline">Clinical</span>
         <span className="xs:hidden">GP</span>
       </button>
@@ -44,13 +44,13 @@ export const RoleToggle = ({ selectedRole, onRoleChange }: RoleToggleProps) => {
         role="radio"
         aria-checked={selectedRole === 'practice-manager'}
         className={cn(
-          "relative z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors duration-200",
+          "relative z-10 flex items-center gap-1.5 px-3 py-2.5 min-h-[44px] rounded-full text-xs sm:text-sm font-medium transition-colors duration-200 mobile-touch-target",
           selectedRole === 'practice-manager'
             ? 'text-foreground'
             : 'text-muted-foreground hover:text-muted-foreground/80'
         )}
       >
-        <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        <Building2 className="h-4 w-4 sm:h-4 sm:w-4" />
         <span className="hidden xs:inline">Practice Manager</span>
         <span className="xs:hidden">PM</span>
       </button>

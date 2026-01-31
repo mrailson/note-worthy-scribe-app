@@ -51,10 +51,10 @@ export const MobileQuickActionsDrawer: React.FC<MobileQuickActionsDrawerProps> =
     <Button
       variant="outline"
       size="sm"
-      className="h-9 px-3 rounded-full whitespace-nowrap flex-shrink-0 text-xs"
+      className="h-11 min-h-[44px] px-4 rounded-full whitespace-nowrap flex-shrink-0 text-sm mobile-touch-target"
       onClick={() => handleSelectAction(prompt)}
     >
-      <Icon className="h-3.5 w-3.5 mr-1.5" />
+      <Icon className="h-4 w-4 mr-2" />
       {label}
     </Button>
   );
@@ -65,10 +65,10 @@ export const MobileQuickActionsDrawer: React.FC<MobileQuickActionsDrawerProps> =
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 px-2 text-muted-foreground hover:text-primary"
+          className="h-11 min-h-[44px] px-3 text-muted-foreground hover:text-primary mobile-touch-target"
         >
-          <Sparkles className="h-4 w-4 mr-1" />
-          <span className="text-xs">Ideas</span>
+          <Sparkles className="h-4 w-4 mr-1.5" />
+          <span className="text-sm">Ideas</span>
         </Button>
       </DrawerTrigger>
       <DrawerContent className="max-h-[60vh]">
@@ -76,8 +76,8 @@ export const MobileQuickActionsDrawer: React.FC<MobileQuickActionsDrawerProps> =
           <div className="flex items-center justify-between">
             <DrawerTitle className="text-base">Quick Actions</DrawerTitle>
             <DrawerClose asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <X className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 mobile-touch-target">
+                <X className="h-5 w-5" />
               </Button>
             </DrawerClose>
           </div>

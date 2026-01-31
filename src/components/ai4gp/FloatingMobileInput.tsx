@@ -346,7 +346,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
-              className="h-10 w-10 p-0 flex-shrink-0"
+              className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 flex-shrink-0 mobile-touch-target"
             >
               <Paperclip className="w-5 h-5" />
             </Button>
@@ -370,7 +370,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
               onClick={handleSend} 
               disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
               size="sm"
-              className="h-10 w-10 p-0 flex-shrink-0"
+              className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 flex-shrink-0 mobile-touch-target"
             >
               <Send className="w-5 h-5" />
             </Button>

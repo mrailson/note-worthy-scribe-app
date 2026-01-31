@@ -105,21 +105,22 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
         <button
           onClick={onClick}
           className={cn(
-            "group flex items-center gap-2 p-2.5",
+            "group flex items-center gap-2 p-3 min-h-[48px]",
             "bg-card border border-border rounded-lg",
             "hover:border-primary/50 hover:bg-accent/50",
-            "transition-all duration-150",
-            "text-left min-w-0 overflow-hidden"
+            "transition-shadow duration-150",
+            "text-left min-w-0 overflow-hidden",
+            "active:scale-[0.98] touch-manipulation"
           )}
         >
           <div className={cn(
-            "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+            "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
             "bg-gradient-to-br",
             gradient
           )}>
             <Icon className="w-4 h-4 text-white" />
           </div>
-          <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate">
+          <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
             {shortTitle}
           </span>
         </button>
@@ -142,21 +143,22 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
       key={id}
       onClick={onClick}
       className={cn(
-        "group flex items-center gap-2 p-2.5",
+        "group flex items-center gap-2 p-3 min-h-[48px]",
         "bg-card border border-border rounded-lg",
         "hover:border-primary/50 hover:bg-accent/50",
-        "transition-all duration-150",
-        "text-left min-w-0 overflow-hidden"
+        "transition-shadow duration-150",
+        "text-left min-w-0 overflow-hidden",
+        "active:scale-[0.98] touch-manipulation"
       )}
     >
       <div className={cn(
-        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+        "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
         "bg-gradient-to-br",
         gradient
       )}>
         <Icon className="w-4 h-4 text-white" />
       </div>
-      <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate">
+      <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors truncate">
         {shortTitle}
       </span>
     </button>
