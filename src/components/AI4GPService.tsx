@@ -537,7 +537,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
             >
             <Card className={cn(
               "flex-1 flex flex-col min-h-0 sm:border border-0 sm:rounded-lg rounded-none shadow-none sm:shadow-sm",
-              isMobile && "max-h-[calc(100vh-220px)]"
+              isMobile && "max-h-[calc(100vh-280px)]"
             )}>
               <CardHeader className={cn(
                 "border-b flex-shrink-0",
