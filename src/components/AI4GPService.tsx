@@ -728,37 +728,13 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                   {messages.length === 0 && !showEmbeddedPMGenie ? (
                     /* Welcome Screen - Compact, mobile-optimized - Hidden when PM Genie is active */
                     <div className={cn(
-                      "flex-1 overflow-y-auto space-y-3 sm:space-y-4",
-                      isMobile ? "p-4 pb-24" : "p-3 sm:p-6"
+                      "flex-1 overflow-y-auto",
+                      isMobile ? "pb-32" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
                     )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className="w-full max-w-2xl mx-auto space-y-4">
-                        {/* Mobile: Compact welcome with horizontal scrollable suggestions */}
+                        {/* Mobile: Minimal empty state - prompts handled in FloatingMobileInput */}
                         {isMobile ? (
-                          <div className="space-y-4 text-center">
-                            <p className="text-sm text-muted-foreground">
-                              Ask anything — clinical queries, practice questions, or upload files for analysis
-                            </p>
-                            
-                            {/* Horizontal scrollable suggestion chips */}
-                            <div className="overflow-x-auto pb-2 -mx-4 px-4">
-                              <div className="flex gap-2 w-max">
-                                {[
-                                  "NICE hypertension",
-                                  "Red flags headache",
-                                  "CQC prep",
-                                  "QOF diabetes"
-                                ].map((query, index) => (
-                                  <button
-                                    key={index}
-                                    onClick={() => setInput(query)}
-                                    className="px-3 py-1.5 text-xs bg-muted hover:bg-muted/80 rounded-full whitespace-nowrap transition-colors"
-                                  >
-                                    {query}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
+                          null
                         ) : (
                           <>
                             
@@ -899,6 +875,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
           setIsClinical={setIsClinical}
           userRole={practiceContext?.userRole}
           isMobileView={isMobile}
+          hasMessages={messages.length > 0}
         />
       )}
 

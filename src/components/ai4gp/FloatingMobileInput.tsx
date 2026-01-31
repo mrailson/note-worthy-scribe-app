@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { detectDevice } from '@/utils/DeviceDetection';
 import { FileQuickActions } from './FileQuickActions';
-import { MobileQuickActionsDrawer } from './MobileQuickActionsDrawer';
+
 
 // Role-based placeholder tips
 const CLINICAL_TIPS = [
@@ -49,6 +49,22 @@ const getPlaceholderTip = (role?: string): string => {
   return DEFAULT_TIP;
 };
 
+// Quick picks for Practice Managers - run immediately on tap
+const PM_QUICK_PICKS = [
+  { label: "Draft complaint response", prompt: "Help me draft a response to a patient complaint" },
+  { label: "CQC inspection prep", prompt: "What should I prepare for a CQC inspection?" },
+  { label: "Staff absence policy", prompt: "Write a staff absence management policy" },
+  { label: "Meeting agenda", prompt: "Create an agenda for a practice team meeting" },
+];
+
+// Quick picks for Clinical staff - run immediately on tap
+const CLINICAL_QUICK_PICKS = [
+  { label: "NICE hypertension", prompt: "What does NICE recommend for hypertension management?" },
+  { label: "Red flags headache", prompt: "What are the red flag symptoms for headache?" },
+  { label: "Type 2 diabetes", prompt: "Summarise the latest NICE guidance on Type 2 diabetes" },
+  { label: "Referral pathway", prompt: "What's the 2WW referral pathway for suspected cancer?" },
+];
+
 interface FloatingMobileInputProps {
   input: string;
   setInput: (input: string) => void;
@@ -60,6 +76,7 @@ interface FloatingMobileInputProps {
   setIsClinical: (clinical: boolean) => void;
   userRole?: string;
   isMobileView?: boolean;
+  hasMessages?: boolean;
 }
 
 export interface FloatingMobileInputRef {
@@ -76,7 +93,8 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   isClinical,
   setIsClinical,
   userRole,
-  isMobileView
+  isMobileView,
+  hasMessages = false
 }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -296,19 +314,22 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   const shouldShowMobileUI = isMobileView ?? device.isMobile;
   
   if (shouldShowMobileUI) {
+    const isPM = userRole === 'practice_manager' || userRole === 'admin_staff';
+    const quickPicks = isPM ? PM_QUICK_PICKS : CLINICAL_QUICK_PICKS;
+    
     return (
       <div 
         ref={containerRef}
-        className="fixed inset-x-0 bottom-0 z-[9999] bg-background border-t shadow-strong"
+        className="fixed inset-x-0 bottom-0 z-[9999] bg-card border-t shadow-strong"
         style={{
           paddingBottom: `calc(env(safe-area-inset-bottom) + 8px)`,
           paddingLeft: 'env(safe-area-inset-left)',
           paddingRight: 'env(safe-area-inset-right)'
         }}
       >
-        <div className="p-3">
+        <div className="p-3 space-y-2">
           {uploadedFiles.length > 0 && (
-            <div className="mb-2 space-y-2">
+            <div className="space-y-2">
               <FileUploadArea 
                 uploadedFiles={uploadedFiles}
                 onRemoveFile={handleRemoveFile}
@@ -321,13 +342,21 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
             </div>
           )}
           
-          {/* Quick Actions trigger - only show when no files uploaded */}
-          {uploadedFiles.length === 0 && (
-            <div className="flex justify-start mb-2">
-              <MobileQuickActionsDrawer 
-                onSelectAction={(prompt) => setInput(prompt)}
-                isPracticeManager={userRole === 'practice_manager' || userRole === 'admin_staff'}
-              />
+          {/* Quick picks - show only when no messages, no files, and input is empty */}
+          {!hasMessages && uploadedFiles.length === 0 && !input.trim() && (
+            <div className="overflow-x-auto -mx-3 px-3 pb-1">
+              <div className="flex gap-2 w-max">
+                {quickPicks.map((pick, index) => (
+                  <button
+                    key={index}
+                    onClick={() => onSend(pick.prompt)}
+                    disabled={isLoading}
+                    className="px-3 py-2 text-xs bg-muted hover:bg-muted/80 rounded-full whitespace-nowrap transition-colors touch-manipulation active:scale-[0.98] min-h-[36px]"
+                  >
+                    {pick.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           
@@ -358,7 +387,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
               placeholder="Message..."
-              className="min-h-[40px] max-h-32 resize-none text-base bg-background"
+              className="min-h-[40px] max-h-32 resize-none text-base bg-card border-border"
               disabled={isLoading}
               rows={1}
               style={{
