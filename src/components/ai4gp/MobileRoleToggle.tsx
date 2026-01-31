@@ -35,7 +35,7 @@ export const MobileRoleToggle: React.FC<MobileRoleToggleProps> = ({
 }) => {
   return (
     <div 
-      className="inline-flex items-center bg-muted/60 rounded-full p-0.5 border border-border/50"
+      className="relative inline-flex items-center bg-muted/60 rounded-full p-0.5 border border-border/50"
       role="radiogroup"
       aria-label="Select role"
     >
@@ -45,7 +45,6 @@ export const MobileRoleToggle: React.FC<MobileRoleToggleProps> = ({
           "absolute h-7 w-[42px] rounded-full bg-background shadow-sm border border-border/30 transition-transform duration-200 ease-out",
           selectedRole === 'practice-manager' ? 'translate-x-[44px]' : 'translate-x-0'
         )}
-        style={{ position: 'absolute' }}
       />
       
       {/* GP option */}
