@@ -49,22 +49,6 @@ const getPlaceholderTip = (role?: string): string => {
   return DEFAULT_TIP;
 };
 
-// Quick picks for Practice Managers - run immediately on tap
-const PM_QUICK_PICKS = [
-  { label: "Draft complaint response", prompt: "Help me draft a response to a patient complaint" },
-  { label: "CQC inspection prep", prompt: "What should I prepare for a CQC inspection?" },
-  { label: "Staff absence policy", prompt: "Write a staff absence management policy" },
-  { label: "Meeting agenda", prompt: "Create an agenda for a practice team meeting" },
-];
-
-// Quick picks for Clinical staff - run immediately on tap
-const CLINICAL_QUICK_PICKS = [
-  { label: "NICE hypertension", prompt: "What does NICE recommend for hypertension management?" },
-  { label: "Red flags headache", prompt: "What are the red flag symptoms for headache?" },
-  { label: "Type 2 diabetes", prompt: "Summarise the latest NICE guidance on Type 2 diabetes" },
-  { label: "Referral pathway", prompt: "What's the 2WW referral pathway for suspected cancer?" },
-];
-
 interface FloatingMobileInputProps {
   input: string;
   setInput: (input: string) => void;
@@ -314,9 +298,6 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   const shouldShowMobileUI = isMobileView ?? device.isMobile;
   
   if (shouldShowMobileUI) {
-    const isPM = userRole === 'practice_manager' || userRole === 'admin_staff';
-    const quickPicks = isPM ? PM_QUICK_PICKS : CLINICAL_QUICK_PICKS;
-    
     return (
       <div 
         ref={containerRef}
@@ -339,24 +320,6 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
                 onSelectAction={(prompt) => setInput(prompt)}
                 disabled={isLoading}
               />
-            </div>
-          )}
-          
-          {/* Quick picks - show only when no messages, no files, and input is empty */}
-          {!hasMessages && uploadedFiles.length === 0 && !input.trim() && (
-            <div className="overflow-x-auto -mx-3 px-3 pb-1">
-              <div className="flex gap-2 w-max">
-                {quickPicks.map((pick, index) => (
-                  <button
-                    key={index}
-                    onClick={() => onSend(pick.prompt)}
-                    disabled={isLoading}
-                    className="px-3 py-2 text-xs bg-muted hover:bg-muted/80 rounded-full whitespace-nowrap transition-colors touch-manipulation active:scale-[0.98] min-h-[36px]"
-                  >
-                    {pick.label}
-                  </button>
-                ))}
-              </div>
             </div>
           )}
           
