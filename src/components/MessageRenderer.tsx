@@ -1413,10 +1413,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                           <Type className="h-4 w-4 mr-2" />
                           Copy Plain Text
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={copyMessageMarkdown}>
-                          <Hash className="h-4 w-4 mr-2" />
-                          Copy as Markdown
-                        </DropdownMenuItem>
+                        {!isMobile && (
+                          <DropdownMenuItem onClick={copyMessageMarkdown}>
+                            <Hash className="h-4 w-4 mr-2" />
+                            Copy as Markdown
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
 
