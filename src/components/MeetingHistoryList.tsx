@@ -488,6 +488,13 @@ export const MeetingHistoryList = ({
   // Ref to track modal open state for real-time subscription - updated synchronously
   const safeModeModalOpenRef = useRef(false);
   
+  // Cleanup ref on unmount to prevent stale state
+  useEffect(() => {
+    return () => {
+      safeModeModalOpenRef.current = false;
+    };
+  }, []);
+  
   // Handle auto-opening SafeModeNotesModal when navigated from PostMeetingActionsModal
   useEffect(() => {
     if (!autoOpenSafeModeForMeetingId || meetings.length === 0) return;
