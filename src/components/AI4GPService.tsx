@@ -537,7 +537,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
             >
             <Card className={cn(
               "flex-1 flex flex-col min-h-0 sm:border border-0 sm:rounded-lg rounded-none shadow-none sm:shadow-sm",
-              isMobile && "max-h-[calc(80vh-60px)]"
+              isMobile && "pb-32" // Reserve space for fixed mobile input bar
             )}>
               <CardHeader className={cn(
                 "border-b flex-shrink-0",
@@ -751,7 +751,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                     /* Welcome Screen - Compact, mobile-optimized - Hidden when PM Genie is active */
                     <div className={cn(
                       "flex-1 overflow-y-auto",
-                      isMobile ? "p-0" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
+                      isMobile ? "p-0 pb-36" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
                     )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className="w-full max-w-2xl mx-auto space-y-4">
                         {/* Mobile: Show quick picks inside the white bubble area */}
@@ -813,10 +813,10 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                        </div>
                      </div>
                    ) : (
-                    /* Messages Area */
+                   /* Messages Area */
                     <div className={cn(
-                      "flex-1 min-h-0",
-                      deviceInfo.isIPhone && "pb-24"
+                      "flex-1 min-h-0 overflow-y-auto",
+                      isMobile && "pb-36"
                     )}>
                       <MessagesList
                         messages={chatViewSettings.showUserMessages ? messages : messages.filter(m => m.role !== 'user')}

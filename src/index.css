@@ -237,6 +237,15 @@ All colors MUST be HSL.
   font-family: var(--ai4gp-reading-font);
 }
 
+/* AI4GP-specific: disable transform to fix position:fixed on iOS Safari */
+.ai4gp-no-transform,
+.ai4gp-no-transform .mobile-container,
+.ai4gp-no-transform .mobile-scroll,
+.ai4gp-no-transform .mobile-scroll-container {
+  transform: none !important;
+  will-change: auto !important;
+}
+
 /* Ticker tape animation */
 @keyframes scroll {
   0% {
