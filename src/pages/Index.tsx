@@ -9,7 +9,7 @@ import { MeetingSettings } from "@/components/MeetingSettings";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
 import { ServiceOverview } from "@/components/ServiceOverview";
-import { NewsTicker } from "@/components/NewsTicker";
+
 import { DemoVideoSection } from "@/components/DemoVideoSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -417,7 +417,7 @@ const Index = () => {
                     </li>
                     <li className="flex items-center gap-2 text-xs">
                       <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>Clinical decision support</span>
+                      <span>Clinical information support</span>
                     </li>
                   </ul>
                   {/* Safety Guardrail */}
@@ -487,13 +487,13 @@ const Index = () => {
                   ✅ NHS DSPT aligned
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-success/10 text-success rounded-full border border-success/20">
-                  ✅ UK-hosted & encrypted
-                </span>
-                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-success/10 text-success rounded-full border border-success/20">
                   ✅ No automatic EMIS/S1 write-back
                 </span>
                 <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-success/10 text-success rounded-full border border-success/20">
                   ✅ Human review required
+                </span>
+                <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-success/10 text-success rounded-full border border-success/20">
+                  ✅ UK-hosted & encrypted
                 </span>
               </div>
             </div>
@@ -503,10 +503,6 @@ const Index = () => {
           <ServiceOverview />
         </div>
         
-        {/* GP News Ticker - Bottom of page */}
-        <div className="container mx-auto px-4 pb-8 max-w-6xl">
-          <NewsTicker />
-        </div>
       </div>;
   }
   return <div className="min-h-[100dvh] bg-gradient-background">
