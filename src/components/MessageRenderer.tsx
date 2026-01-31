@@ -5,9 +5,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { cn } from '@/lib/utils';
 import { useQuickPickScrollUX } from '@/hooks/useQuickPickScrollUX';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { shouldCollapseContent, getPreviewText, MIN_COLLAPSIBLE_LENGTH } from '@/hooks/useMessageCollapse';
 import { 
-  ChevronDown, 
+  ChevronDown,
   ChevronUp,
   ChevronsUp, 
   ChevronsDown,
@@ -122,9 +123,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [infographicOrientation, setInfographicOrientation] = useState<'portrait' | 'landscape'>('portrait');
   const [verificationData, setVerificationData] = useState(null);
   const [policyEnforcement, setPolicyEnforcement] = useState(true);
+  
+  const isMobile = useIsMobile();
+  
   const [isUserMessageCollapsed, setIsUserMessageCollapsed] = useState(
-    // Auto-collapse based on global setting OR if it's a quick pick message  
-    message.role === 'user' && (autoCollapseUserPrompts || message.isQuickPick === true)
+    // Auto-collapse on mobile OR based on global setting OR if it's a quick pick message  
+    message.role === 'user' && (isMobile || autoCollapseUserPrompts || message.isQuickPick === true)
   );
   
   // Assistant message collapse state - check localStorage for auto-expand preference
@@ -1248,8 +1252,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       <ChevronsUp className="h-3 w-3" />
                     </Button>
 
-                    {/* Export dropdown button */}
-                    {onExportWord && (
+                    {/* Export dropdown button - hidden on mobile */}
+                    {!isMobile && onExportWord && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1308,45 +1312,62 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       </DropdownMenu>
                     )}
 
-                    {/* Email dropdown button */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                          title="Email options"
-                        >
+                    {/* Email button - simplified on mobile (direct email to me), dropdown on desktop */}
+                    {isMobile ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleEmailToMe}
+                        disabled={isSending}
+                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                        title="Email to me"
+                      >
+                        {isSending ? (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current" />
+                        ) : (
                           <Mail className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem 
-                          onClick={handleEmailToMe}
-                          disabled={isSending}
-                        >
-                          {isSending ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
-                              Sending...
-                            </>
-                          ) : (
-                            <>
-                              <Mail className="h-4 w-4 mr-2" />
-                              Email to me
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleEmailToOthers}>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Email to patient/others
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={handleEmailToTeam}>
-                          <Users className="h-4 w-4 mr-2" />
-                          Email to team members
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        )}
+                      </Button>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                            title="Email options"
+                          >
+                            <Mail className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem 
+                            onClick={handleEmailToMe}
+                            disabled={isSending}
+                          >
+                            {isSending ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <Mail className="h-4 w-4 mr-2" />
+                                Email to me
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleEmailToOthers}>
+                            <Mail className="h-4 w-4 mr-2" />
+                            Email to patient/others
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleEmailToTeam}>
+                            <Users className="h-4 w-4 mr-2" />
+                            Email to team members
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
 
                     {/* Clinical Verify button - for modal only */}
                     {isModal && (
@@ -1399,8 +1420,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* Quick Pick (QP) dropdown - only show in regular chat */}
-                    {!isModal && onQuickResponse && (
+                    {/* Quick Pick (QP) dropdown - only show in regular chat, hidden on mobile */}
+                    {!isModal && !isMobile && onQuickResponse && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -1435,8 +1456,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       </Button>
                     )}
                     
-                    {/* Expand to full screen button - only show in regular chat */}
-                    {!isModal && onExpandMessage && (
+                    {/* Expand to full screen button - only show in regular chat, hidden on mobile */}
+                    {!isModal && !isMobile && onExpandMessage && (
                       <Button
                         variant="ghost"
                         size="sm"
