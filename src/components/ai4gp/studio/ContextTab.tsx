@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, X, Users, Target, FileText, MessageSquare, ChevronDown, Upload, Image as ImageIcon, File } from 'lucide-react';
+import { Plus, X, Users, Target, FileText, MessageSquare, ChevronDown, Upload, Image as ImageIcon, File, Loader2 } from 'lucide-react';
 import { TARGET_AUDIENCES, PURPOSE_TYPES } from '@/utils/colourPalettes';
 import type { ImageStudioSettings } from '@/types/imageStudio';
 import { cn } from '@/lib/utils';
 import { useDropzone } from 'react-dropzone';
 import { CompactMicButton } from './CompactMicButton';
 import { toast } from 'sonner';
+import { FileProcessorManager } from '@/utils/fileProcessors/FileProcessorManager';
 
 interface ContextTabProps {
   settings: ImageStudioSettings;
@@ -55,33 +56,41 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate }) =>
     const id = `file-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const isImage = file.type.startsWith('image/');
     
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (isImage) {
+    // For images, just create a preview
+    if (isImage) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
           resolve({
             id,
             name: file.name,
             type: file.type,
             preview: reader.result as string,
           });
-        } else {
-          // For documents, we just store the name - content extraction would need backend
-          resolve({
-            id,
-            name: file.name,
-            type: file.type,
-            content: `[Document: ${file.name}]`,
-          });
-        }
-      };
-      
-      if (isImage) {
+        };
         reader.readAsDataURL(file);
-      } else {
-        reader.readAsText(file);
-      }
-    });
+      });
+    }
+    
+    // For documents (Word, PDF, Excel, PowerPoint, etc.), use FileProcessorManager
+    try {
+      const processedFile = await FileProcessorManager.processFile(file);
+      return {
+        id,
+        name: file.name,
+        type: file.type,
+        content: processedFile.content,
+      };
+    } catch (error) {
+      console.error('Error processing document:', error);
+      // Fall back to just storing the filename if processing fails
+      return {
+        id,
+        name: file.name,
+        type: file.type,
+        content: `[Document: ${file.name} - Could not extract content]`,
+      };
+    }
   };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -92,13 +101,34 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate }) =>
       const processedFiles = await Promise.all(acceptedFiles.map(processFile));
       setUploadedFiles(prev => [...prev, ...processedFiles]);
       
-      // Add file references to supporting content
-      const fileRefs = processedFiles.map(f => `[Attached: ${f.name}]`).join('\n');
+      // For documents with extracted content, add the actual content to supporting content
+      // For images, just add a reference
+      const newContentParts: string[] = [];
+      for (const f of processedFiles) {
+        if (f.content && !f.content.startsWith('[Document:')) {
+          // Successfully extracted content - add it
+          newContentParts.push(`--- Content from ${f.name} ---\n${f.content}\n--- End of ${f.name} ---`);
+        } else if (f.preview) {
+          // Image file - just add reference
+          newContentParts.push(`[Image attached: ${f.name}]`);
+        } else {
+          // Fallback for failed extraction
+          newContentParts.push(`[Attached: ${f.name}]`);
+        }
+      }
+      
       const currentContent = settings.supportingContent || '';
-      const newContent = currentContent ? `${currentContent}\n${fileRefs}` : fileRefs;
+      const newContent = currentContent 
+        ? `${currentContent}\n\n${newContentParts.join('\n\n')}` 
+        : newContentParts.join('\n\n');
       onUpdate({ supportingContent: newContent });
       
-      toast.success(`${processedFiles.length} file(s) uploaded`);
+      const successCount = processedFiles.filter(f => f.content && !f.content.startsWith('[Document:')).length;
+      if (successCount > 0) {
+        toast.success(`${successCount} document(s) processed and content extracted`);
+      } else {
+        toast.success(`${processedFiles.length} file(s) uploaded`);
+      }
     } catch (error) {
       console.error('Error processing files:', error);
       toast.error('Failed to process some files');
@@ -111,9 +141,24 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate }) =>
     const file = uploadedFiles.find(f => f.id === fileId);
     if (file) {
       setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
-      // Remove reference from supporting content
-      const fileRef = `[Attached: ${file.name}]`;
-      const newContent = settings.supportingContent?.replace(fileRef, '').replace(/\n\n+/g, '\n').trim() || '';
+      
+      // Remove the content block from supporting content
+      let newContent = settings.supportingContent || '';
+      
+      // Try to remove the full content block first
+      const contentBlockPattern = new RegExp(
+        `--- Content from ${file.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} ---[\\s\\S]*?--- End of ${file.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} ---\\n*`,
+        'g'
+      );
+      newContent = newContent.replace(contentBlockPattern, '');
+      
+      // Also try to remove simple references
+      newContent = newContent.replace(`[Image attached: ${file.name}]`, '');
+      newContent = newContent.replace(`[Attached: ${file.name}]`, '');
+      
+      // Clean up extra whitespace
+      newContent = newContent.replace(/\n{3,}/g, '\n\n').trim();
+      
       onUpdate({ supportingContent: newContent });
     }
   };
@@ -266,11 +311,23 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate }) =>
               )}
             >
               <input {...getInputProps()} />
-              <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-              <p className="text-sm text-muted-foreground">
-                {isDragActive ? "Drop files here..." : "Drag & drop files, or click to select"}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">PDF, Word, PowerPoint, Excel, Images (max 10MB)</p>
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-6 w-6 mx-auto text-primary mb-1 animate-spin" />
+                  <p className="text-sm text-primary font-medium">
+                    Extracting content from documents...
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">This may take a moment for large files</p>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
+                  <p className="text-sm text-muted-foreground">
+                    {isDragActive ? "Drop files here..." : "Drag & drop files, or click to select"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">PDF, Word, PowerPoint, Excel, Images (max 10MB)</p>
+                </>
+              )}
             </div>
 
             {/* Uploaded Files Preview */}
@@ -278,17 +335,27 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate }) =>
               <div className="flex flex-wrap gap-2 pt-2">
                 {uploadedFiles.map((file) => {
                   const FileIcon = getFileIcon(file.type);
+                  const hasExtractedContent = file.content && !file.content.startsWith('[Document:') && !file.content.startsWith('[Attached:');
                   return (
                     <div
                       key={file.id}
-                      className="flex items-center gap-2 bg-muted rounded-md px-2 py-1 text-sm"
+                      className={cn(
+                        "flex items-center gap-2 rounded-md px-2 py-1 text-sm",
+                        hasExtractedContent ? "bg-primary/10 border border-primary/20" : "bg-muted"
+                      )}
+                      title={hasExtractedContent ? "Content extracted successfully" : file.preview ? "Image attached" : "File attached"}
                     >
                       {file.preview ? (
                         <img src={file.preview} alt={file.name} className="h-6 w-6 object-cover rounded" />
                       ) : (
-                        <FileIcon className="h-4 w-4 text-muted-foreground" />
+                        <FileIcon className={cn("h-4 w-4", hasExtractedContent ? "text-primary" : "text-muted-foreground")} />
                       )}
                       <span className="truncate max-w-[120px]">{file.name}</span>
+                      {hasExtractedContent && (
+                        <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                          ✓
+                        </Badge>
+                      )}
                       <button
                         type="button"
                         onClick={() => removeFile(file.id)}
