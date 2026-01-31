@@ -48,6 +48,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   const [showGallery, setShowGallery] = useState(false);
   const [studioMode, setStudioMode] = useState<'create' | 'edit'>('create');
   const [pendingEditImage, setPendingEditImage] = useState<{ url: string; name: string } | null>(null);
+  const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
   
   const { fetchImages } = useImageGallery();
 
@@ -187,7 +188,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
 
             <div className="flex-1 overflow-y-auto min-h-0 p-4">
               <TabsContent value="context" className="mt-0 data-[state=inactive]:hidden">
-                <ContextTab settings={settings} onUpdate={updateSettings} />
+                <ContextTab settings={settings} onUpdate={updateSettings} onFilesChange={setHasUploadedFiles} />
               </TabsContent>
 
               <TabsContent value="style" className="mt-0 data-[state=inactive]:hidden">
@@ -220,7 +221,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
                   onCancel={cancelGeneration}
                   onEditResult={editCurrentResult}
                   onSelectHistoryItem={selectHistoryItem}
-                  descriptionProvided={!!settings.description.trim() || !!settings.supportingContent?.trim()}
+                  descriptionProvided={!!settings.description.trim() || !!settings.supportingContent?.trim() || hasUploadedFiles}
                   onSaveToGallery={saveToGallery}
                   onGallerySaved={fetchImages}
                 />
