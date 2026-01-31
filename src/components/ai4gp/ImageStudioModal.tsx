@@ -220,7 +220,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
                   onCancel={cancelGeneration}
                   onEditResult={editCurrentResult}
                   onSelectHistoryItem={selectHistoryItem}
-                  descriptionProvided={!!settings.description.trim()}
+                  descriptionProvided={!!settings.description.trim() || !!settings.supportingContent?.trim()}
                   onSaveToGallery={saveToGallery}
                   onGallerySaved={fetchImages}
                 />
