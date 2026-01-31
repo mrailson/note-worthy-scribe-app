@@ -9,6 +9,7 @@ import { MeetingSettings } from "@/components/MeetingSettings";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
 import { ServiceOverview } from "@/components/ServiceOverview";
+import { PodcastPlayer } from "@/components/PodcastPlayer";
 
 import { DemoVideoSection } from "@/components/DemoVideoSection";
 import { useAuth } from "@/contexts/AuthContext";
@@ -493,6 +494,14 @@ const Index = () => {
                     <h4 className="text-xs font-semibold text-foreground mb-1">PCNs & Neighbourhoods</h4>
                     <p className="text-xs text-muted-foreground">Shared workflows, consistency, oversight</p>
                   </div>
+                </div>
+                
+                {/* Podcast Player */}
+                <div className="mt-4">
+                  <PodcastPlayer 
+                    src="/audio/notewell-podcast.mp3" 
+                    title="Notewell AI: A Responsible Revolution in Admin Tasks"
+                  />
                 </div>
               </div>
 
