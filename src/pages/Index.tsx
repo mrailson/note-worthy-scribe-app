@@ -393,38 +393,53 @@ const Index = () => {
                   </div>
                 </div>
 
-                {/* AI4GP Service */}
+                {/* Ask AI (GP & Practice Management) */}
                 <div className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
                       <MessageSquare className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-base mb-1">AI4GP Service</h3>
+                      <h3 className="font-semibold text-base mb-1">Ask AI (GP & Practice Management)</h3>
                       <p className="text-sm text-muted-foreground">
-                        Advanced AI assistant specifically designed for UK NHS GPs with comprehensive clinical information support
+                        Role-aware AI support for NHS primary care teams, combining GP clinical information tools and Practice Manager operational support in a single, secure service.
                       </p>
                     </div>
                   </div>
                   <ul className="space-y-1.5 ml-11 mb-3">
                     <li className="flex items-center gap-2 text-xs">
                       <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>NICE guidance finder</span>
+                      <span>GP & Practice Manager modes with role-specific prompts</span>
                     </li>
                     <li className="flex items-center gap-2 text-xs">
                       <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>BNF drug lookups</span>
+                      <span>NHS guidance, policy, and reference support</span>
                     </li>
                     <li className="flex items-center gap-2 text-xs">
                       <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>Clinical information support</span>
+                      <span>Complaints, governance, workforce and operational queries</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-xs">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                      <span>Document drafting, analysis and structured responses</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-xs">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                      <span>Audio and meeting content support (where enabled)</span>
                     </li>
                   </ul>
+                  {/* Role switcher explanation */}
+                  <p className="text-xs text-muted-foreground ml-11 mb-3 italic">
+                    Users can switch between GP and Practice Manager views to access prompts and tools relevant to their role.
+                  </p>
                   {/* Safety Guardrail */}
-                  <div className="ml-11 pt-2 border-t border-border">
+                  <div className="ml-11 pt-2 border-t border-border space-y-1">
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <span>🔒</span>
-                      <span>Information support only · No patient data · GP-designed</span>
+                      <span>Information support only · No patient data · No automatic clinical system write-back · Human review required</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Outputs are designed to support professional judgement, not replace it.
                     </p>
                   </div>
                 </div>
