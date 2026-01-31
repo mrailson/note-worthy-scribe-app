@@ -107,33 +107,43 @@ export const PodcastPlayer: React.FC<PodcastPlayerProps> = ({
   };
 
   return (
-    <div className={cn("flex items-center gap-2 p-2 bg-muted/50 rounded-md", className)}>
+    <div className={cn("p-3 bg-muted/40 rounded-lg border border-border/50", className)}>
       <audio ref={audioRef} src={src} preload="metadata" />
       
-      {/* Play/Pause */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={togglePlay}
-        disabled={!isLoaded}
-        className="h-8 w-8 p-0 shrink-0"
-      >
-        {isPlaying ? (
-          <Pause className="h-4 w-4" />
-        ) : (
-          <Play className="h-4 w-4" />
-        )}
-      </Button>
-
-      {/* Icon & Title */}
-      <div className="flex items-center gap-1.5 min-w-0">
-        <Headphones className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        <span className="text-xs text-muted-foreground truncate hidden sm:inline">{title}</span>
+      {/* Header row */}
+      <div className="flex items-center gap-2 mb-2">
+        <Headphones className="h-4 w-4 text-primary shrink-0" />
+        <span className="text-xs font-medium text-foreground truncate flex-1">{title}</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleDownload}
+          className="h-7 px-2 text-xs gap-1"
+        >
+          <Download className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Download</span>
+        </Button>
       </div>
 
-      {/* Timeline */}
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <span className="text-xs text-muted-foreground tabular-nums w-8 text-right shrink-0">
+      {/* Player controls row */}
+      <div className="flex items-center gap-2">
+        {/* Play/Pause */}
+        <Button
+          variant={isPlaying ? "secondary" : "default"}
+          size="sm"
+          onClick={togglePlay}
+          disabled={!isLoaded}
+          className="h-8 w-8 p-0 shrink-0"
+        >
+          {isPlaying ? (
+            <Pause className="h-4 w-4" />
+          ) : (
+            <Play className="h-4 w-4" />
+          )}
+        </Button>
+
+        {/* Time & Timeline */}
+        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
           {formatTime(currentTime)}
         </span>
         <Slider
@@ -141,47 +151,36 @@ export const PodcastPlayer: React.FC<PodcastPlayerProps> = ({
           onValueChange={handleSeek}
           max={duration || 100}
           step={0.1}
-          className="flex-1 min-w-[60px]"
+          className="flex-1"
           disabled={!isLoaded}
         />
-        <span className="text-xs text-muted-foreground tabular-nums w-8 shrink-0">
+        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
           {formatTime(duration)}
         </span>
-      </div>
 
-      {/* Volume - desktop only */}
-      <div className="hidden sm:flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleMute}
-          className="h-7 w-7 p-0"
-        >
-          {isMuted ? (
-            <VolumeX className="h-3.5 w-3.5 text-muted-foreground" />
-          ) : (
-            <Volume2 className="h-3.5 w-3.5" />
-          )}
-        </Button>
-        <Slider
-          value={[isMuted ? 0 : volume]}
-          onValueChange={handleVolumeChange}
-          max={1}
-          step={0.01}
-          className="w-14"
-        />
+        {/* Volume - desktop only */}
+        <div className="hidden sm:flex items-center gap-1 ml-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleMute}
+            className="h-7 w-7 p-0"
+          >
+            {isMuted ? (
+              <VolumeX className="h-3.5 w-3.5 text-muted-foreground" />
+            ) : (
+              <Volume2 className="h-3.5 w-3.5" />
+            )}
+          </Button>
+          <Slider
+            value={[isMuted ? 0 : volume]}
+            onValueChange={handleVolumeChange}
+            max={1}
+            step={0.01}
+            className="w-16"
+          />
+        </div>
       </div>
-
-      {/* Download */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleDownload}
-        className="h-7 w-7 p-0 shrink-0"
-        title="Download"
-      >
-        <Download className="h-3.5 w-3.5" />
-      </Button>
     </div>
   );
 };
