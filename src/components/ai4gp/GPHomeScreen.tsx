@@ -7,7 +7,6 @@ import { usePracticeContext } from '@/hooks/usePracticeContext';
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
@@ -168,21 +167,19 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
       <div className="space-y-3">
         {activeView.type === 'main' ? (
           <>
-            <TooltipProvider delayDuration={200}>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-2xl mx-auto">
-                {gpCategories.map((category) => 
-                  renderCard(
-                    category.id,
-                    category.shortTitle,
-                    category.title,
-                    category.description,
-                    category.icon,
-                    category.gradient,
-                    () => handleCategoryClick(category)
-                  )
-                )}
-              </div>
-            </TooltipProvider>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-2xl mx-auto">
+              {gpCategories.map((category) => 
+                renderCard(
+                  category.id,
+                  category.shortTitle,
+                  category.title,
+                  category.description,
+                  category.icon,
+                  category.gradient,
+                  () => handleCategoryClick(category)
+                )
+              )}
+            </div>
 
 
             {/* Context Banner - full width, positioned below buttons */}
@@ -213,21 +210,19 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
               <h3 className="font-medium text-foreground">{activeView.category.title}</h3>
             </div>
             
-            <TooltipProvider delayDuration={200}>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {activeView.category.subCategories.map((subCategory) => 
-                  renderCard(
-                    subCategory.id,
-                    subCategory.shortTitle,
-                    subCategory.title,
-                    subCategory.description,
-                    subCategory.icon,
-                    subCategory.gradient,
-                    () => handleSubCategoryClick(activeView.category, subCategory)
-                  )
-                )}
-              </div>
-            </TooltipProvider>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {activeView.category.subCategories.map((subCategory) => 
+                renderCard(
+                  subCategory.id,
+                  subCategory.shortTitle,
+                  subCategory.title,
+                  subCategory.description,
+                  subCategory.icon,
+                  subCategory.gradient,
+                  () => handleSubCategoryClick(activeView.category, subCategory)
+                )
+              )}
+            </div>
           </div>
         ) : (
           <div className="space-y-3 max-w-2xl mx-auto">

@@ -25,7 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 // Simple meeting type for sidebar display
@@ -116,24 +116,22 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
 
     if (isCollapsed) {
       return (
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClick}
-                onPointerDown={(e) => e.stopPropagation()}
-                className={cn("w-10 h-10 p-0 justify-center cursor-pointer", className)}
-              >
-                <Icon className="w-4 h-4 pointer-events-none" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>{label}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClick}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={cn("w-10 h-10 p-0 justify-center cursor-pointer", className)}
+            >
+              <Icon className="w-4 h-4 pointer-events-none" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{label}</p>
+          </TooltipContent>
+        </Tooltip>
       );
     }
 
@@ -153,7 +151,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
   return (
     <div 
       className={cn(
-        "hidden md:flex flex-col border-r bg-sidebar text-sidebar-foreground transition-all duration-200 ease-in-out flex-shrink-0",
+        "hidden md:flex flex-col border-r bg-sidebar text-sidebar-foreground transition-[width] duration-150 ease-out flex-shrink-0",
         isCollapsed ? "w-14" : "w-56"
       )}
     >
@@ -170,27 +168,25 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
             </span>
           </div>
         )}
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onToggleCollapse}
-                className="w-8 h-8 p-0"
-              >
-                {isCollapsed ? (
-                  <PanelLeft className="w-4 h-4" />
-                ) : (
-                  <PanelLeftClose className="w-4 h-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>{isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleCollapse}
+              className="w-8 h-8 p-0"
+            >
+              {isCollapsed ? (
+                <PanelLeft className="w-4 h-4" />
+              ) : (
+                <PanelLeftClose className="w-4 h-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            <p>{isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Scrollable Content */}
@@ -232,23 +228,21 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
             <p className="text-xs text-muted-foreground px-2 mb-2 font-medium">My Recent Meetings</p>
           )}
           {isCollapsed ? (
-            <TooltipProvider delayDuration={0}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate('/?tab=history')}
-                    className="w-10 h-10 p-0 justify-center"
-                  >
-                    <Calendar className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Meetings</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/?tab=history')}
+                  className="w-10 h-10 p-0 justify-center"
+                >
+                  <Calendar className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Meetings</p>
+              </TooltipContent>
+            </Tooltip>
           ) : (
             <div className="space-y-1">
               {meetingsLoading ? (
