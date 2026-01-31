@@ -748,14 +748,14 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                     /* Welcome Screen - Compact, mobile-optimized - Hidden when PM Genie is active */
                     <div className={cn(
                       "flex-1 overflow-y-auto",
-                      isMobile ? "p-0" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
+                      isMobile ? "p-0 pb-28" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
                     )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className="w-full max-w-2xl mx-auto space-y-4">
                         {/* Mobile: Show quick picks inside the white bubble area */}
                         {isMobile ? (
                           <MobileRoleQuickPicks
                             selectedRole={mobileRole}
-                            onSelectPrompt={(prompt) => handleSend(prompt)}
+                            onSelectPrompt={(prompt) => handleSendWithContext(prompt)}
                             isLoading={isLoading}
                           />
                         ) : (
