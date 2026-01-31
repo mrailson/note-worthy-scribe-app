@@ -461,7 +461,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   };
 
   return (
-    <>
+    <TooltipProvider delayDuration={100}>
       <div 
         className={cn(
           "flex-1 flex bg-background relative h-full overflow-x-hidden",
@@ -1102,7 +1102,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
         />
       </Suspense>
 
-    </>
+    </TooltipProvider>
   );
 };
 
