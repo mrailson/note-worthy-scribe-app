@@ -86,8 +86,8 @@ const DEFAULT_SETTINGS: ImageStudioSettings = {
   description: '',
   supportingContent: '',
   keyMessages: [],
-  targetAudience: 'patients',
-  purpose: 'poster',
+  targetAudience: 'clinical',
+  purpose: 'infographic',
   summariseSupportingContent: false,
   
   // Style & Design
