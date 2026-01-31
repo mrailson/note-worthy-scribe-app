@@ -393,6 +393,35 @@ const Index = () => {
                   </div>
                 </div>
 
+                {/* Meeting Recording & Management */}
+                <div className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">Meeting Recording & Management</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Professional meeting transcription and management for Practice Managers and administrative teams
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="space-y-1.5 ml-11">
+                    <li className="flex items-center gap-2 text-xs">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                      <span>Partnership meeting transcription</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-xs">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                      <span>Automated meeting summaries</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-xs">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                      <span>Action item tracking</span>
+                    </li>
+                  </ul>
+                </div>
+
                 {/* Ask AI (GP & Practice Management) */}
                 <div className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow">
                   <div className="flex items-start gap-3 mb-3">
@@ -442,35 +471,6 @@ const Index = () => {
                       Outputs are designed to support professional judgement, not replace it.
                     </p>
                   </div>
-                </div>
-
-                {/* Meeting Recording & Management */}
-                <div className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-base mb-1">Meeting Recording & Management</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Professional meeting transcription and management for Practice Managers and administrative teams
-                      </p>
-                    </div>
-                  </div>
-                  <ul className="space-y-1.5 ml-11">
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>Partnership meeting transcription</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>Automated meeting summaries</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                      <span>Action item tracking</span>
-                    </li>
-                  </ul>
                 </div>
               </div>
 
