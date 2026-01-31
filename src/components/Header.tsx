@@ -145,25 +145,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           
             {/* Navigation */}
             <div className="hidden sm:flex gap-2">
-              <Button 
-                onClick={() => navigate('/')}
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-              >
-                <Home className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Home</span>
-              </Button>
-              
-              {!user && (
+              {user && (
                 <Button 
-                  onClick={() => navigate('/compliance/security')}
+                  onClick={() => navigate('/')}
                   variant="secondary"
                   size="sm"
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
                 >
-                  <Shield className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Security</span>
+                  <Home className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Home</span>
                 </Button>
               )}
             
