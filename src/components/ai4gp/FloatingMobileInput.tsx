@@ -343,6 +343,14 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
               <Paperclip className="w-5 h-5" />
             </Button>
             
+            {/* Voice input button for mobile */}
+            <SimpleBrowserMic
+              ref={micRef}
+              onTranscriptUpdate={handleBrowserTranscriptUpdate}
+              disabled={isLoading}
+              className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 flex-shrink-0 mobile-touch-target"
+            />
+            
             <Textarea
               ref={textareaRef}
               value={input}
