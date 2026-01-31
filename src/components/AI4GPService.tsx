@@ -564,11 +564,11 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                                 <span className="hidden sm:inline truncate">
                                   {selectedRole === 'practice-manager' ? 'Ask AI' : 'AI 4 GP Service'}
                                 </span>
-                                <span className={cn(
+                              <span className={cn(
                                   "sm:hidden truncate font-semibold",
                                   deviceInfo.isIPhone && "text-base"
                                 )}>
-                                  {selectedRole === 'practice-manager' ? 'Ask AI' : 'AI4GP'}
+                                  Ask AI
                                 </span>
                                 <span className="text-[10px] text-muted-foreground/60 -mt-1 hidden sm:block">Click for New Search</span>
                               </div>
@@ -731,7 +731,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                     /* Welcome Screen - Compact, mobile-optimized - Hidden when PM Genie is active */
                     <div className={cn(
                       "flex-1 overflow-y-auto",
-                      isMobile ? "pb-32" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
+                      isMobile ? "pb-16" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
                     )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className="w-full max-w-2xl mx-auto space-y-4">
                         {/* Mobile: Minimal empty state - prompts handled in FloatingMobileInput */}
