@@ -292,9 +292,9 @@ export const ServiceOverview = () => {
             <TabsContent value="neighbourhoods" className="mt-6 space-y-4">
               <div className="space-y-4">
                 <div className="text-center">
-                  <h3 className="font-semibold text-lg">Neighbourhoods Ready: Multi-Agency Collaboration</h3>
+                  <h3 className="font-semibold text-lg">Neighbourhoods Ready: Designed for Multi-Agency Working</h3>
                   <p className="text-muted-foreground text-sm mt-2">
-                    All systems have been developed to meet the needs of the impending Neighbourhoods with a multi-agency ready system to collaborate and share without the historic IT challenges.
+                    The platform has been designed to avoid the traditional technical constraints that have historically limited cross-organisational working, while remaining aligned with NHS information governance requirements.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -302,34 +302,29 @@ export const ServiceOverview = () => {
                     <div className="p-2 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
                       <Users className="h-4 w-4" />
                     </div>
-                    <h4 className="font-semibold text-xs">Seamless Integration</h4>
+                    <h4 className="font-semibold text-xs">Collaboration-ready design</h4>
                     <p className="text-xs text-muted-foreground">
-                      Built for multi-agency collaboration from the ground up
+                      Built to support multi-agency workflows as Neighbourhood models mature
                     </p>
                   </div>
                   <div className="space-y-2 text-center">
                     <div className="p-2 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
                       <FolderOpen className="h-4 w-4" />
                     </div>
-                    <h4 className="font-semibold text-xs">Unified Data Sharing</h4>
+                    <h4 className="font-semibold text-xs">Standards-aligned architecture</h4>
                     <p className="text-xs text-muted-foreground">
-                      Secure, standardized data exchange across organizations
+                      Designed around secure, role-based information sharing principles
                     </p>
                   </div>
                   <div className="space-y-2 text-center">
                     <div className="p-2 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
                       <CheckCircle className="h-4 w-4" />
                     </div>
-                    <h4 className="font-semibold text-xs">Future-Proof Design</h4>
+                    <h4 className="font-semibold text-xs">Future-ready platform</h4>
                     <p className="text-xs text-muted-foreground">
-                      Ready for tomorrow's healthcare collaboration models
+                      Prepared for emerging Neighbourhood and ICS operating models
                     </p>
                   </div>
-                </div>
-                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                  <p className="text-xs text-center text-muted-foreground">
-                    <strong>Breaking Down IT Barriers:</strong> Our platform eliminates the traditional IT silos that have historically hindered effective multi-agency collaboration, enabling truly integrated care delivery.
-                  </p>
                 </div>
               </div>
             </TabsContent>
@@ -340,7 +335,7 @@ export const ServiceOverview = () => {
       {/* Pilot Context */}
       <div className="p-4 bg-accent/30 rounded-lg border border-accent text-center">
         <p className="text-sm text-muted-foreground">
-          Notewell AI is initially in controlled pilot use across GP practices in Northamptonshire, with clinical safety oversight and phased feature rollout.
+          Notewell AI is initially in controlled pilot use across GP practices in Northamptonshire, with clinical safety oversight and phased feature rollout. Features and access vary by role and pilot phase.
         </p>
       </div>
 
