@@ -1,125 +1,110 @@
 
 
-# Final NHS-Grade Refinements - Neighbourhoods Section & Pilot Context
+# Ask AI Service Performance Investigation - Findings & Optimisation Plan
 
 ## Overview
-Implementing the final ChatGPT-recommended refinements to ensure the logged-out homepage is fully ICB/IG-safe. The current "Neighbourhoods Ready" section contains language that could be misinterpreted as claiming live cross-organisational data sharing.
+Investigation into the reported slow loading and menu "hanging" behaviour in the Ask AI (AI4GP) service has identified several contributing factors.
 
 ---
 
-## Changes Summary
+## Root Causes Identified
 
-### 1. Soften "Neighbourhoods Ready" Section Heading & Content
-**File:** `src/components/ServiceOverview.tsx` (lines 295-333)
+### 1. Dropdown Menu Exit Animations
+The dropdown menus use Radix UI's animate-out classes which create visible fade and zoom-out effects when closing. These animations, while visually smooth, can make menus appear to "hang" for ~200-300ms before disappearing.
 
-**Current heading:**
-> "Neighbourhoods Ready: Multi-Agency Collaboration"
+**Location:** `src/components/ui/dropdown-menu.tsx`
+- Lines 51-52 and 72-73 contain: `data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95`
 
-**New heading:**
-> "Neighbourhoods Ready: Designed for Multi-Agency Working"
+### 2. Multiple TooltipProvider Instances
+The sidebar and home screens create multiple separate `<TooltipProvider>` components, each with their own delay settings. This causes overhead and can lead to inconsistent tooltip behaviour.
 
-**Current paragraph (line 296-298):**
-> "All systems have been developed to meet the needs of the impending Neighbourhoods with a multi-agency ready system to collaborate and share without the historic IT challenges."
+**Affected files:**
+- `src/components/ai4gp/AI4GPSidebar.tsx` - 4 separate TooltipProvider instances
+- `src/components/ai4gp/PMHomeScreen.tsx` - 2 TooltipProvider instances
+- `src/components/ai4gp/GPHomeScreen.tsx` - 2 TooltipProvider instances
 
-**New paragraph:**
-> "The platform has been designed to avoid the traditional technical constraints that have historically limited cross-organisational working, while remaining aligned with NHS information governance requirements."
+### 3. Practice Context Data Fetches on Mount
+The `usePracticeContext` hook performs multiple sequential Supabase queries (profiles, user_roles, gp_practices, practice_details, PCN data) which can take 500ms-1s to complete.
 
----
+**Location:** `src/hooks/usePracticeContext.ts`
 
-### 2. Update the Three Feature Cards (lines 301-327)
+### 4. Sidebar Width Transition
+The sidebar has a `transition-all duration-200` class that animates all CSS properties, potentially causing layout thrashing during initial render.
 
-| Current | New |
-|---------|-----|
-| **Seamless Integration** | **Collaboration-ready design** |
-| "Built for multi-agency collaboration from the ground up" | "Built to support multi-agency workflows as Neighbourhood models mature" |
-| **Unified Data Sharing** | **Standards-aligned architecture** |
-| "Secure, standardized data exchange across organizations" | "Designed around secure, role-based information sharing principles" |
-| **Future-Proof Design** | **Future-ready platform** |
-| "Ready for tomorrow's healthcare collaboration models" | "Prepared for emerging Neighbourhood and ICS operating models" |
+**Location:** `src/components/ai4gp/AI4GPSidebar.tsx` line 156
 
 ---
 
-### 3. Remove "Breaking Down IT Barriers" Box
-**File:** `src/components/ServiceOverview.tsx` (lines 329-333)
+## Recommended Fixes
 
-**Current:**
-> "Breaking Down IT Barriers: Our platform eliminates the traditional IT silos that have historically hindered effective multi-agency collaboration, enabling truly integrated care delivery."
+### Fix 1: Remove or Reduce Dropdown Exit Animation Duration (High Impact)
+Remove the closing animation to make menus disappear instantly when closed.
 
-**Action:** Remove this entire block. The wording is too bold for a logged-out page and could trigger IG concerns about data sharing claims.
+**File:** `src/components/ui/dropdown-menu.tsx`
 
----
-
-### 4. Add Pilot Phase Clarification Line
-**File:** `src/components/ServiceOverview.tsx` (line 343)
-
-**Current:**
-> "Notewell AI is initially in controlled pilot use across GP practices in Northamptonshire, with clinical safety oversight and phased feature rollout."
-
-**New (add one additional sentence):**
-> "Notewell AI is initially in controlled pilot use across GP practices in Northamptonshire, with clinical safety oversight and phased feature rollout. Features and access vary by role and pilot phase."
-
-**Why:** Pre-empts "Why can't I see X?" and "I heard another practice has Y" questions.
-
----
-
-## Technical Implementation
-
-### File to Modify
-- `src/components/ServiceOverview.tsx`
-
-### Line-by-Line Changes
-
-**Lines 295-298 (heading + paragraph):**
+**Change:** Remove or reduce the exit animation classes:
 ```tsx
-<h3 className="font-semibold text-lg">Neighbourhoods Ready: Designed for Multi-Agency Working</h3>
-<p className="text-muted-foreground text-sm mt-2">
-  The platform has been designed to avoid the traditional technical constraints that have historically limited cross-organisational working, while remaining aligned with NHS information governance requirements.
-</p>
+// Before (lines 51 and 72-73):
+"data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+
+// After - Remove exit animations for instant close:
+// Simply remove these classes from both DropdownMenuSubContent and DropdownMenuContent
 ```
 
-**Lines 305-308 (first card):**
+This will make dropdown menus close instantly rather than animating out.
+
+---
+
+### Fix 2: Consolidate TooltipProviders (Medium Impact)
+Wrap the entire AI4GPService component in a single `<TooltipProvider>` rather than having multiple nested instances.
+
+**Files to modify:**
+- `src/components/AI4GPService.tsx` - Add single TooltipProvider at top level
+- `src/components/ai4gp/AI4GPSidebar.tsx` - Remove individual TooltipProviders, use single Tooltip components
+- `src/components/ai4gp/PMHomeScreen.tsx` - Remove individual TooltipProviders
+- `src/components/ai4gp/GPHomeScreen.tsx` - Remove individual TooltipProviders
+
+---
+
+### Fix 3: Optimise Sidebar Transition (Low Impact)
+Change from `transition-all` to specific property transitions to avoid animating unnecessary properties.
+
+**File:** `src/components/ai4gp/AI4GPSidebar.tsx`
+
+**Change:**
 ```tsx
-<h4 className="font-semibold text-xs">Collaboration-ready design</h4>
-<p className="text-xs text-muted-foreground">
-  Built to support multi-agency workflows as Neighbourhood models mature
-</p>
+// Before (line 156):
+"transition-all duration-200 ease-in-out"
+
+// After - Only animate width:
+"transition-[width] duration-150 ease-out"
 ```
 
-**Lines 314-317 (second card):**
-```tsx
-<h4 className="font-semibold text-xs">Standards-aligned architecture</h4>
-<p className="text-xs text-muted-foreground">
-  Designed around secure, role-based information sharing principles
-</p>
-```
+---
 
-**Lines 323-326 (third card):**
-```tsx
-<h4 className="font-semibold text-xs">Future-ready platform</h4>
-<p className="text-xs text-muted-foreground">
-  Prepared for emerging Neighbourhood and ICS operating models
-</p>
-```
+### Fix 4: Add Loading State Skeleton (UX Improvement)
+Show a lightweight skeleton/placeholder while practice context loads rather than blocking render.
 
-**Lines 329-333 (remove entire block):**
-Delete the "Breaking Down IT Barriers" box entirely.
+**File:** `src/components/AI4GPService.tsx`
 
-**Line 343 (pilot statement):**
-Add additional sentence about feature/access variation.
+Add a quick skeleton state for the first ~500ms while data loads, so users see the interface shape immediately.
 
 ---
 
 ## Summary of Changes
 
-| Change | Location | Impact |
-|--------|----------|--------|
-| Heading: "Multi-Agency Collaboration" → "Designed for Multi-Agency Working" | Line 295 | Softer positioning |
-| Paragraph: Claims → Design intent | Lines 296-298 | IG-safe language |
-| Card 1: "Seamless Integration" → "Collaboration-ready design" | Lines 305-308 | Removes integration claims |
-| Card 2: "Unified Data Sharing" → "Standards-aligned architecture" | Lines 314-317 | Removes data sharing claims |
-| Card 3: "Future-Proof Design" → "Future-ready platform" | Lines 323-326 | Clearer positioning |
-| Remove "Breaking Down IT Barriers" box | Lines 329-333 | Eliminates bold claims |
-| Add pilot phase clarification | Line 343 | Pre-empts confusion |
+| Change | File(s) | Impact | Effort |
+|--------|---------|--------|--------|
+| Remove dropdown exit animations | `dropdown-menu.tsx` | High - eliminates menu "hang" | Low |
+| Consolidate TooltipProviders | AI4GPService, Sidebar, HomeScreens | Medium - reduces overhead | Medium |
+| Optimise sidebar transition | AI4GPSidebar.tsx | Low - smoother open/close | Low |
+| Add loading skeleton | AI4GPService.tsx | Medium - better perceived perf | Medium |
 
-All changes keep the ambition whilst removing any hint of "live data sharing right now".
+---
+
+## Technical Notes
+
+The dropdown exit animation is the most likely cause of the "menu hanging" issue. The Radix UI animation classes use CSS animations that take ~150-200ms to complete before the element is removed from the DOM. During this time, the menu remains visible but non-interactive, which feels like a "hang".
+
+The TooltipProvider consolidation will reduce React context overhead and ensure consistent tooltip behaviour across the service.
 
