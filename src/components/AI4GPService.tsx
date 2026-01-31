@@ -27,6 +27,8 @@ import { AI4GPSidebar } from '@/components/ai4gp/AI4GPSidebar';
 import { RoleToggle } from '@/components/ai4gp/RoleToggle';
 import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
 import { UnifiedSettingsDropdown } from '@/components/ai4gp/UnifiedSettingsDropdown';
+import { MobileRoleToggle, useMobileRolePreference } from '@/components/ai4gp/MobileRoleToggle';
+import { MobileRoleQuickPicks } from '@/components/ai4gp/MobileRoleQuickPicks';
 import { PowerPointGenerationOverlay } from '@/components/PowerPointGenerationOverlay';
 
 // Lazy-load heavy modal/panel components to improve initial load time
@@ -167,6 +169,9 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
     }
     return 'gp';
   });
+  
+  // Mobile role preference (persisted separately)
+  const [mobileRole, setMobileRole] = useMobileRolePreference();
   const [setDrugNameFn, setSetDrugNameFn] = useState<((drugName: string) => void) | null>(null);
   
   // Sidebar collapsed state - persisted in localStorage, default to collapsed
@@ -580,11 +585,23 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         </Tooltip>
                       </TooltipProvider>
                       
-                      {/* Meetings dropdown */}
-                      <MeetingsDropdown
-                        meetings={meetings}
-                        isLoading={meetingsLoading}
-                      />
+                      {/* Mobile Role Toggle - inline with Ask AI */}
+                      {isMobile && (
+                        <div className="ml-3">
+                          <MobileRoleToggle
+                            selectedRole={mobileRole}
+                            onRoleChange={setMobileRole}
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Meetings dropdown - hidden on mobile */}
+                      {!isMobile && (
+                        <MeetingsDropdown
+                          meetings={meetings}
+                          isLoading={meetingsLoading}
+                        />
+                      )}
                     </CardTitle>
                   </div>
                   
@@ -731,12 +748,16 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                     /* Welcome Screen - Compact, mobile-optimized - Hidden when PM Genie is active */
                     <div className={cn(
                       "flex-1 overflow-y-auto",
-                      isMobile ? "pb-16" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
+                      isMobile ? "p-0" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
                     )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className="w-full max-w-2xl mx-auto space-y-4">
-                        {/* Mobile: Minimal empty state - prompts handled in FloatingMobileInput */}
+                        {/* Mobile: Show quick picks inside the white bubble area */}
                         {isMobile ? (
-                          null
+                          <MobileRoleQuickPicks
+                            selectedRole={mobileRole}
+                            onSelectPrompt={(prompt) => handleSend(prompt)}
+                            isLoading={isLoading}
+                          />
                         ) : (
                           <>
                             
