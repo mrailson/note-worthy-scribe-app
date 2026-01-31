@@ -767,11 +767,11 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     <div className={`flex gap-3 w-full ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex gap-2 sm:gap-3 w-full ${
         message.role === 'user' 
-          ? 'max-w-[90%] sm:max-w-[85%] flex-row-reverse' 
-          : 'max-w-[95%] sm:max-w-[90%] flex-row'
+          ? isMobile ? 'max-w-full flex-row-reverse' : 'max-w-[90%] sm:max-w-[85%] flex-row-reverse' 
+          : isMobile ? 'max-w-full flex-row' : 'max-w-[95%] sm:max-w-[90%] flex-row'
       }`}>
-        {/* Avatar with scroll arrows for assistant messages - hidden in modal */}
-        {!isModal && (
+        {/* Avatar with scroll arrows for assistant messages - hidden in modal and on mobile */}
+        {!isModal && !isMobile && (
           <div className="flex flex-col items-center gap-1">
             {/* Scroll to top arrow - above robot icon */}
             {message.role === 'assistant' && (
@@ -1184,7 +1184,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           {/* Message footer - always show action buttons in modal */}
           {(!isModal || (isModal && message.role === 'assistant')) && (
             <div className={`${isModal ? 'fixed bottom-4 left-4 right-4 bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg z-50' : 'flex items-center justify-between mt-3 pt-3 border-t border-border/20'}`}>
-              {!isModal && (
+              {!isModal && !isMobile && (
                 <div className="flex items-center gap-2">
                   {/* Clinical Verify button - moved before timestamp */}
                   {message.role === 'assistant' && (
