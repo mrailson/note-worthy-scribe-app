@@ -1,100 +1,172 @@
 
-# Plan: Add AI Safety Guardrails Documentation to CSO Report
+
+# Homepage Improvements Plan for NHS Stakeholders
 
 ## Overview
-This plan will add comprehensive documentation of the AI safety guardrails to the CSO Report, specifically within the Technical Security Posture section. This provides NHS stakeholders with clear visibility of the multi-layered protection against inappropriate AI use.
-
-## Location in CSO Report
-The content will be added as a new accordion item titled **"AI Safety Guardrails & Content Moderation"** within the existing "Application Security Controls" section (Section 4: Technical Security Posture), positioned after the existing "Application Security Controls" accordion item.
+Implementing the ChatGPT-recommended changes to make the logged-out homepage clearer, more NHS-friendly, and reassuring for Practice Managers, GPs, and ICB stakeholders — whilst keeping the "Send Me a Magic Link" functionality intact.
 
 ---
 
-## Content to be Added
+## Changes Summary
 
-### New Accordion Section: AI Safety Guardrails & Content Moderation
+### 1. Sharpen the "What is this?" Message (Above the Fold)
+**Current:** "AI-Powered Primary Care Support" with "Revolutionary AI4GP and AI4PM services..."
 
-The section will document the following **six-layer protection system**:
+**New:**
+- **Headline:** "Notewell AI – Practical AI Tools for NHS Primary Care"
+- **Sub-headline:** "Secure, clinician-led AI for meetings, complaints, practice management and GP support — designed for real NHS workflows, not experiments."
 
-#### 1. Clinical Safety Monitoring
-- 60+ monitored medical terms across blood tests, diagnoses, medications, and clinical measurements
-- High-risk emergency keyword detection (cardiac arrest, stroke, overdose, etc.)
-- Risk classification (low/medium/high) with appropriate action recommendations
-- AI fabrication prevention for medical information
-- **Source file:** `medicalSafety.ts`
-
-#### 2. Input Security Validation
-- SQL injection pattern detection and blocking
-- Cross-site scripting (XSS) prevention
-- Command injection protection
-- Input length limits (10,000 characters maximum)
-- HTML entity encoding for output safety
-- File upload validation (type, size, extension checking)
-- **Source file:** `securityValidation.ts`
-
-#### 3. Rate Limiting & Brute-Force Protection
-- API rate limiting: 30 requests per minute
-- Authentication rate limiting: 5 attempts per 5 minutes
-- VPN-friendly corporate network detection with adjusted limits
-- Email-based rate limiting for additional protection
-- **Source file:** `enhancedSecurityValidation.ts`
-
-#### 4. Offensive Language Filtering
-- **Blocked terms** (~30 severe terms): Translation/processing completely blocked
-  - Severe profanity, racial slurs, hate speech, threats
-- **Warning terms** (~30 mild terms): Processing continues with content warning
-  - Mild profanity, insults
-- Applied to translation service and content moderation
-- **Source file:** `translate-text/index.ts`
-
-#### 5. AI Hallucination Detection
-- 125+ known hallucination phrases detected and filtered
-  - "Thank you for watching" variations
-  - Webinar/meeting closing loops
-  - Call-to-action hallucinations
-  - Fabricated name attributions
-- Repetitive content detection (low unique word ratio)
-- Fabricated URL detection with NHS/medical URL whitelist
-- Repeated phrase pattern detection
-- Confidence threshold checking
-- **Source file:** `whisperHallucinationPatterns.ts`
-
-#### 6. Clinical Disclaimers & User Acknowledgement
-- Persistent micro-banner disclaimers on all AI outputs
-- Modal terms of use requiring user acknowledgement
-- Clear guidance on clinical responsibility
-- Links to original sources (NICE, BNF, MHRA, NHS.uk)
-- Audit trail text for clinical records
-- **Source file:** `DisclaimerComponents.tsx`
+**File:** `src/components/ServiceOverview.tsx` (lines 117-123)
 
 ---
 
-## Technical Changes
+### 2. Add Safety Guardrail to AI4GP Service Card
+Add a one-line guardrail under the AI4GP description on the homepage to reassure cautious NHS staff.
 
-### File to Modify
-**`src/pages/CSOReport.tsx`**
+**New text below AI4GP card:**
+> 🔒 Information support only · No patient data · GP-designed
 
-### Changes
-1. Add a new `AccordionItem` after the "Application Security Controls" accordion (around line 2645)
-2. The new section will use the same styling as existing accordion items for consistency
-3. Content structured with checkmarks and organised sub-sections
+**File:** `src/pages/Index.tsx` (lines 396-423, AI4GP service card)
 
-### Visual Structure
-```text
-Application Security Controls
-  Monitoring & Audit
-  Log Retention & Monitoring
-  Cyber Essentials Roadmap
-+ AI Safety Guardrails & Content Moderation  <-- NEW
+---
+
+### 3. Add "Who is this for?" Section
+A horizontal strip helping non-tech users instantly self-identify.
+
+**New section with three personas:**
+| Persona | Description |
+|---------|-------------|
+| 🧑‍⚕️ GPs & Clinicians | Structured support, references, admin reduction |
+| 🗂 Practice Managers | Complaints, meetings, governance |
+| 🧩 PCNs & Neighbourhoods | Shared workflows, consistency, oversight |
+
+**Location:** After the service cards, before the ServiceOverview component
+
+**File:** `src/pages/Index.tsx`
+
+---
+
+### 4. Add Governance Trust Bar
+Make security/compliance explicit but calm — essential for ICB conversations and PM WhatsApp groups.
+
+**Trust badges (compact horizontal row):**
+- ✅ NHS DSPT aligned
+- ✅ UK-hosted & encrypted  
+- ✅ No automatic EMIS/S1 write-back
+- ✅ Human review required
+
+**File:** `src/pages/Index.tsx` (new section) and/or `src/components/ServiceOverview.tsx`
+
+---
+
+### 5. Add Pilot Context Statement
+Own the pilot status confidently and set expectations.
+
+**New text:**
+> "Notewell AI is currently in controlled pilot use across GP practices in Northamptonshire, with clinical safety oversight and phased feature rollout."
+
+**Location:** Near the governance trust bar or call-to-action section
+
+**File:** `src/components/ServiceOverview.tsx` (lines 341-353, CTA section)
+
+---
+
+### 6. Update Wording Throughout
+High-impact micro-changes to reduce subconscious resistance:
+
+| Current | New |
+|---------|-----|
+| "AI-Powered" | "AI-Supported" |
+| "Revolutionary" | "Practical" / "Purpose-built" |
+| "Instant clinical guidance" (if present) | "Structured information support" |
+
+**Files affected:**
+- `src/components/ServiceOverview.tsx` (line 119: "AI-Powered" → "AI-Supported", line 122: "Revolutionary" → "Practical")
+- Check other references across service descriptions
+
+---
+
+### 7. Keep Login & Magic Link Intact
+The LoginForm component with the "Send Me a Magic Link" button will remain completely unchanged. All improvements are additive to the welcome content area.
+
+---
+
+## Technical Implementation Details
+
+### Files to Modify
+
+1. **`src/pages/Index.tsx`**
+   - Add safety guardrail text below AI4GP service card (~line 423)
+   - Add new "Who is this for?" section after service cards (~line 453)
+   - Add governance trust bar before ServiceOverview
+
+2. **`src/components/ServiceOverview.tsx`**
+   - Update headline from "AI-Powered Primary Care Support" to "Practical AI Tools for NHS Primary Care" (line 119)
+   - Change "Revolutionary" to "Practical" (line 122)
+   - Add pilot context statement in the CTA section (around line 346)
+   - Update any remaining "AI-Powered" references to "AI-Supported"
+
+### New UI Components/Sections
+
+**Who is this for? Section:**
+```
+<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-accent/30 rounded-lg border">
+  <!-- 3 persona cards with icons and short descriptions -->
+</div>
+```
+
+**Governance Trust Bar:**
+```
+<div className="flex flex-wrap justify-center gap-3">
+  <!-- 4 compact badges with check icons -->
+</div>
 ```
 
 ---
 
-## Summary
-This addition provides NHS assurance reviewers with clear documentation of the comprehensive AI safety controls, demonstrating:
-- Proactive clinical safety measures
-- Multi-layered input validation
-- Content moderation for healthcare appropriateness
-- Hallucination prevention
-- User responsibility acknowledgement
+## Visual Summary
 
-The documentation aligns with DCB0129 requirements for demonstrating safety controls are proportionate to the identified hazards.
+```
+┌─────────────────────────────────────────────────────────┐
+│  HEADER                                                 │
+├─────────────────────────────────────────────────────────┤
+│  ┌─────────────────────┐  ┌─────────────────────────┐   │
+│  │                     │  │     LOGIN FORM          │   │
+│  │  WELCOME CONTENT    │  │  (unchanged, includes   │   │
+│  │                     │  │   magic link button)    │   │
+│  │  • Training Video   │  │                         │   │
+│  │  • Complaints CMS   │  └─────────────────────────┘   │
+│  │  • AI4GP + guardrail│                                │
+│  │  • Meetings         │                                │
+│  │                     │                                │
+│  │  WHO IS THIS FOR?   │                                │
+│  │  [GPs] [PMs] [PCNs] │                                │
+│  │                     │                                │
+│  │  TRUST BAR          │                                │
+│  │  ✅ DSPT ✅ UK-hosted│                                │
+│  └─────────────────────┘                                │
+├─────────────────────────────────────────────────────────┤
+│  SERVICE OVERVIEW (updated wording)                     │
+│  • "Practical AI Tools for NHS Primary Care"            │
+│  • Pilot context statement                              │
+│  • Contact CTA                                          │
+├─────────────────────────────────────────────────────────┤
+│  NEWS TICKER                                            │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Summary of Changes
+
+| Change | Impact | Effort |
+|--------|--------|--------|
+| Sharpen headline & sub-headline | High | Low |
+| AI4GP safety guardrail | High | Low |
+| "Who is this for?" section | Medium | Medium |
+| Governance trust bar | High | Low |
+| Pilot context statement | Medium | Low |
+| Wording updates | Medium | Low |
+
+All changes are additive and non-breaking. The login form and magic link functionality remain completely unchanged.
+
