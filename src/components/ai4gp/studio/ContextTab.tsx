@@ -18,6 +18,7 @@ import { FileProcessorManager } from '@/utils/fileProcessors/FileProcessorManage
 interface ContextTabProps {
   settings: ImageStudioSettings;
   onUpdate: (updates: Partial<ImageStudioSettings>) => void;
+  onFilesChange?: (hasFiles: boolean) => void;
 }
 
 interface UploadedFile {
@@ -28,13 +29,18 @@ interface UploadedFile {
   preview?: string;
 }
 
-export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate }) => {
+export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFilesChange }) => {
   const [newMessage, setNewMessage] = useState('');
   const [audienceOpen, setAudienceOpen] = useState(false);
   const [purposeOpen, setPurposeOpen] = useState(false);
   const [additionalOpen, setAdditionalOpen] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Notify parent when files change
+  React.useEffect(() => {
+    onFilesChange?.(uploadedFiles.length > 0);
+  }, [uploadedFiles.length, onFilesChange]);
 
   const addKeyMessage = () => {
     if (newMessage.trim() && settings.keyMessages.length < 5) {
