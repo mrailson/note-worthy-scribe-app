@@ -3,6 +3,9 @@ project_id = "dphcnbricafkbtizkoal"
 [functions.generate-magic-link]
 verify_jwt = false
 
+[functions.notify-admin-rate-limit]
+verify_jwt = false
+
 [functions.generate-password-reset]
 verify_jwt = false
 
