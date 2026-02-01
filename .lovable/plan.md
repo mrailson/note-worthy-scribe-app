@@ -1,217 +1,161 @@
 
-# Plan: Integrate Logo Directly into Image Studio Generated Images
 
-## ✅ IMPLEMENTED
+# Plan: Fix Meeting Recording Issues (Silent Stop + AssemblyAI System Audio)
 
-## Overview
+## Issues Identified
 
-Currently, Image Studio only "reserves space" for a logo - it tells the AI to leave a blank area where users can manually overlay their logo afterwards. This approach has proven unreliable and requires additional manual work from users.
+Based on my investigation, there are **two distinct issues**:
 
-This plan implements **true logo integration** where the user's logo is sent directly to the AI image generation model as a reference image, with instructions to incorporate it naturally into the generated design.
+### Issue 1: Recording Stopped Silently (No User Notification)
 
-## Key Changes
+**Root Cause Found:**
+The edge function logs show that your meeting (`21644c7a-5f9d-4464-9f7e-4f6c915bd5ab`) was auto-closed by the server at 08:48:07 due to inactivity - the system detected no transcript chunks had been saved in the last 2 minutes.
 
-### 1. Frontend Changes (BrandingTab.tsx)
+The server did send a kill signal, but it appears:
+- The tab may have been in the background when the signal arrived
+- The toast notification may not have appeared if the tab was not visible
+- The recording interface did not stop cleanly on the client side
 
-**Replace "Reserve Logo Space" with "Integrate Logo"**
+**Why no chunks were being saved:**
+The logs at 08:44:26 and 08:44:07 show the meeting had "recent activity", but by 08:48:07 it was marked for closure. This suggests transcription stopped working sometime between those two checks (approximately 4 minutes gap).
 
-Current behaviour:
-- Toggle for "Reserve Logo Space"
-- Instructs AI to leave a blank corner
+### Issue 2: AssemblyAI Only Captures Microphone, Not System Audio (YouTube)
 
-New behaviour:
-- Toggle for "Include Logo in Design" 
-- Option to use profile logo OR upload a different logo specifically for this image
-- New "Upload Different Logo" button when the toggle is enabled
-- Logo is passed as a reference image to the AI with integration instructions
+**Root Cause Found:**
+The architecture reveals a key discrepancy in how Whisper and AssemblyAI receive system audio:
 
-**UI Layout:**
-```
-┌─────────────────────────────────────────────────┐
-│ [Icon] Include Logo in Design          [Toggle]│
-│                                                 │
-│ When enabled:                                   │
-│ ┌──────────────────────────────────────────────┐│
-│ │ Your profile logo:                           ││
-│ │ [Logo Preview]  ○ Use this logo              ││
-│ │                                              ││
-│ │ -- OR --                                     ││
-│ │                                              ││
-│ │ [Upload Different Logo] ○ Use uploaded logo  ││
-│ │ [Uploaded Preview if exists]                 ││
-│ └──────────────────────────────────────────────┘│
-│                                                 │
-│ Logo Placement: [Top Left] [Top Right] ...     │
-│                                                 │
-└─────────────────────────────────────────────────┘
-```
+**Whisper's Audio Path (works):**
+1. `startComputerAudioTranscription()` is called
+2. Creates a screen share stream via `getDisplayMedia()`
+3. `startCustomAudioProcessing()` creates a Web Audio pipeline that processes the screen stream directly
+4. Sends 15-second chunks to the `speech-to-text` edge function
 
-### 2. State Management (useImageStudio.ts & types)
+**AssemblyAI's Audio Path (partially broken):**
+1. `buildAssemblyAudioStream()` is called with `screenStreamRef.current`
+2. This function correctly checks for system audio tracks and creates a mixer
+3. The mixed stream is passed to `assemblyPreview.startPreview(mixerResult.mixedStream)`
+4. BUT: The `screenStreamRef.current` may become stale or lose its audio tracks after Chrome's screen share ends or the tab audio stops
 
-**Update ImageStudioSettings type:**
-```typescript
-interface ImageStudioSettings {
-  // ... existing fields
-  
-  // Logo Integration (replacing includeLogo/logoPlacement)
-  includeLogo: boolean;
-  logoSource: 'profile' | 'custom';
-  customLogoData: string | null;  // Base64 data URL of uploaded logo
-  logoPlacement: LogoPlacementId;
-}
-```
+**The specific problem:**
+Looking at `buildAssemblyAudioStream.ts`, the system audio detection relies on the `screenStream` having live audio tracks. However, in Chrome:
+- When sharing "Entire screen", the audio tracks can become inactive/ended if the user switches to another tab or minimizes the browser
+- The RMS monitoring logs would show `⚠️ SILENT` for system audio in this case
+- AssemblyAI then falls back to mic-only mode silently (with a warning toast that may have been missed)
 
-**Update ImageStudioRequest type:**
-```typescript
-interface ImageStudioRequest {
-  // ... existing fields
-  
-  // Logo as a reference image
-  logoImage?: {
-    content: string;       // Base64 data URL
-    placement: string;     // 'top-left', 'top-right', etc.
-  };
-}
-```
+---
 
-### 3. Edge Function Changes (ai4gp-image-generation/index.ts)
+## Fix Plan
 
-**Process logo as a reference image:**
+### Fix 1: Improve Kill Signal Handling and Visibility Resilience
 
-When `logoImage` is provided in the request:
-1. Add the logo image to `messageContent` array (alongside any other reference images)
-2. Add specific prompt instructions for logo integration
+**Problem:** When the browser tab is backgrounded, the WebSocket connection to Supabase Realtime may not receive the kill signal reliably, and even if received, the toast may not appear.
 
-**Updated prompt building:**
-```typescript
-// When logo is provided for integration
-if (logoImage) {
-  // Add logo to message content as an image
-  messageContent.push({
-    type: 'image_url',
-    image_url: { url: logoImage.content }
-  });
-  
-  // Add integration instructions to prompt
-  const placementGuide = {
-    'top-left': 'TOP LEFT corner',
-    'top-right': 'TOP RIGHT corner',
-    'bottom-left': 'BOTTOM LEFT corner',
-    'bottom-right': 'BOTTOM RIGHT corner',
-    'center-top': 'centered at the TOP'
-  };
-  
-  logoSection = `
-LOGO INTEGRATION - CRITICAL REQUIREMENT:
-I have provided an image of a logo that MUST be integrated into this design.
-- Place the logo in the ${placementGuide[logoImage.placement]} of the image
-- The logo should be clearly visible and appropriately sized (typically 80-150px height)
-- Ensure the logo has adequate contrast with the background
-- Do NOT modify, redraw, or recreate the logo - use it exactly as provided
-- The logo should look naturally incorporated into the design
-- If the background colour behind the logo placement clashes, add a subtle backdrop or adjust that area
-`;
-}
-```
+**Changes:**
 
-### 4. Implementation Steps
+**File: `src/hooks/useMeetingKillSignal.ts`**
+- Add visibility change detection to re-check meeting status when tab becomes visible
+- Make the kill signal handler more robust with retry logic
 
-**Step 1: Update Types**
-- Add `logoSource` and `customLogoData` to `ImageStudioSettings` in `src/types/imageStudio.ts`
-- Add `logoImage` to `ImageStudioRequest`
+**File: `src/components/MeetingRecorder.tsx`**
+- Add a periodic "heartbeat" check that polls the meeting status directly from the database
+- If the meeting is detected as `completed` but the client is still recording, auto-stop with a clear notification
+- Check frequency: Every 30 seconds
 
-**Step 2: Update BrandingTab UI**
-- Replace "Reserve Logo Space" card with new "Include Logo in Design" card
-- Add radio buttons for profile logo vs custom upload
-- Add file upload dropzone for custom logo (similar to ReferenceTab)
-- Show preview of selected logo
-- Keep logo placement selector
+**File: `supabase/functions/auto-close-inactive-meetings/index.ts`**
+- Increase the inactivity threshold from 2 minutes to 3 minutes to give more buffer for slow transcription processing
+- Add better logging to help diagnose future issues
 
-**Step 3: Update useImageStudio Hook**
-- Update `DEFAULT_SETTINGS` with new logo fields
-- Modify `generateImage` to include logo in request when enabled
-- Fetch logo content from URL if using profile logo, or use uploaded data
+### Fix 2: Ensure AssemblyAI Receives System Audio Reliably
 
-**Step 4: Update Edge Function**
-- Accept new `logoImage` field in request body
-- Add logo to `messageContent` array before the text prompt
-- Build integration instructions instead of "reserve space" instructions
-- Test with both Gemini models
+**Problem:** AssemblyAI mixer is built once at recording start, but system audio tracks can become stale during long recordings.
 
-### 5. Technical Considerations
+**Changes:**
 
-**Logo Size Optimisation:**
-- Profile logos are stored in Supabase Storage and fetched by URL
-- Need to fetch and convert to base64 before sending to edge function
-- Use existing `optimiseImageForUpload` utility to ensure logos are <300KB
-- Target size: 512x512px max to avoid bloating the request
+**File: `src/utils/buildAssemblyAudioStream.ts`**
+- Add track ended/muted event listeners to detect when system audio becomes unavailable
+- Expose a callback for when system audio is lost mid-recording
 
-**Fetching Profile Logo:**
-```typescript
-// In generateImage, before building request:
-let logoImageData: { content: string; placement: string } | undefined;
+**File: `src/components/MeetingRecorder.tsx`**
+- Subscribe to system audio track status changes
+- When system audio is lost (track ended), show a clear warning: "System audio disconnected - only microphone is being transcribed"
+- Add an indicator in the UI showing the current audio input status (Mic Only vs Mic + System)
+- Consider reusing the same `screenStreamRef.current` for both Whisper's custom audio processing AND AssemblyAI's mixer to ensure consistency
 
-if (settings.includeLogo) {
-  const logoUrl = settings.logoSource === 'profile' 
-    ? practiceContext?.logoUrl 
-    : settings.customLogoData;
-    
-  if (logoUrl) {
-    // If it's already base64, use directly
-    if (logoUrl.startsWith('data:')) {
-      logoImageData = { content: logoUrl, placement: settings.logoPlacement };
-    } else {
-      // Fetch and convert URL to base64
-      const response = await fetch(logoUrl);
-      const blob = await response.blob();
-      const base64 = await blobToBase64(blob);
-      logoImageData = { content: base64, placement: settings.logoPlacement };
-    }
-    
-    // Optimise if needed
-    const sizeKB = getBase64SizeKB(logoImageData.content);
-    if (sizeKB > 300) {
-      const optimised = await optimiseImageForUpload(logoImageData.content, {
-        maxSizeKB: 300,
-        maxDimension: 512
-      });
-      logoImageData.content = optimised.optimised;
-    }
-  }
-}
+**File: `src/lib/assembly-realtime.ts`**
+- Add periodic RMS check logging to the console for debugging
+- If system audio becomes silent for >60 seconds while recording, log a warning
+
+### Fix 3: Add Recording Health Monitor (New Feature)
+
+**New File: `src/hooks/useRecordingHealthMonitor.ts`**
+Create a new hook that:
+- Tracks the last successful transcript chunk timestamp
+- Shows a warning after 60 seconds of no transcription activity: "No speech detected - check your audio input"
+- Shows a critical warning after 2 minutes: "Recording may have stalled - consider stopping and checking your setup"
+- Polls the meeting status in the database every 30 seconds to detect server-side closures
+
+---
+
+## Summary of Files to Modify
+
+| File | Change Type | Purpose |
+|------|-------------|---------|
+| `src/hooks/useMeetingKillSignal.ts` | Modify | Add visibility-aware reconnection and status polling |
+| `src/hooks/useRecordingHealthMonitor.ts` | New | Health monitoring for recording session |
+| `src/components/MeetingRecorder.tsx` | Modify | Integrate health monitor, track audio source status, add heartbeat check |
+| `src/utils/buildAssemblyAudioStream.ts` | Modify | Add track status monitoring, expose callbacks for track ended |
+| `src/lib/assembly-realtime.ts` | Modify | Add RMS logging for debugging |
+| `supabase/functions/auto-close-inactive-meetings/index.ts` | Modify | Increase inactivity threshold to 3 minutes |
+
+---
+
+## Technical Details
+
+### Health Monitor Implementation
+
+The new `useRecordingHealthMonitor` hook will:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                  Recording Health Monitor                   │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Track last chunk save timestamp (from chunkSaveStatuses) │
+│ 2. Track last audio activity timestamp                      │
+│ 3. Every 30s: Check meeting status in database              │
+│    - If status !== 'recording' but client thinks it is      │
+│    → Auto-stop with clear error message                     │
+│ 4. Every 60s with no activity: Show warning toast           │
+│ 5. Every 120s with no activity: Show critical toast         │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Fallback Behaviour:**
-- If logo fetch fails, show toast warning and proceed without logo
-- If AI fails to integrate logo properly, user can edit the result
+### System Audio Track Monitoring
 
-### 6. Files to Modify
+The enhanced `buildAssemblyAudioStream` will:
 
-| File | Changes |
-|------|---------|
-| `src/types/imageStudio.ts` | Add `logoSource`, `customLogoData`, update request type |
-| `src/components/ai4gp/studio/BrandingTab.tsx` | Replace logo card with new integration UI |
-| `src/hooks/useImageStudio.ts` | Update defaults, add logo processing logic |
-| `supabase/functions/ai4gp-image-generation/index.ts` | Handle `logoImage`, update prompt building |
+```text
+┌─────────────────────────────────────────────────────────────┐
+│              System Audio Track Monitoring                  │
+├─────────────────────────────────────────────────────────────┤
+│ 1. Listen for 'ended' event on system audio tracks          │
+│ 2. Listen for 'mute' event on system audio tracks           │
+│ 3. Call onSystemAudioLost callback when detected            │
+│ 4. MeetingRecorder handles callback:                        │
+│    - Update assemblyInputMode to 'mic-only'                 │
+│    - Show warning toast to user                             │
+│    - Log to debug panel                                     │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### 7. User Experience Flow
+---
 
-1. User opens Image Studio
-2. Goes to Branding tab
-3. Enables "Include Logo in Design" toggle
-4. Chooses between profile logo or uploads a different one
-5. Selects placement (top-left, top-right, etc.)
-6. Generates image
-7. AI receives the logo as a reference image and integrates it into the design
-8. User receives image with logo already incorporated
+## Expected Outcomes
 
-### 8. Alternative Approach Considered (Not Recommended)
+After these fixes:
 
-**Post-processing overlay:** Generate image first, then overlay logo programmatically using canvas.
-
-**Why not:** 
-- Requires client-side canvas manipulation
-- Logo placement looks "stuck on" rather than integrated
-- Doesn't account for design context (logo might obscure important content)
-- AI integration produces more natural, designed results
+1. **Silent stops eliminated**: Users will always know when their recording has stopped and why
+2. **AssemblyAI system audio issues visible**: Clear indication when system audio is lost
+3. **Proactive health monitoring**: Warnings appear before the server auto-closes the meeting
+4. **Better debugging**: Console logs and debug panel will show audio input status throughout recording
+5. **Reduced false positives**: 3-minute inactivity threshold gives more buffer for slow processing
 
