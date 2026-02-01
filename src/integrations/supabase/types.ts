@@ -4480,6 +4480,36 @@ export type Database = {
         }
         Relationships: []
       }
+      login_rate_limits: {
+        Row: {
+          blocked: boolean | null
+          created_at: string
+          email_attempted: string
+          id: string
+          ip_address: string
+          password_hash_prefix: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          blocked?: boolean | null
+          created_at?: string
+          email_attempted: string
+          id?: string
+          ip_address: string
+          password_hash_prefix?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          blocked?: boolean | null
+          created_at?: string
+          email_attempted?: string
+          id?: string
+          ip_address?: string
+          password_hash_prefix?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       low_confidence_chunks: {
         Row: {
           ai_suggested_restoration: boolean | null
@@ -9715,6 +9745,7 @@ export type Database = {
       }
       cleanup_ai4gp_chat_history: { Args: never; Returns: number }
       cleanup_expired_sessions: { Args: never; Returns: number }
+      cleanup_old_login_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_sessions: { Args: { days_old?: number }; Returns: number }
       cleanup_old_transcription_chunks: { Args: never; Returns: number }

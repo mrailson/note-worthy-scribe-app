@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { useSecurityValidation } from "@/hooks/useSecurityValidation";
 import { ForgotPassword } from "./ForgotPassword";
 import { MagicLinkRequest } from "./MagicLinkRequest";
 import { VpnTroubleshootingGuide } from "./VpnTroubleshootingGuide";
+import { supabase } from "@/integrations/supabase/client";
 
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -22,8 +23,40 @@ export const LoginForm = () => {
   const [error, setError] = useState<string | null>(null);
   const [showVpnGuide, setShowVpnGuide] = useState(false);
   const [loginError, setLoginError] = useState<any>(null);
+  const [rateLimitCooldown, setRateLimitCooldown] = useState(0);
   const { signIn } = useAuth();
   const { validateInput, validateEmail, checkRateLimit } = useSecurityValidation();
+
+  // Handle countdown timer for rate limit
+  useEffect(() => {
+    // Check localStorage for existing cooldown
+    const storedCooldown = localStorage.getItem('loginRateLimitUntil');
+    if (storedCooldown) {
+      const cooldownEnd = parseInt(storedCooldown, 10);
+      const remaining = Math.ceil((cooldownEnd - Date.now()) / 1000);
+      if (remaining > 0) {
+        setRateLimitCooldown(remaining);
+      } else {
+        localStorage.removeItem('loginRateLimitUntil');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (rateLimitCooldown <= 0) return;
+    
+    const timer = setInterval(() => {
+      setRateLimitCooldown(prev => {
+        if (prev <= 1) {
+          localStorage.removeItem('loginRateLimitUntil');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [rateLimitCooldown]);
 
   if (showForgotPassword) {
     return <ForgotPassword onBackToLogin={() => setShowForgotPassword(false)} />;
@@ -55,12 +88,12 @@ export const LoginForm = () => {
   };
 
   const handleLogin = async () => {
-    // Rate limiting check with VPN awareness
-    const userAgent = navigator.userAgent;
-    if (!checkRateLimit(`login_${email}`, userAgent)) {
+    // Check if we're in a cooldown period
+    if (rateLimitCooldown > 0) {
+      setError(`Too many login attempts. Please wait ${Math.ceil(rateLimitCooldown / 60)} minutes.`);
       return;
     }
-    
+
     // Security validation
     if (!validateNHSEmail(email) || !password) return;
     
@@ -73,6 +106,25 @@ export const LoginForm = () => {
     setLoginError(null);
     
     try {
+      // Check server-side rate limit first
+      const { data: rateLimitData, error: rateLimitError } = await supabase.functions.invoke(
+        'check-login-rate-limit',
+        { body: { email } }
+      );
+
+      if (rateLimitError) {
+        console.error('Rate limit check error:', rateLimitError);
+        // Continue with login if rate limit check fails (fail open)
+      } else if (rateLimitData?.rate_limited) {
+        const waitSeconds = rateLimitData.wait_seconds || 300;
+        const cooldownEnd = Date.now() + (waitSeconds * 1000);
+        localStorage.setItem('loginRateLimitUntil', cooldownEnd.toString());
+        setRateLimitCooldown(waitSeconds);
+        setError(rateLimitData.message || `Too many login attempts. Please wait ${Math.ceil(waitSeconds / 60)} minutes.`);
+        setLoading(false);
+        return;
+      }
+
       const { error } = await signIn(email, password);
       
       if (error) {
@@ -88,11 +140,9 @@ export const LoginForm = () => {
           errorMessage.toLowerCase().includes('corporate');
           
         if (isVpnRelated) {
-          // Delay showing guide slightly to let error message display first
           setTimeout(() => setShowVpnGuide(true), 1500);
         }
         
-        // Log VPN-related errors for monitoring
         if (error.isVpnRelated) {
           console.log('VPN-related login error detected:', error.diagnostic);
         }
@@ -174,10 +224,10 @@ export const LoginForm = () => {
 
           <Button 
             onClick={handleLogin}
-            disabled={!isValid || !password || loading}
+            disabled={!isValid || !password || loading || rateLimitCooldown > 0}
             className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle disabled:opacity-50"
           >
-            {loading ? "Signing In..." : "Sign In"}
+            {loading ? "Signing In..." : rateLimitCooldown > 0 ? `Wait ${Math.floor(rateLimitCooldown / 60)}:${(rateLimitCooldown % 60).toString().padStart(2, '0')}` : "Sign In"}
           </Button>
 
           {/* Password Help Section */}
