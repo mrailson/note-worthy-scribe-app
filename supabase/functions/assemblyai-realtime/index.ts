@@ -66,29 +66,11 @@ Deno.serve(async (req: Request) => {
           return;
         }
 
-        console.log('🔗 Creating AssemblyAI WebSocket connection with OTEWELL verbatim settings...');
+        console.log('🔗 Creating AssemblyAI v3 WebSocket connection...');
 
-        // OTEWELL NHS Core Terms - reduced set to stay within URL limits
-        // Prioritising governance, clinical safety and high-value medical terms
-        const medicalKeyterms = [
-          // OTEWELL Primary Care & Governance (critical)
-          "Ageing Well", "Frailty", "LD", "Learning Disability",
-          "QOF", "DES", "EMIS", "SystmOne", "PCN", "CQC",
-          "safeguarding", "DNACPR", "ReSPECT", "ACP",
-          // Vitals
-          "BP", "systolic", "diastolic", "SpO2", "BMI", "eGFR", "HbA1c",
-          // High-frequency medications
-          "metformin", "ramipril", "amlodipine", "omeprazole",
-          "atorvastatin", "bisoprolol", "sertraline", "gabapentin",
-          "apixaban", "warfarin", "salbutamol", "Fostair",
-          // Common conditions
-          "hypertension", "diabetes", "COPD", "asthma", "CKD",
-          "atrial fibrillation", "dementia", "depression"
-        ];
-
-        // AssemblyAI Streaming v3 with OTEWELL verbatim settings
-        const keytermsParam = encodeURIComponent(JSON.stringify(medicalKeyterms));
-        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true&speech_model=universal-streaming-english&language_code=en&punctuate=false&format_text=false&word_confidence=true&keyterms_prompt=${keytermsParam}`;
+        // AssemblyAI Streaming v3 - minimal parameters (v3 ignores most v2 params)
+        // Only sample_rate and format_turns are documented for v3
+        const wsUrl = `wss://streaming.assemblyai.com/v3/ws?sample_rate=16000&format_turns=true`;
         
         // Get token from AssemblyAI (9 minutes expiry)
         const tokenResponse = await fetch('https://streaming.assemblyai.com/v3/token?expires_in_seconds=540', {

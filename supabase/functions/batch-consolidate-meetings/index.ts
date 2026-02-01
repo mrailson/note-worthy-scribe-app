@@ -94,7 +94,7 @@ serve(async (req) => {
           .update({
             whisper_transcript_text: consolidatedTranscript,
             word_count: totalWords,
-            primary_transcript_source: 'whisper_chunks_consolidated',
+            primary_transcript_source: 'consolidated', // Changed from 'whisper_chunks_consolidated'
             updated_at: new Date().toISOString()
           })
           .eq('id', meetingId);
