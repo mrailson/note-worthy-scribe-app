@@ -471,39 +471,11 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Admin Dashboard
                           </DropdownMenuItem>
                            <DropdownMenuItem 
-                             onClick={() => navigate('/compliance/security')}
-                             className="cursor-pointer py-3"
-                           >
-                             <BookOpen className="h-4 w-4 mr-2" />
-                             Security Documentation
-                          </DropdownMenuItem>
-                           <DropdownMenuItem 
-                             onClick={() => navigate('/executive-overview')}
-                             className="cursor-pointer py-3"
-                           >
-                             <Building2 className="h-4 w-4 mr-2" />
-                             Executive Overview
-                           </DropdownMenuItem>
-                           <DropdownMenuItem 
                              onClick={() => navigate('/notebook-studio')}
                              className="cursor-pointer py-3"
                            >
                              <Presentation className="h-4 w-4 mr-2" />
                              Notewell Studio
-                           </DropdownMenuItem>
-                           <DropdownMenuItem 
-                             onClick={() => navigate('/ai-showcase')}
-                             className="cursor-pointer py-3"
-                           >
-                             <Brain className="h-4 w-4 mr-2" />
-                             AI Showcase
-                           </DropdownMenuItem>
-                           <DropdownMenuItem 
-                             onClick={() => navigate('/cso-training-register')}
-                             className="cursor-pointer py-3"
-                           >
-                             <GraduationCap className="h-4 w-4 mr-2" />
-                             CSO Training
                            </DropdownMenuItem>
                            <DropdownMenuItem 
                              onClick={() => navigate('/admin?tab=dev-costs')}
@@ -734,21 +706,9 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   </Button>
                                 </DrawerClose>
                                 <DrawerClose asChild>
-                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/compliance/security')}>
-                                    <BookOpen className="h-4 w-4 mr-2" />
-                                    Security Docs
-                                  </Button>
-                                </DrawerClose>
-                                <DrawerClose asChild>
-                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/executive-overview')}>
-                                    <Building2 className="h-4 w-4 mr-2" />
-                                    Executive Overview
-                                  </Button>
-                                </DrawerClose>
-                                <DrawerClose asChild>
-                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/gp-translation')}>
-                                    <Languages className="h-4 w-4 mr-2" />
-                                    GP Translation
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/notebook-studio')}>
+                                    <Presentation className="h-4 w-4 mr-2" />
+                                    Notewell Studio
                                   </Button>
                                 </DrawerClose>
                                 <DrawerClose asChild>
