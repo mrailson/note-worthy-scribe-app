@@ -118,8 +118,9 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
         // Check if this is a FunctionsHttpError (non-2xx response)
         if (error instanceof FunctionsHttpError) {
           try {
-            // Get the JSON response body using the correct method
-            const errorData = await error.context.json();
+            // Clone the response before reading to avoid stream consumption issues
+            const response = error.context;
+            const errorData = await response.json();
             console.log("Edge function error response:", errorData);
             
             if (errorData?.rate_limited) {
@@ -128,15 +129,17 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
               localStorage.setItem(RATE_LIMIT_STORAGE_KEY, expiryTime.toString());
               setRateLimited(true);
               setWaitSeconds(seconds);
+              setLoading(false); // Ensure loading is cleared before return
               toast({
                 title: "Too Many Requests",
-                description: `Please wait ${formatWaitTime(errorData.wait_seconds || 300)} before requesting another magic link.`,
+                description: `Please wait ${formatWaitTime(seconds)} before requesting another magic link.`,
                 variant: "destructive"
               });
               return;
             }
             
             // Show the specific error message from the function
+            setLoading(false);
             toast({
               title: "Error",
               description: errorData?.error || "Failed to send magic link. Please try again.",
@@ -149,6 +152,7 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
         }
 
         // Fallback for other error types
+        setLoading(false);
         toast({
           title: "Error",
           description: error.message || "Failed to send magic link. Please try again.",
