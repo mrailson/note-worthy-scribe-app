@@ -1,5 +1,18 @@
 import { mergeByTimestamps, segmentsToPlainText, Segment } from '@/lib/segmentMerge';
 import { WHISPER_CHUNKING as C } from '@/config/whisperChunking';
+import { 
+  deduplicateChunk, 
+  createDeduplicationState, 
+  DeduplicationState 
+} from '@/lib/whisperDeduplication';
+import { repairSentences, lightRepair } from '@/lib/sentenceRepair';
+import { 
+  evaluateConfidence, 
+  createConfidenceGateState, 
+  updateConfidenceGateState,
+  ConfidenceGateState,
+  ConfidenceResult
+} from '@/lib/whisperConfidenceGate';
 
 // === Non-recursive retry-safe networking + queue ===
 const BACKOFF_MS = [250, 600, 1200];
@@ -14,6 +27,12 @@ export class ChunkedWhisperTranscriber {
   private fallbackText = '';
   private queue: UploadItem[] = [];
   private processing = false;
+  
+  // Deduplication state
+  private deduplicationState: DeduplicationState = createDeduplicationState();
+  
+  // Confidence gate state
+  private confidenceState: ConfidenceGateState = createConfidenceGateState();
 
   constructor(
     private onTranscription: (data: any) => void,
@@ -97,6 +116,11 @@ export class ChunkedWhisperTranscriber {
   handleProviderPayload(payload: any) {
     const segs = (payload?.data?.segments as Segment[]) || [];
     const txt = (payload?.data?.text as string) || '';
+    const confidence = payload?.confidence ?? 0.5;
+    const noSpeechProbability = payload?.noSpeechProbability ?? 0;
+    
+    let finalText = '';
+    let duplicatesRemoved = 0;
 
     if (segs.length) {
       // Mark all segments as final to prevent reprocessing loops
@@ -108,25 +132,64 @@ export class ChunkedWhisperTranscriber {
       // Use stricter merging with overlap detection
       this.mergedSegments = mergeByTimestamps(this.mergedSegments, finalSegments);
       
-      const finalText = segmentsToPlainText(this.mergedSegments);
-      console.log(`📝 Chunked transcriber: processed ${finalSegments.length} segments, total text: ${finalText.length} chars`);
-      
-      return {
-        text: finalText,
-        segments: this.mergedSegments,
-        isFinal: true // Always mark as final to prevent cascade reprocessing
-      };
-    } else {
+      finalText = segmentsToPlainText(this.mergedSegments);
+    } else if (txt && txt.trim()) {
       // Fallback to simple tail-trim merge if only flat text arrives
-      if (txt && txt.trim()) {
-        this.fallbackText = this.mergeWithOverlap(this.fallbackText, txt);
-        console.log(`📝 Chunked transcriber fallback: processed ${txt.length} chars, total: ${this.fallbackText.length} chars`);
-      }
-      return { 
-        text: this.fallbackText,
-        isFinal: true // Mark as final to prevent reprocessing
-      };
+      this.fallbackText = this.mergeWithOverlap(this.fallbackText, txt);
+      finalText = this.fallbackText;
     }
+    
+    // Apply deduplication if enabled
+    if (C.deduplication?.enabled && finalText) {
+      const dedupeResult = deduplicateChunk(
+        finalText, 
+        this.deduplicationState, 
+        this.chunkIndex - 1
+      );
+      finalText = dedupeResult.text;
+      duplicatesRemoved = dedupeResult.duplicatesRemoved;
+      this.deduplicationState = dedupeResult.state;
+    }
+    
+    // Apply sentence repair if enabled
+    if (C.sentenceRepair?.enabled && finalText) {
+      // Use light repair for real-time (less aggressive)
+      finalText = lightRepair(finalText);
+    }
+    
+    // Evaluate confidence and update gate state
+    let confidenceResult: ConfidenceResult | null = null;
+    if (C.confidenceGate?.enabled) {
+      confidenceResult = evaluateConfidence(
+        finalText,
+        confidence,
+        noSpeechProbability,
+        duplicatesRemoved,
+        txt.length
+      );
+      this.confidenceState = updateConfidenceGateState(
+        this.confidenceState,
+        this.chunkIndex - 1,
+        confidenceResult
+      );
+      
+      if (confidenceResult.isLowConfidence) {
+        console.log(`⚠️ Low confidence chunk ${this.chunkIndex - 1}: ${confidenceResult.reason}`);
+      }
+    }
+    
+    console.log(`📝 Chunked transcriber: processed chunk ${this.chunkIndex - 1}, ${finalText.length} chars` +
+      (duplicatesRemoved > 0 ? `, ${duplicatesRemoved} duplicates removed` : ''));
+    
+    return {
+      text: finalText,
+      segments: this.mergedSegments,
+      isFinal: true, // Always mark as final to prevent cascade reprocessing
+      confidence,
+      duplicatesRemoved,
+      lowConfidence: confidenceResult?.isLowConfidence ?? false,
+      requiresCrossCheck: confidenceResult?.requiresCrossCheck ?? false
+    };
   }
 
   private mergeWithOverlap(existing: string, incoming: string) {
@@ -136,6 +199,11 @@ export class ChunkedWhisperTranscriber {
     return incoming.startsWith(tail)
       ? existing + incoming.slice(tail.length)
       : existing + ' ' + incoming;
+  }
+
+  // Get confidence gate state for the session
+  getConfidenceState(): ConfidenceGateState {
+    return this.confidenceState;
   }
 
   // Placeholder methods for interface compatibility
@@ -160,5 +228,8 @@ export class ChunkedWhisperTranscriber {
     this.chunkIndex = 0;
     this.queue = []; // Clear the queue
     this.processing = false;
+    // Reset deduplication and confidence states
+    this.deduplicationState = createDeduplicationState();
+    this.confidenceState = createConfidenceGateState();
   }
 }
