@@ -45,69 +45,80 @@ serve(async (req) => {
       patient_name: complaint.patient_name
     });
 
-    // Get practice details - prioritize user profile first
+    // Get practice details - check practice_details by user_id first
     let practiceDetails = null;
     let signatureDetails = null;
+    let signatoryName = null;
+    let signatoryTitle = null;
     
-    console.log('Fetching practice details from user profile first');
+    console.log('Fetching practice details for user:', complaint.created_by);
     
-    // First, try to get practice details from user roles (user profile)
-    const { data: userPractice, error: userPracticeError } = await supabase
-      .from('user_roles')
-      .select(`
-        practice_id,
-        practice_details!inner (
-          id,
-          practice_name,
-          address,
-          phone,
-          email,
-          logo_url,
-          practice_logo_url,
-          footer_text,
-          website,
-          show_page_numbers
-        )
-      `)
+    // First, try to get practice details by user_id (user's own practice settings)
+    const { data: userPracticeDetails, error: userPracticeError } = await supabase
+      .from('practice_details')
+      .select('*')
       .eq('user_id', complaint.created_by)
-      .not('practice_id', 'is', null)
-      .limit(1)
-      .single();
+      .maybeSingle();
     
-    console.log('User practice query result:', { userPractice, userPracticeError });
+    console.log('User practice_details query result:', { userPracticeDetails, error: userPracticeError?.message });
     
-    if (userPractice && userPractice.practice_details) {
-      practiceDetails = userPractice.practice_details;
-      console.log('Retrieved practice details from user profile:', practiceDetails);
-    } else if (complaint.practice_id) {
-      console.log('Fallback: Fetching practice details for complaint practice_id:', complaint.practice_id);
-      const { data: practice } = await supabase
-        .from('practice_details')
-        .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
-        .eq('id', complaint.practice_id)
-        .single();
-      practiceDetails = practice;
-      console.log('Retrieved practice details from complaint:', practiceDetails);
+    if (userPracticeDetails) {
+      practiceDetails = userPracticeDetails;
+      console.log('Retrieved practice details from user practice_details:', {
+        practice_name: practiceDetails.practice_name,
+        address: practiceDetails.address,
+        email: practiceDetails.email,
+        phone: practiceDetails.phone
+      });
     } else {
-      console.log('Final fallback: fetching practice details directly by practice name');
-      const { data: directPractice } = await supabase
-        .from('practice_details')
-        .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers, updated_at')
-        .eq('practice_name', 'Oak Lane Medical Practice')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
+      // Fallback: Get practice from user_roles -> gp_practices
+      console.log('Fallback: Checking user_roles for practice assignment');
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('practice_id')
+        .eq('user_id', complaint.created_by)
+        .not('practice_id', 'is', null)
+        .maybeSingle();
       
-      if (directPractice) {
-        practiceDetails = directPractice;
-        console.log('Retrieved practice details directly (latest):', {
-          practice_name: practiceDetails.practice_name,
-          logo_url: practiceDetails.logo_url,
-          practice_logo_url: practiceDetails.practice_logo_url,
-          updated_at: practiceDetails.updated_at
-        });
-      } else {
-        console.log('No practice details found by name');
+      if (userRole?.practice_id) {
+        // Get practice from gp_practices
+        const { data: gpPractice } = await supabase
+          .from('gp_practices')
+          .select('id, name, address, phone, email, website')
+          .eq('id', userRole.practice_id)
+          .maybeSingle();
+        
+        if (gpPractice) {
+          practiceDetails = {
+            practice_name: gpPractice.name,
+            address: gpPractice.address,
+            phone: gpPractice.phone,
+            email: gpPractice.email,
+            website: gpPractice.website
+          };
+          console.log('Retrieved practice from gp_practices via user_roles:', practiceDetails);
+        }
+      }
+    }
+    
+    // Final fallback: Get from complaint's practice_id
+    if (!practiceDetails && complaint.practice_id) {
+      console.log('Final fallback: Getting practice from complaint.practice_id');
+      const { data: complaintPractice } = await supabase
+        .from('gp_practices')
+        .select('id, name, address, phone, email, website')
+        .eq('id', complaint.practice_id)
+        .maybeSingle();
+      
+      if (complaintPractice) {
+        practiceDetails = {
+          practice_name: complaintPractice.name,
+          address: complaintPractice.address,
+          phone: complaintPractice.phone,
+          email: complaintPractice.email,
+          website: complaintPractice.website
+        };
+        console.log('Retrieved practice from complaint practice_id:', practiceDetails);
       }
     }
 
@@ -118,9 +129,35 @@ serve(async (req) => {
       .select('*')
       .eq('user_id', complaint.created_by)
       .eq('use_for_acknowledgements', true)
-      .single();
+      .maybeSingle();
     signatureDetails = signature;
     console.log('Retrieved signature details:', signatureDetails);
+    
+    // If no signature, get user name from auth.users metadata
+    if (!signatureDetails) {
+      console.log('No signature found, fetching user details from auth');
+      const { data: authUser } = await supabase.auth.admin.getUserById(complaint.created_by);
+      
+      if (authUser?.user) {
+        signatoryName = authUser.user.user_metadata?.full_name || authUser.user.email?.split('@')[0] || 'Complaints Manager';
+        // Check if they have GP Partner role or similar
+        const { data: userRoleData } = await supabase
+          .from('user_roles')
+          .select('role, practice_role')
+          .eq('user_id', complaint.created_by)
+          .maybeSingle();
+        
+        // Determine title based on role
+        if (userRoleData?.practice_role) {
+          signatoryTitle = userRoleData.practice_role;
+        } else if (userRoleData?.role === 'practice_manager') {
+          signatoryTitle = 'Practice Manager';
+        } else {
+          signatoryTitle = 'GP Partner'; // Default for clinical users
+        }
+        console.log('Using auth user details:', { signatoryName, signatoryTitle });
+      }
+    }
 
     const systemPrompt = `You are a professional NHS complaints officer writing acknowledgement letters. Generate a formal acknowledgement letter for a patient complaint that:
 
@@ -193,7 +230,10 @@ Name: ${signatureDetails.name}
 Title: ${signatureDetails.job_title}
 Qualifications: ${signatureDetails.qualifications || ''}
 Signature Text: ${signatureDetails.signature_text || ''}
-` : ''}
+` : `
+Name: ${signatoryName || 'Complaints Manager'}
+Title: ${signatoryTitle || 'Practice Manager'}
+`}
 
 Practice Details:
 ${practiceDetails ? `
@@ -202,9 +242,7 @@ Address: ${practiceDetails.address || ''}
 Phone: ${practiceDetails.phone || ''}
 Email: ${practiceDetails.email || ''}
 Website: ${practiceDetails.website || ''}
-Footer Text: ${practiceDetails.footer_text || ''}
-Show Page Numbers: ${practiceDetails.show_page_numbers ? 'Yes' : 'No'}
-` : ''}
+` : 'No practice details available'}
 
 Generate a professional acknowledgement letter addressing the specific concerns raised. Include the date at the top of the letter as "${currentDate}". 
 
@@ -213,18 +251,18 @@ IMPORTANT SIGNATURE FORMATTING:
 - End the letter with a complete signature block that includes:
   1. "Yours sincerely,"
   2. Two blank lines
-  3. ${signatureDetails?.name || '[Signatory Name]'} (ONLY ONCE - do not repeat the name)
-  4. ${signatureDetails?.job_title || 'Practice Manager'}
-  5. ${practiceDetails?.practice_name || '[Practice Name]'}
-  6. ${practiceDetails?.address || '[Practice Address]'} (format address on separate lines with minimal spacing)
+  3. ${signatureDetails?.name || signatoryName || 'Complaints Manager'} (ONLY ONCE - do not repeat the name)
+  4. ${signatureDetails?.job_title || signatoryTitle || 'Practice Manager'}
+  5. ${practiceDetails?.practice_name || 'The Practice'}
+  6. ${practiceDetails?.address || ''} (format address on separate lines with minimal spacing)
 
 CRITICAL CONTACT INFORMATION RULES:
 - Never include personal email addresses or direct contact details in the signature
 - You MUST use the EXACT practice contact details provided above
 - ${practiceDetails?.email ? `The practice email is: ${practiceDetails.email} - include this EXACT email address in the letter` : 'Include a generic practice email'}
 - ${practiceDetails?.phone ? `The practice phone number is: ${practiceDetails.phone} - include this EXACT phone number in the letter` : 'Indicate phone number is available upon request'}
-- DO NOT use placeholders like "[Practice Phone Number]" or "[Practice Email Address]"
-- Use the ACTUAL values provided in the Practice Details section above
+- DO NOT use placeholders like "[Practice Phone Number]" or "[Practice Email Address]" or "[Signatory Name]" or "[Practice Name]"
+- Use the ACTUAL values provided in the Signature Details and Practice Details sections above
 
 FORMATTING THE CONTACT DETAILS:
 - Format contact details as a clean list without bullet points or dashes
