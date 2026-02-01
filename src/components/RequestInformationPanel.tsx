@@ -134,11 +134,21 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
         .eq('complaint_id', complaintId)
         .order('response_requested_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Log the specific error for debugging
+        console.error('Error fetching involved parties:', error.code, error.message, error.details);
+        // Only show toast for permission errors, not for empty results
+        if (error.code === '42501' || error.message?.includes('permission denied')) {
+          toast.error('Permission denied loading information requests');
+        } else {
+          toast.error('Failed to load information requests');
+        }
+        return;
+      }
       setParties(data || []);
     } catch (error) {
-      console.error('Error fetching involved parties:', error);
-      toast.error('Failed to load information requests');
+      console.error('Error fetching involved parties (catch):', error);
+      // Don't show toast for network errors during initial load - may just be stale
     }
   };
 
