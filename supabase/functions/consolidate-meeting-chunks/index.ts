@@ -369,7 +369,7 @@ serve(async (req) => {
       await supabase.from('meetings').update({
         live_transcript_text: liveTranscript,
         word_count: wordCount,
-        primary_transcript_source: 'browser_live',
+        primary_transcript_source: 'whisper', // Changed from 'browser_live' - closest allowed value
         updated_at: new Date().toISOString()
       }).eq('id', meetingId);
 
@@ -459,7 +459,7 @@ serve(async (req) => {
         await supabase.from('meetings').update({
           live_transcript_text: liveTranscript,
           word_count: wordCount,
-          primary_transcript_source: 'browser_live',
+          primary_transcript_source: 'whisper', // Changed from 'browser_live' - closest allowed value
           updated_at: new Date().toISOString()
         }).eq('id', meetingId);
 
@@ -518,7 +518,7 @@ serve(async (req) => {
 
     // Check if merged result is worse than alternatives
     let bestTranscript = mergeResult.transcript;
-    let bestSource = 'best_of_both';
+    let bestSource = 'consolidated'; // Changed from 'best_of_both' to match DB constraint
     let bestWordCount = mergedWordCount;
 
     const mergedIsHallucinated = isTextHallucinated(mergeResult.transcript);
@@ -530,12 +530,12 @@ serve(async (req) => {
       
       if (mergedIsHallucinated && !liveIsHallucinated) {
         bestTranscript = liveTranscript;
-        bestSource = 'browser_live';
+        bestSource = 'whisper'; // Changed from 'browser_live' - closest allowed value
         bestWordCount = liveWordCount;
         console.log('✅ Using live transcript (merged was hallucinated)');
       } else if (!liveIsHallucinated && liveWordCount > mergedWordCount * 1.5) {
         bestTranscript = liveTranscript;
-        bestSource = 'browser_live';
+        bestSource = 'whisper'; // Changed from 'browser_live' - closest allowed value
         bestWordCount = liveWordCount;
         console.log('✅ Using live transcript (significantly longer and valid)');
       }
@@ -560,7 +560,7 @@ serve(async (req) => {
     // Update the meeting with the best transcript
     const { error: updateError } = await supabase.from('meetings').update({
       live_transcript_text: bestTranscript,
-      whisper_transcript_text: bestSource === 'best_of_both' ? bestTranscript : undefined,
+      whisper_transcript_text: bestSource === 'consolidated' ? bestTranscript : undefined,
       word_count: bestWordCount,
       primary_transcript_source: bestSource,
       updated_at: new Date().toISOString()
