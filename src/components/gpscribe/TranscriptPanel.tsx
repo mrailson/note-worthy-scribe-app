@@ -40,8 +40,8 @@ interface TranscriptPanelProps {
   assemblyStatus?: string;
   assemblyConfidence?: number;
   assemblyEnabled?: boolean;
-  primarySource?: 'assembly' | 'whisper';
-  onPrimarySourceChange?: (source: 'assembly' | 'whisper') => void;
+  primarySource?: 'assembly' | 'whisper' | 'merged';
+  onPrimarySourceChange?: (source: 'assembly' | 'whisper' | 'merged') => void;
   assemblyChunks?: Array<{
     text: string;
     isFinal?: boolean;

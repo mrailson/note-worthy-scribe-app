@@ -1,11 +1,11 @@
 export const WHISPER_CHUNKING = {
   mimeType: 'audio/webm;codecs=opus',
   mediaRecorderTimesliceMs: 4000,
-  // Updated chunking: 30s chunks with 3s overlap (per ChatGPT recommendations)
-  // Purpose: Reduce mid-sentence truncation, improve sentence integrity at boundaries
-  chunkDurationMs: 30000,      // 30 seconds per chunk
-  overlapMs: 3000,             // 3 seconds overlap between chunks
-  accumulateUntilMs: 30000,    // Accumulate audio for 30s before processing
+  // Updated: 15s chunks with 1.5s overlap (aligned with BestOfBothMerger config)
+  // Purpose: Match merge algorithm's synthetic timeline expectations
+  chunkDurationMs: 15000,      // 15 seconds per chunk (matches DEFAULT_MERGE_CONFIG.chunkDurationSec)
+  overlapMs: 1500,             // 1.5 seconds overlap (matches DEFAULT_MERGE_CONFIG.overlapSec)
+  accumulateUntilMs: 15000,    // Accumulate audio for 15s before processing
   maxChunkBytes: 1_500_000,
   maxInflight: 2,
   retry: { attempts: 3, backoffMs: [250, 600, 1200] },
