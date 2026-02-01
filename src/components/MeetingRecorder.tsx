@@ -2964,6 +2964,18 @@ export const MeetingRecorder = ({
       // Create a gain node to amplify speaker audio
       const gainNode = audioContext.createGain();
       gainNode.gain.value = 2.0; // Moderate amplification for speaker audio
+
+      // Create a derived MediaStream for AssemblyAI that taps the *same* system-audio
+      // processing pipeline. This avoids creating a second MediaStreamSource from the
+      // original display-capture stream (which can go silent in Chromium when used twice).
+      const assemblyTapDestination = audioContext.createMediaStreamDestination();
+      try {
+        // Prefer mono output to reduce edge-case channel issues.
+        (assemblyTapDestination as any).channelCount = 1;
+        (assemblyTapDestination as any).channelCountMode = 'explicit';
+      } catch {
+        // ignore
+      }
       
       // Create a processor for chunked audio processing
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
@@ -3036,10 +3048,29 @@ export const MeetingRecorder = ({
       source.connect(analyser);
       analyser.connect(gainNode);
       gainNode.connect(processor);
+
+      // Tap system audio for AssemblyAI (from the same processed signal)
+      gainNode.connect(assemblyTapDestination);
       processor.connect(audioContext.destination);
       
       // Store references for cleanup
       audioContextRef.current = audioContext;
+
+      // Expose the tapped stream for the AssemblyAI mixer to use (instead of the raw screen stream)
+      enhancedAudioCaptureRef.current = {
+        assemblyStream: assemblyTapDestination.stream,
+        stopCapture: () => {
+          try {
+            assemblyTapDestination.stream.getTracks().forEach(t => t.stop());
+          } catch {
+            // ignore
+          }
+        }
+      };
+
+      console.log('🎧 System audio tap created for AssemblyAI', {
+        tracks: assemblyTapDestination.stream.getAudioTracks().length,
+      });
       
       addDebugLog('✅ Custom audio processing pipeline established');
       
@@ -4051,12 +4082,21 @@ export const MeetingRecorder = ({
       // Uses Web Audio mixer for proper system audio capture (same approach as Whisper)
       try {
         console.log('🎤 Starting AssemblyAI real-time preview...');
+
+        // If we are already processing system audio (Chromium screen-share path), prefer the
+        // derived/tapped stream for AssemblyAI so we don't consume the raw display stream twice.
+        const systemStreamForAssembly: MediaStream | null | undefined =
+          (enhancedAudioCaptureRef.current?.assemblyStream as MediaStream | undefined) ||
+          screenStreamRef.current;
+        console.log('🎧 AssemblyAI system stream source:', enhancedAudioCaptureRef.current?.assemblyStream ? 'tapped' : 'raw', {
+          tracks: systemStreamForAssembly?.getAudioTracks?.().length ?? 0,
+        });
         
         // Build the mixed audio stream using Web Audio (not rewrapped tracks)
         // This fixes Chrome "Entire screen" system audio capture
         // LATENCY FIX: We pass the existing mic stream if available to avoid duplicate getUserMedia calls
         const mixerResult = await buildAssemblyAudioStream(
-          screenStreamRef.current, // Pass original display stream (may be null for mic-only mode)
+          systemStreamForAssembly, // Prefer tapped system-audio stream when available
           { 
             existingMicStream: micAudioStreamRef.current,
             micConstraints: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
