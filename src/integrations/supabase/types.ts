@@ -5453,6 +5453,7 @@ export type Database = {
           cleaning_duration_ms: number | null
           cleaning_status: string | null
           confidence: number | null
+          confidence_score: number | null
           created_at: string
           end_time: number | null
           id: string
@@ -5462,6 +5463,7 @@ export type Database = {
           segments_json: Json | null
           seq: number | null
           session_id: string
+          source: string | null
           start_time: number | null
           transcriber_type: string | null
           transcription_text: string
@@ -5477,6 +5479,7 @@ export type Database = {
           cleaning_duration_ms?: number | null
           cleaning_status?: string | null
           confidence?: number | null
+          confidence_score?: number | null
           created_at?: string
           end_time?: number | null
           id?: string
@@ -5486,6 +5489,7 @@ export type Database = {
           segments_json?: Json | null
           seq?: number | null
           session_id: string
+          source?: string | null
           start_time?: number | null
           transcriber_type?: string | null
           transcription_text: string
@@ -5501,6 +5505,7 @@ export type Database = {
           cleaning_duration_ms?: number | null
           cleaning_status?: string | null
           confidence?: number | null
+          confidence_score?: number | null
           created_at?: string
           end_time?: number | null
           id?: string
@@ -5510,6 +5515,7 @@ export type Database = {
           segments_json?: Json | null
           seq?: number | null
           session_id?: string
+          source?: string | null
           start_time?: number | null
           transcriber_type?: string | null
           transcription_text?: string
