@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 
+const RATE_LIMIT_STORAGE_KEY = "magic_link_rate_limit_expires";
+
 interface MagicLinkRequestProps {
   onBackToLogin: () => void;
 }
@@ -21,6 +23,23 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
   const [waitSeconds, setWaitSeconds] = useState(0);
   const { toast } = useToast();
 
+  // Check localStorage for existing rate limit on mount
+  useEffect(() => {
+    const storedExpiry = localStorage.getItem(RATE_LIMIT_STORAGE_KEY);
+    if (storedExpiry) {
+      const expiryTime = parseInt(storedExpiry, 10);
+      const now = Date.now();
+      if (expiryTime > now) {
+        const remainingSeconds = Math.ceil((expiryTime - now) / 1000);
+        setRateLimited(true);
+        setWaitSeconds(remainingSeconds);
+      } else {
+        // Expired, clear it
+        localStorage.removeItem(RATE_LIMIT_STORAGE_KEY);
+      }
+    }
+  }, []);
+
   // Countdown timer effect
   useEffect(() => {
     if (waitSeconds > 0) {
@@ -28,6 +47,7 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
         setWaitSeconds((prev) => {
           if (prev <= 1) {
             setRateLimited(false);
+            localStorage.removeItem(RATE_LIMIT_STORAGE_KEY);
             return 0;
           }
           return prev - 1;
@@ -103,8 +123,11 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
             console.log("Edge function error response:", errorData);
             
             if (errorData?.rate_limited) {
+              const seconds = errorData.wait_seconds || 300;
+              const expiryTime = Date.now() + (seconds * 1000);
+              localStorage.setItem(RATE_LIMIT_STORAGE_KEY, expiryTime.toString());
               setRateLimited(true);
-              setWaitSeconds(errorData.wait_seconds || 300);
+              setWaitSeconds(seconds);
               toast({
                 title: "Too Many Requests",
                 description: `Please wait ${formatWaitTime(errorData.wait_seconds || 300)} before requesting another magic link.`,
@@ -136,8 +159,11 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
 
       // Check for rate limiting response (successful response with rate_limited flag)
       if (data?.rate_limited) {
+        const seconds = data.wait_seconds || 300;
+        const expiryTime = Date.now() + (seconds * 1000);
+        localStorage.setItem(RATE_LIMIT_STORAGE_KEY, expiryTime.toString());
         setRateLimited(true);
-        setWaitSeconds(data.wait_seconds || 300);
+        setWaitSeconds(seconds);
         toast({
           title: "Too Many Requests",
           description: `Please wait ${formatWaitTime(data.wait_seconds || 300)} before requesting another magic link.`,
@@ -164,6 +190,8 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
       
       // Final fallback - check if this might be a rate limit error
       if (error.message?.includes("429") || error.message?.includes("rate") || error.message?.includes("Too many")) {
+        const expiryTime = Date.now() + (300 * 1000);
+        localStorage.setItem(RATE_LIMIT_STORAGE_KEY, expiryTime.toString());
         setRateLimited(true);
         setWaitSeconds(300);
         toast({
