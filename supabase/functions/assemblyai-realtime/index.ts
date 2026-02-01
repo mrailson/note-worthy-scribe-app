@@ -2,8 +2,20 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
+
+function safeSend(ws: WebSocket, data: string | ArrayBuffer | Uint8Array) {
+  try {
+    // @ts-ignore - readyState exists in the edge runtime
+    if (ws.readyState !== WebSocket.OPEN) return;
+    // Deno WebSocket supports sending string | ArrayBuffer | Uint8Array
+    // @ts-ignore
+    ws.send(data);
+  } catch (err) {
+    console.error('❌ WebSocket send failed:', err);
+  }
+}
 
 Deno.serve(async (req: Request) => {
   console.log('🚀 AssemblyAI WebSocket proxy request received');
@@ -29,6 +41,12 @@ Deno.serve(async (req: Request) => {
     const { socket, response } = Deno.upgradeWebSocket(req);
     
     let assemblySocket: WebSocket | null = null;
+    let clientClosed = false;
+
+    // Avoid logging every single 100ms audio frame (too chatty and can destabilise the function).
+    let audioFrames = 0;
+    let audioBytes = 0;
+    let lastAudioLogAt = Date.now();
 
     socket.onopen = () => {
       console.log('✅ Client WebSocket opened');
@@ -41,7 +59,7 @@ Deno.serve(async (req: Request) => {
       try {
         const AAI_KEY = Deno.env.get("ASSEMBLYAI_API_KEY");
         if (!AAI_KEY) {
-          socket.send(JSON.stringify({ 
+          safeSend(socket, JSON.stringify({ 
             type: 'error', 
             error: 'Missing ASSEMBLYAI_API_KEY' 
           }));
@@ -81,7 +99,7 @@ Deno.serve(async (req: Request) => {
         if (!tokenResponse.ok) {
           const errorText = await tokenResponse.text();
           console.error('❌ Token request failed:', errorText);
-          socket.send(JSON.stringify({ 
+          safeSend(socket, JSON.stringify({ 
             type: 'error', 
             error: `Token request failed: ${errorText}` 
           }));
@@ -91,24 +109,29 @@ Deno.serve(async (req: Request) => {
         const tokenData = await tokenResponse.json();
         const tokenWsUrl = `${wsUrl}&token=${encodeURIComponent(tokenData.token)}`;
         
+        if (clientClosed) {
+          console.log('⚠️ Client already closed; aborting AssemblyAI connection init');
+          return;
+        }
+
         assemblySocket = new WebSocket(tokenWsUrl);
         
         assemblySocket.onopen = () => {
           console.log('✅ AssemblyAI WebSocket connected');
-          socket.send(JSON.stringify({ 
+          safeSend(socket, JSON.stringify({ 
             type: 'session_begins',
             session_id: Date.now().toString()
           }));
         };
         
         assemblySocket.onmessage = (assemblyEvent) => {
-          console.log('📝 Forwarding message from AssemblyAI to client');
-          socket.send(assemblyEvent.data);
+          // Avoid logging every message (Turn messages can be frequent)
+          safeSend(socket, assemblyEvent.data);
         };
         
         assemblySocket.onerror = (error) => {
           console.error('❌ AssemblyAI WebSocket error:', error);
-          socket.send(JSON.stringify({ 
+          safeSend(socket, JSON.stringify({ 
             type: 'error', 
             error: 'AssemblyAI connection error' 
           }));
@@ -123,7 +146,7 @@ Deno.serve(async (req: Request) => {
           const isClean = closeEvent.code === 1000;
 
           if (!isClean) {
-            socket.send(JSON.stringify({
+            safeSend(socket, JSON.stringify({
               type: 'error',
               error: reason
                 ? `AssemblyAI closed (${closeEvent.code}): ${reason}`
@@ -132,7 +155,7 @@ Deno.serve(async (req: Request) => {
             return;
           }
 
-          socket.send(JSON.stringify({
+          safeSend(socket, JSON.stringify({
             type: 'session_terminated',
             code: closeEvent.code,
             reason: closeEvent.reason
@@ -140,7 +163,7 @@ Deno.serve(async (req: Request) => {
         };
       } catch (error) {
         console.error('❌ Failed to initialize AssemblyAI connection:', error);
-        socket.send(JSON.stringify({ 
+        safeSend(socket, JSON.stringify({ 
           type: 'error', 
           error: 'Failed to initialize AssemblyAI connection' 
         }));
@@ -150,10 +173,29 @@ Deno.serve(async (req: Request) => {
     socket.onmessage = async (event) => {
       try {
         // Handle binary data (audio)
-        if (event.data instanceof ArrayBuffer) {
-          console.log('📡 Received binary audio data, size:', event.data.byteLength);
-          if (assemblySocket && assemblySocket.readyState === WebSocket.OPEN) {
-            assemblySocket.send(event.data);
+        if (event.data instanceof ArrayBuffer || event.data instanceof Uint8Array) {
+          const bytes = event.data instanceof ArrayBuffer ? event.data.byteLength : event.data.byteLength;
+          audioFrames += 1;
+          audioBytes += bytes;
+
+          const now = Date.now();
+          if (now - lastAudioLogAt >= 5000) {
+            console.log(`📡 Audio streaming: ${audioFrames} frame(s), ${(audioBytes / 1024).toFixed(1)} KB in last 5s`);
+            audioFrames = 0;
+            audioBytes = 0;
+            lastAudioLogAt = now;
+          }
+
+          if (assemblySocket) {
+            try {
+              // @ts-ignore
+              if (assemblySocket.readyState === WebSocket.OPEN) {
+                // @ts-ignore
+                assemblySocket.send(event.data);
+              }
+            } catch (err) {
+              console.error('❌ Failed to forward audio to AssemblyAI:', err);
+            }
           }
           return;
         }
@@ -172,7 +214,7 @@ Deno.serve(async (req: Request) => {
         
       } catch (error) {
         console.error('❌ Error processing message:', error);
-        socket.send(JSON.stringify({ 
+        safeSend(socket, JSON.stringify({ 
           type: 'error', 
           error: 'Failed to process message' 
         }));
@@ -181,6 +223,7 @@ Deno.serve(async (req: Request) => {
 
     socket.onclose = () => {
       console.log('🔌 Client WebSocket closed');
+      clientClosed = true;
       if (assemblySocket) {
         assemblySocket.close();
       }

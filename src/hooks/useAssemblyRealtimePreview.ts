@@ -164,10 +164,20 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
         onFinal: (text: string) => {
           updateTranscript(text, true);
         },
-        onClose: () => {
-          console.log('🔌 AssemblyAI preview closed');
-          setStatus('stopped');
+        onClose: (code: number, reason: string) => {
+          console.log('🔌 AssemblyAI preview closed', { code, reason });
           setIsActive(false);
+
+          // Normal stop (we initiated termination)
+          if (code === 1000) {
+            setStatus('stopped');
+            return;
+          }
+
+          // If the proxy drops unexpectedly, surface it so the user isn't left guessing.
+          const msg = `AssemblyAI disconnected (${code || 0})${reason ? `: ${reason}` : ''}`;
+          setError(msg);
+          setStatus('error');
         },
         onError: (err: Error) => {
           console.error('❌ AssemblyAI preview error:', err);
@@ -193,6 +203,13 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
       setError(err instanceof Error ? err.message : 'Failed to start preview');
       setStatus('error');
       setIsActive(false);
+
+      // Ensure we fully clean up any half-open sockets/audio contexts.
+      try {
+        clientRef.current?.stop();
+      } catch {
+        // ignore
+      }
       clientRef.current = null;
     }
   }, [isActive, updateTranscript]);
