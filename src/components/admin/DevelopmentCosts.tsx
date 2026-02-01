@@ -82,6 +82,8 @@ export const DevelopmentCosts = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [sortColumn, setSortColumn] = useState<string>('cost_date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [filterVendor, setFilterVendor] = useState<string>('all');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
   
   const [formData, setFormData] = useState({
     cost_date: format(new Date(), 'yyyy-MM-dd'),
@@ -95,6 +97,10 @@ export const DevelopmentCosts = () => {
     invoice_reference: '',
     notes: ''
   });
+
+  // Get unique vendors and categories for filters
+  const uniqueVendors = [...new Set(costs.map(c => c.vendor).filter(Boolean))] as string[];
+  const uniqueCategories = [...new Set(costs.map(c => c.category).filter(Boolean))] as string[];
 
   useEffect(() => {
     fetchCosts();
@@ -323,7 +329,14 @@ export const DevelopmentCosts = () => {
       : <ArrowDown className="h-4 w-4 ml-1" />;
   };
 
-  const sortedCosts = [...costs].sort((a, b) => {
+  // Apply filters
+  const filteredCosts = costs.filter(cost => {
+    if (filterVendor !== 'all' && cost.vendor !== filterVendor) return false;
+    if (filterCategory !== 'all' && cost.category !== filterCategory) return false;
+    return true;
+  });
+
+  const sortedCosts = [...filteredCosts].sort((a, b) => {
     let aVal: any = a[sortColumn as keyof DevelopmentCost];
     let bVal: any = b[sortColumn as keyof DevelopmentCost];
     
@@ -353,6 +366,10 @@ export const DevelopmentCosts = () => {
     if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
     return 0;
   });
+
+  // Calculate filtered totals for display
+  const filteredTotalCosts = filteredCosts.reduce((sum, c) => sum + Number(c.amount), 0);
+  const filteredTotalHours = filteredCosts.filter(c => c.cost_type === 'time').reduce((sum, c) => sum + Number(c.hours || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -489,8 +506,64 @@ export const DevelopmentCosts = () => {
       {/* Cost Entries Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Cost Entries</CardTitle>
-          <CardDescription>Complete transparent record of all development costs</CardDescription>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <CardTitle>All Cost Entries</CardTitle>
+              <CardDescription>Complete transparent record of all development costs</CardDescription>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm whitespace-nowrap">Vendor:</Label>
+                <Select value={filterVendor} onValueChange={setFilterVendor}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Vendors</SelectItem>
+                    {uniqueVendors.sort().map(vendor => (
+                      <SelectItem key={vendor} value={vendor}>{vendor}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm whitespace-nowrap">Category:</Label>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {uniqueCategories.sort().map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {(filterVendor !== 'all' || filterCategory !== 'all') && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => { setFilterVendor('all'); setFilterCategory('all'); }}
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          </div>
+          {(filterVendor !== 'all' || filterCategory !== 'all') && (
+            <div className="mt-3 flex gap-4 text-sm text-muted-foreground">
+              <span>Filtered: {sortedCosts.length} entries</span>
+              <span>•</span>
+              <span>Total: £{filteredTotalCosts.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</span>
+              {filteredTotalHours > 0 && (
+                <>
+                  <span>•</span>
+                  <span>Hours: {filteredTotalHours.toFixed(1)}</span>
+                </>
+              )}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (
