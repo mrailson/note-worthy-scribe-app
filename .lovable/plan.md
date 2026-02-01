@@ -2,7 +2,7 @@
 
 # Best-of-Both Transcript Merge Algorithm Implementation
 
-## Overview
+## Status: ✅ IMPLEMENTED
 
 This plan implements the new chunk-level "best-of-both" transcript merging algorithm as specified in your pseudo-code. The algorithm replaces the current AI-based merging approach in `consolidate-dual-transcripts` with a deterministic, fast, and auditable local merge that runs **before** notes are generated.
 

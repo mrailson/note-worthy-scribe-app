@@ -1,9 +1,16 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AssemblyAIRealtimeTranscriber, TranscriptData } from '@/utils/AssemblyAIRealtimeTranscriber';
 import { WhisperTranscriber } from '@/utils/WhisperTranscriber';
 import { showShadcnToast } from '@/utils/toastWrapper';
 import { mergeLive, LiveChunk } from '@/utils/liveMerge';
+import { 
+  mergeBestOfBoth, 
+  RawChunk, 
+  NormChunk, 
+  MergeResult,
+  DEFAULT_MERGE_CONFIG 
+} from '@/utils/BestOfBothMerger';
 
 export interface DualTranscriptionState {
   isRecording: boolean;
@@ -11,15 +18,22 @@ export interface DualTranscriptionState {
   whisperStatus: string;
   assemblyTranscript: string;
   whisperTranscript: string;
+  mergedTranscript: string;  // NEW: Best-of-both merged transcript
   assemblyConfidence: number;
   whisperConfidence: number;
   assemblyEnabled: boolean;
   whisperEnabled: boolean;
-  primarySource: 'assembly' | 'whisper';
+  primarySource: 'assembly' | 'whisper' | 'merged';  // Added 'merged' option
   assemblyChunks: LiveChunk[];
   whisperChunks: LiveChunk[];
+  assemblyRawChunks: RawChunk[];  // NEW: For merger
+  whisperRawChunks: RawChunk[];   // NEW: For merger
   assemblyWordCount: number;
   whisperWordCount: number;
+  mergedWordCount: number;        // NEW: Merged transcript word count
+  mergeStats?: MergeResult['stats']; // NEW: Merge audit stats
+  keptChunks?: NormChunk[];       // NEW: For debug panel
+  droppedChunks?: NormChunk[];    // NEW: For debug panel
 }
 
 export const useDualTranscription = (meetingId?: string, sessionId?: string) => {
@@ -30,15 +44,19 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
     whisperStatus: 'idle',
     assemblyTranscript: '',
     whisperTranscript: '',
+    mergedTranscript: '',
     assemblyConfidence: 0,
     whisperConfidence: 0,
     assemblyEnabled: true,
     whisperEnabled: true,
-    primarySource: 'whisper',
+    primarySource: 'merged',  // Default to merged view
     assemblyChunks: [],
     whisperChunks: [],
+    assemblyRawChunks: [],
+    whisperRawChunks: [],
     assemblyWordCount: 0,
-    whisperWordCount: 0
+    whisperWordCount: 0,
+    mergedWordCount: 0
   });
 
   const assemblyTranscriberRef = useRef<AssemblyAIRealtimeTranscriber | null>(null);
@@ -46,6 +64,8 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunkIndexRef = useRef(0);
+  const assemblyChunkIndexRef = useRef(0);  // NEW: Separate counter for assembly chunks
+  const whisperChunkIndexRef = useRef(0);   // NEW: Separate counter for whisper chunks
   const prevAssemblyTranscriptRef = useRef(''); // Track previous transcript for delta calculation
 
   const updateState = useCallback((updates: Partial<DualTranscriptionState>) => {
@@ -88,22 +108,61 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
     }
   }, [currentMeetingId, sessionId]);
 
+  // Function to perform live merge using BestOfBothMerger
+  const performLiveMerge = useCallback((
+    assemblyRawChunks: RawChunk[],
+    whisperRawChunks: RawChunk[]
+  ): { transcript: string; wordCount: number; stats: MergeResult['stats']; kept: NormChunk[]; dropped: NormChunk[] } => {
+    if (assemblyRawChunks.length === 0 && whisperRawChunks.length === 0) {
+      return { 
+        transcript: '', 
+        wordCount: 0, 
+        stats: { whisperChunks: 0, assemblyChunks: 0, keptCount: 0, droppedCount: 0, overlapConflicts: 0 },
+        kept: [],
+        dropped: []
+      };
+    }
+
+    const result = mergeBestOfBoth(whisperRawChunks, assemblyRawChunks, DEFAULT_MERGE_CONFIG);
+    const wordCount = result.transcript.trim().split(/\s+/).filter(w => w.length > 0).length;
+    
+    return {
+      transcript: result.transcript,
+      wordCount,
+      stats: result.stats,
+      kept: result.kept,
+      dropped: result.dropped
+    };
+  }, []);
+
   const resetState = useCallback(() => {
+    chunkIndexRef.current = 0;
+    assemblyChunkIndexRef.current = 0;
+    whisperChunkIndexRef.current = 0;
+    prevAssemblyTranscriptRef.current = '';
+    
     setState({
       isRecording: false,
       assemblyStatus: 'idle',
       whisperStatus: 'idle',
       assemblyTranscript: '',
       whisperTranscript: '',
+      mergedTranscript: '',
       assemblyConfidence: 0,
       whisperConfidence: 0,
       assemblyEnabled: true,
       whisperEnabled: true,
-      primarySource: 'whisper',
+      primarySource: 'merged',
       assemblyChunks: [],
       whisperChunks: [],
+      assemblyRawChunks: [],
+      whisperRawChunks: [],
       assemblyWordCount: 0,
-      whisperWordCount: 0
+      whisperWordCount: 0,
+      mergedWordCount: 0,
+      mergeStats: undefined,
+      keptChunks: undefined,
+      droppedChunks: undefined
     });
   }, []);
 
@@ -162,20 +221,40 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
               source: 'assembly'
             };
 
+            // Create RawChunk for BestOfBoth merger
+            const rawChunk: RawChunk = {
+              engine: 'assembly',
+              idx: assemblyChunkIndexRef.current++,
+              text: data.text,
+              confidence: data.confidence,
+              startSec: data.start,
+              endSec: data.end
+            };
+
             setState(prev => {
               // Add chunk to history
               const newChunks = [...prev.assemblyChunks, chunk];
+              const newRawChunks = [...prev.assemblyRawChunks, rawChunk];
               
               // Accumulate transcript using mergeLive
               const mergeResult = mergeLive(prev.assemblyTranscript, chunk);
               const wordCount = mergeResult.text.trim().split(/\s+/).filter(w => w.length > 0).length;
+              
+              // Perform live best-of-both merge
+              const bestOfBothResult = performLiveMerge(newRawChunks, prev.whisperRawChunks);
               
               return {
                 ...prev,
                 assemblyTranscript: mergeResult.text,
                 assemblyConfidence: data.confidence,
                 assemblyChunks: newChunks.slice(-50), // Keep last 50 chunks
-                assemblyWordCount: wordCount
+                assemblyRawChunks: newRawChunks.slice(-100), // Keep last 100 raw chunks for merger
+                assemblyWordCount: wordCount,
+                mergedTranscript: bestOfBothResult.transcript,
+                mergedWordCount: bestOfBothResult.wordCount,
+                mergeStats: bestOfBothResult.stats,
+                keptChunks: bestOfBothResult.kept,
+                droppedChunks: bestOfBothResult.dropped
               };
             });
             
@@ -231,20 +310,38 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
                 source: 'whisper'
               };
 
+              // Create RawChunk for BestOfBoth merger
+              const rawChunk: RawChunk = {
+                engine: 'whisper',
+                idx: whisperChunkIndexRef.current++,
+                text: payload.text,
+                confidence: payload.confidence || 0.9
+              };
+
               setState(prev => {
                 // Add chunk to history
                 const newChunks = [...prev.whisperChunks, chunk];
+                const newRawChunks = [...prev.whisperRawChunks, rawChunk];
                 
                 // WhisperTranscriber already handles segment merging internally - use the merged text directly
                 const newTranscript = payload.data?.text || '';
                 const wordCount = newTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
+                
+                // Perform live best-of-both merge
+                const bestOfBothResult = performLiveMerge(prev.assemblyRawChunks, newRawChunks);
                 
                 return {
                   ...prev,
                   whisperTranscript: newTranscript,
                   whisperConfidence: payload.confidence || 0.9,
                   whisperChunks: newChunks.slice(-50), // Keep last 50 chunks
-                  whisperWordCount: wordCount
+                  whisperRawChunks: newRawChunks.slice(-100), // Keep last 100 raw chunks for merger
+                  whisperWordCount: wordCount,
+                  mergedTranscript: bestOfBothResult.transcript,
+                  mergedWordCount: bestOfBothResult.wordCount,
+                  mergeStats: bestOfBothResult.stats,
+                  keptChunks: bestOfBothResult.kept,
+                  droppedChunks: bestOfBothResult.dropped
                 };
               });
             }
@@ -351,12 +448,13 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
 
       // Save final transcripts and complete meeting
       if (currentMeetingId) {
-        const totalWords = Math.max(state.assemblyWordCount, state.whisperWordCount);
+        // Use the best word count (max of merged, assembly, or whisper)
+        const totalWords = Math.max(state.mergedWordCount, state.assemblyWordCount, state.whisperWordCount);
         await supabase.from('meetings').update({
           status: 'completed',
           end_time: new Date().toISOString(),
           word_count: totalWords,
-          primary_transcript_source: state.primarySource,
+          primary_transcript_source: state.primarySource === 'merged' ? 'best_of_both' : state.primarySource,
           notes_generation_status: 'queued'
         }).eq('id', currentMeetingId);
       }
@@ -396,7 +494,7 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
     }
   }, [state.isRecording, state.assemblyEnabled, state.whisperEnabled, updateState]);
 
-  const setPrimarySource = useCallback((source: 'assembly' | 'whisper') => {
+  const setPrimarySource = useCallback((source: 'assembly' | 'whisper' | 'merged') => {
     updateState({ primarySource: source });
   }, [updateState]);
 

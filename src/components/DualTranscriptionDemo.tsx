@@ -54,7 +54,11 @@ export const DualTranscriptionDemo: React.FC = () => {
 
         {/* Transcription Panel */}
         <TranscriptPanel
-          transcript={state.primarySource === 'whisper' ? state.whisperTranscript : state.assemblyTranscript}
+          transcript={
+            state.primarySource === 'merged' ? state.mergedTranscript :
+            state.primarySource === 'whisper' ? state.whisperTranscript : 
+            state.assemblyTranscript
+          }
           isRecording={state.isRecording}
           realtimeTranscripts={state.isRecording ? [state.assemblyTranscript].filter(Boolean) : []}
           assemblyTranscript={state.assemblyTranscript}
