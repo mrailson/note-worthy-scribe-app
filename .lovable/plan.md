@@ -1,135 +1,215 @@
 
-# Permanent Fix: Mobile Input Bar Always Visible on /ai4gp
+# Plan: Integrate Logo Directly into Image Studio Generated Images
 
-## Problem Summary
+## Overview
 
-On iPhone (Safari & Chrome) and Android, the message input bar at the bottom of the Ask AI page (/ai4gp) is pushed off-screen. Users must scroll to see it, and many won't realise it exists.
+Currently, Image Studio only "reserves space" for a logo - it tells the AI to leave a blank area where users can manually overlay their logo afterwards. This approach has proven unreliable and requires additional manual work from users.
 
-**Root Cause**: The CSS classes `.mobile-container` and `.mobile-scroll` apply `transform: translateZ(0)` for scroll smoothing. In iOS Safari, any `transform` on a parent container creates a new **stacking context**, causing `position: fixed` elements to become positioned relative to that container rather than the viewport. The result: the "fixed" input bar scrolls with the content instead of staying pinned to the bottom.
+This plan implements **true logo integration** where the user's logo is sent directly to the AI image generation model as a reference image, with instructions to incorporate it naturally into the generated design.
 
----
+## Key Changes
 
-## Solution Architecture
+### 1. Frontend Changes (BrandingTab.tsx)
 
-Instead of tweaking height calculations repeatedly, we will restructure the mobile layout to use a **flexbox viewport lock** approach that guarantees the input bar is always visible at the bottom, regardless of content length.
+**Replace "Reserve Logo Space" with "Integrate Logo"**
 
-```text
-+--------------------------------+
-|         Header (fixed)         |
-+--------------------------------+
-|                                |
-|      Scrollable Content        |
-|      (flex-1, overflow-y)      |
-|                                |
-+--------------------------------+
-|   Input Bar (flex-shrink-0)    |
-+--------------------------------+
-|     Safe Area Bottom Padding   |
-+--------------------------------+
+Current behaviour:
+- Toggle for "Reserve Logo Space"
+- Instructs AI to leave a blank corner
+
+New behaviour:
+- Toggle for "Include Logo in Design" 
+- Option to use profile logo OR upload a different logo specifically for this image
+- New "Upload Different Logo" button when the toggle is enabled
+- Logo is passed as a reference image to the AI with integration instructions
+
+**UI Layout:**
+```
+┌─────────────────────────────────────────────────┐
+│ [Icon] Include Logo in Design          [Toggle]│
+│                                                 │
+│ When enabled:                                   │
+│ ┌──────────────────────────────────────────────┐│
+│ │ Your profile logo:                           ││
+│ │ [Logo Preview]  ○ Use this logo              ││
+│ │                                              ││
+│ │ -- OR --                                     ││
+│ │                                              ││
+│ │ [Upload Different Logo] ○ Use uploaded logo  ││
+│ │ [Uploaded Preview if exists]                 ││
+│ └──────────────────────────────────────────────┘│
+│                                                 │
+│ Logo Placement: [Top Left] [Top Right] ...     │
+│                                                 │
+└─────────────────────────────────────────────────┘
 ```
 
-### Key Changes
+### 2. State Management (useImageStudio.ts & types)
 
-1. **Remove `transform: translateZ(0)` on mobile ancestors** (scoped to AI4GP only)
-   - Add a new utility class `.ai4gp-no-transform` that overrides the transform to `none`
-   - Apply this class to the AI4GP page wrapper
-   - This restores correct `position: fixed` behaviour
-
-2. **Restructure AI4GPService layout for mobile**
-   - Change the parent container to use `flex flex-col h-dvh` (dynamic viewport height)
-   - Make the messages area `flex-1 overflow-y-auto` so it takes remaining space and scrolls internally
-   - Make the input bar `flex-shrink-0` so it never shrinks and stays at the bottom
-   - Move `FloatingMobileInput` from a `position: fixed` element to a **static flex child** at the bottom of the layout
-
-3. **Update FloatingMobileInput for non-fixed mode**
-   - Add a prop `useFixedPosition` (default true) to control positioning mode
-   - When `false`, render without `position: fixed` or `inset-x-0 bottom-0` classes, relying on parent flex layout
-
-4. **Handle safe area padding**
-   - Keep `padding-bottom: env(safe-area-inset-bottom)` on the input bar for home indicator clearance
-   - Remove complex keyboard height calculations (since keyboard covers is acceptable per requirements)
-
----
-
-## Detailed File Changes
-
-### 1. `src/index.css`
-Add a scoped override class:
-
-```css
-/* AI4GP-specific: disable transform to fix position:fixed on iOS */
-.ai4gp-no-transform,
-.ai4gp-no-transform .mobile-container,
-.ai4gp-no-transform .mobile-scroll,
-.ai4gp-no-transform .mobile-scroll-container {
-  transform: none !important;
-  will-change: auto !important;
+**Update ImageStudioSettings type:**
+```typescript
+interface ImageStudioSettings {
+  // ... existing fields
+  
+  // Logo Integration (replacing includeLogo/logoPlacement)
+  includeLogo: boolean;
+  logoSource: 'profile' | 'custom';
+  customLogoData: string | null;  // Base64 data URL of uploaded logo
+  logoPlacement: LogoPlacementId;
 }
 ```
 
-### 2. `src/pages/AI4GP.tsx`
-- Add `.ai4gp-no-transform` class to the outermost `<div>`
-- Remove the `mobile-container` class from the root element (it applies the problematic transform)
+**Update ImageStudioRequest type:**
+```typescript
+interface ImageStudioRequest {
+  // ... existing fields
+  
+  // Logo as a reference image
+  logoImage?: {
+    content: string;       // Base64 data URL
+    placement: string;     // 'top-left', 'top-right', etc.
+  };
+}
+```
 
-### 3. `src/components/AI4GPService.tsx`
+### 3. Edge Function Changes (ai4gp-image-generation/index.ts)
 
-**Mobile layout restructure:**
+**Process logo as a reference image:**
 
-- Wrap the entire mobile view in a full-height flex container: `flex flex-col h-[100dvh]`
-- Remove the `max-h-[calc(80vh-60px)]` constraint on the Card (no longer needed)
-- Change the main content area to `flex-1 overflow-y-auto` so it scrolls independently
-- Move the mobile input bar **inside** the main flex layout as the last child, not as a fixed-positioned overlay
-- Pass a new prop `inlineMode={true}` to FloatingMobileInput when in mobile view
+When `logoImage` is provided in the request:
+1. Add the logo image to `messageContent` array (alongside any other reference images)
+2. Add specific prompt instructions for logo integration
 
-### 4. `src/components/ai4gp/FloatingMobileInput.tsx`
+**Updated prompt building:**
+```typescript
+// When logo is provided for integration
+if (logoImage) {
+  // Add logo to message content as an image
+  messageContent.push({
+    type: 'image_url',
+    image_url: { url: logoImage.content }
+  });
+  
+  // Add integration instructions to prompt
+  const placementGuide = {
+    'top-left': 'TOP LEFT corner',
+    'top-right': 'TOP RIGHT corner',
+    'bottom-left': 'BOTTOM LEFT corner',
+    'bottom-right': 'BOTTOM RIGHT corner',
+    'center-top': 'centered at the TOP'
+  };
+  
+  logoSection = `
+LOGO INTEGRATION - CRITICAL REQUIREMENT:
+I have provided an image of a logo that MUST be integrated into this design.
+- Place the logo in the ${placementGuide[logoImage.placement]} of the image
+- The logo should be clearly visible and appropriately sized (typically 80-150px height)
+- Ensure the logo has adequate contrast with the background
+- Do NOT modify, redraw, or recreate the logo - use it exactly as provided
+- The logo should look naturally incorporated into the design
+- If the background colour behind the logo placement clashes, add a subtle backdrop or adjust that area
+`;
+}
+```
 
-- Add `inlineMode?: boolean` prop
-- When `inlineMode` is true:
-  - Remove `position: fixed`, `inset-x-0`, `bottom-0`, and `z-[9999]` classes
-  - Just render as a normal `<div>` with `flex-shrink-0`
-  - Keep safe area padding for home indicator
-- When `inlineMode` is false (default): preserve existing behaviour for other pages
+### 4. Implementation Steps
 
----
+**Step 1: Update Types**
+- Add `logoSource` and `customLogoData` to `ImageStudioSettings` in `src/types/imageStudio.ts`
+- Add `logoImage` to `ImageStudioRequest`
 
-## Technical Details
+**Step 2: Update BrandingTab UI**
+- Replace "Reserve Logo Space" card with new "Include Logo in Design" card
+- Add radio buttons for profile logo vs custom upload
+- Add file upload dropzone for custom logo (similar to ReferenceTab)
+- Show preview of selected logo
+- Keep logo placement selector
 
-### Why flexbox solves this permanently
+**Step 3: Update useImageStudio Hook**
+- Update `DEFAULT_SETTINGS` with new logo fields
+- Modify `generateImage` to include logo in request when enabled
+- Fetch logo content from URL if using profile logo, or use uploaded data
 
-| Current Approach | New Approach |
-|-----------------|--------------|
-| `position: fixed` relies on viewport | Static flex child always visible |
-| `transform` breaks fixed positioning | No transform on ancestors |
-| Height calculations prone to error | Flex takes remaining space automatically |
-| Requires iOS-specific hacks | Works consistently across browsers |
+**Step 4: Update Edge Function**
+- Accept new `logoImage` field in request body
+- Add logo to `messageContent` array before the text prompt
+- Build integration instructions instead of "reserve space" instructions
+- Test with both Gemini models
 
-### Browser Compatibility
+### 5. Technical Considerations
 
-- `h-[100dvh]` uses dynamic viewport height, supported in iOS 15.4+, Android Chrome 108+
-- Fallback: `h-screen` for older browsers (acceptable degradation)
-- `env(safe-area-inset-bottom)` widely supported for home indicator clearance
+**Logo Size Optimisation:**
+- Profile logos are stored in Supabase Storage and fetched by URL
+- Need to fetch and convert to base64 before sending to edge function
+- Use existing `optimiseImageForUpload` utility to ensure logos are <300KB
+- Target size: 512x512px max to avoid bloating the request
 
----
+**Fetching Profile Logo:**
+```typescript
+// In generateImage, before building request:
+let logoImageData: { content: string; placement: string } | undefined;
 
-## Files to Modify
+if (settings.includeLogo) {
+  const logoUrl = settings.logoSource === 'profile' 
+    ? practiceContext?.logoUrl 
+    : settings.customLogoData;
+    
+  if (logoUrl) {
+    // If it's already base64, use directly
+    if (logoUrl.startsWith('data:')) {
+      logoImageData = { content: logoUrl, placement: settings.logoPlacement };
+    } else {
+      // Fetch and convert URL to base64
+      const response = await fetch(logoUrl);
+      const blob = await response.blob();
+      const base64 = await blobToBase64(blob);
+      logoImageData = { content: base64, placement: settings.logoPlacement };
+    }
+    
+    // Optimise if needed
+    const sizeKB = getBase64SizeKB(logoImageData.content);
+    if (sizeKB > 300) {
+      const optimised = await optimiseImageForUpload(logoImageData.content, {
+        maxSizeKB: 300,
+        maxDimension: 512
+      });
+      logoImageData.content = optimised.optimised;
+    }
+  }
+}
+```
 
-| File | Change Summary |
-|------|----------------|
-| `src/index.css` | Add `.ai4gp-no-transform` utility class |
-| `src/pages/AI4GP.tsx` | Add no-transform class, remove mobile-container |
-| `src/components/AI4GPService.tsx` | Restructure to flexbox viewport, move input inline |
-| `src/components/ai4gp/FloatingMobileInput.tsx` | Add `inlineMode` prop for static positioning |
+**Fallback Behaviour:**
+- If logo fetch fails, show toast warning and proceed without logo
+- If AI fails to integrate logo properly, user can edit the result
 
----
+### 6. Files to Modify
 
-## Testing Checklist (Post-Implementation)
+| File | Changes |
+|------|---------|
+| `src/types/imageStudio.ts` | Add `logoSource`, `customLogoData`, update request type |
+| `src/components/ai4gp/studio/BrandingTab.tsx` | Replace logo card with new integration UI |
+| `src/hooks/useImageStudio.ts` | Update defaults, add logo processing logic |
+| `supabase/functions/ai4gp-image-generation/index.ts` | Handle `logoImage`, update prompt building |
 
-After approval and implementation, please verify:
+### 7. User Experience Flow
 
-- [ ] iPhone Safari: Input bar visible without scrolling on fresh load
-- [ ] iPhone Chrome: Input bar visible without scrolling
-- [ ] Android Chrome: Input bar visible without scrolling
-- [ ] Typing a message: Input bar remains visible (keyboard may cover, but bar visible when keyboard closes)
-- [ ] Long AI response: Messages area scrolls, input bar stays at bottom
-- [ ] Quick picks work and trigger AI response
-- [ ] Desktop view unchanged
+1. User opens Image Studio
+2. Goes to Branding tab
+3. Enables "Include Logo in Design" toggle
+4. Chooses between profile logo or uploads a different one
+5. Selects placement (top-left, top-right, etc.)
+6. Generates image
+7. AI receives the logo as a reference image and integrates it into the design
+8. User receives image with logo already incorporated
+
+### 8. Alternative Approach Considered (Not Recommended)
+
+**Post-processing overlay:** Generate image first, then overlay logo programmatically using canvas.
+
+**Why not:** 
+- Requires client-side canvas manipulation
+- Logo placement looks "stuck on" rather than integrated
+- Doesn't account for design context (logo might obscure important content)
+- AI integration produces more natural, designed results
+
