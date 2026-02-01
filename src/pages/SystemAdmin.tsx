@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 import { Header } from '@/components/Header';
@@ -128,7 +129,8 @@ interface Neighbourhood {
 const SystemAdmin = () => {
   const { user, refreshUserModules } = useAuth();
   const { maintenanceMode, updateMaintenanceMode } = useMaintenanceMode();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'overview');
   const [monitoringSubTab, setMonitoringSubTab] = useState('system');
   const [securityTab, setSecurityTab] = useState('monitoring');
   const [loading, setLoading] = useState(false);
