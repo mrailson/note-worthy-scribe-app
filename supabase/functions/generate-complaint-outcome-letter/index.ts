@@ -140,14 +140,16 @@ serve(async (req) => {
           .eq('user_id', complaint.created_by)
           .maybeSingle();
         
-        // Determine title based on role
+        // Determine title based on role - map practice_user to GP Partner for clinical users
         let signatoryTitle = 'Complaints Manager';
         if (userRoleData?.practice_role) {
           signatoryTitle = userRoleData.practice_role;
         } else if (userRoleData?.role === 'practice_manager') {
           signatoryTitle = 'Practice Manager';
+        } else if (userRoleData?.role === 'practice_user' || userRoleData?.role === 'gp' || userRoleData?.role === 'clinical') {
+          signatoryTitle = 'GP Partner'; // Clinical users default to GP Partner
         } else {
-          signatoryTitle = 'GP Partner'; // Default for clinical users
+          signatoryTitle = 'GP Partner'; // Default for any other clinical users
         }
         
         signatureDetails = {
@@ -392,7 +394,12 @@ Include the date at the top of the letter as "${currentDate}".
 
 IMPORTANT: If patient address is provided, include it in the letter header after "Private & Confidential". Use the practice and signature details provided to create appropriate formatting and signature blocks.
 
-CRITICAL: Never include personal email addresses or direct contact details in the signature. ${practiceDetails?.email ? `Use the practice email: ${practiceDetails.email}` : 'Use a generic practice email'} ${practiceDetails?.phone ? `and practice phone number: ${practiceDetails.phone}` : ''} for contact information.`;
+CRITICAL SIGNATURE FORMATTING:
+- The signature block should include: "Yours sincerely," then the signatory name, then their title, then the practice name
+- DO NOT include the practice address in the signature block - it should only appear ONCE in the letter header
+- Never duplicate the address - if you include it at the top of the letter, do NOT repeat it in the signature
+- Never include personal email addresses or direct contact details in the signature
+- ${practiceDetails?.email ? `Use the practice email: ${practiceDetails.email}` : 'Use a generic practice email'} ${practiceDetails?.phone ? `and practice phone number: ${practiceDetails.phone}` : ''} for contact information.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
