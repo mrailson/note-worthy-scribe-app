@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, ArrowLeft, Send } from "lucide-react";
+import { Mail, ArrowLeft, Send, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,7 +16,34 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
   const [isValid, setIsValid] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [waitSeconds, setWaitSeconds] = useState(0);
   const { toast } = useToast();
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (waitSeconds > 0) {
+      const timer = setInterval(() => {
+        setWaitSeconds((prev) => {
+          if (prev <= 1) {
+            setRateLimited(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [waitSeconds]);
+
+  const formatWaitTime = useCallback((seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) {
+      return `${mins}:${secs.toString().padStart(2, "0")}`;
+    }
+    return `${secs} seconds`;
+  }, []);
 
   const validateEmail = (email: string) => {
     const validDomains = ['@nhs.net', '@nhs.uk', '@nhft.nhs.uk'];
@@ -47,6 +74,15 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
       return;
     }
 
+    if (rateLimited) {
+      toast({
+        title: "Please Wait",
+        description: `You can request another magic link in ${formatWaitTime(waitSeconds)}.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -60,6 +96,18 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
         toast({
           title: "Error",
           description: error.message || "Failed to send magic link. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check for rate limiting response
+      if (data?.rate_limited) {
+        setRateLimited(true);
+        setWaitSeconds(data.wait_seconds || 300);
+        toast({
+          title: "Too Many Requests",
+          description: `Please wait ${formatWaitTime(data.wait_seconds || 300)} before requesting another magic link.`,
           variant: "destructive"
         });
         return;
@@ -182,13 +230,18 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
 
           <Button 
             onClick={handleSendMagicLink}
-            disabled={!isValid || loading}
+            disabled={!isValid || loading || rateLimited}
             className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle"
           >
             {loading ? (
               <>
                 <Mail className="h-4 w-4 mr-2 animate-spin" />
                 Sending Magic Link...
+              </>
+            ) : rateLimited ? (
+              <>
+                <Clock className="h-4 w-4 mr-2" />
+                Wait {formatWaitTime(waitSeconds)}
               </>
             ) : (
               <>
@@ -197,6 +250,14 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
               </>
             )}
           </Button>
+
+          {rateLimited && (
+            <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 text-center">
+              <p className="text-sm text-destructive font-medium">
+                Too many requests. Please wait {formatWaitTime(waitSeconds)} before trying again.
+              </p>
+            </div>
+          )}
 
           <div className="text-xs text-muted-foreground space-y-1">
             <p>• Link expires in 60 minutes</p>

@@ -4545,6 +4545,33 @@ export type Database = {
           },
         ]
       }
+      magic_link_rate_limits: {
+        Row: {
+          blocked: boolean | null
+          created_at: string | null
+          email_requested: string
+          id: string
+          ip_address: string
+          user_agent: string | null
+        }
+        Insert: {
+          blocked?: boolean | null
+          created_at?: string | null
+          email_requested: string
+          id?: string
+          ip_address: string
+          user_agent?: string | null
+        }
+        Update: {
+          blocked?: boolean | null
+          created_at?: string | null
+          email_requested?: string
+          id?: string
+          ip_address?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       manual_translation_entries: {
         Row: {
           created_at: string
@@ -9688,6 +9715,7 @@ export type Database = {
       }
       cleanup_ai4gp_chat_history: { Args: never; Returns: number }
       cleanup_expired_sessions: { Args: never; Returns: number }
+      cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_sessions: { Args: { days_old?: number }; Returns: number }
       cleanup_old_transcription_chunks: { Args: never; Returns: number }
       cleanup_stuck_meetings: {
