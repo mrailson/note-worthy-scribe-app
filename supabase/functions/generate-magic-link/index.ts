@@ -154,7 +154,7 @@ const handler = async (req: Request): Promise<Response> => {
           success: false,
         }),
         {
-          status: 429,
+          status: 200, // Return 200 instead of 429 to avoid runtime error reports
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
