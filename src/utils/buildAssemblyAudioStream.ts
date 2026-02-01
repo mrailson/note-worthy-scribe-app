@@ -189,6 +189,14 @@ export async function buildAssemblyAudioStream(
   micGain.connect(compressor);
   
   compressor.connect(destination);
+
+  // Keep AudioContext processing alive even if nothing is routed to speakers.
+  // Some browsers can produce a silent MediaStreamDestination unless there is
+  // also a (muted) connection to the real output.
+  const keepAliveGain = audioContext.createGain();
+  keepAliveGain.gain.value = 0;
+  compressor.connect(keepAliveGain);
+  keepAliveGain.connect(audioContext.destination);
   
   // Log track info for debugging
   const outputTracks = destination.stream.getAudioTracks();
@@ -308,6 +316,12 @@ export async function buildAssemblyAudioStream(
     if (rmsCheckTimeout) {
       clearTimeout(rmsCheckTimeout);
     }
+
+    try {
+      keepAliveGain.disconnect();
+    } catch {
+      // ignore
+    }
   };
   
   const totalTime = performance.now() - startTime;
@@ -332,6 +346,13 @@ export function cleanupAssemblyAudioStream(
   if (!result) return;
   
   console.log('🎛️ cleanupAssemblyAudioStream: Cleaning up...');
+
+  // Run custom cleanup (event listeners, RMS timers)
+  try {
+    result.cleanup?.();
+  } catch (err) {
+    console.warn('🎛️ cleanupAssemblyAudioStream: Error running cleanup callback:', err);
+  }
   
   // Stop mic stream tracks (these are ours to manage)
   try {
