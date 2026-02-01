@@ -30,6 +30,8 @@ export interface ImageStudioSettings {
   customPracticeName: string;
   logoPlacement: LogoPlacementId;
   includeLogo: boolean;
+  logoSource: 'profile' | 'custom';
+  customLogoData: string | null;
   
   // Reference Images
   referenceImages: ReferenceImage[];
@@ -90,6 +92,12 @@ export interface ImageStudioRequest {
   customPracticeName?: string;
   logoPlacement?: LogoPlacementId;
   includeLogo?: boolean;
+  
+  // Logo integration (sends logo as reference image to AI)
+  logoImage?: {
+    content: string;       // Base64 data URL of logo
+    placement: string;     // 'top-left', 'top-right', etc.
+  };
   
   // Reference images
   referenceImages?: {

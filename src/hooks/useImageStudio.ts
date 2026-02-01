@@ -108,6 +108,8 @@ const DEFAULT_SETTINGS: ImageStudioSettings = {
   customPracticeName: '',
   logoPlacement: 'top-right',
   includeLogo: false,
+  logoSource: 'profile',
+  customLogoData: null,
   
   // Reference Images
   referenceImages: [],
@@ -226,6 +228,61 @@ export function useImageStudio() {
       try {
         setState(prev => ({ ...prev, generationProgress: 10 }));
 
+        // Process logo for integration (if enabled)
+        let logoImageData: ImageStudioRequest['logoImage'] | undefined;
+        
+        if (settings.includeLogo) {
+          const logoUrl = settings.logoSource === 'profile' 
+            ? practiceContext?.logoUrl 
+            : settings.customLogoData;
+            
+          if (logoUrl) {
+            console.log('🖼️ Processing logo for integration...');
+            try {
+              let logoContent: string;
+              
+              // If it's already base64, use directly
+              if (logoUrl.startsWith('data:')) {
+                logoContent = logoUrl;
+              } else {
+                // Fetch and convert URL to base64
+                console.log('📥 Fetching logo from URL...');
+                const response = await fetch(logoUrl);
+                const blob = await response.blob();
+                logoContent = await new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onloadend = () => resolve(reader.result as string);
+                  reader.onerror = reject;
+                  reader.readAsDataURL(blob);
+                });
+              }
+              
+              // Optimise logo if needed (target 300KB, 512px max)
+              const logoSize = getBase64SizeKB(logoContent);
+              console.log(`📊 Logo size: ${logoSize}KB`);
+              
+              if (logoSize > 300) {
+                const optimised = await optimiseImageForUpload(logoContent, {
+                  maxSizeKB: 300,
+                  maxDimension: 512,
+                  quality: 0.85
+                });
+                logoContent = optimised.optimised;
+                console.log(`✅ Logo optimised: ${optimised.originalSizeKB}KB -> ${optimised.finalSizeKB}KB`);
+              }
+              
+              logoImageData = {
+                content: logoContent,
+                placement: settings.logoPlacement,
+              };
+              console.log('✅ Logo ready for integration at:', settings.logoPlacement);
+            } catch (logoErr) {
+              console.warn('⚠️ Failed to process logo, continuing without:', logoErr);
+              toast.warning('Could not process logo - generating without logo integration');
+            }
+          }
+        }
+
         // Optimise reference images before sending (reduces payload size)
         let optimisedReferences: ImageStudioRequest['referenceImages'] | undefined;
         
@@ -288,6 +345,7 @@ export function useImageStudio() {
           customPracticeName: settings.customPracticeName || undefined,
           logoPlacement: settings.logoPlacement,
           includeLogo: settings.includeLogo,
+          logoImage: logoImageData,
           referenceImages: optimisedReferences,
           imageModel: model as ImageStudioRequest['imageModel'],
           isStudioRequest: true,
@@ -303,6 +361,8 @@ export function useImageStudio() {
           isEditMode,
           referenceCount: settings.referenceImages.length,
           referenceMode: settings.referenceMode,
+          hasLogoIntegration: !!logoImageData,
+          logoPlacement: logoImageData ? settings.logoPlacement : null,
           estimatedPayloadKB: Math.round(estimatedPayloadSize),
         });
 
