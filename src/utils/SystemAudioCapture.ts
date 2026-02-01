@@ -18,15 +18,19 @@ export class SystemAudioCapture {
       });
 
       // Try to get system audio (screen share with audio)
+      // Chrome requires video: true for getDisplayMedia to work properly
       try {
         this.systemStream = await navigator.mediaDevices.getDisplayMedia({
-          video: false,
-          audio: {
-            sampleRate: 24000,
-            channelCount: 1,
-            echoCancellation: false,
-            noiseSuppression: false
-          }
+          video: true, // Required for Chrome
+          audio: true  // Simple boolean is more compatible (Chrome 124+ fix)
+        } as DisplayMediaStreamOptions);
+        
+        // Stop video tracks - we only need audio
+        this.systemStream.getVideoTracks().forEach(track => track.stop());
+        
+        console.log('System audio captured:', {
+          audioTracks: this.systemStream.getAudioTracks().length,
+          labels: this.systemStream.getAudioTracks().map(t => t.label)
         });
       } catch (error) {
         console.log('System audio not available, using microphone only:', error);

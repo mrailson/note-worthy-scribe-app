@@ -2884,14 +2884,17 @@ export const MeetingRecorder = ({
       
       try {
         addDebugLog('🖥️ Requesting screen share with audio...');
+        // Chrome requires video: true for getDisplayMedia to work with audio
+        // Simple audio: true is more compatible than constraints object (Chrome 124+ fix)
         stream = await navigator.mediaDevices.getDisplayMedia({
-          video: true, // Need video for screen share to work properly
-          audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-            sampleRate: 48000
-          }
+          video: true, // Required for Chrome to show the picker
+          audio: true  // Simple boolean is more compatible than constraints object
+        } as DisplayMediaStreamOptions);
+        
+        console.log('🖥️ getDisplayMedia returned:', {
+          videoTracks: stream.getVideoTracks().length,
+          audioTracks: stream.getAudioTracks().length,
+          audioTrackLabels: stream.getAudioTracks().map(t => t.label),
         });
         
         addDebugLog('✅ Screen audio access granted');
@@ -3253,36 +3256,30 @@ export const MeetingRecorder = ({
       let displayStream;
       
       try {
-        // First try: audio-only capture (preferred)
-        console.log('Attempting audio-only screen capture...');
+        // Chrome requires video: true for getDisplayMedia - audio-only doesn't work
+        // Simple audio: true is more compatible than constraints object (Chrome 124+ fix)
+        console.log('Attempting screen capture with audio (video+audio approach)...');
         displayStream = await navigator.mediaDevices.getDisplayMedia({
-          video: false,
+          video: true,
           audio: true
-        });
-        addDebugLog('✅ Audio-only screen capture successful');
-      } catch (audioOnlyError) {
-        console.log('Audio-only failed:', audioOnlyError.message);
-        addDebugLog('⚠️ Audio-only failed, trying video+audio approach...');
+        } as DisplayMediaStreamOptions);
         
-        try {
-          // Second try: video+audio, then extract audio
-          console.log('Attempting video+audio screen capture...');
-          displayStream = await navigator.mediaDevices.getDisplayMedia({
-            video: true,
-            audio: true
-          });
-          
-          // Remove video tracks, keep only audio
-          const videoTracks = displayStream.getVideoTracks();
-          videoTracks.forEach(track => {
-            track.stop();
-            displayStream.removeTrack(track);
-          });
-          addDebugLog('✅ Video+audio capture successful, video tracks removed');
-        } catch (videoAudioError) {
-          console.log('Video+audio failed:', videoAudioError.message);
-          throw new Error(`Screen capture not supported: ${videoAudioError.message}`);
-        }
+        console.log('🖥️ getDisplayMedia returned:', {
+          videoTracks: displayStream.getVideoTracks().length,
+          audioTracks: displayStream.getAudioTracks().length,
+          audioTrackLabels: displayStream.getAudioTracks().map(t => t.label),
+        });
+        
+        // Stop video tracks immediately - we only need audio
+        const videoTracks = displayStream.getVideoTracks();
+        videoTracks.forEach(track => {
+          track.stop();
+          displayStream.removeTrack(track);
+        });
+        addDebugLog('✅ Screen capture successful, video tracks stopped');
+      } catch (error) {
+        console.log('Screen capture failed:', error.message);
+        throw new Error(`Screen capture not supported: ${error.message}`);
       }
 
       // Check if we got audio tracks
