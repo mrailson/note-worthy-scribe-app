@@ -37,6 +37,8 @@ interface MergeConfig {
   overlapSimilarity: number;
   strongConfMargin: number;
   maxLookback: number;
+  continuityMinSim: number;
+  bufferWindow: number;
 }
 
 const DEFAULT_MERGE_CONFIG: MergeConfig = {
@@ -46,6 +48,8 @@ const DEFAULT_MERGE_CONFIG: MergeConfig = {
   overlapSimilarity: 0.60,
   strongConfMargin: 0.12,
   maxLookback: 3,
+  continuityMinSim: 0.10,
+  bufferWindow: 4,
 };
 
 function normaliseConfidence(engine: Engine, confidence?: number): number {
@@ -58,8 +62,8 @@ function normaliseConfidence(engine: Engine, confidence?: number): number {
 function normaliseText(s: string): string {
   return (s || '')
     .replace(/\s+/g, ' ')
-    .replace(/[""]/g, '"')
-    .replace(/['']/g, "'")
+    .replace(/[""]/g, '"')  // Smart double quotes → straight
+    .replace(/['']/g, "'")  // Smart single quotes → straight
     .trim();
 }
 
@@ -89,11 +93,26 @@ function startsCleanly(text: string): boolean {
   return /^["'(\[]?[A-Z]|^(and|but|so|because|then)\b/i.test(text.trim());
 }
 
+function looksLikeHangingFragment(text: string): boolean {
+  const t = text.trim();
+  return /[,;:\-]\s*$/.test(t) || /\b(and|but|so|because|that|which|who)\s*$/i.test(t);
+}
+
 function scoreChunk(c: NormChunk): number {
   const len = Math.min(1, c.tokens.length / 40);
   const endBonus = endsCleanly(c.text) ? 0.08 : 0;
   const startBonus = startsCleanly(c.text) ? 0.04 : 0;
   return (c.conf * 0.75) + (len * 0.15) + endBonus + startBonus;
+}
+
+function continuitySimAgainstRecent(recent: NormChunk[], chunk: NormChunk): number {
+  if (!recent.length) return 1;
+  let best = 0;
+  for (const r of recent) {
+    const sim = jaccardSim(r.tokens, chunk.tokens);
+    if (sim > best) best = sim;
+  }
+  return best;
 }
 
 function normaliseChunks(raw: RawChunk[], cfg: MergeConfig): NormChunk[] {
@@ -156,7 +175,9 @@ function mergeBestOfBoth(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], cfg: M
 
   const kept: NormChunk[] = [];
   const dropped: NormChunk[] = [];
+  const buffer: NormChunk[] = [];
   let overlapConflicts = 0;
+  let bufferedDrops = 0;
 
   for (const chunk of combined) {
     if (chunk.engine === 'whisper' && chunk.conf < cfg.whisperConfFloor) {
@@ -169,7 +190,35 @@ function mergeBestOfBoth(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], cfg: M
     const recent = kept.slice(-cfg.maxLookback);
     const overlapCandidate = findBestOverlapCandidate(recent, chunk, cfg);
     
-    if (!overlapCandidate) { kept.push(chunk); continue; }
+    if (!overlapCandidate) {
+      const contSim = continuitySimAgainstRecent(recent, chunk);
+      const last = kept[kept.length - 1];
+      const hangingThreshold = last && looksLikeHangingFragment(last.text)
+        ? cfg.continuityMinSim * 1.8
+        : cfg.continuityMinSim;
+      
+      if (recent.length > 0 && contSim < hangingThreshold) {
+        buffer.push(chunk);
+        if (buffer.length > cfg.bufferWindow) {
+          const oldest = buffer.shift()!;
+          dropped.push(oldest);
+          bufferedDrops++;
+        }
+        continue;
+      }
+      
+      kept.push(chunk);
+      
+      for (let i = buffer.length - 1; i >= 0; i--) {
+        const b = buffer[i];
+        const sim = continuitySimAgainstRecent(kept.slice(-cfg.maxLookback), b);
+        if (sim >= cfg.continuityMinSim) {
+          kept.push(b);
+          buffer.splice(i, 1);
+        }
+      }
+      continue;
+    }
     
     overlapConflicts++;
     const winner = chooseWinner(overlapCandidate, chunk, cfg);
@@ -183,11 +232,16 @@ function mergeBestOfBoth(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], cfg: M
     }
   }
 
+  for (const b of buffer) {
+    dropped.push(b);
+    bufferedDrops++;
+  }
+
   kept.sort((a, b) => (a.startSec - b.startSec) || (a.engine === 'assembly' ? -1 : 1));
   
   let transcript = kept.map(k => k.text).join(' ').replace(/\s+/g, ' ').trim();
   transcript = transcript.replace(/([.!?])\s+([a-z])/g, (_, p1, p2) => `${p1} ${p2.toUpperCase()}`);
-  transcript = transcript.replace(/\b(\w+)\s+\1\b/gi, '$1');
+  transcript = transcript.replace(/\b(the|a|an|and|but|so|we|i|you|is|are|was|were|to|of|in|on|for|it)\s+\1\b/gi, '$1');
   transcript = transcript.replace(/\s+,/g, ',').replace(/\s+\./g, '.');
   transcript = transcript.replace(/\.{3,}\s*/g, '... ').trim();
 
@@ -200,12 +254,11 @@ function mergeBestOfBoth(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], cfg: M
       assemblyChunks: assemblyRaw.length,
       keptCount: kept.length,
       droppedCount: dropped.length,
-      overlapConflicts
+      overlapConflicts,
+      bufferedDrops
     }
   };
 }
-
-// ============= HALLUCINATION DETECTION =============
 
 const HALLUCINATION_PATTERNS = [
   /thank you (very much )?for (your )?attention/gi,

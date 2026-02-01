@@ -117,7 +117,7 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
       return { 
         transcript: '', 
         wordCount: 0, 
-        stats: { whisperChunks: 0, assemblyChunks: 0, keptCount: 0, droppedCount: 0, overlapConflicts: 0 },
+        stats: { whisperChunks: 0, assemblyChunks: 0, keptCount: 0, droppedCount: 0, overlapConflicts: 0, bufferedDrops: 0 },
         kept: [],
         dropped: []
       };
