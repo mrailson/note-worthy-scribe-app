@@ -24,7 +24,10 @@ import {
   TrendingUp,
   Upload,
   Download,
-  Building
+  Building,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { SimpleFileUpload } from '@/components/SimpleFileUpload';
@@ -77,6 +80,8 @@ export const DevelopmentCosts = () => {
   const [editingCost, setEditingCost] = useState<DevelopmentCost | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [sortColumn, setSortColumn] = useState<string>('cost_date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   
   const [formData, setFormData] = useState({
     cost_date: format(new Date(), 'yyyy-MM-dd'),
@@ -300,6 +305,55 @@ export const DevelopmentCosts = () => {
     }
   };
 
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-4 w-4 ml-1" />
+      : <ArrowDown className="h-4 w-4 ml-1" />;
+  };
+
+  const sortedCosts = [...costs].sort((a, b) => {
+    let aVal: any = a[sortColumn as keyof DevelopmentCost];
+    let bVal: any = b[sortColumn as keyof DevelopmentCost];
+    
+    // Handle null/undefined values
+    if (aVal == null) aVal = '';
+    if (bVal == null) bVal = '';
+    
+    // Numeric columns
+    if (sortColumn === 'amount' || sortColumn === 'hours' || sortColumn === 'hourly_rate') {
+      aVal = Number(aVal) || 0;
+      bVal = Number(bVal) || 0;
+    }
+    
+    // Date column
+    if (sortColumn === 'cost_date') {
+      aVal = new Date(aVal).getTime();
+      bVal = new Date(bVal).getTime();
+    }
+    
+    // String comparison
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      aVal = aVal.toLowerCase();
+      bVal = bVal.toLowerCase();
+    }
+    
+    if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -451,19 +505,75 @@ export const DevelopmentCosts = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Vendor</TableHead>
-                    <TableHead className="text-right">Hours</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead>Reference</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('cost_date')}
+                    >
+                      <div className="flex items-center">
+                        Date {getSortIcon('cost_date')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('cost_type')}
+                    >
+                      <div className="flex items-center">
+                        Type {getSortIcon('cost_type')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('category')}
+                    >
+                      <div className="flex items-center">
+                        Category {getSortIcon('category')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('description')}
+                    >
+                      <div className="flex items-center">
+                        Description {getSortIcon('description')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('vendor')}
+                    >
+                      <div className="flex items-center">
+                        Vendor {getSortIcon('vendor')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none text-right"
+                      onClick={() => handleSort('hours')}
+                    >
+                      <div className="flex items-center justify-end">
+                        Hours {getSortIcon('hours')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none text-right"
+                      onClick={() => handleSort('amount')}
+                    >
+                      <div className="flex items-center justify-end">
+                        Amount {getSortIcon('amount')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 select-none"
+                      onClick={() => handleSort('invoice_reference')}
+                    >
+                      <div className="flex items-center">
+                        Reference {getSortIcon('invoice_reference')}
+                      </div>
+                    </TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {costs.map((cost) => {
+                  {sortedCosts.map((cost) => {
                     const TypeIcon = getCostTypeIcon(cost.cost_type);
                     return (
                       <TableRow key={cost.id}>
