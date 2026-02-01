@@ -2891,22 +2891,44 @@ export const MeetingRecorder = ({
           audio: true  // Simple boolean is more compatible than constraints object
         } as DisplayMediaStreamOptions);
         
+        const videoTracks = stream.getVideoTracks();
+        const audioTracks = stream.getAudioTracks();
+        
+        // Detailed logging for diagnosis
         console.log('🖥️ getDisplayMedia returned:', {
-          videoTracks: stream.getVideoTracks().length,
-          audioTracks: stream.getAudioTracks().length,
-          audioTrackLabels: stream.getAudioTracks().map(t => t.label),
+          videoTracks: videoTracks.length,
+          audioTracks: audioTracks.length,
+          videoTrackLabels: videoTracks.map(t => t.label),
+          audioTrackLabels: audioTracks.map(t => t.label),
+          audioTrackDetails: audioTracks.map(t => ({
+            id: t.id,
+            label: t.label,
+            enabled: t.enabled,
+            muted: (t as any).muted,
+            readyState: t.readyState,
+            settings: t.getSettings?.()
+          }))
         });
+        
+        // Stop video tracks immediately - we only need audio
+        // This saves resources and avoids visual clutter
+        videoTracks.forEach(track => {
+          track.stop();
+          stream.removeTrack(track);
+        });
+        console.log('🎬 Video tracks stopped and removed (audio-only mode)');
         
         addDebugLog('✅ Screen audio access granted');
         screenStreamRef.current = stream;
         
         // Check if we actually got audio tracks
-        const audioTracks = stream.getAudioTracks();
         if (audioTracks.length === 0) {
+          console.error('❌ No audio tracks in screen share - user likely selected "Entire Screen" or did not check "Share tab audio"');
+          addDebugLog('❌ No audio tracks - try sharing a Chrome Tab with "Share tab audio" checked');
           throw new Error('NO_AUDIO_TRACKS');
         }
         
-        addDebugLog(`🔊 Audio tracks found: ${audioTracks.length}`);
+        addDebugLog(`🔊 System audio tracks: ${audioTracks.length} (${audioTracks.map(t => t.label).join(', ')})`);
         setSystemAudioCaptured(true);
         
       } catch (screenError: any) {
@@ -2953,9 +2975,22 @@ export const MeetingRecorder = ({
   const startCustomAudioProcessing = async (stream: MediaStream) => {
     addDebugLog('🔧 Starting custom audio processing...');
     
+    // Log incoming stream details
+    const incomingAudioTracks = stream.getAudioTracks();
+    console.log('🔧 startCustomAudioProcessing: incoming stream:', {
+      audioTracks: incomingAudioTracks.length,
+      trackDetails: incomingAudioTracks.map(t => ({
+        id: t.id,
+        label: t.label,
+        enabled: t.enabled,
+        readyState: t.readyState
+      }))
+    });
+    
     try {
       // Create audio context for processing
       const audioContext = new AudioContext({ sampleRate: 24000 });
+      console.log(`🔧 AudioContext created at ${audioContext.sampleRate}Hz, state: ${audioContext.state}`);
       const source = audioContext.createMediaStreamSource(stream);
       
       // Create analyser node for activity detection
@@ -4082,11 +4117,20 @@ export const MeetingRecorder = ({
 
         // If we are already processing system audio (Chromium screen-share path), prefer the
         // derived/tapped stream for AssemblyAI so we don't consume the raw display stream twice.
-        const systemStreamForAssembly: MediaStream | null | undefined =
-          (enhancedAudioCaptureRef.current?.assemblyStream as MediaStream | undefined) ||
-          screenStreamRef.current;
-        console.log('🎧 AssemblyAI system stream source:', enhancedAudioCaptureRef.current?.assemblyStream ? 'tapped' : 'raw', {
-          tracks: systemStreamForAssembly?.getAudioTracks?.().length ?? 0,
+        const tappedStream = enhancedAudioCaptureRef.current?.assemblyStream as MediaStream | undefined;
+        const rawScreenStream = screenStreamRef.current;
+        const systemStreamForAssembly: MediaStream | null | undefined = tappedStream || rawScreenStream;
+        
+        // Detailed logging to diagnose system audio issues
+        console.log('🎧 AssemblyAI system audio diagnosis:', {
+          hasTappedStream: !!tappedStream,
+          tappedTracks: tappedStream?.getAudioTracks?.().length ?? 0,
+          tappedTrackStates: tappedStream?.getAudioTracks?.().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })) ?? [],
+          hasRawScreenStream: !!rawScreenStream,
+          rawScreenTracks: rawScreenStream?.getAudioTracks?.().length ?? 0,
+          rawScreenTrackStates: rawScreenStream?.getAudioTracks?.().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })) ?? [],
+          recordingMode,
+          usingSource: tappedStream ? 'tapped' : rawScreenStream ? 'raw' : 'none',
         });
         
         // Build the mixed audio stream using Web Audio (not rewrapped tracks)
