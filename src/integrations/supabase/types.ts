@@ -9526,7 +9526,6 @@ export type Database = {
           access_token_last_used_at: string | null
           complaint_id: string | null
           created_at: string | null
-          has_access_token: boolean | null
           id: string | null
           response_requested_at: string | null
           response_submitted_at: string | null
@@ -9534,14 +9533,12 @@ export type Database = {
           staff_email: string | null
           staff_name: string | null
           staff_role: string | null
-          token_status: string | null
         }
         Insert: {
           access_token_expires_at?: string | null
           access_token_last_used_at?: string | null
           complaint_id?: string | null
           created_at?: string | null
-          has_access_token?: never
           id?: string | null
           response_requested_at?: string | null
           response_submitted_at?: string | null
@@ -9549,14 +9546,12 @@ export type Database = {
           staff_email?: string | null
           staff_name?: string | null
           staff_role?: string | null
-          token_status?: never
         }
         Update: {
           access_token_expires_at?: string | null
           access_token_last_used_at?: string | null
           complaint_id?: string | null
           created_at?: string | null
-          has_access_token?: never
           id?: string | null
           response_requested_at?: string | null
           response_submitted_at?: string | null
@@ -9564,7 +9559,6 @@ export type Database = {
           staff_email?: string | null
           staff_name?: string | null
           staff_role?: string | null
-          token_status?: never
         }
         Relationships: [
           {

@@ -23,17 +23,14 @@ interface InvolvedParty {
   id: string;
   staff_name: string;
   staff_email: string;
-  staff_role: string;
+  staff_role: string | null;
   response_text: string | null;
   response_submitted_at: string | null;
-  response_requested_at: string;
+  response_requested_at: string | null;
   access_token_expires_at: string;
-  access_token_last_used_at: string;
+  access_token_last_used_at: string | null;
   complaint_id: string;
-  created_at: string;
-  // From secure view - token status without exposing actual token
-  has_access_token: boolean;
-  token_status: string;
+  created_at: string | null;
 }
 
 interface TeamMember {
