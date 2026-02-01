@@ -73,6 +73,7 @@ import { useAssemblyRealtimePreview, PreviewStatus } from "@/hooks/useAssemblyRe
 import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
+import { useRecordingHealthMonitor } from "@/hooks/useRecordingHealthMonitor";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -574,6 +575,28 @@ export const MeetingRecorder = ({
       stopRecording();
     }, [])
   );
+
+  // Calculate last chunk timestamp from chunkSaveStatuses
+  const lastChunkTimestamp = React.useMemo(() => {
+    const savedChunks = chunkSaveStatuses.filter(c => c.saveStatus === 'saved' && c.saveTimestamp);
+    if (savedChunks.length === 0) return null;
+    const lastSaved = savedChunks[savedChunks.length - 1];
+    return lastSaved.saveTimestamp ? new Date(lastSaved.saveTimestamp).getTime() : null;
+  }, [chunkSaveStatuses]);
+
+  // Recording health monitor - detects stalls and server-side closures
+  const { serverStatus, isStalled } = useRecordingHealthMonitor({
+    meetingId: currentMeetingIdFromStorage,
+    isRecording,
+    lastChunkTimestamp,
+    onServerClosureDetected: useCallback(() => {
+      console.log('🛑 Health monitor detected server closure - stopping recording');
+      stopRecording();
+    }, []),
+    onRecordingStalled: useCallback(() => {
+      console.log('⚠️ Health monitor detected stall - transcription may have stopped');
+    }, [])
+  });
 
   // Duration warning and hard limit effect
   useEffect(() => {
