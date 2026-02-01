@@ -31,9 +31,15 @@ serve(async (req) => {
 
     console.log('🔄 Starting auto-close check for inactive meetings...');
 
-    // Calculate cutoff time (2 minutes ago for faster recovery)
-    const cutoffTime = new Date(Date.now() - 2 * 60 * 1000).toISOString();
-    console.log('⏰ Checking for meetings inactive since:', cutoffTime);
+    // Calculate cutoff time (3 minutes ago - increased from 2 for better reliability)
+    // This gives more buffer time for:
+    // - Slow network connections
+    // - Large audio chunks being processed
+    // - Browser tab being backgrounded (which can slow timers)
+    // - Reconnection attempts after transient failures
+    const INACTIVITY_THRESHOLD_MINUTES = 3;
+    const cutoffTime = new Date(Date.now() - INACTIVITY_THRESHOLD_MINUTES * 60 * 1000).toISOString();
+    console.log(`⏰ Checking for meetings inactive since: ${cutoffTime} (${INACTIVITY_THRESHOLD_MINUTES} min threshold)`);
 
     // Also compute a 5-minute window reference used elsewhere
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();

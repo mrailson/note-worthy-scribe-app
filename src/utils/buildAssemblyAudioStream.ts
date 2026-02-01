@@ -19,6 +19,8 @@ export interface BuildAssemblyAudioStreamResult {
   hasSystemAudio: boolean;
   /** Reason why system audio is not available (if hasSystemAudio is false) */
   systemAudioReason?: 'no_screen_stream' | 'no_audio_tracks' | 'tracks_not_live' | 'available';
+  /** Cleanup function to remove event listeners */
+  cleanup?: () => void;
 }
 
 export interface BuildAssemblyAudioStreamOptions {
@@ -26,6 +28,10 @@ export interface BuildAssemblyAudioStreamOptions {
   existingMicStream?: MediaStream | null;
   /** Microphone constraints (used only if existingMicStream is not provided) */
   micConstraints?: MediaTrackConstraints;
+  /** Callback when system audio track ends or becomes unavailable */
+  onSystemAudioLost?: () => void;
+  /** Callback when system audio is detected as silent for extended period */
+  onSystemAudioSilent?: () => void;
 }
 
 /**
@@ -48,7 +54,9 @@ export async function buildAssemblyAudioStream(
       echoCancellation: true,
       noiseSuppression: true,
       autoGainControl: true
-    }
+    },
+    onSystemAudioLost,
+    onSystemAudioSilent
   } = options;
   
   // Detailed system audio detection
@@ -188,6 +196,40 @@ export async function buildAssemblyAudioStream(
   for (const track of outputTracks) {
     console.log(`🎛️ buildAssemblyAudioStream: Output track: ${track.label}, enabled: ${track.enabled}, readyState: ${track.readyState}`);
   }
+
+  // === SYSTEM AUDIO TRACK MONITORING ===
+  // Listen for track ended/muted events to detect when system audio becomes unavailable
+  const systemAudioTracks = screenStream.getAudioTracks();
+  const cleanupListeners: (() => void)[] = [];
+  let systemAudioLostNotified = false;
+  let silenceStartTime: number | null = null;
+  const SILENCE_THRESHOLD_MS = 60000; // 60 seconds of silence triggers warning
+
+  for (const track of systemAudioTracks) {
+    const handleEnded = () => {
+      console.warn('🔇 buildAssemblyAudioStream: System audio track ENDED');
+      if (!systemAudioLostNotified && onSystemAudioLost) {
+        systemAudioLostNotified = true;
+        onSystemAudioLost();
+      }
+    };
+
+    const handleMute = () => {
+      console.warn('🔇 buildAssemblyAudioStream: System audio track MUTED');
+      if (!systemAudioLostNotified && onSystemAudioLost) {
+        systemAudioLostNotified = true;
+        onSystemAudioLost();
+      }
+    };
+
+    track.addEventListener('ended', handleEnded);
+    track.addEventListener('mute', handleMute);
+    
+    cleanupListeners.push(() => {
+      track.removeEventListener('ended', handleEnded);
+      track.removeEventListener('mute', handleMute);
+    });
+  }
   
   // Add RMS monitoring for both system and mixed paths
   const systemAnalyser = audioContext.createAnalyser();
@@ -202,6 +244,7 @@ export async function buildAssemblyAudioStream(
   let systemAudioDetectedEver = false;
   const systemDataArray = new Uint8Array(systemAnalyser.frequencyBinCount);
   const mixedDataArray = new Uint8Array(mixedAnalyser.frequencyBinCount);
+  let rmsCheckTimeout: ReturnType<typeof setTimeout> | null = null;
   
   const checkRMS = () => {
     if (audioContext.state === 'closed') return;
@@ -227,6 +270,19 @@ export async function buildAssemblyAudioStream(
     // Track if we've ever detected system audio
     if (systemRms > 0.01) {
       systemAudioDetectedEver = true;
+      silenceStartTime = null; // Reset silence tracking
+    } else if (systemAudioDetectedEver) {
+      // System audio was active before but is now silent
+      if (silenceStartTime === null) {
+        silenceStartTime = Date.now();
+      } else if (Date.now() - silenceStartTime >= SILENCE_THRESHOLD_MS) {
+        // Extended silence detected
+        if (!systemAudioLostNotified && onSystemAudioSilent) {
+          console.warn('🔇 buildAssemblyAudioStream: Extended system audio silence detected (60s+)');
+          onSystemAudioSilent();
+          // Don't set systemAudioLostNotified - silence is recoverable
+        }
+      }
     }
     
     const now = Date.now();
@@ -238,12 +294,21 @@ export async function buildAssemblyAudioStream(
     }
     
     if (audioContext.state === 'running') {
-      setTimeout(checkRMS, 500);
+      rmsCheckTimeout = setTimeout(checkRMS, 500);
     }
   };
   
   // Start RMS monitoring after a short delay
   setTimeout(checkRMS, 1000);
+
+  // Cleanup function to remove all event listeners
+  const cleanup = () => {
+    console.log('🎛️ buildAssemblyAudioStream: Running cleanup listeners');
+    cleanupListeners.forEach(fn => fn());
+    if (rmsCheckTimeout) {
+      clearTimeout(rmsCheckTimeout);
+    }
+  };
   
   const totalTime = performance.now() - startTime;
   console.log(`🎛️ buildAssemblyAudioStream: Completed in ${totalTime.toFixed(0)}ms (mixed stream)`);
@@ -253,7 +318,8 @@ export async function buildAssemblyAudioStream(
     micStream: ownsMicStream ? micStream : null, // Only return for cleanup if we created it
     audioContext,
     hasSystemAudio: true,
-    systemAudioReason: 'available'
+    systemAudioReason: 'available',
+    cleanup
   };
 }
 
