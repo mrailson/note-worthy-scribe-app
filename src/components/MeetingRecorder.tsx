@@ -548,13 +548,23 @@ export const MeetingRecorder = ({
   // AssemblyAI real-time preview hook (runs alongside Whisper)
   const assemblyPreview = useAssemblyRealtimePreview();
 
-  // Calculate word count from the AssemblyAI transcript (primary source)
+  const countWords = useCallback((text: string) => {
+    const t = (text ?? '').trim();
+    if (!t) return 0;
+    return t.split(/\s+/).filter(w => w.length > 0).length;
+  }, []);
+
+  // Calculate word count from the best available transcript.
+  // AssemblyAI is preferred for live feedback, but if it fails (e.g. system-audio issues)
+  // we must still preserve the meeting based on the Whisper transcript.
   useEffect(() => {
-    const assemblyWords = assemblyPreview.fullTranscript.trim().split(/\s+/).filter(word => word.length > 0).length;
-    
-    setWordCount(assemblyWords);
-    onWordCountUpdate(assemblyWords);
-  }, [assemblyPreview.fullTranscript, onWordCountUpdate]);
+    const assemblyWords = countWords(assemblyPreview.fullTranscript);
+    const whisperWords = countWords(transcript);
+    const effectiveWords = Math.max(assemblyWords, whisperWords);
+
+    setWordCount(effectiveWords);
+    onWordCountUpdate(effectiveWords);
+  }, [assemblyPreview.fullTranscript, transcript, onWordCountUpdate, countWords]);
 
   // ============= WHISPER COST PROTECTION =============
   // Maximum recording duration (4 hours) to prevent runaway billing
@@ -4199,11 +4209,14 @@ export const MeetingRecorder = ({
     if (!isStoppingRecording) setIsStoppingRecording(true);
     setStopRecordingStep('Stopping recording...');
     
-    // Check word count before processing - use the state wordCount that's already being tracked
-    // (this matches what's displayed in the UI)
-    console.log('📊 Meeting word count:', wordCount);
+    // Check word count before processing.
+    // Use the best available transcript so meetings aren't discarded if AssemblyAI is down.
+    const assemblyWords = countWords(assemblyPreview.fullTranscript);
+    const whisperWords = countWords(transcript);
+    const effectiveWords = Math.max(assemblyWords, whisperWords);
+    console.log('📊 Meeting word count:', { effective: effectiveWords, assembly: assemblyWords, whisper: whisperWords });
     
-    if (wordCount < 100) {
+    if (effectiveWords < 100) {
       console.log('📊 Skipping processing animation - meeting too short (<100 words)');
       
       // Just stop recording without the processing modal
@@ -5781,11 +5794,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       }
       
       // Restart AssemblyAI live transcription (preserve existing transcript)
+      // IMPORTANT: Prefer the mixed stream so system audio remains included.
       try {
-        await assemblyPreview.startPreview(
-          micAudioStreamRef.current || undefined,
-          { preserveTranscript: true }
-        );
+        const resumeAssemblyStream =
+          assemblyAudioMixerRef.current?.mixedStream || micAudioStreamRef.current || undefined;
+
+        await assemblyPreview.startPreview(resumeAssemblyStream, { preserveTranscript: true });
         console.log('✅ AssemblyAI preview resumed after unpause (transcript preserved)');
       } catch (assemblyError) {
         console.warn('⚠️ AssemblyAI preview failed to restart:', assemblyError);
