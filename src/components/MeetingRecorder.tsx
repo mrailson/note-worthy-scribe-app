@@ -2878,6 +2878,12 @@ export const MeetingRecorder = ({
   const startComputerAudioTranscription = async (meetingId: string) => {
     addDebugLog('💻 Starting computer audio capture via screen share...');
     
+    // Pre-flight toast to guide the user BEFORE the picker opens
+    showToast.info(
+      'To capture system audio, select a Chrome Tab (not Entire Screen) and tick "Share tab audio".',
+      { section: 'meeting_manager', duration: 8000, id: 'screen-share-guide' }
+    );
+    
     try {
       // Try screen sharing with audio first
       let stream: MediaStream;
@@ -2925,6 +2931,13 @@ export const MeetingRecorder = ({
         if (audioTracks.length === 0) {
           console.error('❌ No audio tracks in screen share - user likely selected "Entire Screen" or did not check "Share tab audio"');
           addDebugLog('❌ No audio tracks - try sharing a Chrome Tab with "Share tab audio" checked');
+          
+          // Show a clear, actionable toast explaining what went wrong
+          showToast.error(
+            'No system audio captured. Please select a Chrome Tab (not "Entire Screen") and check "Share tab audio".',
+            { section: 'meeting_manager', duration: 10000, id: 'no-audio-tracks' }
+          );
+          
           throw new Error('NO_AUDIO_TRACKS');
         }
         
