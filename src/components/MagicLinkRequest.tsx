@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, ArrowLeft, Send, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 
 interface MagicLinkRequestProps {
@@ -94,44 +95,37 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
       if (error) {
         console.error("Error invoking generate-magic-link:", error);
         
-        // Check if this is a rate limit error by examining the error context
-        // The Supabase client includes the response in the error context for FunctionsHttpError
-        try {
-          // Try to get the response body from the error context
-          const errorContext = (error as any).context;
-          if (errorContext) {
-            // Parse the response if it contains rate limit info
-            const responseText = await errorContext.text?.() || errorContext.body;
-            if (responseText) {
-              const parsedError = typeof responseText === 'string' ? JSON.parse(responseText) : responseText;
-              if (parsedError?.rate_limited) {
-                setRateLimited(true);
-                setWaitSeconds(parsedError.wait_seconds || 300);
-                toast({
-                  title: "Too Many Requests",
-                  description: `Please wait ${formatWaitTime(parsedError.wait_seconds || 300)} before requesting another magic link.`,
-                  variant: "destructive"
-                });
-                return;
-              }
+        // Check if this is a FunctionsHttpError (non-2xx response)
+        if (error instanceof FunctionsHttpError) {
+          try {
+            // Get the JSON response body using the correct method
+            const errorData = await error.context.json();
+            console.log("Edge function error response:", errorData);
+            
+            if (errorData?.rate_limited) {
+              setRateLimited(true);
+              setWaitSeconds(errorData.wait_seconds || 300);
+              toast({
+                title: "Too Many Requests",
+                description: `Please wait ${formatWaitTime(errorData.wait_seconds || 300)} before requesting another magic link.`,
+                variant: "destructive"
+              });
+              return;
             }
+            
+            // Show the specific error message from the function
+            toast({
+              title: "Error",
+              description: errorData?.error || "Failed to send magic link. Please try again.",
+              variant: "destructive"
+            });
+            return;
+          } catch (parseErr) {
+            console.log("Could not parse error response:", parseErr);
           }
-        } catch (parseErr) {
-          console.log("Could not parse error context:", parseErr);
         }
 
-        // Check if error message contains rate limit info
-        if (error.message?.includes("429") || error.message?.includes("Too many")) {
-          setRateLimited(true);
-          setWaitSeconds(300); // Default 5 minutes
-          toast({
-            title: "Too Many Requests",
-            description: "Please wait 5 minutes before requesting another magic link.",
-            variant: "destructive"
-          });
-          return;
-        }
-
+        // Fallback for other error types
         toast({
           title: "Error",
           description: error.message || "Failed to send magic link. Please try again.",
