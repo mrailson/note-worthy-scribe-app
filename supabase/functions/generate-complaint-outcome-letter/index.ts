@@ -126,40 +126,43 @@ serve(async (req) => {
       signatureDetails = signature;
       console.log('Found signature details:', signatureDetails?.name);
     } else {
-      // Fallback: get user name from user_profiles or auth metadata
-      console.log('No signature found, trying to get user details from profiles');
+      // Fallback: get user name from auth.users metadata (same approach as acknowledgement letter)
+      console.log('No signature found, fetching user details from auth');
+      const { data: authUser } = await supabase.auth.admin.getUserById(complaint.created_by);
       
-      const { data: userProfile } = await supabase
-        .from('user_profiles')
-        .select('full_name, email')
-        .eq('id', complaint.created_by)
-        .maybeSingle();
-      
-      if (userProfile?.full_name) {
-        signatureDetails = {
-          name: userProfile.full_name,
-          job_title: 'Complaints Officer',
-          qualifications: null,
-          signature_text: null,
-          email: userProfile.email
-        };
-        console.log('Using user profile for signature:', signatureDetails.name);
-      } else {
-        // Final fallback: get from user_roles
-        const { data: roleInfo } = await supabase
+      if (authUser?.user) {
+        const signatoryName = authUser.user.user_metadata?.full_name || authUser.user.email?.split('@')[0] || 'Complaints Manager';
+        
+        // Check if they have GP Partner role or similar
+        const { data: userRoleData } = await supabase
           .from('user_roles')
-          .select('role')
+          .select('role, practice_role')
           .eq('user_id', complaint.created_by)
-          .limit(1)
           .maybeSingle();
         
-        const roleName = roleInfo?.role ? 
-          roleInfo.role.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) : 
-          'Complaints Officer';
+        // Determine title based on role
+        let signatoryTitle = 'Complaints Manager';
+        if (userRoleData?.practice_role) {
+          signatoryTitle = userRoleData.practice_role;
+        } else if (userRoleData?.role === 'practice_manager') {
+          signatoryTitle = 'Practice Manager';
+        } else {
+          signatoryTitle = 'GP Partner'; // Default for clinical users
+        }
         
         signatureDetails = {
+          name: signatoryName,
+          job_title: signatoryTitle,
+          qualifications: null,
+          signature_text: null,
+          email: practiceDetails?.email || null
+        };
+        console.log('Using auth user details for signature:', signatureDetails.name, signatureDetails.job_title);
+      } else {
+        // Final fallback
+        signatureDetails = {
           name: 'The Complaints Team',
-          job_title: roleName,
+          job_title: 'Complaints Manager',
           qualifications: null,
           signature_text: null
         };
