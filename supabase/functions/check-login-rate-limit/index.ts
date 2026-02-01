@@ -14,6 +14,15 @@ interface CheckLoginRequest {
 // Rate limit configuration
 const RATE_LIMIT_WINDOW_MINUTES = 5;
 const MAX_ATTEMPTS_PER_WINDOW = 5;
+const ESCALATION_CHECK_MINUTES = 60;
+const ESCALATED_WAIT_MINUTES = 60;
+
+// Security message for rate limited users
+const RATE_LIMIT_MESSAGE = `Request limit exceeded.
+
+This service actively monitors IP address, request patterns, and authentication attempts to protect NHS data.
+
+Further attempts during this window are logged. Please wait before trying again.`;
 
 // Extract client IP from request headers
 function getClientIP(req: Request): string {
@@ -96,17 +105,44 @@ const handler = async (req: Request): Promise<Response> => {
     if (attemptCount >= MAX_ATTEMPTS_PER_WINDOW) {
       console.warn("Login rate limit exceeded for IP:", clientIP, "Count:", attemptCount + 1);
 
-      // Calculate wait time
-      const oldestAttempt = recentAttempts?.sort((a, b) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      )[0];
+      // Check for escalation - has this IP been blocked in the last 60 minutes?
+      const escalationWindowStart = new Date(Date.now() - ESCALATION_CHECK_MINUTES * 60 * 1000).toISOString();
+      
+      const { data: recentBlocks, error: blocksError } = await supabaseAdmin
+        .from("login_rate_limits")
+        .select("id")
+        .eq("ip_address", clientIP)
+        .eq("blocked", true)
+        .gte("created_at", escalationWindowStart);
 
-      let waitSeconds = RATE_LIMIT_WINDOW_MINUTES * 60;
-      if (oldestAttempt) {
-        const oldestTime = new Date(oldestAttempt.created_at).getTime();
-        const windowEnd = oldestTime + (RATE_LIMIT_WINDOW_MINUTES * 60 * 1000);
-        waitSeconds = Math.ceil((windowEnd - Date.now()) / 1000);
-        if (waitSeconds < 0) waitSeconds = 0;
+      if (blocksError) {
+        console.error("Error checking escalation:", blocksError);
+      }
+
+      const previousBlockCount = recentBlocks?.length || 0;
+      const shouldEscalate = previousBlockCount > 0; // If blocked before in last 60 mins
+
+      // Calculate wait time - escalate to 60 mins if repeat offender
+      let waitSeconds: number;
+      let waitMinutes: number;
+      
+      if (shouldEscalate) {
+        waitMinutes = ESCALATED_WAIT_MINUTES;
+        waitSeconds = ESCALATED_WAIT_MINUTES * 60;
+        console.warn("ESCALATED rate limit for repeat offender IP:", clientIP, "Previous blocks:", previousBlockCount);
+      } else {
+        const oldestAttempt = recentAttempts?.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )[0];
+
+        waitSeconds = RATE_LIMIT_WINDOW_MINUTES * 60;
+        if (oldestAttempt) {
+          const oldestTime = new Date(oldestAttempt.created_at).getTime();
+          const windowEnd = oldestTime + (RATE_LIMIT_WINDOW_MINUTES * 60 * 1000);
+          waitSeconds = Math.ceil((windowEnd - Date.now()) / 1000);
+          if (waitSeconds < 0) waitSeconds = 0;
+        }
+        waitMinutes = Math.ceil(waitSeconds / 60);
       }
 
       // Trigger admin notification (async, don't wait)
@@ -122,6 +158,8 @@ const handler = async (req: Request): Promise<Response> => {
           user_agent: userAgent,
           attempt_count: attemptCount + 1,
           timestamp: timestamp,
+          escalated: shouldEscalate,
+          previous_blocks: previousBlockCount,
         }),
       }).catch((err) => {
         console.error("Failed to send admin notification:", err);
@@ -130,14 +168,17 @@ const handler = async (req: Request): Promise<Response> => {
       // Log to security_events table
       try {
         await supabaseAdmin.from("security_events").insert({
-          event_type: "login_rate_limit",
-          severity: "warning",
+          event_type: shouldEscalate ? "login_rate_limit_escalated" : "login_rate_limit",
+          severity: shouldEscalate ? "critical" : "warning",
           ip_address: clientIP,
           user_agent: userAgent,
           details: {
             email_attempted: email,
             attempt_count: attemptCount + 1,
             window_minutes: RATE_LIMIT_WINDOW_MINUTES,
+            escalated: shouldEscalate,
+            previous_blocks: previousBlockCount,
+            wait_minutes: waitMinutes,
           },
         });
       } catch (securityLogError) {
@@ -149,7 +190,8 @@ const handler = async (req: Request): Promise<Response> => {
           allowed: false,
           rate_limited: true,
           wait_seconds: waitSeconds,
-          message: `Too many login attempts. Please wait ${Math.ceil(waitSeconds / 60)} minutes before trying again.`,
+          escalated: shouldEscalate,
+          message: `${RATE_LIMIT_MESSAGE}\n\nPlease wait ${waitMinutes} minutes.`,
         }),
         {
           status: 200,

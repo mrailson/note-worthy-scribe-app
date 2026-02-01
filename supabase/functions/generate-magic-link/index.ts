@@ -14,6 +14,15 @@ interface GenerateMagicLinkRequest {
 // Rate limit configuration
 const RATE_LIMIT_WINDOW_MINUTES = 5;
 const MAX_REQUESTS_PER_WINDOW = 2;
+const ESCALATION_CHECK_MINUTES = 60;
+const ESCALATED_WAIT_MINUTES = 60;
+
+// Security message for rate limited users
+const RATE_LIMIT_MESSAGE = `Request limit exceeded.
+
+This service actively monitors IP address, request patterns, and authentication attempts to protect NHS data.
+
+Further attempts during this window are logged. Please wait before trying again.`;
 
 // Extract client IP from request headers
 function getClientIP(req: Request): string {
@@ -98,17 +107,44 @@ const handler = async (req: Request): Promise<Response> => {
     if (requestCount >= MAX_REQUESTS_PER_WINDOW) {
       console.warn("Rate limit exceeded for IP:", clientIP, "Count:", requestCount + 1);
 
-      // Calculate wait time - find the oldest request in window and calculate when it expires
-      const oldestRequest = recentRequests?.sort((a, b) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      )[0];
+      // Check for escalation - has this IP been blocked in the last 60 minutes?
+      const escalationWindowStart = new Date(Date.now() - ESCALATION_CHECK_MINUTES * 60 * 1000).toISOString();
+      
+      const { data: recentBlocks, error: blocksError } = await supabaseAdmin
+        .from("magic_link_rate_limits")
+        .select("id")
+        .eq("ip_address", clientIP)
+        .eq("blocked", true)
+        .gte("created_at", escalationWindowStart);
 
-      let waitSeconds = RATE_LIMIT_WINDOW_MINUTES * 60; // Default to full window
-      if (oldestRequest) {
-        const oldestTime = new Date(oldestRequest.created_at).getTime();
-        const windowEnd = oldestTime + (RATE_LIMIT_WINDOW_MINUTES * 60 * 1000);
-        waitSeconds = Math.ceil((windowEnd - Date.now()) / 1000);
-        if (waitSeconds < 0) waitSeconds = 0;
+      if (blocksError) {
+        console.error("Error checking escalation:", blocksError);
+      }
+
+      const previousBlockCount = recentBlocks?.length || 0;
+      const shouldEscalate = previousBlockCount > 0; // If blocked before in last 60 mins
+
+      // Calculate wait time - escalate to 60 mins if repeat offender
+      let waitSeconds: number;
+      let waitMinutes: number;
+      
+      if (shouldEscalate) {
+        waitMinutes = ESCALATED_WAIT_MINUTES;
+        waitSeconds = ESCALATED_WAIT_MINUTES * 60;
+        console.warn("ESCALATED rate limit for repeat offender IP:", clientIP, "Previous blocks:", previousBlockCount);
+      } else {
+        const oldestRequest = recentRequests?.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )[0];
+
+        waitSeconds = RATE_LIMIT_WINDOW_MINUTES * 60;
+        if (oldestRequest) {
+          const oldestTime = new Date(oldestRequest.created_at).getTime();
+          const windowEnd = oldestTime + (RATE_LIMIT_WINDOW_MINUTES * 60 * 1000);
+          waitSeconds = Math.ceil((windowEnd - Date.now()) / 1000);
+          if (waitSeconds < 0) waitSeconds = 0;
+        }
+        waitMinutes = Math.ceil(waitSeconds / 60);
       }
 
       // Trigger admin notification (async, don't wait)
@@ -124,6 +160,8 @@ const handler = async (req: Request): Promise<Response> => {
           user_agent: userAgent,
           request_count: requestCount + 1,
           timestamp: timestamp,
+          escalated: shouldEscalate,
+          previous_blocks: previousBlockCount,
         }),
       }).catch((err) => {
         console.error("Failed to send admin notification:", err);
@@ -132,14 +170,17 @@ const handler = async (req: Request): Promise<Response> => {
       // Log to security_events table if it exists
       try {
         await supabaseAdmin.from("security_events").insert({
-          event_type: "magic_link_rate_limit",
-          severity: "warning",
+          event_type: shouldEscalate ? "magic_link_rate_limit_escalated" : "magic_link_rate_limit",
+          severity: shouldEscalate ? "critical" : "warning",
           ip_address: clientIP,
           user_agent: userAgent,
           details: {
             email_requested: email,
             request_count: requestCount + 1,
             window_minutes: RATE_LIMIT_WINDOW_MINUTES,
+            escalated: shouldEscalate,
+            previous_blocks: previousBlockCount,
+            wait_minutes: waitMinutes,
           },
         });
       } catch (securityLogError) {
@@ -148,13 +189,14 @@ const handler = async (req: Request): Promise<Response> => {
 
       return new Response(
         JSON.stringify({
-          error: "Too many requests. Please wait before trying again.",
+          error: `${RATE_LIMIT_MESSAGE}\n\nPlease wait ${waitMinutes} minutes.`,
           rate_limited: true,
           wait_seconds: waitSeconds,
+          escalated: shouldEscalate,
           success: false,
         }),
         {
-          status: 200, // Return 200 instead of 429 to avoid runtime error reports
+          status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
