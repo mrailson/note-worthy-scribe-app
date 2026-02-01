@@ -353,7 +353,7 @@ serve(async (req) => {
     // Fetch all chunks for this meeting
     const { data: chunks, error: chunkError } = await supabase
       .from('meeting_transcription_chunks')
-      .select('cleaned_text, chunk_number, cleaning_status, transcription_text, word_count, confidence_score, source, start_time, end_time')
+      .select('cleaned_text, chunk_number, cleaning_status, transcription_text, word_count, confidence, transcriber_type, start_time, end_time')
       .eq('meeting_id', meetingId)
       .order('chunk_number');
 
@@ -399,7 +399,7 @@ serve(async (req) => {
 
     for (const chunk of chunks) {
       const chunkText = chunk.cleaned_text || chunk.transcription_text || '';
-      const confidence = chunk.confidence_score || 0;
+      const confidence = chunk.confidence || 0;
 
       // Parse JSON if needed
       let textToCheck = chunkText;
@@ -423,16 +423,16 @@ serve(async (req) => {
         continue;
       }
 
-      // Add to appropriate array based on source
+      // Add to appropriate array based on transcriber_type
       const rawChunk: RawChunk = {
-        engine: chunk.source === 'assembly' ? 'assembly' : 'whisper',
+        engine: chunk.transcriber_type === 'assembly' ? 'assembly' : 'whisper',
         idx: chunk.chunk_number,
         text: textToCheck,
         confidence: confidence
       };
 
       // Add timing for assembly if available
-      if (chunk.source === 'assembly' && chunk.start_time) {
+      if (chunk.transcriber_type === 'assembly' && chunk.start_time) {
         try {
           rawChunk.startSec = new Date(chunk.start_time).getTime() / 1000;
           if (chunk.end_time) {
@@ -441,7 +441,7 @@ serve(async (req) => {
         } catch { /* Ignore timing parse errors */ }
       }
 
-      if (chunk.source === 'assembly') {
+      if (chunk.transcriber_type === 'assembly') {
         assemblyRaw.push(rawChunk);
       } else {
         whisperRaw.push(rawChunk);
