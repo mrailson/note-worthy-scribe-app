@@ -62,6 +62,11 @@ export const MergeAuditPanel: React.FC<MergeAuditPanelProps> = ({
                         {stats.overlapConflicts} conflicts
                       </span>
                     )}
+                    {stats.bufferedDrops > 0 && (
+                      <span className="flex items-center gap-1 text-orange-500">
+                        ⏸ {stats.bufferedDrops} buffered
+                      </span>
+                    )}
                   </div>
                 )}
                 <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />

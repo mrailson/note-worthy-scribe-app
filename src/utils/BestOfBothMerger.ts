@@ -40,6 +40,8 @@ export interface MergeConfig {
   overlapSimilarity: number;     // e.g. 0.60 (winner-takes-all threshold)
   strongConfMargin: number;      // e.g. 0.12 (how much higher to override assembly-first)
   maxLookback: number;           // e.g. 3 (how many recent chunks to consider for overlap)
+  continuityMinSim: number;      // e.g. 0.10 (minimum similarity for non-overlapping chunks)
+  bufferWindow: number;          // e.g. 4 (how many chunks to hold in buffer)
 }
 
 export interface MergeResult {
@@ -52,6 +54,7 @@ export interface MergeResult {
     keptCount: number;
     droppedCount: number;
     overlapConflicts: number;
+    bufferedDrops: number;
   };
 }
 
@@ -62,6 +65,8 @@ export const DEFAULT_MERGE_CONFIG: MergeConfig = {
   overlapSimilarity: 0.60,
   strongConfMargin: 0.12,
   maxLookback: 3,
+  continuityMinSim: 0.10,
+  bufferWindow: 4,
 };
 
 /* ----------------------- Utilities ----------------------- */
@@ -77,8 +82,8 @@ function normaliseConfidence(engine: Engine, confidence?: number): number {
 function normaliseText(s: string): string {
   return (s || '')
     .replace(/\s+/g, ' ')
-    .replace(/[""]/g, '"')
-    .replace(/['']/g, "'")
+    .replace(/[""]/g, '"')  // Smart double quotes → straight
+    .replace(/['']/g, "'")  // Smart single quotes → straight
     .trim();
 }
 
@@ -117,12 +122,36 @@ function startsCleanly(text: string): boolean {
   return /^["'(\[]?[A-Z]|^(and|but|so|because|then)\b/i.test(text.trim());
 }
 
+/**
+ * Detect if text ends with a hanging fragment (unfinished clause).
+ * Used to require stronger continuity before splicing new content.
+ */
+function looksLikeHangingFragment(text: string): boolean {
+  const t = text.trim();
+  // Ends with a conjunction / comma / unfinished word
+  return /[,;:\-]\s*$/.test(t) || /\b(and|but|so|because|that|which|who)\s*$/i.test(t);
+}
+
 function scoreChunk(c: NormChunk): number {
   // Higher is better. Tune weights if needed.
   const len = Math.min(1, c.tokens.length / 40); // Saturate around 40 tokens
   const endBonus = endsCleanly(c.text) ? 0.08 : 0;
   const startBonus = startsCleanly(c.text) ? 0.04 : 0;
   return (c.conf * 0.75) + (len * 0.15) + endBonus + startBonus;
+}
+
+/**
+ * Calculate continuity similarity against recent chunks.
+ * Uses best match from recent window (not just last, since last could be short).
+ */
+function continuitySimAgainstRecent(recent: NormChunk[], chunk: NormChunk): number {
+  if (!recent.length) return 1; // No context = allow through
+  let best = 0;
+  for (const r of recent) {
+    const sim = jaccardSim(r.tokens, chunk.tokens);
+    if (sim > best) best = sim;
+  }
+  return best;
 }
 
 /* ----------------------- Normalisation ----------------------- */
@@ -242,7 +271,9 @@ export function mergeBestOfBoth(
 
   const kept: NormChunk[] = [];
   const dropped: NormChunk[] = [];
+  const buffer: NormChunk[] = []; // Hold non-contiguous chunks for later placement
   let overlapConflicts = 0;
+  let bufferedDrops = 0;
 
   for (const chunk of combined) {
     // If whisper below floor, only consider keeping if there is no close assembly overlap.
@@ -266,7 +297,39 @@ export function mergeBestOfBoth(
     const overlapCandidate = findBestOverlapCandidate(recent, chunk, cfg);
 
     if (!overlapCandidate) {
+      // No overlap detected - check continuity before accepting
+      const contSim = continuitySimAgainstRecent(recent, chunk);
+      
+      // Check if last kept chunk ends with a hanging fragment
+      const last = kept[kept.length - 1];
+      const hangingThreshold = last && looksLikeHangingFragment(last.text)
+        ? cfg.continuityMinSim * 1.8  // Require stronger continuity after fragments
+        : cfg.continuityMinSim;
+      
+      // If it's not overlapping but also not continuous, buffer it
+      if (recent.length > 0 && contSim < hangingThreshold) {
+        buffer.push(chunk);
+        // Prevent unbounded buffer - drop oldest if full
+        if (buffer.length > cfg.bufferWindow) {
+          const oldest = buffer.shift()!;
+          dropped.push(oldest);
+          bufferedDrops++;
+        }
+        continue;
+      }
+      
+      // Accept the chunk
       kept.push(chunk);
+      
+      // Attempt to place buffered chunks that now look continuous
+      for (let i = buffer.length - 1; i >= 0; i--) {
+        const b = buffer[i];
+        const sim = continuitySimAgainstRecent(kept.slice(-cfg.maxLookback), b);
+        if (sim >= cfg.continuityMinSim) {
+          kept.push(b);
+          buffer.splice(i, 1);
+        }
+      }
       continue;
     }
 
@@ -284,6 +347,12 @@ export function mergeBestOfBoth(
       else kept.push(chunk);
       dropped.push(overlapCandidate);
     }
+  }
+
+  // Anything left buffered is likely non-contiguous boilerplate; drop it
+  for (const b of buffer) {
+    dropped.push(b);
+    bufferedDrops++;
   }
 
   // Sort kept by time again (in case replacements changed local ordering)
@@ -304,6 +373,7 @@ export function mergeBestOfBoth(
       keptCount: kept.length,
       droppedCount: dropped.length,
       overlapConflicts,
+      bufferedDrops,
     }
   };
 }
@@ -316,9 +386,9 @@ function postProcessTranscript(s: string): string {
   // Fix the classic "Cambridge. are" => "Cambridge. Are"
   out = out.replace(/([.!?])\s+([a-z])/g, (_, p1, p2) => `${p1} ${p2.toUpperCase()}`);
 
-  // Remove obvious duplicated bigrams at joins: "I am... I am worried" -> "I am... worried"
-  // (conservative: only when exact repetition)
-  out = out.replace(/\b(\w+)\s+\1\b/gi, '$1');
+  // Remove duplicated common words only (safer - won't break "had had", "that that")
+  // Only dedupe short common words that are clearly accidental repeats
+  out = out.replace(/\b(the|a|an|and|but|so|we|i|you|is|are|was|were|to|of|in|on|for|it)\s+\1\b/gi, '$1');
 
   // Clean " ,"
   out = out.replace(/\s+,/g, ',').replace(/\s+\./g, '.');
