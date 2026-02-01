@@ -2923,6 +2923,63 @@ export type Database = {
         }
         Relationships: []
       }
+      development_costs: {
+        Row: {
+          amount: number
+          category: string
+          cost_date: string
+          cost_type: string
+          created_at: string
+          description: string | null
+          file_name: string | null
+          file_path: string | null
+          hourly_rate: number | null
+          hours: number | null
+          id: string
+          invoice_reference: string | null
+          notes: string | null
+          updated_at: string
+          user_id: string
+          vendor: string | null
+        }
+        Insert: {
+          amount: number
+          category: string
+          cost_date: string
+          cost_type: string
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          hourly_rate?: number | null
+          hours?: number | null
+          id?: string
+          invoice_reference?: string | null
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          vendor?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          cost_date?: string
+          cost_type?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          hourly_rate?: number | null
+          hours?: number | null
+          id?: string
+          invoice_reference?: string | null
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          vendor?: string | null
+        }
+        Relationships: []
+      }
       dictations: {
         Row: {
           content: string
