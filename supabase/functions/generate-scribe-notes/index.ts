@@ -16,8 +16,9 @@ serve(async (req) => {
   try {
     const { 
       transcript,           // Legacy: single transcript (for backwards compatibility)
-      batchTranscript,      // NEW: Whisper transcript
-      liveTranscript,       // NEW: AssemblyAI transcript
+      batchTranscript,      // Whisper transcript
+      liveTranscript,       // AssemblyAI transcript
+      mergedTranscript,     // NEW: Pre-merged transcript from BestOfBothMerger
       consultationType = 'f2f', 
       outputFormat = 'heidi', 
       detailLevel = 3,
@@ -26,19 +27,27 @@ serve(async (req) => {
       includeExpandedSummary = false
     } = await req.json();
 
-    // Determine transcript source mode
-    const hasBothTranscripts = batchTranscript?.trim() && liveTranscript?.trim();
-    const singleTranscript = transcript?.trim() || batchTranscript?.trim() || liveTranscript?.trim();
+    // PRIORITY ORDER for transcript source:
+    // 1. mergedTranscript (pre-merged by BestOfBothMerger - preferred, eliminates AI cross-ref)
+    // 2. Both batchTranscript AND liveTranscript (AI will cross-reference)
+    // 3. Single transcript fallback
+    
+    const hasPreMergedTranscript = mergedTranscript?.trim()?.length > 50;
+    const hasBothTranscripts = !hasPreMergedTranscript && batchTranscript?.trim() && liveTranscript?.trim();
+    const singleTranscript = hasPreMergedTranscript 
+      ? mergedTranscript.trim() 
+      : (transcript?.trim() || batchTranscript?.trim() || liveTranscript?.trim());
 
-    if (!hasBothTranscripts && !singleTranscript) {
+    if (!singleTranscript) {
       return new Response(
         JSON.stringify({ error: 'No transcript provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const mode = hasBothTranscripts ? 'best-of-both' : 'single-source';
-    console.log(`Mode: ${mode}, Batch: ${batchTranscript?.length || 0} chars, Live: ${liveTranscript?.length || 0} chars, Single: ${singleTranscript?.length || 0} chars`);
+    // Mode determines which prompt/principles to use
+    const mode = hasPreMergedTranscript ? 'pre-merged' : (hasBothTranscripts ? 'best-of-both' : 'single-source');
+    console.log(`Mode: ${mode}, PreMerged: ${mergedTranscript?.length || 0} chars, Batch: ${batchTranscript?.length || 0} chars, Live: ${liveTranscript?.length || 0} chars`);
     console.log(`Generating ${noteFormat} notes for ${consultationType} consultation, detail level: ${detailLevel}, expanded summary: ${includeExpandedSummary}`);
 
     const consultationTypeLabel = {
@@ -256,6 +265,7 @@ Before outputting, confirm:
 When in doubt: Accuracy > completeness, Safety > polish`;
 
     // Select the appropriate principles based on mode
+    // Pre-merged transcripts use single-source principles (merger already resolved conflicts)
     const activePrinciples = hasBothTranscripts ? bestOfBothPrinciples : notewellPrinciples;
 
     // Heidi-style format prompt
@@ -369,7 +379,13 @@ Guidelines:
 
     // Build user prompt based on mode
     let userPrompt: string;
-    if (hasBothTranscripts) {
+    if (hasPreMergedTranscript) {
+      // Pre-merged transcript: Already validated by BestOfBothMerger - use as single source
+      userPrompt = `Please analyse this consultation transcript and generate clinical notes. This transcript has been pre-validated from multiple sources. ONLY include information explicitly stated. Leave sections blank if information was not mentioned. NEVER assert negatives or comment on absent information.
+
+TRANSCRIPT:
+${singleTranscript}${contextContent ? `\n\nADDITIONAL CLINICAL CONTEXT PROVIDED:\n${contextContent}` : ''}`;
+    } else if (hasBothTranscripts) {
       userPrompt = `Please analyse these TWO consultation transcripts and generate clinical notes using the Best-of-Both merge method.
 
 === BATCH TRANSCRIPT (Whisper) ===
