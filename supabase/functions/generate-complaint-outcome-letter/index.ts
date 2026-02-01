@@ -126,12 +126,21 @@ serve(async (req) => {
       signatureDetails = signature;
       console.log('Found signature details:', signatureDetails?.name);
     } else {
-      // Fallback: get user name from auth.users metadata (same approach as acknowledgement letter)
-      console.log('No signature found, fetching user details from auth');
+      // Fallback: get user name from auth.users metadata and profile title (same approach as acknowledgement letter)
+      console.log('No signature found, fetching user details from auth and profile');
       const { data: authUser } = await supabase.auth.admin.getUserById(complaint.created_by);
       
+      // Also fetch the profile to get the title (Dr, Mr, Mrs, etc.)
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('title, full_name')
+        .eq('user_id', complaint.created_by)
+        .maybeSingle();
+      
       if (authUser?.user) {
-        const signatoryName = authUser.user.user_metadata?.full_name || authUser.user.email?.split('@')[0] || 'Complaints Manager';
+        const baseName = userProfile?.full_name || authUser.user.user_metadata?.full_name || authUser.user.email?.split('@')[0] || 'Complaints Manager';
+        // Prepend title if available (e.g., "Dr Hussain Gandhi")
+        const signatoryName = userProfile?.title ? `${userProfile.title} ${baseName}` : baseName;
         
         // Check if they have GP Partner role or similar
         const { data: userRoleData } = await supabase

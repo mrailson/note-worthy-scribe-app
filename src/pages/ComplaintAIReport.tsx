@@ -61,21 +61,32 @@ export default function ComplaintAIReport() {
     try {
       setLoading(true);
 
-      // Fetch complaint details
+      // Fetch complaint details - use secure view for involved parties to avoid access_token exposure
       const { data: complaintData, error: complaintError } = await supabase
         .from('complaints')
         .select(`
           *,
           complaint_outcomes (*),
           complaint_acknowledgements (*),
-          complaint_notes (*),
-          complaint_involved_parties (*)
+          complaint_notes (*)
         `)
         .eq('id', id)
         .single();
-
+      
+      // Fetch involved parties separately from secure view
+      const { data: involvedParties } = await supabase
+        .from('complaint_involved_parties_secure')
+        .select('*')
+        .eq('complaint_id', id);
+      
       if (complaintError) throw complaintError;
-      setComplaint(complaintData);
+      
+      // Merge involved parties into complaint data
+      const complaintWithParties = {
+        ...complaintData,
+        complaint_involved_parties: involvedParties || []
+      };
+      setComplaint(complaintWithParties);
 
       // Fetch audio overview if available
       const { data: audioData } = await supabase
