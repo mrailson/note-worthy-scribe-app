@@ -66,6 +66,12 @@ interface ImageGenerationRequest {
     instructions?: string;
   }[];
   
+  // Logo integration - sends logo as reference image to AI
+  logoImage?: {
+    content: string;       // Base64 data URL of logo
+    placement: string;     // 'top-left', 'top-right', etc.
+  };
+  
   // Top-level branding settings (Studio requests send these at top level)
   brandingLevel?: 'none' | 'name-only' | 'name-contact' | 'full' | 'custom';
   customBranding?: {
@@ -375,6 +381,8 @@ serve(async (req) => {
       layoutPreference,
       logoPlacement,
       referenceImages,
+      // Logo integration (sends logo as reference image)
+      logoImage,
       // Branding settings (may be at top level from Studio requests)
       brandingLevel,
       customBranding,
@@ -427,7 +435,9 @@ CURRENT DATE: ${dateStr}
       includeLogo: includeLogo !== undefined ? includeLogo : 'NOT SET',
       customBranding: customBranding || 'NOT SET',
       hasEditedDetails: !!(editedDetails && editedDetails.length > 0),
-      editedDetailsCount: editedDetails?.length || 0
+      editedDetailsCount: editedDetails?.length || 0,
+      hasLogoImage: !!logoImage,
+      logoImagePlacement: logoImage?.placement || 'NOT SET'
     });
 
     // Handle QR code generation separately using the qrcode library
@@ -595,9 +605,32 @@ ${realDetails.map(d => `• ${d}`).join('\n')}
         }
       }
       
-      // Build logo placement instructions
+      // Build logo integration instructions
       let logoSection = '';
-      if (practiceContext?.includeLogo && logoPlacement) {
+      if (logoImage && logoImage.content) {
+        // Logo is being sent as a reference image - build integration instructions
+        const placementGuide: Record<string, string> = {
+          'top-left': 'TOP LEFT corner',
+          'top-right': 'TOP RIGHT corner',
+          'bottom-left': 'BOTTOM LEFT corner',
+          'bottom-right': 'BOTTOM RIGHT corner',
+          'center-top': 'centered at the TOP',
+          'reserve-space': 'TOP RIGHT corner'
+        };
+        
+        logoSection = `
+LOGO INTEGRATION - CRITICAL REQUIREMENT:
+I have provided an image of a logo that MUST be integrated into this design.
+- Place the logo in the ${placementGuide[logoImage.placement] || placementGuide['top-right']} of the image
+- The logo should be clearly visible and appropriately sized (typically 80-150px height equivalent)
+- Ensure the logo has adequate contrast with the background
+- Do NOT modify, redraw, or recreate the logo - use it EXACTLY as provided
+- The logo should look naturally incorporated into the design
+- If the background colour behind the logo placement clashes, add a subtle backdrop or adjust that area
+- Maintain the logo's original colours and proportions
+`;
+      } else if (includeLogo && logoPlacement) {
+        // Fallback: Legacy "reserve space" mode when no logoImage is provided
         const placements: Record<string, string> = {
           'top-left': 'Reserve space in the TOP LEFT corner for a logo to be added later.',
           'top-right': 'Reserve space in the TOP RIGHT corner for a logo to be added later.',
@@ -1031,7 +1064,24 @@ Content guidelines:
       // Build message content - include image attachments and reference images if provided
       const messageContent: any[] = [];
       
-      // Add reference images from Image Studio first if provided
+      // Add logo image FIRST if provided (for logo integration)
+      if (logoImage && logoImage.content) {
+        const logoDataUrl = logoImage.content.startsWith('data:') 
+          ? logoImage.content 
+          : `data:image/png;base64,${logoImage.content}`;
+        
+        // Estimate size for logging
+        const base64Part = logoDataUrl.split(',')[1] || logoDataUrl;
+        const sizeKB = Math.round((base64Part.length * 3 / 4) / 1024);
+        console.log(`🖼️ Including logo image for integration: ${sizeKB}KB, placement: ${logoImage.placement}`);
+        
+        messageContent.push({
+          type: 'image_url',
+          image_url: { url: logoDataUrl }
+        });
+      }
+      
+      // Add reference images from Image Studio if provided
       if (referenceImages && referenceImages.length > 0) {
         const firstRefMode = referenceImages[0]?.mode || 'unknown';
         const firstRefInstructions = referenceImages[0]?.instructions;

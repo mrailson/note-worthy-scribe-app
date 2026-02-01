@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -6,6 +6,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Building2, 
@@ -16,13 +17,16 @@ import {
   Network, 
   ImageIcon,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Upload,
+  X
 } from 'lucide-react';
 import { LOGO_PLACEMENTS } from '@/utils/colourPalettes';
 import type { ImageStudioSettings } from '@/types/imageStudio';
 import type { BrandingLevel, CustomBrandingOptions } from '@/components/ai4gp/ImageBrandingDialog';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface BrandingTabProps {
   settings: ImageStudioSettings;
@@ -34,13 +38,15 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
   const [showCustomOptions, setShowCustomOptions] = React.useState(settings.brandingLevel === 'custom');
   const [logoError, setLogoError] = React.useState(false);
   const [brandingOpen, setBrandingOpen] = React.useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
-  const isLogoAvailable = !!practiceContext?.logoUrl && !logoError;
+  const profileLogoUrl = practiceContext?.logoUrl;
+  const hasProfileLogo = !!profileLogoUrl && !logoError;
+  const hasCustomLogo = !!settings.customLogoData;
+  const hasAnyLogo = hasProfileLogo || hasCustomLogo;
 
   const handleBrandingLevelChange = (value: BrandingLevel) => {
     if (value === 'custom') {
-      // If a user switches to "Custom" and nothing is ticked, default to including the name
-      // (otherwise branding is effectively disabled and the practice name cannot appear).
       const anySelected = Object.values(settings.customBranding).some(Boolean);
       const nextCustomBranding = anySelected
         ? settings.customBranding
@@ -63,8 +69,6 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
   };
 
   const isOptionAvailable = (option: keyof CustomBrandingOptions): boolean => {
-    // Allow Practice Name to be included purely via Custom Practice Name,
-    // even if practiceContext hasn't been populated.
     if (option === 'name') {
       return Boolean((settings.customPracticeName || '').trim() || practiceContext?.practiceName);
     }
@@ -80,6 +84,58 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
     }
   };
 
+  const handleLogoUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Logo must be less than 5MB');
+      return;
+    }
+
+    setIsUploadingLogo(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        onUpdate({ 
+          customLogoData: dataUrl,
+          logoSource: 'custom',
+          includeLogo: true
+        });
+        setIsUploadingLogo(false);
+        toast.success('Logo uploaded successfully');
+      };
+      reader.onerror = () => {
+        toast.error('Failed to read logo file');
+        setIsUploadingLogo(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Logo upload error:', err);
+      toast.error('Failed to upload logo');
+      setIsUploadingLogo(false);
+    }
+
+    // Reset the input
+    event.target.value = '';
+  }, [onUpdate]);
+
+  const handleRemoveCustomLogo = useCallback(() => {
+    onUpdate({ 
+      customLogoData: null,
+      logoSource: hasProfileLogo ? 'profile' : 'custom'
+    });
+  }, [onUpdate, hasProfileLogo]);
+
   const customOptions = [
     { key: 'name' as const, label: 'Practice Name', icon: Building2 },
     { key: 'address' as const, label: 'Address', icon: MapPin },
@@ -91,69 +147,178 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
 
   return (
     <div className="space-y-6">
-      {/* Logo Section */}
+      {/* Logo Integration Section */}
       <Card className={cn(
         "transition-colors",
-        isLogoAvailable 
+        settings.includeLogo && hasAnyLogo
           ? "border-primary/30 bg-primary/5" 
           : "border-dashed border-muted-foreground/30 bg-muted/30"
       )}>
-        <CardContent className="p-4 space-y-3">
+        <CardContent className="p-4 space-y-4">
+          {/* Toggle Row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <ImageIcon className={cn(
                 "h-5 w-5",
-                isLogoAvailable ? "text-primary" : "text-muted-foreground"
+                settings.includeLogo && hasAnyLogo ? "text-primary" : "text-muted-foreground"
               )} />
               <div>
-                <p className="font-medium">Reserve Logo Space</p>
+                <p className="font-medium">Include Logo in Design</p>
                 <p className="text-sm text-muted-foreground">
-                  {isLogoAvailable 
-                    ? "Leave space for your logo to be added" 
-                    : "No logo uploaded in My Profile settings"
+                  {hasAnyLogo 
+                    ? "Your logo will be integrated directly into the generated image" 
+                    : "Upload a logo or add one in My Profile settings"
                   }
                 </p>
               </div>
             </div>
             <Switch
-              checked={settings.includeLogo && isLogoAvailable}
+              checked={settings.includeLogo && hasAnyLogo}
               onCheckedChange={(checked) => onUpdate({ includeLogo: checked })}
-              disabled={!isLogoAvailable}
+              disabled={!hasAnyLogo}
             />
           </div>
           
-          {settings.includeLogo && isLogoAvailable && practiceContext?.logoUrl && (
-            <div className="flex items-center gap-3 pt-3 border-t border-primary/20">
-              <span className="text-sm text-muted-foreground">Your logo:</span>
-              <img 
-                src={practiceContext.logoUrl} 
-                alt="Practice Logo" 
-                className="h-12 max-w-[150px] object-contain border rounded-md bg-white p-1.5 shadow-sm"
-                onError={() => setLogoError(true)}
-              />
+          {/* Logo Selection (when enabled) */}
+          {settings.includeLogo && hasAnyLogo && (
+            <div className="pt-3 border-t border-primary/20 space-y-4">
+              {/* Logo Source Selection */}
+              <RadioGroup
+                value={settings.logoSource}
+                onValueChange={(value: 'profile' | 'custom') => onUpdate({ logoSource: value })}
+                className="space-y-3"
+              >
+                {/* Profile Logo Option */}
+                {hasProfileLogo && (
+                  <div className={cn(
+                    "flex items-center gap-3 p-3 rounded-lg border transition-colors",
+                    settings.logoSource === 'profile' 
+                      ? "border-primary bg-primary/5" 
+                      : "border-muted hover:bg-muted/50"
+                  )}>
+                    <RadioGroupItem value="profile" id="logo-profile" />
+                    <Label htmlFor="logo-profile" className="flex items-center gap-3 flex-1 cursor-pointer">
+                      <img 
+                        src={profileLogoUrl} 
+                        alt="Profile Logo" 
+                        className="h-10 max-w-[100px] object-contain border rounded bg-white p-1"
+                        onError={() => setLogoError(true)}
+                      />
+                      <span className="text-sm">Use profile logo</span>
+                    </Label>
+                  </div>
+                )}
+
+                {/* Custom Logo Option */}
+                <div className={cn(
+                  "p-3 rounded-lg border transition-colors",
+                  settings.logoSource === 'custom' 
+                    ? "border-primary bg-primary/5" 
+                    : "border-muted hover:bg-muted/50"
+                )}>
+                  <div className="flex items-center gap-3">
+                    <RadioGroupItem value="custom" id="logo-custom" />
+                    <Label htmlFor="logo-custom" className="flex-1 cursor-pointer">
+                      <span className="text-sm">
+                        {hasCustomLogo ? 'Use uploaded logo' : 'Upload a different logo'}
+                      </span>
+                    </Label>
+                  </div>
+
+                  {/* Custom Logo Preview / Upload */}
+                  {settings.logoSource === 'custom' && (
+                    <div className="mt-3 ml-6">
+                      {hasCustomLogo ? (
+                        <div className="flex items-center gap-3">
+                          <img 
+                            src={settings.customLogoData!} 
+                            alt="Custom Logo" 
+                            className="h-12 max-w-[120px] object-contain border rounded bg-white p-1.5"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRemoveCustomLogo}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                            id="logo-upload-input"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById('logo-upload-input')?.click()}
+                            disabled={isUploadingLogo}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            {isUploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                          </Button>
+                          <span className="text-xs text-muted-foreground">PNG, JPG, SVG (max 5MB)</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </RadioGroup>
+
+              {/* Logo Placement */}
+              <div className="pt-3 border-t border-primary/20">
+                <Label className="text-sm mb-2 block">Logo Placement</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {LOGO_PLACEMENTS.map((placement) => (
+                    <button
+                      key={placement.id}
+                      type="button"
+                      onClick={() => onUpdate({ logoPlacement: placement.id })}
+                      className={cn(
+                        "p-2 text-sm border rounded-md transition-all",
+                        settings.logoPlacement === placement.id 
+                          ? "border-primary bg-primary/10 font-medium" 
+                          : "hover:bg-muted/50"
+                      )}
+                    >
+                      {placement.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Logo Placement */}
-          {settings.includeLogo && isLogoAvailable && (
-            <div className="pt-3 border-t border-primary/20">
-              <Label className="text-sm mb-2 block">Logo Placement</Label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {LOGO_PLACEMENTS.map((placement) => (
-                  <button
-                    key={placement.id}
-                    type="button"
-                    onClick={() => onUpdate({ logoPlacement: placement.id })}
-                    className={cn(
-                      "p-2 text-sm border rounded-md transition-all",
-                      settings.logoPlacement === placement.id 
-                        ? "border-primary bg-primary/10 font-medium" 
-                        : "hover:bg-muted/50"
-                    )}
-                  >
-                    {placement.label}
-                  </button>
-                ))}
+          {/* No logo available message */}
+          {!hasAnyLogo && (
+            <div className="pt-3 border-t border-muted-foreground/20">
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                  id="logo-upload-input-empty"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => document.getElementById('logo-upload-input-empty')?.click()}
+                  disabled={isUploadingLogo}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isUploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                </Button>
+                <span className="text-xs text-muted-foreground">or add one in My Profile</span>
               </div>
             </div>
           )}
@@ -169,8 +334,6 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
           value={settings.customPracticeName || ''}
           onChange={(e) => {
             const nextName = e.target.value;
-            // If the user provides a custom practice name while in Custom branding mode,
-            // make sure the "Practice Name" option is enabled so it can appear in outputs.
             if (settings.brandingLevel === 'custom' && nextName.trim() && !settings.customBranding.name) {
               onUpdate({
                 customPracticeName: nextName,
@@ -186,6 +349,8 @@ export const BrandingTab: React.FC<BrandingTabProps> = ({ settings, onUpdate }) 
           {practiceContext?.practiceName && ` (${practiceContext.practiceName})`}
         </p>
       </div>
+
+      {/* Practice Details Collapsible */}
       <Collapsible open={brandingOpen} onOpenChange={setBrandingOpen}>
         <CollapsibleTrigger asChild>
           <button
