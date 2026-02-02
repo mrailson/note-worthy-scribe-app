@@ -25,17 +25,23 @@ export const useMeetingKillSignal = (
     onKillSignalRef.current = onKillSignal;
   }, [onKillSignal]);
 
+  // Ref to track current recording state (avoids stale closure issues)
+  const isRecordingRef = useRef(isRecording);
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
   // Check meeting status directly in database (fallback for missed broadcasts)
   // Includes a 2-second grace period to handle multi-tab race conditions
   const checkMeetingStatusDirectly = useCallback(async () => {
-    if (!meetingId || !isRecording || killTriggeredRef.current) return;
+    if (!meetingId || !isRecordingRef.current || killTriggeredRef.current) return;
 
     // MULTI-TAB PROTECTION: Wait 2 seconds after visibility change
     // This allows any pending updates from this tab to propagate
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Double-check we're still recording after the delay (state may have changed)
-    if (!isRecording || killTriggeredRef.current) {
+    // Double-check we're still recording after the delay (uses ref for latest value)
+    if (!isRecordingRef.current || killTriggeredRef.current) {
       console.log('📡 Kill signal: State changed during grace period, skipping check');
       return;
     }
@@ -65,7 +71,7 @@ export const useMeetingKillSignal = (
     } catch (err) {
       console.warn('⚠️ Kill signal: Error checking meeting status:', err);
     }
-  }, [meetingId, isRecording]);
+  }, [meetingId]);
 
   // Handle visibility changes - re-check status when tab becomes visible
   useEffect(() => {
