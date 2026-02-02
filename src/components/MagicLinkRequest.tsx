@@ -179,8 +179,8 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
       if (data?.success) {
         setSubmitted(true);
         toast({
-          title: "Magic Link Sent!",
-          description: "Check your email for a secure login link that expires in 60 minutes.",
+          title: "Request Received",
+          description: "If your email is registered, you'll receive a login link shortly.",
         });
       } else {
         toast({
@@ -230,7 +230,7 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
             <div className="bg-primary/10 border border-primary/20 rounded-md p-4">
               <Mail className="h-12 w-12 mx-auto text-primary mb-2" />
               <p className="text-sm text-muted-foreground mb-2">
-                We've sent a secure login link to:
+                If your email is registered, you'll receive a login link shortly.
               </p>
               <p className="font-medium break-all">{email}</p>
             </div>
