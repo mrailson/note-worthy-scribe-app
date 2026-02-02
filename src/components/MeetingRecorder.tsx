@@ -1469,13 +1469,17 @@ export const MeetingRecorder = ({
         recordingStartTimeRef.current = startTime;
       }
       
+      // FIXED: Calculate chunk start time based on when the chunk ACTUALLY started recording,
+      // not when we're processing it. Use the stored startTime (from chunkStartTimes.current)
+      // which was captured at the moment recording began for this chunk.
       const wallClockStartSeconds = recordingStartTimeRef.current
         ? (startTime.getTime() - recordingStartTimeRef.current.getTime()) / 1000 
         : 0;
-      const monotonicStartSeconds = recordingStartMonotonicRef.current != null
-        ? (performance.now() - recordingStartMonotonicRef.current) / 1000
-        : null;
-      const chunkStartSeconds = (monotonicStartSeconds ?? wallClockStartSeconds);
+      
+      // Use wall clock timing since startTime is already the actual chunk start moment
+      // The previous monotonic calculation was wrong - it used performance.now() at PROCESSING time
+      // not at RECORDING START time, causing first chunk to show as starting at ~30s instead of 0s
+      const chunkStartSeconds = Math.max(0, wallClockStartSeconds);
       
       console.log(`⏱️ Chunk ${chunkId} START time:`, {
         recordingStartSet: !!recordingStartTimeRef.current,
@@ -1483,7 +1487,7 @@ export const MeetingRecorder = ({
         chunkStart: startTime.toISOString(),
         chunkStartSeconds,
         calculationValid: chunkStartSeconds >= 0,
-        timingMode: monotonicStartSeconds != null ? 'monotonic' : 'wallclock'
+        timingMode: 'wallclock-fixed'
       });
       
       const chunkProcessTime = new Date();
@@ -1505,7 +1509,12 @@ export const MeetingRecorder = ({
       // Create blob from chunks
       let chunkBlob = new Blob(chunks, { type: 'audio/webm' });
       const originalSize = chunkBlob.size;
-      const endTime = new Date();
+      
+      // FIXED: Calculate chunk end time based on when recording STOPPED for this chunk,
+      // not when we're processing it. Use the configured chunk duration (10s first, 30s after).
+      // First chunk (chunkId 0) is 10s, subsequent chunks are 30s
+      const chunkDurationSeconds = (chunkId === 0) ? 10 : 30;
+      const endTime = new Date(startTime.getTime() + (chunkDurationSeconds * 1000));
       
       // Step 1: Trim leading/trailing silence (>500ms) to improve last-word confidence
       console.log(`✂️ Trimming silence from chunk ${chunkId}...`);
@@ -1589,13 +1598,12 @@ export const MeetingRecorder = ({
           });
         }
         
+        // FIXED: Calculate end time using wall clock only, since endTime is now correctly
+        // calculated as startTime + chunkDuration (not processing time)
         const wallClockEndSeconds = recordingStart 
           ? (endTime.getTime() - recordingStart.getTime()) / 1000 
           : 0;
-        const monotonicEndSeconds = recordingStartMonotonicRef.current != null
-          ? (performance.now() - recordingStartMonotonicRef.current) / 1000
-          : null;
-        const chunkEndSeconds = (monotonicEndSeconds ?? wallClockEndSeconds);
+        const chunkEndSeconds = Math.max(0, wallClockEndSeconds);
         
         // Store this chunk's end time for the next chunk to use as its start time
         lastChunkEndTime.current = chunkEndSeconds;
@@ -1607,7 +1615,7 @@ export const MeetingRecorder = ({
           recordingStartSet: !!recordingStart,
           recordingStart: recordingStart?.toISOString(),
           chunkEnd: endTime.toISOString(),
-          timingMode: monotonicEndSeconds != null ? 'monotonic' : 'wallclock',
+          timingMode: 'wallclock-fixed',
           savedForNextChunk: lastChunkEndTime.current
         });
         
