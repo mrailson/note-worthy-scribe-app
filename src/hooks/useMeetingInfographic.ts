@@ -64,68 +64,58 @@ export const useMeetingInfographic = () => {
   const formatMeetingForInfographic = (data: MeetingInfographicData): string => {
     const sections: string[] = [];
 
-    // Title and basic info
-    sections.push(`MEETING SUMMARY INFOGRAPHIC`);
-    sections.push(`\nTITLE: ${data.meetingTitle}`);
+    // NEW: "What You Missed" header
+    sections.push(`WHAT YOU MISSED`);
+    sections.push(`─────────────────────────────────`);
     
-    // Meeting metadata
-    const metadata: string[] = [];
-    if (data.meetingDate) metadata.push(`DATE: ${data.meetingDate}`);
-    if (data.meetingTime) metadata.push(`TIME: ${data.meetingTime}`);
-    if (data.location) metadata.push(`LOCATION: ${data.location}`);
-    if (metadata.length > 0) {
-      sections.push(metadata.join(' | '));
+    // PROMINENT DATE (hero element)
+    if (data.meetingDate) {
+      sections.push(`\n📅 ${data.meetingDate}`);
+    }
+    if (data.meetingTime) {
+      sections.push(`⏰ ${data.meetingTime}`);
+    }
+    
+    // Meeting Title
+    sections.push(`\nMEETING: "${data.meetingTitle}"`);
+    
+    if (data.location) {
+      sections.push(`📍 ${data.location}`);
     }
 
-    // Key statistics (without attendee count)
-    sections.push('\nKEY STATISTICS:');
-    sections.push(`• ${data.actionItems.length} Action Items`);
-    
-    // Count key decisions if present in notes
-    const decisionsMatch = data.notesContent.match(/##\s*KEY DECISIONS[:\s]*([\s\S]*?)(?=##|$)/i);
-    if (decisionsMatch) {
-      const decisions = decisionsMatch[1].trim().split('\n').filter(l => l.trim().match(/^[-•*\d]/));
-      sections.push(`• ${decisions.length} Key Decisions`);
-    }
-
-    // Executive summary
-    const execMatch = data.notesContent.match(/##\s*EXECUTIVE SUMMARY[:\s]*([\s\S]*?)(?=##|$)/i);
+    // Executive summary as "THE MEETING IN BRIEF"
+    const execMatch = data.notesContent.match(/(?:#|##)\s*EXECUTIVE SUMMARY[:\s]*([\s\S]*?)(?=(?:#|##)|$)/i);
     if (execMatch) {
-      sections.push('\nEXECUTIVE SUMMARY:');
+      sections.push('\n📝 THE MEETING IN BRIEF:');
       const summary = execMatch[1].trim();
-      sections.push(summary.length > 500 ? summary.substring(0, 500) + '...' : summary);
+      sections.push(summary.length > 400 ? summary.substring(0, 400) + '...' : summary);
+    }
+
+    // Extract Key Points from Discussion Summary
+    const keyPointsMatch = data.notesContent.match(/(?:#|##)\s*(?:Key Points|KEY POINTS|DISCUSSION SUMMARY)[:\s]*([\s\S]*?)(?=(?:#|##)|$)/i);
+    if (keyPointsMatch) {
+      sections.push('\n💡 KEY DISCUSSION POINTS:');
+      const keyPoints = keyPointsMatch[1].trim()
+        .split('\n')
+        .filter(l => l.trim())
+        .slice(0, 5);
+      sections.push(keyPoints.join('\n'));
     }
 
     // Key decisions
+    const decisionsMatch = data.notesContent.match(/(?:#|##)\s*(?:KEY DECISIONS|DECISIONS)[:\s]*([\s\S]*?)(?=(?:#|##)|$)/i);
     if (decisionsMatch) {
-      sections.push('\nKEY DECISIONS:');
-      const decisions = decisionsMatch[1].trim().split('\n')
+      sections.push('\n✅ DECISIONS MADE:');
+      const decisions = decisionsMatch[1].trim()
+        .split('\n')
         .filter(l => l.trim())
-        .slice(0, 5);
+        .slice(0, 4);
       sections.push(decisions.join('\n'));
     }
 
-    // Action items
+    // Action items - now SECONDARY (just a count)
     if (data.actionItems.length > 0) {
-      sections.push('\nACTION ITEMS:');
-      const topItems = data.actionItems.slice(0, 6);
-      topItems.forEach((item, idx) => {
-        let line = `${idx + 1}. ${item.description}`;
-        if (item.owner) line += ` (${item.owner})`;
-        if (item.deadline) line += ` - Due: ${item.deadline}`;
-        sections.push(line);
-      });
-      if (data.actionItems.length > 6) {
-        sections.push(`... and ${data.actionItems.length - 6} more action items`);
-      }
-    }
-
-    // Next steps
-    const nextStepsMatch = data.notesContent.match(/##\s*NEXT STEPS[:\s]*([\s\S]*?)(?=##|$)/i);
-    if (nextStepsMatch) {
-      sections.push('\nNEXT STEPS:');
-      const nextSteps = nextStepsMatch[1].trim();
-      sections.push(nextSteps.length > 300 ? nextSteps.substring(0, 300) + '...' : nextSteps);
+      sections.push(`\n📋 ${data.actionItems.length} action item${data.actionItems.length > 1 ? 's' : ''} assigned`);
     }
 
     return sections.join('\n');
@@ -166,32 +156,39 @@ Apply this creative direction while maintaining readability and professional pre
         setTimeout(() => reject(new Error('Image generation timed out after 120 seconds. Please try again.')), 120000);
       });
 
-      const customPrompt = `Create a HIGH QUALITY, visually stunning GP Practice meeting summary infographic with RICH VISUAL DESIGN.
+      const customPrompt = `Create a HIGH QUALITY "WHAT YOU MISSED" meeting overview infographic.
 
 MEETING: "${data.meetingTitle}"
 
-VISUAL STYLE INSTRUCTIONS (CRITICAL - APPLY THESE THROUGHOUT):
+CONCEPT: This is a visual catch-up for people who missed the meeting. 
+Focus on WHAT HAPPENED, not just tasks.
+
+VISUAL STYLE INSTRUCTIONS:
 ${styleInstruction}
 
-CONTENT TO INCLUDE:
-- Meeting title as a prominent header
-- Date and time displayed clearly
-- Key decisions made during the meeting  
-- ${data.actionItems.length} action items with owners and deadlines shown in visual cards or boxes
-- Main discussion points and outcomes
+CRITICAL CONTENT HIERARCHY (in order of visual prominence):
 
-DESIGN QUALITY REQUIREMENTS:
-- PREMIUM professional design quality - not basic or plain
-- Rich visual elements: gradients, shadows, depth, layered elements
-- Custom iconography relevant to the content (medical, meetings, tasks, calendar icons)
-- Modern infographic styling with visual hierarchy
-- Colour palette matching the style: use bold accent colours, not just basic blue
-- Data visualisation elements (progress rings, stat cards, visual indicators)
-- Clean typography with clear heading/body distinction
+1. "WHAT YOU MISSED" - Bold header at top
+2. DATE AND TIME - Display VERY PROMINENTLY as a HERO ELEMENT (large, styled)
+   ${data.meetingDate ? `Date: ${data.meetingDate}` : ''}
+   ${data.meetingTime ? `Time: ${data.meetingTime}` : ''}
+3. MEETING TITLE - Clear and readable
+4. THE MEETING IN BRIEF - Key summary paragraph (what this meeting was about)
+5. KEY DISCUSSION POINTS - The main topics and conversations that took place
+6. DECISIONS MADE - Important outcomes that were agreed
+7. ACTION ITEMS - Small/optional section with just a count or brief mention
+
+DESIGN REQUIREMENTS:
+- "WHAT YOU MISSED" banner/badge styling at the top
+- Date should be a VISUAL FOCAL POINT (large, perhaps in a date card/badge design)
+- Use storytelling layout - help the reader understand what happened
+- Visual icons for each section (calendar, lightbulb, checkmark, etc.)
+- Professional GP practice/NHS styling
 - British English spelling throughout
-- A4 portrait format, suitable for printing or digital sharing
+- A4 portrait format, suitable for printing or sharing digitally
 - NO attendee counts or participant numbers
-- Make it look like a PROFESSIONALLY DESIGNED infographic, not a basic template`;
+- Action items should be MINIMAL - just mention count, not full details
+- Make it feel like catching up with a colleague, not a task list`;
 
       const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
