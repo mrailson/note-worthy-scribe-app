@@ -1,137 +1,235 @@
 
 
-# Fix Plan: Stuck "Generating Notes" Spinner
+# Plan: Meeting Infographic - "What You Missed" Overview Style
 
 ## Summary
 
-The spinner in the "Meeting Saved Successfully" dialog gets stuck on "Generating notes..." because:
-1. The component relies **solely** on Supabase Realtime subscriptions to detect when notes are ready
-2. If the Realtime update is missed (network glitch, browser tab in background, connection timeout), the status never updates
-3. There's **no polling fallback** to periodically check the database for completion
+Transform the meeting infographic from an action-item-focused summary into a compelling **"What You Missed"** overview that emphasises:
+- **Meeting Date** (prominently displayed as a hero element)
+- **Key Discussion Points** (what was actually talked about)
+- **Main Outcomes and Decisions** (what matters most)
+- De-emphasise action items (optional/secondary)
+
+This creates a visual "catch-up" card perfect for sharing with colleagues who missed the meeting.
 
 ---
 
-## Root Cause
+## Current vs New Approach
 
-### Current Flow (Fragile)
-```text
-1. Modal opens → Initial fetch shows "generating"
-2. Realtime subscription starts
-3. User waits...
-4. [Realtime update missed] ← Problem point
-5. Spinner stays forever
+| Current Focus | New "What You Missed" Focus |
+|---------------|---------------------------|
+| Action items as primary content | Key discussion points as primary |
+| Date/time shown in small text | Date displayed PROMINENTLY (hero) |
+| "X action items" as key statistic | "What happened" narrative |
+| Task-oriented layout | Story-oriented layout |
+| "Creating visual summary with X action items" | "Creating 'What You Missed' overview" |
+
+---
+
+## Visual Concept
+
+The new infographic will follow this visual hierarchy:
+
+```
+┌────────────────────────────────────────┐
+│  🗓️  WHAT YOU MISSED                   │
+│  ═══════════════════                   │
+│  📅 Monday 2nd February 2026           │  ← HERO DATE
+│  ⏰ 15:00 GMT                          │
+│                                        │
+│  ┌──────────────────────────────────┐  │
+│  │ MEETING TITLE                    │  │
+│  │ "Take That Reunion: Robbie's     │  │
+│  │  Return and Tour Reflections"    │  │
+│  └──────────────────────────────────┘  │
+│                                        │
+│  📝 THE MEETING IN BRIEF               │
+│  • Summary paragraph from exec summary │
+│                                        │
+│  💡 KEY DISCUSSION POINTS              │
+│  • Point 1 - what was discussed        │
+│  • Point 2 - important topic           │
+│  • Point 3 - key conversation          │
+│                                        │
+│  ✅ DECISIONS MADE                     │
+│  • Decision 1                          │
+│  • Decision 2                          │
+│                                        │
+│  📋 Action Items: 3 (optional small)   │
+└────────────────────────────────────────┘
 ```
 
-### Evidence from Database
-Your meeting:
-- Created: 14:45:52
-- Notes completed: 14:53:24 (queue) / 14:55:08 (meeting updated)
-- Total wait: ~9 minutes
-
-The notes **did** generate successfully, but the Realtime subscription likely didn't fire or was missed while you were watching.
-
 ---
 
-## Solution: Add Polling Fallback
+## Technical Changes
 
-Add a periodic polling mechanism that checks the database every 15 seconds as a fallback to the Realtime subscription. This ensures the UI eventually updates even if Realtime fails.
+### File 1: `src/hooks/useMeetingInfographic.ts`
 
-### Changes to `src/components/PostMeetingActionsModal.tsx`
+#### Change 1: Update `formatMeetingForInfographic` function (lines 64-132)
 
-1. **Add polling interval** alongside the Realtime subscription
-2. **Clear the interval** when status becomes `completed` or `error`
-3. **Keep Realtime** as the primary (faster) update mechanism
+**Current behaviour**: Extracts action items prominently, counts them as key statistic.
+
+**New behaviour**: 
+- Create a "WHAT YOU MISSED" overview section
+- Extract "Key Points" from the Discussion Summary section
+- Extract "Discussion Topics" for what was talked about
+- Move action items to a simple count at the bottom
 
 ```typescript
-// In the useEffect that handles status subscription (around line 53)
+const formatMeetingForInfographic = (data: MeetingInfographicData): string => {
+  const sections: string[] = [];
 
-useEffect(() => {
-  if (!meetingId || !isOpen) return;
-
-  const fetchMeetingStatus = async () => {
-    // ... existing fetch logic ...
-  };
-
-  // Initial fetch
-  fetchMeetingStatus();
-
-  // Skip real-time subscription for test meetings
-  if (meetingId.startsWith('test-meeting-id-')) {
-    return;
+  // NEW: "What You Missed" header
+  sections.push(`WHAT YOU MISSED`);
+  sections.push(`─────────────────────────────────`);
+  
+  // PROMINENT DATE (hero element)
+  if (data.meetingDate) {
+    sections.push(`\n📅 ${data.meetingDate}`);
+  }
+  if (data.meetingTime) {
+    sections.push(`⏰ ${data.meetingTime}`);
+  }
+  
+  // Meeting Title
+  sections.push(`\nMEETING: "${data.meetingTitle}"`);
+  
+  if (data.location) {
+    sections.push(`📍 ${data.location}`);
   }
 
-  // ENHANCEMENT: Polling fallback every 15 seconds
-  // This catches cases where Realtime subscription misses the update
-  const pollInterval = setInterval(() => {
-    if (notesStatus === 'generating') {
-      console.log('🔄 Polling for notes status update...');
-      fetchMeetingStatus();
-    }
-  }, 15000);
+  // Executive summary as "THE MEETING IN BRIEF"
+  const execMatch = data.notesContent.match(/(?:#|##)\s*EXECUTIVE SUMMARY[:\s]*([\s\S]*?)(?=(?:#|##)|$)/i);
+  if (execMatch) {
+    sections.push('\n📝 THE MEETING IN BRIEF:');
+    const summary = execMatch[1].trim();
+    sections.push(summary.length > 400 ? summary.substring(0, 400) + '...' : summary);
+  }
 
-  // Subscribe to real-time updates (primary, faster method)
-  const channel = supabase
-    .channel(`meeting-${meetingId}`)
-    .on(/* ... existing subscription ... */)
-    .subscribe();
+  // NEW: Extract Key Points from Discussion Summary
+  const keyPointsMatch = data.notesContent.match(/(?:#|##)\s*(?:Key Points|KEY POINTS)[:\s]*([\s\S]*?)(?=(?:#|##)|$)/i);
+  if (keyPointsMatch) {
+    sections.push('\n💡 KEY DISCUSSION POINTS:');
+    const keyPoints = keyPointsMatch[1].trim()
+      .split('\n')
+      .filter(l => l.trim())
+      .slice(0, 5);
+    sections.push(keyPoints.join('\n'));
+  }
 
-  return () => {
-    clearInterval(pollInterval);
-    supabase.removeChannel(channel);
-  };
-}, [meetingId, isOpen]);
+  // Key decisions
+  const decisionsMatch = data.notesContent.match(/(?:#|##)\s*(?:KEY DECISIONS|DECISIONS)[:\s]*([\s\S]*?)(?=(?:#|##)|$)/i);
+  if (decisionsMatch) {
+    sections.push('\n✅ DECISIONS MADE:');
+    const decisions = decisionsMatch[1].trim()
+      .split('\n')
+      .filter(l => l.trim())
+      .slice(0, 4);
+    sections.push(decisions.join('\n'));
+  }
+
+  // Action items - now SECONDARY (just a count or brief list)
+  if (data.actionItems.length > 0) {
+    sections.push(`\n📋 ${data.actionItems.length} action item${data.actionItems.length > 1 ? 's' : ''} assigned`);
+  }
+
+  return sections.join('\n');
+};
+```
+
+#### Change 2: Update `customPrompt` (lines 169-194)
+
+**Current**: Focuses on action items with owners/deadlines.
+
+**New**: "What You Missed" overview style with date as hero.
+
+```typescript
+const customPrompt = `Create a HIGH QUALITY "WHAT YOU MISSED" meeting overview infographic.
+
+MEETING: "${data.meetingTitle}"
+
+CONCEPT: This is a visual catch-up for people who missed the meeting. 
+Focus on WHAT HAPPENED, not just tasks.
+
+VISUAL STYLE INSTRUCTIONS:
+${styleInstruction}
+
+CRITICAL CONTENT HIERARCHY (in order of visual prominence):
+
+1. "WHAT YOU MISSED" - Bold header at top
+2. DATE AND TIME - Display VERY PROMINENTLY as a HERO ELEMENT (large, styled)
+   ${data.meetingDate ? `Date: ${data.meetingDate}` : ''}
+   ${data.meetingTime ? `Time: ${data.meetingTime}` : ''}
+3. MEETING TITLE - Clear and readable
+4. THE MEETING IN BRIEF - Key summary paragraph (what this meeting was about)
+5. KEY DISCUSSION POINTS - The main topics and conversations that took place
+6. DECISIONS MADE - Important outcomes that were agreed
+7. ACTION ITEMS - Small/optional section with just a count or brief mention
+
+DESIGN REQUIREMENTS:
+- "WHAT YOU MISSED" banner/badge styling at the top
+- Date should be a VISUAL FOCAL POINT (large, perhaps in a date card/badge design)
+- Use storytelling layout - help the reader understand what happened
+- Visual icons for each section (calendar, lightbulb, checkmark, etc.)
+- Professional GP practice/NHS styling
+- British English spelling throughout
+- A4 portrait format, suitable for printing or sharing digitally
+- NO attendee counts or participant numbers
+- Action items should be MINIMAL - just mention count, not full details
+- Make it feel like catching up with a colleague, not a task list`;
+```
+
+### File 2: `src/components/meeting-details/MeetingInfographicModal.tsx`
+
+#### Change 3: Update `GENERATION_TIPS` (lines 41-50)
+
+```typescript
+const GENERATION_TIPS = [
+  "Designing 'What You Missed' overview...",
+  "Creating visual date and time display...",
+  "Extracting key discussion points...",
+  "Formatting main decisions and outcomes...",
+  "Adding professional NHS styling...",
+  "Creating story-focused layout...",
+  "Adding icons and visual elements...",
+  "Almost ready! Finalising your overview...",
+];
+```
+
+#### Change 4: Update progress message (line 254)
+
+```typescript
+// FROM:
+<p className="text-xs text-muted-foreground/70">
+  Creating visual summary with {meetingData.actionItems.length} action items
+</p>
+
+// TO:
+<p className="text-xs text-muted-foreground/70">
+  Creating "What You Missed" overview with key points and decisions
+</p>
 ```
 
 ---
 
-## Technical Details
+## Files to Modify
 
-### Why 15 Seconds?
-- Short enough to feel responsive if Realtime fails
-- Long enough to not overwhelm the database with requests
-- Notes generation typically takes 30 seconds to 10+ minutes for long meetings
-
-### Why Keep Realtime?
-- Provides instant updates when working correctly
-- More efficient than polling when connection is stable
-- Polling is just a safety net
-
-### Status Flow After Fix
-```text
-1. Modal opens → Initial fetch shows "generating"
-2. Realtime subscription starts
-3. Polling starts (every 15s)
-4. [Either:]
-   a. Realtime fires → Status updates immediately
-   b. Realtime missed → Polling catches it within 15s
-5. Spinner clears, "Notes ready!" toast appears
-```
+| File | Changes |
+|------|---------|
+| `src/hooks/useMeetingInfographic.ts` | Update content extraction and AI prompt |
+| `src/components/meeting-details/MeetingInfographicModal.tsx` | Update UI tips and progress text |
 
 ---
 
-## Files to Change
+## Expected Output
 
-| File | Change |
-|------|--------|
-| `src/components/PostMeetingActionsModal.tsx` | Add polling fallback interval |
+The new infographic will:
 
----
-
-## Additional Consideration: Long Generation Warning
-
-For transcripts that take >2 minutes to generate, we could also add a message like:
-
-> "This is a longer transcript. Notes generation may take several minutes."
-
-This sets user expectations for the wait time.
-
----
-
-## Testing After Fix
-
-1. Start a recording, then stop it
-2. Observe the "Generating notes..." spinner
-3. Wait for notes to complete (check database directly)
-4. Verify the spinner clears within 15 seconds of completion
-5. If Realtime works, it should clear immediately
+1. ✅ Feature the **date prominently** as a hero visual element
+2. ✅ Focus on **key discussion points** (what was talked about)
+3. ✅ Include **decisions made** (outcomes)
+4. ✅ Show a brief **executive summary** (the meeting in brief)
+5. ✅ De-emphasise action items (just a count, not detailed list)
+6. ✅ Feel like a "catch-up card" for someone who missed the meeting
+7. ✅ Use British English throughout
 
