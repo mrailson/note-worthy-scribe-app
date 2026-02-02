@@ -191,14 +191,56 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
     return File;
   };
 
+  // Quick pick prompts for Practice Managers
+  const quickPicks = [
+    { 
+      label: 'Summarise Attachments', 
+      prompt: 'Create an infographic that summarises the key information from the uploaded attachments',
+      requiresFiles: true
+    },
+    { 
+      label: 'Staff Poster', 
+      prompt: 'Create a professional poster for the staff room with key information and clear messaging' 
+    },
+    { 
+      label: 'Patient Notice', 
+      prompt: 'Create a patient-friendly waiting room notice with clear, accessible messaging' 
+    },
+  ];
+
+  const handleQuickPick = (prompt: string) => {
+    onUpdate({ description: prompt });
+  };
+
   return (
     <div className="space-y-6">
       {/* Description with mic */}
       <div className="space-y-2">
-        <Label htmlFor="description" className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4" />
-          What do you want to create?
-        </Label>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <Label htmlFor="description" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            What do you want to create?
+          </Label>
+          <div className="flex gap-1.5 flex-wrap">
+            {quickPicks.map((pick) => {
+              const isDisabled = pick.requiresFiles && uploadedFiles.length === 0;
+              return (
+                <Button
+                  key={pick.label}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickPick(pick.prompt)}
+                  disabled={isDisabled}
+                  className="h-7 text-xs px-2"
+                  title={isDisabled ? 'Upload a file first' : pick.prompt}
+                >
+                  {pick.label}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
         <div className="flex gap-2">
           <Textarea
             id="description"
