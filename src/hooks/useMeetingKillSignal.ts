@@ -26,8 +26,19 @@ export const useMeetingKillSignal = (
   }, [onKillSignal]);
 
   // Check meeting status directly in database (fallback for missed broadcasts)
+  // Includes a 2-second grace period to handle multi-tab race conditions
   const checkMeetingStatusDirectly = useCallback(async () => {
     if (!meetingId || !isRecording || killTriggeredRef.current) return;
+
+    // MULTI-TAB PROTECTION: Wait 2 seconds after visibility change
+    // This allows any pending updates from this tab to propagate
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Double-check we're still recording after the delay (state may have changed)
+    if (!isRecording || killTriggeredRef.current) {
+      console.log('📡 Kill signal: State changed during grace period, skipping check');
+      return;
+    }
 
     try {
       const { data, error } = await supabase
