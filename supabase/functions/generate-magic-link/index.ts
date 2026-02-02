@@ -202,7 +202,50 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Generating magic link for:", email);
+    // Check if user exists BEFORE generating magic link
+    // This prevents automatic user creation by Supabase
+    const { data: userExists, error: checkError } = await supabaseAdmin.rpc(
+      'check_user_exists_by_email', 
+      { email_param: email }
+    );
+
+    if (checkError) {
+      console.error("Error checking user existence:", checkError);
+      // Continue anyway to avoid blocking legitimate users if check fails
+    }
+
+    // If user doesn't exist, log the attempt but return SAME success message
+    // This prevents email enumeration attacks
+    if (userExists === false) {
+      console.log("Magic link requested for non-existent user:", email);
+      
+      // Log to security events for monitoring
+      try {
+        await supabaseAdmin.from("security_events").insert({
+          event_type: "magic_link_nonexistent_user",
+          severity: "info",
+          ip_address: clientIP,
+          user_agent: userAgent,
+          details: {
+            email_requested: email,
+            reason: "User does not exist - link not generated",
+          },
+        });
+      } catch (securityLogError) {
+        console.error("Failed to log security event:", securityLogError);
+      }
+
+      // Return SAME message as success - prevents enumeration
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "If your email is registered, you'll receive a login link shortly.",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log("User exists, generating magic link for:", email);
 
     // Generate magic link using Admin API
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
@@ -256,7 +299,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Magic link sent successfully via EmailJS",
+        message: "If your email is registered, you'll receive a login link shortly.",
       }),
       {
         status: 200,

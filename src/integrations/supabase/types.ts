@@ -9796,6 +9796,10 @@ export type Database = {
           severity: string
         }[]
       }
+      check_user_exists_by_email: {
+        Args: { email_param: string }
+        Returns: boolean
+      }
       check_user_practice_assignment: {
         Args: { p_email: string; p_practice_id: string }
         Returns: Json
