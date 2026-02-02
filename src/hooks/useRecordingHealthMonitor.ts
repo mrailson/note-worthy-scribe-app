@@ -96,29 +96,34 @@ export const useRecordingHealthMonitor = ({
     }
   }, [meetingId, isRecording, onServerClosureDetected]);
 
+  // Timing constants for stall detection (in milliseconds)
+  // Server auto-closes at 90 minutes, so warn well before that
+  const WARNING_THRESHOLD_MS = 60 * 60 * 1000; // 60 minutes
+  const CRITICAL_THRESHOLD_MS = 75 * 60 * 1000; // 75 minutes (15 mins before server auto-close)
+
   // Check for transcription stalls
   const checkForStalls = useCallback(() => {
     if (!isRecording || !lastChunkTimestampRef.current) return;
 
     const timeSinceLastChunk = Date.now() - lastChunkTimestampRef.current;
 
-    // Warning after 60 seconds
-    if (timeSinceLastChunk >= 60000 && !state.stalledWarningShown) {
-      console.warn('⚠️ Health monitor: No transcription activity for 60s');
-      showToast.warning('No speech detected for 1 minute. Check your audio input.', {
+    // Warning after 60 minutes
+    if (timeSinceLastChunk >= WARNING_THRESHOLD_MS && !state.stalledWarningShown) {
+      console.warn('⚠️ Health monitor: No transcription activity for 60 minutes');
+      showToast.warning('No audio activity for 1 hour. Recording will auto-close at 90 minutes.', {
         section: 'meeting_manager',
-        duration: 8000
+        duration: 15000
       });
       setState(prev => ({ ...prev, stalledWarningShown: true }));
       onRecordingStalled?.();
     }
 
-    // Critical warning after 120 seconds
-    if (timeSinceLastChunk >= 120000 && !state.criticalWarningShown) {
-      console.error('🚨 Health monitor: No transcription activity for 120s - recording may have stalled!');
-      showToast.error('Recording may have stalled. Consider stopping and checking your setup.', {
+    // Critical warning after 75 minutes (15 mins before auto-close)
+    if (timeSinceLastChunk >= CRITICAL_THRESHOLD_MS && !state.criticalWarningShown) {
+      console.error('🚨 Health monitor: No transcription activity for 75 mins - will auto-close in 15 mins!');
+      showToast.error('Recording will auto-close in 15 minutes due to inactivity.', {
         section: 'meeting_manager',
-        duration: 15000
+        duration: 30000
       });
       setState(prev => ({ ...prev, criticalWarningShown: true }));
     }

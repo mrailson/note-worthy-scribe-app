@@ -31,13 +31,13 @@ serve(async (req) => {
 
     console.log('🔄 Starting auto-close check for inactive meetings...');
 
-    // Calculate cutoff time (3 minutes ago - increased from 2 for better reliability)
-    // This gives more buffer time for:
-    // - Slow network connections
-    // - Large audio chunks being processed
-    // - Browser tab being backgrounded (which can slow timers)
-    // - Reconnection attempts after transient failures
-    const INACTIVITY_THRESHOLD_MINUTES = 3;
+    // Calculate cutoff time (90 minutes - allows for long backgrounded recordings)
+    // This extended timeout supports users who:
+    // - Open new tabs during recording
+    // - Have long meetings that may pause naturally
+    // - Want recordings to persist through temporary disconnections
+    // A 60-minute warning is shown client-side before this threshold
+    const INACTIVITY_THRESHOLD_MINUTES = 90;
     const cutoffTime = new Date(Date.now() - INACTIVITY_THRESHOLD_MINUTES * 60 * 1000).toISOString();
     console.log(`⏰ Checking for meetings inactive since: ${cutoffTime} (${INACTIVITY_THRESHOLD_MINUTES} min threshold)`);
 
