@@ -102,6 +102,23 @@ export const EnhancedBrowserMic = forwardRef<EnhancedBrowserMicRef, EnhancedBrow
 
   const startAudioAnalysis = useCallback(async () => {
     try {
+      // Clean up any existing audio context first to prevent memory leaks
+      if (audioContextRef.current) {
+        try {
+          await audioContextRef.current.close();
+        } catch {}
+        audioContextRef.current = null;
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      analyserRef.current = null;
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,

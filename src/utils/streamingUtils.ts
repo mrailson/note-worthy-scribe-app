@@ -96,8 +96,8 @@ export function stripHeavyContentFromMessage(message: any): any {
       size: file.size,
       isLoading: false,
       metadata: file.metadata,
-      content: file.content?.length > 10000 ? '[STRIPPED_FOR_MEMORY]' : file.content,
-      wasStripped: file.content?.length > 10000
+      content: file.content?.length > 5000 ? '[STRIPPED_FOR_MEMORY]' : file.content, // Reduced threshold from 10000 for more aggressive cleanup
+      wasStripped: file.content?.length > 5000
     }));
   }
   

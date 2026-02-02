@@ -458,9 +458,17 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
     return () => {
       console.log('EmbeddedPMGenie unmounting - cleaning up...');
       
+      // Clear interval timers first
       if (volumeGuardTimerRef.current) {
         clearInterval(volumeGuardTimerRef.current);
         volumeGuardTimerRef.current = null;
+      }
+      
+      // Clean up audio elements to prevent memory leaks
+      if (wakeAudioRef.current) {
+        wakeAudioRef.current.pause();
+        wakeAudioRef.current.src = '';
+        wakeAudioRef.current = null;
       }
       
       // Always try to end the session on unmount to prevent orphaned connections

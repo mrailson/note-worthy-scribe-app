@@ -10,9 +10,9 @@ import { VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
 import { optimiseMessagesForMemory } from '@/utils/streamingUtils';
 
 // Memory leak prevention: Max messages to keep in state (older ones are discarded from UI but saved in DB)
-const MAX_MESSAGES_IN_MEMORY = 50;
+const MAX_MESSAGES_IN_MEMORY = 40; // Reduced from 50 for more aggressive memory management
 // Number of recent messages to keep fully intact (including base64 content)
-const KEEP_RECENT_MESSAGES_INTACT = 10;
+const KEEP_RECENT_MESSAGES_INTACT = 5; // Reduced from 10 for more aggressive memory stripping
 
 export const useAI4GPService = () => {
   const { user } = useAuth();
@@ -39,6 +39,17 @@ export const useAI4GPService = () => {
   const streamTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const verificationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const simulatedStreamTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Track simulated streaming timeouts
+  
+  // Refs for frequently-changing values to prevent stale closures in callbacks
+  const selectedModelRef = useRef(selectedModel);
+  const isClinicalRef = useRef(isClinical);
+  const messagesRef = useRef(messages);
+  
+  // Keep refs in sync with state to prevent stale closures
+  useEffect(() => { selectedModelRef.current = selectedModel; }, [selectedModel]);
+  useEffect(() => { isClinicalRef.current = isClinical; }, [isClinical]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
   
   // Cleanup function to clear all pending timeouts
   useEffect(() => {
@@ -46,6 +57,7 @@ export const useAI4GPService = () => {
       if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
       if (verificationTimeoutRef.current) clearTimeout(verificationTimeoutRef.current);
+      if (simulatedStreamTimeoutRef.current) clearTimeout(simulatedStreamTimeoutRef.current);
     };
   }, []);
   
@@ -70,7 +82,7 @@ export const useAI4GPService = () => {
     setIsClinical(verificationLevel === 'latest' || verificationLevel === 'maximum');
   }, [verificationLevel]);
 
-  // Periodic memory cleanup - runs every 60 seconds when there are messages
+  // Periodic memory cleanup - runs every 30 seconds for more aggressive memory management
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
       setMessages(prev => {
@@ -80,7 +92,7 @@ export const useAI4GPService = () => {
         }
         return prev;
       });
-    }, 60000); // Every 60 seconds
+    }, 30000); // Every 30 seconds (reduced from 60 for more aggressive cleanup)
     
     return () => clearInterval(cleanupInterval);
   }, []);
@@ -991,7 +1003,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               ));
 
               if (currentIndex < chunks.length) {
-                setTimeout(streamChunks, 15 + Math.random() * 10);
+                simulatedStreamTimeoutRef.current = setTimeout(streamChunks, 15 + Math.random() * 10);
               } else {
                 const endTime = Date.now();
                 const responseTime = endTime - startTime;
@@ -1084,7 +1096,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               ));
 
               if (currentIndex < chunks.length) {
-                setTimeout(streamChunks, 15 + Math.random() * 10);
+                simulatedStreamTimeoutRef.current = setTimeout(streamChunks, 15 + Math.random() * 10);
               } else {
                 const endTime = Date.now();
                 const responseTime = endTime - startTime;
@@ -1625,8 +1637,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           ));
 
           if (currentIndex < chunks.length) {
-            // Ultra-fast streaming for quick actions - minimal delay
-            setTimeout(streamChunks, 8 + Math.random() * 5);
+            // Ultra-fast streaming for quick actions - minimal delay (tracked for cleanup)
+            simulatedStreamTimeoutRef.current = setTimeout(streamChunks, 8 + Math.random() * 5);
           } else {
             // Streaming complete
             const endTime = Date.now();
