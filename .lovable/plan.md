@@ -1,126 +1,159 @@
 
-# Fix Plan: Prevent Premature Meeting Auto-Closure
+# Fix Plan: Recording Auto-Close and First 30s Missing Issues
 
 ## Summary
 
-Your meetings are being closed prematurely by a **database cron job** (`cleanup_stuck_meetings`) that runs hourly and closes ANY meeting with `word_count > 0`, regardless of how long it's been recording. This overrides the 90-minute timeout you configured.
+Two separate issues are happening on your live site:
+
+1. **Recording auto-closed prematurely** - Multiple toast messages indicate the server closed the recording
+2. **First 30 seconds missing** - Batch Whisper chunk #1 starts at 0:30 instead of 0:00
 
 ---
 
-## Technical Details
+## Root Cause Analysis
 
-### The Problem
+### Issue 1: Recording Auto-Closed Prematurely
 
-Three systems can close meetings:
+The code changes made earlier today (chunk timing fix) **have not been published to the live site**. The live site is running older code that may have different behaviour in the kill signal detection.
 
-| System | Threshold | Runs | Issue |
-|--------|-----------|------|-------|
-| `auto-close-inactive-meetings` edge function | 90 mins | Every 5 mins (client triggers) | Correct |
-| `cleanup_stuck_meetings` database function | word_count > 0 OR 4 hours | Hourly via pg_cron | **Closes meetings with ANY words** |
-| Client health monitor | 60/75 min warnings | Every 30 seconds | Correct (needs republish) |
+**Evidence from investigation:**
+- Edge function logs show: `"Closed 0 inactive meetings"` - so the edge function is NOT the culprit
+- Database function `cleanup_stuck_meetings` is correctly using 90-minute threshold
+- Meeting created at 14:01:34, ended at 14:02:49 (only ~1 minute later)
+- You had **multiple tabs open** - this can cause race conditions
 
-The `cleanup_stuck_meetings` function was designed to clean up genuinely stuck meetings, but its logic is too aggressive - it closes any recording that has transcribed words, even if it's actively in progress.
+**Likely cause:** With multiple tabs open, one tab's health monitor detected `status = 'completed'` in the database (possibly set by another tab's cleanup or stale state) and triggered the "Recording was ended by the server due to inactivity" toast.
+
+### Issue 2: First 30 Seconds Missing
+
+The batch Whisper chunk timing was calculating start/end times using `performance.now()` at **processing time** instead of **recording start time**.
+
+- First chunk records 0-10s of audio
+- Whisper API takes ~20s to process
+- By processing time, `performance.now()` shows ~30 seconds elapsed
+- Chunk displays as starting at 0:30 instead of 0:00
+
+**This has been fixed** in the preview environment but needs publishing.
 
 ---
 
-## Solution Steps
+## Solution
 
-### Step 1: Update the Database Function
+### Step 1: Publish All Recent Changes
 
-Modify `cleanup_stuck_meetings` to:
-- Only close meetings older than **90 minutes** (matching the edge function threshold)
-- Remove the `word_count > 0` condition that causes premature closure
-- Add logging to track when meetings are auto-closed
+The following fixes are in preview but not yet live:
 
-New logic:
-```sql
-WHERE status = 'recording' 
-  AND (
-    notes_generation_status = 'completed'  -- Already has notes = definitely stuck
-    OR created_at < now() - INTERVAL '90 minutes'  -- Match the edge function threshold
-  )
+| Fix | Status | Action |
+|-----|--------|--------|
+| Chunk timing (0:00 start) | In preview | Publish |
+| 90-min cleanup threshold | In database | Already live |
+| Kill signal improvements | In preview | Publish |
+
+**To publish:**
+1. Click the **publish button** (globe icon, top right)
+2. Click **"Update"**
+
+### Step 2: Multi-Tab Protection (Enhancement)
+
+To prevent multiple tabs from conflicting, we should add a **session lock** that prevents the kill signal from triggering prematurely.
+
+**Proposed changes to `useMeetingKillSignal.ts`:**
+
+```typescript
+// Add a 5-second grace period before checking database status
+// This allows the current tab's own updates to propagate
+
+const checkMeetingStatusDirectly = useCallback(async () => {
+  if (!meetingId || !isRecording || killTriggeredRef.current) return;
+  
+  // ENHANCEMENT: Wait 2 seconds after visibility change
+  // to allow any pending updates from this tab to complete
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Double-check we're still recording after the delay
+  if (!isRecording || killTriggeredRef.current) return;
+
+  try {
+    const { data, error } = await supabase
+      .from('meetings')
+      .select('status')
+      .eq('id', meetingId)
+      .single();
+
+    if (error) {
+      console.warn('Kill signal: Failed to check meeting status:', error.message);
+      return;
+    }
+
+    // Only trigger if status is definitely 'completed'
+    if (data?.status === 'completed') {
+      console.log('Kill signal: Detected server-side closure via direct check');
+      killTriggeredRef.current = true;
+      showToast.warning('Recording was ended by the server due to inactivity', {
+        section: 'meeting_manager',
+        duration: 10000
+      });
+      onKillSignalRef.current();
+    }
+  } catch (err) {
+    console.warn('Kill signal: Error checking meeting status:', err);
+  }
+}, [meetingId, isRecording]);
 ```
 
-### Step 2: Publish Frontend Changes
+### Step 3: Add Session Lock for Multi-Tab Safety
 
-The client-side warning thresholds (60/75 minutes) are in the preview but need to be published to the live site.
+Store a "recording lock" in sessionStorage with the tab's unique ID. When checking status, verify the lock is still valid.
 
 ---
 
-## Implementation
+## Implementation Steps
 
-The following database migration will fix the function:
-
-```sql
-CREATE OR REPLACE FUNCTION public.cleanup_stuck_meetings()
-RETURNS TABLE(fixed_meetings_count integer, fixed_meeting_ids uuid[])
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public', 'pg_temp'
-AS $$
-DECLARE
-  fixed_count integer := 0;
-  meeting_ids uuid[];
-BEGIN
-  -- Find and fix meetings stuck in recording status
-  -- IMPORTANT: Only close meetings that are:
-  -- 1. Older than 90 minutes (matching the edge function threshold), OR
-  -- 2. Already have notes generated (definitely stuck)
-  -- 
-  -- Do NOT close meetings just because they have word_count > 0
-  -- as this would close actively recording meetings prematurely.
-  UPDATE meetings 
-  SET 
-    status = 'completed',
-    end_time = COALESCE(end_time, updated_at, created_at + INTERVAL '2 hours'),
-    updated_at = now()
-  WHERE status = 'recording' 
-    AND (
-      notes_generation_status = 'completed'  -- Already has notes = definitely stuck
-      OR created_at < now() - INTERVAL '90 minutes'  -- Match edge function threshold
-    )
-  RETURNING id INTO meeting_ids;
-  
-  GET DIAGNOSTICS fixed_count = ROW_COUNT;
-  
-  -- Log the cleanup operation
-  IF fixed_count > 0 THEN
-    PERFORM log_system_activity(
-      'meetings',
-      'AUTO_CLEANUP_STUCK_RECORDINGS',
-      NULL,
-      jsonb_build_object(
-        'fixed_count', fixed_count,
-        'meeting_ids', meeting_ids,
-        'cleanup_time', now(),
-        'threshold_minutes', 90
-      ),
-      NULL
-    );
-  END IF;
-  
-  RETURN QUERY SELECT fixed_count, meeting_ids;
-END;
-$$;
-```
+1. **Immediate**: Publish current changes to fix chunk timing
+2. **Enhancement**: Add 2-second delay to kill signal visibility check
+3. **Enhancement**: Implement session-based tab locking to prevent multi-tab conflicts
 
 ---
 
 ## Files to Change
 
-1. **Database migration** - Update `cleanup_stuck_meetings` function (required - fixes the bug)
-2. **Publish to live** - Click Update button in publish dialog (required - enables client warnings)
+1. **src/hooks/useMeetingKillSignal.ts** - Add delay before DB status check
+2. **Publish** - Deploy all preview changes to live
 
 ---
 
-## Testing Recommendation
+## Testing After Fix
 
-After implementing:
-1. Start a test recording
-2. Switch to other tabs/windows
-3. Leave recording running for 10-15 minutes
-4. Return to verify it's still active
-5. Check that no premature closure occurs until 90 minutes
+1. Start a recording on the live site
+2. Open another tab with the same page
+3. Switch between tabs multiple times
+4. Verify recording continues without premature closure
+5. Check that chunk #1 shows `0:00 → 0:10` (not `0:30`)
+
+---
+
+## Technical Details
+
+### Current Flow (Problematic):
+```
+Tab A: Recording starts → status = 'recording'
+Tab B: Opens same page → sees 'recording'
+Tab A: User switches away → visibility hidden
+Tab A: User switches back → visibility visible
+→ checkMeetingStatusDirectly() runs IMMEDIATELY
+→ If Tab B did anything, might see stale 'completed' status
+→ Toast: "Recording was ended by server"
+```
+
+### Fixed Flow:
+```
+Tab A: Recording starts → status = 'recording'
+Tab A: User switches away → visibility hidden  
+Tab A: User switches back → visibility visible
+→ Wait 2 seconds (let pending updates settle)
+→ checkMeetingStatusDirectly() runs
+→ Status still 'recording' → continue normally
+```
 
 ---
 
@@ -128,5 +161,6 @@ After implementing:
 
 | Risk | Mitigation |
 |------|------------|
-| Genuinely stuck meetings not cleaned up | The 90-minute threshold still catches them; edge function also runs every 5 minutes |
-| Cost from orphaned recordings | 4-hour hard limit remains in place; 60/75-minute client warnings alert users |
+| Delay hides legitimate server closures | 2s delay is minimal; 90-min timeout is the real protection |
+| Multi-tab state conflicts | Session lock prevents conflicting updates |
+| Toast spam from multiple checks | `killTriggeredRef` prevents duplicate toasts |
