@@ -39,14 +39,14 @@ interface MeetingInfographicModalProps {
 }
 
 const GENERATION_TIPS = [
-  "Designing visual layout...",
-  "Creating data visualisations...",
-  "Extracting key metrics and outcomes...",
+  "Designing 'What You Missed' overview...",
+  "Creating visual date and time display...",
+  "Extracting key discussion points...",
+  "Formatting main decisions and outcomes...",
   "Adding professional NHS styling...",
-  "Formatting action items visually...",
-  "Optimising for clarity and impact...",
+  "Creating story-focused layout...",
   "Adding icons and visual elements...",
-  "Almost ready! Finalising your infographic...",
+  "Almost ready! Finalising your overview...",
 ];
 
 const TOTAL_DURATION = 60; // 60 seconds for infographic
@@ -251,7 +251,7 @@ export const MeetingInfographicModal: React.FC<MeetingInfographicModalProps> = (
                   {GENERATION_TIPS[currentTipIndex]}
                 </p>
                 <p className="text-xs text-muted-foreground/70">
-                  Creating visual summary with {meetingData.actionItems.length} action items
+                  Creating "What You Missed" overview with key points and decisions
                 </p>
               </>
             )}
