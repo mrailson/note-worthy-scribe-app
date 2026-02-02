@@ -250,7 +250,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
                     setActiveTab('generate');
                     handleGenerate();
                   }}
-                  disabled={!settings.description.trim() && settings.referenceImages.length === 0}
+                  disabled={!settings.description.trim() && !settings.supportingContent?.trim() && !hasUploadedFiles && settings.referenceImages.length === 0}
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Generate
