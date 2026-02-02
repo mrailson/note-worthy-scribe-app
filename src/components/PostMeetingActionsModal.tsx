@@ -137,7 +137,14 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       return;
     }
 
-    // Subscribe to real-time updates
+    // ENHANCEMENT: Polling fallback every 15 seconds
+    // This catches cases where Realtime subscription misses the update
+    const pollInterval = setInterval(() => {
+      console.log('🔄 Polling for notes status update...');
+      fetchMeetingStatus();
+    }, 15000);
+
+    // Subscribe to real-time updates (primary, faster method)
     const channel = supabase
       .channel(`meeting-${meetingId}`)
       .on(
@@ -163,6 +170,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       .subscribe();
 
     return () => {
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
   }, [meetingId, isOpen]);
