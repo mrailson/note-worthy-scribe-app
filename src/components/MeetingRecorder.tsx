@@ -601,7 +601,7 @@ export const MeetingRecorder = ({
     lastChunkTimestamp,
     onServerClosureDetected: useCallback(() => {
       console.log('🛑 Health monitor detected server closure - stopping recording');
-      stopRecording();
+      stopRecording({ serverTriggered: true });
     }, []),
     onRecordingStalled: useCallback(() => {
       console.log('⚠️ Health monitor detected stall - transcription may have stopped');
@@ -4293,7 +4293,9 @@ export const MeetingRecorder = ({
     }
   };
 
-  const stopRecording = async () => {
+  const stopRecording = async (options?: { serverTriggered?: boolean }) => {
+    const isServerTriggered = options?.serverTriggered ?? false;
+    
     // Guard: prevent multiple simultaneous stop operations (state can lag)
     if (stopInProgressRef.current) {
       console.log('⚠️ Stop already in progress (ref), ignoring duplicate call');
@@ -4307,8 +4309,31 @@ export const MeetingRecorder = ({
     // Use the best available transcript so meetings aren't discarded if AssemblyAI is down.
     const assemblyWords = countWords(assemblyPreview.fullTranscript);
     const whisperWords = countWords(transcript);
-    const effectiveWords = Math.max(assemblyWords, whisperWords);
-    console.log('📊 Meeting word count:', { effective: effectiveWords, assembly: assemblyWords, whisper: whisperWords });
+    let effectiveWords = Math.max(assemblyWords, whisperWords);
+    console.log('📊 Meeting word count (client):', { effective: effectiveWords, assembly: assemblyWords, whisper: whisperWords, serverTriggered: isServerTriggered });
+    
+    // CRITICAL: If client state shows low word count OR server triggered the stop,
+    // query the database for actual word count - client state may be stale/empty
+    const currentMeetingIdForCheck = sessionStorage.getItem('currentMeetingId');
+    if ((effectiveWords < 100 || isServerTriggered) && currentMeetingIdForCheck) {
+      try {
+        console.log('🔍 Checking database for actual word count...');
+        const { data: chunks, error } = await supabase
+          .from('meeting_transcription_chunks')
+          .select('transcription_text')
+          .eq('meeting_id', currentMeetingIdForCheck);
+        
+        if (!error && chunks && chunks.length > 0) {
+          const dbWordCount = chunks.reduce((total, chunk) => {
+            return total + countWords(chunk.transcription_text || '');
+          }, 0);
+          console.log('📊 Database word count:', dbWordCount, 'vs client:', effectiveWords);
+          effectiveWords = Math.max(effectiveWords, dbWordCount);
+        }
+      } catch (err) {
+        console.error('Failed to check database word count:', err);
+      }
+    }
     
     if (effectiveWords < 100) {
       console.log('📊 Skipping processing animation - meeting too short (<100 words)');
