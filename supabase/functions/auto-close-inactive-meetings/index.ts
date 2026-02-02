@@ -138,15 +138,20 @@ serve(async (req) => {
       const meetingUpdatedRecently = new Date(meeting.updated_at) > new Date(fiveMinutesAgo);
 
       if (!hasRecentActivity && !meetingUpdatedRecently) {
-        // Additional check: meeting must be at least 5 minutes old to avoid closing brand new meetings
-        const meetingAge = Date.now() - new Date(meeting.created_at).getTime();
-        const fiveMinutesInMs = 5 * 60 * 1000;
+        // IMPORTANT:
+        // With long (90-minute) timeouts, we must NOT close meetings just because they are >5 minutes old.
+        // Some recordings may take a while to start producing transcript chunks (or chunk writes may stall).
+        // Only consider auto-closing once the meeting itself is older than the inactivity threshold.
+        const meetingAgeMs = Date.now() - new Date(meeting.created_at).getTime();
+        const inactivityThresholdMs = INACTIVITY_THRESHOLD_MINUTES * 60 * 1000;
 
-        if (meetingAge > fiveMinutesInMs) {
+        if (meetingAgeMs > inactivityThresholdMs) {
           console.log(`⚠️ Meeting ${meeting.id} (${meeting.title}) has no recent activity - marking for closure`);
           meetingsToClose.push(meeting);
         } else {
-          console.log(`⏳ Meeting ${meeting.id} is too new (${Math.round(meetingAge / 1000)}s old) - skipping`);
+          console.log(
+            `⏳ Meeting ${meeting.id} is ${Math.round(meetingAgeMs / 60000)} min old with no recent activity - skipping (threshold ${INACTIVITY_THRESHOLD_MINUTES} min)`
+          );
         }
       } else {
         console.log(`✅ Meeting ${meeting.id} has recent activity - keeping active`);
