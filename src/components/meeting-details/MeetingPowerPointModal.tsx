@@ -85,7 +85,11 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
         if (result.success) {
           setDownloadUrl(result.downloadUrl ?? null);
           setIsComplete(true);
-          toast.success('PowerPoint ready to download');
+          toast.success('PowerPoint downloaded successfully');
+          // Auto-close modal after a short delay since download is automatic
+          setTimeout(() => {
+            onClose();
+          }, 2000);
         } else {
           setHasFailed(true);
           toast.error(result.error || 'Failed to generate presentation');
@@ -254,17 +258,18 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
             {isComplete ? (
               <div className="space-y-3">
                 <p className="text-sm text-green-600 font-medium">
-                  Your PowerPoint is ready to download.
+                  Your PowerPoint has been downloaded!
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Check your downloads folder. This window will close automatically.
                 </p>
 
                 <div className="flex flex-col gap-2">
-                  <Button onClick={handleDownload} disabled={!downloadUrl}>
-                    Download PowerPoint
+                  <Button variant="outline" size="sm" onClick={handleDownload} disabled={!downloadUrl}>
+                    Download Again
                   </Button>
-
-
                   <Button variant="ghost" size="sm" onClick={handleClose}>
-                    Close
+                    Close Now
                   </Button>
                 </div>
               </div>
