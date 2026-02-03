@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -223,8 +224,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [infographicOptions, setInfographicOptions] = useState<{
     style: string;
     customStyle?: string;
+    orientation?: 'portrait' | 'landscape';
   } | null>(null);
   const [customInfographicStyle, setCustomInfographicStyle] = useState('');
+  const [infographicOrientation, setInfographicOrientation] = useState<'portrait' | 'landscape'>('landscape');
   const [showQuickAudioModal, setShowQuickAudioModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [meetingType, setMeetingType] = useState<'teams' | 'f2f' | 'hybrid'>('teams');
@@ -3180,19 +3183,38 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">Custom Style</DropdownMenuLabel>
                 <div className="px-2 py-2">
                   <Input 
-                    placeholder="e.g., 'Star Wars theme', 'retro 80s neon'"
+                    placeholder="e.g., 'The Castle', 'Star Wars', 'retro 80s'"
                     value={customInfographicStyle}
                     onChange={(e) => setCustomInfographicStyle(e.target.value)}
-                    className="mb-2 text-sm"
+                    className="mb-3 text-sm"
                     onClick={(e) => e.stopPropagation()}
                     onKeyDown={(e) => e.stopPropagation()}
                   />
+                  
+                  {/* Orientation Toggle */}
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <span className="text-xs text-muted-foreground">Layout</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs ${infographicOrientation === 'portrait' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Portrait</span>
+                      <Switch
+                        checked={infographicOrientation === 'landscape'}
+                        onCheckedChange={(checked) => setInfographicOrientation(checked ? 'landscape' : 'portrait')}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <span className={`text-xs ${infographicOrientation === 'landscape' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Landscape</span>
+                    </div>
+                  </div>
+                  
                   <Button 
                     size="sm" 
                     className="w-full"
                     onClick={() => {
                       if (customInfographicStyle.trim()) {
-                        setInfographicOptions({ style: 'custom', customStyle: customInfographicStyle.trim() });
+                        setInfographicOptions({ 
+                          style: 'custom', 
+                          customStyle: customInfographicStyle.trim(),
+                          orientation: infographicOrientation
+                        });
                         setShowInfographicModal(true);
                         setCustomInfographicStyle('');
                       }

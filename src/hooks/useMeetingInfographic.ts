@@ -30,6 +30,7 @@ interface GenerationResult {
 interface InfographicOptions {
   style: string;
   customStyle?: string;
+  orientation?: 'portrait' | 'landscape';
 }
 
 // GP Practice-focused infographic style presets
@@ -533,25 +534,31 @@ Maintain readability but prioritise the requested visual style.`;
         setTimeout(() => reject(new Error('Image generation timed out after 120 seconds. Please try again.')), 120000);
       });
 
+      // Determine orientation - default to landscape
+      const orientation = options?.orientation || 'landscape';
+      const orientationInstruction = orientation === 'landscape' 
+        ? 'Landscape orientation (16:9 aspect ratio), suitable for presentations and widescreen displays'
+        : 'Portrait orientation (9:16 or A4 aspect ratio), suitable for printing and mobile viewing';
+
       // Build design requirements - conditionally include NHS styling only for preset styles
       const designRequirements = isCustomStyle 
         ? `- "WHAT YOU MISSED" banner/badge styling at the top
+- ${orientationInstruction}
 - Date should be a VISUAL FOCAL POINT (large, perhaps in a date card/badge design)
 - Use storytelling layout - help the reader understand what happened
 - Visual icons for each section (calendar, lightbulb, checkmark, etc.)
 - Apply the custom style throughout ALL visual elements
 - British English spelling throughout
-- A4 portrait format, suitable for printing or sharing digitally
 - NO attendee counts or participant numbers
 - Action items should be MINIMAL - just mention count, not full details
 - Make the custom style the dominant visual theme`
         : `- "WHAT YOU MISSED" banner/badge styling at the top
+- ${orientationInstruction}
 - Date should be a VISUAL FOCAL POINT (large, perhaps in a date card/badge design)
 - Use storytelling layout - help the reader understand what happened
 - Visual icons for each section (calendar, lightbulb, checkmark, etc.)
 - Professional GP practice/NHS styling
 - British English spelling throughout
-- A4 portrait format, suitable for printing or sharing digitally
 - NO attendee counts or participant numbers
 - Action items should be MINIMAL - just mention count, not full details
 - Make it feel like catching up with a colleague, not a task list`;
