@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle, Camera, X, User, ClipboardPaste } from 'lucide-react';
+import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle, Camera, X, User, ClipboardPaste, QrCode, Smartphone } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
@@ -14,6 +14,10 @@ import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useDropzone } from 'react-dropzone';
 import { validateNHSNumber } from '@/utils/nhsNumberValidator';
+import { parsePatientDemographics, formatNHSNumber } from '@/utils/clinicalSystemPatterns';
+import { ComplaintQRCaptureModal } from '@/components/complaints/ComplaintQRCaptureModal';
+import { EmisIcon } from '@/components/icons/EmisIcon';
+import { SystmOneIcon } from '@/components/icons/SystmOneIcon';
 import complaintPage1 from '@/assets/complaint-page-1.jpg';
 import complaintPage2 from '@/assets/complaint-page-2.jpg';
 
@@ -66,6 +70,19 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
   const [patientProcessing, setPatientProcessing] = useState(false);
   const [patientFileName, setPatientFileName] = useState<string | null>(null);
   const [extractedPatientData, setExtractedPatientData] = useState<PatientDetailsData | null>(null);
+  
+  // Mobile capture state
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [capturedImages, setCapturedImages] = useState<Array<{
+    id: string;
+    file_name: string;
+    file_url: string;
+    file_size: number | null;
+    ocr_text: string | null;
+    processed: boolean;
+    created_at: string;
+  }>>([]);
+  const [processingCaptures, setProcessingCaptures] = useState(false);
 
   // Auto-scroll to preview when data is extracted
   useEffect(() => {
@@ -475,9 +492,83 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       if (text) {
         setPatientText(text);
         showToast.success('Pasted from clipboard', { section: 'complaints' });
+        
+        // Try automatic extraction with local patterns
+        const localExtraction = parsePatientDemographics(text);
+        if (localExtraction.patient_name || localExtraction.patient_nhs_number) {
+          console.log('Quick local extraction found some fields:', localExtraction);
+        }
       }
     } catch (error) {
       showToast.error('Unable to access clipboard', { section: 'complaints' });
+    }
+  };
+  
+  // Handle captured images from QR modal
+  const handleCapturedImages = (images: typeof capturedImages) => {
+    setCapturedImages(images);
+    if (images.length > 0) {
+      showToast.success(`${images.length} photo(s) ready for processing`, { section: 'complaints' });
+    }
+  };
+  
+  // Process captured images via OCR and import
+  const handleProcessCapturedImages = async () => {
+    if (capturedImages.length === 0) return;
+    
+    setProcessingCaptures(true);
+    
+    try {
+      // Collect all image URLs and process them
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Create FormData with captured image URLs for processing
+      const formData = new FormData();
+      
+      // Fetch each image and add to FormData
+      for (const img of capturedImages) {
+        try {
+          const response = await fetch(img.file_url);
+          const blob = await response.blob();
+          const file = new File([blob], img.file_name, { type: 'image/jpeg' });
+          formData.append('files', file);
+        } catch (err) {
+          console.error('Failed to fetch image:', img.file_name, err);
+        }
+      }
+      
+      // Send to import-complaint-data for full extraction
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-complaint-data`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Import error response:', errorText);
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        onDataExtracted(data.complaintData);
+        onClose();
+        showToast.success('Complaint data imported from captured photos!', { section: 'complaints' });
+      } else {
+        throw new Error(data.error || 'Failed to process captured images');
+      }
+    } catch (error) {
+      console.error('Process captures error:', error);
+      showToast.error('Failed to process captured photos', { section: 'complaints' });
+    } finally {
+      setProcessingCaptures(false);
     }
   };
 
@@ -618,8 +709,8 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
 
           <Tabs defaultValue="file" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className={cn(
-              "grid w-full grid-cols-3",
-              deviceInfo.isIPhone && "h-auto"
+              "grid w-full",
+              deviceInfo.isIPhone ? "grid-cols-3 h-auto" : "grid-cols-4"
             )}>
               <TabsTrigger 
                 value="file" 
@@ -650,6 +741,15 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                 <Mail className="h-4 w-4" />
                 {deviceInfo.isIPhone ? "Text" : "Text/Email"}
               </TabsTrigger>
+              {!deviceInfo.isIPhone && (
+                <TabsTrigger 
+                  value="mobile" 
+                  className="flex items-center gap-2"
+                >
+                  <Smartphone className="h-4 w-4" />
+                  Mobile Capture
+                </TabsTrigger>
+              )}
               <TabsTrigger 
                 value="patient" 
                 className={cn(
@@ -835,15 +935,128 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
               </Button>
             </TabsContent>
 
+            {/* Mobile Capture Tab - Desktop Only */}
+            {!deviceInfo.isIPhone && (
+              <TabsContent value="mobile" className="space-y-4">
+                <Alert>
+                  <Smartphone className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Capture documents with your phone</strong> - Scan the QR code to take photos of handwritten letters 
+                    or documents. Photos sync automatically to this screen.
+                  </AlertDescription>
+                </Alert>
+
+                {/* QR Capture Section */}
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                  {capturedImages.length === 0 ? (
+                    <div className="space-y-4">
+                      <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                        <QrCode className="h-8 w-8 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-lg">Capture complaint documents with your phone</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Take photos of handwritten letters, forms, or printed documents
+                        </p>
+                      </div>
+                      <Button 
+                        size="lg" 
+                        onClick={() => setShowQRModal(true)}
+                        className="gap-2"
+                      >
+                        <Smartphone className="h-5 w-5" />
+                        Scan QR with Phone
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        Opens camera on your mobile device - photos sync here automatically
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <Badge variant="default" className="bg-green-600">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          {capturedImages.length} photo(s) captured
+                        </Badge>
+                      </div>
+                      
+                      {/* Thumbnails */}
+                      <div className="grid grid-cols-4 gap-3 max-w-md mx-auto">
+                        {capturedImages.map((img) => (
+                          <div key={img.id} className="relative group">
+                            <img 
+                              src={img.file_url} 
+                              alt={img.file_name}
+                              className="w-full aspect-square object-cover rounded-lg border shadow-sm"
+                            />
+                            <button
+                              onClick={() => setCapturedImages(prev => prev.filter(i => i.id !== img.id))}
+                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="flex gap-2 justify-center">
+                        <Button 
+                          variant="outline" 
+                          onClick={() => setShowQRModal(true)}
+                        >
+                          <QrCode className="h-4 w-4 mr-2" />
+                          Capture More
+                        </Button>
+                        <Button 
+                          onClick={handleProcessCapturedImages}
+                          disabled={processingCaptures}
+                        >
+                          {processingCaptures ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Process & Extract Data
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            )}
+
             {/* Patient Details Only Tab */}
             <TabsContent value="patient" className="space-y-4">
               <Alert>
                 <User className="h-4 w-4" />
                 <AlertDescription>
                   Import <strong>only patient demographics</strong> (name, DOB, NHS number, phone, email, address). 
-                  Paste a screenshot (Ctrl+V), drag & drop a file, or paste text.
+                  Paste from <strong>EMIS, SystmOne, or Vision</strong> - screenshot (Ctrl+V) or text.
                 </AlertDescription>
               </Alert>
+              
+              {/* Clinical system hints */}
+              <div className="flex items-center justify-center gap-4 py-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Works with:</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
+                      <EmisIcon size="sm" />
+                      <span className="text-xs">EMIS</span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-muted px-2 py-1 rounded">
+                      <SystmOneIcon size="sm" />
+                      <span className="text-xs">SystmOne</span>
+                    </div>
+                    <div className="bg-muted px-2 py-1 rounded text-xs">Vision</div>
+                  </div>
+                </div>
+              </div>
 
               {/* Dropzone for patient files/screenshots */}
               <div
@@ -1074,6 +1287,13 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
           )}
         </CardContent>
       </Card>
+      
+      {/* QR Capture Modal */}
+      <ComplaintQRCaptureModal
+        open={showQRModal}
+        onOpenChange={setShowQRModal}
+        onImagesReceived={handleCapturedImages}
+      />
     </div>
   );
 };

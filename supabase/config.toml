@@ -468,5 +468,8 @@ verify_jwt = false
 [functions.import-complaint-data]
 verify_jwt = true
 
+[functions.upload-complaint-capture]
+verify_jwt = false
+
 [functions.pm-genie-send-email]
 verify_jwt = true
