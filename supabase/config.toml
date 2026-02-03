@@ -482,3 +482,6 @@ verify_jwt = false
 
 [functions.purge-old-user-images]
 verify_jwt = false
+
+[functions.purge-old-transcript-chunks]
+verify_jwt = false
