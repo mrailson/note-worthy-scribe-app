@@ -291,31 +291,22 @@ export function ComplaintQRCaptureModal({
             </p>
           )}
           
-          {/* Instructions */}
-          <div className="mt-4 text-center text-sm text-muted-foreground space-y-2">
-            <div className="flex items-center justify-center gap-2">
-              <Smartphone className="h-4 w-4" />
-              <span>Open camera on your phone and scan</span>
-            </div>
-            <p>Photos will appear here automatically</p>
-          </div>
-          
-          {/* Captured images */}
-          {capturedImages.length > 0 && (
+          {/* Instructions OR Captured images */}
+          {capturedImages.length > 0 ? (
             <div className="mt-4 w-full">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-center mb-3">
                 <Badge variant="default" className="bg-green-600">
                   <FileText className="h-3 w-3 mr-1" />
-                  {capturedImages.length} photo(s) received
+                  {capturedImages.length} photo{capturedImages.length !== 1 ? 's' : ''} received
                 </Badge>
               </div>
-              <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+              <div className="grid grid-cols-4 gap-2 max-h-24 overflow-y-auto">
                 {capturedImages.map((img) => (
                   <div key={img.id} className="relative group">
                     <img 
                       src={img.file_url} 
                       alt={img.file_name}
-                      className="w-full h-20 object-cover rounded-md border"
+                      className="w-full h-16 object-cover rounded-md border"
                     />
                     <button
                       onClick={() => removeImage(img.id)}
@@ -326,6 +317,14 @@ export function ComplaintQRCaptureModal({
                   </div>
                 ))}
               </div>
+            </div>
+          ) : (
+            <div className="mt-4 text-center text-sm text-muted-foreground space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                <span>Open camera on your phone and scan</span>
+              </div>
+              <p>Photos will appear here automatically</p>
             </div>
           )}
           
