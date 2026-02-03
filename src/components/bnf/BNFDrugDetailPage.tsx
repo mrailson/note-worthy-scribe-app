@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ExternalLink, AlertTriangle, Loader2, BookOpen, Copy, Check, RefreshCw, Image, Presentation } from 'lucide-react';
+import { ArrowLeft, ExternalLink, AlertTriangle, Loader2, BookOpen, Copy, Check, RefreshCw, Image, Presentation, FileText } from 'lucide-react';
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, HeadingLevel, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,6 +83,7 @@ export const BNFDrugDetailPage: React.FC<BNFDrugDetailPageProps> = ({
   const [copied, setCopied] = useState(false);
   const [isGeneratingInfographic, setIsGeneratingInfographic] = useState(false);
   const [isGeneratingPowerPoint, setIsGeneratingPowerPoint] = useState(false);
+  const [isGeneratingWord, setIsGeneratingWord] = useState(false);
   const [slideCount, setSlideCount] = useState<number>(5);
 
   const fetchMonograph = async () => {
@@ -302,13 +305,18 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
       if (data?.exportUrl || data?.pptxUrl) {
         const downloadUrl = data.exportUrl || data.pptxUrl;
         
-        // Auto-download the PowerPoint
+        // Fetch the file and create blob for download (avoids cross-origin issues)
+        const response = await fetch(downloadUrl);
+        if (!response.ok) throw new Error('Failed to fetch PowerPoint file');
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = downloadUrl;
+        a.href = blobUrl;
         a.download = `${monograph.drugName.replace(/\s+/g, '-')}-Clinical-Guide.pptx`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
         
         toast.success('PowerPoint downloaded!');
       } else {
@@ -319,6 +327,326 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
       toast.error('Failed to generate presentation. Please try again.');
     } finally {
       setIsGeneratingPowerPoint(false);
+    }
+  };
+
+  const handleGenerateWord = async () => {
+    if (!monograph) return;
+    
+    setIsGeneratingWord(true);
+    toast.info('Generating Word document...', { duration: 2000 });
+    
+    try {
+      const NHS_BLUE = '005EB8';
+      const AMBER_COLOR = 'B45309';
+      const RED_COLOR = 'DC2626';
+      const GREEN_COLOR = '16A34A';
+      
+      // Helper function to create a styled section header
+      const createSectionHeader = (text: string, color: string = NHS_BLUE) => {
+        return new Paragraph({
+          children: [
+            new TextRun({
+              text,
+              bold: true,
+              size: 24,
+              color,
+            }),
+          ],
+          spacing: { before: 300, after: 100 },
+        });
+      };
+      
+      // Helper to create bullet points
+      const createBulletPoint = (text: string, bold: boolean = false) => {
+        return new Paragraph({
+          children: [
+            new TextRun({
+              text: `• ${text}`,
+              size: 22,
+              bold,
+            }),
+          ],
+          spacing: { after: 60 },
+          indent: { left: 360 },
+        });
+      };
+      
+      // Build document sections
+      const children: any[] = [];
+      
+      // Title
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: monograph.drugName,
+              bold: true,
+              size: 36,
+              color: NHS_BLUE,
+            }),
+          ],
+          heading: HeadingLevel.HEADING_1,
+          spacing: { after: 100 },
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: 'Clinical Prescribing Guide',
+              size: 24,
+              color: '666666',
+              italics: true,
+            }),
+          ],
+          spacing: { after: 200 },
+        })
+      );
+      
+      // Safety disclaimer
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: '⚠️ NHS Safety: ',
+              bold: true,
+              color: AMBER_COLOR,
+              size: 22,
+            }),
+            new TextRun({
+              text: 'Always verify with the official BNF before prescribing. Use clinical judgement. This is AI-generated guidance and should be cross-referenced.',
+              color: AMBER_COLOR,
+              size: 22,
+            }),
+          ],
+          spacing: { before: 100, after: 300 },
+          border: {
+            top: { color: AMBER_COLOR, size: 1, style: BorderStyle.SINGLE },
+            bottom: { color: AMBER_COLOR, size: 1, style: BorderStyle.SINGLE },
+            left: { color: AMBER_COLOR, size: 1, style: BorderStyle.SINGLE },
+            right: { color: AMBER_COLOR, size: 1, style: BorderStyle.SINGLE },
+          },
+          shading: { fill: 'FEF3C7' },
+        })
+      );
+      
+      // Indications
+      children.push(createSectionHeader('Indications'));
+      monograph.indications.forEach((ind) => {
+        children.push(createBulletPoint(ind));
+      });
+      
+      // Dosing table
+      children.push(createSectionHeader('Dosing'));
+      const dosingRows = [
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: 'Adult', bold: true, size: 22 })] })],
+              width: { size: 20, type: WidthType.PERCENTAGE },
+              shading: { fill: 'E5E7EB' },
+            }),
+            new TableCell({
+              children: [new Paragraph({ children: [new TextRun({ text: monograph.dosing.adult, size: 22 })] })],
+              width: { size: 80, type: WidthType.PERCENTAGE },
+            }),
+          ],
+        }),
+      ];
+      
+      if (monograph.dosing.elderly) {
+        dosingRows.push(
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: 'Elderly', bold: true, size: 22 })] })],
+                shading: { fill: 'E5E7EB' },
+              }),
+              new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: monograph.dosing.elderly, size: 22 })] })],
+              }),
+            ],
+          })
+        );
+      }
+      
+      if (monograph.dosing.renalAdjustment) {
+        dosingRows.push(
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: 'Renal Adjustment', bold: true, size: 22 })] })],
+                shading: { fill: 'E5E7EB' },
+              }),
+              new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: monograph.dosing.renalAdjustment, size: 22 })] })],
+              }),
+            ],
+          })
+        );
+      }
+      
+      if (monograph.dosing.paediatric) {
+        dosingRows.push(
+          new TableRow({
+            children: [
+              new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: 'Paediatric', bold: true, size: 22 })] })],
+                shading: { fill: 'E5E7EB' },
+              }),
+              new TableCell({
+                children: [new Paragraph({ children: [new TextRun({ text: monograph.dosing.paediatric, size: 22 })] })],
+              }),
+            ],
+          })
+        );
+      }
+      
+      children.push(
+        new Table({
+          rows: dosingRows,
+          width: { size: 100, type: WidthType.PERCENTAGE },
+        })
+      );
+      
+      // Two-column layout for Contraindications and Cautions
+      children.push(
+        new Paragraph({ spacing: { before: 200 } }),
+        new Table({
+          rows: [
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [
+                    new Paragraph({
+                      children: [new TextRun({ text: 'Contraindications', bold: true, size: 24, color: RED_COLOR })],
+                      spacing: { after: 100 },
+                    }),
+                    ...monograph.contraindications.map((c) => 
+                      new Paragraph({
+                        children: [new TextRun({ text: `• ${c}`, size: 20 })],
+                        spacing: { after: 40 },
+                      })
+                    ),
+                  ],
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  borders: {
+                    top: { style: BorderStyle.NONE },
+                    bottom: { style: BorderStyle.NONE },
+                    left: { style: BorderStyle.NONE },
+                    right: { color: 'CCCCCC', size: 1, style: BorderStyle.SINGLE },
+                  },
+                }),
+                new TableCell({
+                  children: [
+                    new Paragraph({
+                      children: [new TextRun({ text: 'Cautions', bold: true, size: 24, color: AMBER_COLOR })],
+                      spacing: { after: 100 },
+                    }),
+                    ...monograph.cautions.map((c) => 
+                      new Paragraph({
+                        children: [new TextRun({ text: `• ${c}`, size: 20 })],
+                        spacing: { after: 40 },
+                      })
+                    ),
+                  ],
+                  width: { size: 50, type: WidthType.PERCENTAGE },
+                  borders: {
+                    top: { style: BorderStyle.NONE },
+                    bottom: { style: BorderStyle.NONE },
+                    left: { style: BorderStyle.NONE },
+                    right: { style: BorderStyle.NONE },
+                  },
+                }),
+              ],
+            }),
+          ],
+          width: { size: 100, type: WidthType.PERCENTAGE },
+        })
+      );
+      
+      // Side Effects
+      children.push(
+        createSectionHeader('Side Effects'),
+        new Paragraph({
+          children: [new TextRun({ text: 'Common:', bold: true, size: 22 })],
+          spacing: { after: 60 },
+        })
+      );
+      monograph.sideEffects.common.forEach((se) => {
+        children.push(createBulletPoint(se));
+      });
+      
+      children.push(
+        new Paragraph({
+          children: [new TextRun({ text: 'Serious:', bold: true, size: 22, color: RED_COLOR })],
+          spacing: { before: 100, after: 60 },
+        })
+      );
+      monograph.sideEffects.serious.forEach((se) => {
+        children.push(createBulletPoint(se, true));
+      });
+      
+      // Drug Interactions
+      children.push(createSectionHeader('Drug Interactions'));
+      monograph.interactions.forEach((int) => {
+        children.push(createBulletPoint(int));
+      });
+      
+      // Monitoring
+      children.push(createSectionHeader('Monitoring Requirements', GREEN_COLOR));
+      monograph.monitoring.forEach((mon) => {
+        children.push(createBulletPoint(mon));
+      });
+      
+      // Pregnancy & Breastfeeding
+      if (monograph.pregnancyBreastfeeding) {
+        children.push(
+          createSectionHeader('Pregnancy & Breastfeeding'),
+          new Paragraph({
+            children: [new TextRun({ text: monograph.pregnancyBreastfeeding, size: 22 })],
+            spacing: { after: 100 },
+          })
+        );
+      }
+      
+      // Patient Counselling
+      children.push(createSectionHeader('Patient Counselling Points'));
+      monograph.patientCounselling.forEach((pc) => {
+        children.push(createBulletPoint(pc));
+      });
+      
+      // Footer
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `Generated: ${new Date().toLocaleDateString('en-GB')} | AI4GP Clinical Reference`,
+              size: 18,
+              color: '999999',
+              italics: true,
+            }),
+          ],
+          spacing: { before: 400 },
+          alignment: AlignmentType.CENTER,
+        })
+      );
+      
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children,
+        }],
+      });
+      
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `${monograph.drugName.replace(/\s+/g, '-')}-Clinical-Guide.docx`);
+      
+      toast.success('Word document downloaded!');
+    } catch (err) {
+      console.error('Word generation error:', err);
+      toast.error('Failed to generate Word document.');
+    } finally {
+      setIsGeneratingWord(false);
     }
   };
 
@@ -419,6 +747,23 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
                     </div>
                   </PopoverContent>
                 </Popover>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateWord}
+                  disabled={isGeneratingWord}
+                  className="h-7 px-2 text-xs"
+                >
+                  {isGeneratingWord ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <>
+                      <FileText className="w-3 h-3 mr-1" />
+                      Word
+                    </>
+                  )}
+                </Button>
               </>
             )}
           </div>
