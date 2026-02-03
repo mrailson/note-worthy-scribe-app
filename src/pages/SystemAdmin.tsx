@@ -77,6 +77,7 @@ import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAcces
 import { AI4GPServicesOverview } from '@/components/admin/AI4GPServicesOverview';
 import { PolicyEnhancementModelSettings } from '@/components/admin/PolicyEnhancementModelSettings';
 import { DevelopmentCosts } from '@/components/admin/DevelopmentCosts';
+import { ICBTrafficLightManager } from '@/components/admin/ICBTrafficLightManager';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
 
 import * as XLSX from 'xlsx-js-style';
@@ -2108,6 +2109,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* ICB Traffic Light Medicines Manager */}
+            <ICBTrafficLightManager />
 
             {/* Database Size Breakdown */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
