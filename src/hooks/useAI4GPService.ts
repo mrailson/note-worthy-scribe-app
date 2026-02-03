@@ -94,6 +94,17 @@ export const useAI4GPService = () => {
       setMessages(prev => {
         if (prev.length > KEEP_RECENT_MESSAGES_INTACT) {
           console.log('🧹 Running periodic memory cleanup on messages...');
+
+          // Lightweight heap telemetry (Chrome only) to help quantify improvements.
+          // Avoid logging large objects/strings; keep this to numbers only.
+          const mem = (performance as any)?.memory;
+          if (mem?.usedJSHeapSize) {
+            const usedMb = Math.round(mem.usedJSHeapSize / 1024 / 1024);
+            const totalMb = Math.round(mem.totalJSHeapSize / 1024 / 1024);
+            const limitMb = Math.round(mem.jsHeapSizeLimit / 1024 / 1024);
+            console.log(`🧠 Heap: ${usedMb}MB / ${totalMb}MB (limit ${limitMb}MB) | Messages: ${prev.length}`);
+          }
+
           return optimiseMessagesForMemory(prev, KEEP_RECENT_MESSAGES_INTACT);
         }
         return prev;
@@ -303,7 +314,17 @@ export const useAI4GPService = () => {
   };
 
   const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string) => {
-    console.log('🔧 Building system prompt with practice context:', practiceContext);
+    // Avoid logging full practiceContext (may contain large base64 signature HTML)
+    console.log('🔧 Building system prompt (context summary):', {
+      practiceName: practiceContext?.practiceName,
+      organisationType: practiceContext?.organisationType,
+      hasEmailSignature: Boolean(practiceContext?.emailSignature),
+      emailSignatureLength: practiceContext?.emailSignature?.length || 0,
+      hasLetterSignature: Boolean(practiceContext?.letterSignature),
+      letterSignatureLength: practiceContext?.letterSignature?.length || 0,
+      uploadedFileCount: uploadedFiles?.length || 0,
+      verificationLevel,
+    });
     
     // Detect if files contain numerical data for enhanced calculation prompts
     const hasNumericalData = uploadedFiles.some(file => file.metadata?.hasNumericalData);

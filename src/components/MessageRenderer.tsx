@@ -190,9 +190,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   // Memoize heavy markdown rendering to prevent memory churn
   const renderedAssistantMarkdown = useMemo(() => {
     if (message.role !== 'assistant') return '';
+    // CRITICAL: During streaming, avoid heavy markdown parsing + DOMPurify sanitisation.
+    // This was causing massive heap growth (multi-GB) because message.content changes constantly.
+    if (message.isStreaming) return '';
     const contentToRender = isCollapsible && isAssistantCollapsed ? previewContent : message.content;
     return renderNHSMarkdown(contentToRender, { enableNHSStyling: true });
-  }, [message.role, message.content, isCollapsible, isAssistantCollapsed, previewContent]);
+  }, [message.role, message.content, message.isStreaming, isCollapsible, isAssistantCollapsed, previewContent]);
 
   const renderedUserMarkdown = useMemo(() => {
     if (message.role !== 'user') return '';
@@ -858,9 +861,19 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       overflowWrap: 'break-word'
                     }}
                   >
-                    <div 
-                      dangerouslySetInnerHTML={{ __html: renderedAssistantMarkdown }}
-                    />
+                    {message.isStreaming ? (
+                      displayContent ? (
+                        <div className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed">
+                          {isCollapsible && isAssistantCollapsed ? previewContent : displayContent}
+                          <span
+                            className="inline-block w-2 h-4 align-text-bottom ml-1 bg-primary/80 animate-pulse"
+                            aria-hidden="true"
+                          />
+                        </div>
+                      ) : null
+                    ) : (
+                      <div dangerouslySetInnerHTML={{ __html: renderedAssistantMarkdown }} />
+                    )}
                     {message.isStreaming && !displayContent && (
                       <div className="inline-flex items-center gap-2 text-muted-foreground mt-2">
                         <span className="text-sm">Notewell AI is thinking</span>
