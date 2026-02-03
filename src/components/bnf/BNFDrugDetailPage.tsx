@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ExternalLink, AlertTriangle, Loader2, BookOpen, Copy, Check, RefreshCw, Image, Presentation, FileText } from 'lucide-react';
+import { ArrowLeft, ExternalLink, AlertTriangle, Loader2, BookOpen, Copy, Check, RefreshCw } from 'lucide-react';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import { Button } from '@/components/ui/button';
@@ -10,11 +10,15 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { TLVocabItem } from '@/hooks/useTrafficLightVocab';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import wordIcon from '@/assets/word-icon.png';
+import powerpointIcon from '@/assets/powerpoint-icon.png';
+import infographicIcon from '@/assets/infographic-icon.png';
 
 interface BNFDrugDetailPageProps {
   drugName: string;
@@ -803,53 +807,64 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
             Back
           </Button>
           <Separator orientation="vertical" className="h-6" />
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold text-foreground">{drugName}</h1>
-            {trafficLightItem && (
-              <Badge variant="outline" className={cn("text-xs", badge.className)}>
-                Northants ICB: {badge.label}
-              </Badge>
-            )}
-            
-            {/* Generation buttons - next to drug name */}
-            {monograph && (
-              <>
-                <Separator orientation="vertical" className="h-5 mx-1" />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateInfographic}
-                  disabled={isGeneratingInfographic}
-                  className="h-7 px-2 text-xs"
-                >
-                  {isGeneratingInfographic ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <>
-                      <Image className="w-3 h-3 mr-1" />
-                      Infographic
-                    </>
-                  )}
-                </Button>
-                
-                <Popover>
-                  <PopoverTrigger asChild>
+          
+          {/* Drug name - prominent display */}
+          <h1 className="text-xl font-bold text-foreground">{drugName}</h1>
+          
+          {/* ICB Badge */}
+          {trafficLightItem ? (
+            <Badge variant="outline" className={cn("text-xs font-medium", badge.className)}>
+              Northants ICB: {badge.label}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
+              BNF
+            </Badge>
+          )}
+          
+          {/* Export buttons - icon only with tooltips */}
+          {monograph && (
+            <TooltipProvider delayDuration={200}>
+              <div className="flex items-center gap-1 ml-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isGeneratingPowerPoint}
-                      className="h-7 px-2 text-xs"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleGenerateInfographic}
+                      disabled={isGeneratingInfographic}
+                      className="h-8 w-8"
                     >
-                      {isGeneratingPowerPoint ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                      {isGeneratingInfographic ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <>
-                          <Presentation className="w-3 h-3 mr-1" />
-                          PowerPoint
-                        </>
+                        <img src={infographicIcon} alt="Infographic" className="h-6 w-6" />
                       )}
                     </Button>
-                  </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Generate Infographic</TooltipContent>
+                </Tooltip>
+                
+                <Popover>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={isGeneratingPowerPoint}
+                          className="h-8 w-8"
+                        >
+                          {isGeneratingPowerPoint ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <img src={powerpointIcon} alt="PowerPoint" className="h-6 w-6" />
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Generate PowerPoint</TooltipContent>
+                  </Tooltip>
                   <PopoverContent className="w-48 p-3" align="start">
                     <div className="space-y-3">
                       <div className="text-xs font-medium text-foreground">Slide Count</div>
@@ -887,25 +902,27 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
                   </PopoverContent>
                 </Popover>
                 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateWord}
-                  disabled={isGeneratingWord}
-                  className="h-7 px-2 text-xs"
-                >
-                  {isGeneratingWord ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <>
-                      <FileText className="w-3 h-3 mr-1" />
-                      Word
-                    </>
-                  )}
-                </Button>
-              </>
-            )}
-          </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleGenerateWord}
+                      disabled={isGeneratingWord}
+                      className="h-8 w-8"
+                    >
+                      {isGeneratingWord ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <img src={wordIcon} alt="Word" className="h-6 w-6" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Download Word Document</TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+          )}
         </div>
         
         <div className="flex items-center gap-2">
