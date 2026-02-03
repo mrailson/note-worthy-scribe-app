@@ -139,7 +139,7 @@ export const BNFTypeaheadSearch: React.FC<BNFTypeaheadSearchProps> = ({ onDrugSe
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Search 500+ drugs..."
+          placeholder="Search 260+ drugs..."
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);

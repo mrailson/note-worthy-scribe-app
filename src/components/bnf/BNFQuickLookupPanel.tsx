@@ -88,7 +88,7 @@ export const BNFQuickLookupPanel: React.FC<BNFQuickLookupPanelProps> = ({
           <h3 className="text-sm font-medium text-foreground">Search All Drugs</h3>
           <BNFTypeaheadSearch onDrugSelect={handleDrugSelect} />
           <p className="text-xs text-muted-foreground">
-            Type at least 2 characters to search 500+ drugs with traffic light status
+            Type at least 2 characters to search all 261 ICB Traffic Light drugs
           </p>
         </div>
 
