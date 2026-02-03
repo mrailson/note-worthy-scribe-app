@@ -337,6 +337,16 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
     
     setIsGeneratingPowerPoint(true);
     toast.info(`Generating ${slideCount}-slide presentation...`, { duration: 3000 });
+
+    const fetchWithTimeout = async (url: string, timeoutMs: number) => {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, { signal: controller.signal });
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+    };
     
     try {
       const supportingContent = buildMonographContent();
@@ -363,20 +373,37 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
       if (data?.exportUrl || data?.pptxUrl) {
         const downloadUrl = data.exportUrl || data.pptxUrl;
         
-        // Fetch the file and create blob for download (avoids cross-origin issues)
-        const response = await fetch(downloadUrl);
-        if (!response.ok) throw new Error('Failed to fetch PowerPoint file');
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = `${monograph.drugName.replace(/\s+/g, '-')}-Clinical-Guide.pptx`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(blobUrl);
-        
-        toast.success('PowerPoint downloaded!', { duration: 2000 });
+        // Try to fetch as a blob for a reliable download filename.
+        // If the third-party host blocks CORS (common on asset domains), fall back to opening the URL.
+        try {
+          const response = await fetchWithTimeout(downloadUrl, 45_000);
+          if (!response.ok) throw new Error('Failed to fetch PowerPoint file');
+          const blob = await response.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = `${monograph.drugName.replace(/\s+/g, '-')}-Clinical-Guide.pptx`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(blobUrl);
+
+          toast.success('PowerPoint downloaded!', { duration: 2000 });
+        } catch (downloadErr) {
+          console.warn('[PowerPoint] Blob download failed; falling back to direct download URL', downloadErr);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          // May be ignored for cross-origin URLs, but harmless and helps when supported.
+          a.download = `${monograph.drugName.replace(/\s+/g, '-')}-Clinical-Guide.pptx`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          toast.success('PowerPoint opened for download', { duration: 2500 });
+        }
       } else {
         throw new Error('No download URL returned');
       }
