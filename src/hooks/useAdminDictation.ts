@@ -143,21 +143,62 @@ export function useAdminDictation() {
     const b = normalise(newText);
     if (!a || !b) return false;
 
+    // Safety: never replace a previous final segment with a *shorter* one.
+    // This prevents legitimate speech from being truncated when providers emit
+    // a later "correction" that is actually shorter.
+    if (b.length < a.length) return false;
+
     return a === b || a.startsWith(b) || b.startsWith(a);
   }, [normalise]);
   
-  // DISABLED: Deduplication was removing legitimate speech
-  // Only check for exact duplicate of the immediately previous segment
-  const isExactDuplicateOfLast = useCallback((newText: string): boolean => {
-    const last = lastFinalSegmentRef.current;
-    if (!last) return false;
+  const hasSubstantialOverlap = useCallback((newText: string, existingText: string, threshold = 0.65): boolean => {
+    const newWords = getWords(newText);
+    const existingWords = getWords(existingText);
+    
+    if (newWords.length < 5 || existingWords.length < 5) return false;
+    
+    const checkWindow = Math.min(12, existingWords.length);
+    const tailOfExisting = existingWords.slice(-checkWindow);
+    const newWordStr = newWords.join(' ');
+    const tailStr = tailOfExisting.join(' ');
+    
+    if (newWordStr.includes(tailStr)) return true;
+    
+    const newSet = new Set(newWords);
+    let matchCount = 0;
+    const checkCount = Math.min(25, existingWords.length);
+    for (const word of existingWords.slice(-checkCount)) {
+      if (newSet.has(word)) matchCount++;
+    }
+    
+    return matchCount / checkCount >= threshold;
+  }, [getWords]);
+  
+  const isAlreadyInTranscript = useCallback((newText: string): boolean => {
+    const existing = recordingTranscriptRef.current;
+    if (!existing || !newText) return false;
     
     const normNew = normalise(newText);
-    const normLast = normalise(last);
+    const normExisting = normalise(existing);
     
-    // Only skip if it's the EXACT same text as the last final
-    return normNew === normLast;
-  }, [normalise]);
+    if (!normNew || normNew.length < 15) return false;
+    
+    if (normExisting.includes(normNew)) return true;
+    
+    const now = Date.now();
+    const recentFinals = recentFinalsRef.current.filter(f => now - f.timestamp < RECENT_WINDOW_MS);
+    const recentNormConcat = recentFinals.map(f => f.normText).join(' ');
+    
+    if (recentNormConcat && recentNormConcat.length > 20) {
+      if (hasSubstantialOverlap(normNew, recentNormConcat, 0.6)) return true;
+      if (recentNormConcat.includes(normNew)) return true;
+    }
+    
+    const tail500 = normExisting.slice(-500);
+    if (tail500.length > 50 && hasSubstantialOverlap(normNew, tail500, 0.65)) return true;
+    
+    return false;
+  }, [normalise, hasSubstantialOverlap]);
   
   useEffect(() => {
     contentRef.current = content;
@@ -310,10 +351,15 @@ export function useAdminDictation() {
             .filter(f => now - f.timestamp < RECENT_WINDOW_MS)
             .slice(-MAX_RECENT_FINALS);
           
-          // SIMPLIFIED: Just append all finals, only skip exact duplicates of the last segment
-          if (isExactDuplicateOfLast(text)) {
-            // Skip exact duplicate
-            console.log('📝 Skipping exact duplicate:', text.slice(0, 30));
+          if (shouldReplaceLastFinal(text)) {
+            const prevSeg = lastFinalSegmentRef.current;
+            recordingTranscriptRef.current = replaceTrailingSegment(recordingTranscriptRef.current, prevSeg, text);
+            
+            if (recentFinalsRef.current.length > 0) {
+              recentFinalsRef.current[recentFinalsRef.current.length - 1] = { text, normText, timestamp: now };
+            }
+          } else if (isAlreadyInTranscript(text)) {
+            // Skip duplicate
           } else {
             recordingTranscriptRef.current = (recordingTranscriptRef.current + ' ' + text).trim();
             recentFinalsRef.current.push({ text, normText, timestamp: now });
@@ -414,7 +460,7 @@ export function useAdminDictation() {
       setError(err instanceof Error ? err.message : 'Failed to start dictation');
       setStatus('error');
     }
-  }, [user, selectedTemplate, content, saveDraft, systemAudioEnabled, transcriptionService, normalise, isExactDuplicateOfLast]);
+  }, [user, selectedTemplate, content, saveDraft, systemAudioEnabled, transcriptionService, normalise, shouldReplaceLastFinal, replaceTrailingSegment, isAlreadyInTranscript]);
 
   // Stop dictation and auto-format with template-aware prompts
   const stopDictation = useCallback(async () => {
