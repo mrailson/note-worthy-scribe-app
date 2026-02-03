@@ -391,7 +391,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             className="cursor-pointer py-3"
                           >
                             <FileText className="h-4 w-4 mr-2" />
-                            Policy Service
+                            Practice Policies
                           </DropdownMenuItem>
                         )}
                   </DropdownMenuContent>
