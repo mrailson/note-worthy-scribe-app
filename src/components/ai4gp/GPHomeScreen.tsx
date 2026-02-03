@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import { gpCategories, type MainCategory, type SubCategory, type PromptItem } from './gpPromptCategories';
 import { ContextBanner } from './ContextBanner';
+import { BNFQuickLookupPanel } from '@/components/bnf/BNFQuickLookupPanel';
 
 interface GPHomeScreenProps {
   setInput: (text: string) => void;
@@ -21,7 +22,8 @@ interface GPHomeScreenProps {
 type ActiveView = 
   | { type: 'main' }
   | { type: 'subcategories'; category: MainCategory }
-  | { type: 'prompts'; category: MainCategory; subCategory: SubCategory };
+  | { type: 'prompts'; category: MainCategory; subCategory: SubCategory }
+  | { type: 'bnf-lookup' };
 
 export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -77,6 +79,12 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
   };
 
   const handlePromptClick = (prompt: PromptItem) => {
+    // Handle special actions
+    if (prompt.specialAction === 'bnf-lookup-panel') {
+      setActiveView({ type: 'bnf-lookup' });
+      return;
+    }
+    
     setInput(enhancePrompt(prompt.prompt));
     setActiveView({ type: 'main' });
     setShowBanner(true);
@@ -86,9 +94,17 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
   const handleBack = () => {
     if (activeView.type === 'prompts') {
       setActiveView({ type: 'subcategories', category: activeView.category });
+    } else if (activeView.type === 'bnf-lookup') {
+      setActiveView({ type: 'main' });
     } else {
       setActiveView({ type: 'main' });
     }
+  };
+
+  const handleInsertToChat = (text: string) => {
+    setInput(text);
+    setActiveView({ type: 'main' });
+    showPromptInsertedToast();
   };
 
   const renderCard = (
@@ -163,6 +179,18 @@ export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput
       </span>
     </button>
   );
+
+  // Show BNF panel as full-screen overlay
+  if (activeView.type === 'bnf-lookup') {
+    return (
+      <div className="h-full min-h-[400px]">
+        <BNFQuickLookupPanel 
+          onBack={() => setActiveView({ type: 'main' })}
+          onInsertToChat={handleInsertToChat}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-3 sm:p-4">

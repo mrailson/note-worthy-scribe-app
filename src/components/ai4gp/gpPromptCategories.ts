@@ -46,6 +46,7 @@ export interface PromptItem {
   title: string;
   description: string;
   prompt: string;
+  specialAction?: 'bnf-lookup-panel'; // Opens dedicated BNF lookup panel
 }
 
 export interface SubCategory {
@@ -107,7 +108,7 @@ export const gpCategories: MainCategory[] = [
         icon: Pill,
         gradient: 'from-green-500 to-green-600',
         prompts: [
-          { id: 'bnf-lookup', shortTitle: 'Drug Lookup', title: 'Drug Lookup', description: 'Comprehensive drug information', prompt: `${nhsSafetyPreamble}\n\nProvide comprehensive BNF information for [drug name]. Include:\n• Licensed indications\n• Adult dosing (and elderly/renal adjustments)\n• Contraindications and cautions\n• Important interactions\n• Monitoring requirements\n• Common and serious side effects\n\nDrug:` },
+          { id: 'bnf-lookup', shortTitle: 'Drug Lookup', title: 'Drug Lookup', description: 'Top 10 NHS drugs + search 500+ medicines', prompt: '', specialAction: 'bnf-lookup-panel' },
           { id: 'bnf-interactions', shortTitle: 'Interactions', title: 'Interactions Check', description: 'Check drug interactions', prompt: `${nhsSafetyPreamble}\n\nCheck interactions between the following medications. Highlight:\n• Clinically significant interactions\n• Severity (avoid/caution/monitor)\n• Mechanism and effect\n• Management advice\n\nMedications:` },
           { id: 'bnf-dose', shortTitle: 'Dose Calc', title: 'Dose Calculations', description: 'Help with dosing calculations', prompt: `${nhsSafetyPreamble}\n\nHelp me calculate the correct dose for:\n• Drug: [name]\n• Patient weight: [kg]\n• Renal function (eGFR): [if known]\n\nProvide:\n• Standard dose calculation\n• Any adjustments needed\n• Maximum doses\n• Administration guidance` },
           { id: 'bnf-renal', shortTitle: 'Renal', title: 'Renal Adjustments', description: 'Dosing in renal impairment', prompt: `${nhsSafetyPreamble}\n\nProvide renal dosing guidance for [drug] with eGFR [value]. Include:\n• Dose adjustment required\n• Alternative if contraindicated\n• Monitoring needed\n• Drugs to avoid in this eGFR range\n\nDrug and eGFR:` },

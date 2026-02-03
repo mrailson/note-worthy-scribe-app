@@ -473,3 +473,6 @@ verify_jwt = false
 
 [functions.pm-genie-send-email]
 verify_jwt = true
+
+[functions.bnf-comprehensive-lookup]
+verify_jwt = true
