@@ -1,337 +1,247 @@
 
-
-# Plan: Add QR Mobile Photo Import & Clinical System Paste to Complaints
+# BNF Quick Lookup Hub - Comprehensive Drug Reference for Clinicians
 
 ## Overview
 
-This plan adds two major features to the Complaints Import modal:
+This plan creates a **dedicated BNF screen** under the existing "BNF & Prescribing" category that serves as the single source of truth for drug guidance. The screen will feature:
 
-1. **QR-Based Mobile Photo Capture** - Scan a QR code with your phone to photograph handwritten patient letters, then have them automatically appear on your desktop and processed via OCR/Vision
-2. **Clinical System Paste** - Copy/paste patient demographics directly from EMIS or SystOne screenshots or text
-
-Both features will leverage existing infrastructure from the Ask AI QR capture system and the Scribe appointments import.
+1. **Top 10 NHS Prescribed Drugs** - Quick access badges based on national prescribing data
+2. **Real-time Typeahead Search** - Instant filtering from 500+ drugs as you type
+3. **Comprehensive BNF Detail Page** - Full drug monograph with indications, dosing, interactions, contraindications, and monitoring
 
 ---
 
-## Architecture
+## User Experience Flow
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    COMPLAINT IMPORT MODAL                                │
-├─────────────────────────────────────────────────────────────────────────┤
-│  ┌────────────────┐ ┌────────────────┐ ┌────────────────┐ ┌───────────┐ │
-│  │ Full Complaint │ │   Text/Email   │ │  Patient Only  │ │  Mobile   │ │
-│  │     (Files)    │ │    (Paste)     │ │ (Demographics) │ │  Capture  │ │
-│  └────────────────┘ └────────────────┘ └────────────────┘ └───────────┘ │
-│                                                    │            │        │
-│                    ┌───────────────────────────────┴────────────┘        │
-│                    │                                                      │
-│    ┌───────────────┴────────────────┐                                    │
-│    │      NEW: QR Capture Modal     │                                    │
-│    │   (Reuses AI Chat pattern)     │                                    │
-│    └───────────────┬────────────────┘                                    │
-│                    │                                                      │
-└────────────────────│──────────────────────────────────────────────────────┘
-                     │
-         ┌───────────▼───────────┐
-         │   Mobile Phone Page   │
-         │   /complaint-capture  │
-         │    /:shortCode        │
-         └───────────┬───────────┘
-                     │
-         ┌───────────▼───────────┐
-         │  Edge Function:       │
-         │  upload-complaint-    │
-         │  capture              │
-         └───────────┬───────────┘
-                     │
-         ┌───────────▼───────────┐
-         │  Storage Bucket:      │
-         │  complaint-captures   │
-         └───────────┬───────────┘
-                     │
-         ┌───────────▼───────────┐
-         │  Realtime Sync to     │
-         │  Desktop Modal        │
-         └───────────────────────┘
++--------------------------------------------------+
+|  BNF & Prescribing  (expanded subcategory)       |
++--------------------------------------------------+
+|                                                  |
+|  [Drug Lookup] [Interactions] [Dose Calc] ...    |
+|       |                                          |
+|       v                                          |
++--------------------------------------------------+
+|  BNF QUICK LOOKUP HUB                            |
++--------------------------------------------------+
+|                                                  |
+|  Top 10 NHS Prescribed:                          |
+|  [Omeprazole] [Amlodipine] [Atorvastatin] ...   |
+|                                                  |
+|  Search (typeahead):                             |
+|  +--------------------------------------------+  |
+|  |  🔍  Type drug name...              |  ▼  |  |
+|  +--------------------------------------------+  |
+|    Metformin                 [GREEN]             |
+|    Methotrexate              [SPECIALIST]        |
+|    Methylphenidate           [RED]               |
+|                                                  |
++--------------------------------------------------+
+        |
+        v (click drug)
++--------------------------------------------------+
+|  COMPREHENSIVE BNF PAGE                          |
++--------------------------------------------------+
+|  Amlodipine                     [GREEN] [Back]   |
+|  ------------------------------------------------|
+|  INDICATIONS                                     |
+|  • Hypertension                                  |
+|  • Angina (chronic stable, Prinzmetal's)         |
+|                                                  |
+|  DOSING (Adult)                                  |
+|  • Initial: 5mg once daily                       |
+|  • Max: 10mg once daily                          |
+|  • Elderly: Start 2.5mg                          |
+|                                                  |
+|  CONTRAINDICATIONS                               |
+|  • Cardiogenic shock                             |
+|  • Severe aortic stenosis                        |
+|                                                  |
+|  INTERACTIONS                                    |
+|  • CYP3A4 inhibitors (↑ levels)                  |
+|  • Simvastatin (limit to 20mg)                   |
+|                                                  |
+|  MONITORING                                      |
+|  • BP at initiation and dose changes             |
+|                                                  |
+|  SIDE EFFECTS                                    |
+|  • Common: Ankle oedema, flushing, headache      |
+|  • Serious: Arrhythmias (rare)                   |
+|                                                  |
+|  [View Traffic Light] [Insert into Chat] [BNF]   |
++--------------------------------------------------+
 ```
 
 ---
 
-## Feature 1: QR Mobile Photo Capture
+## Technical Implementation
 
-### Database Schema
+### 1. New Components
 
-**New table: `complaint_capture_sessions`**
+| Component | Purpose |
+|-----------|---------|
+| `BNFQuickLookupPanel.tsx` | Main container with Top 10 badges and search |
+| `BNFDrugDetailPage.tsx` | Comprehensive drug monograph view |
+| `TopPrescribedDrugs.tsx` | Static curated list of top NHS drugs |
+| `BNFTypeaheadSearch.tsx` | Real-time fuzzy search with traffic light badges |
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid (PK) | Session identifier |
-| user_id | uuid (FK) | Logged-in user |
-| session_token | text | Random UUID for validation |
-| short_code | text | 6-character code (e.g., "X7K9M2") |
-| expires_at | timestamptz | 60 minutes from creation |
-| is_active | boolean | Default true |
-| created_at | timestamptz | |
+### 2. Edge Function Updates
 
-**New table: `complaint_captured_images`**
+**New function: `bnf-comprehensive-lookup`**
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid (PK) | Image record identifier |
-| session_id | uuid (FK) | Links to capture session |
-| file_name | text | Original filename |
-| file_url | text | Storage public URL |
-| file_size | integer | Size in bytes |
-| ocr_text | text | Extracted text from vision |
-| processed | boolean | Default false |
-| created_at | timestamptz | |
+This function will:
+- Accept a drug name
+- Call the official BNF API or use AI with strict NHS safety guardrails to generate comprehensive BNF-style monograph
+- Return structured data: indications, dosing, contraindications, interactions, monitoring, side effects
+- Include NHS safety preamble and clinical verification
 
-**Storage bucket: `complaint-captures`** (public read)
+### 3. Top 10 NHS Prescribed Drugs (Static Curated List)
+
+Based on NHS England prescribing data, the top prescribed drugs in primary care:
+
+| Rank | Drug | Common Use |
+|------|------|------------|
+| 1 | Omeprazole | Acid reflux/GORD |
+| 2 | Amlodipine | Hypertension |
+| 3 | Atorvastatin | Cholesterol |
+| 4 | Lansoprazole | Acid reflux |
+| 5 | Ramipril | Hypertension/Heart failure |
+| 6 | Metformin | Type 2 Diabetes |
+| 7 | Paracetamol | Pain/Fever |
+| 8 | Simvastatin | Cholesterol |
+| 9 | Aspirin | Cardiovascular prevention |
+| 10 | Levothyroxine | Hypothyroidism |
+
+### 4. Real-time Typeahead Search
+
+- Uses existing `useTrafficLightVocab` hook (261+ drugs already loaded)
+- Fuse.js fuzzy matching with prefix boosting
+- Shows traffic light badge inline with each result
+- Minimum 2 characters to trigger search
+- Maximum 15 results shown
+- Debounced input (150ms)
+
+### 5. Comprehensive BNF Detail Page
+
+The detail page will include:
+
+**Sections displayed:**
+1. **Header**: Drug name, traffic light status, BNF chapter
+2. **Indications**: Licensed uses
+3. **Dosing**: Adult, elderly, renal adjustments, paediatric (if applicable)
+4. **Contraindications & Cautions**: Absolute and relative
+5. **Drug Interactions**: Clinically significant, severity levels
+6. **Monitoring**: What to check and when
+7. **Side Effects**: Common (>1%) and serious
+8. **Pregnancy/Breastfeeding**: Safety information
+9. **Patient Counselling**: Key points to discuss
+
+**Actions:**
+- **View Traffic Light Details**: Opens existing PolicyModal
+- **Insert into Chat**: Adds summary to AI chat
+- **Open BNF Online**: External link to bnf.nice.org.uk
+
+### 6. NHS Safety Implementation
+
+Following the 6-layer AI safety guardrail system documented in the CSO Report:
+
+1. **Clinical Safety Monitoring**: All drug information cross-referenced
+2. **Input Validation**: Sanitise drug name queries
+3. **Rate Limiting**: Edge function protected
+4. **Hallucination Detection**: Verify facts against BNF source
+5. **User Disclaimers**: "Always verify with official BNF. Use clinical judgement."
+6. **Source Attribution**: Link to official BNF for each drug
+
+---
+
+## Files to Create/Modify
 
 ### New Files
 
-1. **`src/components/complaints/ComplaintQRCaptureModal.tsx`**
-   - Desktop modal showing QR code
-   - Creates session in `complaint_capture_sessions`
-   - Subscribes to `complaint_captured_images` INSERT events via Supabase Realtime
-   - Shows count of received photos with thumbnails
-   - "Done" button returns captured images to parent component
-   - Actions: Copy Link, Email Link, Print QR, Accurx SMS (matches Ask AI pattern)
+| File | Description |
+|------|-------------|
+| `src/components/bnf/BNFQuickLookupPanel.tsx` | Main panel with Top 10 and search |
+| `src/components/bnf/BNFDrugDetailPage.tsx` | Comprehensive drug page |
+| `src/components/bnf/TopPrescribedDrugs.tsx` | Top 10 badge grid |
+| `src/components/bnf/BNFTypeaheadSearch.tsx` | Real-time search component |
+| `supabase/functions/bnf-comprehensive-lookup/index.ts` | AI-powered BNF lookup |
 
-2. **`src/pages/ComplaintCapture.tsx`**
-   - Mobile-optimised page at `/complaint-capture/:shortCode`
-   - Camera interface using `facingMode: 'environment'`
-   - Gallery upload option for existing photos
-   - Client-side compression before upload
-   - Calls `upload-complaint-capture` edge function
-   - Visual feedback showing upload success
-
-3. **`supabase/functions/upload-complaint-capture/index.ts`**
-   - Validates session token (exists, active, not expired)
-   - Accepts base64 image data
-   - Uploads to `complaint-captures` storage bucket
-   - Inserts record into `complaint_captured_images`
-   - Triggers Supabase Realtime notification to desktop
-
-4. **`supabase/migrations/YYYYMMDD_complaint_capture_sessions.sql`**
-   - Creates both tables
-   - Adds trigger to auto-generate 6-character short_code
-   - Adds RLS policies for user access
-   - Creates storage bucket with public read policy
-
-### Integration in ComplaintImport.tsx
-
-**New Tab: "Mobile Capture"** (between Text/Email and Patient Only)
-
-```text
-[ Full Complaint ] [ Text/Email ] [ Mobile Capture ] [ Patient Only ]
-                                        ▲
-                                   NEW TAB
-```
-
-**Tab Content:**
-- Prominent QR code button: "Scan with Phone"
-- Click opens `ComplaintQRCaptureModal`
-- After photos received:
-  - Thumbnails displayed
-  - "Process All" button runs OCR via `extract-document-text`
-  - Extracted text sent to `import-complaint-data` for full extraction
-  - Results populate the form
-
-### Mobile Page Routing
-
-Add route in `App.tsx`:
-```typescript
-<Route path="/complaint-capture/:shortCode" element={<ComplaintCapture />} />
-```
-
----
-
-## Feature 2: Clinical System Paste (EMIS/SystOne)
-
-### Enhanced "Patient Only" Tab
-
-The existing Patient Only tab already supports:
-- Screenshot paste (Ctrl+V) with OCR
-- Dropzone for files
-- Manual text paste button
-
-**Enhancements:**
-
-1. **Visual Clinical System Hints**
-   - Add helper text: "Paste from EMIS, SystOne, or Vision"
-   - Show small icons for supported clinical systems
-   - Indicate: "Ctrl+V to paste screenshot, or paste text directly"
-
-2. **Improved Text Parsing**
-   - Reuse regex patterns from `useScribeAppointments.ts`
-   - Parse NHS Number (10 digits with optional spaces)
-   - Parse DOB (DD Mon YYYY or DD/MM/YYYY formats)
-   - Parse Title + Name (Mr/Mrs/Miss/Ms/Dr patterns)
-   - Parse Address with postcode extraction
-   - Parse phone numbers (UK mobile/landline formats)
-
-3. **Dedicated "Paste Demographics" Button**
-   - Positioned prominently in the Patient Only tab
-   - Uses `navigator.clipboard.readText()` API
-   - Parses pasted text immediately
-   - Shows extracted fields in preview
-
-4. **Screenshot Detection Enhancement**
-   - When image pasted, detect if it's from EMIS/SystOne
-   - Send to `extract-patient-context` (same as Scribe) for better extraction
-   - NHS number validation with `validateNHSNumber()` utility
-
-### File Changes for Clinical Paste
-
-**`src/components/ComplaintImport.tsx`**
-
-1. Add clinical system icons and helper text to Patient Only tab header
-2. Create `parsePatientDemographicsFromText()` function using Scribe patterns
-3. Enhance the "Paste from Clipboard" button to use automatic parsing
-4. Add visual feedback showing which fields were extracted
-
-**`src/utils/clinicalSystemPatterns.ts`** (new shared utility)
-
-Extract parsing logic from `useScribeAppointments.ts` into reusable functions:
-- `extractNHSNumber(text: string): string | null`
-- `extractDateOfBirth(text: string): string | null`
-- `extractPatientName(text: string): string | null`
-- `extractAddress(text: string): string | null`
-- `extractPhoneNumber(text: string): string | null`
-- `parsePatientDemographics(text: string): PatientDetailsData`
-
----
-
-## UI/UX Design
-
-### Mobile Capture Tab
-
-```text
-┌────────────────────────────────────────────────┐
-│  📱 Mobile Photo Capture                       │
-├────────────────────────────────────────────────┤
-│                                                │
-│   Capture patient letters, handwritten notes   │
-│   or documents using your phone's camera       │
-│                                                │
-│   ┌──────────────────────────────────────┐    │
-│   │                                      │    │
-│   │    [  📲 Scan QR with Phone  ]       │    │
-│   │                                      │    │
-│   │    Opens camera on your mobile       │    │
-│   │    Photos sync here automatically    │    │
-│   │                                      │    │
-│   └──────────────────────────────────────┘    │
-│                                                │
-│   No photos received yet                       │
-│                                                │
-└────────────────────────────────────────────────┘
-```
-
-### After Photos Received
-
-```text
-┌────────────────────────────────────────────────┐
-│  📱 Mobile Photo Capture              2 photos │
-├────────────────────────────────────────────────┤
-│                                                │
-│   ┌─────┐  ┌─────┐                             │
-│   │ 📷 │  │ 📷 │   ← Thumbnails               │
-│   └─────┘  └─────┘                             │
-│                                                │
-│   [  Process & Extract Data  ]                 │
-│                                                │
-└────────────────────────────────────────────────┘
-```
-
-### Patient Only Tab Enhancement
-
-```text
-┌────────────────────────────────────────────────┐
-│  👤 Patient Details Import                     │
-├────────────────────────────────────────────────┤
-│                                                │
-│   Import from EMIS, SystOne, or Vision         │
-│                                                │
-│   ┌──────────────────────────────────────┐    │
-│   │  Ctrl+V to paste screenshot          │    │
-│   │  or drop image/file here             │    │
-│   │                                      │    │
-│   │  ┌────────┐  ┌────────┐              │    │
-│   │  │  EMIS  │  │ SystOne│  ← Hints     │    │
-│   │  └────────┘  └────────┘              │    │
-│   └──────────────────────────────────────┘    │
-│                                                │
-│   ─────────── OR ───────────                   │
-│                                                │
-│   [ 📋 Paste Demographics from Clipboard ]     │
-│                                                │
-│   Paste text containing patient name, DOB,     │
-│   NHS number, address, or phone number         │
-│                                                │
-└────────────────────────────────────────────────┘
-```
-
----
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/complaints/ComplaintQRCaptureModal.tsx` | Desktop QR modal with realtime sync |
-| `src/pages/ComplaintCapture.tsx` | Mobile camera capture page |
-| `supabase/functions/upload-complaint-capture/index.ts` | Edge function for mobile uploads |
-| `supabase/migrations/YYYYMMDD_complaint_capture.sql` | Database tables and storage bucket |
-| `src/utils/clinicalSystemPatterns.ts` | Shared patient parsing utilities |
-
-## Files to Modify
+### Modified Files
 
 | File | Changes |
 |------|---------|
-| `src/components/ComplaintImport.tsx` | Add Mobile Capture tab, enhance Patient Only tab |
-| `src/App.tsx` | Add `/complaint-capture/:shortCode` route |
-| `supabase/config.toml` | Add `upload-complaint-capture` function |
+| `src/components/ai4gp/gpPromptCategories.ts` | Update BNF subcategory to show the new panel |
+| `src/components/ai4gp/GPHomeScreen.tsx` | Handle opening BNF panel |
+| `supabase/config.toml` | Add new edge function |
 
 ---
 
-## Technical Details
+## Data Flow
 
-### Session Security
-- Sessions expire after 60 minutes
-- Short codes are 6 random alphanumeric characters
-- Token validation happens server-side in edge function
-- RLS policies ensure users can only access their own sessions
+```text
+User clicks "Drug Lookup" in BNF category
+              |
+              v
+    BNFQuickLookupPanel renders
+              |
+   +----------+----------+
+   |                     |
+   v                     v
+Top 10 badges      Typeahead search
+   |                     |
+   +----------+----------+
+              |
+              v
+     User selects drug
+              |
+              v
+    bnf-comprehensive-lookup (edge function)
+              |
+              v
+    BNFDrugDetailPage renders
+              |
+    +---------+---------+
+    |         |         |
+    v         v         v
+Indications Dosing  Interactions...
+```
 
-### Image Processing Flow
-1. Phone captures photo
-2. Client compresses to max 1600px, 0.82 quality (Safari-safe)
-3. Base64 uploaded to edge function
-4. Stored in `complaint-captures` bucket
-5. Record inserted triggers Realtime to desktop
-6. Desktop processes via `extract-document-text` OCR
-7. Text sent to `import-complaint-data` for AI extraction
-8. Results populate form fields
+---
 
-### Clinical System Parsing
-Reuses proven regex patterns from GP Scribe:
-- NHS: `/NHS[:\s]*(\d[\d\s]{8,11}\d)/i` or `/(\d{3}\s?\d{3}\s?\d{4})/`
-- DOB: `/(\d{1,2}\s+\w{3}\s+\d{4})/i` or `/(\d{1,2}\/\d{1,2}\/\d{4})/`
-- Name: `/((?:Mr|Mrs|Miss|Ms|Dr|Master)\.?\s+[\w\s]+?)/i`
-- Phone: `/(0\d{10}|\+44\d{10}|07\d{9})/`
-- Postcode: `/([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})/i`
+## NHS Safety Compliance Checklist
+
+- [ ] All drug information sourced from/verified against BNF
+- [ ] Clinical safety disclaimer displayed prominently
+- [ ] No AI hallucination risk (structured extraction, not free generation)
+- [ ] Traffic light status always shown
+- [ ] "Professional judgement required" warning
+- [ ] Links to official BNF for verification
+- [ ] MHRA alerts integration point (future)
+- [ ] Rate limiting on edge function
 
 ---
 
 ## Implementation Order
 
-1. **Database migration** - Create tables and storage bucket
-2. **Edge function** - `upload-complaint-capture`
-3. **Mobile capture page** - `/complaint-capture/:shortCode`
-4. **QR modal** - Desktop component with realtime subscription
-5. **Integrate into ComplaintImport** - Add new Mobile Capture tab
-6. **Clinical parsing utility** - Extract shared patterns
-7. **Enhance Patient Only tab** - Better clinical system support
-8. **Testing** - End-to-end flow on mobile and desktop
+1. Create static Top 10 component
+2. Create typeahead search using existing vocab hook
+3. Build BNF detail page structure
+4. Create edge function with AI + safety guardrails
+5. Wire up navigation from GPHomeScreen
+6. Add NHS safety disclaimers
+7. Test end-to-end flow
+
+---
+
+## Estimated Complexity
+
+| Component | Effort |
+|-----------|--------|
+| Top 10 badges | Low |
+| Typeahead search | Medium (reuse existing) |
+| BNF detail page | Medium |
+| Edge function | High (AI + safety) |
+| Integration | Low |
+
+**Total: Medium-High complexity**
 
