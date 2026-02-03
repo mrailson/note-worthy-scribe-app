@@ -35,8 +35,17 @@ export const usePracticeContext = () => {
       const userProfile = profileResult.data;
       const userRoles = rolesResult.data;
 
-      console.log('👤 User profile loaded:', userProfile);
-      console.log('👥 User roles loaded:', userRoles);
+      // Avoid logging full profile/roles objects (can contain huge base64 signatures which get pinned in DevTools memory)
+      console.log('👤 User profile loaded (summary):', {
+        hasLetterSignature: Boolean(userProfile?.letter_signature),
+        letterSignatureLength: userProfile?.letter_signature?.length || 0,
+        hasEmailSignature: Boolean(userProfile?.email_signature),
+        emailSignatureLength: userProfile?.email_signature?.length || 0,
+      });
+      console.log('👥 User roles loaded (summary):', (userRoles || []).map(r => ({
+        role: r.role,
+        hasPracticeId: Boolean(r.practice_id)
+      })));
 
       // Find the user's practice_id from user_roles
       const userRoleWithPractice = userRoles?.find(r => r.practice_id);
@@ -73,7 +82,12 @@ export const usePracticeContext = () => {
           .eq('id', practiceId)
           .maybeSingle();
 
-        console.log('🏥 GP Practice from user_roles:', gpPractice);
+        console.log('🏥 GP Practice from user_roles (summary):', gpPractice ? {
+          id: gpPractice.id,
+          name: gpPractice.name,
+          organisation_type: gpPractice.organisation_type,
+          hasPcnCode: Boolean(gpPractice.pcn_code)
+        } : null);
 
         // Then look for practice_details that match this organisation
         // Priority: practice_details with matching practice name (flexible matching)
