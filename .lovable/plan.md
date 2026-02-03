@@ -1,269 +1,209 @@
 
-# Plan: Fix Memory Leaks in Ask AI (AI4GP) Service
+# Investigation Report: Mobile App Crashing Every Few Seconds
 
-## Summary
+## Executive Summary
 
-The Ask AI service is experiencing severe memory leaks causing 3GB+ memory consumption. Through extensive code analysis, I've identified **5 critical leak sources** that require remediation.
+After thorough investigation of the codebase, I've identified **5 likely causes** for the mobile app crashing. The crashes appear to be a combination of **memory exhaustion**, **subscription loops**, and **viewport resize thrashing** that disproportionately affects mobile devices due to their limited resources.
 
 ---
 
 ## Root Causes Identified
 
-### 1. Untracked Recursive Timeouts in Simulated Streaming
+### 1. LiveTranscript Subscription Loop (HIGH SEVERITY)
 
-**Severity: CRITICAL**
+**Location:** `src/components/LiveTranscript.tsx` (lines 520-525)
 
-Multiple streaming handlers use `setTimeout` recursively without tracking the timeout IDs, meaning they cannot be cancelled when:
-- User starts a new search
-- User navigates away
-- Component unmounts
+The Supabase realtime subscription effect includes `cleanedTranscript` in its dependency array, but the effect *updates* `cleanedTranscript` when chunks arrive. This creates a vicious cycle:
 
-| File | Lines | Issue |
-|------|-------|-------|
-| `useAI4GPService.ts` | 993-994 | `setTimeout(streamChunks, 15)` - untracked |
-| `useAI4GPService.ts` | 1087 | Duplicate pattern in fallback |
-| `useAI4GPService.ts` | 1628-1629 | Same pattern in quick response |
+1. Chunk arrives → `setCleanedTranscript()` called
+2. State update triggers effect to re-run (due to dependency)
+3. Old subscription is torn down, new subscription is created
+4. If another chunk is pending, repeat
 
-**Current code (lines 993-994):**
-```typescript
-if (currentIndex < chunks.length) {
-  setTimeout(streamChunks, 15 + Math.random() * 10); // NEVER CLEANED UP!
-}
-```
-
-### 2. Stale Closures in Streaming Callbacks
-
-**Severity: HIGH**
-
-The `handleSend` useCallback has an incomplete dependency array, causing stale closures that retain old state references:
+On mobile where transcription is actively used (e.g., patient translation), this can cause **dozens of subscription tear-down/rebuild cycles per second**, overwhelming the browser.
 
 ```typescript
-// Line 1154 - Missing dependencies
-}, [input, messages, uploadedFiles, buildSystemPrompt, verificationLevel, useOpenAI]);
+// Line 525 - cleanedTranscript SHOULD NOT be in dependencies
+}, [user?.id, isMedicalCorrectionsLoaded, meetingSettings, cleanedTranscript]);
+//                                                         ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+//                                                         REMOVE THIS
 ```
-
-Missing: `selectedModel`, `isClinical`, `performClinicalVerification`, `saveSearchAutomatically`, `handleGPT5FastClinical`, `setMessages`, `setIsLoading`
-
-### 3. Large Base64 Content Not Stripped Aggressively Enough
-
-**Severity: MEDIUM-HIGH**
-
-The memory cleanup only runs every 60 seconds, and the threshold for stripping file content (10,000 chars) is too high. Messages with multiple PDFs or images can accumulate megabytes before cleanup.
-
-### 4. AudioContext Leaks in EnhancedBrowserMic
-
-**Severity: MEDIUM**
-
-Starting audio analysis doesn't check if a previous context exists before creating a new one:
-
-```typescript
-// Line 114 - No check for existing context
-audioContextRef.current = new AudioContext();
-```
-
-### 5. EmbeddedPMGenie Cleanup Race Condition
-
-**Severity: MEDIUM**
-
-The cleanup effect calls `conversation.endSession()` but doesn't wait for it, and the `startConversation` function isn't included in dependencies, causing potential orphaned connections.
 
 ---
 
-## Technical Solution
+### 2. Viewport Resize Thrashing on iOS (MEDIUM-HIGH SEVERITY)
 
-### Fix 1: Track All Streaming Timeouts
+**Location:** `src/components/ai4gp/FloatingMobileInput.tsx` (lines 100-126)
 
-Create a ref to track simulated streaming timeouts and clear them on new searches or unmount.
+The keyboard height calculation updates both React state AND a CSS custom property on every `visualViewport.resize` event. On iOS Safari:
 
-**File: `src/hooks/useAI4GPService.ts`**
+1. Keyboard appears → viewport resizes
+2. Handler updates `--iphone-keyboard-height` CSS variable
+3. CSS change causes layout recalculation
+4. If layout affects viewport height, another resize event fires
+5. Potential infinite loop
 
 ```typescript
-// Add new ref (after line 41)
-const simulatedStreamTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-// Update cleanup effect (lines 44-49)
-useEffect(() => {
-  return () => {
-    if (streamTimeoutRef.current) clearTimeout(streamTimeoutRef.current);
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    if (verificationTimeoutRef.current) clearTimeout(verificationTimeoutRef.current);
-    if (simulatedStreamTimeoutRef.current) clearTimeout(simulatedStreamTimeoutRef.current);
-  };
-}, []);
-
-// Update all setTimeout calls in streamChunks to use the ref
-// Example pattern (apply to lines 993, 1087, 1628):
-if (currentIndex < chunks.length) {
-  simulatedStreamTimeoutRef.current = setTimeout(streamChunks, 15 + Math.random() * 10);
-} else {
-  // ... streaming complete
-}
-
-// Clear timeouts at start of handleSend/handleQuickResponse:
-if (simulatedStreamTimeoutRef.current) {
-  clearTimeout(simulatedStreamTimeoutRef.current);
-  simulatedStreamTimeoutRef.current = null;
-}
+// Lines 108-114 - Setting CSS variable on every resize can cause thrashing
+setKeyboardHeight(Math.max(0, keyboardHeight));
+document.documentElement.style.setProperty(
+  '--iphone-keyboard-height', 
+  `${Math.max(0, keyboardHeight)}px`
+);
 ```
 
-### Fix 2: Use Refs for Frequently Changing Values (Stale Closure Fix)
+**Fix needed:** Debounce the handler and only update if the value actually changed.
 
-Apply the pattern from the Stack Overflow solution to prevent stale closures:
+---
 
-**File: `src/hooks/useAI4GPService.ts`**
+### 3. Memory Leaks Still Present in Ask AI (MEDIUM SEVERITY)
 
+**Location:** `src/hooks/useAI4GPService.ts`
+
+While the recent fixes added timeout tracking refs, there are still potential issues:
+
+- The `handleSend` callback's dependency array (around line 1154) may still be incomplete
+- Large message histories accumulate faster on mobile due to frequent interactions
+- The cleanup interval (30s) may be too slow for mobile memory constraints
+
+**Additional concern:** Mobile browsers have much stricter memory limits (~1GB vs 4GB+ on desktop). The 40-message limit may still be too high for mobile.
+
+---
+
+### 4. Global MutationObserver Overhead (LOW-MEDIUM SEVERITY)
+
+**Location:** `src/App.tsx` (lines 128-133) and `src/utils/domSafetyPolyfill.ts`
+
+The `SafeDOMObserver` observes the entire document body with `childList: true, subtree: true, attributes: true`. On mobile:
+
+- Every DOM change triggers the observer
+- Processing mutations (even safely) has CPU overhead
+- Combined with React's frequent re-renders, this creates constant overhead
+
+While necessary to prevent third-party crashes, it adds to the overall mobile burden.
+
+---
+
+### 5. SessionActivityTracker Event Listeners (LOW SEVERITY)
+
+**Location:** `src/hooks/useSessionActivity.ts` (lines 52-55)
+
+Six global event listeners are attached for activity tracking:
 ```typescript
-// Add refs for frequently changing values (after line 36)
-const selectedModelRef = useRef(selectedModel);
-const isClinicalRef = useRef(isClinical);
-const messagesRef = useRef(messages);
-
-// Keep refs in sync with state
-useEffect(() => {
-  selectedModelRef.current = selectedModel;
-}, [selectedModel]);
-
-useEffect(() => {
-  isClinicalRef.current = isClinical;
-}, [isClinical]);
-
-useEffect(() => {
-  messagesRef.current = messages;
-}, [messages]);
-
-// Then use refs inside callbacks:
-// selectedModelRef.current instead of selectedModel
-// isClinicalRef.current instead of isClinical
+const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
 ```
 
-### Fix 3: More Aggressive Memory Cleanup
+On mobile, `touchstart` and `scroll` events fire very frequently. While each handler is throttled (1-minute minimum between updates), the *evaluation* of the throttle condition runs on every event.
 
-Reduce cleanup interval and lower content threshold:
+---
 
-**File: `src/hooks/useAI4GPService.ts`**
+## Recommended Fixes
+
+### Fix 1: Remove `cleanedTranscript` from Subscription Dependencies (CRITICAL)
+
+**File:** `src/components/LiveTranscript.tsx`
+**Line:** 525
 
 ```typescript
-// Change line 13-15
-const MAX_MESSAGES_IN_MEMORY = 40; // Reduced from 50
-const KEEP_RECENT_MESSAGES_INTACT = 5; // Reduced from 10
+// FROM:
+}, [user?.id, isMedicalCorrectionsLoaded, meetingSettings, cleanedTranscript]);
 
-// Change cleanup interval (line 83)
-}, 30000); // Changed from 60000 (30 seconds instead of 60)
+// TO:
+}, [user?.id, isMedicalCorrectionsLoaded, meetingSettings]);
 ```
 
-**File: `src/utils/streamingUtils.ts`**
+---
+
+### Fix 2: Debounce Viewport Resize Handler (HIGH)
+
+**File:** `src/components/ai4gp/FloatingMobileInput.tsx`
+**Lines:** 100-126
 
 ```typescript
-// Change line 99 - Lower threshold for stripping content
-content: file.content?.length > 5000 ? '[STRIPPED_FOR_MEMORY]' : file.content,
-```
+// Add debouncing and value comparison
+const lastKeyboardHeightRef = useRef(0);
 
-### Fix 4: Prevent AudioContext Duplication
-
-**File: `src/components/ai4gp/EnhancedBrowserMic.tsx`**
-
-```typescript
-// Update startAudioAnalysis (lines 103-126)
-const startAudioAnalysis = useCallback(async () => {
-  try {
-    // Clean up any existing audio context first
-    if (audioContextRef.current) {
-      try {
-        await audioContextRef.current.close();
-      } catch {}
-      audioContextRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
+const handleResize = useCallback(
+  debounce(() => {
+    if (typeof window !== 'undefined') {
+      const viewport = window.visualViewport;
+      if (viewport && isExpanded) {
+        const newKeyboardHeight = Math.max(0, window.innerHeight - viewport.height);
+        
+        // Only update if changed by more than 5px
+        if (Math.abs(newKeyboardHeight - lastKeyboardHeightRef.current) > 5) {
+          lastKeyboardHeightRef.current = newKeyboardHeight;
+          setKeyboardHeight(newKeyboardHeight);
+          document.documentElement.style.setProperty(
+            '--iphone-keyboard-height', 
+            `${newKeyboardHeight}px`
+          );
+        }
       }
-    });
-    
-    // ... rest of the function
-  } catch (error) {
-    console.error('Error starting audio analysis:', error);
-  }
-}, [updateAudioLevels]);
+    }
+  }, 100), // 100ms debounce
+  [isExpanded]
+);
 ```
 
-### Fix 5: Improve EmbeddedPMGenie Cleanup
+---
 
-**File: `src/components/ai4gp/EmbeddedPMGenie.tsx`**
+### Fix 3: Lower Message History Limit for Mobile (MEDIUM)
+
+**File:** `src/hooks/useAI4GPService.ts`
+**Near line 13**
 
 ```typescript
-// Add abort ref for tracking active conversations
-const isCleaningUpRef = useRef(false);
+// Add mobile-specific limits
+const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+const MAX_MESSAGES_IN_MEMORY = isMobile ? 20 : 40;
+const KEEP_RECENT_MESSAGES_INTACT = isMobile ? 3 : 5;
+const CLEANUP_INTERVAL_MS = isMobile ? 15000 : 30000; // 15s on mobile
+```
 
-// Update cleanup effect (lines 454-475)
-useEffect(() => {
-  startConversation();
-  
-  return () => {
-    console.log('EmbeddedPMGenie unmounting - cleaning up...');
-    isCleaningUpRef.current = true;
-    
-    if (volumeGuardTimerRef.current) {
-      clearInterval(volumeGuardTimerRef.current);
-      volumeGuardTimerRef.current = null;
-    }
-    
-    // Synchronously attempt cleanup - don't rely on async
-    try {
-      // Use the async cleanup but don't await
-      conversation.endSession().catch(() => {});
-    } catch {}
-    
-    // Also clear any audio elements
-    if (wakeAudioRef.current) {
-      wakeAudioRef.current.pause();
-      wakeAudioRef.current.src = '';
-      wakeAudioRef.current = null;
-    }
-  };
-}, []);
+---
+
+### Fix 4: Throttle Session Activity Event Handlers (LOW)
+
+**File:** `src/hooks/useSessionActivity.ts`
+
+```typescript
+// Use passive event listeners and reduce event list for mobile
+const events = isMobile 
+  ? ['touchstart', 'click'] // Reduced set for mobile
+  : ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
 ```
 
 ---
 
 ## Files to Modify
 
-| File | Changes | Priority |
-|------|---------|----------|
-| `src/hooks/useAI4GPService.ts` | Track streaming timeouts, add refs for state, reduce cleanup interval | Critical |
-| `src/utils/streamingUtils.ts` | Lower content stripping threshold | High |
-| `src/components/ai4gp/EnhancedBrowserMic.tsx` | Prevent AudioContext duplication | Medium |
-| `src/components/ai4gp/EmbeddedPMGenie.tsx` | Improve cleanup, clear audio elements | Medium |
+| File | Priority | Change |
+|------|----------|--------|
+| `src/components/LiveTranscript.tsx` | Critical | Remove `cleanedTranscript` from dependency array |
+| `src/components/ai4gp/FloatingMobileInput.tsx` | High | Debounce viewport resize handler |
+| `src/hooks/useAI4GPService.ts` | Medium | Lower limits for mobile devices |
+| `src/hooks/useSessionActivity.ts` | Low | Reduce event listeners on mobile |
 
 ---
 
-## Expected Memory Reduction
+## Testing Recommendations
 
-| Source | Current Impact | After Fix |
-|--------|----------------|-----------|
-| Orphaned streaming timeouts | ~500MB+ accumulation | Eliminated |
-| Stale closure references | ~200-500MB retained state | Eliminated |
-| Unstripped base64 content | ~100-300MB per session | Reduced by 60% |
-| Leaked AudioContexts | ~50MB per mic toggle | Eliminated |
-| PM Genie connections | ~20-50MB per use | Eliminated |
+After implementing fixes:
 
-**Total estimated reduction: 60-80% of current memory usage**
+1. **Memory monitoring**: Open Safari Web Inspector on Mac with iPhone connected, monitor Memory tab
+2. **CPU profiling**: Check for sustained high CPU usage in Performance tab
+3. **Network monitoring**: Verify Supabase subscription isn't constantly reconnecting
+4. **Stress test**: Use Ask AI with large file attachments on mobile for 5+ minutes
 
 ---
 
-## Additional Recommendations
+## Additional Notes
 
-1. **Add memory monitoring**: Log heap size periodically in development
-2. **Consider WeakRefs**: For caching large generated content
-3. **Implement message pagination**: For very long conversations
-4. **Add user-facing "Clear History" button**: Give users manual control
+The mobile environment is particularly sensitive because:
+- iOS Safari has aggressive memory limits (~1-1.5GB)
+- Background tabs are terminated aggressively to save resources
+- Viewport resize events fire more frequently due to keyboard/address bar
+- Touch events generate more frequent activity than mouse events
+
+The combination of all these factors means what works fine on desktop can cause cascading failures on mobile.
