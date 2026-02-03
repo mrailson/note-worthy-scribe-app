@@ -136,8 +136,8 @@ ${monograph.dosing.renalAdjustment ? `• Renal: ${monograph.dosing.renalAdjustm
 
     navigator.clipboard.writeText(summary);
     setCopied(true);
-    toast.success('Copied to clipboard');
-    setTimeout(() => setCopied(false), 2000);
+    toast.success('Copied to clipboard', { duration: 1500 });
+    setTimeout(() => setCopied(false), 1500);
   };
 
   const handleInsertToChat = () => {
@@ -153,7 +153,7 @@ ${monograph.dosing.renalAdjustment ? `• Renal: ${monograph.dosing.renalAdjustm
 ⚠️ Verify with BNF. Clinical judgement required.`;
 
     onInsertToChat(summary);
-    toast.success('Inserted into chat');
+    toast.success('Inserted into chat', { duration: 1500 });
   };
 
   const buildMonographContent = (): string => {
@@ -271,7 +271,7 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
           window.URL.revokeObjectURL(downloadUrl);
         }
         
-        toast.success('Infographic downloaded!');
+        toast.success('Infographic downloaded!', { duration: 2000 });
       } else {
         console.error('Response data:', data);
         throw new Error('No image URL returned');
@@ -328,7 +328,7 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
         document.body.removeChild(a);
         window.URL.revokeObjectURL(blobUrl);
         
-        toast.success('PowerPoint downloaded!');
+        toast.success('PowerPoint downloaded!', { duration: 2000 });
       } else {
         throw new Error('No download URL returned');
       }
@@ -736,7 +736,7 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
       const blob = await Packer.toBlob(doc);
       saveAs(blob, `${monograph.drugName.replace(/\s+/g, '-')}-Clinical-Guide.docx`);
       
-      toast.success('Word document downloaded!');
+      toast.success('Word document downloaded!', { duration: 2000 });
     } catch (err) {
       console.error('Word generation error:', err);
       toast.error('Failed to generate Word document.');
