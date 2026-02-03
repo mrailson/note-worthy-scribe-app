@@ -146,27 +146,33 @@ export function useAdminDictation() {
     return a === b || a.startsWith(b) || b.startsWith(a);
   }, [normalise]);
   
-  const hasSubstantialOverlap = useCallback((newText: string, existingText: string, threshold = 0.65): boolean => {
+  // Much stricter overlap check - only flag exact or near-exact duplicates
+  const hasSubstantialOverlap = useCallback((newText: string, existingText: string, threshold = 0.85): boolean => {
     const newWords = getWords(newText);
     const existingWords = getWords(existingText);
     
-    if (newWords.length < 5 || existingWords.length < 5) return false;
+    // Require more words before considering overlap
+    if (newWords.length < 8 || existingWords.length < 8) return false;
     
-    const checkWindow = Math.min(12, existingWords.length);
-    const tailOfExisting = existingWords.slice(-checkWindow);
+    // Only check if the ENTIRE new text appears in existing (not partial overlap)
     const newWordStr = newWords.join(' ');
-    const tailStr = tailOfExisting.join(' ');
+    const existingWordStr = existingWords.join(' ');
     
-    if (newWordStr.includes(tailStr)) return true;
+    // Check if the new text is fully contained in existing
+    if (existingWordStr.includes(newWordStr)) return true;
     
-    const newSet = new Set(newWords);
-    let matchCount = 0;
-    const checkCount = Math.min(25, existingWords.length);
-    for (const word of existingWords.slice(-checkCount)) {
-      if (newSet.has(word)) matchCount++;
+    // Check if new text is almost identical to the tail of existing (for true duplicates)
+    const tailWords = existingWords.slice(-newWords.length);
+    if (tailWords.length === newWords.length) {
+      let matchCount = 0;
+      for (let i = 0; i < newWords.length; i++) {
+        if (newWords[i] === tailWords[i]) matchCount++;
+      }
+      // Only flag if 85%+ of words match in same position (true duplicate)
+      if (matchCount / newWords.length >= threshold) return true;
     }
     
-    return matchCount / checkCount >= threshold;
+    return false;
   }, [getWords]);
   
   const isAlreadyInTranscript = useCallback((newText: string): boolean => {
@@ -176,24 +182,23 @@ export function useAdminDictation() {
     const normNew = normalise(newText);
     const normExisting = normalise(existing);
     
-    if (!normNew || normNew.length < 15) return false;
+    // Require longer text before considering it a duplicate
+    if (!normNew || normNew.length < 25) return false;
     
+    // Only skip if the EXACT text already exists
     if (normExisting.includes(normNew)) return true;
     
+    // Check recent finals for exact duplicates only
     const now = Date.now();
     const recentFinals = recentFinalsRef.current.filter(f => now - f.timestamp < RECENT_WINDOW_MS);
-    const recentNormConcat = recentFinals.map(f => f.normText).join(' ');
     
-    if (recentNormConcat && recentNormConcat.length > 20) {
-      if (hasSubstantialOverlap(normNew, recentNormConcat, 0.6)) return true;
-      if (recentNormConcat.includes(normNew)) return true;
+    for (const recent of recentFinals) {
+      // Only skip if this is the exact same text we just added
+      if (recent.normText === normNew) return true;
     }
     
-    const tail500 = normExisting.slice(-500);
-    if (tail500.length > 50 && hasSubstantialOverlap(normNew, tail500, 0.65)) return true;
-    
     return false;
-  }, [normalise, hasSubstantialOverlap]);
+  }, [normalise]);
   
   useEffect(() => {
     contentRef.current = content;
