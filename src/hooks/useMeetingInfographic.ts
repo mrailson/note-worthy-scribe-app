@@ -61,6 +61,19 @@ export const useMeetingInfographic = () => {
   const [currentPhase, setCurrentPhase] = useState<'preparing' | 'generating' | 'downloading' | 'complete'>('preparing');
   const [error, setError] = useState<string | null>(null);
 
+  const sanitiseCustomStyleRequest = (rawStyle: string): string => {
+    const trimmed = rawStyle.trim();
+    const lower = trimmed.toLowerCase();
+
+    // Avoid prompting with trademarked franchise names/characters/logos – these can cause the image model to refuse.
+    // Map common requests to “vibe” descriptions that still achieve the look.
+    if (lower.includes('star wars')) {
+      return 'cinematic space-opera sci‑fi theme: deep starfield backgrounds, dramatic lighting, subtle holographic UI motifs, glowing blue/amber accents, futuristic typography, sleek spacecraft silhouettes (no characters, logos, or franchise names).';
+    }
+
+    return trimmed;
+  };
+
   const formatMeetingForInfographic = (data: MeetingInfographicData): string => {
     const sections: string[] = [];
 
@@ -146,12 +159,14 @@ export const useMeetingInfographic = () => {
       
       if (isCustomStyle) {
         // For custom styles, give full creative freedom to the user's request
-        styleInstruction = `CUSTOM STYLE REQUEST: "${options.customStyle}"
+        const safeStyle = sanitiseCustomStyleRequest(options.customStyle);
+        styleInstruction = `CUSTOM STYLE REQUEST: "${safeStyle}"
         
 IMPORTANT: Apply this custom visual style as the PRIMARY design direction. 
 Be creative and interpret the style request fully. The style should be clearly visible throughout the design.
-For example, if "Star Wars" is requested, use space themes, sci-fi fonts, dark backgrounds with glowing elements, etc.
-If "retro 80s" is requested, use neon colours, grid patterns, synthwave aesthetics, etc.
+Examples:
+- For a "space‑opera sci‑fi" theme: starfield background, glowing accents, futuristic typography, cinematic contrast.
+- For a "retro 80s" theme: neon colours, grid patterns, synthwave aesthetics.
 Maintain readability but prioritise the requested visual style.`;
         console.log('[useMeetingInfographic] Using custom style:', options.customStyle);
       } else {
