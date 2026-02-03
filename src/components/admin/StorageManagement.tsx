@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Database, Trash2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, HardDrive, FileText, MessageSquare, Mic, Presentation } from 'lucide-react';
+import { Database, Trash2, ChevronDown, ChevronUp, RefreshCw, AlertTriangle, HardDrive, FileText, MessageSquare, Mic, Presentation, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -122,6 +122,9 @@ export const StorageManagement: React.FC = () => {
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [isDeletingAllAi4gp, setIsDeletingAllAi4gp] = useState(false);
   const [clearingUserOldChats, setClearingUserOldChats] = useState<string | null>(null);
+  const [isPurgingOldChats, setIsPurgingOldChats] = useState(false);
+  const [purgePreview, setPurgePreview] = useState<{ wouldDelete: number; affectedUsers: number } | null>(null);
+  const [showPurgeDialog, setShowPurgeDialog] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -231,6 +234,55 @@ export const StorageManagement: React.FC = () => {
       toast.error('Failed to delete old chats');
     } finally {
       setIsDeletingAll(false);
+    }
+  };
+
+  const handlePurgePreview = async () => {
+    setIsPurgingOldChats(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('purge-old-ai-chats', {
+        body: { dryRun: true, daysOld: 30 }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setPurgePreview({
+          wouldDelete: data.wouldDelete || 0,
+          affectedUsers: data.affectedUsers || 0
+        });
+        setShowPurgeDialog(true);
+      }
+    } catch (error) {
+      console.error('Error checking purge preview:', error);
+      toast.error('Failed to check purgeable chats');
+    } finally {
+      setIsPurgingOldChats(false);
+    }
+  };
+
+  const handlePurgeOldChats = async () => {
+    setIsPurgingOldChats(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('purge-old-ai-chats', {
+        body: { daysOld: 30 }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(data.message || `Deleted ${data.deletedCount} old AI chats`);
+        setShowPurgeDialog(false);
+        setPurgePreview(null);
+        fetchData();
+      } else {
+        throw new Error(data.error || 'Purge failed');
+      }
+    } catch (error: any) {
+      console.error('Error purging old chats:', error);
+      toast.error(error.message || 'Failed to purge old chats');
+    } finally {
+      setIsPurgingOldChats(false);
     }
   };
 
@@ -373,15 +425,58 @@ export const StorageManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <HardDrive className="h-5 w-5" />
           Storage Management
         </h3>
-        <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
-          <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <AlertDialog open={showPurgeDialog} onOpenChange={setShowPurgeDialog}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handlePurgePreview}
+                disabled={isPurgingOldChats}
+              >
+                <Calendar className={cn("h-4 w-4 mr-2", isPurgingOldChats && "animate-spin")} />
+                Purge &gt;30d Chats
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Purge Old AI Chats</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2">
+                    <p>This will permanently delete all unprotected AI chat history older than 30 days across all users.</p>
+                    {purgePreview && (
+                      <div className="bg-muted p-3 rounded-md mt-2">
+                        <p className="font-medium">Preview:</p>
+                        <p>• {purgePreview.wouldDelete} chats will be deleted</p>
+                        <p>• {purgePreview.affectedUsers} users affected</p>
+                      </div>
+                    )}
+                    <p className="text-amber-600 font-medium">Protected (Super Saved) chats will NOT be deleted.</p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handlePurgeOldChats}
+                  disabled={isPurgingOldChats || !purgePreview || purgePreview.wouldDelete === 0}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isPurgingOldChats ? 'Purging...' : `Delete ${purgePreview?.wouldDelete || 0} Chats`}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+            <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
