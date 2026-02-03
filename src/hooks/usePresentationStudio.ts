@@ -116,6 +116,19 @@ export function usePresentationStudio() {
     }));
   }, []);
 
+  // Update document content (for when extraction completes)
+  const updateDocument = useCallback((docId: string, updates: Partial<SupportingDocument>) => {
+    setState(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        supportingDocuments: prev.settings.supportingDocuments.map(d => 
+          d.id === docId ? { ...d, ...updates } : d
+        ),
+      },
+    }));
+  }, []);
+
   // Toggle document selection
   const toggleDocumentSelection = useCallback((docId: string) => {
     setState(prev => ({
@@ -452,6 +465,7 @@ export function usePresentationStudio() {
     updateSettings,
     setActiveTab,
     addDocument,
+    updateDocument,
     removeDocument,
     toggleDocumentSelection,
     toggleSlideType,

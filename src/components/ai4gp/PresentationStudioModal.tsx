@@ -44,6 +44,7 @@ export const PresentationStudioModal: React.FC<PresentationStudioModalProps> = (
     updateSettings,
     setActiveTab,
     addDocument,
+    updateDocument,
     removeDocument,
     toggleDocumentSelection,
     toggleSlideType,
@@ -104,6 +105,7 @@ export const PresentationStudioModal: React.FC<PresentationStudioModalProps> = (
                 settings={settings} 
                 onUpdate={updateSettings}
                 onAddDocument={addDocument}
+                onUpdateDocument={updateDocument}
                 onRemoveDocument={removeDocument}
                 onToggleDocument={toggleDocumentSelection}
                 onAddKeyPoint={addKeyPoint}

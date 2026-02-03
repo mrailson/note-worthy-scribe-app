@@ -27,6 +27,7 @@ interface ContentTabProps {
   settings: PresentationStudioSettings;
   onUpdate: (updates: Partial<PresentationStudioSettings>) => void;
   onAddDocument: (doc: SupportingDocument) => void;
+  onUpdateDocument: (docId: string, updates: Partial<SupportingDocument>) => void;
   onRemoveDocument: (docId: string) => void;
   onToggleDocument: (docId: string) => void;
   onAddKeyPoint: (point: string) => void;
@@ -37,6 +38,7 @@ export const ContentTab: React.FC<ContentTabProps> = ({
   settings,
   onUpdate,
   onAddDocument,
+  onUpdateDocument,
   onRemoveDocument,
   onToggleDocument,
   onAddKeyPoint,
@@ -140,10 +142,13 @@ export const ContentTab: React.FC<ContentTabProps> = ({
           content = data.extractedText;
           console.log(`[ContentTab] Extracted ${content.length} chars from ${file.name}`);
           
-          // Update the existing doc with extracted content
-          onRemoveDocument(docId);
+          // Update the existing doc with extracted content using proper update function
+          onUpdateDocument(docId, { content });
+          toast.success(`Extracted text from ${file.name}`);
+          continue; // Skip the add below - doc already exists and has been updated
         }
 
+        // For text files, add as new document
         const doc: SupportingDocument = {
           id: docId,
           name: file.name,
@@ -153,10 +158,6 @@ export const ContentTab: React.FC<ContentTabProps> = ({
           selected: true,
         };
         onAddDocument(doc);
-        
-        if (!isTextFile(file)) {
-          toast.success(`Extracted text from ${file.name}`);
-        }
       } catch (error) {
         console.error('Error processing file:', error);
         setExtractingDocs(prev => {
@@ -167,7 +168,7 @@ export const ContentTab: React.FC<ContentTabProps> = ({
         toast.error(`Failed to process ${file.name}`);
       }
     }
-  }, [onAddDocument, onRemoveDocument]);
+  }, [onAddDocument, onUpdateDocument, onRemoveDocument]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
