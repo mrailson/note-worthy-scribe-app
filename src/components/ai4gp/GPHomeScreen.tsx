@@ -17,6 +17,7 @@ import { BNFQuickLookupPanel } from '@/components/bnf/BNFQuickLookupPanel';
 interface GPHomeScreenProps {
   setInput: (text: string) => void;
   focusInput?: () => void;
+  onBNFViewChange?: (isActive: boolean) => void;
 }
 
 type ActiveView = 
@@ -25,10 +26,15 @@ type ActiveView =
   | { type: 'prompts'; category: MainCategory; subCategory: SubCategory }
   | { type: 'bnf-lookup' };
 
-export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput }) => {
+export const GPHomeScreen: React.FC<GPHomeScreenProps> = ({ setInput, focusInput, onBNFViewChange }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   const [activeView, setActiveView] = useState<ActiveView>({ type: 'main' });
   const [showBanner, setShowBanner] = useState(false);
+
+  // Notify parent when BNF view changes
+  React.useEffect(() => {
+    onBNFViewChange?.(activeView.type === 'bnf-lookup');
+  }, [activeView.type, onBNFViewChange]);
 
   const enhancePrompt = (prompt: string) => {
     if (!prompt) return prompt;

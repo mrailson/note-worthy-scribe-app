@@ -161,6 +161,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const [showAdminDictate, setShowAdminDictate] = useState(false);
   const [showTranslationService, setShowTranslationService] = useState(false);
   const [showEmbeddedPMGenie, setShowEmbeddedPMGenie] = useState(false);
+  const [isBNFViewActive, setIsBNFViewActive] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>(() => {
     const saved = localStorage.getItem('ai4gp-selected-role');
@@ -753,7 +754,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                       "flex-1 overflow-y-auto",
                       isMobile ? "p-0 pb-36" : "p-3 sm:p-6 space-y-3 sm:space-y-4"
                     )} style={{ WebkitOverflowScrolling: 'touch' }}>
-                      <div className="w-full max-w-2xl mx-auto space-y-4">
+                      <div className={cn("w-full mx-auto space-y-4", isBNFViewActive ? "max-w-5xl" : "max-w-2xl")}>
                         {/* Mobile: Show quick picks inside the white bubble area */}
                         {isMobile ? (
                           <MobileRoleQuickPicks
@@ -794,6 +795,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                               <GPHomeScreen
                                 setInput={setInput}
                                 focusInput={() => inputRef.current?.focus()}
+                                onBNFViewChange={setIsBNFViewActive}
                               />
                             )}
                             
