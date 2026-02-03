@@ -225,11 +225,17 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
       const imageUrl = data?.image?.url || data?.imageUrl;
       
       if (imageUrl) {
-        // Handle base64 data URL or remote URL
+        // Convert base64 data URL to blob directly without fetch (avoids browser limitations)
         if (imageUrl.startsWith('data:')) {
-          // Convert base64 to blob for download
-          const response = await fetch(imageUrl);
-          const blob = await response.blob();
+          const base64Data = imageUrl.split(',')[1];
+          const mimeType = imageUrl.split(';')[0].split(':')[1] || 'image/png';
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: mimeType });
           const downloadUrl = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = downloadUrl;
