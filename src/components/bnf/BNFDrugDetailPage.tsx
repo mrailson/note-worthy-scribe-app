@@ -221,21 +221,40 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
 
       if (fnError) throw fnError;
 
-      if (data?.imageUrl) {
-        // Auto-download the image
-        const response = await fetch(data.imageUrl);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${monograph.drugName.replace(/\s+/g, '-')}-Clinical-Infographic.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+      // Response format: { success: true, image: { url: "data:image/png;base64,..." } }
+      const imageUrl = data?.image?.url || data?.imageUrl;
+      
+      if (imageUrl) {
+        // Handle base64 data URL or remote URL
+        if (imageUrl.startsWith('data:')) {
+          // Convert base64 to blob for download
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `${monograph.drugName.replace(/\s+/g, '-')}-Clinical-Infographic.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(downloadUrl);
+        } else {
+          // Remote URL - fetch and download
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `${monograph.drugName.replace(/\s+/g, '-')}-Clinical-Infographic.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(downloadUrl);
+        }
         
         toast.success('Infographic downloaded!');
       } else {
+        console.error('Response data:', data);
         throw new Error('No image URL returned');
       }
     } catch (err) {
