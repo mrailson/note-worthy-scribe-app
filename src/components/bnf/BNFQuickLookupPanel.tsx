@@ -88,14 +88,14 @@ export const BNFQuickLookupPanel: React.FC<BNFQuickLookupPanelProps> = ({
           <h3 className="text-sm font-medium text-foreground">Search All Drugs</h3>
           <BNFTypeaheadSearch onDrugSelect={handleDrugSelect} />
           <p className="text-xs text-muted-foreground">
-            Type at least 2 characters to search all 261 ICB Traffic Light drugs
+            Type at least 2 characters to search all 261 Northants ICB Traffic Light drugs
           </p>
         </div>
 
         {/* Quick tips */}
         <div className="bg-muted/50 rounded-lg p-4 space-y-2">
           <div className="flex items-center gap-2">
-            <h4 className="text-sm font-medium text-foreground">Traffic Light Guide</h4>
+            <h4 className="text-sm font-medium text-foreground">Northants ICB Traffic Light</h4>
             <TooltipProvider>
               <Tooltip delayDuration={200}>
                 <TooltipTrigger asChild>
@@ -222,7 +222,7 @@ export const BNFQuickLookupPanel: React.FC<BNFQuickLookupPanelProps> = ({
               rel="noopener noreferrer"
               className="text-xs text-primary hover:underline"
             >
-              ICB Traffic Light →
+              Northants ICB Traffic Light →
             </a>
           </div>
         </div>

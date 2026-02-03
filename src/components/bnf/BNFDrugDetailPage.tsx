@@ -166,7 +166,7 @@ ${monograph.dosing.renalAdjustment ? `• Renal: ${monograph.dosing.renalAdjustm
             <h1 className="text-lg font-semibold text-foreground">{drugName}</h1>
             {trafficLightItem && (
               <Badge variant="outline" className={cn("text-xs", badge.className)}>
-                {badge.label}
+                Northants ICB: {badge.label}
               </Badge>
             )}
           </div>
