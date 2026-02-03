@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, X, FileText, Upload, FileSpreadsheet, File, Trash2, Check, ChevronDown, Loader2 } from 'lucide-react';
+import { Plus, X, FileText, Upload, FileSpreadsheet, File, Trash2, Check, ChevronDown, Loader2, Paperclip, Users, BarChart3 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -195,8 +195,61 @@ export const ContentTab: React.FC<ContentTabProps> = ({
   const selectedType = PRESENTATION_TYPES.find(t => t.id === settings.presentationType);
   const selectedAudience = TARGET_AUDIENCES.find(a => a.id === settings.targetAudience);
 
+  const quickPicks = [
+    {
+      id: 'attachments',
+      label: 'Summarise Attachments',
+      icon: Paperclip,
+      topic: 'Summarise uploaded documents into a presentation',
+      type: 'custom' as const,
+      description: 'Creates slides from your uploaded files',
+    },
+    {
+      id: 'training',
+      label: 'Staff Training',
+      icon: Users,
+      topic: 'Staff Training Session',
+      type: 'training-materials' as const,
+      description: 'Educational slides for team development',
+    },
+    {
+      id: 'board',
+      label: 'Board Report',
+      icon: BarChart3,
+      topic: 'Board Performance Report',
+      type: 'board-meeting' as const,
+      description: 'Executive summary for leadership',
+    },
+  ];
+
+  const handleQuickPick = (pick: typeof quickPicks[0]) => {
+    onUpdate({ 
+      topic: pick.topic,
+      presentationType: pick.type,
+    });
+    toast.success(`Quick pick applied: ${pick.label}`);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Quick Picks */}
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground">Quick Picks</Label>
+        <div className="flex flex-wrap gap-2">
+          {quickPicks.map((pick) => (
+            <button
+              key={pick.id}
+              type="button"
+              onClick={() => handleQuickPick(pick)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/50 transition-colors"
+            >
+              <pick.icon className="h-3.5 w-3.5" />
+              {pick.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Topic/Title */}
       <div className="space-y-2">
         <Label htmlFor="topic" className="flex items-center gap-2">
