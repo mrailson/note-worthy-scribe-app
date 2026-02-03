@@ -129,7 +129,7 @@ const PolicyServiceMyPolicies = () => {
           className="mb-6"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Policy Service
+          Back to Practice Policies
         </Button>
 
         {/* Header */}
