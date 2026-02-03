@@ -1,247 +1,238 @@
 
-# BNF Quick Lookup Hub - Comprehensive Drug Reference for Clinicians
+# Plan: Fix Out-of-Memory Crashes in Ask AI (AI4GP) Service
 
-## Overview
+## Summary of Investigation Findings
 
-This plan creates a **dedicated BNF screen** under the existing "BNF & Prescribing" category that serves as the single source of truth for drug guidance. The screen will feature:
+The Ask AI service is crashing due to uncontrolled memory growth, primarily caused by:
 
-1. **Top 10 NHS Prescribed Drugs** - Quick access badges based on national prescribing data
-2. **Real-time Typeahead Search** - Instant filtering from 500+ drugs as you type
-3. **Comprehensive BNF Detail Page** - Full drug monograph with indications, dosing, interactions, contraindications, and monitoring
+1. **Critical: `setMessagesWithLimit` is defined but NEVER USED** - All message state updates bypass the memory-safe wrapper and call `setMessages` directly, allowing unbounded message growth
+2. **Messages array grows indefinitely** - No active enforcement of the 20/40 message limit
+3. **Base64 content retained** - Heavy content (images, audio, presentations) stays in memory for all messages, not just recent ones
+4. **Periodic cleanup insufficient** - The 15-30 second interval can't keep up with rapid interactions
+5. **Streaming callbacks create stale closures** - Multiple `setMessages` calls during streaming compound memory pressure
 
----
-
-## User Experience Flow
+## Technical Diagnosis
 
 ```text
-+--------------------------------------------------+
-|  BNF & Prescribing  (expanded subcategory)       |
-+--------------------------------------------------+
-|                                                  |
-|  [Drug Lookup] [Interactions] [Dose Calc] ...    |
-|       |                                          |
-|       v                                          |
-+--------------------------------------------------+
-|  BNF QUICK LOOKUP HUB                            |
-+--------------------------------------------------+
-|                                                  |
-|  Top 10 NHS Prescribed:                          |
-|  [Omeprazole] [Amlodipine] [Atorvastatin] ...   |
-|                                                  |
-|  Search (typeahead):                             |
-|  +--------------------------------------------+  |
-|  |  🔍  Type drug name...              |  ▼  |  |
-|  +--------------------------------------------+  |
-|    Metformin                 [GREEN]             |
-|    Methotrexate              [SPECIALIST]        |
-|    Methylphenidate           [RED]               |
-|                                                  |
-+--------------------------------------------------+
-        |
-        v (click drug)
-+--------------------------------------------------+
-|  COMPREHENSIVE BNF PAGE                          |
-+--------------------------------------------------+
-|  Amlodipine                     [GREEN] [Back]   |
-|  ------------------------------------------------|
-|  INDICATIONS                                     |
-|  • Hypertension                                  |
-|  • Angina (chronic stable, Prinzmetal's)         |
-|                                                  |
-|  DOSING (Adult)                                  |
-|  • Initial: 5mg once daily                       |
-|  • Max: 10mg once daily                          |
-|  • Elderly: Start 2.5mg                          |
-|                                                  |
-|  CONTRAINDICATIONS                               |
-|  • Cardiogenic shock                             |
-|  • Severe aortic stenosis                        |
-|                                                  |
-|  INTERACTIONS                                    |
-|  • CYP3A4 inhibitors (↑ levels)                  |
-|  • Simvastatin (limit to 20mg)                   |
-|                                                  |
-|  MONITORING                                      |
-|  • BP at initiation and dose changes             |
-|                                                  |
-|  SIDE EFFECTS                                    |
-|  • Common: Ankle oedema, flushing, headache      |
-|  • Serious: Arrhythmias (rare)                   |
-|                                                  |
-|  [View Traffic Light] [Insert into Chat] [BNF]   |
-+--------------------------------------------------+
+┌─────────────────────────────────────────────────────────────┐
+│                  Current Memory Flow                        │
+├─────────────────────────────────────────────────────────────┤
+│  User sends message                                          │
+│       ↓                                                      │
+│  setMessages([...messages, userMessage])  ← DIRECT CALL     │
+│       ↓                                                      │
+│  Streaming response adds to state every chunk                │
+│       ↓                                                      │
+│  More messages accumulate with base64 data                   │
+│       ↓                                                      │
+│  Cleanup interval (15-30s) may not fire in time              │
+│       ↓                                                      │
+│  BROWSER CRASH                                               │
+└─────────────────────────────────────────────────────────────┘
 ```
 
----
+## Proposed Solution
 
-## Technical Implementation
+### Phase 1: Enforce Message Limits (High Priority)
 
-### 1. New Components
+**File: `src/hooks/useAI4GPService.ts`**
 
-| Component | Purpose |
-|-----------|---------|
-| `BNFQuickLookupPanel.tsx` | Main container with Top 10 badges and search |
-| `BNFDrugDetailPage.tsx` | Comprehensive drug monograph view |
-| `TopPrescribedDrugs.tsx` | Static curated list of top NHS drugs |
-| `BNFTypeaheadSearch.tsx` | Real-time fuzzy search with traffic light badges |
+Replace all direct `setMessages` calls with the existing `setMessagesWithLimit` wrapper. Key locations:
 
-### 2. Edge Function Updates
+- Line 535: `setMessages(newMessages)` → `setMessagesWithLimit(newMessages)`
+- Line 553: `setMessages(messagesWithStreaming)` → `setMessagesWithLimit(messagesWithStreaming)`
+- Lines 583, 646, 666: Voice generation message updates
+- Lines 718, 749: GPT-5 streaming updates
+- Lines 809, 824: Fallback error messages
+- Lines 917, 926: SSE streaming content accumulation
+- Lines 964, 1005, 1043: Simulated streaming updates
+- Lines 1098, 1127, 1136: Non-streamable model responses
+- Lines 1166, 1474, 1509, 1550, 1572: Quick response handling
+- Lines 1639, 1653, 1689: Search loading and clearing
 
-**New function: `bnf-comprehensive-lookup`**
+Additionally, update the hook's return value to expose `setMessagesWithLimit` instead of raw `setMessages`:
 
-This function will:
-- Accept a drug name
-- Call the official BNF API or use AI with strict NHS safety guardrails to generate comprehensive BNF-style monograph
-- Return structured data: indications, dosing, contraindications, interactions, monitoring, side effects
-- Include NHS safety preamble and clinical verification
+```typescript
+return {
+  messages,
+  setMessages: setMessagesWithLimit, // Use safe wrapper everywhere
+  // ... rest
+};
+```
 
-### 3. Top 10 NHS Prescribed Drugs (Static Curated List)
+### Phase 2: Immediate Cleanup After Streaming Completes
 
-Based on NHS England prescribing data, the top prescribed drugs in primary care:
+**File: `src/hooks/useAI4GPService.ts`**
 
-| Rank | Drug | Common Use |
-|------|------|------------|
-| 1 | Omeprazole | Acid reflux/GORD |
-| 2 | Amlodipine | Hypertension |
-| 3 | Atorvastatin | Cholesterol |
-| 4 | Lansoprazole | Acid reflux |
-| 5 | Ramipril | Hypertension/Heart failure |
-| 6 | Metformin | Type 2 Diabetes |
-| 7 | Paracetamol | Pain/Fever |
-| 8 | Simvastatin | Cholesterol |
-| 9 | Aspirin | Cardiovascular prevention |
-| 10 | Levothyroxine | Hypothyroidism |
+Add a post-stream cleanup call after each response finishes (not just periodic interval):
 
-### 4. Real-time Typeahead Search
+```typescript
+// After streaming completes (multiple locations around lines 750, 930, 1045, 1140)
+setMessagesWithLimit(prev => prev.map(msg =>
+  msg.id === assistantMessageId 
+    ? finalAssistantMessage
+    : msg
+));
 
-- Uses existing `useTrafficLightVocab` hook (261+ drugs already loaded)
-- Fuse.js fuzzy matching with prefix boosting
-- Shows traffic light badge inline with each result
-- Minimum 2 characters to trigger search
-- Maximum 15 results shown
-- Debounced input (150ms)
+// Immediate cleanup to reclaim memory
+setTimeout(() => {
+  setMessages(prev => optimiseMessagesForMemory(prev, KEEP_RECENT_MESSAGES_INTACT));
+}, 100);
+```
 
-### 5. Comprehensive BNF Detail Page
+### Phase 3: More Aggressive Base64 Stripping
 
-The detail page will include:
+**File: `src/utils/streamingUtils.ts`**
 
-**Sections displayed:**
-1. **Header**: Drug name, traffic light status, BNF chapter
-2. **Indications**: Licensed uses
-3. **Dosing**: Adult, elderly, renal adjustments, paediatric (if applicable)
-4. **Contraindications & Cautions**: Absolute and relative
-5. **Drug Interactions**: Clinically significant, severity levels
-6. **Monitoring**: What to check and when
-7. **Side Effects**: Common (>1%) and serious
-8. **Pregnancy/Breastfeeding**: Safety information
-9. **Patient Counselling**: Key points to discuss
+Lower thresholds and add additional content types to strip:
 
-**Actions:**
-- **View Traffic Light Details**: Opens existing PolicyModal
-- **Insert into Chat**: Adds summary to AI chat
-- **Open BNF Online**: External link to bnf.nice.org.uk
+```typescript
+// Current threshold: 5000 chars for files, 50000 for images
+// Proposed: 2000 chars for files, 10000 for images
 
-### 6. NHS Safety Implementation
+export function stripHeavyContentFromMessage(message: any): any {
+  const stripped = { ...message };
+  
+  // Strip audio content (currently only checked if exists)
+  if (stripped.generatedAudio?.audioContent) {
+    stripped.generatedAudio = {
+      ...stripped.generatedAudio,
+      audioContent: '[STRIPPED_FOR_MEMORY]',
+      wasStripped: true
+    };
+  }
+  
+  // Strip file content more aggressively (reduce from 5000 to 2000)
+  if (stripped.files?.length > 0) {
+    stripped.files = stripped.files.map((file: any) => ({
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      isLoading: false,
+      metadata: file.metadata,
+      content: file.content?.length > 2000 ? '[STRIPPED_FOR_MEMORY]' : file.content,
+      wasStripped: file.content?.length > 2000
+    }));
+  }
+  
+  // Strip images more aggressively (reduce from 50000 to 10000)
+  if (stripped.generatedImages?.length > 0) {
+    stripped.generatedImages = stripped.generatedImages.map((img: any) => ({
+      ...img,
+      imageData: img.imageData?.length > 10000 
+        ? '[STRIPPED_FOR_MEMORY]' 
+        : img.imageData,
+      wasStripped: img.imageData?.length > 10000
+    }));
+  }
+  
+  // NEW: Strip presentation base64 data
+  if (stripped.generatedPresentation?.pptxBase64) {
+    stripped.generatedPresentation = {
+      ...stripped.generatedPresentation,
+      pptxBase64: '[STRIPPED_FOR_MEMORY]',
+      wasStripped: true
+    };
+  }
+  
+  return stripped;
+}
+```
 
-Following the 6-layer AI safety guardrail system documented in the CSO Report:
+### Phase 4: Desktop-Specific Limits
 
-1. **Clinical Safety Monitoring**: All drug information cross-referenced
-2. **Input Validation**: Sanitise drug name queries
-3. **Rate Limiting**: Edge function protected
-4. **Hallucination Detection**: Verify facts against BNF source
-5. **User Disclaimers**: "Always verify with official BNF. Use clinical judgement."
-6. **Source Attribution**: Link to official BNF for each drug
+Since the crash is happening on desktop with text-only chat very quickly, the issue is likely in the streaming callback closure accumulation. Add additional safeguards:
 
----
+**File: `src/hooks/useAI4GPService.ts`**
 
-## Files to Create/Modify
+```typescript
+// Add a hard cap check before every setMessages call
+const MAX_MESSAGES_HARD_CAP = 100;
 
-### New Files
+const setMessagesWithLimit = useCallback((newMessages: Message[] | ((prev: Message[]) => Message[])) => {
+  setMessages(prev => {
+    const updatedMessages = typeof newMessages === 'function' ? newMessages(prev) : newMessages;
+    
+    // HARD CAP: Emergency truncation if somehow we exceed
+    if (updatedMessages.length > MAX_MESSAGES_HARD_CAP) {
+      console.error(`🚨 CRITICAL: Message count (${updatedMessages.length}) exceeds hard cap!`);
+      return optimiseMessagesForMemory(
+        updatedMessages.slice(-MAX_MESSAGES_IN_MEMORY),
+        KEEP_RECENT_MESSAGES_INTACT
+      );
+    }
+    
+    // Normal optimisation path
+    const optimised = optimiseMessagesForMemory(updatedMessages, KEEP_RECENT_MESSAGES_INTACT);
+    
+    if (optimised.length > MAX_MESSAGES_IN_MEMORY) {
+      console.log(`⚠️ Truncating from ${optimised.length} to ${MAX_MESSAGES_IN_MEMORY}`);
+      return optimised.slice(-MAX_MESSAGES_IN_MEMORY);
+    }
+    
+    return optimised;
+  });
+}, []);
+```
 
-| File | Description |
-|------|-------------|
-| `src/components/bnf/BNFQuickLookupPanel.tsx` | Main panel with Top 10 and search |
-| `src/components/bnf/BNFDrugDetailPage.tsx` | Comprehensive drug page |
-| `src/components/bnf/TopPrescribedDrugs.tsx` | Top 10 badge grid |
-| `src/components/bnf/BNFTypeaheadSearch.tsx` | Real-time search component |
-| `supabase/functions/bnf-comprehensive-lookup/index.ts` | AI-powered BNF lookup |
+## Measurement Strategy
 
-### Modified Files
+### Before Fixes (Current State)
+
+1. **Browser DevTools Memory Tab**
+   - Open Chrome DevTools → Memory → Take heap snapshot
+   - Send 3-5 messages in Ask AI
+   - Take another snapshot
+   - Compare: Look for message count and retained base64 strings
+
+2. **Console Logging** (already in place)
+   - Watch for `🧹 Running periodic memory cleanup` logs
+   - Note if cleanup runs before crash
+
+3. **Crash Frequency**
+   - Document: How many messages before "Aw, Snap!"
+
+### After Fixes (Verification)
+
+1. **Heap Snapshot Comparison**
+   - Same workflow, compare memory growth
+   - Target: <50MB growth per 10 messages
+
+2. **Console Verification**
+   - Watch for `⚠️ Message count exceeds limit, truncating`
+   - Confirm limit enforcement is active
+
+3. **Stress Test**
+   - Send 50+ rapid messages
+   - Should NOT crash
+   - Memory should plateau (not grow indefinitely)
+
+4. **Add Debug UI (Optional)**
+   - Temporarily add a dev-only message counter badge in settings
+   - Shows current `messages.length` and estimated token count
+
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/ai4gp/gpPromptCategories.ts` | Update BNF subcategory to show the new panel |
-| `src/components/ai4gp/GPHomeScreen.tsx` | Handle opening BNF panel |
-| `supabase/config.toml` | Add new edge function |
+| `src/hooks/useAI4GPService.ts` | Replace ~20 `setMessages` calls with `setMessagesWithLimit`; expose wrapper; add hard cap |
+| `src/utils/streamingUtils.ts` | Lower stripping thresholds; add presentation stripping |
+| `src/components/AI4GPService.tsx` | No changes needed (uses hook correctly) |
 
----
+## Risks and Mitigations
 
-## Data Flow
+| Risk | Mitigation |
+|------|------------|
+| Stripping content too aggressively | Only strip from messages older than 3-5 exchanges; recent messages keep full content |
+| Breaking existing chat functionality | All changes are internal to memory management; UI behaviour unchanged |
+| Regression in file uploads | File content is preserved for recent messages; only stripped from history |
 
-```text
-User clicks "Drug Lookup" in BNF category
-              |
-              v
-    BNFQuickLookupPanel renders
-              |
-   +----------+----------+
-   |                     |
-   v                     v
-Top 10 badges      Typeahead search
-   |                     |
-   +----------+----------+
-              |
-              v
-     User selects drug
-              |
-              v
-    bnf-comprehensive-lookup (edge function)
-              |
-              v
-    BNFDrugDetailPage renders
-              |
-    +---------+---------+
-    |         |         |
-    v         v         v
-Indications Dosing  Interactions...
-```
+## Testing Checklist
 
----
-
-## NHS Safety Compliance Checklist
-
-- [ ] All drug information sourced from/verified against BNF
-- [ ] Clinical safety disclaimer displayed prominently
-- [ ] No AI hallucination risk (structured extraction, not free generation)
-- [ ] Traffic light status always shown
-- [ ] "Professional judgement required" warning
-- [ ] Links to official BNF for verification
-- [ ] MHRA alerts integration point (future)
-- [ ] Rate limiting on edge function
-
----
-
-## Implementation Order
-
-1. Create static Top 10 component
-2. Create typeahead search using existing vocab hook
-3. Build BNF detail page structure
-4. Create edge function with AI + safety guardrails
-5. Wire up navigation from GPHomeScreen
-6. Add NHS safety disclaimers
-7. Test end-to-end flow
-
----
-
-## Estimated Complexity
-
-| Component | Effort |
-|-----------|--------|
-| Top 10 badges | Low |
-| Typeahead search | Medium (reuse existing) |
-| BNF detail page | Medium |
-| Edge function | High (AI + safety) |
-| Integration | Low |
-
-**Total: Medium-High complexity**
-
+- [ ] Send 5 messages rapidly → no crash
+- [ ] Send 20 messages → memory stable
+- [ ] Upload a large PDF → process and respond without crash
+- [ ] Reload previous search history → loads correctly
+- [ ] Voice generation works and audio plays
+- [ ] PowerPoint downloads still work
+- [ ] Mobile: Same tests on smaller limits (20 messages)
