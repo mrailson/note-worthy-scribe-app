@@ -103,10 +103,23 @@ export const useAI4GPService = () => {
     return () => clearInterval(cleanupInterval);
   }, []);
 
+  // Hard cap for emergency truncation (100 messages should never be exceeded)
+  const MAX_MESSAGES_HARD_CAP = 100;
+  
   // Memory-safe message setter that limits message count and optimises memory usage
+  // CRITICAL: Use this instead of raw setMessages to prevent memory leaks
   const setMessagesWithLimit = useCallback((newMessages: Message[] | ((prev: Message[]) => Message[])) => {
     setMessages(prev => {
       const updatedMessages = typeof newMessages === 'function' ? newMessages(prev) : newMessages;
+      
+      // HARD CAP: Emergency truncation if somehow we exceed the absolute maximum
+      if (updatedMessages.length > MAX_MESSAGES_HARD_CAP) {
+        console.error(`🚨 CRITICAL: Message count (${updatedMessages.length}) exceeds hard cap (${MAX_MESSAGES_HARD_CAP})!`);
+        return optimiseMessagesForMemory(
+          updatedMessages.slice(-MAX_MESSAGES_IN_MEMORY),
+          KEEP_RECENT_MESSAGES_INTACT
+        );
+      }
       
       // Optimise older messages to reduce memory usage (strip base64 content)
       const optimised = optimiseMessagesForMemory(updatedMessages, KEEP_RECENT_MESSAGES_INTACT);
@@ -532,7 +545,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     });
 
     const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    setMessagesWithLimit(newMessages);
     console.log('✅ Starting AI request...', { userMessage });
     setInput('');
     setUploadedFiles([]);
@@ -550,7 +563,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     };
 
     const messagesWithStreaming = [...newMessages, assistantMessage];
-    setMessages(messagesWithStreaming);
+    setMessagesWithLimit(messagesWithStreaming);
 
     // Track if files were attached and what type they are
     const hadFilesAttached = userMessage.files && userMessage.files.length > 0;
@@ -580,7 +593,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         console.log('🎤 Voice request detected:', voiceDetection);
         
         // Update message to show audio generation in progress
-        setMessages(prev => prev.map(msg => 
+        setMessagesWithLimit(prev => prev.map(msg => 
           msg.id === assistantMessageId 
             ? { ...msg, content: '🎤 Generating voice file...', isStreaming: true }
             : msg
@@ -643,7 +656,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             }
           };
           
-          setMessages(prev => prev.map(msg => 
+          setMessagesWithLimit(prev => prev.map(msg => 
             msg.id === assistantMessageId ? audioMessage : msg
           ));
           
@@ -663,7 +676,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           // Fall back to regular AI response with explanation
           const fallbackMessage = `I wasn't able to generate a voice file for that content. ${voiceError.message || 'Please try again.'}\n\nWould you like me to try again, or is there something else I can help you with?`;
           
-          setMessages(prev => prev.map(msg => 
+          setMessagesWithLimit(prev => prev.map(msg => 
             msg.id === assistantMessageId 
               ? { ...msg, content: fallbackMessage, isStreaming: false }
               : msg
@@ -715,7 +728,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               timeToFirstWords = Date.now() - startTime;
             }
             
-            setMessages(prev => prev.map(msg => 
+            setMessagesWithLimit(prev => prev.map(msg => 
               msg.id === assistantMessageId 
                 ? { ...msg, content: accumulatedContent, isStreaming: true, timeToFirstWords, webSearchPerformed: webSearchUsed }
                 : msg
@@ -746,7 +759,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             webSearchPerformed: result.webSearchPerformed || webSearchUsed
           };
 
-          setMessages(prev => prev.map(msg => 
+          setMessagesWithLimit(prev => prev.map(msg => 
             msg.id === assistantMessageId 
               ? finalAssistantMessage
               : msg
@@ -765,7 +778,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           console.error('GPT-5 Fast Clinical failed:', error);
           
           // Don't remove the message, instead show an error in it and fall back to ChatGPT 4o
-          setMessages(prev => prev.map(msg => 
+          setMessagesWithLimit(prev => prev.map(msg => 
             msg.id === assistantMessageId 
               ? { 
                   ...msg, 
@@ -806,7 +819,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               model: 'gpt-4o'
             };
 
-            setMessages(prev => prev.map(msg => 
+            setMessagesWithLimit(prev => prev.map(msg => 
               msg.id === assistantMessageId 
                 ? finalMessage
                 : msg
@@ -821,7 +834,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           } catch (fallbackError) {
             console.error('Fallback to ChatGPT 4o also failed:', fallbackError);
             
-            setMessages(prev => prev.map(msg => 
+            setMessagesWithLimit(prev => prev.map(msg => 
               msg.id === assistantMessageId 
                 ? { 
                     ...msg, 
@@ -914,7 +927,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       accumulatedContent.trim()
                     );
                     if (verificationData) {
-                      setMessages(prev => prev.map(msg => 
+                      setMessagesWithLimit(prev => prev.map(msg => 
                         msg.id === assistantMessageId 
                           ? { ...msg, clinicalVerification: verificationData }
                           : msg
@@ -923,7 +936,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   }, 500);
                 }
                 
-                setMessages(prev => prev.map(msg => 
+                setMessagesWithLimit(prev => prev.map(msg => 
                   msg.id === assistantMessageId 
                     ? finalAssistantMessage
                     : msg
@@ -961,7 +974,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                         console.log('⚡ Time to first words:', timeToFirstWords, 'ms');
                       }
                       
-                      setMessages(prev => prev.map(msg => 
+                      setMessagesWithLimit(prev => prev.map(msg => 
                         msg.id === assistantMessageId 
                           ? { ...msg, content: accumulatedContent, isStreaming: true, timeToFirstWords }
                           : msg
@@ -1002,7 +1015,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 timeToFirstWords = Date.now() - startTime;
               }
 
-              setMessages(prev => prev.map(msg => 
+              setMessagesWithLimit(prev => prev.map(msg => 
                 msg.id === assistantMessageId 
                   ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
                   : msg
@@ -1031,7 +1044,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       responseContent
                     );
                     if (verificationData) {
-                      setMessages(prev => prev.map(msg => 
+                      setMessagesWithLimit(prev => prev.map(msg => 
                         msg.id === assistantMessageId 
                           ? { ...msg, clinicalVerification: verificationData }
                           : msg
@@ -1040,7 +1053,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   }, 500);
                 }
                 
-                setMessages(prev => prev.map(msg => 
+                setMessagesWithLimit(prev => prev.map(msg => 
                   msg.id === assistantMessageId 
                     ? finalAssistantMessage
                     : msg
@@ -1095,7 +1108,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 timeToFirstWords = Date.now() - startTime;
               }
 
-              setMessages(prev => prev.map(msg => 
+              setMessagesWithLimit(prev => prev.map(msg => 
                 msg.id === assistantMessageId 
                   ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
                   : msg
@@ -1124,7 +1137,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       responseContent
                     );
                     if (verificationData) {
-                      setMessages(prev => prev.map(msg => 
+                      setMessagesWithLimit(prev => prev.map(msg => 
                         msg.id === assistantMessageId 
                           ? { ...msg, clinicalVerification: verificationData }
                           : msg
@@ -1133,7 +1146,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   }, 500);
                 }
                 
-                setMessages(prev => prev.map(msg => 
+                setMessagesWithLimit(prev => prev.map(msg => 
                   msg.id === assistantMessageId 
                     ? finalAssistantMessage
                     : msg
@@ -1163,7 +1176,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         isStreaming: false
       };
 
-      setMessages(prev => prev.map(msg => 
+      setMessagesWithLimit(prev => prev.map(msg => 
         msg.id === assistantMessageId ? errorMessage : msg
       ));
     } finally {
@@ -1454,11 +1467,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   }, [textSize, interfaceDensity, containerWidth, highContrast, readingFont]);
 
   const handleNewSearch = useCallback(() => {
-    setMessages([]);
+    setMessagesWithLimit([]);
     setUploadedFiles([]);
     setInput('');
     setCurrentSearchId(null); // Reset search ID when starting new conversation
-  }, []);
+  }, [setMessagesWithLimit]);
 
   // Handle quick action responses
   const handleQuickResponse = useCallback(async (quickResponse: string, practiceContext: any, selectedModel: string = 'gpt-5') => {
@@ -1471,7 +1484,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       isQuickPick: true // Mark as quick pick message for auto-collapse
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessagesWithLimit(prev => [...prev, userMessage]);
     
     // Auto-send the quick response - temporarily set input
     const originalInput = input;
@@ -1489,7 +1502,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     }
     
     const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    setMessagesWithLimit(newMessages);
     setInput('');
     setUploadedFiles([]);
     setIsLoading(true);
@@ -1506,7 +1519,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     };
 
     const messagesWithStreaming = [...newMessages, assistantMessage];
-    setMessages(messagesWithStreaming);
+    setMessagesWithLimit(messagesWithStreaming);
 
     try {
       const startTime = Date.now();
@@ -1547,7 +1560,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               timeToFirstWords = Date.now() - startTime;
             }
             
-            setMessages(prev => prev.map(msg => 
+            setMessagesWithLimit(prev => prev.map(msg => 
               msg.id === assistantMessageId 
                 ? { ...msg, content: accumulatedContent, isStreaming: true, timeToFirstWords, webSearchPerformed: webSearchUsed }
                 : msg
@@ -1569,7 +1582,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             webSearchPerformed: result.webSearchPerformed || webSearchUsed
           };
 
-          setMessages(prev => prev.map(msg => 
+          setMessagesWithLimit(prev => prev.map(msg => 
             msg.id === assistantMessageId 
               ? finalAssistantMessage
               : msg
@@ -1636,7 +1649,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             timeToFirstWords = Date.now() - startTime;
           }
 
-          setMessages(prev => prev.map(msg => 
+          setMessagesWithLimit(prev => prev.map(msg => 
             msg.id === assistantMessageId 
               ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
               : msg
@@ -1650,7 +1663,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             const endTime = Date.now();
             const responseTime = endTime - startTime;
             
-            setMessages(prev => prev.map(msg => 
+            setMessagesWithLimit(prev => prev.map(msg => 
               msg.id === assistantMessageId 
                 ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords, apiResponseTime }
                 : msg
@@ -1686,7 +1699,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         isStreaming: false
       };
 
-      setMessages(prev => prev.map(msg => 
+      setMessagesWithLimit(prev => prev.map(msg => 
         msg.id === assistantMessageId ? errorMessage : msg
       ));
     } finally {
@@ -1701,7 +1714,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
   return {
     messages,
-    setMessages,
+    setMessages: setMessagesWithLimit, // Expose safe wrapper instead of raw setMessages
     input,
     setInput,
     isLoading,
@@ -1732,13 +1745,13 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     performClinicalVerification,
     saveUserSettings,
     loadSearch: (search: SearchHistory) => {
-      setMessages(search.messages);
+      setMessagesWithLimit(search.messages);
       setCurrentSearchId(search.id); // Set the current search ID when loading
       setInput('');
       setUploadedFiles([]);
     },
     clearMessages: () => {
-      setMessages([]);
+      setMessagesWithLimit([]);
       setInput('');
       setUploadedFiles([]);
       setCurrentSearchId(null); // Reset search ID when clearing messages
