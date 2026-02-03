@@ -551,12 +551,10 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                     <CardTitle className="flex items-center text-sm sm:text-base min-w-0">
                       <TooltipProvider>
                         <Tooltip>
-                          <TooltipTrigger asChild>
+                        <TooltipTrigger asChild>
                             <button 
                               onClick={() => {
-                                setMessages([]);
-                                setInput('');
-                                setUploadedFiles([]);
+                                handleNewSearch();
                                 setShowAIChat(false);
                                 setShowNews(false);
                               }}
