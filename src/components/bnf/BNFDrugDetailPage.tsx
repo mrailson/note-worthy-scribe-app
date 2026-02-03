@@ -185,7 +185,7 @@ ${monograph.dosing.renalAdjustment ? `• Renal: ${monograph.dosing.renalAdjustm
           <Button
             variant="outline"
             size="sm"
-            onClick={() => window.open(`https://bnf.nice.org.uk/drugs/${drugName.toLowerCase().replace(/\s+/g, '-')}/`, '_blank')}
+            onClick={() => window.open(`https://bnf.nice.org.uk/search/?q=${encodeURIComponent(drugName)}`, '_blank')}
           >
             <ExternalLink className="w-4 h-4 mr-1" />
             BNF Online
@@ -219,7 +219,7 @@ ${monograph.dosing.renalAdjustment ? `• Renal: ${monograph.dosing.renalAdjustm
             </Button>
           </div>
         ) : monograph ? (
-          <div className="grid gap-4 max-w-4xl">
+          <div className="grid gap-4 w-full">
             {/* Indications */}
             <Card>
               <CardHeader className="pb-2">
