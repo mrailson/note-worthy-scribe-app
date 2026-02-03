@@ -137,10 +137,19 @@ export const useMeetingInfographic = () => {
       console.log('[useMeetingInfographic] Options received:', options);
       
       // Build style instruction based on preset or custom style
+      // Determine if using custom style
+      const isCustomStyle = !!options?.customStyle?.trim();
       let styleInstruction: string;
-      if (options?.customStyle?.trim()) {
-        styleInstruction = `Custom visual style requested: "${options.customStyle}". 
-Apply this creative direction while maintaining readability and professional presentation of the meeting content.`;
+      
+      if (isCustomStyle) {
+        // For custom styles, give full creative freedom to the user's request
+        styleInstruction = `CUSTOM STYLE REQUEST: "${options.customStyle}"
+        
+IMPORTANT: Apply this custom visual style as the PRIMARY design direction. 
+Be creative and interpret the style request fully. The style should be clearly visible throughout the design.
+For example, if "Star Wars" is requested, use space themes, sci-fi fonts, dark backgrounds with glowing elements, etc.
+If "retro 80s" is requested, use neon colours, grid patterns, synthwave aesthetics, etc.
+Maintain readability but prioritise the requested visual style.`;
         console.log('[useMeetingInfographic] Using custom style:', options.customStyle);
       } else {
         const styleData = INFOGRAPHIC_STYLES[options?.style || 'clean-professional'];
@@ -155,6 +164,29 @@ Apply this creative direction while maintaining readability and professional pre
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Image generation timed out after 120 seconds. Please try again.')), 120000);
       });
+
+      // Build design requirements - conditionally include NHS styling only for preset styles
+      const designRequirements = isCustomStyle 
+        ? `- "WHAT YOU MISSED" banner/badge styling at the top
+- Date should be a VISUAL FOCAL POINT (large, perhaps in a date card/badge design)
+- Use storytelling layout - help the reader understand what happened
+- Visual icons for each section (calendar, lightbulb, checkmark, etc.)
+- Apply the custom style throughout ALL visual elements
+- British English spelling throughout
+- A4 portrait format, suitable for printing or sharing digitally
+- NO attendee counts or participant numbers
+- Action items should be MINIMAL - just mention count, not full details
+- Make the custom style the dominant visual theme`
+        : `- "WHAT YOU MISSED" banner/badge styling at the top
+- Date should be a VISUAL FOCAL POINT (large, perhaps in a date card/badge design)
+- Use storytelling layout - help the reader understand what happened
+- Visual icons for each section (calendar, lightbulb, checkmark, etc.)
+- Professional GP practice/NHS styling
+- British English spelling throughout
+- A4 portrait format, suitable for printing or sharing digitally
+- NO attendee counts or participant numbers
+- Action items should be MINIMAL - just mention count, not full details
+- Make it feel like catching up with a colleague, not a task list`;
 
       const customPrompt = `Create a HIGH QUALITY "WHAT YOU MISSED" meeting overview infographic.
 
@@ -179,16 +211,7 @@ CRITICAL CONTENT HIERARCHY (in order of visual prominence):
 7. ACTION ITEMS - Small/optional section with just a count or brief mention
 
 DESIGN REQUIREMENTS:
-- "WHAT YOU MISSED" banner/badge styling at the top
-- Date should be a VISUAL FOCAL POINT (large, perhaps in a date card/badge design)
-- Use storytelling layout - help the reader understand what happened
-- Visual icons for each section (calendar, lightbulb, checkmark, etc.)
-- Professional GP practice/NHS styling
-- British English spelling throughout
-- A4 portrait format, suitable for printing or sharing digitally
-- NO attendee counts or participant numbers
-- Action items should be MINIMAL - just mention count, not full details
-- Make it feel like catching up with a colleague, not a task list`;
+${designRequirements}`;
 
       const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
