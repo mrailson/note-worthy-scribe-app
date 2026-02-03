@@ -112,6 +112,31 @@ export function ComplaintQRCaptureModal({
     }
   }, [open, user, sessionId, createSession]);
   
+  // Play notification sound
+  const playNotificationSound = useCallback(() => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Pleasant two-tone chime
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(1100, audioContext.currentTime + 0.1);
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (e) {
+      // Audio not supported
+    }
+  }, []);
+
   // Subscribe to image uploads
   useEffect(() => {
     if (!open || !sessionId) return;
@@ -125,15 +150,22 @@ export function ComplaintQRCaptureModal({
         filter: `session_id=eq.${sessionId}`
       }, (payload) => {
         const newImage = payload.new as CapturedImage;
-        setCapturedImages(prev => [...prev, newImage]);
-        showToast.success('Photo received from phone');
+        setCapturedImages(prev => {
+          const newImages = [...prev, newImage];
+          // Show toast with updated count
+          playNotificationSound();
+          showToast.success(`📷 Photo ${newImages.length} received from phone!`, {
+            duration: 3000,
+          });
+          return newImages;
+        });
       })
       .subscribe();
     
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [open, sessionId]);
+  }, [open, sessionId, playNotificationSound]);
   
   // Reset state when modal closes
   useEffect(() => {
