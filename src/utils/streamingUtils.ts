@@ -75,6 +75,10 @@ export function streamText(
 /**
  * Strips heavy content from messages to reduce memory usage
  * Call this before storing messages in state for long periods
+ * 
+ * Thresholds reduced for more aggressive memory management:
+ * - File content: 2000 chars (was 5000)
+ * - Image data: 10000 chars (was 50000)
  */
 export function stripHeavyContentFromMessage(message: any): any {
   const stripped = { ...message };
@@ -88,7 +92,7 @@ export function stripHeavyContentFromMessage(message: any): any {
     };
   }
   
-  // Strip large file contents (keep metadata)
+  // Strip large file contents more aggressively (keep metadata)
   if (stripped.files?.length > 0) {
     stripped.files = stripped.files.map((file: any) => ({
       name: file.name,
@@ -96,21 +100,30 @@ export function stripHeavyContentFromMessage(message: any): any {
       size: file.size,
       isLoading: false,
       metadata: file.metadata,
-      content: file.content?.length > 5000 ? '[STRIPPED_FOR_MEMORY]' : file.content, // Reduced threshold from 10000 for more aggressive cleanup
-      wasStripped: file.content?.length > 5000
+      content: file.content?.length > 2000 ? '[STRIPPED_FOR_MEMORY]' : file.content,
+      wasStripped: file.content?.length > 2000
     }));
   }
   
-  // Strip large base64 images from generatedImages
+  // Strip large base64 images from generatedImages more aggressively
   if (stripped.generatedImages?.length > 0) {
     stripped.generatedImages = stripped.generatedImages.map((img: any) => ({
       ...img,
       // Keep URL references but strip inline base64
-      imageData: img.imageData?.startsWith('data:') && img.imageData.length > 50000 
+      imageData: img.imageData?.startsWith('data:') && img.imageData.length > 10000 
         ? '[STRIPPED_FOR_MEMORY]' 
         : img.imageData,
-      wasStripped: img.imageData?.startsWith('data:') && img.imageData.length > 50000
+      wasStripped: img.imageData?.startsWith('data:') && img.imageData.length > 10000
     }));
+  }
+  
+  // Strip presentation base64 data
+  if (stripped.generatedPresentation?.pptxBase64) {
+    stripped.generatedPresentation = {
+      ...stripped.generatedPresentation,
+      pptxBase64: '[STRIPPED_FOR_MEMORY]',
+      wasStripped: true
+    };
   }
   
   return stripped;
