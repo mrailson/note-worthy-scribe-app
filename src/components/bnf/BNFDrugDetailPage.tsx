@@ -914,7 +914,7 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
                       {isGeneratingWord ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <img src={wordIcon} alt="Word" className="h-6 w-6" />
+                        <img src={wordIcon} alt="Word" className="h-7 w-7" />
                       )}
                     </Button>
                   </TooltipTrigger>
