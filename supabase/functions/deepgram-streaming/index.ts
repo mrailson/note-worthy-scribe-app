@@ -38,10 +38,11 @@ Deno.serve(async (req: Request) => {
     socket.onmessage = async (event) => {
       try {
         // Handle binary data (audio)
-        if (event.data instanceof ArrayBuffer) {
-          console.log('📡 Received binary audio data, size:', event.data.byteLength);
+        // In Deno, binary WebSocket messages can arrive as Uint8Array.
+        if (event.data instanceof ArrayBuffer || event.data instanceof Uint8Array) {
           if (deepgramSocket && deepgramSocket.readyState === WebSocket.OPEN) {
-            deepgramSocket.send(event.data);
+            const payload = event.data instanceof Uint8Array ? event.data : new Uint8Array(event.data);
+            deepgramSocket.send(payload);
           }
           return;
         }
@@ -72,7 +73,8 @@ Deno.serve(async (req: Request) => {
             punctuate: 'true',
             profanity_filter: 'false',
             encoding: 'linear16',
-            sample_rate: '24000',
+            // Must match the client-side PCM stream sample rate (see src/lib/audio/pcm16.ts)
+            sample_rate: '16000',
             channels: '1'
           }).toString();
           
