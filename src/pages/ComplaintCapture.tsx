@@ -177,6 +177,16 @@ export default function ComplaintCapture() {
       
       setSessionId(data.id);
       setIsValid(true);
+      
+      // Notify desktop that phone has connected
+      supabase.channel(`complaint-connection-${data.id}`)
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            supabase.channel(`complaint-connection-${data.id}`)
+              .send({ type: 'broadcast', event: 'phone_connected', payload: {} });
+          }
+        });
+        
     } catch (err) {
       console.error('Validation error:', err);
       setValidationError('Failed to validate session');

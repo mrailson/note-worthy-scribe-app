@@ -53,6 +53,7 @@ export function ComplaintQRCaptureModal({
   const [shortCode, setShortCode] = useState<string | null>(null);
   const [capturedImages, setCapturedImages] = useState<CapturedImage[]>([]);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [isPhoneConnected, setIsPhoneConnected] = useState(false);
   
   // Get the base URL for the capture page
   const getCaptureUrl = useCallback(() => {
@@ -167,6 +168,24 @@ export function ComplaintQRCaptureModal({
     };
   }, [open, sessionId, playNotificationSound]);
   
+  // Subscribe to phone connection broadcasts
+  useEffect(() => {
+    if (!open || !sessionId) return;
+    
+    const channel = supabase
+      .channel(`complaint-connection-${sessionId}`)
+      .on('broadcast', { event: 'phone_connected' }, () => {
+        setIsPhoneConnected(true);
+        playNotificationSound();
+        showToast.success('📱 Phone connected!');
+      })
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, sessionId, playNotificationSound]);
+  
   // Reset state when modal closes
   useEffect(() => {
     if (!open) {
@@ -177,6 +196,7 @@ export function ComplaintQRCaptureModal({
           setShortCode(null);
           setQrCodeUrl('');
           setCapturedImages([]);
+          setIsPhoneConnected(false);
         }
       }, 500);
       return () => clearTimeout(timeout);
@@ -245,9 +265,17 @@ export function ComplaintQRCaptureModal({
         </DialogHeader>
         
         <div className="flex flex-col items-center py-4">
+          {/* Connected badge */}
+          {isPhoneConnected && (
+            <Badge variant="default" className="bg-green-600 mb-3 animate-pulse">
+              <Smartphone className="h-3 w-3 mr-1" />
+              Phone Connected
+            </Badge>
+          )}
+          
           {/* QR Code */}
           {qrCodeUrl ? (
-            <div className="bg-white p-4 rounded-xl shadow-lg">
+            <div className={`bg-white p-4 rounded-xl shadow-lg transition-all ${isPhoneConnected ? 'ring-2 ring-green-500' : ''}`}>
               <img src={qrCodeUrl} alt="QR Code for document capture" className="w-64 h-64" />
             </div>
           ) : (
