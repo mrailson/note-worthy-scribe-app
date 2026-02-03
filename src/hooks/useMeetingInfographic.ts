@@ -133,12 +133,15 @@ export const useMeetingInfographic = () => {
       // Format meeting content for infographic
       const documentContent = formatMeetingForInfographic(data);
       
-      // Log options received
-      console.log('[useMeetingInfographic] Options received:', options);
+      // Log options received - CRITICAL for debugging custom styles
+      console.log('[useMeetingInfographic] Options received:', JSON.stringify(options));
+      console.log('[useMeetingInfographic] customStyle value:', options?.customStyle);
+      console.log('[useMeetingInfographic] style value:', options?.style);
       
       // Build style instruction based on preset or custom style
       // Determine if using custom style
       const isCustomStyle = !!options?.customStyle?.trim();
+      console.log('[useMeetingInfographic] isCustomStyle:', isCustomStyle);
       let styleInstruction: string;
       
       if (isCustomStyle) {
