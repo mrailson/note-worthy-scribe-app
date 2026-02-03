@@ -44,11 +44,28 @@ export const usePracticeContext = () => {
 
       console.log('🏢 User practice_id:', practiceId);
 
-      // SHARED PRACTICE DETAILS: Look up practice_details by practice_id (gp_practices.id)
-      // This ensures all users in the same organisation see the same details
+      // PRIORITY 1: Check if user has their own practice_details record first
+      // This takes precedence because users may explicitly set their practice in settings
       let sharedPracticeDetails = null;
       
-      if (practiceId) {
+      const { data: userOwnPracticeDetails } = await supabase
+        .from('practice_details')
+        .select('*')
+        .eq('user_id', user.id)
+        .not('practice_name', 'is', null)
+        .neq('practice_name', '')
+        .neq('practice_name', 'Default Practice') // Skip placeholder entries
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (userOwnPracticeDetails) {
+        console.log('✅ Using user-specific practice_details (highest priority):', userOwnPracticeDetails.practice_name);
+        sharedPracticeDetails = userOwnPracticeDetails;
+      }
+      
+      // PRIORITY 2: If no user-specific practice_details, look up via gp_practices
+      if (!sharedPracticeDetails && practiceId) {
         // First, get the gp_practice info
         const { data: gpPractice } = await supabase
           .from('gp_practices')
@@ -103,23 +120,6 @@ export const usePracticeContext = () => {
             pcn_code: gpPractice.pcn_code,
             organisation_type: gpPractice.organisation_type
           };
-        }
-      }
-
-      // Fallback: Check user's own practice_details if no shared details found
-      if (!sharedPracticeDetails) {
-        const { data: userPracticeDetails } = await supabase
-          .from('practice_details')
-          .select('*')
-          .eq('user_id', user.id)
-          .not('practice_name', 'is', null)
-          .neq('practice_name', '')
-          .order('updated_at', { ascending: false })
-          .maybeSingle();
-
-        if (userPracticeDetails) {
-          console.log('📋 Using user-specific practice_details as fallback:', userPracticeDetails.practice_name);
-          sharedPracticeDetails = userPracticeDetails;
         }
       }
 
