@@ -73,16 +73,37 @@ export const useTrafficLightVocab = () => {
       setError(null);
       
       // Fetch data from Supabase
-      const { data: medicines, error: fetchError } = await supabase
-        .from('traffic_light_medicines')
-        .select('*')
-        .order('name');
+      // NOTE: Supabase/PostgREST commonly enforces a max rows limit (often 1,000) per request.
+      // We page through results to ensure we load the full ICB dataset (e.g. entries in later
+      // alphabet such as Tirzepatide / Mounjaro).
+      const pageSize = 1000;
+      let from = 0;
+      let medicines: any[] = [];
 
-      if (fetchError) {
-        throw fetchError;
+      while (true) {
+        const to = from + pageSize - 1;
+        const { data: page, error: fetchError } = await supabase
+          .from('traffic_light_medicines')
+          .select('*')
+          .order('name')
+          .range(from, to);
+
+        if (fetchError) {
+          throw fetchError;
+        }
+
+        if (page && page.length > 0) {
+          medicines = medicines.concat(page);
+        }
+
+        if (!page || page.length < pageSize) {
+          break;
+        }
+
+        from += pageSize;
       }
 
-      if (medicines) {
+      if (medicines && medicines.length > 0) {
         // Transform database records to match TLVocabItem interface
         const transformedItems: TLVocabItem[] = medicines.map((medicine, index) => ({
           id: index + 1, // Generate sequential ID for compatibility
