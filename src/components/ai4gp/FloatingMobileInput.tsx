@@ -86,6 +86,8 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const micRef = useRef<SimpleBrowserMicRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastKeyboardHeightRef = useRef(0); // Track last keyboard height to prevent thrashing
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Debounce timeout ref
   const { processFiles } = useFileUpload();
   const { processFilesWithValidation } = useEnhancedFileProcessing();
   const [browserTranscript, setBrowserTranscript] = useState('');
@@ -96,32 +98,50 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   // Memoize placeholder tip so it doesn't change on every render
   const placeholderTip = useMemo(() => getPlaceholderTip(userRole), [userRole]);
 
-  // iPhone keyboard handling
+  // iPhone keyboard handling - debounced to prevent thrashing
   useEffect(() => {
     if (!device.needsKeyboardWorkaround) return;
 
     const handleResize = () => {
-      if (typeof window !== 'undefined') {
-        const viewport = window.visualViewport;
-        if (viewport && isExpanded) {
-          const keyboardHeight = window.innerHeight - viewport.height;
-          setKeyboardHeight(Math.max(0, keyboardHeight));
-          
-          // Update CSS custom property for keyboard height
-          document.documentElement.style.setProperty(
-            '--iphone-keyboard-height', 
-            `${Math.max(0, keyboardHeight)}px`
-          );
-        }
+      // Debounce: clear any pending timeout
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
       }
+      
+      resizeTimeoutRef.current = setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          const viewport = window.visualViewport;
+          if (viewport && isExpanded) {
+            const newKeyboardHeight = Math.max(0, window.innerHeight - viewport.height);
+            
+            // Only update if changed by more than 5px to prevent layout thrashing
+            if (Math.abs(newKeyboardHeight - lastKeyboardHeightRef.current) > 5) {
+              lastKeyboardHeightRef.current = newKeyboardHeight;
+              setKeyboardHeight(newKeyboardHeight);
+              
+              // Update CSS custom property for keyboard height
+              document.documentElement.style.setProperty(
+                '--iphone-keyboard-height', 
+                `${newKeyboardHeight}px`
+              );
+            }
+          }
+        }
+      }, 100); // 100ms debounce
     };
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleResize);
-      return () => window.visualViewport?.removeEventListener('resize', handleResize);
+      return () => {
+        if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+        window.visualViewport?.removeEventListener('resize', handleResize);
+      };
     } else {
       window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+      return () => {
+        if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+        window.removeEventListener('resize', handleResize);
+      };
     }
   }, [device.needsKeyboardWorkaround, isExpanded]);
 
