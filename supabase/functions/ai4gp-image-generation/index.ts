@@ -1234,8 +1234,11 @@ Content guidelines:
         console.error('Failed to parse AI Gateway response:', responseText.substring(0, 500));
         throw new Error('Image generation returned an invalid response. Please try again.');
       }
-      textContent = data.choices?.[0]?.message?.content || '';
-      imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      const choice = data.choices?.[0];
+      const finishReason = choice?.finish_reason;
+      const nativeFinishReason = choice?.native_finish_reason;
+      textContent = choice?.message?.content || '';
+      imageUrl = choice?.message?.images?.[0]?.image_url?.url;
 
       // Check for errors in the response
       const choiceError = data.choices?.[0]?.error;
@@ -1273,7 +1276,30 @@ Content guidelines:
 
       if (!imageUrl) {
         console.error('No image in response:', JSON.stringify(data).substring(0, 500));
-        throw new Error('No image was generated. Please try rephrasing your request.');
+
+        const reason = String(nativeFinishReason || finishReason || '').toUpperCase();
+        const isSafetyBlock =
+          reason.includes('PROHIBITED') ||
+          reason.includes('SAFETY') ||
+          reason.includes('CONTENT') ||
+          finishReason === 'content_filter';
+
+        if (isSafetyBlock) {
+          return new Response(JSON.stringify({
+            success: false,
+            code: 'CONTENT_MODERATION',
+            error: 'This image request was blocked by the AI safety system. If you are aiming for a recognisable franchise theme, try describing the visual vibe without naming the franchise, characters, or logos (e.g. “cinematic space‑opera sci‑fi with starfields and glowing accents”).'
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'No image was generated. Please try rephrasing your request.'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
     }
 
