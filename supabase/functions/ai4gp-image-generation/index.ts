@@ -693,6 +693,7 @@ Content guidelines:
 - No explicit, offensive, or inappropriate imagery`;
     } else if (effectiveRequestType === 'infographic' && documentContent) {
       // Infographic with document content - generate visual FROM the document
+      // IMPORTANT: Also include the user's prompt as it may contain custom styling instructions
       // Extract keywords for accurate spelling reference
       const extractedKeywords = extractCleanKeywords(documentContent);
       const keywordReference = extractedKeywords.length > 0 
@@ -700,7 +701,33 @@ Content guidelines:
         : '';
       const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding, editedDetails, customPracticeName);
       
-      imagePrompt = `Create a professional single-page infographic that visualises the following content.
+      // Check if the prompt contains custom style instructions (from useMeetingInfographic)
+      const hasCustomStyleInPrompt = prompt.includes('CUSTOM STYLE REQUEST:') || prompt.includes('Custom visual style requested:');
+      
+      imagePrompt = hasCustomStyleInPrompt 
+        ? `${prompt}
+
+SOURCE CONTENT TO VISUALISE:
+${documentContent.substring(0, 5000)}
+${brandingSection}
+
+TEXT GUIDELINES:
+- Text should be clear and readable with professional typography
+- Use proper spelling - refer to the spelling reference below
+- Good visual hierarchy with headings, subheadings and body text
+
+${SPELLING_REFERENCE}
+${keywordReference}
+
+ADDITIONAL REQUIREMENTS:
+- Create an ACTUAL visual infographic image, NOT a text description
+- High contrast for accessibility and readability
+- DO NOT display colour swatches, hex codes, or colour palette legends anywhere in the image
+
+Content guidelines:
+- Keep all content professional and workplace-appropriate
+- No explicit, offensive, or inappropriate imagery`
+        : `Create a professional single-page infographic that visualises the following content.
 
 SOURCE CONTENT TO VISUALISE:
 ${documentContent.substring(0, 5000)}
