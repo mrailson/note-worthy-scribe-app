@@ -476,3 +476,6 @@ verify_jwt = true
 
 [functions.bnf-comprehensive-lookup]
 verify_jwt = true
+
+[functions.purge-old-ai-chats]
+verify_jwt = false
