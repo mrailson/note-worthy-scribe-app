@@ -48,10 +48,11 @@ export const BNFTypeaheadSearch: React.FC<BNFTypeaheadSearchProps> = ({ onDrugSe
   const fuse = useMemo(() => {
     return new Fuse(vocab, {
       keys: ['name'],
-      threshold: 0.3,
-      distance: 100,
+      threshold: 0.4,
+      distance: 200,
       minMatchCharLength: 2,
       includeScore: true,
+      ignoreLocation: true, // Search anywhere in the string, not just near the start
     });
   }, [vocab]);
   
@@ -139,7 +140,7 @@ export const BNFTypeaheadSearch: React.FC<BNFTypeaheadSearchProps> = ({ onDrugSe
         <Input
           ref={inputRef}
           type="text"
-          placeholder="Search 260+ drugs..."
+          placeholder="Search 1,100+ drugs..."
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);

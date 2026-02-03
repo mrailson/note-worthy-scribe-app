@@ -101,7 +101,7 @@ export const BNFQuickLookupPanel: React.FC<BNFQuickLookupPanelProps> = ({
           <h3 className="text-sm font-medium text-foreground">Northants ICB Traffic Light Search</h3>
           <BNFTypeaheadSearch onDrugSelect={handleDrugSelect} />
           <p className="text-xs text-muted-foreground">
-            Search 261 Northants ICB formulary drugs with traffic light status
+            Search 1,100+ Northants ICB formulary drugs with traffic light status
           </p>
         </div>
 
