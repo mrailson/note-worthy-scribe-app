@@ -1035,6 +1035,77 @@ export type Database = {
           },
         ]
       }
+      complaint_capture_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          session_token: string
+          short_code: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          session_token: string
+          short_code?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          session_token?: string
+          short_code?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      complaint_captured_images: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          ocr_text: string | null
+          processed: boolean | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          ocr_text?: string | null
+          processed?: boolean | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          ocr_text?: string | null
+          processed?: boolean | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_captured_images_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_capture_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_compliance_audit: {
         Row: {
           complaint_id: string | null
