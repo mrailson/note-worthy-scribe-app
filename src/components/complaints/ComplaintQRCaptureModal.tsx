@@ -54,6 +54,7 @@ export function ComplaintQRCaptureModal({
   const [capturedImages, setCapturedImages] = useState<CapturedImage[]>([]);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [isPhoneConnected, setIsPhoneConnected] = useState(false);
+  const [isLoadingExisting, setIsLoadingExisting] = useState(false);
   
   // Get the base URL for the capture page
   const getCaptureUrl = useCallback(() => {
@@ -152,6 +153,9 @@ export function ComplaintQRCaptureModal({
       }, (payload) => {
         const newImage = payload.new as CapturedImage;
         setCapturedImages(prev => {
+          // De-dupe (can happen if we fetch existing images then also receive inserts)
+          if (prev.some(img => img.id === newImage.id)) return prev;
+
           const newImages = [...prev, newImage];
           // Show toast with updated count
           playNotificationSound();
@@ -167,6 +171,44 @@ export function ComplaintQRCaptureModal({
       supabase.removeChannel(channel);
     };
   }, [open, sessionId, playNotificationSound]);
+
+  // Load any images already uploaded for this session (covers cases where Realtime events were missed)
+  useEffect(() => {
+    if (!open || !sessionId) return;
+
+    let cancelled = false;
+
+    const loadExisting = async () => {
+      setIsLoadingExisting(true);
+      try {
+        const { data, error } = await supabase
+          .from('complaint_captured_images')
+          .select('id, file_name, file_url, file_size, ocr_text, processed, created_at')
+          .eq('session_id', sessionId)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        if (cancelled) return;
+
+        setCapturedImages((prev) => {
+          const byId = new Map<string, CapturedImage>();
+          prev.forEach((img) => byId.set(img.id, img));
+          (data ?? []).forEach((img) => byId.set(img.id, img as CapturedImage));
+          return Array.from(byId.values());
+        });
+      } catch (e) {
+        // Non-fatal; Realtime may still bring images in.
+        console.warn('Failed to load existing captured images', e);
+      } finally {
+        if (!cancelled) setIsLoadingExisting(false);
+      }
+    };
+
+    loadExisting();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, sessionId]);
   
   // Subscribe to phone connection broadcasts
   useEffect(() => {
@@ -324,7 +366,9 @@ export function ComplaintQRCaptureModal({
                 <Smartphone className="h-4 w-4" />
                 <span>Open camera on your phone and scan</span>
               </div>
-              <p>Photos will appear here automatically</p>
+              <p>
+                {isLoadingExisting ? 'Checking for uploads…' : 'Photos will appear here automatically'}
+              </p>
             </div>
           )}
           
