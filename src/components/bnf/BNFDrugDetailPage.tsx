@@ -153,7 +153,7 @@ ${monograph.dosing.renalAdjustment ? `• Renal: ${monograph.dosing.renalAdjustm
     : getStatusBadge('');
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col w-[calc(100vw-4rem)] max-w-5xl -ml-[calc((100vw-4rem-100%)/2)] relative left-1/2 -translate-x-1/2">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-background">
         <div className="flex items-center gap-3">
