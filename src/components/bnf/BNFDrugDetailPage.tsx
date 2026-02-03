@@ -159,8 +159,18 @@ ${monograph.dosing.renalAdjustment ? `• Renal: ${monograph.dosing.renalAdjustm
   const buildMonographContent = (): string => {
     if (!monograph) return '';
     
+    // Include ICB Traffic Light status if available
+    const icbSection = trafficLightItem ? `
+## Northamptonshire ICB Traffic Light Status
+• Status: ${trafficLightItem.status_enum?.replace(/_/g, ' ')}
+${trafficLightItem.status_raw ? `• Classification: ${trafficLightItem.status_raw}` : ''}
+${trafficLightItem.notes ? `• ICB Notes: ${trafficLightItem.notes}` : ''}
+${trafficLightItem.bnf_chapter ? `• BNF Chapter: ${trafficLightItem.bnf_chapter}` : ''}
+${trafficLightItem.prior_approval_url ? `• Prior Approval Required: Yes` : ''}
+` : '';
+    
     return `# ${monograph.drugName} - Clinical Reference
-
+${icbSection}
 ## Indications
 ${monograph.indications.map(i => `• ${i}`).join('\n')}
 
@@ -210,7 +220,7 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
       
       const { data, error: fnError } = await supabase.functions.invoke('ai4gp-image-generation', {
         body: {
-          prompt: `Create a clear, professional clinical infographic summarising the key prescribing information for ${monograph.drugName}. Focus on: indications, dosing, key contraindications, important interactions, and monitoring requirements. Use NHS-professional styling with clear visual hierarchy. Target audience: clinical staff. Include a prominent safety reminder to verify with official BNF.`,
+          prompt: `Create a clear, professional clinical infographic summarising the key prescribing information for ${monograph.drugName}. ${trafficLightItem ? `Include the Northamptonshire ICB Traffic Light status: ${trafficLightItem.status_enum?.replace(/_/g, ' ')}${trafficLightItem.notes ? ` - ${trafficLightItem.notes}` : ''}.` : ''} Focus on: indications, dosing, key contraindications, important interactions, and monitoring requirements. Use NHS-professional styling with clear visual hierarchy. Target audience: clinical staff. Include a prominent safety reminder to verify with official BNF.`,
           documentContent,
           requestType: 'infographic',
           imageModel: 'google/gemini-3-pro-image-preview',
@@ -290,7 +300,7 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
           slideCount,
           supportingContent,
           audience: 'Clinical staff and healthcare professionals',
-          customInstructions: 'Focus on practical prescribing guidance. Include: indications, dosing (adult/elderly/renal), contraindications, key interactions, monitoring requirements, and patient counselling points. Use NHS-professional styling. Include safety disclaimer about verifying with official BNF.',
+          customInstructions: `Focus on practical prescribing guidance. ${trafficLightItem ? `Include a slide on Northamptonshire ICB Traffic Light status: ${trafficLightItem.status_enum?.replace(/_/g, ' ')}${trafficLightItem.notes ? ` with note: ${trafficLightItem.notes}` : ''}.` : ''} Include: indications, dosing (adult/elderly/renal), contraindications, key interactions, monitoring requirements, and patient counselling points. Use NHS-professional styling. Include safety disclaimer about verifying with official BNF.`,
           localThemeStyle: {
             primaryColor: '#005EB8', // NHS Blue
             secondaryColor: '#003087', // NHS Dark Blue
@@ -428,6 +438,91 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
           shading: { fill: 'FEF3C7' },
         })
       );
+      
+      // ICB Traffic Light Status - if available
+      if (trafficLightItem) {
+        const PURPLE_COLOR = '7C3AED';
+        const SLATE_COLOR = '475569';
+        const statusColor = 
+          trafficLightItem.status_enum === 'GREEN' ? GREEN_COLOR :
+          trafficLightItem.status_enum === 'AMBER' ? AMBER_COLOR :
+          trafficLightItem.status_enum === 'RED' ? RED_COLOR :
+          trafficLightItem.status_enum === 'DOUBLE_RED' ? RED_COLOR :
+          trafficLightItem.status_enum === 'SPECIALIST_INITIATED' ? PURPLE_COLOR :
+          trafficLightItem.status_enum === 'HOSPITAL_ONLY' ? SLATE_COLOR : NHS_BLUE;
+        
+        children.push(
+          createSectionHeader('Northamptonshire ICB Traffic Light Status', statusColor),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Status: ${trafficLightItem.status_enum?.replace(/_/g, ' ')}`,
+                bold: true,
+                size: 24,
+                color: statusColor,
+              }),
+            ],
+            spacing: { after: 80 },
+          })
+        );
+        
+        if (trafficLightItem.status_raw) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'Classification: ', bold: true, size: 22 }),
+                new TextRun({ text: trafficLightItem.status_raw, size: 22 }),
+              ],
+              spacing: { after: 60 },
+            })
+          );
+        }
+        
+        if (trafficLightItem.notes) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'ICB Notes: ', bold: true, size: 22 }),
+                new TextRun({ text: trafficLightItem.notes, size: 22 }),
+              ],
+              spacing: { after: 60 },
+            })
+          );
+        }
+        
+        if (trafficLightItem.bnf_chapter) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: 'BNF Chapter: ', bold: true, size: 22 }),
+                new TextRun({ text: trafficLightItem.bnf_chapter, size: 22 }),
+              ],
+              spacing: { after: 60 },
+            })
+          );
+        }
+        
+        if (trafficLightItem.prior_approval_url) {
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({ text: '⚠️ Prior Approval Required', bold: true, size: 22, color: AMBER_COLOR }),
+              ],
+              spacing: { after: 60 },
+            })
+          );
+        }
+        
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Source: ', size: 20, color: '666666' }),
+              new TextRun({ text: trafficLightItem.detail_url, size: 20, color: NHS_BLUE }),
+            ],
+            spacing: { after: 200 },
+          })
+        );
+      }
       
       // Indications
       children.push(createSectionHeader('Indications'));
@@ -817,6 +912,69 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
           </div>
         ) : monograph ? (
           <div className="grid gap-4 w-full">
+            {/* ICB Traffic Light Status - if available */}
+            {trafficLightItem && (
+              <Card className={cn(
+                "border-l-4",
+                trafficLightItem.status_enum === 'GREEN' && "border-l-green-500 bg-green-50/50",
+                trafficLightItem.status_enum === 'AMBER' && "border-l-amber-500 bg-amber-50/50",
+                trafficLightItem.status_enum === 'RED' && "border-l-red-500 bg-red-50/50",
+                trafficLightItem.status_enum === 'DOUBLE_RED' && "border-l-red-700 bg-red-100/50",
+                trafficLightItem.status_enum === 'SPECIALIST_INITIATED' && "border-l-purple-500 bg-purple-50/50",
+                trafficLightItem.status_enum === 'HOSPITAL_ONLY' && "border-l-slate-500 bg-slate-50/50",
+              )}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Badge variant="outline" className={cn("text-xs", badge.className)}>
+                      {badge.label}
+                    </Badge>
+                    Northamptonshire ICB Traffic Light Status
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  {trafficLightItem.status_raw && (
+                    <div>
+                      <span className="font-medium">Classification:</span> {trafficLightItem.status_raw}
+                    </div>
+                  )}
+                  {trafficLightItem.notes && (
+                    <div>
+                      <span className="font-medium">ICB Notes:</span> {trafficLightItem.notes}
+                    </div>
+                  )}
+                  {trafficLightItem.bnf_chapter && (
+                    <div>
+                      <span className="font-medium">BNF Chapter:</span> {trafficLightItem.bnf_chapter}
+                    </div>
+                  )}
+                  {trafficLightItem.prior_approval_url && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-amber-700">⚠️ Prior Approval Required</span>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-xs"
+                        onClick={() => window.open(trafficLightItem.prior_approval_url, '_blank')}
+                      >
+                        View Form <ExternalLink className="w-3 h-3 ml-1" />
+                      </Button>
+                    </div>
+                  )}
+                  <div className="pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => window.open(trafficLightItem.detail_url, '_blank')}
+                    >
+                      <ExternalLink className="w-3 h-3 mr-1" />
+                      ICB Formulary Page
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Indications */}
             <Card>
               <CardHeader className="pb-2">
