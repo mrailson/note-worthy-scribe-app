@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ExternalLink, AlertTriangle, Loader2, BookOpen, Copy, Check, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ExternalLink, AlertTriangle, Loader2, BookOpen, Copy, Check, RefreshCw, Image, Presentation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { TLVocabItem } from '@/hooks/useTrafficLightVocab';
@@ -77,6 +79,9 @@ export const BNFDrugDetailPage: React.FC<BNFDrugDetailPageProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isGeneratingInfographic, setIsGeneratingInfographic] = useState(false);
+  const [isGeneratingPowerPoint, setIsGeneratingPowerPoint] = useState(false);
+  const [slideCount, setSlideCount] = useState<number>(5);
 
   const fetchMonograph = async () => {
     setIsLoading(true);
@@ -148,6 +153,150 @@ ${monograph.dosing.renalAdjustment ? `• Renal: ${monograph.dosing.renalAdjustm
     toast.success('Inserted into chat');
   };
 
+  const buildMonographContent = (): string => {
+    if (!monograph) return '';
+    
+    return `# ${monograph.drugName} - Clinical Reference
+
+## Indications
+${monograph.indications.map(i => `• ${i}`).join('\n')}
+
+## Dosing
+• Adult: ${monograph.dosing.adult}
+${monograph.dosing.elderly ? `• Elderly: ${monograph.dosing.elderly}` : ''}
+${monograph.dosing.renalAdjustment ? `• Renal adjustment: ${monograph.dosing.renalAdjustment}` : ''}
+${monograph.dosing.paediatric ? `• Paediatric: ${monograph.dosing.paediatric}` : ''}
+
+## Contraindications
+${monograph.contraindications.map(c => `• ${c}`).join('\n')}
+
+## Cautions
+${monograph.cautions.map(c => `• ${c}`).join('\n')}
+
+## Drug Interactions
+${monograph.interactions.map(i => `• ${i}`).join('\n')}
+
+## Side Effects
+### Common (>1%)
+${monograph.sideEffects.common.map(s => `• ${s}`).join('\n')}
+
+### Serious
+${monograph.sideEffects.serious.map(s => `• ${s}`).join('\n')}
+
+## Monitoring
+${monograph.monitoring.map(m => `• ${m}`).join('\n')}
+
+## Pregnancy & Breastfeeding
+${monograph.pregnancyBreastfeeding}
+
+## Patient Counselling
+${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
+
+---
+⚠️ Always verify with official BNF before prescribing. Use clinical judgement.`;
+  };
+
+  const handleGenerateInfographic = async () => {
+    if (!monograph) return;
+    
+    setIsGeneratingInfographic(true);
+    toast.info('Generating infographic...', { duration: 3000 });
+    
+    try {
+      const documentContent = buildMonographContent();
+      
+      const { data, error: fnError } = await supabase.functions.invoke('ai4gp-image-generation', {
+        body: {
+          prompt: `Create a clear, professional clinical infographic summarising the key prescribing information for ${monograph.drugName}. Focus on: indications, dosing, key contraindications, important interactions, and monitoring requirements. Use NHS-professional styling with clear visual hierarchy. Target audience: clinical staff. Include a prominent safety reminder to verify with official BNF.`,
+          documentContent,
+          requestType: 'infographic',
+          imageModel: 'google/gemini-3-pro-image-preview',
+          layoutPreference: 'landscape',
+          brandingLevel: 'none',
+          targetAudience: 'clinical',
+          purpose: 'infographic',
+          stylePreset: 'nhs-professional',
+        },
+      });
+
+      if (fnError) throw fnError;
+
+      if (data?.imageUrl) {
+        // Auto-download the image
+        const response = await fetch(data.imageUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${monograph.drugName.replace(/\s+/g, '-')}-Clinical-Infographic.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        toast.success('Infographic downloaded!');
+      } else {
+        throw new Error('No image URL returned');
+      }
+    } catch (err) {
+      console.error('Infographic generation error:', err);
+      toast.error('Failed to generate infographic. Please try again.');
+    } finally {
+      setIsGeneratingInfographic(false);
+    }
+  };
+
+  const handleGeneratePowerPoint = async () => {
+    if (!monograph) return;
+    
+    setIsGeneratingPowerPoint(true);
+    toast.info(`Generating ${slideCount}-slide presentation...`, { duration: 3000 });
+    
+    try {
+      const supportingContent = buildMonographContent();
+      
+      const { data, error: fnError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
+        body: {
+          topic: `${monograph.drugName} - Clinical Prescribing Guide`,
+          presentationType: 'Clinical Guidelines',
+          slideCount,
+          supportingContent,
+          audience: 'Clinical staff and healthcare professionals',
+          customInstructions: 'Focus on practical prescribing guidance. Include: indications, dosing (adult/elderly/renal), contraindications, key interactions, monitoring requirements, and patient counselling points. Use NHS-professional styling. Include safety disclaimer about verifying with official BNF.',
+          localThemeStyle: {
+            primaryColor: '#005EB8', // NHS Blue
+            secondaryColor: '#003087', // NHS Dark Blue
+            accentColor: '#41B6E6', // NHS Light Blue
+            themeName: 'NHS Clinical',
+          },
+        },
+      });
+
+      if (fnError) throw fnError;
+
+      if (data?.exportUrl || data?.pptxUrl) {
+        const downloadUrl = data.exportUrl || data.pptxUrl;
+        
+        // Auto-download the PowerPoint
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `${monograph.drugName.replace(/\s+/g, '-')}-Clinical-Guide.pptx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        toast.success('PowerPoint downloaded!');
+      } else {
+        throw new Error('No download URL returned');
+      }
+    } catch (err) {
+      console.error('PowerPoint generation error:', err);
+      toast.error('Failed to generate presentation. Please try again.');
+    } finally {
+      setIsGeneratingPowerPoint(false);
+    }
+  };
+
   const badge = trafficLightItem 
     ? getStatusBadge(trafficLightItem.status_enum)
     : getStatusBadge('');
@@ -168,6 +317,84 @@ ${monograph.dosing.renalAdjustment ? `• Renal: ${monograph.dosing.renalAdjustm
               <Badge variant="outline" className={cn("text-xs", badge.className)}>
                 Northants ICB: {badge.label}
               </Badge>
+            )}
+            
+            {/* Generation buttons - next to drug name */}
+            {monograph && (
+              <>
+                <Separator orientation="vertical" className="h-5 mx-1" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateInfographic}
+                  disabled={isGeneratingInfographic}
+                  className="h-7 px-2 text-xs"
+                >
+                  {isGeneratingInfographic ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <>
+                      <Image className="w-3 h-3 mr-1" />
+                      Infographic
+                    </>
+                  )}
+                </Button>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isGeneratingPowerPoint}
+                      className="h-7 px-2 text-xs"
+                    >
+                      {isGeneratingPowerPoint ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Presentation className="w-3 h-3 mr-1" />
+                          PowerPoint
+                        </>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-3" align="start">
+                    <div className="space-y-3">
+                      <div className="text-xs font-medium text-foreground">Slide Count</div>
+                      <Select
+                        value={slideCount.toString()}
+                        onValueChange={(val) => setSlideCount(parseInt(val))}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[5, 6, 7, 8, 9, 10].map((num) => (
+                            <SelectItem key={num} value={num.toString()}>
+                              {num} slides
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        className="w-full h-8 text-xs"
+                        onClick={() => handleGeneratePowerPoint()}
+                        disabled={isGeneratingPowerPoint}
+                      >
+                        {isGeneratingPowerPoint ? (
+                          <>
+                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          'Generate & Download'
+                        )}
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </>
             )}
           </div>
         </div>
