@@ -66,9 +66,84 @@ export const useMeetingInfographic = () => {
     const lower = trimmed.toLowerCase();
 
     // Avoid prompting with trademarked franchise names/characters/logos – these can cause the image model to refuse.
-    // Map common requests to “vibe” descriptions that still achieve the look.
-    if (lower.includes('star wars')) {
-      return 'cinematic space-opera sci‑fi theme: deep starfield backgrounds, dramatic lighting, subtle holographic UI motifs, glowing blue/amber accents, futuristic typography, sleek spacecraft silhouettes (no characters, logos, or franchise names).';
+    // Map common requests to "vibe" descriptions that still achieve the look.
+    const franchiseMappings: Record<string, string> = {
+      'star wars': 'cinematic space-opera sci-fi theme: deep starfield backgrounds, dramatic lighting, holographic UI motifs, glowing blue/amber accents, futuristic typography, sleek spacecraft silhouettes',
+      'star trek': 'retro-futuristic space exploration theme: sleek starship bridge aesthetics, LCARS-inspired panel layouts, bold primary colours on dark backgrounds, clean geometric shapes, optimistic sci-fi feel',
+      'lord of the rings': 'epic high-fantasy medieval theme: aged parchment textures, ornate Celtic knotwork borders, earthy tones (forest green, gold, brown), elegant calligraphic typography, mystical glow effects',
+      'lotr': 'epic high-fantasy medieval theme: aged parchment textures, ornate Celtic knotwork borders, earthy tones (forest green, gold, brown), elegant calligraphic typography, mystical glow effects',
+      'hobbit': 'cosy fantasy adventure theme: warm rustic colours, rolling green hills, handwritten-style typography, whimsical illustrations, comfortable cottage aesthetics',
+      'harry potter': 'magical wizarding school theme: gothic stone textures, candlelit warmth, burgundy/gold/navy palette, vintage parchment, ornate serif fonts, mystical floating elements',
+      'marvel': 'dynamic superhero comic-book theme: bold primary colours, halftone dot patterns, dramatic action poses, comic panel layouts, punchy typography with outlines',
+      'avengers': 'dynamic superhero team theme: bold metallic accents, dramatic lighting, sleek modern tech aesthetic, powerful colour contrasts (red, blue, gold)',
+      'dc': 'dark heroic comic theme: dramatic shadows, bold silhouettes, strong contrasts, gothic undertones, powerful iconography',
+      'batman': 'dark noir detective theme: shadowy blacks and greys, art-deco inspired geometry, gothic architecture silhouettes, dramatic spotlighting, mysterious atmosphere',
+      'superman': 'bright heroic theme: bold primary colours (red, blue, yellow), clean strong typography, hopeful and powerful imagery, art-deco influences',
+      'james bond': 'sleek spy-thriller theme: sophisticated black and gold palette, gun-barrel motifs, elegant typography, casino glamour, international intrigue',
+      '007': 'sleek spy-thriller theme: sophisticated black and gold palette, gun-barrel motifs, elegant typography, casino glamour, international intrigue',
+      'jurassic park': 'prehistoric adventure theme: jungle greens, amber tones, fossil textures, bold expedition typography, adventurous and slightly dangerous atmosphere',
+      'jurassic': 'prehistoric adventure theme: jungle greens, amber tones, fossil textures, bold expedition typography, adventurous and slightly dangerous atmosphere',
+      'matrix': 'digital cyberpunk theme: cascading green code rain on black, neon green accents, monospace typography, glitch effects, virtual reality aesthetics',
+      'terminator': 'apocalyptic tech-noir theme: metallic chrome, red targeting displays, industrial textures, military stencil fonts, dystopian atmosphere',
+      'alien': 'sci-fi horror theme: dark industrial corridors, green scanner displays, biomechanical textures, claustrophobic atmosphere, retrofuturistic tech',
+      'aliens': 'military sci-fi theme: colonial marines aesthetic, motion tracker displays, industrial yellows and greys, combat-ready typography',
+      'blade runner': 'neon-noir cyberpunk theme: rain-soaked streets, neon pink and blue, retrofuturistic cityscapes, Japanese typography influences, melancholic atmosphere',
+      'tron': 'digital grid theme: glowing neon blue lines on black, geometric circuit patterns, sleek futuristic typography, light-cycle aesthetics',
+      'back to the future': 'retro 80s sci-fi adventure theme: chrome and neon, digital clock displays, bold italicised typography, time-travel energy effects, optimistic futurism',
+      'indiana jones': 'vintage adventure archaeology theme: aged maps and parchment, sepia tones, expedition typography, exotic locations, 1930s pulp adventure aesthetic',
+      'pirates of the caribbean': 'swashbuckling pirate theme: weathered treasure maps, nautical elements, aged parchment, rope and anchor motifs, Caribbean sunset colours',
+      'pirates': 'classic pirate adventure theme: treasure maps, skull motifs, weathered wood textures, nautical rope borders, ocean blues and sunset golds',
+      'frozen': 'icy Nordic fairy-tale theme: crystalline ice patterns, cool blue and purple palette, snowflake motifs, elegant flowing typography, magical winter atmosphere',
+      'disney': 'magical fairy-tale theme: enchanted castle silhouettes, sparkle effects, warm storybook colours, whimsical typography, happily-ever-after atmosphere',
+      'pixar': 'vibrant animated adventure theme: bold cheerful colours, playful rounded typography, expressive character-driven layouts, heartwarming atmosphere',
+      'minions': 'playful yellow cartoon theme: bright yellow and blue palette, banana motifs, silly rounded typography, fun chaotic energy',
+      'transformers': 'mech-tech action theme: metallic surfaces, angular geometric shapes, industrial typography, chrome and steel, explosive energy effects',
+      'fast and furious': 'street racing action theme: chrome and neon, speedometer elements, bold aggressive typography, urban nightscape, adrenaline energy',
+      'mission impossible': 'high-tech espionage theme: sleek modern interfaces, timer countdown displays, bold urgent typography, international locations, suspenseful atmosphere',
+      'john wick': 'neo-noir assassin theme: dark atmospheric lighting, gold accents on black, elegant typography, nightclub neon, sophisticated violence aesthetic',
+      'hunger games': 'dystopian rebellion theme: mockingjay-inspired fire motifs, gold on dark backgrounds, propaganda poster aesthetic, revolutionary typography',
+      'twilight': 'romantic gothic theme: misty forest atmospheres, cool blue-grey palette, elegant serif typography, subtle sparkle effects, moody atmosphere',
+      'game of thrones': 'epic medieval fantasy theme: iron and stone textures, house sigil-inspired iconography, aged parchment, dark dramatic lighting, royal heraldry',
+      'got': 'epic medieval fantasy theme: iron and stone textures, house sigil-inspired iconography, aged parchment, dark dramatic lighting, royal heraldry',
+      'stranger things': 'retro 80s supernatural theme: neon red glow, flickering Christmas lights, VHS aesthetic, bold outlined typography, synth-wave colours',
+      'ghostbusters': 'retro paranormal comedy theme: ecto-green glow, red prohibition-style iconography, 80s tech displays, bold fun typography',
+      'top gun': 'military aviation theme: fighter jet silhouettes, sunset orange skies, aviator aesthetic, bold stencil typography, patriotic energy',
+      'rocky': 'underdog boxing theme: gritty Philadelphia streets, Italian flag colours, bold champion typography, training montage energy',
+      'godfather': 'classic mafia crime theme: sepia and shadow, elegant script typography, Italian-American iconography, rose motifs, solemn atmosphere',
+      'scarface': 'Miami crime drama theme: art-deco influences, palm trees and neon, bold aggressive typography, 80s excess aesthetic',
+      'pulp fiction': 'retro crime noir theme: bold pop-art colours, vintage movie poster layouts, pulp magazine aesthetic, eclectic typography',
+      'kill bill': 'martial arts revenge theme: bold yellow and black, Japanese katana motifs, blood-red accents, anime-influenced graphics',
+      'mad max': 'post-apocalyptic wasteland theme: rust and chrome, desert orange and black, industrial decay, aggressive tribal typography',
+      'avatar': 'bioluminescent alien nature theme: glowing cyan and magenta, organic flowing shapes, alien flora patterns, ethereal atmosphere',
+      'dune': 'epic desert sci-fi theme: golden sand tones, ornate Arabic-inspired patterns, ancient futurism, spice-orange accents, mystical typography',
+      'interstellar': 'cosmic space exploration theme: vast starfields, wormhole visualisations, scientific diagrams, hopeful yet melancholic atmosphere',
+      'gravity': 'realistic space thriller theme: Earth from orbit, stark white on black, minimal typography, isolation and vastness',
+      'inception': 'mind-bending architectural theme: impossible geometry, folding cityscapes, layered dimensions, elegant modern typography',
+      'shrek': 'fairy-tale parody theme: swamp greens, storybook illustrations, playful medieval fonts, irreverent humour, ogre-friendly colours',
+      'finding nemo': 'underwater ocean adventure theme: tropical coral colours, bubble effects, friendly aquatic motifs, warm family atmosphere',
+      'lion king': 'African savanna theme: sunset oranges and purples, tribal patterns, majestic wildlife silhouettes, circle of life motifs',
+      'toy story': 'playful childrens toy theme: primary colours, toy-box aesthetics, friendly rounded typography, nostalgic childhood warmth',
+      'cars': 'retro Americana racing theme: Route 66 aesthetics, chrome and fins, desert landscapes, neon motel signs, vintage car culture',
+      'moana': 'Polynesian ocean adventure theme: tropical turquoise waters, traditional tapa patterns, volcanic islands, wayfinding stars',
+      'coco': 'Mexican Dia de los Muertos theme: marigold orange, papel picado patterns, calavera motifs, vibrant celebration colours',
+      'encanto': 'magical Colombian family theme: tropical flowers, vibrant Latin colours, magical golden glow, family home warmth',
+      'doctor who': 'time-travelling British sci-fi theme: TARDIS blue, swirling vortex patterns, retrofuturistic controls, Gallifreyan circular writing',
+      'breaking bad': 'desert crime drama theme: Albuquerque desert tones, periodic table elements, RV and laboratory motifs, meth-blue accents',
+      'walking dead': 'zombie apocalypse survival theme: blood-red accents, distressed textures, abandoned infrastructure, survival gear motifs',
+      'squid game': 'Korean survival game theme: pink guards and teal tracksuits, geometric shapes (circle, triangle, square), childhood game motifs, stark contrasts',
+      'wednesday': 'gothic academia theme: black and purple, gothic architecture, ornate Victorian patterns, macabre elegance',
+      'bridgerton': 'Regency romance theme: soft pastels, ornate floral patterns, elegant script typography, romantic ballroom aesthetics',
+      'peaky blinders': 'gritty 1920s Birmingham theme: industrial smoke and shadows, flat cap silhouettes, vintage typography, gang aesthetic',
+      'the office': 'mundane corporate comedy theme: beige office supplies, fluorescent lighting, deadpan typography, cubicle life',
+      'friends': 'cosy 90s sitcom theme: Central Perk coffee colours, friendly handwritten fonts, New York apartment warmth, nostalgic comfort',
+      'office space': 'corporate satire theme: grey cubicle aesthetic, red stapler accents, mundane office supplies, TPS report formatting',
+    };
+
+    // Check for franchise matches
+    for (const [franchise, vibe] of Object.entries(franchiseMappings)) {
+      if (lower.includes(franchise)) {
+        return `${vibe} (no characters, logos, or franchise names).`;
+      }
     }
 
     return trimmed;
