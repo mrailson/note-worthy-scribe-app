@@ -9,13 +9,14 @@ import {
   RefreshCw, 
   ChevronDown, 
   ChevronUp, 
-  CheckCircle, 
   AlertCircle,
   Loader2,
-  Database
+  Database,
+  FileSpreadsheet
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx-js-style';
 
 interface ImportStats {
   totalMedicines: number;
@@ -29,6 +30,7 @@ export const ICBTrafficLightManager = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isScraping, setIsScraping] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [stats, setStats] = useState<ImportStats | null>(null);
   const [scrapeProgress, setScrapeProgress] = useState<string | null>(null);
 
@@ -129,6 +131,81 @@ export const ICBTrafficLightManager = () => {
       setScrapeProgress(null);
     } finally {
       setIsScraping(false);
+    }
+  };
+
+  const handleExportToExcel = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch all medicines data
+      const { data: medicines, error } = await supabase
+        .from('traffic_light_medicines')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      if (!medicines || medicines.length === 0) {
+        toast.error('No medicines data to export');
+        return;
+      }
+
+      // Prepare data for Excel
+      const exportData = medicines.map(med => ({
+        'Drug Name': med.name,
+        'Traffic Light Status': getStatusLabel(med.status_enum),
+        'Status Raw': med.status_raw || '',
+        'BNF Chapter': med.bnf_chapter || '',
+        'Notes': med.notes || '',
+        'Detail URL': med.detail_url || '',
+        'Prior Approval URL': med.prior_approval_url || '',
+        'Created At': med.created_at ? new Date(med.created_at).toLocaleDateString('en-GB') : '',
+        'Last Updated': med.updated_at ? new Date(med.updated_at).toLocaleDateString('en-GB') : ''
+      }));
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 50 },  // Drug Name
+        { wch: 20 },  // Traffic Light Status
+        { wch: 30 },  // Status Raw
+        { wch: 35 },  // BNF Chapter
+        { wch: 50 },  // Notes
+        { wch: 60 },  // Detail URL
+        { wch: 60 },  // Prior Approval URL
+        { wch: 12 },  // Created At
+        { wch: 12 }   // Last Updated
+      ];
+
+      // Style header row
+      const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1:I1');
+      for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+        if (ws[cellAddress]) {
+          ws[cellAddress].s = {
+            font: { bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: '005EB8' } },
+            alignment: { horizontal: 'center' }
+          };
+        }
+      }
+
+      XLSX.utils.book_append_sheet(wb, ws, 'ICB Traffic Light Drugs');
+
+      // Generate filename with date
+      const dateStr = new Date().toISOString().split('T')[0];
+      const filename = `ICB_Traffic_Light_Medicines_${dateStr}.xlsx`;
+
+      // Download
+      XLSX.writeFile(wb, filename);
+      toast.success(`Exported ${medicines.length} medicines to Excel`);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -270,6 +347,19 @@ export const ICBTrafficLightManager = () => {
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                     Refresh Stats
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportToExcel}
+                    disabled={isExporting}
+                  >
+                    {isExporting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    )}
+                    {isExporting ? 'Exporting...' : 'Export to Excel'}
                   </Button>
                   <Button
                     onClick={handleFullScrape}
