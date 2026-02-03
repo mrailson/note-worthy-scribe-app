@@ -1,209 +1,337 @@
 
-# Investigation Report: Mobile App Crashing Every Few Seconds
 
-## Executive Summary
+# Plan: Add QR Mobile Photo Import & Clinical System Paste to Complaints
 
-After thorough investigation of the codebase, I've identified **5 likely causes** for the mobile app crashing. The crashes appear to be a combination of **memory exhaustion**, **subscription loops**, and **viewport resize thrashing** that disproportionately affects mobile devices due to their limited resources.
+## Overview
+
+This plan adds two major features to the Complaints Import modal:
+
+1. **QR-Based Mobile Photo Capture** - Scan a QR code with your phone to photograph handwritten patient letters, then have them automatically appear on your desktop and processed via OCR/Vision
+2. **Clinical System Paste** - Copy/paste patient demographics directly from EMIS or SystOne screenshots or text
+
+Both features will leverage existing infrastructure from the Ask AI QR capture system and the Scribe appointments import.
 
 ---
 
-## Root Causes Identified
+## Architecture
 
-### 1. LiveTranscript Subscription Loop (HIGH SEVERITY)
-
-**Location:** `src/components/LiveTranscript.tsx` (lines 520-525)
-
-The Supabase realtime subscription effect includes `cleanedTranscript` in its dependency array, but the effect *updates* `cleanedTranscript` when chunks arrive. This creates a vicious cycle:
-
-1. Chunk arrives → `setCleanedTranscript()` called
-2. State update triggers effect to re-run (due to dependency)
-3. Old subscription is torn down, new subscription is created
-4. If another chunk is pending, repeat
-
-On mobile where transcription is actively used (e.g., patient translation), this can cause **dozens of subscription tear-down/rebuild cycles per second**, overwhelming the browser.
-
-```typescript
-// Line 525 - cleanedTranscript SHOULD NOT be in dependencies
-}, [user?.id, isMedicalCorrectionsLoaded, meetingSettings, cleanedTranscript]);
-//                                                         ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
-//                                                         REMOVE THIS
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    COMPLAINT IMPORT MODAL                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│  ┌────────────────┐ ┌────────────────┐ ┌────────────────┐ ┌───────────┐ │
+│  │ Full Complaint │ │   Text/Email   │ │  Patient Only  │ │  Mobile   │ │
+│  │     (Files)    │ │    (Paste)     │ │ (Demographics) │ │  Capture  │ │
+│  └────────────────┘ └────────────────┘ └────────────────┘ └───────────┘ │
+│                                                    │            │        │
+│                    ┌───────────────────────────────┴────────────┘        │
+│                    │                                                      │
+│    ┌───────────────┴────────────────┐                                    │
+│    │      NEW: QR Capture Modal     │                                    │
+│    │   (Reuses AI Chat pattern)     │                                    │
+│    └───────────────┬────────────────┘                                    │
+│                    │                                                      │
+└────────────────────│──────────────────────────────────────────────────────┘
+                     │
+         ┌───────────▼───────────┐
+         │   Mobile Phone Page   │
+         │   /complaint-capture  │
+         │    /:shortCode        │
+         └───────────┬───────────┘
+                     │
+         ┌───────────▼───────────┐
+         │  Edge Function:       │
+         │  upload-complaint-    │
+         │  capture              │
+         └───────────┬───────────┘
+                     │
+         ┌───────────▼───────────┐
+         │  Storage Bucket:      │
+         │  complaint-captures   │
+         └───────────┬───────────┘
+                     │
+         ┌───────────▼───────────┐
+         │  Realtime Sync to     │
+         │  Desktop Modal        │
+         └───────────────────────┘
 ```
 
 ---
 
-### 2. Viewport Resize Thrashing on iOS (MEDIUM-HIGH SEVERITY)
+## Feature 1: QR Mobile Photo Capture
 
-**Location:** `src/components/ai4gp/FloatingMobileInput.tsx` (lines 100-126)
+### Database Schema
 
-The keyboard height calculation updates both React state AND a CSS custom property on every `visualViewport.resize` event. On iOS Safari:
+**New table: `complaint_capture_sessions`**
 
-1. Keyboard appears → viewport resizes
-2. Handler updates `--iphone-keyboard-height` CSS variable
-3. CSS change causes layout recalculation
-4. If layout affects viewport height, another resize event fires
-5. Potential infinite loop
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid (PK) | Session identifier |
+| user_id | uuid (FK) | Logged-in user |
+| session_token | text | Random UUID for validation |
+| short_code | text | 6-character code (e.g., "X7K9M2") |
+| expires_at | timestamptz | 60 minutes from creation |
+| is_active | boolean | Default true |
+| created_at | timestamptz | |
 
-```typescript
-// Lines 108-114 - Setting CSS variable on every resize can cause thrashing
-setKeyboardHeight(Math.max(0, keyboardHeight));
-document.documentElement.style.setProperty(
-  '--iphone-keyboard-height', 
-  `${Math.max(0, keyboardHeight)}px`
-);
+**New table: `complaint_captured_images`**
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid (PK) | Image record identifier |
+| session_id | uuid (FK) | Links to capture session |
+| file_name | text | Original filename |
+| file_url | text | Storage public URL |
+| file_size | integer | Size in bytes |
+| ocr_text | text | Extracted text from vision |
+| processed | boolean | Default false |
+| created_at | timestamptz | |
+
+**Storage bucket: `complaint-captures`** (public read)
+
+### New Files
+
+1. **`src/components/complaints/ComplaintQRCaptureModal.tsx`**
+   - Desktop modal showing QR code
+   - Creates session in `complaint_capture_sessions`
+   - Subscribes to `complaint_captured_images` INSERT events via Supabase Realtime
+   - Shows count of received photos with thumbnails
+   - "Done" button returns captured images to parent component
+   - Actions: Copy Link, Email Link, Print QR, Accurx SMS (matches Ask AI pattern)
+
+2. **`src/pages/ComplaintCapture.tsx`**
+   - Mobile-optimised page at `/complaint-capture/:shortCode`
+   - Camera interface using `facingMode: 'environment'`
+   - Gallery upload option for existing photos
+   - Client-side compression before upload
+   - Calls `upload-complaint-capture` edge function
+   - Visual feedback showing upload success
+
+3. **`supabase/functions/upload-complaint-capture/index.ts`**
+   - Validates session token (exists, active, not expired)
+   - Accepts base64 image data
+   - Uploads to `complaint-captures` storage bucket
+   - Inserts record into `complaint_captured_images`
+   - Triggers Supabase Realtime notification to desktop
+
+4. **`supabase/migrations/YYYYMMDD_complaint_capture_sessions.sql`**
+   - Creates both tables
+   - Adds trigger to auto-generate 6-character short_code
+   - Adds RLS policies for user access
+   - Creates storage bucket with public read policy
+
+### Integration in ComplaintImport.tsx
+
+**New Tab: "Mobile Capture"** (between Text/Email and Patient Only)
+
+```text
+[ Full Complaint ] [ Text/Email ] [ Mobile Capture ] [ Patient Only ]
+                                        ▲
+                                   NEW TAB
 ```
 
-**Fix needed:** Debounce the handler and only update if the value actually changed.
+**Tab Content:**
+- Prominent QR code button: "Scan with Phone"
+- Click opens `ComplaintQRCaptureModal`
+- After photos received:
+  - Thumbnails displayed
+  - "Process All" button runs OCR via `extract-document-text`
+  - Extracted text sent to `import-complaint-data` for full extraction
+  - Results populate the form
 
----
+### Mobile Page Routing
 
-### 3. Memory Leaks Still Present in Ask AI (MEDIUM SEVERITY)
-
-**Location:** `src/hooks/useAI4GPService.ts`
-
-While the recent fixes added timeout tracking refs, there are still potential issues:
-
-- The `handleSend` callback's dependency array (around line 1154) may still be incomplete
-- Large message histories accumulate faster on mobile due to frequent interactions
-- The cleanup interval (30s) may be too slow for mobile memory constraints
-
-**Additional concern:** Mobile browsers have much stricter memory limits (~1GB vs 4GB+ on desktop). The 40-message limit may still be too high for mobile.
-
----
-
-### 4. Global MutationObserver Overhead (LOW-MEDIUM SEVERITY)
-
-**Location:** `src/App.tsx` (lines 128-133) and `src/utils/domSafetyPolyfill.ts`
-
-The `SafeDOMObserver` observes the entire document body with `childList: true, subtree: true, attributes: true`. On mobile:
-
-- Every DOM change triggers the observer
-- Processing mutations (even safely) has CPU overhead
-- Combined with React's frequent re-renders, this creates constant overhead
-
-While necessary to prevent third-party crashes, it adds to the overall mobile burden.
-
----
-
-### 5. SessionActivityTracker Event Listeners (LOW SEVERITY)
-
-**Location:** `src/hooks/useSessionActivity.ts` (lines 52-55)
-
-Six global event listeners are attached for activity tracking:
+Add route in `App.tsx`:
 ```typescript
-const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-```
-
-On mobile, `touchstart` and `scroll` events fire very frequently. While each handler is throttled (1-minute minimum between updates), the *evaluation* of the throttle condition runs on every event.
-
----
-
-## Recommended Fixes
-
-### Fix 1: Remove `cleanedTranscript` from Subscription Dependencies (CRITICAL)
-
-**File:** `src/components/LiveTranscript.tsx`
-**Line:** 525
-
-```typescript
-// FROM:
-}, [user?.id, isMedicalCorrectionsLoaded, meetingSettings, cleanedTranscript]);
-
-// TO:
-}, [user?.id, isMedicalCorrectionsLoaded, meetingSettings]);
-```
-
----
-
-### Fix 2: Debounce Viewport Resize Handler (HIGH)
-
-**File:** `src/components/ai4gp/FloatingMobileInput.tsx`
-**Lines:** 100-126
-
-```typescript
-// Add debouncing and value comparison
-const lastKeyboardHeightRef = useRef(0);
-
-const handleResize = useCallback(
-  debounce(() => {
-    if (typeof window !== 'undefined') {
-      const viewport = window.visualViewport;
-      if (viewport && isExpanded) {
-        const newKeyboardHeight = Math.max(0, window.innerHeight - viewport.height);
-        
-        // Only update if changed by more than 5px
-        if (Math.abs(newKeyboardHeight - lastKeyboardHeightRef.current) > 5) {
-          lastKeyboardHeightRef.current = newKeyboardHeight;
-          setKeyboardHeight(newKeyboardHeight);
-          document.documentElement.style.setProperty(
-            '--iphone-keyboard-height', 
-            `${newKeyboardHeight}px`
-          );
-        }
-      }
-    }
-  }, 100), // 100ms debounce
-  [isExpanded]
-);
+<Route path="/complaint-capture/:shortCode" element={<ComplaintCapture />} />
 ```
 
 ---
 
-### Fix 3: Lower Message History Limit for Mobile (MEDIUM)
+## Feature 2: Clinical System Paste (EMIS/SystOne)
 
-**File:** `src/hooks/useAI4GPService.ts`
-**Near line 13**
+### Enhanced "Patient Only" Tab
 
-```typescript
-// Add mobile-specific limits
-const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-const MAX_MESSAGES_IN_MEMORY = isMobile ? 20 : 40;
-const KEEP_RECENT_MESSAGES_INTACT = isMobile ? 3 : 5;
-const CLEANUP_INTERVAL_MS = isMobile ? 15000 : 30000; // 15s on mobile
+The existing Patient Only tab already supports:
+- Screenshot paste (Ctrl+V) with OCR
+- Dropzone for files
+- Manual text paste button
+
+**Enhancements:**
+
+1. **Visual Clinical System Hints**
+   - Add helper text: "Paste from EMIS, SystOne, or Vision"
+   - Show small icons for supported clinical systems
+   - Indicate: "Ctrl+V to paste screenshot, or paste text directly"
+
+2. **Improved Text Parsing**
+   - Reuse regex patterns from `useScribeAppointments.ts`
+   - Parse NHS Number (10 digits with optional spaces)
+   - Parse DOB (DD Mon YYYY or DD/MM/YYYY formats)
+   - Parse Title + Name (Mr/Mrs/Miss/Ms/Dr patterns)
+   - Parse Address with postcode extraction
+   - Parse phone numbers (UK mobile/landline formats)
+
+3. **Dedicated "Paste Demographics" Button**
+   - Positioned prominently in the Patient Only tab
+   - Uses `navigator.clipboard.readText()` API
+   - Parses pasted text immediately
+   - Shows extracted fields in preview
+
+4. **Screenshot Detection Enhancement**
+   - When image pasted, detect if it's from EMIS/SystOne
+   - Send to `extract-patient-context` (same as Scribe) for better extraction
+   - NHS number validation with `validateNHSNumber()` utility
+
+### File Changes for Clinical Paste
+
+**`src/components/ComplaintImport.tsx`**
+
+1. Add clinical system icons and helper text to Patient Only tab header
+2. Create `parsePatientDemographicsFromText()` function using Scribe patterns
+3. Enhance the "Paste from Clipboard" button to use automatic parsing
+4. Add visual feedback showing which fields were extracted
+
+**`src/utils/clinicalSystemPatterns.ts`** (new shared utility)
+
+Extract parsing logic from `useScribeAppointments.ts` into reusable functions:
+- `extractNHSNumber(text: string): string | null`
+- `extractDateOfBirth(text: string): string | null`
+- `extractPatientName(text: string): string | null`
+- `extractAddress(text: string): string | null`
+- `extractPhoneNumber(text: string): string | null`
+- `parsePatientDemographics(text: string): PatientDetailsData`
+
+---
+
+## UI/UX Design
+
+### Mobile Capture Tab
+
+```text
+┌────────────────────────────────────────────────┐
+│  📱 Mobile Photo Capture                       │
+├────────────────────────────────────────────────┤
+│                                                │
+│   Capture patient letters, handwritten notes   │
+│   or documents using your phone's camera       │
+│                                                │
+│   ┌──────────────────────────────────────┐    │
+│   │                                      │    │
+│   │    [  📲 Scan QR with Phone  ]       │    │
+│   │                                      │    │
+│   │    Opens camera on your mobile       │    │
+│   │    Photos sync here automatically    │    │
+│   │                                      │    │
+│   └──────────────────────────────────────┘    │
+│                                                │
+│   No photos received yet                       │
+│                                                │
+└────────────────────────────────────────────────┘
+```
+
+### After Photos Received
+
+```text
+┌────────────────────────────────────────────────┐
+│  📱 Mobile Photo Capture              2 photos │
+├────────────────────────────────────────────────┤
+│                                                │
+│   ┌─────┐  ┌─────┐                             │
+│   │ 📷 │  │ 📷 │   ← Thumbnails               │
+│   └─────┘  └─────┘                             │
+│                                                │
+│   [  Process & Extract Data  ]                 │
+│                                                │
+└────────────────────────────────────────────────┘
+```
+
+### Patient Only Tab Enhancement
+
+```text
+┌────────────────────────────────────────────────┐
+│  👤 Patient Details Import                     │
+├────────────────────────────────────────────────┤
+│                                                │
+│   Import from EMIS, SystOne, or Vision         │
+│                                                │
+│   ┌──────────────────────────────────────┐    │
+│   │  Ctrl+V to paste screenshot          │    │
+│   │  or drop image/file here             │    │
+│   │                                      │    │
+│   │  ┌────────┐  ┌────────┐              │    │
+│   │  │  EMIS  │  │ SystOne│  ← Hints     │    │
+│   │  └────────┘  └────────┘              │    │
+│   └──────────────────────────────────────┘    │
+│                                                │
+│   ─────────── OR ───────────                   │
+│                                                │
+│   [ 📋 Paste Demographics from Clipboard ]     │
+│                                                │
+│   Paste text containing patient name, DOB,     │
+│   NHS number, address, or phone number         │
+│                                                │
+└────────────────────────────────────────────────┘
 ```
 
 ---
 
-### Fix 4: Throttle Session Activity Event Handlers (LOW)
+## Files to Create
 
-**File:** `src/hooks/useSessionActivity.ts`
-
-```typescript
-// Use passive event listeners and reduce event list for mobile
-const events = isMobile 
-  ? ['touchstart', 'click'] // Reduced set for mobile
-  : ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-```
-
----
+| File | Purpose |
+|------|---------|
+| `src/components/complaints/ComplaintQRCaptureModal.tsx` | Desktop QR modal with realtime sync |
+| `src/pages/ComplaintCapture.tsx` | Mobile camera capture page |
+| `supabase/functions/upload-complaint-capture/index.ts` | Edge function for mobile uploads |
+| `supabase/migrations/YYYYMMDD_complaint_capture.sql` | Database tables and storage bucket |
+| `src/utils/clinicalSystemPatterns.ts` | Shared patient parsing utilities |
 
 ## Files to Modify
 
-| File | Priority | Change |
-|------|----------|--------|
-| `src/components/LiveTranscript.tsx` | Critical | Remove `cleanedTranscript` from dependency array |
-| `src/components/ai4gp/FloatingMobileInput.tsx` | High | Debounce viewport resize handler |
-| `src/hooks/useAI4GPService.ts` | Medium | Lower limits for mobile devices |
-| `src/hooks/useSessionActivity.ts` | Low | Reduce event listeners on mobile |
+| File | Changes |
+|------|---------|
+| `src/components/ComplaintImport.tsx` | Add Mobile Capture tab, enhance Patient Only tab |
+| `src/App.tsx` | Add `/complaint-capture/:shortCode` route |
+| `supabase/config.toml` | Add `upload-complaint-capture` function |
 
 ---
 
-## Testing Recommendations
+## Technical Details
 
-After implementing fixes:
+### Session Security
+- Sessions expire after 60 minutes
+- Short codes are 6 random alphanumeric characters
+- Token validation happens server-side in edge function
+- RLS policies ensure users can only access their own sessions
 
-1. **Memory monitoring**: Open Safari Web Inspector on Mac with iPhone connected, monitor Memory tab
-2. **CPU profiling**: Check for sustained high CPU usage in Performance tab
-3. **Network monitoring**: Verify Supabase subscription isn't constantly reconnecting
-4. **Stress test**: Use Ask AI with large file attachments on mobile for 5+ minutes
+### Image Processing Flow
+1. Phone captures photo
+2. Client compresses to max 1600px, 0.82 quality (Safari-safe)
+3. Base64 uploaded to edge function
+4. Stored in `complaint-captures` bucket
+5. Record inserted triggers Realtime to desktop
+6. Desktop processes via `extract-document-text` OCR
+7. Text sent to `import-complaint-data` for AI extraction
+8. Results populate form fields
+
+### Clinical System Parsing
+Reuses proven regex patterns from GP Scribe:
+- NHS: `/NHS[:\s]*(\d[\d\s]{8,11}\d)/i` or `/(\d{3}\s?\d{3}\s?\d{4})/`
+- DOB: `/(\d{1,2}\s+\w{3}\s+\d{4})/i` or `/(\d{1,2}\/\d{1,2}\/\d{4})/`
+- Name: `/((?:Mr|Mrs|Miss|Ms|Dr|Master)\.?\s+[\w\s]+?)/i`
+- Phone: `/(0\d{10}|\+44\d{10}|07\d{9})/`
+- Postcode: `/([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})/i`
 
 ---
 
-## Additional Notes
+## Implementation Order
 
-The mobile environment is particularly sensitive because:
-- iOS Safari has aggressive memory limits (~1-1.5GB)
-- Background tabs are terminated aggressively to save resources
-- Viewport resize events fire more frequently due to keyboard/address bar
-- Touch events generate more frequent activity than mouse events
+1. **Database migration** - Create tables and storage bucket
+2. **Edge function** - `upload-complaint-capture`
+3. **Mobile capture page** - `/complaint-capture/:shortCode`
+4. **QR modal** - Desktop component with realtime subscription
+5. **Integrate into ComplaintImport** - Add new Mobile Capture tab
+6. **Clinical parsing utility** - Extract shared patterns
+7. **Enhance Patient Only tab** - Better clinical system support
+8. **Testing** - End-to-end flow on mobile and desktop
 
-The combination of all these factors means what works fine on desktop can cause cascading failures on mobile.
