@@ -522,7 +522,9 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
       processedSeqRef.current.clear();
       supabase.removeChannel(channel);
     };
-  }, [user?.id, isMedicalCorrectionsLoaded, meetingSettings, cleanedTranscript]);
+  // IMPORTANT: Do NOT add cleanedTranscript to dependencies - it causes subscription loop
+  // The effect updates cleanedTranscript, so including it would cause infinite re-subscriptions
+  }, [user?.id, isMedicalCorrectionsLoaded, meetingSettings]);
 
   // Subscribe to live meeting notes updates
   useEffect(() => {

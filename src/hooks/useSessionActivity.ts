@@ -49,7 +49,11 @@ export const useSessionActivity = (user: User | null) => {
     };
 
     // Add event listeners for user activity
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    // Reduce event list on mobile to lower CPU overhead from high-frequency events
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const events = isMobile 
+      ? ['touchstart', 'click'] // Minimal set for mobile - scroll/mousemove fire too often
+      : ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
     events.forEach(event => {
       document.addEventListener(event, handleUserActivity, { passive: true });
     });

@@ -9,10 +9,16 @@ import { detectVoiceRequest } from '@/utils/voiceRequestDetection';
 import { VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
 import { optimiseMessagesForMemory } from '@/utils/streamingUtils';
 
+// Mobile detection for stricter memory limits
+const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768;
+
 // Memory leak prevention: Max messages to keep in state (older ones are discarded from UI but saved in DB)
-const MAX_MESSAGES_IN_MEMORY = 40; // Reduced from 50 for more aggressive memory management
+// Mobile devices have stricter memory limits (~1GB vs 4GB+ on desktop)
+const MAX_MESSAGES_IN_MEMORY = IS_MOBILE ? 20 : 40;
 // Number of recent messages to keep fully intact (including base64 content)
-const KEEP_RECENT_MESSAGES_INTACT = 5; // Reduced from 10 for more aggressive memory stripping
+const KEEP_RECENT_MESSAGES_INTACT = IS_MOBILE ? 3 : 5;
+// Cleanup interval - faster on mobile to prevent memory buildup
+const CLEANUP_INTERVAL_MS = IS_MOBILE ? 15000 : 30000;
 
 export const useAI4GPService = () => {
   const { user } = useAuth();
@@ -82,7 +88,7 @@ export const useAI4GPService = () => {
     setIsClinical(verificationLevel === 'latest' || verificationLevel === 'maximum');
   }, [verificationLevel]);
 
-  // Periodic memory cleanup - runs every 30 seconds for more aggressive memory management
+  // Periodic memory cleanup - runs more frequently on mobile (15s) vs desktop (30s)
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
       setMessages(prev => {
@@ -92,7 +98,7 @@ export const useAI4GPService = () => {
         }
         return prev;
       });
-    }, 30000); // Every 30 seconds (reduced from 60 for more aggressive cleanup)
+    }, CLEANUP_INTERVAL_MS);
     
     return () => clearInterval(cleanupInterval);
   }, []);
