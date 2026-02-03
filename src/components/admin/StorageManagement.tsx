@@ -125,6 +125,9 @@ export const StorageManagement: React.FC = () => {
   const [isPurgingOldChats, setIsPurgingOldChats] = useState(false);
   const [purgePreview, setPurgePreview] = useState<{ wouldDelete: number; affectedUsers: number } | null>(null);
   const [showPurgeDialog, setShowPurgeDialog] = useState(false);
+  const [isPurgingOldImages, setIsPurgingOldImages] = useState(false);
+  const [purgeImagesPreview, setPurgeImagesPreview] = useState<{ wouldDelete: number; affectedUsers: number } | null>(null);
+  const [showPurgeImagesDialog, setShowPurgeImagesDialog] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -283,6 +286,55 @@ export const StorageManagement: React.FC = () => {
       toast.error(error.message || 'Failed to purge old chats');
     } finally {
       setIsPurgingOldChats(false);
+    }
+  };
+
+  const handlePurgeImagesPreview = async () => {
+    setIsPurgingOldImages(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('purge-old-user-images', {
+        body: { dryRun: true, daysOld: 7 }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setPurgeImagesPreview({
+          wouldDelete: data.wouldDelete || 0,
+          affectedUsers: data.affectedUsers || 0
+        });
+        setShowPurgeImagesDialog(true);
+      }
+    } catch (error) {
+      console.error('Error checking image purge preview:', error);
+      toast.error('Failed to check purgeable images');
+    } finally {
+      setIsPurgingOldImages(false);
+    }
+  };
+
+  const handlePurgeOldImages = async () => {
+    setIsPurgingOldImages(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('purge-old-user-images', {
+        body: { daysOld: 7 }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(data.message || `Deleted ${data.deletedCount} old images`);
+        setShowPurgeImagesDialog(false);
+        setPurgeImagesPreview(null);
+        fetchData();
+      } else {
+        throw new Error(data.error || 'Purge failed');
+      }
+    } catch (error: any) {
+      console.error('Error purging old images:', error);
+      toast.error(error.message || 'Failed to purge old images');
+    } finally {
+      setIsPurgingOldImages(false);
     }
   };
 
@@ -468,6 +520,47 @@ export const StorageManagement: React.FC = () => {
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   {isPurgingOldChats ? 'Purging...' : `Delete ${purgePreview?.wouldDelete || 0} Chats`}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AlertDialog open={showPurgeImagesDialog} onOpenChange={setShowPurgeImagesDialog}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handlePurgeImagesPreview}
+                disabled={isPurgingOldImages}
+              >
+                <Calendar className={cn("h-4 w-4 mr-2", isPurgingOldImages && "animate-spin")} />
+                Purge &gt;7d Images
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Purge Old User Images</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2">
+                    <p>This will permanently delete all non-favourite user generated images older than 7 days across all users.</p>
+                    {purgeImagesPreview && (
+                      <div className="bg-muted p-3 rounded-md mt-2">
+                        <p className="font-medium">Preview:</p>
+                        <p>• {purgeImagesPreview.wouldDelete} images will be deleted</p>
+                        <p>• {purgeImagesPreview.affectedUsers} users affected</p>
+                      </div>
+                    )}
+                    <p className="text-amber-600 font-medium">Favourited images will NOT be deleted.</p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handlePurgeOldImages}
+                  disabled={isPurgingOldImages || !purgeImagesPreview || purgeImagesPreview.wouldDelete === 0}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isPurgingOldImages ? 'Purging...' : `Delete ${purgeImagesPreview?.wouldDelete || 0} Images`}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
