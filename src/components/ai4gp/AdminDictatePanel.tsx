@@ -9,6 +9,7 @@ import { AdminDictateTextArea } from './AdminDictateTextArea';
 import { AdminDictateQuickActions } from './AdminDictateQuickActions';
 import { AdminDictateHistoryTabs } from '@/components/admin-dictate/AdminDictateHistoryTabs';
 import { AdminDictateViewToggle } from './AdminDictateViewToggle';
+import { AdminDictateServiceToggle } from './AdminDictateServiceToggle';
 
 
 interface AdminDictatePanelProps {
@@ -32,6 +33,8 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
     isFormatting,
     systemAudioEnabled,
     setSystemAudioEnabled,
+    transcriptionService,
+    setTranscriptionService,
     originalContent,
     cleanedContent,
     showCleaned,
@@ -136,6 +139,18 @@ export const AdminDictatePanel: React.FC<AdminDictatePanelProps> = ({ onClose })
                 hasCleanedContent={!!cleanedContent}
                 isFormatting={isFormatting}
                 onManualClean={triggerManualClean}
+              />
+            </div>
+          )}
+
+          {/* Service Toggle - only show when idle */}
+          {status === 'idle' && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Transcription Service:</span>
+              <AdminDictateServiceToggle
+                service={transcriptionService}
+                onServiceChange={setTranscriptionService}
+                disabled={isRecording || isConnecting}
               />
             </div>
           )}

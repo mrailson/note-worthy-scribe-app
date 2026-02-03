@@ -34,6 +34,8 @@ interface AdminDictationSession {
   updated_at: string;
 }
 
+export type DictationTranscriptionService = 'assemblyai' | 'deepgram';
+
 export function useAdminDictation() {
   const { user } = useAuth();
   
@@ -48,6 +50,20 @@ export function useAdminDictation() {
   const [error, setError] = useState<string | null>(null);
   const [isFormatting, setIsFormatting] = useState(false);
   const [systemAudioEnabled, setSystemAudioEnabled] = useState(false);
+  
+  // Transcription service selection - persisted
+  const [transcriptionService, setTranscriptionService] = useState<DictationTranscriptionService>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('admin-dictation-service');
+      return (saved === 'deepgram' ? 'deepgram' : 'assemblyai') as DictationTranscriptionService;
+    }
+    return 'assemblyai';
+  });
+  
+  // Persist transcription service preference
+  useEffect(() => {
+    localStorage.setItem('admin-dictation-service', transcriptionService);
+  }, [transcriptionService]);
   
   
   // View toggle state - original vs cleaned
@@ -280,12 +296,12 @@ export function useAdminDictation() {
     lastFinalAtRef.current = 0;
     recentFinalsRef.current = [];
 
-    console.log('🎙️ Starting dictation with AssemblyAI');
+    console.log(`🎙️ Starting dictation with ${transcriptionService === 'deepgram' ? 'Deepgram' : 'AssemblyAI'}`);
 
     try {
-      // Handle system audio capture for AssemblyAI
+      // Handle system audio capture (AssemblyAI only for now)
       let externalStream: MediaStream | undefined;
-      if (systemAudioEnabled) {
+      if (systemAudioEnabled && transcriptionService === 'assemblyai') {
         try {
           const displayStream = await navigator.mediaDevices.getDisplayMedia({
             video: true,
@@ -389,44 +405,57 @@ export function useAdminDictation() {
         }
       };
 
-      // Use AssemblyAI client
-      const client = new AssemblyRealtimeClient({
-        onOpen: () => {
-          console.log('🎙️ Admin Dictation: AssemblyAI session started');
-          setStatus('recording');
-          
-          durationIntervalRef.current = setInterval(() => {
-            setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
-          }, 1000);
-          
-          autoSaveIntervalRef.current = setInterval(() => {
-            saveDraft();
-          }, 30000);
-        },
-        onPartial: (text) => {
-          currentPartialRef.current = text;
-          const newContent = (baseContentRef.current + ' ' + recordingTranscriptRef.current + ' ' + text).trim();
-          setContent(newContent);
-        },
-        onFinal: (text) => handleTranscription({ text, is_final: true, confidence: 0.9 }),
-        onError: (err) => handleError(err.message),
-        onClose: () => {
-          setStatus('idle');
-          if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
-          if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current);
-        },
-        onReconnecting: () => setStatus('connecting'),
-        onReconnected: () => setStatus('recording'),
-      });
+      // Use selected transcription service
+      if (transcriptionService === 'deepgram') {
+        // Use TranscriptionServiceFactory for Deepgram
+        const transcriber = createTranscriber('deepgram', {
+          onTranscription: handleTranscription,
+          onError: handleError,
+          onStatusChange: handleStatusChange,
+        });
+        
+        transcriberRef.current = transcriber;
+        await transcriber.startTranscription();
+      } else {
+        // Use AssemblyAI client (default)
+        const client = new AssemblyRealtimeClient({
+          onOpen: () => {
+            console.log('🎙️ Admin Dictation: AssemblyAI session started');
+            setStatus('recording');
+            
+            durationIntervalRef.current = setInterval(() => {
+              setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
+            }, 1000);
+            
+            autoSaveIntervalRef.current = setInterval(() => {
+              saveDraft();
+            }, 30000);
+          },
+          onPartial: (text) => {
+            currentPartialRef.current = text;
+            const newContent = (baseContentRef.current + ' ' + recordingTranscriptRef.current + ' ' + text).trim();
+            setContent(newContent);
+          },
+          onFinal: (text) => handleTranscription({ text, is_final: true, confidence: 0.9 }),
+          onError: (err) => handleError(err.message),
+          onClose: () => {
+            setStatus('idle');
+            if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
+            if (autoSaveIntervalRef.current) clearInterval(autoSaveIntervalRef.current);
+          },
+          onReconnecting: () => setStatus('connecting'),
+          onReconnected: () => setStatus('recording'),
+        });
 
-      clientRef.current = client;
-      await client.start(externalStream);
+        clientRef.current = client;
+        await client.start(externalStream);
+      }
     } catch (err) {
       console.error('Failed to start admin dictation:', err);
       setError(err instanceof Error ? err.message : 'Failed to start dictation');
       setStatus('error');
     }
-  }, [user, selectedTemplate, content, saveDraft, systemAudioEnabled, normalise, shouldReplaceLastFinal, replaceTrailingSegment, isAlreadyInTranscript]);
+  }, [user, selectedTemplate, content, saveDraft, systemAudioEnabled, transcriptionService, normalise, shouldReplaceLastFinal, replaceTrailingSegment, isAlreadyInTranscript]);
 
   // Stop dictation and auto-format with template-aware prompts
   const stopDictation = useCallback(async () => {
@@ -687,6 +716,8 @@ export function useAdminDictation() {
     isFormatting,
     systemAudioEnabled,
     setSystemAudioEnabled,
+    transcriptionService,
+    setTranscriptionService,
     originalContent,
     cleanedContent,
     showCleaned,
