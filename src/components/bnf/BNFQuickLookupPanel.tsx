@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Pill, AlertTriangle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { TopPrescribedDrugs } from './TopPrescribedDrugs';
 import { BNFTypeaheadSearch } from './BNFTypeaheadSearch';
+import { BNFFullSearch } from './BNFFullSearch';
 import { BNFDrugDetailPage } from './BNFDrugDetailPage';
 import { TLVocabItem } from '@/hooks/useTrafficLightVocab';
 
@@ -83,12 +85,23 @@ export const BNFQuickLookupPanel: React.FC<BNFQuickLookupPanelProps> = ({
 
         <Separator />
 
-        {/* Search */}
+        {/* Full Drug Search */}
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-foreground">Search All Drugs</h3>
+          <BNFFullSearch onDrugSelect={handleDrugSelect} />
+          <p className="text-xs text-muted-foreground">
+            Search 400+ common UK drugs. Results marked <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 mx-1">ICB</Badge> include local traffic light status.
+          </p>
+        </div>
+
+        <Separator />
+
+        {/* ICB Traffic Light Search */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-foreground">Northants ICB Traffic Light Search</h3>
           <BNFTypeaheadSearch onDrugSelect={handleDrugSelect} />
           <p className="text-xs text-muted-foreground">
-            Type at least 2 characters to search all 261 Northants ICB Traffic Light drugs
+            Search 261 Northants ICB formulary drugs with traffic light status
           </p>
         </div>
 
