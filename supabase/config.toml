@@ -479,3 +479,6 @@ verify_jwt = true
 
 [functions.purge-old-ai-chats]
 verify_jwt = false
+
+[functions.purge-old-user-images]
+verify_jwt = false
