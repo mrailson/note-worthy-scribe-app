@@ -398,6 +398,20 @@ export const useMeetingInfographic = () => {
       'full metal jacket': 'military training theme: boot camp brutality, Vietnam duality, Kubrick war, born to kill',
       'saving private ryan': 'D-Day invasion theme: Normandy beach, desaturated war colours, band of brothers, sacrifice',
       'schindlers list': 'Holocaust drama theme: black and white, red coat, Oscar Schindler, profound tragedy',
+      
+      // Australian Films
+      'the castle': 'Aussie suburban battler theme: fibro house aesthetics, backyard BBQ, power lines and airport runway, warm family kitchen, daggy 90s Australian suburbia, jousting sticks and pool room vibes, dreamer optimism, working-class heart and home pride',
+      'castle': 'Aussie suburban battler theme: fibro house aesthetics, backyard BBQ, power lines and airport runway, warm family kitchen, daggy 90s Australian suburbia, jousting sticks and pool room vibes, dreamer optimism, working-class heart and home pride',
+      'crocodile dundee': 'Australian outback adventure theme: red desert landscapes, crocodile imagery, bush hat and knife, Kakadu wilderness, fish-out-of-water in New York, 80s adventure comedy',
+      'mad max fury road': 'post-apocalyptic Australian wasteland theme: rust and chrome war rigs, desert orange and black, tribal war paint, V8 engines, witness me energy, practical stunts',
+      'priscilla': 'outback drag queen road trip theme: fabulous costumes, pink bus, desert glamour, ABBA energy, queer joy across the red centre',
+      'muriel\'s wedding': 'Australian coastal town escape theme: 90s suburban Australia, wedding dress dreams, ABBA obsession, Porpoise Spit vibes, transformation journey',
+      'muriels wedding': 'Australian coastal town escape theme: 90s suburban Australia, wedding dress dreams, ABBA obsession, Porpoise Spit vibes, transformation journey',
+      'gallipoli': 'WWI Australian digger theme: ANZAC spirit, Gallipoli beaches, running at dawn, sacrifice and mateship, Peter Weir beauty',
+      'rabbit proof fence': 'Stolen Generation journey theme: Western Australian outback, Aboriginal resilience, fence-line escape, red earth and blue sky',
+      'strictly ballroom': 'Australian ballroom dancing theme: sequins and spray tan, dance competition, bold colours, Baz Luhrmann flair, paso doble passion',
+      'lion': 'Indian-Australian adoption story theme: Kolkata streets to Tasmania, Google Earth search, family reunion, emotional journey',
+      'animal kingdom': 'Melbourne crime family theme: suburban Australian noir, family loyalty, tense domestic drama, gritty realism',
     };
 
     // Check for franchise matches
