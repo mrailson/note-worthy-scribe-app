@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Pill, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Pill, AlertTriangle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { TopPrescribedDrugs } from './TopPrescribedDrugs';
 import { BNFTypeaheadSearch } from './BNFTypeaheadSearch';
@@ -93,24 +94,105 @@ export const BNFQuickLookupPanel: React.FC<BNFQuickLookupPanelProps> = ({
 
         {/* Quick tips */}
         <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-          <h4 className="text-sm font-medium text-foreground">Traffic Light Guide</h4>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-green-500"></span>
-              <span>GREEN - GP can prescribe</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-amber-500"></span>
-              <span>AMBER - Shared care</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-500"></span>
-              <span>RED - Hospital only</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-purple-500"></span>
-              <span>SPECIALIST - Initiated by specialist</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <h4 className="text-sm font-medium text-foreground">Traffic Light Guide</h4>
+            <TooltipProvider>
+              <Tooltip delayDuration={200}>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs text-sm bg-popover text-popover-foreground border shadow-md">
+                  <p className="font-medium mb-1">Northamptonshire ICB Traffic Light System</p>
+                  <p className="text-muted-foreground">Data sourced from the Northamptonshire Integrated Care Board (ICB) prescribing formulary. Updated regularly by the Medicines Optimisation Team.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <TooltipProvider>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#C62828] shrink-0"></span>
+                <span>DOUBLE RED</span>
+                <Tooltip delayDuration={200}>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    <p>Hospital-only. Do not prescribe in primary care. Follow specialist pathway. Prior Approval/IFR may be required.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+            <TooltipProvider>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#E53935] shrink-0"></span>
+                <span>RED</span>
+                <Tooltip delayDuration={200}>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    <p>Specialist service only. Do not initiate in primary care. Often Blueteq prior approval applies.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+            <TooltipProvider>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#EF6C00] shrink-0"></span>
+                <span>AMBER</span>
+                <Tooltip delayDuration={200}>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    <p>Shared-care required. Ensure SCP in place and monitoring responsibilities agreed before transfer.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+            <TooltipProvider>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#2E7D32] shrink-0"></span>
+                <span>GREEN</span>
+                <Tooltip delayDuration={200}>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    <p>Suitable for primary-care prescribing per local formulary. GP can prescribe.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+            <TooltipProvider>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#6A1B9A] shrink-0"></span>
+                <span>SPECIALIST</span>
+                <Tooltip delayDuration={200}>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    <p>Continue only after specialist start and when responsibilities are agreed. Do not initiate in primary care.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+            <TooltipProvider>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-[#546E7A] shrink-0"></span>
+                <span>GREY</span>
+                <Tooltip delayDuration={200}>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    <p>Not routinely commissioned / not assessed. Check with Medicines Optimisation.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
           </div>
         </div>
 
