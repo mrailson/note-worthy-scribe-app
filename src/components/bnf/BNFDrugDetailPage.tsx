@@ -86,33 +86,77 @@ export const BNFDrugDetailPage: React.FC<BNFDrugDetailPageProps> = ({
   const [isGeneratingWord, setIsGeneratingWord] = useState(false);
   const [slideCount, setSlideCount] = useState<number>(5);
 
-  const fetchMonograph = async () => {
+  // Fetch monograph with proper cleanup to prevent memory leaks
+  useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
+    
+    const fetchMonograph = async () => {
+      if (!isMounted) return;
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke('bnf-comprehensive-lookup', {
+          body: { drugName },
+        });
+
+        // Check if component is still mounted before updating state
+        if (!isMounted) return;
+
+        if (fnError) throw fnError;
+
+        if (data?.monograph) {
+          setMonograph(data.monograph);
+        } else if (data?.error) {
+          setError(data.error);
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('BNF lookup error:', err);
+        setError('Failed to load drug information. Please try again.');
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    fetchMonograph();
+    
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [drugName]);
+
+  // Manual refresh function for retry button
+  const handleRefresh = () => {
+    // Trigger re-fetch by toggling a refresh key (or just use key prop from parent)
+    setMonograph(null);
     setIsLoading(true);
     setError(null);
-
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke('bnf-comprehensive-lookup', {
-        body: { drugName },
-      });
-
-      if (fnError) throw fnError;
-
+    
+    supabase.functions.invoke('bnf-comprehensive-lookup', {
+      body: { drugName },
+    }).then(({ data, error: fnError }) => {
+      if (fnError) {
+        setError('Failed to load drug information. Please try again.');
+        setIsLoading(false);
+        return;
+      }
       if (data?.monograph) {
         setMonograph(data.monograph);
       } else if (data?.error) {
         setError(data.error);
       }
-    } catch (err) {
+      setIsLoading(false);
+    }).catch(err => {
       console.error('BNF lookup error:', err);
       setError('Failed to load drug information. Please try again.');
-    } finally {
       setIsLoading(false);
-    }
+    });
   };
-
-  useEffect(() => {
-    fetchMonograph();
-  }, [drugName]);
 
   const handleCopyToClipboard = () => {
     if (!monograph) return;
@@ -905,7 +949,7 @@ ${monograph.patientCounselling.map(p => `• ${p}`).join('\n')}
           <div className="flex flex-col items-center justify-center py-12">
             <AlertTriangle className="w-8 h-8 text-destructive mb-4" />
             <p className="text-destructive mb-4">{error}</p>
-            <Button onClick={fetchMonograph} variant="outline">
+            <Button onClick={handleRefresh} variant="outline">
               <RefreshCw className="w-4 h-4 mr-2" />
               Try Again
             </Button>
