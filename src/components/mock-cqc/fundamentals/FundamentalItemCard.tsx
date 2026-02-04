@@ -2,7 +2,10 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   Check, 
   AlertTriangle, 
@@ -15,7 +18,10 @@ import {
   Loader2,
   Bot,
   Mic,
-  MicOff
+  MicOff,
+  User,
+  CalendarIcon,
+  Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStatusColor, getStatusLabel, FundamentalItem } from './fundamentalsConfig';
@@ -23,6 +29,30 @@ import { InspectionQRCaptureModal } from '../InspectionQRCaptureModal';
 import { InspectionItemAskAI } from '../InspectionItemAskAI';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
+import { format, addDays, endOfMonth, addWeeks } from 'date-fns';
+
+// Default assignee options
+const DEFAULT_ASSIGNEES = [
+  'Practice Manager',
+  'Deputy Practice Manager',
+  'Safeguarding Lead',
+  'Senior Partner',
+  'Clinical Lead',
+  'Nurse Manager',
+  'Reception Manager',
+  'IT Lead',
+  'Infection Control Lead'
+];
+
+// Fix by preset options
+const FIX_BY_PRESETS = [
+  { label: 'ASAP', value: 'asap', getDays: () => 0 },
+  { label: 'Next Week', value: 'next_week', getDays: () => 7 },
+  { label: 'End of Month', value: 'end_of_month', getDays: () => null },
+  { label: '4 Weeks', value: '4_weeks', getDays: () => 28 },
+  { label: '6 Weeks', value: '6_weeks', getDays: () => 42 },
+  { label: '12 Weeks', value: '12_weeks', getDays: () => 84 }
+];
 
 interface FundamentalRecord {
   id: string;
@@ -35,6 +65,9 @@ interface FundamentalRecord {
   photo_url: string | null;
   photo_file_name: string | null;
   checked_at: string | null;
+  assigned_to: string | null;
+  fix_by_date: string | null;
+  fix_by_preset: string | null;
 }
 
 interface FundamentalItemCardProps {
@@ -63,7 +96,30 @@ export const FundamentalItemCard = ({
   const [isCreatingRecord, setIsCreatingRecord] = useState(false);
   const [localRecordId, setLocalRecordId] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [assignedTo, setAssignedTo] = useState(record?.assigned_to || '');
+  const [customAssignee, setCustomAssignee] = useState('');
+  const [customAssignees, setCustomAssignees] = useState<string[]>([]);
+  const [fixByDate, setFixByDate] = useState<Date | undefined>(
+    record?.fix_by_date ? new Date(record.fix_by_date) : undefined
+  );
+  const [fixByPreset, setFixByPreset] = useState(record?.fix_by_preset || '');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  // Load custom assignees for this session
+  useEffect(() => {
+    const loadCustomAssignees = async () => {
+      const { data } = await supabase
+        .from('mock_inspection_custom_assignees')
+        .select('assignee_name')
+        .eq('session_id', sessionId);
+      
+      if (data) {
+        setCustomAssignees(data.map(d => d.assignee_name));
+      }
+    };
+    loadCustomAssignees();
+  }, [sessionId]);
 
   // Speech recognition setup
   useEffect(() => {
@@ -131,6 +187,68 @@ export const FundamentalItemCard = ({
   const handleNotesBlur = () => {
     if (notes !== record?.notes) {
       onUpdate({ notes: notes || null });
+    }
+  };
+
+  const handleAssigneeSelect = (assignee: string) => {
+    setAssignedTo(assignee);
+    onUpdate({ assigned_to: assignee || null });
+  };
+
+  const handleAddCustomAssignee = async () => {
+    const trimmed = customAssignee.trim();
+    if (!trimmed) return;
+    
+    // Save to database for reuse
+    try {
+      await supabase
+        .from('mock_inspection_custom_assignees')
+        .insert({ session_id: sessionId, assignee_name: trimmed });
+      
+      setCustomAssignees(prev => [...prev, trimmed]);
+      setAssignedTo(trimmed);
+      onUpdate({ assigned_to: trimmed });
+      setCustomAssignee('');
+      showToast.success(`Added "${trimmed}" to assignees`);
+    } catch (error) {
+      // May already exist, just use it
+      setAssignedTo(trimmed);
+      onUpdate({ assigned_to: trimmed });
+      setCustomAssignee('');
+    }
+  };
+
+  const handleFixByPreset = (preset: string) => {
+    setFixByPreset(preset);
+    
+    let date: Date;
+    const presetConfig = FIX_BY_PRESETS.find(p => p.value === preset);
+    
+    if (preset === 'end_of_month') {
+      date = endOfMonth(new Date());
+    } else if (presetConfig) {
+      const days = presetConfig.getDays();
+      date = days === 0 ? new Date() : addDays(new Date(), days!);
+    } else {
+      return;
+    }
+    
+    setFixByDate(date);
+    onUpdate({ 
+      fix_by_preset: preset, 
+      fix_by_date: date.toISOString() 
+    });
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setFixByDate(date);
+    setFixByPreset('custom');
+    setShowDatePicker(false);
+    if (date) {
+      onUpdate({ 
+        fix_by_preset: 'custom', 
+        fix_by_date: date.toISOString() 
+      });
     }
   };
   
@@ -266,6 +384,108 @@ export const FundamentalItemCard = ({
                   N/A
                 </Button>
               </div>
+
+              {/* Issue Assignment - only show when issue found */}
+              {status === 'issue_found' && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg space-y-4">
+                  <h5 className="text-sm font-semibold text-red-800 flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    Issue Action Plan
+                  </h5>
+                  
+                  {/* Assign To */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Assign To
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[...DEFAULT_ASSIGNEES, ...customAssignees].map((assignee) => (
+                        <Button
+                          key={assignee}
+                          size="sm"
+                          variant={assignedTo === assignee ? 'default' : 'outline'}
+                          onClick={() => handleAssigneeSelect(assignee)}
+                          className="h-7 text-xs"
+                        >
+                          {assignee}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        placeholder="Add custom assignee..."
+                        value={customAssignee}
+                        onChange={(e) => setCustomAssignee(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddCustomAssignee()}
+                        className="h-8 text-sm bg-white flex-1"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleAddCustomAssignee}
+                        disabled={!customAssignee.trim()}
+                        className="h-8"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    {assignedTo && (
+                      <p className="text-xs text-muted-foreground">
+                        Currently assigned to: <span className="font-medium text-foreground">{assignedTo}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Fix By / Recheck */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium flex items-center gap-2">
+                      <CalendarIcon className="h-4 w-4" />
+                      Fix By / Recheck
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {FIX_BY_PRESETS.map((preset) => (
+                        <Button
+                          key={preset.value}
+                          size="sm"
+                          variant={fixByPreset === preset.value ? 'default' : 'outline'}
+                          onClick={() => handleFixByPreset(preset.value)}
+                          className="h-7 text-xs"
+                        >
+                          {preset.label}
+                        </Button>
+                      ))}
+                      <Popover open={showDatePicker} onOpenChange={setShowDatePicker}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant={fixByPreset === 'custom' ? 'default' : 'outline'}
+                            className="h-7 text-xs gap-1"
+                          >
+                            <CalendarIcon className="h-3 w-3" />
+                            Pick Date
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={fixByDate}
+                            onSelect={handleDateSelect}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    {fixByDate && (
+                      <p className="text-xs text-muted-foreground">
+                        Target date: <span className="font-medium text-foreground">{format(fixByDate, 'dd MMMM yyyy')}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Photo evidence */}
               <div className="space-y-2">

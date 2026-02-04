@@ -41,6 +41,9 @@ interface FundamentalRecord {
   photo_url: string | null;
   photo_file_name: string | null;
   checked_at: string | null;
+  assigned_to: string | null;
+  fix_by_date: string | null;
+  fix_by_preset: string | null;
 }
 
 const getCategoryIcon = (iconName: string) => {
