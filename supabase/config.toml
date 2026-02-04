@@ -485,3 +485,6 @@ verify_jwt = false
 
 [functions.purge-old-transcript-chunks]
 verify_jwt = false
+
+[functions.upload-inspection-capture]
+verify_jwt = false

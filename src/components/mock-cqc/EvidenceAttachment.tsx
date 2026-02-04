@@ -1,8 +1,9 @@
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Paperclip, Link2, Upload, X, FileText, ExternalLink } from 'lucide-react';
+import { Paperclip, Link2, Upload, X, FileText, ExternalLink, QrCode } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { InspectionQRCaptureModal } from './InspectionQRCaptureModal';
 
 interface EvidenceFile {
   type: string;
@@ -14,12 +15,22 @@ interface EvidenceFile {
 interface EvidenceAttachmentProps {
   files: EvidenceFile[];
   onFilesChange: (files: EvidenceFile[]) => void;
+  elementId?: string;
+  elementKey?: string;
+  elementName?: string;
 }
 
-export const EvidenceAttachment = ({ files, onFilesChange }: EvidenceAttachmentProps) => {
+export const EvidenceAttachment = ({ 
+  files, 
+  onFilesChange,
+  elementId,
+  elementKey,
+  elementName
+}: EvidenceAttachmentProps) => {
   const [showLinkInput, setShowLinkInput] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkName, setLinkName] = useState('');
+  const [showQRModal, setShowQRModal] = useState(false);
 
   const handleAddLink = () => {
     if (!linkUrl.trim() || !linkName.trim()) return;
@@ -57,6 +68,16 @@ export const EvidenceAttachment = ({ files, onFilesChange }: EvidenceAttachmentP
     event.target.value = ''; // Reset input
   }, [files, onFilesChange]);
 
+  const handleQRImagesReceived = (images: { id: string; file_name: string; file_url: string }[]) => {
+    const newFiles: EvidenceFile[] = images.map(img => ({
+      type: 'photo',
+      id: img.id,
+      name: img.file_name,
+      url: img.file_url
+    }));
+    onFilesChange([...files, ...newFiles]);
+  };
+
   return (
     <div className="space-y-3">
       <label className="text-sm font-medium flex items-center gap-2">
@@ -75,6 +96,12 @@ export const EvidenceAttachment = ({ files, onFilesChange }: EvidenceAttachmentP
               <div className="flex items-center gap-2 min-w-0">
                 {file.type === 'link' ? (
                   <Link2 className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                ) : file.type === 'photo' ? (
+                  <img 
+                    src={file.url} 
+                    alt={file.name} 
+                    className="h-8 w-8 object-cover rounded flex-shrink-0"
+                  />
                 ) : (
                   <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 )}
@@ -132,7 +159,7 @@ export const EvidenceAttachment = ({ files, onFilesChange }: EvidenceAttachmentP
 
       {/* Action Buttons */}
       {!showLinkInput && (
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -157,12 +184,35 @@ export const EvidenceAttachment = ({ files, onFilesChange }: EvidenceAttachmentP
               onChange={handleFileUpload}
             />
           </label>
+          {elementId && elementKey && elementName && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowQRModal(true)}
+              className="flex items-center gap-2"
+            >
+              <QrCode className="h-4 w-4" />
+              Phone Photo
+            </Button>
+          )}
         </div>
       )}
 
       <p className="text-xs text-muted-foreground">
-        Attach evidence documents, links to policies, or references to where evidence is stored.
+        Attach evidence documents, links to policies, or use your phone to capture photos.
       </p>
+
+      {/* QR Capture Modal */}
+      {elementId && elementKey && elementName && (
+        <InspectionQRCaptureModal
+          open={showQRModal}
+          onOpenChange={setShowQRModal}
+          elementId={elementId}
+          elementKey={elementKey}
+          elementName={elementName}
+          onImagesReceived={handleQRImagesReceived}
+        />
+      )}
     </div>
   );
 };

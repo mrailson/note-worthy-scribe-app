@@ -5975,6 +5975,82 @@ export type Database = {
         }
         Relationships: []
       }
+      mock_inspection_capture_sessions: {
+        Row: {
+          created_at: string | null
+          element_id: string
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          session_token: string
+          short_code: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          element_id: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          session_token: string
+          short_code?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          element_id?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          session_token?: string
+          short_code?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_inspection_capture_sessions_element_id_fkey"
+            columns: ["element_id"]
+            isOneToOne: false
+            referencedRelation: "mock_inspection_elements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mock_inspection_captured_images: {
+        Row: {
+          created_at: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_inspection_captured_images_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "mock_inspection_capture_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mock_inspection_element_templates: {
         Row: {
           created_at: string

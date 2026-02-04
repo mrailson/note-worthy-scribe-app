@@ -287,6 +287,9 @@ export const InspectionElementCard = ({
             <EvidenceAttachment
               files={evidenceFilesArray as { type: string; url?: string; id?: string; name: string }[]}
               onFilesChange={(files) => onUpdate({ evidence_files: files as unknown })}
+              elementId={element.id}
+              elementKey={element.element_key}
+              elementName={element.element_name}
             />
 
             {/* Improvement Comments - show for partially met or not met */}
