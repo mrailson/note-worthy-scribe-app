@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CheckCircle2, AlertCircle, MinusCircle, Circle, Ban, ChevronDown, Info, MessageSquare, Paperclip, Search, ClipboardCheck, Star } from 'lucide-react';
+import { CheckCircle2, AlertCircle, MinusCircle, Circle, Ban, ChevronDown, Info, MessageSquare, Paperclip, Search, ClipboardCheck, Star, Bot } from 'lucide-react';
 import { InspectionElement } from '@/hooks/useMockInspection';
 import { StatusQuickPick } from './StatusQuickPick';
 import { EvidenceAttachment } from './EvidenceAttachment';
 import { EnhancedBrowserMic, EnhancedBrowserMicRef } from '@/components/ai4gp/EnhancedBrowserMic';
+import { InspectionItemAskAI } from './InspectionItemAskAI';
 import { cn } from '@/lib/utils';
 
 interface InspectionElementCardProps {
@@ -150,6 +152,7 @@ export const InspectionElementCard = ({
   const [evidenceNotes, setEvidenceNotes] = useState(element.evidence_notes || '');
   const [improvementComments, setImprovementComments] = useState(element.improvement_comments || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [showAskAI, setShowAskAI] = useState(false);
   const evidenceMicRef = useRef<EnhancedBrowserMicRef>(null);
   const improvementMicRef = useRef<EnhancedBrowserMicRef>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -292,6 +295,17 @@ export const InspectionElementCard = ({
               elementName={element.element_name}
             />
 
+            {/* Ask AI Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAskAI(true)}
+              className="gap-2 w-full"
+            >
+              <Bot className="h-4 w-4" />
+              Ask AI about this item
+            </Button>
+
             {/* Improvement Comments - show for partially met or not met */}
             {(element.status === 'partially_met' || element.status === 'not_met') && (
               <div>
@@ -315,6 +329,15 @@ export const InspectionElementCard = ({
           </CardContent>
         </CollapsibleContent>
       </Card>
+
+      {/* Ask AI Modal */}
+      <InspectionItemAskAI
+        open={showAskAI}
+        onOpenChange={setShowAskAI}
+        itemName={`${element.element_key}: ${element.element_name}`}
+        itemDescription={element.evidence_guidance}
+        categoryName={element.domain}
+      />
     </Collapsible>
   );
 };
