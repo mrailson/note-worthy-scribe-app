@@ -1,180 +1,190 @@
 
-# Plan: Enhanced Practice User Management for Practice Managers
+# Plan: PLT Planning Feature for Practice Managers
 
 ## Overview
 
-This plan enhances the Practice User Management interface to give Practice Managers full control over creating, editing, and deleting users within their practice. The key improvements include:
-
-1. **Password field with validation** - Practice Managers can set a password (minimum 8 characters, at least 1 number)
-2. **Email preview modal** - View the welcome email content before sending
-3. **Expanded module toggles** - All requested services with on/off sliders
-4. **Improved user flow** - Clear two-step process for user creation
+This plan adds a **PLT Planning** (Protected Learning Time) category to the Practice Manager interface, complete with the 2026/27 PLT Calendar dates and AI-powered prompts for planning comprehensive training sessions.
 
 ---
 
-## Module Toggles to Include
+## What You'll Get
 
-Based on your requirements, the following modules will have on/off toggles:
+### 1. New "PLT Planning" Quick Pick Card
+A new card in the PM home screen grid (alongside Documents, Respond, Workforce, etc.) with:
+- **Icon**: GraduationCap with a magenta/pink gradient (matching your PLT Calendar branding)
+- **Label**: "PLT Planning"
+- **Description**: Plan Protected Learning Time sessions with AI assistance
 
-| Module | Display Name | Storage |
-|--------|--------------|---------|
-| `ai4gp_access` | Ask AI | `profiles` table |
-| `meeting_notes_access` | Meeting Manager | `user_roles` table |
-| `survey_manager_access` | Survey Tool | `user_roles` table |
-| `policy_service` | Practice Policy Service | `user_service_activations` table |
-| `complaints_manager_access` | Complaints Service | `user_roles` table |
+### 2. PLT Calendar Display
+When you click "PLT Planning", you'll see:
+- **2026/27 PLT Calendar** showing all dates from your reference image
+- Dates displayed in a clean list format with:
+  - Date badge (e.g., "25 Feb", "18 Mar")
+  - Type indicator (Countywide or Practice/PCN)
+  - Year marker for dates spanning 2026-2027
+- Visual styling matching your PLT Calendar design (pink/magenta theme)
 
-Note: The Practice Policy Service uses the service activation pattern (like NRES) rather than a simple boolean flag.
+### 3. AI Training Session Ideas
+After the calendar, subcategories for planning PLTs:
 
----
+| Subcategory | Prompts |
+|-------------|---------|
+| **Plan a PLT** | Create comprehensive PLT session plans with objectives, timings, activities |
+| **Difficult Situations** | Handling patient aggression at reception, telephone conflict, de-escalation |
+| **Clinical Topics** | Safeguarding updates, infection control refresher, medication safety |
+| **Admin & Systems** | EMIS/SystmOne training, coding updates, telephone triage protocols |
+| **Wellbeing & Team** | Staff wellbeing sessions, team building, resilience training |
+| **Compliance** | CQC key questions, information governance, fire safety refreshers |
 
-## Implementation Steps
+### 4. Training Session Prompt Examples
 
-### Step 1: Update the User Creation Form
+**Difficult Situations (as requested):**
+- "Plan a PLT session on handling patients shouting at reception - include role play scenarios, de-escalation techniques, and when to escalate"
+- "Create training materials for handling aggressive callers on the telephone"
+- "Design a conflict resolution workshop for reception staff"
+- "Create a session on managing difficult conversations with patients about capacity and waiting times"
 
-**File: `src/components/PracticeUserManagement.tsx`**
-
-- Add a new password field with the following validation:
-  - Minimum 8 characters
-  - At least 1 number
-  - Show/hide password toggle (Eye icon)
-  - Real-time validation feedback
-  
-- Reorganise the module toggles section to display:
-  - Ask AI (AI4GP)
-  - Meeting Manager (Meeting Notes)
-  - Survey Tool
-  - Practice Policy Service
-  - Complaints Service
-
-- Add state for tracking Policy Service access (similar to NRES pattern)
-
-### Step 2: Add Email Preview Modal
-
-**File: `src/components/PracticeUserManagement.tsx`**
-
-- Create a new `showEmailPreview` state
-- Add a preview modal that displays:
-  - Recipient email address
-  - Subject line
-  - Preview of email content (login URL, password setup link, enabled modules)
-  - "Send Email" and "Cancel" buttons
-  
-- Flow change:
-  1. User fills form and clicks "Create User"
-  2. User is created in the database
-  3. Email preview modal appears
-  4. Practice Manager reviews and clicks "Send Email" to dispatch the welcome email
-
-### Step 3: Update Edge Function for Password
-
-**File: `supabase/functions/create-user-practice-manager/index.ts`**
-
-- Accept optional `password` field in the request
-- If password is provided, use it instead of auto-generating one
-- Keep the auto-generation as fallback if no password is provided
-- Add `policy_service_access` boolean to handle service activation during creation
-- Add `survey_manager_access` to the module_access interface and database insert
-
-### Step 4: Update Edge Function for Editing
-
-**File: `supabase/functions/update-user-practice-manager/index.ts`**
-
-- Add support for `survey_manager_access` in module updates
-- Add logic to handle `policy_service_access` via service activations table (insert/delete pattern like NRES)
-
-### Step 5: Update Welcome Email Function
-
-**File: `supabase/functions/send-user-welcome-email/index.ts`**
-
-- Add `survey_manager_access` to the ModuleAccess interface
-- Add Survey Tool to the moduleInfo dictionary with appropriate label, description, and category
-- Add Practice Policy Service to the module display
+**Other Useful PM Training Ideas:**
+- "Plan a PLT on safeguarding adults - include case studies and practice scenarios"
+- "Create a reception training session on telephone triage using the 6 Cs"
+- "Design a session on understanding QOF requirements for clinical coders"
+- "Plan training on complaints handling for all staff"
+- "Create a session on GDPR and patient confidentiality refresher"
 
 ---
 
-## Technical Details
+## PLT Calendar Data (2026/27)
 
-### Password Validation (Client-side)
+Based on your image, the following dates will be displayed:
+
+| Date | Type | Year |
+|------|------|------|
+| 25 Feb | Countywide | 2026 |
+| 18 Mar | Countywide | 2026 |
+| 15 Apr | Practice/PCN | 2026 |
+| 13 May | Countywide | 2026 |
+| 10 Jun | Practice/PCN | 2026 |
+| 8 Jul | Countywide | 2026 |
+| 9 Sep | Practice/PCN | 2026 |
+| 7 Oct | Countywide | 2026 |
+| 11 Nov | Practice/PCN | 2026 |
+| 13 Jan | Countywide | 2027 |
+| 10 Feb | Practice/PCN | 2027 |
+| 10 Mar | Countywide | 2027 |
+
+---
+
+## Mobile Quick Pick
+
+Adding "PLT Planning" to the mobile PM quick picks (replacing one less-used option):
+- **Label**: "PLT Planning"
+- **Prompt**: "Help me plan a Protected Learning Time session for our practice"
+
+---
+
+## Technical Implementation
+
+### Files to Modify
+
+1. **`src/components/ai4gp/pmPromptCategories.ts`**
+   - Add new `plt-planning` main category with subcategories
+   - Import `CalendarDays` or `GraduationCap` icon
+   - Add pink/magenta gradient to match PLT branding
+
+2. **`src/components/ai4gp/PMHomeScreen.tsx`**
+   - Add special handling for PLT Planning category
+   - Display PLT Calendar dates when this category is selected
+   - Add new view type for calendar display
+
+3. **`src/components/ai4gp/MobileRoleQuickPicks.tsx`**
+   - Add "PLT Planning" to PM_QUICK_PICKS array
+
+4. **New file: `src/components/ai4gp/PLTCalendar.tsx`**
+   - Standalone component to display the 2026/27 PLT dates
+   - Styled with pink/magenta theme matching your reference
+   - Shows type badges (Countywide vs Practice/PCN)
+   - Highlights upcoming dates
+
+### Category Structure
+
 ```text
-Pattern: /^(?=.*\d).{8,}$/
-- At least 8 characters
-- At least 1 number
+PLT Planning (main category)
+  |
+  +-- PLT Calendar (special view - shows date list)
+  |
+  +-- Plan a PLT
+  |     +-- General PLT Plan
+  |     +-- 1-Hour Session
+  |     +-- 2-Hour Session  
+  |     +-- Half-Day Session
+  |
+  +-- Difficult Situations
+  |     +-- Patient Aggression (Reception)
+  |     +-- Telephone Conflict
+  |     +-- De-escalation Training
+  |     +-- Conflict Resolution
+  |
+  +-- Clinical Training
+  |     +-- Safeguarding Updates
+  |     +-- Infection Control
+  |     +-- Medication Safety
+  |     +-- Clinical Emergencies
+  |
+  +-- Admin & Systems
+  |     +-- EMIS/SystmOne
+  |     +-- Coding Updates
+  |     +-- Telephone Triage
+  |     +-- New Starter Induction
+  |
+  +-- Wellbeing & Team
+  |     +-- Staff Wellbeing
+  |     +-- Team Building
+  |     +-- Resilience
+  |     +-- Stress Management
+  |
+  +-- Compliance Training
+        +-- CQC Key Questions
+        +-- Information Governance
+        +-- Fire Safety
+        +-- Health & Safety
 ```
 
-### Email Preview Modal Content
-The preview will show:
-- To: [user email]
-- Subject: Welcome to GP Notewell AI - Your Account Details
-- Body preview with:
-  - Login URL
-  - User name and role
-  - Practice name
-  - List of enabled modules
-  - Password setup link information
+### PLT Calendar Component Design
 
-### Policy Service Activation Pattern
+The PLT Calendar will display as a styled list:
+
 ```text
-When toggling Policy Service access:
-- ON: Insert row into user_service_activations with service='policy_service'
-- OFF: Delete row from user_service_activations where user_id and service='policy_service'
++------------------------------------------+
+|           2026/27 PLT Calendar           |
++------------------------------------------+
+| [25 Feb] Countywide              [2026]  |
+| [18 Mar] Countywide                      |
+| [15 Apr] Practice/PCN                    |
+| [13 May] Countywide                      |
+| [10 Jun] Practice/PCN                    |
+| [8 Jul]  Countywide                      |
+| [9 Sep]  Practice/PCN                    |
+| [7 Oct]  Countywide                      |
+| [11 Nov] Practice/PCN                    |
+| [13 Jan] Countywide              [2027]  |
+| [10 Feb] Practice/PCN                    |
+| [10 Mar] Countywide                      |
++------------------------------------------+
 ```
 
----
-
-## UI Changes Summary
-
-### Add User Modal - New Elements:
-1. **Password field** with:
-   - Eye icon to toggle visibility
-   - Validation message below (red if invalid)
-   - Helper text: "Minimum 8 characters with at least 1 number"
-
-2. **Module Access section** reorganised:
-   - Ask AI
-   - Meeting Manager
-   - Survey Tool
-   - Practice Policy Service
-   - Complaints Service
-   (Fridge Monitoring and NRES remain as they currently are)
-
-3. **Email Preview toggle/modal** after user creation
-
-### Email Preview Modal:
-- Shows a styled preview of the welcome email
-- "Send Email" button (primary)
-- "Skip" button (if they don't want to send)
+- Date badges in pink/magenta
+- Type labels colour-coded (Countywide = purple, Practice/PCN = lighter purple)
+- Year markers shown on first date of each year
+- Upcoming dates highlighted
 
 ---
 
-## Files to Modify
+## Summary of Changes
 
-1. **`src/components/PracticeUserManagement.tsx`**
-   - Add password field with validation
-   - Add email preview modal
-   - Expand module toggles
-   - Add Policy Service activation handling
-
-2. **`supabase/functions/create-user-practice-manager/index.ts`**
-   - Accept custom password
-   - Add survey_manager_access support
-   - Add policy_service_access support via service activations
-
-3. **`supabase/functions/update-user-practice-manager/index.ts`**
-   - Add survey_manager_access support
-   - Add policy_service_access support
-
-4. **`supabase/functions/send-user-welcome-email/index.ts`**
-   - Add Survey Manager to module info
-   - Add Practice Policies to module info
-
----
-
-## Security Considerations
-
-- Password validation is enforced both client-side and server-side
-- Practice Manager authorisation is verified before any operation
-- Users can only manage staff within their own practice
-- Practice Managers cannot elevate users to practice_manager or system_admin roles
-- All module changes are logged in the database
-
+| Component | Change |
+|-----------|--------|
+| PM Home Screen | New "PLT Planning" card in category grid |
+| PM Categories | New main category with 6 subcategories and ~24 prompts |
+| PLT Calendar | New component showing 2026/27 dates |
+| Mobile Quick Picks | New "PLT Planning" option added |
+| Styling | Pink/magenta gradient theme for PLT branding |
