@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Grid3X3, FileText, Stethoscope, MessageSquareWarning, Sparkles, Clock, Shield, FolderOpen, Building2, Wrench, Languages, Thermometer, Heart, ChevronDown } from 'lucide-react';
+import { Grid3X3, FileText, Stethoscope, MessageSquareWarning, Sparkles, Clock, Shield, FolderOpen, Building2, Wrench, Languages, Thermometer, Heart, ChevronDown, ClipboardCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useServiceActivation } from '@/hooks/useServiceActivation';
@@ -26,6 +26,7 @@ interface ServiceVisibility {
   lg_capture: boolean;
   bp_service: boolean;
   survey_manager: boolean;
+  mock_cqc_inspection: boolean;
 }
 
 const defaultVisibility: ServiceVisibility = {
@@ -44,6 +45,7 @@ const defaultVisibility: ServiceVisibility = {
   lg_capture: true,
   bp_service: true,
   survey_manager: true,
+  mock_cqc_inspection: true,
 };
 
 // Service config with access check keys
@@ -63,6 +65,7 @@ const serviceConfig = [
   { key: 'lg_capture', label: 'LG Capture', icon: FileText, accessKey: 'lg_capture' },
   { key: 'bp_service', label: 'BP Average Service', icon: Heart, accessKey: 'bp_service' },
   { key: 'survey_manager', label: 'Survey Manager', icon: FileText, accessKey: 'survey_manager_access' },
+  { key: 'mock_cqc_inspection', label: 'Mock CQC Inspection', icon: ClipboardCheck, accessKey: 'cqc_compliance_access' },
 ] as const;
 
 export const ServiceVisibilitySettings = () => {

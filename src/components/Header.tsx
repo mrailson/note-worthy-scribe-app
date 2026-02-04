@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart, LayoutDashboard, ClipboardList, TrendingUp } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart, LayoutDashboard, ClipboardList, TrendingUp, ClipboardCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useServiceVisibility } from "@/hooks/useServiceVisibility";
@@ -383,6 +383,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           >
                             <Heart className="h-4 w-4 mr-2" />
                             BP Average Service
+                          </DropdownMenuItem>
+                        )}
+                        {hasModuleAccess('cqc_compliance_access') && isServiceVisible('mock_cqc_inspection') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/mock-cqc-inspection')}
+                            className="cursor-pointer py-3"
+                          >
+                            <ClipboardCheck className="h-4 w-4 mr-2" />
+                            Mock CQC Inspection
                           </DropdownMenuItem>
                         )}
                         {isServiceVisible('policy_service') && (
