@@ -174,7 +174,47 @@ export function InspectionQRCaptureModal({
     };
   }, [open, sessionId, playNotificationSound]);
 
-  // Load any existing images
+  // Fetch images from DB and merge with current state
+  const fetchImages = useCallback(async () => {
+    if (!sessionId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('mock_inspection_captured_images')
+        .select('id, file_name, file_url, file_size, created_at')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      setCapturedImages((prev) => {
+        const byId = new Map<string, CapturedImage>();
+        prev.forEach((img) => byId.set(img.id, img));
+        
+        let newCount = 0;
+        (data ?? []).forEach((img) => {
+          if (!byId.has(img.id)) {
+            newCount++;
+          }
+          byId.set(img.id, img as CapturedImage);
+        });
+        
+        // Play sound and show toast for new images
+        if (newCount > 0) {
+          playNotificationSound();
+          showToast.success(`📷 ${newCount} photo${newCount !== 1 ? 's' : ''} received from phone!`, {
+            duration: 3000,
+          });
+        }
+        
+        return Array.from(byId.values());
+      });
+    } catch (e) {
+      console.warn('Failed to fetch captured images', e);
+    }
+  }, [sessionId, playNotificationSound]);
+
+  // Load existing images on mount + poll every 2 seconds for new uploads
   useEffect(() => {
     if (!open || !sessionId) return;
 
@@ -206,10 +246,19 @@ export function InspectionQRCaptureModal({
     };
 
     loadExisting();
+    
+    // Poll for new images every 2 seconds as a fallback for realtime
+    const pollInterval = setInterval(() => {
+      if (!cancelled) {
+        fetchImages();
+      }
+    }, 2000);
+    
     return () => {
       cancelled = true;
+      clearInterval(pollInterval);
     };
-  }, [open, sessionId]);
+  }, [open, sessionId, fetchImages]);
   
   // Subscribe to phone connection broadcasts
   useEffect(() => {
