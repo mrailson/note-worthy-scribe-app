@@ -3330,7 +3330,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 min-h-0 px-6 pb-6 pt-4 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+          <div className="flex-1 min-h-0 px-6 pb-6 pt-4 overflow-hidden">
             <TabsContent value="notes" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <div className="p-6 space-y-6">
