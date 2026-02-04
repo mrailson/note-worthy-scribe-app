@@ -4659,11 +4659,22 @@ export const MeetingRecorder = ({
       audioContextRef.current = null;
     }
     
-    // Stop overlapping chunk recording
-    await stopOverlappingChunks();
+    // Helper to wrap promises with a timeout to prevent UI from getting stuck
+    const withTimeout = <T,>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> => {
+      return Promise.race([
+        promise,
+        new Promise<T>((resolve) => setTimeout(() => {
+          console.warn(`⚠️ Operation timed out after ${timeoutMs}ms, continuing with fallback`);
+          resolve(fallback);
+        }, timeoutMs))
+      ]);
+    };
     
-    // Stop stereo recording
-    const stereoBlob = await stopStereoRecording();
+    // Stop overlapping chunk recording (with 10s timeout)
+    await withTimeout(stopOverlappingChunks(), 10000, undefined);
+    
+    // Stop stereo recording (with 15s timeout for long recordings)
+    const stereoBlob = await withTimeout(stopStereoRecording(), 15000, null);
     
     // Create audio URL for playback from the recorded stereo audio
     if (stereoBlob && stereoBlob.size > 0) {
