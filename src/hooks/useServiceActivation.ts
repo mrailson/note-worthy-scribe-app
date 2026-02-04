@@ -32,6 +32,9 @@ export const useServiceActivation = () => {
       return data || [];
     },
     enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch from user_roles table for role-based access
@@ -55,6 +58,9 @@ export const useServiceActivation = () => {
       return data;
     },
     enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const hasServiceAccess = (service: ServiceType): boolean => {

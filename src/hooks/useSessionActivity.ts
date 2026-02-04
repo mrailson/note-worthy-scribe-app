@@ -39,11 +39,11 @@ export const useSessionActivity = (user: User | null) => {
       updateActivity();
     }, 5 * 60 * 1000); // 5 minutes
 
-    // Update activity on user interactions
+    // Update activity on user interactions - throttled to every 5 minutes
     const handleUserActivity = () => {
       const now = Date.now();
-      // Only update if it's been more than 1 minute since last update
-      if (now - lastActivityRef.current > 60 * 1000) {
+      // Only update if it's been more than 5 minutes since last update
+      if (now - lastActivityRef.current > 5 * 60 * 1000) {
         updateActivity();
       }
     };
