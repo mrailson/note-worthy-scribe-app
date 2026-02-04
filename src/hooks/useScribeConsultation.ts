@@ -66,6 +66,9 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
   const [viewMode, setViewMode] = useState<ConsultationViewMode>('narrativeClinical');
   
   const consultationIdRef = useRef<string | null>(null);
+  // Stable DB consultation UUID for this in-progress session.
+  // Prevents duplicate rows if the client retries after a timeout/temporary failure.
+  const dbConsultationIdRef = useRef<string | null>(null);
   
   const recording = useScribeRecording();
 
@@ -110,6 +113,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
     }
 
     try {
+      // New session => clear any prior save IDs
+      dbConsultationIdRef.current = null;
       consultationIdRef.current = `consult_${Date.now()}`;
       
       if (patientConsent) {
@@ -152,10 +157,16 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
       throw new Error('Not authenticated');
     }
 
+    // Generate (once) a stable UUID for this consultation save attempt so retries are idempotent.
+    // This eliminates duplicate consultation rows when autoSave retries after a network hiccup.
+    const consultationId = dbConsultationIdRef.current ?? crypto.randomUUID();
+    dbConsultationIdRef.current = consultationId;
+
     // 1. Insert into gp_consultations (main table)
     const { data: consultationData, error: consultationError } = await supabase
       .from('gp_consultations')
-      .insert([{
+      .upsert([{
+        id: consultationId,
         user_id: userData.user.id,
         title: `${CONSULTATION_TYPE_LABELS[consultationType]} Consultation`,
         consultation_type: consultationType,
@@ -169,24 +180,24 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
         patient_nhs_number: patientContext?.nhsNumber || null,
         patient_dob: patientContext?.dateOfBirth || null,
         patient_context_confidence: patientContext?.confidence || null
-      }])
-      .select()
+      }], { onConflict: 'id' })
+      .select('id')
       .single();
 
     if (consultationError) throw consultationError;
-
-    const consultationId = consultationData.id;
+    // Keep local ref aligned with DB return value (should be identical)
+    dbConsultationIdRef.current = consultationData.id;
 
     // 2. Insert transcript (including realtime transcript if available)
     const { error: transcriptError } = await supabase
       .from('gp_consultation_transcripts')
-      .insert([{
+      .upsert([{
         consultation_id: consultationId,
         transcript_text: transcriptToSave,
         cleaned_transcript: transcriptToSave,
         transcription_service: 'assemblyai',
         realtime_transcript: realtimeTranscriptToSave || null
-      }]);
+      }], { onConflict: 'consultation_id' });
 
     if (transcriptError) throw transcriptError;
 
@@ -198,7 +209,7 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
 
     const { error: notesError } = await supabase
       .from('gp_consultation_notes')
-      .insert([{
+      .upsert([{
         consultation_id: consultationId,
         note_format: noteToSave.noteFormat || 'heidi',
         note_style: settings.noteFormat,
@@ -206,7 +217,7 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
         heidi_notes: heidiNotesWithOptimised ? JSON.parse(JSON.stringify(heidiNotesWithOptimised)) : null,
         snomed_codes: noteToSave.snomedCodes || [],
         is_systmone_optimised: !!noteToSave.systmOneNote
-      }]);
+      }], { onConflict: 'consultation_id' });
 
     if (notesError) throw notesError;
 
@@ -591,6 +602,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
   const cancelConsultation = useCallback(async () => {
     await recording.stopRecording();
     recording.resetRecording();
+    consultationIdRef.current = null;
+    dbConsultationIdRef.current = null;
     setConsultationState('ready');
     setConsultationNote(null);
     setPatientConsent(false);
@@ -617,6 +630,8 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
     }
     
     recording.resetRecording();
+    consultationIdRef.current = null;
+    dbConsultationIdRef.current = null;
     setConsultationState('ready');
     setConsultationNote(null);
     setConsentTimestamp(undefined);
@@ -657,6 +672,9 @@ export const useScribeConsultation = (onAutoSaveComplete?: (sessionId: string) =
 
   // Set imported consultation from external source (Import tab) - auto-saves and navigates to history
   const setImportedConsultation = useCallback(async (notes: ConsultationNote, transcript: string) => {
+    // Import is effectively a new session
+    consultationIdRef.current = `import_${Date.now()}`;
+    dbConsultationIdRef.current = null;
     setImportedTranscript(transcript);
     
     // Preserve systmOneNote in the state update
