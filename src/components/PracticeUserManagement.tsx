@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Plus, 
   Search, 
@@ -19,8 +20,11 @@ import {
   Trash2, 
   Users, 
   Eye,
+  EyeOff,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  Mail,
+  X
 } from 'lucide-react';
 
 interface PracticeUser {
@@ -41,7 +45,39 @@ interface PracticeUser {
   mic_test_service_access: boolean;
   api_testing_service_access: boolean;
   fridge_monitoring_access: boolean;
+  survey_manager_access?: boolean;
   nres_access?: boolean;
+  policy_service_access?: boolean;
+}
+
+interface CreatedUserData {
+  user_id: string;
+  email: string;
+  full_name: string;
+  role: string;
+  password_reset_link?: string;
+  practice_name: string;
+  module_access: ModuleAccessState;
+  password: string;
+}
+
+interface ModuleAccessState {
+  meeting_notes_access: boolean;
+  gp_scribe_access: boolean;
+  complaints_manager_access: boolean;
+  ai4gp_access: boolean;
+  enhanced_access: boolean;
+  cqc_compliance_access: boolean;
+  shared_drive_access: boolean;
+  mic_test_service_access: boolean;
+  api_testing_service_access: boolean;
+  fridge_monitoring_access: boolean;
+  translation_service_access: boolean;
+  cso_governance_access: boolean;
+  lg_capture_access: boolean;
+  bp_service_access: boolean;
+  survey_manager_access: boolean;
+  policy_service_access: boolean;
 }
 
 const practiceRoles = [
@@ -61,6 +97,36 @@ const organisationRoles = [
   { value: 'practice_manager', label: 'Organisation Admin' }
 ];
 
+// Password validation pattern: min 8 chars, at least 1 number
+const passwordRegex = /^(?=.*\d).{8,}$/;
+
+const validatePassword = (password: string): { valid: boolean; message: string } => {
+  if (password.length === 0) {
+    return { valid: false, message: 'Password is required' };
+  }
+  if (password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters' };
+  }
+  if (!/\d/.test(password)) {
+    return { valid: false, message: 'Password must contain at least 1 number' };
+  }
+  return { valid: true, message: '' };
+};
+
+const getRoleDisplayName = (role: string): string => {
+  const roleNames: Record<string, string> = {
+    'practice_user': 'Practice User',
+    'practice_manager': 'Practice Manager',
+    'pcn_manager': 'PCN Manager',
+    'system_admin': 'System Administrator',
+    'gp': 'GP',
+    'nurse': 'Nurse',
+    'admin_staff': 'Admin Staff',
+    'icb_user': 'ICB User'
+  };
+  return roleNames[role] || role;
+};
+
 export const PracticeUserManagement = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -74,8 +140,16 @@ export const PracticeUserManagement = () => {
   const [isNonPracticeOrg, setIsNonPracticeOrg] = useState(false);
   const [currentUserHasNRES, setCurrentUserHasNRES] = useState(false);
   const [editingUserNRESAccess, setEditingUserNRESAccess] = useState(false);
+  const [editingUserPolicyAccess, setEditingUserPolicyAccess] = useState(false);
   
-  const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
+  // Password state
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  
+  // Email preview state
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
+  const [createdUserData, setCreatedUserData] = useState<CreatedUserData | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
 
   const [userFormData, setUserFormData] = useState({
@@ -98,8 +172,9 @@ export const PracticeUserManagement = () => {
       cso_governance_access: false,
       lg_capture_access: false,
       bp_service_access: false,
-      survey_manager_access: false
-    }
+      survey_manager_access: false,
+      policy_service_access: false
+    } as ModuleAccessState
   });
 
   useEffect(() => {
@@ -185,20 +260,23 @@ export const PracticeUserManagement = () => {
 
       if (error) throw error;
       
-      // Fetch NRES access for all users
+      // Fetch NRES and policy_service access for all users
       const userIds = data?.map((u: any) => u.user_id) || [];
-      const { data: nresActivations } = await supabase
+      const { data: serviceActivations } = await supabase
         .from('user_service_activations')
-        .select('user_id')
-        .eq('service', 'nres')
+        .select('user_id, service')
+        .in('service', ['nres', 'policy_service'])
         .in('user_id', userIds);
       
-      const nresUserIds = new Set(nresActivations?.map(a => a.user_id) || []);
+      const nresUserIds = new Set(serviceActivations?.filter(a => a.service === 'nres').map(a => a.user_id) || []);
+      const policyUserIds = new Set(serviceActivations?.filter(a => a.service === 'policy_service').map(a => a.user_id) || []);
       
       setUsers(data?.map((user: any) => ({
         ...user,
         fridge_monitoring_access: user.fridge_monitoring_access ?? false,
-        nres_access: nresUserIds.has(user.user_id)
+        survey_manager_access: user.survey_manager_access ?? false,
+        nres_access: nresUserIds.has(user.user_id),
+        policy_service_access: policyUserIds.has(user.user_id)
       })) || []);
     } catch (error) {
       console.error('Error loading practice users:', error);
@@ -215,13 +293,21 @@ export const PracticeUserManagement = () => {
   }, [practiceInfo]);
 
   const handleCreateUser = async () => {
+    // Validate password
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      setPasswordError(passwordValidation.message);
+      return;
+    }
+
     try {
       setLoading(true);
       
       const { data, error } = await supabase.functions.invoke('create-user-practice-manager', {
         body: {
           ...userFormData,
-          send_welcome_email: sendWelcomeEmail,
+          password: password,
+          send_welcome_email: false, // Don't send automatically, show preview first
           practice_name: practiceInfo?.name || 'Your Practice'
         }
       });
@@ -231,46 +317,23 @@ export const PracticeUserManagement = () => {
       if (data.success) {
         toast.success(data.message);
         
-        // Send welcome email if enabled and we have a password reset link
-        if (sendWelcomeEmail && data.password_reset_link) {
-          setSendingEmail(true);
-          try {
-            const { error: emailError } = await supabase.functions.invoke('send-user-welcome-email', {
-              body: {
-                user_email: userFormData.email,
-                user_name: userFormData.full_name,
-                password_reset_link: data.password_reset_link,
-                user_role: userFormData.role,
-                practice_name: practiceInfo?.name || 'Your Practice',
-                module_access: {
-                  ...userFormData.module_access,
-                  translation_service_access: false,
-                  cso_governance_access: false,
-                  lg_capture_access: false,
-                  bp_service_access: false
-                }
-              }
-            });
-            
-            if (emailError) {
-              console.error('Failed to send welcome email:', emailError);
-              toast.error('User created but welcome email failed to send');
-            } else {
-              toast.success('Welcome email with password setup link sent to user');
-            }
-          } catch (emailErr) {
-            console.error('Error sending welcome email:', emailErr);
-            toast.error('User created but welcome email failed to send');
-          } finally {
-            setSendingEmail(false);
-          }
-        } else if (sendWelcomeEmail && !data.password_reset_link) {
-          toast.info('User created but password reset link could not be generated. User can use "Forgot Password" to set their password.');
-        }
+        // Store created user data for email preview
+        setCreatedUserData({
+          user_id: data.user_id,
+          email: userFormData.email,
+          full_name: userFormData.full_name,
+          role: userFormData.role,
+          password_reset_link: data.password_reset_link,
+          practice_name: practiceInfo?.name || 'Your Practice',
+          module_access: userFormData.module_access,
+          password: password
+        });
+        
+        // Close user modal and show email preview
+        setShowUserModal(false);
+        setShowEmailPreview(true);
         
         loadPracticeUsers();
-        setShowUserModal(false);
-        resetForm();
       } else {
         throw new Error(data.error || 'Failed to create user');
       }
@@ -280,6 +343,52 @@ export const PracticeUserManagement = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSendWelcomeEmail = async () => {
+    if (!createdUserData) return;
+
+    setSendingEmail(true);
+    try {
+      const { error: emailError } = await supabase.functions.invoke('send-user-welcome-email', {
+        body: {
+          user_email: createdUserData.email,
+          user_name: createdUserData.full_name,
+          password_reset_link: createdUserData.password_reset_link,
+          user_role: createdUserData.role,
+          practice_name: createdUserData.practice_name,
+          module_access: {
+            ...createdUserData.module_access,
+            translation_service_access: false,
+            cso_governance_access: false,
+            lg_capture_access: false,
+            bp_service_access: false
+          }
+        }
+      });
+      
+      if (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+        toast.error('Welcome email failed to send');
+      } else {
+        toast.success('Welcome email sent successfully');
+      }
+    } catch (emailErr) {
+      console.error('Error sending welcome email:', emailErr);
+      toast.error('Welcome email failed to send');
+    } finally {
+      setSendingEmail(false);
+      setShowEmailPreview(false);
+      setCreatedUserData(null);
+      resetForm();
+    }
+  };
+
+  const handleSkipEmail = () => {
+    setShowEmailPreview(false);
+    setCreatedUserData(null);
+    resetForm();
+    toast.info('User created. Welcome email was not sent.');
   };
 
   const handleUpdateUser = async () => {
@@ -297,7 +406,8 @@ export const PracticeUserManagement = () => {
           full_name: userFormData.full_name,
           ...(roleChanged && { role: userFormData.role }),
           practice_role: userFormData.practice_role,
-          module_access: userFormData.module_access
+          module_access: userFormData.module_access,
+          policy_service_access: editingUserPolicyAccess
         }
       });
 
@@ -360,6 +470,7 @@ export const PracticeUserManagement = () => {
   const openEditModal = (user: PracticeUser) => {
     setEditingUser(user);
     setEditingUserNRESAccess(user.nres_access || false);
+    setEditingUserPolicyAccess(user.policy_service_access || false);
     setUserFormData({
       email: user.email,
       full_name: user.full_name,
@@ -380,7 +491,8 @@ export const PracticeUserManagement = () => {
         cso_governance_access: false,
         lg_capture_access: false,
         bp_service_access: false,
-        survey_manager_access: false
+        survey_manager_access: user.survey_manager_access || false,
+        policy_service_access: user.policy_service_access || false
       }
     });
     setShowUserModal(true);
@@ -448,17 +560,97 @@ export const PracticeUserManagement = () => {
         cso_governance_access: false,
         lg_capture_access: false,
         bp_service_access: false,
-        survey_manager_access: false
+        survey_manager_access: false,
+        policy_service_access: false
       }
     });
-    setSendWelcomeEmail(true);
+    setPassword('');
+    setShowPassword(false);
+    setPasswordError('');
     setEditingUserNRESAccess(false);
+    setEditingUserPolicyAccess(false);
   };
 
   const filteredUsers = users.filter(user =>
     user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Generate email preview content
+  const generateEmailPreviewContent = () => {
+    if (!createdUserData) return null;
+    
+    const enabledModules: string[] = [];
+    const moduleLabels: Record<string, string> = {
+      ai4gp_access: 'Ask AI',
+      meeting_notes_access: 'Meeting Manager',
+      survey_manager_access: 'Survey Tool',
+      policy_service_access: 'Practice Policy Service',
+      complaints_manager_access: 'Complaints Service',
+      fridge_monitoring_access: 'Fridge Monitoring'
+    };
+
+    Object.entries(createdUserData.module_access).forEach(([key, enabled]) => {
+      if (enabled && moduleLabels[key]) {
+        enabledModules.push(moduleLabels[key]);
+      }
+    });
+
+    return (
+      <div className="space-y-4">
+        <div className="p-4 bg-muted rounded-lg space-y-3">
+          <div>
+            <span className="text-sm text-muted-foreground">To:</span>
+            <p className="font-medium">{createdUserData.email}</p>
+          </div>
+          <div>
+            <span className="text-sm text-muted-foreground">Subject:</span>
+            <p className="font-medium">Welcome to GP Notewell AI - Your Account Details</p>
+          </div>
+        </div>
+        
+        <div className="border rounded-lg p-4 space-y-4">
+          <div className="flex items-center gap-2 text-primary">
+            <Mail className="h-5 w-5" />
+            <span className="font-semibold">Email Preview</span>
+          </div>
+          
+          <div className="space-y-3 text-sm">
+            <p>Hello <strong>{createdUserData.full_name}</strong>,</p>
+            <p className="text-muted-foreground">
+              Your account has been created for GP Notewell AI. Below you will find your login details and a summary of the features available to you.
+            </p>
+            
+            <div className="bg-muted/50 p-3 rounded-md space-y-2">
+              <p className="font-semibold text-primary">Your Login Details</p>
+              <div className="grid gap-1 text-sm">
+                <p><span className="text-muted-foreground">Login URL:</span> https://gpnotewell.co.uk</p>
+                <p><span className="text-muted-foreground">Email:</span> {createdUserData.email}</p>
+                <p><span className="text-muted-foreground">Role:</span> {getRoleDisplayName(createdUserData.role)}</p>
+                <p><span className="text-muted-foreground">Practice:</span> {createdUserData.practice_name}</p>
+              </div>
+              {createdUserData.password_reset_link && (
+                <p className="text-sm text-green-600 mt-2">
+                  ✓ Password setup link will be included (expires in 24 hours)
+                </p>
+              )}
+            </div>
+            
+            {enabledModules.length > 0 && (
+              <div className="bg-muted/50 p-3 rounded-md">
+                <p className="font-semibold text-primary mb-2">Enabled Features</p>
+                <div className="flex flex-wrap gap-2">
+                  {enabledModules.map(module => (
+                    <Badge key={module} variant="secondary">{module}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -560,14 +752,12 @@ export const PracticeUserManagement = () => {
                         )}
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {user.meeting_notes_access && <Badge variant="outline" className="text-xs">Notes</Badge>}
-                            {user.gp_scribe_access && <Badge variant="outline" className="text-xs">Scribe</Badge>}
+                            {user.ai4gp_access && <Badge variant="outline" className="text-xs">Ask AI</Badge>}
+                            {user.meeting_notes_access && <Badge variant="outline" className="text-xs">Meetings</Badge>}
+                            {user.survey_manager_access && <Badge variant="outline" className="text-xs">Survey</Badge>}
+                            {user.policy_service_access && <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">Policies</Badge>}
                             {user.complaints_manager_access && <Badge variant="outline" className="text-xs">Complaints</Badge>}
-                            {user.ai4gp_access && <Badge variant="outline" className="text-xs">AI4GP</Badge>}
-                            {user.enhanced_access && <Badge variant="outline" className="text-xs">Enhanced</Badge>}
-                            {user.cqc_compliance_access && <Badge variant="outline" className="text-xs">CQC</Badge>}
-                            {user.shared_drive_access && <Badge variant="outline" className="text-xs">Drive</Badge>}
-                            {user.fridge_monitoring_access && <Badge variant="outline" className="text-xs">Fridge Monitor</Badge>}
+                            {user.fridge_monitoring_access && <Badge variant="outline" className="text-xs">Fridge</Badge>}
                             {user.nres_access && <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">NRES</Badge>}
                           </div>
                         </TableCell>
@@ -605,7 +795,7 @@ export const PracticeUserManagement = () => {
 
       {/* User Modal */}
       <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {editingUser ? 'Edit User' : 'Add New User'}
@@ -618,213 +808,267 @@ export const PracticeUserManagement = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={userFormData.email}
-                  onChange={(e) => setUserFormData(prev => ({ ...prev, email: e.target.value }))}
-                  disabled={!!editingUser}
-                  placeholder="user@example.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="full_name">Full Name</Label>
-                <Input
-                  id="full_name"
-                  value={userFormData.full_name}
-                  onChange={(e) => setUserFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                  placeholder="John Doe"
-                />
-              </div>
-            </div>
-
-            {/* Last logged in display for editing */}
-            {editingUser && (
-              <div className="p-3 bg-muted/50 rounded-md">
-                <Label className="text-sm text-muted-foreground">Last Logged In</Label>
-                <p className="text-sm font-medium mt-1">
-                  {editingUser.last_login 
-                    ? new Date(editingUser.last_login).toLocaleString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })
-                    : 'Never logged in'}
-                </p>
-              </div>
-            )}
-
-            {/* Role selection for non-practice organisations */}
-            {isNonPracticeOrg && (
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select
-                  value={userFormData.role}
-                  onValueChange={(value) => setUserFormData(prev => ({ ...prev, role: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {organisationRoles.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        {role.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Practice role selection for GP practices only */}
-            {!isNonPracticeOrg && (
-              <div className="space-y-2">
-                <Label htmlFor="practice_role">Practice Role</Label>
-                <Select
-                  value={userFormData.practice_role || undefined}
-                  onValueChange={(value) => setUserFormData(prev => ({ ...prev, practice_role: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={editingUser && !userFormData.practice_role ? "Select a practice role" : "Select a practice role"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {practiceRoles.map((role) => (
-                      <SelectItem key={role.value} value={role.value}>
-                        {role.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Module Access</Label>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <div className="w-6 h-3 rounded-full bg-muted border"></div>
-                    <span>Off</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-6 h-3 rounded-full bg-primary"></div>
-                    <span>On</span>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="meeting_notes_access"
-                    checked={userFormData.module_access.meeting_notes_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, meeting_notes_access: checked }
-                      }))
-                    }
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-4 pb-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={userFormData.email}
+                    onChange={(e) => setUserFormData(prev => ({ ...prev, email: e.target.value }))}
+                    disabled={!!editingUser}
+                    placeholder="user@example.com"
                   />
-                  <Label htmlFor="meeting_notes_access" className="text-sm">
-                    Meeting Notes
-                  </Label>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="complaints_manager_access"
-                    checked={userFormData.module_access.complaints_manager_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, complaints_manager_access: checked }
-                      }))
-                    }
+                <div className="space-y-2">
+                  <Label htmlFor="full_name">Full Name</Label>
+                  <Input
+                    id="full_name"
+                    value={userFormData.full_name}
+                    onChange={(e) => setUserFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                    placeholder="John Doe"
                   />
-                  <Label htmlFor="complaints_manager_access" className="text-sm">
-                    Complaints Manager
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="ai4gp_access"
-                    checked={userFormData.module_access.ai4gp_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, ai4gp_access: checked }
-                      }))
-                    }
-                  />
-                  <Label htmlFor="ai4gp_access" className="text-sm">
-                    AI4GP
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="fridge_monitoring_access"
-                    checked={userFormData.module_access.fridge_monitoring_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, fridge_monitoring_access: checked }
-                      }))
-                    }
-                  />
-                  <Label htmlFor="fridge_monitoring_access" className="text-sm">
-                    Fridge Monitoring
-                  </Label>
                 </div>
               </div>
-              
-              {/* NRES Access - Only visible if current user has NRES access and editing */}
-              {currentUserHasNRES && editingUser && (
-                <div className="pt-3 mt-3 border-t border-border">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="nres_access"
-                      checked={editingUserNRESAccess}
-                      onCheckedChange={handleNRESAccessChange}
+
+              {/* Password field - Only for new users */}
+              {!editingUser && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        const validation = validatePassword(e.target.value);
+                        setPasswordError(validation.valid ? '' : validation.message);
+                      }}
+                      placeholder="Enter password"
+                      className={passwordError ? 'border-destructive pr-10' : 'pr-10'}
                     />
-                    <Label htmlFor="nres_access" className="text-sm font-medium">
-                      NRES Dashboard
-                    </Label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1 ml-10">
-                    Grants access to the NRES New Models Pilot Dashboard
+                  {passwordError ? (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {passwordError}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Minimum 8 characters with at least 1 number
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Last logged in display for editing */}
+              {editingUser && (
+                <div className="p-3 bg-muted/50 rounded-md">
+                  <Label className="text-sm text-muted-foreground">Last Logged In</Label>
+                  <p className="text-sm font-medium mt-1">
+                    {editingUser.last_login 
+                      ? new Date(editingUser.last_login).toLocaleString('en-GB', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : 'Never logged in'}
                   </p>
                 </div>
               )}
-            </div>
 
-            {/* Send Welcome Email - Only for new users */}
-            {!editingUser && (
-              <div className="p-4 border border-border rounded-lg bg-muted/30">
+              {/* Role selection for non-practice organisations */}
+              {isNonPracticeOrg && (
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select
+                    value={userFormData.role}
+                    onValueChange={(value) => setUserFormData(prev => ({ ...prev, role: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {organisationRoles.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          {role.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Practice role selection for GP practices only */}
+              {!isNonPracticeOrg && (
+                <div className="space-y-2">
+                  <Label htmlFor="practice_role">Practice Role</Label>
+                  <Select
+                    value={userFormData.practice_role || undefined}
+                    onValueChange={(value) => setUserFormData(prev => ({ ...prev, practice_role: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={editingUser && !userFormData.practice_role ? "Select a practice role" : "Select a practice role"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {practiceRoles.map((role) => (
+                        <SelectItem key={role.value} value={role.value}>
+                          {role.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="send_welcome_email" className="text-sm font-medium">
-                      Send welcome email to user
+                  <Label>Module Access</Label>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <div className="w-6 h-3 rounded-full bg-muted border"></div>
+                      <span>Off</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-6 h-3 rounded-full bg-primary"></div>
+                      <span>On</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Core Modules */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="ai4gp_access"
+                      checked={userFormData.module_access.ai4gp_access}
+                      onCheckedChange={(checked) => 
+                        setUserFormData(prev => ({
+                          ...prev,
+                          module_access: { ...prev.module_access, ai4gp_access: checked }
+                        }))
+                      }
+                    />
+                    <Label htmlFor="ai4gp_access" className="text-sm">
+                      Ask AI
                     </Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Email will include login URL, credentials and enabled modules
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="meeting_notes_access"
+                      checked={userFormData.module_access.meeting_notes_access}
+                      onCheckedChange={(checked) => 
+                        setUserFormData(prev => ({
+                          ...prev,
+                          module_access: { ...prev.module_access, meeting_notes_access: checked }
+                        }))
+                      }
+                    />
+                    <Label htmlFor="meeting_notes_access" className="text-sm">
+                      Meeting Manager
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="survey_manager_access"
+                      checked={userFormData.module_access.survey_manager_access}
+                      onCheckedChange={(checked) => 
+                        setUserFormData(prev => ({
+                          ...prev,
+                          module_access: { ...prev.module_access, survey_manager_access: checked }
+                        }))
+                      }
+                    />
+                    <Label htmlFor="survey_manager_access" className="text-sm">
+                      Survey Tool
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="policy_service_access"
+                      checked={editingUser ? editingUserPolicyAccess : userFormData.module_access.policy_service_access}
+                      onCheckedChange={(checked) => {
+                        if (editingUser) {
+                          setEditingUserPolicyAccess(checked);
+                        } else {
+                          setUserFormData(prev => ({
+                            ...prev,
+                            module_access: { ...prev.module_access, policy_service_access: checked }
+                          }));
+                        }
+                      }}
+                    />
+                    <Label htmlFor="policy_service_access" className="text-sm">
+                      Practice Policy Service
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="complaints_manager_access"
+                      checked={userFormData.module_access.complaints_manager_access}
+                      onCheckedChange={(checked) => 
+                        setUserFormData(prev => ({
+                          ...prev,
+                          module_access: { ...prev.module_access, complaints_manager_access: checked }
+                        }))
+                      }
+                    />
+                    <Label htmlFor="complaints_manager_access" className="text-sm">
+                      Complaints Service
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="fridge_monitoring_access"
+                      checked={userFormData.module_access.fridge_monitoring_access}
+                      onCheckedChange={(checked) => 
+                        setUserFormData(prev => ({
+                          ...prev,
+                          module_access: { ...prev.module_access, fridge_monitoring_access: checked }
+                        }))
+                      }
+                    />
+                    <Label htmlFor="fridge_monitoring_access" className="text-sm">
+                      Fridge Monitoring
+                    </Label>
+                  </div>
+                </div>
+                
+                {/* NRES Access - Only visible if current user has NRES access and editing */}
+                {currentUserHasNRES && editingUser && (
+                  <div className="pt-3 mt-3 border-t border-border">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="nres_access"
+                        checked={editingUserNRESAccess}
+                        onCheckedChange={handleNRESAccessChange}
+                      />
+                      <Label htmlFor="nres_access" className="text-sm font-medium">
+                        NRES Dashboard
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 ml-10">
+                      Grants access to the NRES New Models Pilot Dashboard
                     </p>
                   </div>
-                  <Switch
-                    id="send_welcome_email"
-                    checked={sendWelcomeEmail}
-                    onCheckedChange={setSendWelcomeEmail}
-                  />
-                </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          </ScrollArea>
 
-          <DialogFooter>
+          <DialogFooter className="pt-4 border-t">
             <Button
               variant="outline"
               onClick={() => {
@@ -837,9 +1081,55 @@ export const PracticeUserManagement = () => {
             </Button>
             <Button
               onClick={editingUser ? handleUpdateUser : handleCreateUser}
-              disabled={loading || sendingEmail || !userFormData.email || !userFormData.full_name}
+              disabled={loading || !userFormData.email || !userFormData.full_name || (!editingUser && !validatePassword(password).valid)}
             >
-              {loading ? 'Processing...' : sendingEmail ? 'Sending email...' : (editingUser ? 'Update User' : 'Create User')}
+              {loading ? 'Processing...' : (editingUser ? 'Update User' : 'Create User')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Preview Modal */}
+      <Dialog open={showEmailPreview} onOpenChange={setShowEmailPreview}>
+        <DialogContent className="max-w-xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Review Welcome Email
+            </DialogTitle>
+            <DialogDescription>
+              Review the welcome email before sending it to the new user
+            </DialogDescription>
+          </DialogHeader>
+          
+          <ScrollArea className="flex-1 pr-4">
+            {generateEmailPreviewContent()}
+          </ScrollArea>
+
+          <DialogFooter className="pt-4 border-t gap-2">
+            <Button
+              variant="outline"
+              onClick={handleSkipEmail}
+              disabled={sendingEmail}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Skip
+            </Button>
+            <Button
+              onClick={handleSendWelcomeEmail}
+              disabled={sendingEmail}
+            >
+              {sendingEmail ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Email
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

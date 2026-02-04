@@ -23,7 +23,9 @@ interface UpdateUserRequest {
     mic_test_service_access?: boolean;
     api_testing_service_access?: boolean;
     fridge_monitoring_access?: boolean;
+    survey_manager_access?: boolean;
   };
+  policy_service_access?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -94,7 +96,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Parse the request body
-    const { user_id, full_name, role, practice_role, module_access }: UpdateUserRequest = await req.json();
+    const { user_id, full_name, role, practice_role, module_access, policy_service_access }: UpdateUserRequest = await req.json();
 
     // Verify the user being updated belongs to the practice manager's practice
     const { data: userInPractice, error: verifyError } = await supabase
@@ -148,6 +150,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (module_access.mic_test_service_access !== undefined) roleUpdate.mic_test_service_access = module_access.mic_test_service_access;
       if (module_access.api_testing_service_access !== undefined) roleUpdate.api_testing_service_access = module_access.api_testing_service_access;
       if (module_access.fridge_monitoring_access !== undefined) roleUpdate.fridge_monitoring_access = module_access.fridge_monitoring_access;
+      if (module_access.survey_manager_access !== undefined) roleUpdate.survey_manager_access = module_access.survey_manager_access;
     }
 
     if (Object.keys(roleUpdate).length > 0) {
@@ -171,6 +174,36 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (profileError) {
         console.warn("Failed to update AI4GP access:", profileError);
+      }
+    }
+
+    // Handle policy_service activation/deactivation
+    if (policy_service_access !== undefined) {
+      if (policy_service_access) {
+        // Grant policy_service access
+        const { error: policyError } = await supabase
+          .from('user_service_activations')
+          .upsert({
+            user_id: user_id,
+            service: 'policy_service',
+            activated_by: user.id,
+            activated_at: new Date().toISOString()
+          }, { onConflict: 'user_id,service' });
+
+        if (policyError) {
+          console.warn("Failed to activate policy service:", policyError);
+        }
+      } else {
+        // Revoke policy_service access
+        const { error: policyError } = await supabase
+          .from('user_service_activations')
+          .delete()
+          .eq('user_id', user_id)
+          .eq('service', 'policy_service');
+
+        if (policyError) {
+          console.warn("Failed to revoke policy service:", policyError);
+        }
       }
     }
 

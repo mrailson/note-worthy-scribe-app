@@ -22,6 +22,8 @@ interface ModuleAccess {
   cso_governance_access: boolean;
   lg_capture_access: boolean;
   bp_service_access: boolean;
+  survey_manager_access?: boolean;
+  policy_service_access?: boolean;
 }
 
 interface WelcomeEmailRequest {
@@ -36,11 +38,31 @@ interface WelcomeEmailRequest {
 }
 
 // Module information for the email
-const moduleInfo: Record<keyof ModuleAccess, { label: string; description: string; category: string }> = {
+const moduleInfo: Record<string, { label: string; description: string; category: string }> = {
+  ai4gp_access: {
+    label: 'Ask AI',
+    description: 'AI-powered GP practice support and clinical guidance',
+    category: 'Core Features'
+  },
   meeting_notes_access: {
-    label: 'Meeting Notes',
+    label: 'Meeting Manager',
     description: 'Record meetings and automatically generate professional notes',
     category: 'Core Features'
+  },
+  survey_manager_access: {
+    label: 'Survey Tool',
+    description: 'Create and manage patient and staff surveys',
+    category: 'Core Features'
+  },
+  policy_service_access: {
+    label: 'Practice Policy Service',
+    description: 'Generate and manage CQC-compliant practice policies',
+    category: 'Compliance & Governance'
+  },
+  complaints_manager_access: {
+    label: 'Complaints Service',
+    description: 'View and manage patient complaints with AI assistance',
+    category: 'Compliance & Governance'
   },
   shared_drive_access: {
     label: 'Shared Drive',
@@ -61,16 +83,6 @@ const moduleInfo: Record<keyof ModuleAccess, { label: string; description: strin
     label: 'BP Average Service',
     description: 'Calculate and analyse blood pressure readings',
     category: 'Clinical Tools'
-  },
-  ai4gp_access: {
-    label: 'AI4GP Service',
-    description: 'AI-powered GP practice support and clinical guidance',
-    category: 'Clinical Tools'
-  },
-  complaints_manager_access: {
-    label: 'Complaints Manager',
-    description: 'View and manage patient complaints with AI assistance',
-    category: 'Compliance & Governance'
   },
   cqc_compliance_access: {
     label: 'CQC Compliance',
@@ -128,8 +140,8 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
   const enabledModules: Record<string, Array<{ label: string; description: string }>> = {};
   
   for (const [key, enabled] of Object.entries(data.module_access)) {
-    if (enabled && moduleInfo[key as keyof ModuleAccess]) {
-      const info = moduleInfo[key as keyof ModuleAccess];
+    if (enabled && moduleInfo[key]) {
+      const info = moduleInfo[key];
       if (!enabledModules[info.category]) {
         enabledModules[info.category] = [];
       }

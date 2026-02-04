@@ -12,6 +12,7 @@ interface CreateUserRequest {
   full_name: string;
   role: string;
   practice_role?: string;
+  password?: string;
   module_access: {
     meeting_notes_access?: boolean;
     gp_scribe_access?: boolean;
@@ -23,12 +24,14 @@ interface CreateUserRequest {
     mic_test_service_access?: boolean;
     api_testing_service_access?: boolean;
     fridge_monitoring_access?: boolean;
+    survey_manager_access?: boolean;
+    policy_service_access?: boolean;
   };
   send_welcome_email?: boolean;
   practice_name?: string;
 }
 
-// Generate a secure random password
+// Generate a secure random password as fallback
 function generateSecurePassword(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
   let password = '';
@@ -38,6 +41,17 @@ function generateSecurePassword(): string {
     password += chars[array[i] % chars.length];
   }
   return password;
+}
+
+// Validate password: min 8 chars, at least 1 number
+function validatePassword(password: string): { valid: boolean; message: string } {
+  if (!password || password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters' };
+  }
+  if (!/\d/.test(password)) {
+    return { valid: false, message: 'Password must contain at least 1 number' };
+  }
+  return { valid: true, message: '' };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -91,10 +105,19 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Parse the request body
-    const { email, full_name, role, practice_role, module_access, send_welcome_email, practice_name }: CreateUserRequest = await req.json();
+    const { email, full_name, role, practice_role, password, module_access, send_welcome_email, practice_name }: CreateUserRequest = await req.json();
     
-    // Generate a secure random password (user won't see this, they'll get a reset link)
-    const generatedPassword = generateSecurePassword();
+    // Use provided password or generate one
+    let userPassword: string;
+    if (password) {
+      const validation = validatePassword(password);
+      if (!validation.valid) {
+        throw new Error(validation.message);
+      }
+      userPassword = password;
+    } else {
+      userPassword = generateSecurePassword();
+    }
 
     // Validate role is allowed for practice managers (everything except super_admin)
     const blockedRoles = ['super_admin', 'admin'];
@@ -142,7 +165,8 @@ const handler = async (req: Request): Promise<Response> => {
             cqc_compliance_access: module_access.cqc_compliance_access || false,
             shared_drive_access: module_access.shared_drive_access || false,
             mic_test_service_access: module_access.mic_test_service_access || false,
-            api_testing_service_access: module_access.api_testing_service_access || false
+            api_testing_service_access: module_access.api_testing_service_access || false,
+            survey_manager_access: module_access.survey_manager_access || false
           })
           .eq('user_id', existingUserId)
           .eq('practice_id', practiceId);
@@ -163,6 +187,22 @@ const handler = async (req: Request): Promise<Response> => {
           }
         }
 
+        // Handle policy_service activation
+        if (module_access.policy_service_access) {
+          const { error: policyError } = await supabase
+            .from('user_service_activations')
+            .upsert({
+              user_id: existingUserId,
+              service: 'policy_service',
+              activated_by: user.id,
+              activated_at: new Date().toISOString()
+            }, { onConflict: 'user_id,service' });
+
+          if (policyError) {
+            console.warn("Failed to activate policy service:", policyError);
+          }
+        }
+
         const otherPractices = existingUserCheck.other_practices || [];
         const practiceList = otherPractices.map((p: any) => p.practice_name).join(', ');
         
@@ -180,10 +220,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Create new user with generated password
+    // Create new user with the password
     const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
       email,
-      password: generatedPassword,
+      password: userPassword,
       email_confirm: true,
       user_metadata: {
         full_name
@@ -229,11 +269,28 @@ const handler = async (req: Request): Promise<Response> => {
         cqc_compliance_access: module_access.cqc_compliance_access || false,
         shared_drive_access: module_access.shared_drive_access || false,
         mic_test_service_access: module_access.mic_test_service_access || false,
-        api_testing_service_access: module_access.api_testing_service_access || false
+        api_testing_service_access: module_access.api_testing_service_access || false,
+        survey_manager_access: module_access.survey_manager_access || false
       });
 
     if (roleInsertError) {
       throw new Error(`Failed to assign role: ${roleInsertError.message}`);
+    }
+
+    // Handle policy_service activation
+    if (module_access.policy_service_access) {
+      const { error: policyError } = await supabase
+        .from('user_service_activations')
+        .insert({
+          user_id: newUser.user.id,
+          service: 'policy_service',
+          activated_by: user.id,
+          activated_at: new Date().toISOString()
+        });
+
+      if (policyError) {
+        console.warn("Failed to activate policy service:", policyError);
+      }
     }
 
     // Generate password reset link for the user
