@@ -5975,6 +5975,41 @@ export type Database = {
         }
         Relationships: []
       }
+      mock_inspection_access: {
+        Row: {
+          can_edit: boolean | null
+          created_at: string
+          granted_by_user_id: string
+          granted_to_user_id: string
+          id: string
+          session_id: string
+        }
+        Insert: {
+          can_edit?: boolean | null
+          created_at?: string
+          granted_by_user_id: string
+          granted_to_user_id: string
+          id?: string
+          session_id: string
+        }
+        Update: {
+          can_edit?: boolean | null
+          created_at?: string
+          granted_by_user_id?: string
+          granted_to_user_id?: string
+          id?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_inspection_access_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "mock_inspection_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mock_inspection_capture_sessions: {
         Row: {
           created_at: string | null
@@ -10802,6 +10837,10 @@ export type Database = {
       }
       has_cso_governance_access: {
         Args: { _user_id?: string }
+        Returns: boolean
+      }
+      has_mock_inspection_access: {
+        Args: { p_session_id: string; p_user_id: string }
         Returns: boolean
       }
       has_nres_access: { Args: { check_user_id?: string }; Returns: boolean }
