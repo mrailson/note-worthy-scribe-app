@@ -1,190 +1,181 @@
 
-# Plan: PLT Planning Feature for Practice Managers
+# Mock CQC Inspection Service
+
+A new service enabling Practice Managers to conduct simulated CQC inspections focusing on Safe and Well-led domains, with comprehensive evidence management and professional Word report generation.
 
 ## Overview
 
-This plan adds a **PLT Planning** (Protected Learning Time) category to the Practice Manager interface, complete with the 2026/27 PLT Calendar dates and AI-powered prompts for planning comprehensive training sessions.
+The Mock CQC Inspection service will provide a supportive, "critical friend" experience that helps practices identify compliance gaps before a real CQC inspection. Users select a practice/site, work through structured inspection elements organised by domain, mark each as met/not met, attach or describe evidence, and receive a priority-focused improvement report.
 
----
+## User Journey
 
-## What You'll Get
+```text
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Select Site    │ ──▶ │ Start Inspection│ ──▶ │ Work Through    │
+│  (Practice)     │     │ (creates session)│     │ Elements        │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                                                        │
+        ┌───────────────────────────────────────────────┘
+        ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  FOR EACH INSPECTION ELEMENT:                                    │
+│  • View element name + evidence guidance blurb                   │
+│  • Quick pick: Met / Partially Met / Not Met / Not Applicable    │
+│  • Attach evidence (link existing, upload new, or add notes)     │
+│  • Add improvement comments                                       │
+└─────────────────────────────────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────┐     ┌─────────────────┐
+│ Complete        │ ──▶ │ Generate Word   │
+│ All Sections    │     │ Priority Report │
+└─────────────────┘     └─────────────────┘
+```
 
-### 1. New "PLT Planning" Quick Pick Card
-A new card in the PM home screen grid (alongside Documents, Respond, Workforce, etc.) with:
-- **Icon**: GraduationCap with a magenta/pink gradient (matching your PLT Calendar branding)
-- **Label**: "PLT Planning"
-- **Description**: Plan Protected Learning Time sessions with AI assistance
+## Key Features
 
-### 2. PLT Calendar Display
-When you click "PLT Planning", you'll see:
-- **2026/27 PLT Calendar** showing all dates from your reference image
-- Dates displayed in a clean list format with:
-  - Date badge (e.g., "25 Feb", "18 Mar")
-  - Type indicator (Countywide or Practice/PCN)
-  - Year marker for dates spanning 2026-2027
-- Visual styling matching your PLT Calendar design (pink/magenta theme)
-
-### 3. AI Training Session Ideas
-After the calendar, subcategories for planning PLTs:
-
-| Subcategory | Prompts |
-|-------------|---------|
-| **Plan a PLT** | Create comprehensive PLT session plans with objectives, timings, activities |
-| **Difficult Situations** | Handling patient aggression at reception, telephone conflict, de-escalation |
-| **Clinical Topics** | Safeguarding updates, infection control refresher, medication safety |
-| **Admin & Systems** | EMIS/SystmOne training, coding updates, telephone triage protocols |
-| **Wellbeing & Team** | Staff wellbeing sessions, team building, resilience training |
-| **Compliance** | CQC key questions, information governance, fire safety refreshers |
-
-### 4. Training Session Prompt Examples
-
-**Difficult Situations (as requested):**
-- "Plan a PLT session on handling patients shouting at reception - include role play scenarios, de-escalation techniques, and when to escalate"
-- "Create training materials for handling aggressive callers on the telephone"
-- "Design a conflict resolution workshop for reception staff"
-- "Create a session on managing difficult conversations with patients about capacity and waiting times"
-
-**Other Useful PM Training Ideas:**
-- "Plan a PLT on safeguarding adults - include case studies and practice scenarios"
-- "Create a reception training session on telephone triage using the 6 Cs"
-- "Design a session on understanding QOF requirements for clinical coders"
-- "Plan training on complaints handling for all staff"
-- "Create a session on GDPR and patient confidentiality refresher"
-
----
-
-## PLT Calendar Data (2026/27)
-
-Based on your image, the following dates will be displayed:
-
-| Date | Type | Year |
-|------|------|------|
-| 25 Feb | Countywide | 2026 |
-| 18 Mar | Countywide | 2026 |
-| 15 Apr | Practice/PCN | 2026 |
-| 13 May | Countywide | 2026 |
-| 10 Jun | Practice/PCN | 2026 |
-| 8 Jul | Countywide | 2026 |
-| 9 Sep | Practice/PCN | 2026 |
-| 7 Oct | Countywide | 2026 |
-| 11 Nov | Practice/PCN | 2026 |
-| 13 Jan | Countywide | 2027 |
-| 10 Feb | Practice/PCN | 2027 |
-| 10 Mar | Countywide | 2027 |
-
----
-
-## Mobile Quick Pick
-
-Adding "PLT Planning" to the mobile PM quick picks (replacing one less-used option):
-- **Label**: "PLT Planning"
-- **Prompt**: "Help me plan a Protected Learning Time session for our practice"
-
----
+1. **Practice/Site Selection** - Use existing practice selector pattern from LGCaptureLanding
+2. **Domain-Organised Structure** - Safe (priority) and Well-led (priority), with Effective, Caring, Responsive available
+3. **Inspection Elements** - Pre-defined CQC KLOEs with evidence guidance
+4. **Quick Pick Status** - Met, Partially Met, Not Met, Not Applicable
+5. **Flexible Evidence** - Link from CQC Evidence repository, upload new files, or describe in notes
+6. **Time Guidance** - Suggested time per domain (no countdown)
+7. **Progress Tracking** - Visual progress through domains and overall completion
+8. **Priority Report** - Word document highlighting gaps, ordered by priority
 
 ## Technical Implementation
 
-### Files to Modify
+### New Database Tables
 
-1. **`src/components/ai4gp/pmPromptCategories.ts`**
-   - Add new `plt-planning` main category with subcategories
-   - Import `CalendarDays` or `GraduationCap` icon
-   - Add pink/magenta gradient to match PLT branding
+**mock_inspection_sessions**
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| practice_id | uuid | FK to gp_practices |
+| user_id | uuid | FK to auth.users |
+| status | text | draft, in_progress, completed |
+| started_at | timestamptz | When inspection began |
+| completed_at | timestamptz | When inspection finished |
+| report_generated_at | timestamptz | When report was generated |
+| created_at | timestamptz | Record creation |
 
-2. **`src/components/ai4gp/PMHomeScreen.tsx`**
-   - Add special handling for PLT Planning category
-   - Display PLT Calendar dates when this category is selected
-   - Add new view type for calendar display
+**mock_inspection_elements**
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| session_id | uuid | FK to sessions |
+| domain | text | safe, effective, caring, responsive, well_led |
+| element_key | text | Unique identifier (e.g., S1, S2, W1) |
+| element_name | text | Display name |
+| evidence_guidance | text | What evidence to look for |
+| status | text | not_assessed, met, partially_met, not_met, not_applicable |
+| evidence_notes | text | User's evidence description |
+| improvement_comments | text | Suggested improvements |
+| evidence_files | jsonb | Array of {type, url/id, name} |
+| assessed_at | timestamptz | When this element was assessed |
 
-3. **`src/components/ai4gp/MobileRoleQuickPicks.tsx`**
-   - Add "PLT Planning" to PM_QUICK_PICKS array
+**mock_inspection_element_templates** (seed data)
+| Column | Type | Description |
+|--------|------|-------------|
+| id | uuid | Primary key |
+| domain | text | CQC domain |
+| element_key | text | Unique key |
+| element_name | text | Display name |
+| evidence_guidance | text | Evidence requirements |
+| priority | integer | Display order within domain |
+| is_priority_domain | boolean | Safe/Well-led = true |
 
-4. **New file: `src/components/ai4gp/PLTCalendar.tsx`**
-   - Standalone component to display the 2026/27 PLT dates
-   - Styled with pink/magenta theme matching your reference
-   - Shows type badges (Countywide vs Practice/PCN)
-   - Highlights upcoming dates
+### New Files
 
-### Category Structure
+**Pages & Components**
+- `src/pages/MockCQCInspection.tsx` - Main service page with practice selection and session management
+- `src/components/mock-cqc/InspectionDashboard.tsx` - Progress overview with domain cards
+- `src/components/mock-cqc/InspectionElement.tsx` - Individual element assessment card
+- `src/components/mock-cqc/EvidenceAttachment.tsx` - Evidence linking/upload/notes panel
+- `src/components/mock-cqc/DomainSection.tsx` - Collapsible domain with its elements
+- `src/components/mock-cqc/StatusQuickPick.tsx` - Met/Not Met quick selection buttons
+- `src/components/mock-cqc/InspectionReport.tsx` - Report preview before download
 
-```text
-PLT Planning (main category)
-  |
-  +-- PLT Calendar (special view - shows date list)
-  |
-  +-- Plan a PLT
-  |     +-- General PLT Plan
-  |     +-- 1-Hour Session
-  |     +-- 2-Hour Session  
-  |     +-- Half-Day Session
-  |
-  +-- Difficult Situations
-  |     +-- Patient Aggression (Reception)
-  |     +-- Telephone Conflict
-  |     +-- De-escalation Training
-  |     +-- Conflict Resolution
-  |
-  +-- Clinical Training
-  |     +-- Safeguarding Updates
-  |     +-- Infection Control
-  |     +-- Medication Safety
-  |     +-- Clinical Emergencies
-  |
-  +-- Admin & Systems
-  |     +-- EMIS/SystmOne
-  |     +-- Coding Updates
-  |     +-- Telephone Triage
-  |     +-- New Starter Induction
-  |
-  +-- Wellbeing & Team
-  |     +-- Staff Wellbeing
-  |     +-- Team Building
-  |     +-- Resilience
-  |     +-- Stress Management
-  |
-  +-- Compliance Training
-        +-- CQC Key Questions
-        +-- Information Governance
-        +-- Fire Safety
-        +-- Health & Safety
-```
+**Utilities**
+- `src/utils/generateMockInspectionReport.ts` - Word document generation using docx library
 
-### PLT Calendar Component Design
+**Edge Function**
+- `supabase/functions/generate-mock-inspection-report/index.ts` - AI-enhanced report with prioritised recommendations
 
-The PLT Calendar will display as a styled list:
+**Hooks**
+- `src/hooks/useMockInspection.ts` - Session and element state management
 
-```text
-+------------------------------------------+
-|           2026/27 PLT Calendar           |
-+------------------------------------------+
-| [25 Feb] Countywide              [2026]  |
-| [18 Mar] Countywide                      |
-| [15 Apr] Practice/PCN                    |
-| [13 May] Countywide                      |
-| [10 Jun] Practice/PCN                    |
-| [8 Jul]  Countywide                      |
-| [9 Sep]  Practice/PCN                    |
-| [7 Oct]  Countywide                      |
-| [11 Nov] Practice/PCN                    |
-| [13 Jan] Countywide              [2027]  |
-| [10 Feb] Practice/PCN                    |
-| [10 Mar] Countywide                      |
-+------------------------------------------+
-```
+### Inspection Elements (Seed Data)
 
-- Date badges in pink/magenta
-- Type labels colour-coded (Countywide = purple, Practice/PCN = lighter purple)
-- Year markers shown on first date of each year
-- Upcoming dates highlighted
+**Safe Domain (Priority)** - 12 elements
+- S1: Safeguarding policies and procedures
+- S2: Infection prevention and control
+- S3: Medicines management
+- S4: Equipment safety and maintenance
+- S5: Staff recruitment and DBS checks
+- S6: Health and safety risk assessments
+- S7: Fire safety and emergency procedures
+- S8: Significant event analysis and learning
+- S9: Patient safety alerts and recalls
+- S10: Chaperone policy and training
+- S11: Clinical supervision arrangements
+- S12: Premises safety and security
 
----
+**Well-led Domain (Priority)** - 12 elements
+- W1: Governance framework and accountability
+- W2: Staff training and appraisals
+- W3: Complaints handling and learning
+- W4: Quality improvement initiatives
+- W5: Business continuity planning
+- W6: Information governance and GDPR
+- W7: Staff engagement and wellbeing
+- W8: Partnership working
+- W9: Financial management
+- W10: CQC registration compliance
+- W11: Policy review and version control
+- W12: Leadership visibility and communication
 
-## Summary of Changes
+**Other Domains** (8 elements each for Effective, Caring, Responsive)
 
-| Component | Change |
-|-----------|--------|
-| PM Home Screen | New "PLT Planning" card in category grid |
-| PM Categories | New main category with 6 subcategories and ~24 prompts |
-| PLT Calendar | New component showing 2026/27 dates |
-| Mobile Quick Picks | New "PLT Planning" option added |
-| Styling | Pink/magenta gradient theme for PLT branding |
+### Word Report Structure
+
+1. **Cover Page** - Practice name, inspection date, overall score
+2. **Executive Summary** - High-level findings with traffic light summary
+3. **Priority Actions** - Items marked Not Met, ordered by domain priority
+4. **Domain-by-Domain Breakdown** - Each element with status, evidence, comments
+5. **Recommendations** - AI-generated improvement suggestions
+6. **Evidence Index** - List of attached/referenced evidence
+7. **Appendix** - Full assessment checklist
+
+### Access Control
+
+- Add `mock_inspection_access` to `user_modules` table
+- RLS policies scoped to user's practice via `user_roles.practice_id`
+- Service visibility controlled via `useServiceActivation` hook
+
+### Navigation Integration
+
+- Add "Mock CQC Inspection" to service menu (similar to LG Capture, CQC Compliance)
+- Route: `/mock-cqc-inspection`
+
+## Critical Friend Approach
+
+The UI will use supportive language throughout:
+- "Let's check your evidence" instead of "You are missing..."
+- "This area could be strengthened" instead of "Failed"
+- Traffic light colours with green as default assumption
+- Encouraging progress messages
+- Practical, actionable improvement suggestions
+
+## Files to Create/Modify
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/pages/MockCQCInspection.tsx` | Create | Main service page |
+| `src/components/mock-cqc/*.tsx` | Create | Component suite (6 files) |
+| `src/hooks/useMockInspection.ts` | Create | State management hook |
+| `src/utils/generateMockInspectionReport.ts` | Create | Word document generation |
+| `supabase/functions/generate-mock-inspection-report/index.ts` | Create | AI report enhancement |
+| `supabase/migrations/[timestamp]_mock_inspection_tables.sql` | Create | Database schema + seed data |
+| `src/App.tsx` | Modify | Add route |
+| `src/components/Header.tsx` or service menu | Modify | Add navigation item |
