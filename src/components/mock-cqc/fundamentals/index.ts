@@ -1,4 +1,17 @@
 export { FundamentalsChecklist } from './FundamentalsChecklist';
 export { FundamentalItemCard } from './FundamentalItemCard';
-export { FUNDAMENTALS_CATEGORIES, getStatusColor, getStatusLabel } from './fundamentalsConfig';
-export type { FundamentalCategory, FundamentalItem } from './fundamentalsConfig';
+export { 
+  FUNDAMENTALS_CATEGORIES, 
+  INSPECTION_TYPES,
+  getStatusColor, 
+  getStatusLabel,
+  isItemVisibleForType,
+  getVisibleItems,
+  getItemCountsByType
+} from './fundamentalsConfig';
+export type { 
+  FundamentalCategory, 
+  FundamentalItem, 
+  InspectionType, 
+  ItemTier 
+} from './fundamentalsConfig';

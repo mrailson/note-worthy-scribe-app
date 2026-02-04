@@ -6195,6 +6195,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
+          inspection_type: string
           practice_id: string
           report_generated_at: string | null
           started_at: string | null
@@ -6206,6 +6207,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          inspection_type?: string
           practice_id: string
           report_generated_at?: string | null
           started_at?: string | null
@@ -6217,6 +6219,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          inspection_type?: string
           practice_id?: string
           report_generated_at?: string | null
           started_at?: string | null

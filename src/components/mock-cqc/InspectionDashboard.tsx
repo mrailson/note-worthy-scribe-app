@@ -4,18 +4,20 @@ import { Header } from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Download } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Download, ArrowUpCircle, Zap, ClipboardCheck, ShieldCheck } from 'lucide-react';
 import { DomainSection } from './DomainSection';
 import { InspectionReport } from './InspectionReport';
 import { SiteIssuesSection } from './SiteIssuesSection';
-import { FundamentalsChecklist } from './fundamentals';
-import { InspectionSession, InspectionElement, useMockInspection } from '@/hooks/useMockInspection';
+import { FundamentalsChecklist, INSPECTION_TYPES } from './fundamentals';
+import { InspectionSession, InspectionElement, InspectionType, useMockInspection } from '@/hooks/useMockInspection';
 
 interface InspectionDashboardProps {
   session: InspectionSession;
   elements: InspectionElement[];
   practiceName: string;
   onClose: () => void;
+  onUpgradeType?: (newType: InspectionType) => Promise<boolean>;
 }
 
 const DOMAIN_CONFIG = {
@@ -65,11 +67,25 @@ export const InspectionDashboard = ({
   session, 
   elements, 
   practiceName, 
-  onClose 
+  onClose,
+  onUpgradeType
 }: InspectionDashboardProps) => {
   const [showReport, setShowReport] = useState(false);
   const [localElements, setLocalElements] = useState<InspectionElement[]>(elements);
+  const [localSession, setLocalSession] = useState<InspectionSession>(session);
   const { updateElement: updateElementInDb, completeInspection } = useMockInspection();
+
+  const inspectionTypeConfig = INSPECTION_TYPES[localSession.inspection_type];
+  const canUpgrade = localSession.inspection_type !== 'long';
+
+  const handleUpgrade = async (newType: InspectionType) => {
+    if (onUpgradeType) {
+      const success = await onUpgradeType(newType);
+      if (success) {
+        setLocalSession(prev => ({ ...prev, inspection_type: newType }));
+      }
+    }
+  };
   
   // Calculate progress from local elements
   const getProgress = () => {
@@ -149,14 +165,31 @@ export const InspectionDashboard = ({
                 Exit
               </Button>
               <div>
-                <h1 className="text-xl font-bold">{practiceName}</h1>
-                <p className="text-sm text-muted-foreground">Mock CQC Inspection</p>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold">{practiceName}</h1>
+                  <Badge variant="outline" className={inspectionTypeConfig.color}>
+                    {inspectionTypeConfig.label} Inspection
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">Mock CQC Inspection • {inspectionTypeConfig.duration}</p>
               </div>
             </div>
-            <Button onClick={handleCompleteAndReport} disabled={progress.assessed === 0}>
-              <FileText className="h-4 w-4 mr-2" />
-              Generate Report
-            </Button>
+            <div className="flex items-center gap-2">
+              {canUpgrade && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleUpgrade(localSession.inspection_type === 'short' ? 'mid' : 'long')}
+                >
+                  <ArrowUpCircle className="h-4 w-4 mr-2" />
+                  Upgrade to {localSession.inspection_type === 'short' ? 'Standard' : 'Full'}
+                </Button>
+              )}
+              <Button onClick={handleCompleteAndReport} disabled={progress.assessed === 0}>
+                <FileText className="h-4 w-4 mr-2" />
+                Generate Report
+              </Button>
+            </div>
           </div>
 
           {/* Progress Overview */}
@@ -222,7 +255,7 @@ export const InspectionDashboard = ({
 
           {/* Fundamentals Checklist - Primary Walkthrough */}
           <div className="mb-6">
-            <FundamentalsChecklist sessionId={session.id} />
+            <FundamentalsChecklist sessionId={localSession.id} inspectionType={localSession.inspection_type} />
           </div>
 
           {/* Domain Sections */}
