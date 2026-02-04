@@ -66,8 +66,48 @@ export const InspectionDashboard = ({
   onClose 
 }: InspectionDashboardProps) => {
   const [showReport, setShowReport] = useState(false);
-  const { updateElement, getProgress, getElementsByDomain, completeInspection } = useMockInspection();
+  const [localElements, setLocalElements] = useState<InspectionElement[]>(elements);
+  const { updateElement: updateElementInDb, completeInspection } = useMockInspection();
   
+  // Calculate progress from local elements
+  const getProgress = () => {
+    const total = localElements.length;
+    const assessed = localElements.filter(e => e.status !== 'not_assessed').length;
+    const met = localElements.filter(e => e.status === 'met').length;
+    const partiallyMet = localElements.filter(e => e.status === 'partially_met').length;
+    const notMet = localElements.filter(e => e.status === 'not_met').length;
+
+    return {
+      total,
+      assessed,
+      met,
+      partiallyMet,
+      notMet,
+      percentComplete: total > 0 ? Math.round((assessed / total) * 100) : 0
+    };
+  };
+
+  // Get elements by domain from local state
+  const getElementsByDomain = (domain: string) => {
+    return localElements
+      .filter(e => e.domain === domain)
+      .sort((a, b) => a.element_key.localeCompare(b.element_key));
+  };
+
+  // Wrapper to update both DB and local state
+  const handleUpdateElement = async (
+    elementId: string,
+    updates: Partial<Pick<InspectionElement, 'status' | 'evidence_notes' | 'improvement_comments' | 'evidence_files'>>
+  ) => {
+    const success = await updateElementInDb(elementId, updates);
+    if (success) {
+      setLocalElements(prev => 
+        prev.map(el => el.id === elementId ? { ...el, ...updates } : el)
+      );
+    }
+    return success;
+  };
+
   const progress = getProgress();
   
   // Order domains with priority first
@@ -82,7 +122,7 @@ export const InspectionDashboard = ({
     return (
       <InspectionReport 
         session={session}
-        elements={elements}
+        elements={localElements}
         practiceName={practiceName}
         onBack={() => setShowReport(false)}
       />
@@ -197,7 +237,7 @@ export const InspectionDashboard = ({
                   borderColor={config.borderColor}
                   isPriority={config.priority}
                   elements={domainElements}
-                  onUpdateElement={updateElement}
+                  onUpdateElement={handleUpdateElement}
                 />
               );
             })}
