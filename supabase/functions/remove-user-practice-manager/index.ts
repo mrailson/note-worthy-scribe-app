@@ -92,27 +92,84 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Error checking user's other practice assignments");
     }
 
-    // Remove user from this practice
-    const { error: removeError } = await supabase
-      .rpc('remove_user_from_practice', {
-        p_user_id: user_id,
-        p_practice_id: practiceId,
-        p_role: null
-      });
+    const hasOtherPractices = otherPractices && otherPractices.length > 0;
 
-    if (removeError) {
-      throw new Error(`Failed to remove user from practice: ${removeError.message}`);
+    if (hasOtherPractices) {
+      // User has other practice assignments - just remove from this practice
+      const { error: removeError } = await supabase
+        .rpc('remove_user_from_practice', {
+          p_user_id: user_id,
+          p_practice_id: practiceId,
+          p_role: null
+        });
+
+      if (removeError) {
+        throw new Error(`Failed to remove user from practice: ${removeError.message}`);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: "User removed from your practice. They remain assigned to other practices.",
+        has_other_practices: true
+      }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      });
     }
 
-    const hasOtherPractices = otherPractices && otherPractices.length > 0;
-    const message = hasOtherPractices 
-      ? "User removed from your practice. They remain assigned to other practices."
-      : "User removed from your practice. They are no longer assigned to any practice.";
+    // User has no other practices - fully delete them from the system
+    console.log("User has no other practices, performing full deletion for:", user_id);
+
+    // 1. Delete from user_roles
+    const { error: rolesError } = await supabase
+      .from('user_roles')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (rolesError) {
+      console.error("Error deleting user roles:", rolesError);
+      throw new Error(`Failed to delete user roles: ${rolesError.message}`);
+    }
+
+    // 2. Delete from user_modules
+    const { error: modulesError } = await supabase
+      .from('user_modules')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (modulesError) {
+      console.error("Error deleting user modules:", modulesError);
+      // Continue anyway as this is not critical
+    }
+
+    // 3. Delete from profiles
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (profileError) {
+      console.error("Error deleting profile:", profileError);
+      throw new Error(`Failed to delete user profile: ${profileError.message}`);
+    }
+
+    // 4. Delete from auth.users using admin API
+    const { error: authError } = await supabase.auth.admin.deleteUser(user_id);
+
+    if (authError) {
+      console.error("Auth deletion error:", authError);
+      throw new Error(`Failed to delete user account: ${authError.message}`);
+    }
+
+    console.log("User fully deleted from system:", user_id);
 
     return new Response(JSON.stringify({
       success: true,
-      message,
-      has_other_practices: hasOtherPractices
+      message: "User has been fully removed from the system.",
+      has_other_practices: false
     }), {
       status: 200,
       headers: {
