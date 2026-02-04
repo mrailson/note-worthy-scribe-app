@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -13,7 +13,9 @@ import {
   Trash2,
   ExternalLink,
   Loader2,
-  Bot
+  Bot,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStatusColor, getStatusLabel, FundamentalItem } from './fundamentalsConfig';
@@ -60,6 +62,62 @@ export const FundamentalItemCard = ({
   const [notes, setNotes] = useState(record?.notes || '');
   const [isCreatingRecord, setIsCreatingRecord] = useState(false);
   const [localRecordId, setLocalRecordId] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  // Speech recognition setup
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognitionAPI) {
+        const recognition = new SpeechRecognitionAPI();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-GB';
+        
+        recognition.onresult = (event: any) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          if (event.results[event.results.length - 1].isFinal) {
+            setNotes(prev => prev + (prev ? ' ' : '') + transcript.trim());
+          }
+        };
+        
+        recognition.onerror = () => {
+          setIsListening(false);
+        };
+        
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+        
+        recognitionRef.current = recognition;
+      }
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      showToast.error('Speech recognition not supported in this browser');
+      return;
+    }
+    
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
 
   const status = record?.status || 'not_checked';
   
@@ -278,14 +336,26 @@ export const FundamentalItemCard = ({
 
               {/* Notes */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Notes</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Notes</label>
+                  <Button
+                    variant={isListening ? "destructive" : "outline"}
+                    size="sm"
+                    onClick={toggleListening}
+                    className="h-7 gap-1.5"
+                    title={isListening ? "Stop listening" : "Start voice input"}
+                  >
+                    {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                    {isListening ? "Stop" : "Voice"}
+                  </Button>
+                </div>
                 <Textarea
-                  placeholder="Add any notes about this item..."
+                  placeholder={isListening ? "Listening..." : "Add any notes about this item..."}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   onBlur={handleNotesBlur}
                   rows={2}
-                  className="text-sm"
+                  className="text-sm bg-white"
                 />
               </div>
             </div>
