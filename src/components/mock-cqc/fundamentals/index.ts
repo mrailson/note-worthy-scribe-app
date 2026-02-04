@@ -1,4 +1,5 @@
 export { FundamentalsChecklist } from './FundamentalsChecklist';
+export type { FundamentalsStats } from './FundamentalsChecklist';
 export { FundamentalItemCard } from './FundamentalItemCard';
 export { 
   FUNDAMENTALS_CATEGORIES, 

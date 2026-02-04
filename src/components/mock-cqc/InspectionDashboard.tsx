@@ -9,7 +9,7 @@ import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Do
 import { DomainSection } from './DomainSection';
 import { InspectionReport } from './InspectionReport';
 import { SiteIssuesSection } from './SiteIssuesSection';
-import { FundamentalsChecklist, INSPECTION_TYPES } from './fundamentals';
+import { FundamentalsChecklist, INSPECTION_TYPES, FundamentalsStats } from './fundamentals';
 import { InspectionSession, InspectionElement, InspectionType, useMockInspection } from '@/hooks/useMockInspection';
 import { InspectionAccessManager } from './InspectionAccessManager';
 import { useAuth } from '@/contexts/AuthContext';
@@ -76,6 +76,14 @@ export const InspectionDashboard = ({
   const [showReport, setShowReport] = useState(false);
   const [localElements, setLocalElements] = useState<InspectionElement[]>(elements);
   const [localSession, setLocalSession] = useState<InspectionSession>(session);
+  const [fundamentalsStats, setFundamentalsStats] = useState<FundamentalsStats>({
+    total: 0,
+    verified: 0,
+    issuesFound: 0,
+    notApplicable: 0,
+    notChecked: 0,
+    percent: 0
+  });
   const { updateElement: updateElementInDb, completeInspection } = useMockInspection();
 
   // Check if current user is the owner of this session
@@ -214,34 +222,72 @@ export const InspectionDashboard = ({
               </div>
               <Progress value={progress.percentComplete} className="h-2 mb-4" />
               
-              {/* Status Summary */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  <div>
-                    <p className="text-lg font-semibold text-green-600">{progress.met}</p>
-                    <p className="text-xs text-muted-foreground">Met</p>
+              {/* Domain Elements Summary */}
+              <div className="mb-4">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Domain Elements</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <div>
+                      <p className="text-base font-semibold text-green-600">{progress.met}</p>
+                      <p className="text-xs text-muted-foreground">Met</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+                    <MinusCircle className="h-4 w-4 text-amber-600" />
+                    <div>
+                      <p className="text-base font-semibold text-amber-600">{progress.partiallyMet}</p>
+                      <p className="text-xs text-muted-foreground">Partially Met</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-950/30">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <div>
+                      <p className="text-base font-semibold text-red-600">{progress.notMet}</p>
+                      <p className="text-xs text-muted-foreground">Not Met</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50">
+                    <Circle className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-base font-semibold">{progress.total - progress.assessed}</p>
+                      <p className="text-xs text-muted-foreground">Not Assessed</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30">
-                  <MinusCircle className="h-5 w-5 text-amber-600" />
-                  <div>
-                    <p className="text-lg font-semibold text-amber-600">{progress.partiallyMet}</p>
-                    <p className="text-xs text-muted-foreground">Partially Met</p>
+              </div>
+
+              {/* Fundamentals Checklist Summary */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Fundamentals Checklist</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <div>
+                      <p className="text-base font-semibold text-green-600">{fundamentalsStats.verified}</p>
+                      <p className="text-xs text-muted-foreground">Verified</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/30">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                  <div>
-                    <p className="text-lg font-semibold text-red-600">{progress.notMet}</p>
-                    <p className="text-xs text-muted-foreground">Not Met</p>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-950/30">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <div>
+                      <p className="text-base font-semibold text-red-600">{fundamentalsStats.issuesFound}</p>
+                      <p className="text-xs text-muted-foreground">Issues Found</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                  <Circle className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-lg font-semibold">{progress.total - progress.assessed}</p>
-                    <p className="text-xs text-muted-foreground">Not Assessed</p>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/30">
+                    <MinusCircle className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-base font-semibold">{fundamentalsStats.notApplicable}</p>
+                      <p className="text-xs text-muted-foreground">N/A</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50">
+                    <Circle className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-base font-semibold">{fundamentalsStats.notChecked}</p>
+                      <p className="text-xs text-muted-foreground">Not Checked</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -266,7 +312,11 @@ export const InspectionDashboard = ({
 
           {/* Fundamentals Checklist - Primary Walkthrough */}
           <div className="mb-6">
-            <FundamentalsChecklist sessionId={localSession.id} inspectionType={localSession.inspection_type} />
+            <FundamentalsChecklist 
+              sessionId={localSession.id} 
+              inspectionType={localSession.inspection_type}
+              onStatsChange={setFundamentalsStats}
+            />
           </div>
 
           {/* Domain Sections */}
