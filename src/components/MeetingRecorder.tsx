@@ -599,18 +599,25 @@ export const MeetingRecorder = ({
     return lastSaved.saveTimestamp ? new Date(lastSaved.saveTimestamp).getTime() : null;
   }, [chunkSaveStatuses]);
 
+  // Recording health monitor callbacks - use refs to avoid dependency on stopRecording which is defined later
+  const stopRecordingRef = useRef<((options?: { serverTriggered?: boolean }) => void) | null>(null);
+  
+  const handleServerClosureDetected = useCallback(() => {
+    console.log('🛑 Health monitor detected server closure - stopping recording');
+    stopRecordingRef.current?.({ serverTriggered: true });
+  }, []);
+
+  const handleRecordingStalled = useCallback(() => {
+    console.log('⚠️ Health monitor detected stall - transcription may have stopped');
+  }, []);
+
   // Recording health monitor - detects stalls and server-side closures
   const { serverStatus, isStalled } = useRecordingHealthMonitor({
     meetingId: currentMeetingIdFromStorage,
     isRecording,
     lastChunkTimestamp,
-    onServerClosureDetected: useCallback(() => {
-      console.log('🛑 Health monitor detected server closure - stopping recording');
-      stopRecording({ serverTriggered: true });
-    }, []),
-    onRecordingStalled: useCallback(() => {
-      console.log('⚠️ Health monitor detected stall - transcription may have stopped');
-    }, [])
+    onServerClosureDetected: handleServerClosureDetected,
+    onRecordingStalled: handleRecordingStalled
   });
 
   // Duration warning and hard limit effect
@@ -5260,6 +5267,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       }
     }
   };
+
+  // Keep stopRecordingRef in sync with stopRecording for health monitor callback
+  useEffect(() => {
+    stopRecordingRef.current = stopRecording;
+  });
 
   // Optional: Background notification when AI notes complete
   useEffect(() => {
