@@ -70,6 +70,7 @@ import { TranscriptionHealthIndicator } from "@/components/meeting/Transcription
 import { useTeamsAudioDetection } from "@/hooks/useTeamsAudioDetection";
 import { TeamsAudioHint } from "@/components/meeting/TeamsAudioHint";
 import { useAssemblyRealtimePreview, PreviewStatus } from "@/hooks/useAssemblyRealtimePreview";
+import { useDeepgramRealtimePreview } from "@/hooks/useDeepgramRealtimePreview";
 import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
@@ -541,12 +542,15 @@ export const MeetingRecorder = ({
     setShowTimestamps(show);
   };
 
-  // Transcript view mode for switching between Batch (Whisper) and Live (Assembly AI)
+  // Transcript view mode for switching between Batch (Whisper), Live (Assembly AI), and Deepgram
   // Default to 'live' (AssemblyAI) during recording for real-time feedback
-  const [transcriptViewMode, setTranscriptViewMode] = useState<'batch' | 'live'>('live');
+  const [transcriptViewMode, setTranscriptViewMode] = useState<'batch' | 'live' | 'deepgram'>('live');
 
   // AssemblyAI real-time preview hook (runs alongside Whisper)
   const assemblyPreview = useAssemblyRealtimePreview();
+
+  // Deepgram real-time preview hook (runs alongside Whisper and AssemblyAI)
+  const deepgramPreview = useDeepgramRealtimePreview();
 
   const countWords = useCallback((text: string) => {
     const t = (text ?? '').trim();
@@ -556,15 +560,16 @@ export const MeetingRecorder = ({
 
   // Calculate word count from the best available transcript.
   // AssemblyAI is preferred for live feedback, but if it fails (e.g. system-audio issues)
-  // we must still preserve the meeting based on the Whisper transcript.
+  // we must still preserve the meeting based on the Whisper or Deepgram transcript.
   useEffect(() => {
     const assemblyWords = countWords(assemblyPreview.fullTranscript);
     const whisperWords = countWords(transcript);
-    const effectiveWords = Math.max(assemblyWords, whisperWords);
+    const deepgramWords = countWords(deepgramPreview.fullTranscript);
+    const effectiveWords = Math.max(assemblyWords, whisperWords, deepgramWords);
 
     setWordCount(effectiveWords);
     onWordCountUpdate(effectiveWords);
-  }, [assemblyPreview.fullTranscript, transcript, onWordCountUpdate, countWords]);
+  }, [assemblyPreview.fullTranscript, transcript, deepgramPreview.fullTranscript, onWordCountUpdate, countWords]);
 
   // ============= WHISPER COST PROTECTION =============
   // Maximum recording duration (4 hours) to prevent runaway billing
@@ -675,6 +680,9 @@ export const MeetingRecorder = ({
     
     // Clear AssemblyAI live transcript state
     assemblyPreview.clearTranscript();
+    
+    // Clear Deepgram live transcript state
+    deepgramPreview.clearTranscript();
     
     setSelectedMeetings([]);
     setIsSelectMode(false);
@@ -4213,6 +4221,19 @@ export const MeetingRecorder = ({
         // Don't fail the recording - Whisper is the primary transcription
       }
       
+      // Start Deepgram real-time transcription alongside Whisper and AssemblyAI
+      try {
+        console.log('🎤 Starting Deepgram real-time preview...');
+        
+        // Deepgram uses its own audio capture from mic - pass meetingId for DB storage
+        await deepgramPreview.startPreview(realMeetingId, assemblyAudioMixerRef.current?.mixedStream);
+        console.log('✅ Deepgram real-time preview started');
+        addDebugLog('✅ Deepgram: Recording started');
+      } catch (deepgramError) {
+        console.warn('⚠️ Deepgram preview failed to start (other transcriptions will continue):', deepgramError);
+        // Don't fail the recording - Whisper and AssemblyAI can continue
+      }
+      
       // Start duration timer
       intervalRef.current = setInterval(() => {
         setDuration(prev => {
@@ -4401,6 +4422,9 @@ export const MeetingRecorder = ({
       // Stop AssemblyAI real-time preview
       assemblyPreview.stopPreview();
       
+      // Stop Deepgram real-time preview
+      deepgramPreview.stopPreview();
+      
       // Cleanup AssemblyAI audio mixer
       cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
       assemblyAudioMixerRef.current = null;
@@ -4541,6 +4565,9 @@ export const MeetingRecorder = ({
     // Stop AssemblyAI real-time preview
     assemblyPreview.stopPreview();
     setAssemblyInputMode('inactive');
+    
+    // Stop Deepgram real-time preview
+    deepgramPreview.stopPreview();
     
     // Cleanup AssemblyAI audio mixer
     cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
@@ -6613,6 +6640,20 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   </span>
                 )}
               </Button>
+              <Button
+                variant={transcriptViewMode === 'deepgram' ? 'default' : 'ghost'}
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => setTranscriptViewMode('deepgram')}
+              >
+                Deepgram
+                {deepgramPreview.isActive && (
+                  <span className="ml-1.5 relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                  </span>
+                )}
+              </Button>
             </div>
           </div>
 
@@ -6673,6 +6714,64 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   ) : (
                     <p className="text-sm text-muted-foreground italic p-6 text-center">
                       {isRecording ? "Listening for speech..." : "No live transcript available"}
+                    </p>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Deepgram Transcript View */}
+          {transcriptViewMode === 'deepgram' && (
+            <Card className="border-blue-500/30">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Waves className="h-4 w-4 text-blue-500" />
+                    Live Transcript (Deepgram Nova-2)
+                    {deepgramPreview.isActive && (
+                      <Badge variant="default" className="gap-1 bg-blue-600 hover:bg-blue-700 text-xs">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                        </span>
+                        Live
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {deepgramPreview.fullTranscript.split(/\s+/).filter(w => w.length > 0).length} words
+                    </span>
+                    <span className="text-xs text-blue-500">
+                      {deepgramPreview.chunkCount} chunks saved
+                    </span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea 
+                  className="h-[300px]"
+                  ref={(ref) => {
+                    // Auto-scroll to bottom when new content arrives
+                    if (ref && deepgramPreview.isActive) {
+                      const scrollContainer = ref.querySelector('[data-radix-scroll-area-viewport]');
+                      if (scrollContainer) {
+                        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                      }
+                    }
+                  }}
+                >
+                  {deepgramPreview.error ? (
+                    <p className="text-sm text-destructive p-4">{deepgramPreview.error}</p>
+                  ) : deepgramPreview.fullTranscript ? (
+                    <TranscriptDisplay 
+                      transcript={deepgramPreview.fullTranscript}
+                      isLoading={false}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic p-6 text-center">
+                      {isRecording ? "Listening for speech..." : "No Deepgram transcript available"}
                     </p>
                   )}
                 </ScrollArea>
