@@ -68,8 +68,9 @@ export const useServiceVisibility = () => {
       return defaultVisibility;
     },
     enabled: !!user,
-    staleTime: 0, // Always fetch fresh data
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes - visibility rarely changes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch on every tab switch
   });
 
   const isServiceVisible = (serviceKey: keyof ServiceVisibility): boolean => {
