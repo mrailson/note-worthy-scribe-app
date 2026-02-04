@@ -35,6 +35,9 @@ import { generateScribeWordDocument } from "@/utils/documentGenerators";
 import { showToast } from "@/utils/toastWrapper";
 import { supabase } from "@/integrations/supabase/client";
 
+// Force remount key to recover from HMR-induced React fiber corruption
+const SCRIBE_MOUNT_KEY = import.meta.hot ? Date.now() : 'stable';
+
 const Scribe = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -454,4 +457,7 @@ const Scribe = () => {
   );
 };
 
-export default Scribe;
+// Wrapper to force clean remount when HMR corrupts React fiber state
+const ScribeWithRecovery = () => <Scribe key={SCRIBE_MOUNT_KEY} />;
+
+export default ScribeWithRecovery;
