@@ -397,16 +397,6 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
 
         <div className="p-4 border-t flex-shrink-0 bg-muted/30">
           <div className="flex gap-2 items-end">
-            <Button
-              variant={isListening ? "destructive" : "outline"}
-              size="icon"
-              onClick={toggleListening}
-              disabled={isLoading}
-              className="h-10 w-10 flex-shrink-0"
-              title={isListening ? "Stop listening" : "Start voice input"}
-            >
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </Button>
             <div className="flex-1 relative">
               <Textarea
                 ref={textareaRef}
@@ -430,14 +420,26 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
                 </Button>
               )}
             </div>
-            <Button 
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              size="icon"
-              className="h-10 w-10"
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant={isListening ? "destructive" : "outline"}
+                size="icon"
+                onClick={toggleListening}
+                disabled={isLoading}
+                className="h-10 w-10 flex-shrink-0"
+                title={isListening ? "Stop listening" : "Start voice input"}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              <Button 
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                size="icon"
+                className="h-10 w-10"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground mt-2 text-center">
             Press Ctrl+Enter to send • Esc to clear • Click mic for voice input
