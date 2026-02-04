@@ -249,43 +249,8 @@ export const InspectionDashboard = ({
               </div>
               <Progress value={progress.percentComplete} className="h-2 mb-4" />
               
-              {/* Domain Elements Summary */}
-              <div className="mb-4">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Domain Elements</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <div>
-                      <p className="text-base font-semibold text-green-600">{progress.met}</p>
-                      <p className="text-xs text-muted-foreground">Met</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
-                    <MinusCircle className="h-4 w-4 text-amber-600" />
-                    <div>
-                      <p className="text-base font-semibold text-amber-600">{progress.partiallyMet}</p>
-                      <p className="text-xs text-muted-foreground">Partially Met</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-950/30">
-                    <AlertCircle className="h-4 w-4 text-red-600" />
-                    <div>
-                      <p className="text-base font-semibold text-red-600">{progress.notMet}</p>
-                      <p className="text-xs text-muted-foreground">Not Met</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50">
-                    <Circle className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-base font-semibold">{progress.total - progress.assessed}</p>
-                      <p className="text-xs text-muted-foreground">Not Assessed</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Fundamentals Checklist Summary */}
-              <div>
+              <div className="mb-4">
                 <p className="text-xs font-medium text-muted-foreground mb-2">Fundamentals Checklist</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
@@ -314,6 +279,41 @@ export const InspectionDashboard = ({
                     <div>
                       <p className="text-base font-semibold">{fundamentalsStats.notChecked}</p>
                       <p className="text-xs text-muted-foreground">Not Checked</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Domain Elements Summary */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Domain Elements</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <div>
+                      <p className="text-base font-semibold text-green-600">{progress.met}</p>
+                      <p className="text-xs text-muted-foreground">Met</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
+                    <MinusCircle className="h-4 w-4 text-amber-600" />
+                    <div>
+                      <p className="text-base font-semibold text-amber-600">{progress.partiallyMet}</p>
+                      <p className="text-xs text-muted-foreground">Partially Met</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-950/30">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <div>
+                      <p className="text-base font-semibold text-red-600">{progress.notMet}</p>
+                      <p className="text-xs text-muted-foreground">Not Met</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50">
+                    <Circle className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-base font-semibold">{progress.total - progress.assessed}</p>
+                      <p className="text-xs text-muted-foreground">Not Assessed</p>
                     </div>
                   </div>
                 </div>
