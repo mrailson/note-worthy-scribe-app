@@ -3,11 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
+export type InspectionType = 'short' | 'mid' | 'long';
+
 export interface InspectionSession {
   id: string;
   practice_id: string;
   user_id: string;
   status: 'draft' | 'in_progress' | 'completed';
+  inspection_type: InspectionType;
   started_at: string | null;
   completed_at: string | null;
   report_generated_at: string | null;
@@ -63,18 +66,19 @@ export const useMockInspection = () => {
     }
   };
 
-  const createSession = async (practiceId: string): Promise<InspectionSession | null> => {
+  const createSession = async (practiceId: string, inspectionType: InspectionType = 'long'): Promise<InspectionSession | null> => {
     if (!user) return null;
     
     setIsLoading(true);
     try {
-      // Create the session
+      // Create the session with inspection type
       const { data: session, error: sessionError } = await supabase
         .from('mock_inspection_sessions')
         .insert({
           practice_id: practiceId,
           user_id: user.id,
           status: 'in_progress',
+          inspection_type: inspectionType,
           started_at: new Date().toISOString()
         })
         .select()
@@ -113,6 +117,49 @@ export const useMockInspection = () => {
       return null;
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const upgradeInspectionType = async (newType: InspectionType): Promise<boolean> => {
+    if (!activeSession) return false;
+
+    // Can only upgrade, not downgrade
+    const typeOrder: InspectionType[] = ['short', 'mid', 'long'];
+    const currentIndex = typeOrder.indexOf(activeSession.inspection_type);
+    const newIndex = typeOrder.indexOf(newType);
+
+    if (newIndex <= currentIndex) {
+      toast({
+        title: "Cannot downgrade inspection type",
+        description: "You can only upgrade to a more comprehensive inspection.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('mock_inspection_sessions')
+        .update({ inspection_type: newType })
+        .eq('id', activeSession.id);
+
+      if (error) throw error;
+
+      setActiveSession(prev => prev ? { ...prev, inspection_type: newType } : null);
+      
+      toast({
+        title: "Inspection upgraded",
+        description: `Upgraded to ${newType === 'mid' ? 'Standard' : 'Full'} inspection. Additional items are now visible.`
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error upgrading inspection:', error);
+      toast({
+        title: "Failed to upgrade inspection",
+        variant: "destructive"
+      });
+      return false;
     }
   };
 
@@ -248,6 +295,7 @@ export const useMockInspection = () => {
     loadSession,
     updateElement,
     completeInspection,
+    upgradeInspectionType,
     getProgress,
     getElementsByDomain
   };

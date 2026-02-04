@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { 
@@ -18,11 +17,17 @@ import {
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { FUNDAMENTALS_CATEGORIES, FundamentalCategory } from './fundamentalsConfig';
+import { 
+  FUNDAMENTALS_CATEGORIES, 
+  FundamentalCategory, 
+  InspectionType,
+  getVisibleItems 
+} from './fundamentalsConfig';
 import { FundamentalItemCard } from './FundamentalItemCard';
 
 interface FundamentalsChecklistProps {
   sessionId: string;
+  inspectionType: InspectionType;
 }
 
 interface FundamentalRecord {
@@ -51,7 +56,7 @@ const getCategoryIcon = (iconName: string) => {
   return icons[iconName] || ClipboardCheck;
 };
 
-export const FundamentalsChecklist = ({ sessionId }: FundamentalsChecklistProps) => {
+export const FundamentalsChecklist = ({ sessionId, inspectionType }: FundamentalsChecklistProps) => {
   const { toast } = useToast();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [records, setRecords] = useState<FundamentalRecord[]>([]);
@@ -81,8 +86,9 @@ export const FundamentalsChecklist = ({ sessionId }: FundamentalsChecklistProps)
 
   // Initialize records for a category when first expanded
   const initializeCategoryRecords = async (category: FundamentalCategory) => {
+    const visibleItems = getVisibleItems(category, inspectionType);
     const existingKeys = records.filter(r => r.category === category.key).map(r => r.item_key);
-    const newItems = category.items.filter(item => !existingKeys.includes(item.key));
+    const newItems = visibleItems.filter(item => !existingKeys.includes(item.key));
 
     if (newItems.length === 0) return;
 
@@ -149,25 +155,49 @@ export const FundamentalsChecklist = ({ sessionId }: FundamentalsChecklistProps)
     }
   };
 
-  // Calculate progress for each category
+  // Calculate progress for each category (only counting visible items)
   const getCategoryProgress = (categoryKey: string) => {
-    const categoryRecords = records.filter(r => r.category === categoryKey);
     const category = FUNDAMENTALS_CATEGORIES.find(c => c.key === categoryKey);
     if (!category) return { checked: 0, total: 0, percent: 0 };
 
-    const total = category.items.length;
+    const visibleItems = getVisibleItems(category, inspectionType);
+    const visibleKeys = visibleItems.map(i => i.key);
+    const categoryRecords = records.filter(r => r.category === categoryKey && visibleKeys.includes(r.item_key));
+
+    const total = visibleItems.length;
     const checked = categoryRecords.filter(r => r.status !== 'not_checked').length;
     return { checked, total, percent: total > 0 ? Math.round((checked / total) * 100) : 0 };
   };
 
-  // Calculate overall progress
+  // Calculate overall progress (only counting visible items)
   const getOverallProgress = () => {
-    const totalItems = FUNDAMENTALS_CATEGORIES.reduce((acc, cat) => acc + cat.items.length, 0);
-    const checkedItems = records.filter(r => r.status !== 'not_checked').length;
-    return { checked: checkedItems, total: totalItems, percent: totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0 };
+    let totalItems = 0;
+    let checkedItems = 0;
+
+    FUNDAMENTALS_CATEGORIES.forEach(cat => {
+      const visibleItems = getVisibleItems(cat, inspectionType);
+      const visibleKeys = visibleItems.map(i => i.key);
+      totalItems += visibleItems.length;
+      checkedItems += records.filter(r => 
+        r.category === cat.key && 
+        visibleKeys.includes(r.item_key) && 
+        r.status !== 'not_checked'
+      ).length;
+    });
+
+    return { 
+      checked: checkedItems, 
+      total: totalItems, 
+      percent: totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0 
+    };
   };
 
   const overall = getOverallProgress();
+
+  // Filter categories that have visible items
+  const visibleCategories = FUNDAMENTALS_CATEGORIES.filter(cat => 
+    getVisibleItems(cat, inspectionType).length > 0
+  );
 
   return (
     <Card className="border-2 border-primary/20">
@@ -187,11 +217,12 @@ export const FundamentalsChecklist = ({ sessionId }: FundamentalsChecklistProps)
         <Progress value={overall.percent} className="h-2 mt-3" />
       </CardHeader>
       <CardContent className="space-y-3">
-        {FUNDAMENTALS_CATEGORIES.map((category) => {
+        {visibleCategories.map((category) => {
           const Icon = getCategoryIcon(category.icon);
           const isExpanded = expandedCategories.has(category.key);
           const progress = getCategoryProgress(category.key);
           const categoryRecords = records.filter(r => r.category === category.key);
+          const visibleItems = getVisibleItems(category, inspectionType);
 
           return (
             <div key={category.key} className="border rounded-lg overflow-hidden">
@@ -206,7 +237,7 @@ export const FundamentalsChecklist = ({ sessionId }: FundamentalsChecklistProps)
                   <div className="text-left">
                     <h3 className="font-medium">{category.name}</h3>
                     <p className="text-xs text-muted-foreground">
-                      {category.items.length} items
+                      {visibleItems.length} items
                     </p>
                   </div>
                 </div>
@@ -225,7 +256,7 @@ export const FundamentalsChecklist = ({ sessionId }: FundamentalsChecklistProps)
 
               {isExpanded && (
                 <div className="border-t bg-muted/30 p-4 space-y-3">
-                  {category.items.map((item) => {
+                  {visibleItems.map((item) => {
                     const record = categoryRecords.find(r => r.item_key === item.key);
                     return (
                       <FundamentalItemCard

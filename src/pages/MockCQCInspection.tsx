@@ -5,7 +5,8 @@ import { Header } from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ClipboardCheck, Play, History, ArrowRight, Building2, Shield, Users, Heart, Clock, Trash2, Search, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ClipboardCheck, Play, History, ArrowRight, Building2, Shield, Users, Heart, Clock, Trash2, Search, X, Zap, ShieldCheck } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,8 +14,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useToast } from '@/hooks/use-toast';
 import { InspectionDashboard } from '@/components/mock-cqc/InspectionDashboard';
-import { useMockInspection } from '@/hooks/useMockInspection';
+import { useMockInspection, InspectionType } from '@/hooks/useMockInspection';
+import { INSPECTION_TYPES, getItemCountsByType } from '@/components/mock-cqc/fundamentals';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { cn } from '@/lib/utils';
 
 interface Practice {
   id: string;
@@ -27,6 +30,7 @@ interface InProgressSession {
   practice_name: string;
   started_at: string;
   progress: number;
+  inspection_type: InspectionType;
 }
 
 const MockCQCInspection = () => {
@@ -41,14 +45,18 @@ const MockCQCInspection = () => {
   const [startingInspection, setStartingInspection] = useState(false);
   const [inProgressSessions, setInProgressSessions] = useState<InProgressSession[]>([]);
   const [resumingSessionId, setResumingSessionId] = useState<string | null>(null);
+  const [selectedInspectionType, setSelectedInspectionType] = useState<InspectionType>('short');
 
   const {
     activeSession,
     sessionElements,
     loadSession,
     createSession,
+    upgradeInspectionType,
     isLoading: sessionLoading
   } = useMockInspection();
+
+  const itemCounts = getItemCountsByType();
 
   useEffect(() => {
     if (user) {
@@ -91,6 +99,7 @@ const MockCQCInspection = () => {
           id,
           practice_id,
           started_at,
+          inspection_type,
           gp_practices!inner(name)
         `)
         .eq('user_id', user.id)
@@ -119,7 +128,8 @@ const MockCQCInspection = () => {
               practice_id: session.practice_id,
               practice_name: session.gp_practices?.name || 'Unknown Practice',
               started_at: session.started_at,
-              progress
+              progress,
+              inspection_type: (session.inspection_type || 'long') as InspectionType
             };
           })
         );
@@ -173,11 +183,11 @@ const MockCQCInspection = () => {
 
     setStartingInspection(true);
     try {
-      const session = await createSession(selectedPracticeId);
+      const session = await createSession(selectedPracticeId, selectedInspectionType);
       if (session) {
         toast({
           title: "Mock inspection started",
-          description: "Good luck! Remember, this is a supportive learning exercise."
+          description: `Starting ${INSPECTION_TYPES[selectedInspectionType].label} inspection. Good luck!`
         });
       }
     } catch (error) {
@@ -237,6 +247,7 @@ const MockCQCInspection = () => {
           loadSession(null);
           fetchInProgressSessions(); // Refresh list when returning
         }}
+        onUpgradeType={upgradeInspectionType}
       />
     );
   }
@@ -382,6 +393,46 @@ const MockCQCInspection = () => {
                 </Popover>
               </div>
 
+              {/* Inspection Type Selection */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Choose Inspection Depth</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {(Object.keys(INSPECTION_TYPES) as InspectionType[]).map((type) => {
+                    const config = INSPECTION_TYPES[type];
+                    const isSelected = selectedInspectionType === type;
+                    const count = type === 'short' ? itemCounts.short : type === 'mid' ? itemCounts.mid : itemCounts.long;
+                    
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => setSelectedInspectionType(type)}
+                        className={cn(
+                          "p-4 rounded-lg border-2 text-left transition-all",
+                          isSelected 
+                            ? `${config.borderColor} ${config.bgColor}` 
+                            : "border-border hover:border-muted-foreground/50"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          {type === 'short' && <Zap className={cn("h-5 w-5", isSelected ? config.color : "text-muted-foreground")} />}
+                          {type === 'mid' && <ClipboardCheck className={cn("h-5 w-5", isSelected ? config.color : "text-muted-foreground")} />}
+                          {type === 'long' && <ShieldCheck className={cn("h-5 w-5", isSelected ? config.color : "text-muted-foreground")} />}
+                          <span className={cn("font-semibold", isSelected ? config.color : "")}>{config.label}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-2">{config.duration}</p>
+                        <p className="text-xs text-muted-foreground">{config.description}</p>
+                        <Badge variant="outline" className="mt-2 text-xs">
+                          {count} fundamental items
+                        </Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  💡 You can upgrade to a more comprehensive inspection at any time – your progress will be preserved.
+                </p>
+              </div>
+
               <Button 
                 onClick={handleStartInspection}
                 disabled={!selectedPracticeId || startingInspection || sessionLoading}
@@ -391,7 +442,7 @@ const MockCQCInspection = () => {
                   "Preparing inspection..."
                 ) : (
                   <>
-                    Start Mock Inspection
+                    Start {INSPECTION_TYPES[selectedInspectionType].label} Inspection
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
@@ -420,7 +471,12 @@ const MockCQCInspection = () => {
                     <div className="flex items-center gap-3">
                       <Building2 className="h-5 w-5 text-muted-foreground" />
                       <div>
-                        <p className="font-medium">{session.practice_name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{session.practice_name}</p>
+                          <Badge variant="outline" className={INSPECTION_TYPES[session.inspection_type].color}>
+                            {INSPECTION_TYPES[session.inspection_type].label}
+                          </Badge>
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           Started {new Date(session.started_at).toLocaleDateString('en-GB', { 
                             day: 'numeric', 
