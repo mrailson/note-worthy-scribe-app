@@ -405,7 +405,7 @@ const MockCQCInspection = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Play className="h-5 w-5 text-primary" />
-                  Continue Your Inspection
+                  Continue Your Mock Inspection
                 </CardTitle>
                 <CardDescription>
                   You have inspections in progress. Pick up where you left off.
