@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,11 +11,14 @@ import {
   ChevronDown,
   ChevronRight,
   Trash2,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStatusColor, getStatusLabel, FundamentalItem } from './fundamentalsConfig';
 import { InspectionQRCaptureModal } from '../InspectionQRCaptureModal';
+import { supabase } from '@/integrations/supabase/client';
+import { showToast } from '@/utils/toastWrapper';
 
 interface FundamentalRecord {
   id: string;
@@ -34,20 +37,29 @@ interface FundamentalItemCardProps {
   item: FundamentalItem;
   record?: FundamentalRecord;
   sessionId: string;
+  categoryKey: string;
   onUpdate: (updates: Partial<FundamentalRecord>) => void;
+  onRecordCreated?: (record: FundamentalRecord) => void;
 }
 
 export const FundamentalItemCard = ({ 
   item, 
   record, 
   sessionId,
-  onUpdate 
+  categoryKey,
+  onUpdate,
+  onRecordCreated
 }: FundamentalItemCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [notes, setNotes] = useState(record?.notes || '');
+  const [isCreatingRecord, setIsCreatingRecord] = useState(false);
+  const [localRecordId, setLocalRecordId] = useState<string | null>(null);
 
   const status = record?.status || 'not_checked';
+  
+  // Get the effective record ID (either from prop or locally created)
+  const effectiveRecordId = record?.id || localRecordId;
 
   const handleStatusChange = (newStatus: string) => {
     onUpdate({ status: newStatus });
@@ -56,6 +68,53 @@ export const FundamentalItemCard = ({
   const handleNotesBlur = () => {
     if (notes !== record?.notes) {
       onUpdate({ notes: notes || null });
+    }
+  };
+  
+  // Create a record in the database if one doesn't exist yet
+  const ensureRecordExists = useCallback(async (): Promise<string | null> => {
+    // If we already have a record, return its ID
+    if (effectiveRecordId) return effectiveRecordId;
+    
+    setIsCreatingRecord(true);
+    try {
+      const { data, error } = await supabase
+        .from('mock_inspection_fundamentals')
+        .insert({
+          session_id: sessionId,
+          category: categoryKey,
+          item_key: item.key,
+          item_name: item.name,
+          status: 'not_checked'
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      // Store the ID locally
+      setLocalRecordId(data.id);
+      
+      // Notify parent to add this record to its state
+      if (onRecordCreated) {
+        onRecordCreated(data as FundamentalRecord);
+      }
+      
+      return data.id;
+    } catch (error) {
+      console.error('Failed to create fundamental record:', error);
+      showToast.error('Failed to prepare for photo capture');
+      return null;
+    } finally {
+      setIsCreatingRecord(false);
+    }
+  }, [effectiveRecordId, sessionId, categoryKey, item.key, item.name, onRecordCreated]);
+
+  // Handle opening the QR modal - ensure record exists first
+  const handleCapturePhoto = async () => {
+    const recordId = await ensureRecordExists();
+    if (recordId) {
+      setShowQRModal(true);
     }
   };
 
@@ -187,10 +246,15 @@ export const FundamentalItemCard = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowQRModal(true)}
+                    onClick={handleCapturePhoto}
+                    disabled={isCreatingRecord}
                     className="gap-2"
                   >
-                    <Camera className="h-4 w-4" />
+                    {isCreatingRecord ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
                     Capture Photo
                   </Button>
                 )}
@@ -213,15 +277,17 @@ export const FundamentalItemCard = ({
         </div>
       </Card>
 
-      {/* QR Capture Modal */}
-      <InspectionQRCaptureModal
-        open={showQRModal}
-        onOpenChange={setShowQRModal}
-        elementId={record?.id || item.key}
-        elementKey={item.key}
-        elementName={item.name}
-        onImagesReceived={handlePhotoReceived}
-      />
+      {/* QR Capture Modal - only render when we have a valid record ID */}
+      {effectiveRecordId && (
+        <InspectionQRCaptureModal
+          open={showQRModal}
+          onOpenChange={setShowQRModal}
+          elementId={effectiveRecordId}
+          elementKey={item.key}
+          elementName={item.name}
+          onImagesReceived={handlePhotoReceived}
+        />
+      )}
     </>
   );
 };
