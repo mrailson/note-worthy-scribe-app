@@ -22,7 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
 import { generateWordDocument } from '@/utils/documentGenerators';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
-import ReactMarkdown from 'react-markdown';
+import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { format } from 'date-fns';
 
 interface Message {
@@ -291,16 +291,22 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
                   )}
                   <div
                     className={cn(
-                      "rounded-lg px-5 py-4",
+                      "rounded-xl",
                       message.role === 'user'
-                        ? "bg-primary text-primary-foreground max-w-[80%]"
-                        : "bg-white border border-border shadow-sm max-w-[95%]"
+                        ? "bg-primary text-primary-foreground px-4 py-3 max-w-[75%]"
+                        : "bg-white border border-gray-200 shadow-sm px-6 py-5 max-w-[95%]"
                     )}
                   >
                     {message.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0.5 prose-headings:my-3">
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
-                      </div>
+                      <div 
+                        className="text-sm leading-relaxed text-gray-700"
+                        dangerouslySetInnerHTML={{ 
+                          __html: renderNHSMarkdown(message.content, { 
+                            enableNHSStyling: true,
+                            baseFontSize: 14 
+                          }) 
+                        }}
+                      />
                     ) : (
                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     )}
