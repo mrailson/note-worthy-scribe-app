@@ -6006,15 +6006,7 @@ export type Database = {
           short_code?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "mock_inspection_capture_sessions_element_id_fkey"
-            columns: ["element_id"]
-            isOneToOne: false
-            referencedRelation: "mock_inspection_elements"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       mock_inspection_captured_images: {
         Row: {
