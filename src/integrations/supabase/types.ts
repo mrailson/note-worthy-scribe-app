@@ -6140,6 +6140,56 @@ export type Database = {
           },
         ]
       }
+      mock_inspection_fundamentals: {
+        Row: {
+          category: string
+          checked_at: string | null
+          created_at: string
+          id: string
+          item_key: string
+          item_name: string
+          notes: string | null
+          photo_file_name: string | null
+          photo_url: string | null
+          session_id: string
+          status: string
+        }
+        Insert: {
+          category: string
+          checked_at?: string | null
+          created_at?: string
+          id?: string
+          item_key: string
+          item_name: string
+          notes?: string | null
+          photo_file_name?: string | null
+          photo_url?: string | null
+          session_id: string
+          status?: string
+        }
+        Update: {
+          category?: string
+          checked_at?: string | null
+          created_at?: string
+          id?: string
+          item_key?: string
+          item_name?: string
+          notes?: string | null
+          photo_file_name?: string | null
+          photo_url?: string | null
+          session_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_inspection_fundamentals_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "mock_inspection_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mock_inspection_sessions: {
         Row: {
           completed_at: string | null
