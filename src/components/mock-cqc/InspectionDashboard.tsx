@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Download } from 'lucide-react';
 import { DomainSection } from './DomainSection';
 import { InspectionReport } from './InspectionReport';
+import { SiteIssuesSection } from './SiteIssuesSection';
 import { InspectionSession, InspectionElement, useMockInspection } from '@/hooks/useMockInspection';
 
 interface InspectionDashboardProps {
@@ -241,6 +242,9 @@ export const InspectionDashboard = ({
                 />
               );
             })}
+
+            {/* Site Issues Section */}
+            <SiteIssuesSection sessionId={session.id} />
           </div>
         </main>
       </div>
