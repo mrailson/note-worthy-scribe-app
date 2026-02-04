@@ -385,7 +385,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             BP Average Service
                           </DropdownMenuItem>
                         )}
-                        {hasModuleAccess('cqc_compliance_access') && isServiceVisible('mock_cqc_inspection') && (
+                        {hasModuleAccess('cqc_compliance') && isServiceVisible('mock_cqc_inspection') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/mock-cqc-inspection')}
                             className="cursor-pointer py-3"
