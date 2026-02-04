@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Download, ArrowUpCircle, Zap, ClipboardCheck, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Download, ArrowUpCircle, ArrowDownCircle, Zap, ClipboardCheck, ShieldCheck, ChevronsUpDown } from 'lucide-react';
 import { DomainSection } from './DomainSection';
 import { InspectionReport } from './InspectionReport';
 import { SiteIssuesSection } from './SiteIssuesSection';
@@ -90,15 +90,36 @@ export const InspectionDashboard = ({
   const isOwner = user?.id === session.user_id;
 
   const inspectionTypeConfig = INSPECTION_TYPES[localSession.inspection_type];
-  const canUpgrade = localSession.inspection_type !== 'long';
 
-  const handleUpgrade = async (newType: InspectionType) => {
+  const handleChangeType = async (newType: InspectionType) => {
+    if (newType === localSession.inspection_type) return;
     if (onUpgradeType) {
       const success = await onUpgradeType(newType);
       if (success) {
         setLocalSession(prev => ({ ...prev, inspection_type: newType }));
       }
     }
+  };
+
+  // Get available type options (all types except current)
+  const getTypeOptions = () => {
+    const types: { key: InspectionType; label: string; direction: 'up' | 'down' | null }[] = [];
+    const currentIndex = ['short', 'mid', 'long'].indexOf(localSession.inspection_type);
+    
+    if (localSession.inspection_type !== 'short') {
+      types.push({ key: 'short', label: 'Short', direction: 'down' });
+    }
+    if (localSession.inspection_type !== 'mid') {
+      types.push({ 
+        key: 'mid', 
+        label: 'Standard', 
+        direction: currentIndex < 1 ? 'up' : 'down' 
+      });
+    }
+    if (localSession.inspection_type !== 'long') {
+      types.push({ key: 'long', label: 'Full', direction: 'up' });
+    }
+    return types;
   };
   
   // Calculate progress from local elements
@@ -194,16 +215,22 @@ export const InspectionDashboard = ({
                 sessionPracticeId={session.practice_id}
                 isOwner={isOwner}
               />
-              {canUpgrade && (
+              {getTypeOptions().map(option => (
                 <Button 
+                  key={option.key}
                   variant="outline" 
                   size="sm"
-                  onClick={() => handleUpgrade(localSession.inspection_type === 'short' ? 'mid' : 'long')}
+                  onClick={() => handleChangeType(option.key)}
+                  className="gap-1"
                 >
-                  <ArrowUpCircle className="h-4 w-4 mr-2" />
-                  Upgrade to {localSession.inspection_type === 'short' ? 'Standard' : 'Full'}
+                  {option.direction === 'up' ? (
+                    <ArrowUpCircle className="h-4 w-4" />
+                  ) : (
+                    <ArrowDownCircle className="h-4 w-4" />
+                  )}
+                  {option.direction === 'up' ? 'Upgrade' : 'Change'} to {option.label}
                 </Button>
-              )}
+              ))}
               <Button onClick={handleCompleteAndReport} disabled={progress.assessed === 0}>
                 <FileText className="h-4 w-4 mr-2" />
                 Generate Report
