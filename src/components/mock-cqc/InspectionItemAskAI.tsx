@@ -15,7 +15,9 @@ import {
   AlertTriangle,
   FileCheck,
   HelpCircle,
-  Search
+  Search,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,9 +79,66 @@ export const InspectionItemAskAI = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<any>(null);
   const { sendEmailAutomatically, isSending } = useAutoEmail();
+
+  // Speech recognition setup
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognitionAPI) {
+        const recognition = new SpeechRecognitionAPI();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-GB';
+        
+        recognition.onresult = (event) => {
+          let transcript = '';
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          if (event.results[event.results.length - 1].isFinal) {
+            setInput(prev => prev + (prev ? ' ' : '') + transcript.trim());
+          }
+        };
+        
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+        };
+        
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+        
+        recognitionRef.current = recognition;
+      }
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      showToast.error('Speech recognition not supported in this browser');
+      return;
+    }
+    
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
 
   const quickPrompts = getQuickPrompts(itemName, categoryName);
 
@@ -209,7 +268,7 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0 [&>button]:hidden">
         <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -236,6 +295,15 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
                 title="Email conversation"
               >
                 {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                className="h-8 px-2"
+                title="Close"
+              >
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -327,17 +395,27 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
           </div>
         </ScrollArea>
 
-        <div className="p-4 border-t flex-shrink-0">
+        <div className="p-4 border-t flex-shrink-0 bg-muted/30">
           <div className="flex gap-2 items-end">
+            <Button
+              variant={isListening ? "destructive" : "outline"}
+              size="icon"
+              onClick={toggleListening}
+              disabled={isLoading}
+              className="h-10 w-10 flex-shrink-0"
+              title={isListening ? "Stop listening" : "Start voice input"}
+            >
+              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
             <div className="flex-1 relative">
               <Textarea
                 ref={textareaRef}
-                placeholder={`Ask about ${itemName}...`}
+                placeholder={isListening ? "Listening..." : `Ask about ${itemName}...`}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={isLoading}
-                className="min-h-[80px] max-h-40 resize-none pr-10"
+                className="min-h-[80px] max-h-40 resize-none pr-10 bg-background"
                 rows={3}
               />
               {input.trim().length > 0 && (
@@ -362,7 +440,7 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            Press Ctrl+Enter to send • Esc to clear
+            Press Ctrl+Enter to send • Esc to clear • Click mic for voice input
           </p>
         </div>
       </DialogContent>
