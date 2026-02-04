@@ -415,7 +415,7 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={isLoading}
-                className="min-h-[80px] max-h-40 resize-none pr-10 bg-background"
+                className="min-h-[80px] max-h-40 resize-none pr-10 bg-white"
                 rows={3}
               />
               {input.trim().length > 0 && (
