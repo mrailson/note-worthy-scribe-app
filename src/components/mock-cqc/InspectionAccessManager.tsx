@@ -81,24 +81,32 @@ export const InspectionAccessManager = ({
         .select('role')
         .eq('user_id', user.id)
         .eq('role', 'system_admin')
-        .single();
+        .maybeSingle();
       
       setIsSystemAdmin(!!data);
     };
     checkAdmin();
   }, [user]);
 
-  // Load access grants
+  // Load data when dialog opens
   useEffect(() => {
     if (isOpen && sessionId) {
       loadAccessGrants();
       loadAvailableUsers();
-      if (isSystemAdmin) {
-        loadPractices();
-        loadAllUsers();
+    }
+  }, [isOpen, sessionId]);
+
+  // Load admin-specific data when isSystemAdmin is set
+  useEffect(() => {
+    if (isOpen && sessionId && isSystemAdmin) {
+      loadPractices();
+      loadAllUsers();
+      // Pre-select the session's practice
+      if (sessionPracticeId) {
+        setSelectedPractice(sessionPracticeId);
       }
     }
-  }, [isOpen, sessionId, isSystemAdmin]);
+  }, [isOpen, sessionId, isSystemAdmin, sessionPracticeId]);
 
   // Filter users by practice for admins
   useEffect(() => {
