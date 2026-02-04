@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import { mainCategories, type MainCategory, type SubCategory, type PromptItem } from './pmPromptCategories';
 import { ContextBanner } from './ContextBanner';
+import { PLTCalendar } from './PLTCalendar';
 
 interface PMHomeScreenProps {
   setInput: (text: string) => void;
@@ -21,7 +22,8 @@ interface PMHomeScreenProps {
 type ActiveView = 
   | { type: 'main' }
   | { type: 'subcategories'; category: MainCategory }
-  | { type: 'prompts'; category: MainCategory; subCategory: SubCategory };
+  | { type: 'prompts'; category: MainCategory; subCategory: SubCategory }
+  | { type: 'plt-planning'; category: MainCategory };
 
 export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -75,6 +77,9 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
   const handleCategoryClick = (category: MainCategory) => {
     if (category.focusOnly) {
       focusInput?.();
+    } else if (category.id === 'plt-planning') {
+      // PLT Planning has special handling - show calendar first
+      setActiveView({ type: 'plt-planning', category });
     } else if (category.subCategories.length > 0) {
       setActiveView({ type: 'subcategories', category });
     }
@@ -95,7 +100,19 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
 
   const handleBack = () => {
     if (activeView.type === 'prompts') {
-      setActiveView({ type: 'subcategories', category: activeView.category });
+      // Check if we came from PLT planning
+      if (activeView.category.id === 'plt-planning') {
+        setActiveView({ type: 'plt-planning', category: activeView.category });
+      } else {
+        setActiveView({ type: 'subcategories', category: activeView.category });
+      }
+    } else if (activeView.type === 'subcategories') {
+      // For PLT planning subcategories view, go back to PLT planning
+      if (activeView.category.id === 'plt-planning') {
+        setActiveView({ type: 'plt-planning', category: activeView.category });
+      } else {
+        setActiveView({ type: 'main' });
+      }
     } else {
       setActiveView({ type: 'main' });
     }
@@ -234,7 +251,38 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
               )}
             </div>
           </div>
-        ) : (
+        ) : activeView.type === 'plt-planning' ? (
+          <div className="space-y-4 max-w-2xl mx-auto">
+            <button
+              onClick={() => setActiveView({ type: 'main' })}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to main menu</span>
+            </button>
+            
+            {/* PLT Calendar */}
+            <PLTCalendar />
+            
+            {/* PLT Subcategories */}
+            <div className="pt-2">
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Plan your PLT session</h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {activeView.category.subCategories.map((subCategory) => 
+                  renderCard(
+                    subCategory.id,
+                    subCategory.shortTitle,
+                    subCategory.title,
+                    subCategory.description,
+                    subCategory.icon,
+                    subCategory.gradient,
+                    () => handleSubCategoryClick(activeView.category, subCategory)
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+        ) : activeView.type === 'prompts' ? (
           <div className="space-y-3 max-w-2xl mx-auto">
             <button
               onClick={handleBack}
@@ -267,7 +315,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
               )}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

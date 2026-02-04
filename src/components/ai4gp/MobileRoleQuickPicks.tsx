@@ -20,7 +20,7 @@ const GP_QUICK_PICKS = [
 const PM_QUICK_PICKS = [
   { label: "Complaint response", prompt: "Help me draft a response to a patient complaint" },
   { label: "CQC prep", prompt: "What should I prepare for a CQC inspection?" },
-  { label: "Staff policy", prompt: "Write a staff absence management policy" },
+  { label: "PLT Planning", prompt: "Help me plan a Protected Learning Time session for our practice" },
   { label: "Meeting agenda", prompt: "Create an agenda for a practice team meeting" },
   { label: "QOF targets", prompt: "What are the current QOF targets we need to focus on?" },
   { label: "HR guidance", prompt: "What's the correct process for managing staff performance issues?" },
