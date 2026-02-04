@@ -8,6 +8,7 @@ import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Do
 import { DomainSection } from './DomainSection';
 import { InspectionReport } from './InspectionReport';
 import { SiteIssuesSection } from './SiteIssuesSection';
+import { FundamentalsChecklist } from './fundamentals';
 import { InspectionSession, InspectionElement, useMockInspection } from '@/hooks/useMockInspection';
 
 interface InspectionDashboardProps {
@@ -218,6 +219,11 @@ export const InspectionDashboard = ({
               </p>
             </div>
           )}
+
+          {/* Fundamentals Checklist - Primary Walkthrough */}
+          <div className="mb-6">
+            <FundamentalsChecklist sessionId={session.id} />
+          </div>
 
           {/* Domain Sections */}
           <div className="space-y-4">
