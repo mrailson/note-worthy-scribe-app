@@ -1,242 +1,180 @@
 
-# Plan: Create Global AI Chat Purge Function
+# Plan: Enhanced Practice User Management for Practice Managers
 
 ## Overview
 
-Create a new edge function `purge-old-ai-chats` that allows system admins to delete all `ai_4_pm_searches` entries older than a specified number of days (default: 30) across all users, respecting the `is_protected` flag.
+This plan enhances the Practice User Management interface to give Practice Managers full control over creating, editing, and deleting users within their practice. The key improvements include:
 
-## What Gets Deleted
+1. **Password field with validation** - Practice Managers can set a password (minimum 8 characters, at least 1 number)
+2. **Email preview modal** - View the welcome email content before sending
+3. **Expanded module toggles** - All requested services with on/off sliders
+4. **Improved user flow** - Clear two-step process for user creation
 
-- **Target Table**: `public.ai_4_pm_searches` (Ask AI chat history)
-- **Criteria**: Entries where `created_at` is older than 30 days AND `is_protected` is false
-- **Preserved**: Any entry marked as "Protected" (Super Saved) will NOT be deleted
+---
 
-## What Is NOT Affected
+## Module Toggles to Include
 
-- Meeting Notes (`meeting_notes_multi`) – no relationship
-- Genie Consultations (`consultation_notes`) – no relationship
-- Scribe Records – no relationship
-- Any other clinical data – completely isolated
+Based on your requirements, the following modules will have on/off toggles:
 
-## Implementation
+| Module | Display Name | Storage |
+|--------|--------------|---------|
+| `ai4gp_access` | Ask AI | `profiles` table |
+| `meeting_notes_access` | Meeting Manager | `user_roles` table |
+| `survey_manager_access` | Survey Tool | `user_roles` table |
+| `policy_service` | Practice Policy Service | `user_service_activations` table |
+| `complaints_manager_access` | Complaints Service | `user_roles` table |
 
-### New Edge Function: `supabase/functions/purge-old-ai-chats/index.ts`
+Note: The Practice Policy Service uses the service activation pattern (like NRES) rather than a simple boolean flag.
 
-```typescript
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+---
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+## Implementation Steps
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+### Step 1: Update the User Creation Form
 
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseKey)
+**File: `src/components/PracticeUserManagement.tsx`**
 
-    // Verify the requesting user is an admin
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user } } = await supabase.auth.getUser(token)
+- Add a new password field with the following validation:
+  - Minimum 8 characters
+  - At least 1 number
+  - Show/hide password toggle (Eye icon)
+  - Real-time validation feedback
+  
+- Reorganise the module toggles section to display:
+  - Ask AI (AI4GP)
+  - Meeting Manager (Meeting Notes)
+  - Survey Tool
+  - Practice Policy Service
+  - Complaints Service
 
-    if (!user) {
-      throw new Error('User not authenticated')
-    }
+- Add state for tracking Policy Service access (similar to NRES pattern)
 
-    // Check if user has system_admin role
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
+### Step 2: Add Email Preview Modal
 
-    const isSystemAdmin = userRoles?.some(r => r.role === 'system_admin')
-    if (!isSystemAdmin) {
-      throw new Error('Unauthorized: System admin access required')
-    }
+**File: `src/components/PracticeUserManagement.tsx`**
 
-    // Parse request body for days threshold (default 30)
-    let daysOld = 30
-    let dryRun = false
-    try {
-      const body = await req.json()
-      if (body.daysOld && typeof body.daysOld === 'number' && body.daysOld > 0) {
-        daysOld = body.daysOld
-      }
-      if (body.dryRun === true) {
-        dryRun = true
-      }
-    } catch {
-      // No body or invalid JSON, use defaults
-    }
+- Create a new `showEmailPreview` state
+- Add a preview modal that displays:
+  - Recipient email address
+  - Subject line
+  - Preview of email content (login URL, password setup link, enabled modules)
+  - "Send Email" and "Cancel" buttons
+  
+- Flow change:
+  1. User fills form and clicks "Create User"
+  2. User is created in the database
+  3. Email preview modal appears
+  4. Practice Manager reviews and clicks "Send Email" to dispatch the welcome email
 
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - daysOld)
+### Step 3: Update Edge Function for Password
 
-    console.log(`Purging AI chats older than ${daysOld} days (cutoff: ${cutoffDate.toISOString()})`)
+**File: `supabase/functions/create-user-practice-manager/index.ts`**
 
-    // First get count and summary of chats to delete
-    const { data: chatsToDelete, error: fetchError } = await supabase
-      .from('ai_4_pm_searches')
-      .select('id, title, user_id, created_at')
-      .eq('is_protected', false)
-      .lt('created_at', cutoffDate.toISOString())
+- Accept optional `password` field in the request
+- If password is provided, use it instead of auto-generating one
+- Keep the auto-generation as fallback if no password is provided
+- Add `policy_service_access` boolean to handle service activation during creation
+- Add `survey_manager_access` to the module_access interface and database insert
 
-    if (fetchError) throw fetchError
+### Step 4: Update Edge Function for Editing
 
-    if (!chatsToDelete || chatsToDelete.length === 0) {
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          deletedCount: 0,
-          dryRun,
-          message: `No unprotected chats older than ${daysOld} days found`
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+**File: `supabase/functions/update-user-practice-manager/index.ts`**
 
-    // Group by user for reporting
-    const userCounts: Record<string, number> = {}
-    chatsToDelete.forEach(chat => {
-      userCounts[chat.user_id] = (userCounts[chat.user_id] || 0) + 1
-    })
+- Add support for `survey_manager_access` in module updates
+- Add logic to handle `policy_service_access` via service activations table (insert/delete pattern like NRES)
 
-    if (dryRun) {
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          dryRun: true,
-          wouldDelete: chatsToDelete.length,
-          affectedUsers: Object.keys(userCounts).length,
-          userBreakdown: userCounts,
-          oldestChat: chatsToDelete[chatsToDelete.length - 1]?.created_at,
-          newestChat: chatsToDelete[0]?.created_at,
-          message: `Would delete ${chatsToDelete.length} chats from ${Object.keys(userCounts).length} users`
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+### Step 5: Update Welcome Email Function
 
-    // Actually delete
-    const chatIds = chatsToDelete.map(c => c.id)
-    const { error } = await supabase
-      .from('ai_4_pm_searches')
-      .delete()
-      .in('id', chatIds)
+**File: `supabase/functions/send-user-welcome-email/index.ts`**
 
-    if (error) throw error
+- Add `survey_manager_access` to the ModuleAccess interface
+- Add Survey Tool to the moduleInfo dictionary with appropriate label, description, and category
+- Add Practice Policy Service to the module display
 
-    // Log the cleanup in audit log
-    await supabase
-      .from('system_audit_log')
-      .insert({
-        table_name: 'ai_4_pm_searches',
-        operation: 'BULK_PURGE',
-        user_id: user.id,
-        user_email: user.email,
-        new_values: {
-          deleted_count: chatsToDelete.length,
-          days_old: daysOld,
-          cutoff_date: cutoffDate.toISOString(),
-          affected_users: Object.keys(userCounts).length,
-          action: 'purge_old_ai_chats'
-        }
-      })
+---
 
-    return new Response(
-      JSON.stringify({ 
-        success: true,
-        deletedCount: chatsToDelete.length,
-        affectedUsers: Object.keys(userCounts).length,
-        userBreakdown: userCounts,
-        daysOld,
-        cutoffDate: cutoffDate.toISOString(),
-        message: `Successfully deleted ${chatsToDelete.length} old AI chats from ${Object.keys(userCounts).length} users`
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+## Technical Details
 
-  } catch (error) {
-    console.error('Purge old AI chats error:', error)
-    return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Failed to purge old AI chats'
-      }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
-  }
-})
+### Password Validation (Client-side)
+```text
+Pattern: /^(?=.*\d).{8,}$/
+- At least 8 characters
+- At least 1 number
 ```
 
-### Update Config: `supabase/config.toml`
+### Email Preview Modal Content
+The preview will show:
+- To: [user email]
+- Subject: Welcome to GP Notewell AI - Your Account Details
+- Body preview with:
+  - Login URL
+  - User name and role
+  - Practice name
+  - List of enabled modules
+  - Password setup link information
 
-Add entry for the new function:
-```toml
-[functions.purge-old-ai-chats]
-verify_jwt = false
+### Policy Service Activation Pattern
+```text
+When toggling Policy Service access:
+- ON: Insert row into user_service_activations with service='policy_service'
+- OFF: Delete row from user_service_activations where user_id and service='policy_service'
 ```
 
-## Usage
+---
 
-### Dry Run (Preview What Would Be Deleted)
-```bash
-POST /functions/v1/purge-old-ai-chats
-Authorization: Bearer <admin_token>
-Body: { "dryRun": true, "daysOld": 30 }
-```
+## UI Changes Summary
 
-### Actual Purge
-```bash
-POST /functions/v1/purge-old-ai-chats
-Authorization: Bearer <admin_token>
-Body: { "daysOld": 30 }
-```
+### Add User Modal - New Elements:
+1. **Password field** with:
+   - Eye icon to toggle visibility
+   - Validation message below (red if invalid)
+   - Helper text: "Minimum 8 characters with at least 1 number"
 
-## Response Examples
+2. **Module Access section** reorganised:
+   - Ask AI
+   - Meeting Manager
+   - Survey Tool
+   - Practice Policy Service
+   - Complaints Service
+   (Fridge Monitoring and NRES remain as they currently are)
 
-### Dry Run Response
-```json
-{
-  "success": true,
-  "dryRun": true,
-  "wouldDelete": 20,
-  "affectedUsers": 1,
-  "userBreakdown": { "user-uuid-1": 20 },
-  "message": "Would delete 20 chats from 1 users"
-}
-```
+3. **Email Preview toggle/modal** after user creation
 
-### Actual Purge Response
-```json
-{
-  "success": true,
-  "deletedCount": 20,
-  "affectedUsers": 1,
-  "daysOld": 30,
-  "message": "Successfully deleted 20 old AI chats from 1 users"
-}
-```
+### Email Preview Modal:
+- Shows a styled preview of the welcome email
+- "Send Email" button (primary)
+- "Skip" button (if they don't want to send)
 
-## Files to Create/Modify
+---
 
-| File | Action |
-|------|--------|
-| `supabase/functions/purge-old-ai-chats/index.ts` | Create new edge function |
-| `supabase/config.toml` | Add function configuration |
+## Files to Modify
 
-## Security
+1. **`src/components/PracticeUserManagement.tsx`**
+   - Add password field with validation
+   - Add email preview modal
+   - Expand module toggles
+   - Add Policy Service activation handling
 
-- Requires valid authentication token
-- Verifies user has `system_admin` role before allowing purge
-- Logs all purge operations to `system_audit_log`
-- Respects `is_protected` flag (Super Saved chats are never deleted)
+2. **`supabase/functions/create-user-practice-manager/index.ts`**
+   - Accept custom password
+   - Add survey_manager_access support
+   - Add policy_service_access support via service activations
+
+3. **`supabase/functions/update-user-practice-manager/index.ts`**
+   - Add survey_manager_access support
+   - Add policy_service_access support
+
+4. **`supabase/functions/send-user-welcome-email/index.ts`**
+   - Add Survey Manager to module info
+   - Add Practice Policies to module info
+
+---
+
+## Security Considerations
+
+- Password validation is enforced both client-side and server-side
+- Practice Manager authorisation is verified before any operation
+- Users can only manage staff within their own practice
+- Practice Managers cannot elevate users to practice_manager or system_admin roles
+- All module changes are logged in the database
+
