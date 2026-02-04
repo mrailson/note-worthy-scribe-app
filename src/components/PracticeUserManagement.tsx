@@ -630,9 +630,14 @@ export const PracticeUserManagement = () => {
                 <p><span className="text-muted-foreground">Practice:</span> {createdUserData.practice_name}</p>
               </div>
               {createdUserData.password_reset_link && (
-                <p className="text-sm text-green-600 mt-2">
-                  ✓ Password setup link will be included (expires in 24 hours)
-                </p>
+                <div className="mt-2 space-y-1">
+                  <p className="text-sm text-green-600">
+                    ✓ Password setup link will be included (expires in 48 hours)
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    If the link expires, they can use the magic link option on the login page
+                  </p>
+                </div>
               )}
             </div>
             

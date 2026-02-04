@@ -259,7 +259,7 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
                             Create Your Password
                           </a>
                           <div style="color: #768692; font-size: 11px; margin-top: 8px;">
-                            This link expires in 24 hours. If it expires, use "Forgot Password" on the login page.
+                            This link expires in 48 hours. If it expires, you can use the "Magic Link" option on the login page to access your account.
                           </div>
                         </td>
                       </tr>
