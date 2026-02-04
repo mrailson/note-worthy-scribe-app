@@ -46,7 +46,12 @@ import {
   Network,
   Handshake,
   Headphones,
-  Signpost
+  Signpost,
+  CalendarDays,
+  ShieldAlert,
+  Flame,
+  Brain,
+  Siren
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -569,6 +574,100 @@ My draft email:` },
           { id: 'how-best', shortTitle: 'Best Practice', title: 'Best Practice', description: 'Find best practice', prompt: 'What is the best practice for:' },
           { id: 'how-implement', shortTitle: 'Implementation', title: 'Implementation Guide', description: 'Implementation steps', prompt: 'How should we implement:' },
           { id: 'how-continuity', shortTitle: 'Business Continuity', title: 'BCP Template', description: 'Business continuity plan', prompt: 'Create a business continuity plan template for GP practices covering IT failure, staff absence, and premises issues' },
+        ]
+      },
+    ]
+  },
+  {
+    id: 'plt-planning',
+    shortTitle: 'PLT Planning',
+    title: 'PLT Planning',
+    description: 'Plan Protected Learning Time sessions with AI assistance',
+    icon: GraduationCap,
+    gradient: 'from-pink-500 to-fuchsia-600',
+    subCategories: [
+      {
+        id: 'plan-plt',
+        shortTitle: 'Plan a PLT',
+        title: 'Plan a PLT Session',
+        description: 'Create comprehensive PLT session plans',
+        icon: CalendarDays,
+        gradient: 'from-pink-400 to-pink-500',
+        prompts: [
+          { id: 'plt-general', shortTitle: 'General Plan', title: 'General PLT Plan', description: 'Create a comprehensive PLT plan', prompt: 'Help me plan a comprehensive Protected Learning Time session for our practice. Include learning objectives, session structure, activities, timing, and resources needed. The topic is:' },
+          { id: 'plt-1hour', shortTitle: '1-Hour Session', title: '1-Hour PLT Session', description: 'Plan a focused 1-hour session', prompt: 'Create a focused 1-hour PLT session plan with clear objectives, timed agenda, interactive elements, and takeaway actions. The topic is:' },
+          { id: 'plt-2hour', shortTitle: '2-Hour Session', title: '2-Hour PLT Session', description: 'Plan a 2-hour session', prompt: 'Design a 2-hour PLT session with multiple segments, group activities, break time, and assessment. The topic is:' },
+          { id: 'plt-halfday', shortTitle: 'Half-Day Session', title: 'Half-Day PLT Session', description: 'Plan a half-day session', prompt: 'Create a half-day (3-4 hour) PLT session plan with varied activities, breaks, networking time, and evaluation. The topic is:' },
+        ]
+      },
+      {
+        id: 'difficult-situations',
+        shortTitle: 'Difficult Situations',
+        title: 'Handling Difficult Situations',
+        description: 'Training on managing conflicts and aggression',
+        icon: ShieldAlert,
+        gradient: 'from-red-400 to-red-500',
+        prompts: [
+          { id: 'plt-reception-aggression', shortTitle: 'Reception Aggression', title: 'Patient Aggression at Reception', description: 'Handle shouting patients', prompt: 'Plan a PLT session on handling patients shouting at reception. Include role play scenarios, de-escalation techniques, when to escalate to management, staff safety protocols, and debriefing procedures.' },
+          { id: 'plt-phone-conflict', shortTitle: 'Telephone Conflict', title: 'Managing Aggressive Callers', description: 'Handle difficult phone calls', prompt: 'Create training materials for handling aggressive or distressed callers on the telephone. Include scripts for common scenarios, de-escalation phrases, when to end calls safely, and documentation requirements.' },
+          { id: 'plt-deescalation', shortTitle: 'De-escalation', title: 'De-escalation Training', description: 'Conflict de-escalation techniques', prompt: 'Design a PLT session on de-escalation techniques for all staff. Cover verbal and non-verbal cues, the CRIES model, maintaining safety, and practical exercises.' },
+          { id: 'plt-conflict-resolution', shortTitle: 'Conflict Resolution', title: 'Conflict Resolution Workshop', description: 'Resolve workplace conflicts', prompt: 'Design a conflict resolution workshop for reception and admin staff covering difficult conversations with patients about capacity, waiting times, and appointment availability.' },
+        ]
+      },
+      {
+        id: 'clinical-training',
+        shortTitle: 'Clinical Topics',
+        title: 'Clinical Training Topics',
+        description: 'Safeguarding, infection control, and clinical updates',
+        icon: Stethoscope,
+        gradient: 'from-blue-400 to-blue-500',
+        prompts: [
+          { id: 'plt-safeguarding', shortTitle: 'Safeguarding', title: 'Safeguarding Updates', description: 'Adult and child safeguarding', prompt: 'Plan a PLT on safeguarding adults and children. Include case studies, practice scenarios, local reporting procedures, and the role of different staff members.' },
+          { id: 'plt-ipc', shortTitle: 'Infection Control', title: 'Infection Control Refresher', description: 'IPC training session', prompt: 'Create an infection prevention and control refresher session covering hand hygiene, PPE, cleaning protocols, and outbreak management relevant to GP practices.' },
+          { id: 'plt-medication', shortTitle: 'Medication Safety', title: 'Medication Safety', description: 'Prescription safety training', prompt: 'Design a PLT session on medication safety covering prescription errors, drug interactions, controlled drugs, and reporting incidents.' },
+          { id: 'plt-emergency', shortTitle: 'Clinical Emergencies', title: 'Managing Emergencies', description: 'Emergency response training', prompt: 'Plan a clinical emergencies PLT covering anaphylaxis, cardiac arrest, severe asthma, and seizures - appropriate for non-clinical staff awareness.' },
+        ]
+      },
+      {
+        id: 'admin-systems',
+        shortTitle: 'Admin & Systems',
+        title: 'Admin & Systems Training',
+        description: 'Clinical system training and admin processes',
+        icon: FileSpreadsheet,
+        gradient: 'from-green-400 to-green-500',
+        prompts: [
+          { id: 'plt-emis', shortTitle: 'EMIS/SystmOne', title: 'Clinical System Training', description: 'EMIS or SystmOne training', prompt: 'Create a PLT session on efficient use of our clinical system (EMIS/SystmOne). Cover shortcuts, workflow templates, common tasks, and tips for receptionists and admin staff.' },
+          { id: 'plt-coding', shortTitle: 'Coding Updates', title: 'Read Coding Training', description: 'Clinical coding training', prompt: 'Design a training session on clinical coding updates, SNOMED CT codes, QOF-relevant coding, and common coding errors to avoid.' },
+          { id: 'plt-triage', shortTitle: 'Telephone Triage', title: 'Telephone Triage Protocols', description: 'Triage training for reception', prompt: 'Create a telephone triage training session for reception staff covering the 6 Cs, red flag symptoms, appropriate questioning, and when to escalate to clinical staff.' },
+          { id: 'plt-induction', shortTitle: 'New Starter', title: 'New Starter Induction', description: 'Induction training plan', prompt: 'Create a comprehensive new starter induction PLT covering practice systems, policies, key contacts, and role-specific training requirements.' },
+        ]
+      },
+      {
+        id: 'wellbeing-team',
+        shortTitle: 'Wellbeing & Team',
+        title: 'Wellbeing & Team Building',
+        description: 'Staff wellbeing and team development',
+        icon: Heart,
+        gradient: 'from-purple-400 to-purple-500',
+        prompts: [
+          { id: 'plt-wellbeing', shortTitle: 'Staff Wellbeing', title: 'Staff Wellbeing Session', description: 'Promote staff wellbeing', prompt: 'Plan a staff wellbeing PLT session covering stress management, work-life balance, recognising burnout, and available support resources including EAP.' },
+          { id: 'plt-team', shortTitle: 'Team Building', title: 'Team Building Activities', description: 'Build team cohesion', prompt: 'Create a team building PLT session with interactive activities suitable for a mixed clinical and admin team, focusing on communication and collaboration.' },
+          { id: 'plt-resilience', shortTitle: 'Resilience', title: 'Building Resilience', description: 'Develop staff resilience', prompt: 'Design a PLT session on building personal and team resilience in healthcare, covering coping strategies and peer support.' },
+          { id: 'plt-stress', shortTitle: 'Stress Management', title: 'Managing Workplace Stress', description: 'Stress awareness training', prompt: 'Create a stress management session covering identifying stress triggers, coping mechanisms, and creating a supportive workplace culture.' },
+        ]
+      },
+      {
+        id: 'compliance-training',
+        shortTitle: 'Compliance',
+        title: 'Compliance Training',
+        description: 'CQC, IG, and mandatory training',
+        icon: Shield,
+        gradient: 'from-emerald-400 to-emerald-500',
+        prompts: [
+          { id: 'plt-cqc', shortTitle: 'CQC Key Questions', title: 'CQC Awareness Training', description: 'CQC inspection preparation', prompt: 'Plan a PLT session on CQC key questions - Safe, Effective, Caring, Responsive, Well-led. Include what inspectors look for and how each staff role contributes.' },
+          { id: 'plt-ig', shortTitle: 'Info Governance', title: 'Information Governance', description: 'GDPR and confidentiality', prompt: 'Create an Information Governance refresher covering GDPR, patient confidentiality, data breaches, subject access requests, and practical scenarios.' },
+          { id: 'plt-fire', shortTitle: 'Fire Safety', title: 'Fire Safety Refresher', description: 'Fire safety training', prompt: 'Design a fire safety refresher PLT covering fire prevention, evacuation procedures, fire warden roles, and use of fire extinguishers.' },
+          { id: 'plt-hs', shortTitle: 'Health & Safety', title: 'Health & Safety Basics', description: 'H&S awareness training', prompt: 'Create a health and safety awareness session covering manual handling, COSHH, lone working, and reporting hazards in the practice environment.' },
         ]
       },
     ]
