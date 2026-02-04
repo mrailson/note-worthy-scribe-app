@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ClipboardCheck, Play, History, ArrowRight, Building2, Shield, Users, Heart, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useToast } from '@/hooks/use-toast';
 import { InspectionDashboard } from '@/components/mock-cqc/InspectionDashboard';
 import { useMockInspection } from '@/hooks/useMockInspection';
@@ -42,27 +43,16 @@ const MockCQCInspection = () => {
     if (!user) return;
 
     try {
-      // Fetch practices the user has access to
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('practice_id')
-        .eq('user_id', user.id)
-        .not('practice_id', 'is', null);
+      // Fetch all practices for the inspection picker
+      const { data: practicesData, error } = await supabase
+        .from('gp_practices')
+        .select('id, name')
+        .order('name');
 
-      if (roles && roles.length > 0) {
-        const practiceIds = roles.map(r => r.practice_id).filter(Boolean);
-        
-        const { data: practicesData, error } = await supabase
-          .from('gp_practices')
-          .select('id, name')
-          .in('id', practiceIds)
-          .order('name');
-
-        if (!error && practicesData) {
-          setPractices(practicesData);
-          if (practicesData.length === 1) {
-            setSelectedPracticeId(practicesData[0].id);
-          }
+      if (!error && practicesData) {
+        setPractices(practicesData);
+        if (practicesData.length === 1) {
+          setSelectedPracticeId(practicesData[0].id);
         }
       }
     } catch (error) {
