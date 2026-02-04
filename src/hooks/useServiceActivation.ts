@@ -38,6 +38,7 @@ export const useServiceActivation = () => {
   });
 
   // Fetch from user_roles table for role-based access
+  // Users may have multiple roles (e.g., system_admin + practice_manager), so we need to check all
   const { data: userRoles, isLoading: rolesLoading } = useQuery({
     queryKey: ['user-roles-access', user?.id],
     queryFn: async () => {
@@ -46,16 +47,20 @@ export const useServiceActivation = () => {
       const { data, error } = await supabase
         .from('user_roles')
         .select('lg_capture_access, bp_service_access')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle();
+        .eq('user_id', user.id);
 
       if (error) {
         console.error('Error fetching user roles:', error);
         return null;
       }
 
-      return data;
+      // Merge all roles - if ANY role has access, user has access
+      if (!data || data.length === 0) return null;
+      
+      return {
+        lg_capture_access: data.some(r => r.lg_capture_access === true),
+        bp_service_access: data.some(r => r.bp_service_access === true),
+      };
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
