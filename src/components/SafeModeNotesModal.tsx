@@ -1030,22 +1030,59 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       } else if (liveText) {
         setTranscript(liveText);
       } else {
-        // Fallback to meeting_transcripts table
-        const { data: transcriptData } = await supabase
-          .from('meeting_transcripts')
-          .select('content')
+        // Fallback 1: Try meeting_transcription_chunks table (primary storage during recording)
+        const { data: chunkData } = await supabase
+          .from('meeting_transcription_chunks')
+          .select('transcription_text, cleaned_text, cleaning_status, chunk_number')
           .eq('meeting_id', meeting.id)
-          .order('created_at', { ascending: true });
+          .order('chunk_number', { ascending: true });
 
-        if (transcriptData && transcriptData.length > 0) {
-          const combinedTranscript = transcriptData
-            .map(t => t.content)
+        if (chunkData && chunkData.length > 0) {
+          console.log(`📦 SafeMode: Falling back to ${chunkData.length} chunks from meeting_transcription_chunks`);
+          const combinedChunks = chunkData
+            .map(chunk => {
+              // Prefer cleaned text if available
+              if (chunk.cleaned_text && chunk.cleaning_status === 'completed') {
+                return chunk.cleaned_text;
+              }
+              // Otherwise parse raw transcription_text
+              try {
+                const parsed = JSON.parse(chunk.transcription_text);
+                if (Array.isArray(parsed)) {
+                  return parsed.map((seg: { text?: string }) => seg.text || '').join(' ');
+                }
+                return chunk.transcription_text;
+              } catch {
+                return chunk.transcription_text;
+              }
+            })
             .filter(Boolean)
-            .join('\n\n');
-          setTranscript(combinedTranscript);
-          setBatchTranscript(combinedTranscript);
+            .join(' ')
+            .trim();
+          
+          if (combinedChunks) {
+            setTranscript(combinedChunks);
+            setBatchTranscript(combinedChunks);
+            console.log(`✅ SafeMode: Loaded ${combinedChunks.length} chars from chunks fallback`);
+          }
         } else {
-          setTranscript('No transcript available for this meeting.');
+          // Fallback 2: Try legacy meeting_transcripts table
+          const { data: transcriptData } = await supabase
+            .from('meeting_transcripts')
+            .select('content')
+            .eq('meeting_id', meeting.id)
+            .order('created_at', { ascending: true });
+
+          if (transcriptData && transcriptData.length > 0) {
+            const combinedTranscript = transcriptData
+              .map(t => t.content)
+              .filter(Boolean)
+              .join('\n\n');
+            setTranscript(combinedTranscript);
+            setBatchTranscript(combinedTranscript);
+          } else {
+            setTranscript('No transcript available for this meeting.');
+          }
         }
       }
     } catch (error) {
