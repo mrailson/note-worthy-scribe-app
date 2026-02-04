@@ -5978,7 +5978,7 @@ export type Database = {
       mock_inspection_capture_sessions: {
         Row: {
           created_at: string | null
-          element_id: string
+          element_id: string | null
           expires_at: string
           id: string
           is_active: boolean | null
@@ -5988,7 +5988,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          element_id: string
+          element_id?: string | null
           expires_at?: string
           id?: string
           is_active?: boolean | null
@@ -5998,7 +5998,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          element_id?: string
+          element_id?: string | null
           expires_at?: string
           id?: string
           is_active?: boolean | null
