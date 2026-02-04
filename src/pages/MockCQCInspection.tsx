@@ -5,13 +5,14 @@ import { Header } from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ClipboardCheck, Play, History, ArrowRight, Building2, Shield, Users, Heart, Clock } from 'lucide-react';
+import { ClipboardCheck, Play, History, ArrowRight, Building2, Shield, Users, Heart, Clock, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useToast } from '@/hooks/use-toast';
 import { InspectionDashboard } from '@/components/mock-cqc/InspectionDashboard';
 import { useMockInspection } from '@/hooks/useMockInspection';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface Practice {
   id: string;
@@ -155,6 +156,17 @@ const MockCQCInspection = () => {
       return;
     }
 
+    // Check if there's already an in-progress session for this practice
+    const existingSession = inProgressSessions.find(s => s.practice_id === selectedPracticeId);
+    if (existingSession) {
+      toast({
+        title: "Inspection already in progress",
+        description: `You already have an active inspection for this practice. Use 'Resume' to continue.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     setStartingInspection(true);
     try {
       const session = await createSession(selectedPracticeId);
@@ -172,6 +184,38 @@ const MockCQCInspection = () => {
       });
     } finally {
       setStartingInspection(false);
+    }
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    try {
+      // Delete elements first (due to foreign key)
+      await supabase
+        .from('mock_inspection_elements')
+        .delete()
+        .eq('session_id', sessionId);
+
+      // Then delete the session
+      const { error } = await supabase
+        .from('mock_inspection_sessions')
+        .delete()
+        .eq('id', sessionId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Session deleted",
+        description: "The inspection session has been removed."
+      });
+
+      // Refresh the list
+      fetchInProgressSessions();
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      toast({
+        title: "Failed to delete session",
+        variant: "destructive"
+      });
     }
   };
 
@@ -334,14 +378,40 @@ const MockCQCInspection = () => {
                         </p>
                       </div>
                     </div>
-                    <Button
-                      onClick={() => handleResumeSession(session.id)}
-                      disabled={resumingSessionId === session.id}
-                      size="sm"
-                    >
-                      {resumingSessionId === session.id ? 'Loading...' : 'Resume'}
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete this inspection?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete the inspection for {session.practice_name} and all associated data. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteSession(session.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      <Button
+                        onClick={() => handleResumeSession(session.id)}
+                        disabled={resumingSessionId === session.id}
+                        size="sm"
+                      >
+                        {resumingSessionId === session.id ? 'Loading...' : 'Resume'}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </CardContent>
