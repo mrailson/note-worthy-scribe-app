@@ -4332,6 +4332,11 @@ export const MeetingRecorder = ({
   const stopRecording = async (options?: { serverTriggered?: boolean }) => {
     const isServerTriggered = options?.serverTriggered ?? false;
     
+    // CRITICAL: Capture duration at the START before any async operations or state resets
+    // This prevents race conditions where duration is reset to 0 before validation
+    let capturedDuration = duration;
+    console.log('📊 Captured duration at stop start:', capturedDuration, 'isServerTriggered:', isServerTriggered);
+    
     // Guard: prevent multiple simultaneous stop operations (state can lag)
     if (stopInProgressRef.current) {
       console.log('⚠️ Stop already in progress (ref), ignoring duplicate call');
@@ -4349,25 +4354,47 @@ export const MeetingRecorder = ({
     console.log('📊 Meeting word count (client):', { effective: effectiveWords, assembly: assemblyWords, whisper: whisperWords, serverTriggered: isServerTriggered });
     
     // CRITICAL: If client state shows low word count OR server triggered the stop,
-    // query the database for actual word count - client state may be stale/empty
+    // query the database for actual word count AND duration - client state may be stale/empty
     const currentMeetingIdForCheck = sessionStorage.getItem('currentMeetingId');
-    if ((effectiveWords < 100 || isServerTriggered) && currentMeetingIdForCheck) {
+    if ((effectiveWords < 100 || isServerTriggered || capturedDuration < 5) && currentMeetingIdForCheck) {
       try {
-        console.log('🔍 Checking database for actual word count...');
-        const { data: chunks, error } = await supabase
+        console.log('🔍 Checking database for actual word count and duration...');
+        
+        // Get chunks for word count
+        const { data: chunks, error: chunksError } = await supabase
           .from('meeting_transcription_chunks')
           .select('transcription_text')
           .eq('meeting_id', currentMeetingIdForCheck);
         
-        if (!error && chunks && chunks.length > 0) {
+        if (!chunksError && chunks && chunks.length > 0) {
           const dbWordCount = chunks.reduce((total, chunk) => {
             return total + countWords(chunk.transcription_text || '');
           }, 0);
           console.log('📊 Database word count:', dbWordCount, 'vs client:', effectiveWords);
           effectiveWords = Math.max(effectiveWords, dbWordCount);
         }
+        
+        // Get meeting start_time to calculate actual duration if client duration is suspect
+        if (capturedDuration < 5 || isServerTriggered) {
+          const { data: meeting, error: meetingError } = await supabase
+            .from('meetings')
+            .select('start_time, created_at')
+            .eq('id', currentMeetingIdForCheck)
+            .maybeSingle();
+          
+          if (!meetingError && meeting) {
+            const startTime = meeting.start_time || meeting.created_at;
+            if (startTime) {
+              const startDate = new Date(startTime);
+              const nowDate = new Date();
+              const dbDurationSeconds = Math.floor((nowDate.getTime() - startDate.getTime()) / 1000);
+              console.log('📊 Database duration:', dbDurationSeconds, 'vs client:', capturedDuration);
+              capturedDuration = Math.max(capturedDuration, dbDurationSeconds);
+            }
+          }
+        }
       } catch (err) {
-        console.error('Failed to check database word count:', err);
+        console.error('Failed to check database word count/duration:', err);
       }
     }
     
@@ -4669,11 +4696,13 @@ export const MeetingRecorder = ({
     
     console.log('Recording stopped');
     
-    console.log('🚨 VALIDATION CHECKS - Duration:', duration, 'WordCount:', wordCount);
+    // Use capturedDuration (set at start of function) to avoid race conditions with state resets
+    console.log('🚨 VALIDATION CHECKS - CapturedDuration:', capturedDuration, 'StateDuration:', duration, 'WordCount:', wordCount);
     
     // Relaxed validation - only require 5 seconds and any transcript content
-    if (duration < 5) {
-      console.log('🚨 VALIDATION FAILED - Duration too short:', duration);
+    // Use capturedDuration which was set at the start and potentially augmented from DB
+    if (capturedDuration < 5) {
+      console.log('🚨 VALIDATION FAILED - Duration too short:', capturedDuration);
       showToast.error('Recording too short. Minimum 5 seconds required.', { section: 'meeting_manager' });
       setIsStoppingRecording(false);
       stopInProgressRef.current = false;
@@ -4689,10 +4718,10 @@ export const MeetingRecorder = ({
       return;
     }
     
-    console.log('🚨 VALIDATION PASSED - proceeding to save...');
+    console.log('🚨 VALIDATION PASSED - proceeding to save... capturedDuration:', capturedDuration);
     
-    // Check if audio backup is needed based on word count vs duration
-    const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
+    // Check if audio backup is needed based on word count vs capturedDuration
+    const needsAudioBackup = shouldCreateAudioBackup(wordCount, capturedDuration);
     console.log(`📊 Audio backup needed: ${needsAudioBackup}`);
 
     // STOP all real-time processing immediately to prevent interference
