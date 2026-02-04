@@ -265,6 +265,7 @@ export const FundamentalsChecklist = ({ sessionId, inspectionType }: Fundamental
                         record={record}
                         sessionId={sessionId}
                         categoryKey={category.key}
+                        categoryName={category.name}
                         onUpdate={(updates) => updateRecord(item.key, updates)}
                         onRecordCreated={(newRecord) => setRecords(prev => [...prev, newRecord])}
                       />

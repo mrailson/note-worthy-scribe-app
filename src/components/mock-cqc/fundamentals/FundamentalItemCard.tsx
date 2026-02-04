@@ -12,11 +12,13 @@ import {
   ChevronRight,
   Trash2,
   ExternalLink,
-  Loader2
+  Loader2,
+  Bot
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStatusColor, getStatusLabel, FundamentalItem } from './fundamentalsConfig';
 import { InspectionQRCaptureModal } from '../InspectionQRCaptureModal';
+import { InspectionItemAskAI } from '../InspectionItemAskAI';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
 
@@ -38,6 +40,7 @@ interface FundamentalItemCardProps {
   record?: FundamentalRecord;
   sessionId: string;
   categoryKey: string;
+  categoryName: string;
   onUpdate: (updates: Partial<FundamentalRecord>) => void;
   onRecordCreated?: (record: FundamentalRecord) => void;
 }
@@ -47,11 +50,13 @@ export const FundamentalItemCard = ({
   record, 
   sessionId,
   categoryKey,
+  categoryName,
   onUpdate,
   onRecordCreated
 }: FundamentalItemCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showAskAI, setShowAskAI] = useState(false);
   const [notes, setNotes] = useState(record?.notes || '');
   const [isCreatingRecord, setIsCreatingRecord] = useState(false);
   const [localRecordId, setLocalRecordId] = useState<string | null>(null);
@@ -260,6 +265,17 @@ export const FundamentalItemCard = ({
                 )}
               </div>
 
+              {/* Ask AI */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAskAI(true)}
+                className="gap-2 w-full"
+              >
+                <Bot className="h-4 w-4" />
+                Ask AI about this item
+              </Button>
+
               {/* Notes */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Notes</label>
@@ -288,6 +304,15 @@ export const FundamentalItemCard = ({
           onImagesReceived={handlePhotoReceived}
         />
       )}
+
+      {/* Ask AI Modal */}
+      <InspectionItemAskAI
+        open={showAskAI}
+        onOpenChange={setShowAskAI}
+        itemName={item.name}
+        itemDescription={item.description}
+        categoryName={categoryName}
+      />
     </>
   );
 };
