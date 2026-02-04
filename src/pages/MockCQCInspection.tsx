@@ -22,6 +22,8 @@ import { cn } from '@/lib/utils';
 interface Practice {
   id: string;
   name: string;
+  practice_code: string | null;
+  postcode: string | null;
 }
 
 interface InProgressSession {
@@ -72,7 +74,7 @@ const MockCQCInspection = () => {
       // Fetch all practices for the inspection picker
       const { data: practicesData, error } = await supabase
         .from('gp_practices')
-        .select('id, name')
+        .select('id, name, practice_code, postcode')
         .order('name');
 
       if (!error && practicesData) {
@@ -368,14 +370,29 @@ const MockCQCInspection = () => {
                         <CommandEmpty>No practice found.</CommandEmpty>
                         <CommandGroup>
                           {practices
-                            .filter(practice => 
-                              practice.name.toLowerCase().includes(practiceSearch.toLowerCase())
-                            )
+                            .filter(practice => {
+                              if (!practiceSearch.trim()) return true;
+                              const searchLower = practiceSearch.toLowerCase().trim();
+                              const nameLower = practice.name.toLowerCase();
+                              const codeLower = (practice.practice_code || '').toLowerCase();
+                              const postcodeLower = (practice.postcode || '').toLowerCase();
+                              
+                              // Match by name
+                              if (nameLower.includes(searchLower)) return true;
+                              // Match by practice code (K code)
+                              if (codeLower.includes(searchLower)) return true;
+                              // Handle 'K' prefix searches (e.g., "K84001" or just "84001")
+                              if (searchLower.startsWith('k') && codeLower.includes(searchLower.substring(1))) return true;
+                              // Match by postcode
+                              if (postcodeLower.includes(searchLower)) return true;
+                              
+                              return false;
+                            })
                             .slice(0, 10)
                             .map(practice => (
                               <CommandItem
                                 key={practice.id}
-                                value={practice.name}
+                                value={`${practice.name} ${practice.practice_code || ''} ${practice.postcode || ''}`}
                                 onSelect={() => {
                                   setSelectedPracticeId(practice.id);
                                   setPracticeSearchOpen(false);
@@ -383,7 +400,14 @@ const MockCQCInspection = () => {
                                 }}
                               >
                                 <Building2 className="mr-2 h-4 w-4" />
-                                {practice.name}
+                                <div className="flex flex-col">
+                                  <span>{practice.name}</span>
+                                  {(practice.practice_code || practice.postcode) && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {[practice.practice_code, practice.postcode].filter(Boolean).join(' • ')}
+                                    </span>
+                                  )}
+                                </div>
                               </CommandItem>
                             ))}
                         </CommandGroup>
