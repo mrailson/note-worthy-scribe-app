@@ -54,7 +54,7 @@ const MockCQCInspection = () => {
     sessionElements,
     loadSession,
     createSession,
-    upgradeInspectionType,
+    changeInspectionType,
     isLoading: sessionLoading
   } = useMockInspection();
 
@@ -249,7 +249,7 @@ const MockCQCInspection = () => {
           loadSession(null);
           fetchInProgressSessions(); // Refresh list when returning
         }}
-        onUpgradeType={upgradeInspectionType}
+        onUpgradeType={changeInspectionType}
       />
     );
   }
