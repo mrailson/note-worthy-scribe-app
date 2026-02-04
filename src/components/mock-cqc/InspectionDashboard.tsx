@@ -11,6 +11,8 @@ import { InspectionReport } from './InspectionReport';
 import { SiteIssuesSection } from './SiteIssuesSection';
 import { FundamentalsChecklist, INSPECTION_TYPES } from './fundamentals';
 import { InspectionSession, InspectionElement, InspectionType, useMockInspection } from '@/hooks/useMockInspection';
+import { InspectionAccessManager } from './InspectionAccessManager';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface InspectionDashboardProps {
   session: InspectionSession;
@@ -70,10 +72,14 @@ export const InspectionDashboard = ({
   onClose,
   onUpgradeType
 }: InspectionDashboardProps) => {
+  const { user } = useAuth();
   const [showReport, setShowReport] = useState(false);
   const [localElements, setLocalElements] = useState<InspectionElement[]>(elements);
   const [localSession, setLocalSession] = useState<InspectionSession>(session);
   const { updateElement: updateElementInDb, completeInspection } = useMockInspection();
+
+  // Check if current user is the owner of this session
+  const isOwner = user?.id === session.user_id;
 
   const inspectionTypeConfig = INSPECTION_TYPES[localSession.inspection_type];
   const canUpgrade = localSession.inspection_type !== 'long';
@@ -175,6 +181,11 @@ export const InspectionDashboard = ({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <InspectionAccessManager
+                sessionId={session.id}
+                sessionPracticeId={session.practice_id}
+                isOwner={isOwner}
+              />
               {canUpgrade && (
                 <Button 
                   variant="outline" 
