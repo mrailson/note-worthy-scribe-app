@@ -109,12 +109,13 @@ export const SiteIssuesSection = ({ sessionId }: SiteIssuesSectionProps) => {
     try {
       const sessionToken = crypto.randomUUID();
 
+      // For site walkthrough, we don't link to a specific element
       const { data, error } = await supabase
         .from('mock_inspection_capture_sessions')
         .insert({
           user_id: user.id,
           session_token: sessionToken,
-          element_id: sessionId, // Use session ID as element ID for walkthrough
+          // element_id is null for site walkthroughs
         })
         .select('id, short_code')
         .single();
