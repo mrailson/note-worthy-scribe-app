@@ -15,6 +15,7 @@ import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscop
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useServiceVisibility } from "@/hooks/useServiceVisibility";
+import { useMockInspectionAccess } from "@/hooks/useMockInspectionAccess";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger, DrawerClose, DrawerFooter } from "@/components/ui/drawer";
@@ -31,6 +32,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const { user, signOut, hasModuleAccess, refreshUserModules, isSystemAdmin } = useAuth();
   const { hasServiceAccess } = useServiceActivation();
   const { isServiceVisible, refresh: refreshVisibility } = useServiceVisibility();
+  const { hasMockInspectionAccess } = useMockInspectionAccess();
   const location = useLocation();
   const navigate = useNavigate();
   const [sharedDriveVisible, setSharedDriveVisible] = useState(true);
@@ -376,7 +378,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             BP Average Service
                           </DropdownMenuItem>
                         )}
-                        {hasModuleAccess('cqc_compliance') && isServiceVisible('mock_cqc_inspection') && (
+                        {hasMockInspectionAccess && isServiceVisible('mock_cqc_inspection') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/mock-cqc-inspection')}
                             className="cursor-pointer py-3"
@@ -658,6 +660,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/cqc-compliance')}>
                                     <Shield className="h-4 w-4 mr-2" />
                                     CQC Compliance
+                                  </Button>
+                                </DrawerClose>
+                               )}
+                               {hasMockInspectionAccess && isServiceVisible('mock_cqc_inspection') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/mock-cqc-inspection')}>
+                                    <ClipboardCheck className="h-4 w-4 mr-2" />
+                                    Mock CQC Inspection
                                   </Button>
                                 </DrawerClose>
                                )}

@@ -6,6 +6,7 @@ import { SessionActivityTracker } from '@/components/SessionActivityTracker';
 import { Suspense, lazy, useEffect } from 'react';
 import { getSafeDOMObserver, installHasAttributeSafeguard } from '@/utils/domSafetyPolyfill';
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { MockInspectionProtectedRoute } from "./components/MockInspectionProtectedRoute";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 import { Loader2 } from "lucide-react";
 
@@ -320,9 +321,9 @@ const App = () => {
                 <Route path="/lg-capture/bulk" element={<LGUploadQueueProvider><LGCaptureBulk /></LGUploadQueueProvider>} />
                 <Route path="/bp-calculator" element={<BPCalculator />} />
                 <Route path="/mock-cqc-inspection" element={
-                  <ProtectedRoute requiredModule="enhanced_access">
+                  <MockInspectionProtectedRoute>
                     <MockCQCInspection />
-                  </ProtectedRoute>
+                  </MockInspectionProtectedRoute>
                 } />
                 <Route path="/public/bp-calculator" element={<PublicBPCalculator />} />
                 <Route path="/scribe" element={<Scribe />} />
