@@ -195,11 +195,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [transcriptChunks, setTranscriptChunks] = useState<any[]>([]);
   const [isLoadingChunks, setIsLoadingChunks] = useState(false);
   
-  // Dual transcript state (Batch/Live/Consolidated)
+  // Transcript state (Batch/Live/Deepgram/Consolidated)
   const [batchTranscript, setBatchTranscript] = useState('');
   const [liveTranscript, setLiveTranscript] = useState('');
+  const [deepgramTranscript, setDeepgramTranscript] = useState('');
   const [consolidatedTranscript, setConsolidatedTranscript] = useState('');
-  const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live'>('batch');
+  const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live' | 'deepgram'>('batch');
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [consolidationStats, setConsolidationStats] = useState<{
     batchWords: number;
@@ -1000,6 +1001,29 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       const liveText = meetingData?.assembly_transcript_text || '';
       setLiveTranscript(liveText);
 
+      // Load Deepgram transcript from deepgram_transcriptions table
+      try {
+        const { data: deepgramData } = await supabase
+          .from('deepgram_transcriptions')
+          .select('transcription_text')
+          .eq('meeting_id', meeting.id)
+          .eq('is_final', true)
+          .order('chunk_number', { ascending: true });
+
+        if (deepgramData && deepgramData.length > 0) {
+          const deepgramText = deepgramData
+            .map(d => d.transcription_text)
+            .filter(Boolean)
+            .join(' ');
+          setDeepgramTranscript(deepgramText);
+        } else {
+          setDeepgramTranscript('');
+        }
+      } catch (deepgramError) {
+        console.warn('Failed to load Deepgram transcript:', deepgramError);
+        setDeepgramTranscript('');
+      }
+
       // Set the main transcript (prefer batch, fallback to live)
       if (batchText) {
         setTranscript(batchText);
@@ -1468,15 +1492,23 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     };
     const deviceLabel = getDeviceLabel();
 
-    // Calculate batch (Whisper) and live (AssemblyAI) statistics
+    // Calculate word counts for all three transcript sources
     const batchWords = batchTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
     const liveWords = liveTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
+    const deepgramWords = deepgramTranscript?.trim().split(/\s+/).filter(w => w.length > 0).length || 0;
     const hasBothSources = batchWords > 0 && liveWords > 0;
     const wordDifference = Math.abs(batchWords - liveWords);
     const wordDifferencePercent = hasBothSources 
       ? Math.round(wordDifference / Math.max(batchWords, liveWords) * 100)
       : 0;
-    const preferredSource = batchWords >= liveWords ? 'Batch (Whisper)' : 'Live (AssemblyAI)';
+    const allWordCounts = [
+      { source: 'Batch (Whisper)', words: batchWords },
+      { source: 'Live (AssemblyAI)', words: liveWords },
+      { source: 'Deepgram', words: deepgramWords }
+    ].filter(s => s.words > 0);
+    const preferredSource = allWordCounts.length > 0 
+      ? allWordCounts.reduce((a, b) => a.words >= b.words ? a : b).source 
+      : 'None';
 
     // Build document sections
     const docSections: any[] = [
@@ -1486,7 +1518,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       new Paragraph({ text: `Recorded On: ${deviceLabel}` }),
       new Paragraph({ text: '' }),
       
-      // Dual Source Comparison
+      // Multi-Source Comparison
       new Paragraph({ text: 'Transcript Source Comparison', heading: HeadingLevel.HEADING_2 }),
       new Paragraph({ 
         children: [
@@ -1498,6 +1530,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         children: [
           new TextRun({ text: 'Live (AssemblyAI) Words: ', bold: true }),
           new TextRun({ text: String(liveWords) })
+        ]
+      }),
+      new Paragraph({ 
+        children: [
+          new TextRun({ text: 'Deepgram Words: ', bold: true }),
+          new TextRun({ text: String(deepgramWords) })
         ]
       }),
     ];
@@ -1577,6 +1615,17 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       );
     }
 
+    // Add Deepgram Transcript Section if available
+    if (deepgramWords > 0) {
+      docSections.push(
+        new Paragraph({ text: 'Deepgram Transcript', heading: HeadingLevel.HEADING_2 }),
+        new Paragraph({ text: `Word Count: ${deepgramWords}` }),
+        new Paragraph({ text: '' }),
+        new Paragraph({ text: deepgramTranscript || '(No Deepgram transcript available)' }),
+        new Paragraph({ text: '' }),
+      );
+    }
+
     // Add disclaimer
     docSections.push(
       new Paragraph({ text: '' }),
@@ -1633,7 +1682,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     const blob = await Packer.toBlob(doc);
     saveAs(blob, `transcription-quality-summary-${new Date().toISOString().slice(0, 10)}.docx`);
     toast.success('Transcription Quality Summary downloaded');
-  }, [transcriptChunks, transcript, batchTranscript, liveTranscript, extractCleanChunkText, extractChunkTiming, isChunkInTranscript, meeting]);
+  }, [transcriptChunks, transcript, batchTranscript, liveTranscript, deepgramTranscript, extractCleanChunkText, extractChunkTiming, isChunkInTranscript, meeting]);
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -3588,34 +3637,107 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                 <div className="p-6 space-y-4">
                   {/* Toolbar: Quality Summary + Find & Replace */}
                   <div className="flex justify-between items-center gap-2 min-h-[36px]">
-                    {/* Sub-tabs for Batch/Live/Consolidated */}
+                    {/* Sub-tabs for Batch/Live/Deepgram with copy buttons */}
                     <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-                      <Button
-                        variant={transcriptSubTab === 'batch' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setTranscriptSubTab('batch')}
-                        className="h-7 text-xs"
-                      >
-                        Batch (Whisper)
+                      <div className="flex items-center">
+                        <Button
+                          variant={transcriptSubTab === 'batch' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setTranscriptSubTab('batch')}
+                          className="h-7 text-xs rounded-r-none"
+                        >
+                          Batch (Whisper)
+                          {batchTranscript && (
+                            <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                              {batchTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
+                            </Badge>
+                          )}
+                        </Button>
                         {batchTranscript && (
-                          <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
-                            {batchTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
-                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-1.5 rounded-l-none border-l border-border/50"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(batchTranscript);
+                                  toast.success('Whisper transcript copied');
+                                }}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Copy Whisper transcript</TooltipContent>
+                          </Tooltip>
                         )}
-                      </Button>
-                      <Button
-                        variant={transcriptSubTab === 'live' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setTranscriptSubTab('live')}
-                        className="h-7 text-xs"
-                      >
-                        Live (AssemblyAI)
+                      </div>
+                      <div className="flex items-center">
+                        <Button
+                          variant={transcriptSubTab === 'live' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setTranscriptSubTab('live')}
+                          className="h-7 text-xs rounded-r-none"
+                        >
+                          Live (AssemblyAI)
+                          {liveTranscript && (
+                            <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                              {liveTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
+                            </Badge>
+                          )}
+                        </Button>
                         {liveTranscript && (
-                          <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
-                            {liveTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
-                          </Badge>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-1.5 rounded-l-none border-l border-border/50"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(liveTranscript);
+                                  toast.success('AssemblyAI transcript copied');
+                                }}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Copy AssemblyAI transcript</TooltipContent>
+                          </Tooltip>
                         )}
-                      </Button>
+                      </div>
+                      <div className="flex items-center">
+                        <Button
+                          variant={transcriptSubTab === 'deepgram' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setTranscriptSubTab('deepgram')}
+                          className="h-7 text-xs rounded-r-none"
+                        >
+                          Deepgram
+                          {deepgramTranscript && (
+                            <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                              {deepgramTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
+                            </Badge>
+                          )}
+                        </Button>
+                        {deepgramTranscript && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-1.5 rounded-l-none border-l border-border/50"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(deepgramTranscript);
+                                  toast.success('Deepgram transcript copied');
+                                }}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Copy Deepgram transcript</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
                     </div>
 
                     {/* Notes Source Selector - which transcript to use for regenerating notes */}
@@ -3868,6 +3990,33 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           <div className="text-center py-12 text-muted-foreground">
                             <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                             <p>No live (AssemblyAI) transcript available for this meeting.</p>
+                          </div>
+                        )
+                      )}
+
+                      {/* Deepgram Transcript View */}
+                      {transcriptSubTab === 'deepgram' && (
+                        deepgramTranscript ? (
+                          <div className="relative">
+                            {viewMode === 'plain' ? (
+                              <pre 
+                                className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                                style={{ fontSize: `${fontSize}px` }}
+                              >
+                                {deepgramTranscript}
+                              </pre>
+                            ) : (
+                              <div 
+                                className="prose prose-sm dark:prose-invert max-w-none text-justify"
+                                style={{ fontSize: `${fontSize}px` }}
+                                dangerouslySetInnerHTML={{ __html: formatTranscript(deepgramTranscript) }}
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No Deepgram transcript available for this meeting.</p>
                           </div>
                         )
                       )}
