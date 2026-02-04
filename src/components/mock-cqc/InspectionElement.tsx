@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CheckCircle2, AlertCircle, MinusCircle, Circle, Ban, ChevronDown, Info, MessageSquare, Paperclip } from 'lucide-react';
 import { InspectionElement } from '@/hooks/useMockInspection';
 import { StatusQuickPick } from './StatusQuickPick';
 import { EvidenceAttachment } from './EvidenceAttachment';
+import { EnhancedBrowserMic, EnhancedBrowserMicRef } from '@/components/ai4gp/EnhancedBrowserMic';
 import { cn } from '@/lib/utils';
 
 interface InspectionElementCardProps {
@@ -70,21 +70,61 @@ export const InspectionElementCard = ({
   const [evidenceNotes, setEvidenceNotes] = useState(element.evidence_notes || '');
   const [improvementComments, setImprovementComments] = useState(element.improvement_comments || '');
   const [isSaving, setIsSaving] = useState(false);
+  const evidenceMicRef = useRef<EnhancedBrowserMicRef>(null);
+  const improvementMicRef = useRef<EnhancedBrowserMicRef>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const statusConfig = getStatusConfig(element.status);
   const StatusIcon = statusConfig.icon;
+
+  // Auto-save with debounce
+  const triggerAutoSave = useCallback((notes: string, comments: string) => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      setIsSaving(true);
+      await onUpdate({ 
+        evidence_notes: notes, 
+        improvement_comments: comments 
+      });
+      setIsSaving(false);
+    }, 1000);
+  }, [onUpdate]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleStatusChange = async (newStatus: InspectionElement['status']) => {
     await onUpdate({ status: newStatus });
   };
 
-  const handleSaveNotes = async () => {
-    setIsSaving(true);
-    await onUpdate({ 
-      evidence_notes: evidenceNotes, 
-      improvement_comments: improvementComments 
-    });
-    setIsSaving(false);
+  const handleEvidenceNotesChange = (value: string) => {
+    setEvidenceNotes(value);
+    triggerAutoSave(value, improvementComments);
+  };
+
+  const handleImprovementCommentsChange = (value: string) => {
+    setImprovementComments(value);
+    triggerAutoSave(evidenceNotes, value);
+  };
+
+  const handleEvidenceTranscriptUpdate = (text: string) => {
+    const newValue = evidenceNotes ? `${evidenceNotes} ${text}` : text;
+    setEvidenceNotes(newValue);
+    triggerAutoSave(newValue, improvementComments);
+  };
+
+  const handleImprovementTranscriptUpdate = (text: string) => {
+    const newValue = improvementComments ? `${improvementComments} ${text}` : text;
+    setImprovementComments(newValue);
+    triggerAutoSave(evidenceNotes, newValue);
   };
 
   const evidenceFilesArray = Array.isArray(element.evidence_files) ? element.evidence_files : [];
@@ -130,14 +170,14 @@ export const InspectionElementCard = ({
         <CollapsibleContent>
           <CardContent className="pt-0 pb-4 px-4 space-y-4">
             {/* Evidence Guidance */}
-            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="p-3 bg-accent/50 rounded-lg border border-border">
               <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                  <p className="text-sm font-medium mb-1">
                     What evidence to look for:
                   </p>
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                  <p className="text-sm text-muted-foreground">
                     {element.evidence_guidance}
                   </p>
                 </div>
@@ -153,12 +193,23 @@ export const InspectionElementCard = ({
               />
             </div>
 
-            {/* Evidence Notes */}
+            {/* Evidence Notes with Mic */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Evidence Notes</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium">Evidence Notes</label>
+                <div className="flex items-center gap-2">
+                  {isSaving && <span className="text-xs text-muted-foreground">Saving...</span>}
+                  <EnhancedBrowserMic
+                    ref={evidenceMicRef}
+                    onTranscriptUpdate={handleEvidenceTranscriptUpdate}
+                    compact
+                    className="h-8 w-8"
+                  />
+                </div>
+              </div>
               <Textarea
                 value={evidenceNotes}
-                onChange={(e) => setEvidenceNotes(e.target.value)}
+                onChange={(e) => handleEvidenceNotesChange(e.target.value)}
                 placeholder="Describe the evidence you found or where it's located..."
                 className="min-h-[80px]"
               />
@@ -173,28 +224,23 @@ export const InspectionElementCard = ({
             {/* Improvement Comments - show for partially met or not met */}
             {(element.status === 'partially_met' || element.status === 'not_met') && (
               <div>
-                <label className="text-sm font-medium mb-2 block">
-                  💡 Improvement Ideas
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium">💡 Improvement Ideas</label>
+                  <EnhancedBrowserMic
+                    ref={improvementMicRef}
+                    onTranscriptUpdate={handleImprovementTranscriptUpdate}
+                    compact
+                    className="h-8 w-8"
+                  />
+                </div>
                 <Textarea
                   value={improvementComments}
-                  onChange={(e) => setImprovementComments(e.target.value)}
+                  onChange={(e) => handleImprovementCommentsChange(e.target.value)}
                   placeholder="How could this area be strengthened? What actions would help?"
                   className="min-h-[80px]"
                 />
               </div>
             )}
-
-            {/* Save Button */}
-            <div className="flex justify-end">
-              <Button 
-                onClick={handleSaveNotes} 
-                disabled={isSaving}
-                size="sm"
-              >
-                {isSaving ? "Saving..." : "Save Notes"}
-              </Button>
-            </div>
           </CardContent>
         </CollapsibleContent>
       </Card>
