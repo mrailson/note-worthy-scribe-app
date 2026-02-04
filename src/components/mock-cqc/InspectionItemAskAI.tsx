@@ -174,13 +174,21 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
       return;
     }
 
-    const content = messages.map(m => 
-      `**${m.role === 'user' ? 'Question' : 'Answer'}:**\n\n${m.content}`
-    ).join('\n\n---\n\n');
+    // Format content for Word without markdown italics - clean, structured format
+    const sections = messages.map(m => {
+      const prefix = m.role === 'user' ? 'Question' : 'Answer';
+      // Clean up markdown formatting for Word - remove ** bold markers and format plainly
+      const cleanContent = m.content
+        .replace(/\*\*(.*?)\*\*/g, '$1')  // Remove bold markers
+        .replace(/\*(.*?)\*/g, '$1')       // Remove italic markers
+        .replace(/^- /gm, '• ')            // Use bullet points
+        .replace(/^(\d+)\. /gm, '$1. ');   // Keep numbered lists
+      return `${prefix}:\n\n${cleanContent}`;
+    }).join('\n\n' + '─'.repeat(50) + '\n\n');
     
-    const header = `# CQC Inspection Guidance: ${itemName}\n\n**Category:** ${categoryName}\n**Generated:** ${format(new Date(), 'dd MMMM yyyy HH:mm')}\n\n---\n\n`;
+    const header = `CQC Inspection Guidance: ${itemName}\n\nCategory: ${categoryName}\nGenerated: ${format(new Date(), 'dd MMMM yyyy HH:mm')}\n\n${'─'.repeat(50)}\n\n`;
     
-    await generateWordDocument(header + content, `CQC Guidance - ${itemName} - ${format(new Date(), 'dd-MM-yyyy')}`);
+    await generateWordDocument(header + sections, `CQC Guidance - ${itemName} - ${format(new Date(), 'dd-MM-yyyy')}`);
     showToast.success('Exported to Word');
   };
 
@@ -201,7 +209,7 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[85vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0">
         <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -283,14 +291,14 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
                   )}
                   <div
                     className={cn(
-                      "rounded-lg px-4 py-2 max-w-[85%]",
+                      "rounded-lg px-5 py-4",
                       message.role === 'user'
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                        ? "bg-primary text-primary-foreground max-w-[80%]"
+                        : "bg-white border border-border shadow-sm max-w-[95%]"
                     )}
                   >
                     {message.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0.5 prose-headings:my-3">
                         <ReactMarkdown>{message.content}</ReactMarkdown>
                       </div>
                     ) : (
