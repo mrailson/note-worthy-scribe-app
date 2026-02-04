@@ -414,130 +414,164 @@ export default function InspectionCapture() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="bg-slate-800 text-white p-4 text-center">
+      <div className="bg-primary text-primary-foreground p-4 text-center">
         <h1 className="text-lg font-semibold">CQC Inspection Evidence</h1>
         {elementInfo && (
-          <p className="text-sm text-slate-300 mt-1">
+          <p className="text-sm opacity-90 mt-1">
             {elementInfo.key}: {elementInfo.name}
           </p>
         )}
         {uploadCount > 0 && (
-          <p className="text-sm text-green-400 mt-1">
+          <p className="text-sm text-green-300 mt-1">
             ✓ {uploadCount} photo{uploadCount !== 1 ? 's' : ''} uploaded
           </p>
         )}
       </div>
 
-      {/* Camera View */}
-      <div className="flex-1 relative bg-black">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-full object-cover"
-        />
-        <canvas ref={canvasRef} className="hidden" />
+      {/* Main Content */}
+      <div className="flex-1 p-4 overflow-auto">
+        <Card className="overflow-hidden">
+          <div className="p-4 space-y-4">
+            {/* Camera Preview - Smaller with border like LG Capture */}
+            <div
+              className="relative aspect-[3/4] bg-black rounded-lg overflow-hidden border-4 border-primary cursor-pointer active:opacity-90"
+              onClick={isCapturing ? capturePhoto : undefined}
+            >
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                // @ts-ignore - webkit attribute for iOS
+                webkit-playsinline="true"
+                className={`absolute inset-0 w-full h-full object-cover pointer-events-none transition-all ${
+                  isCapturing ? 'opacity-100' : 'opacity-0'
+                }`}
+              />
+              <canvas ref={canvasRef} className="hidden" />
 
-        {isCameraLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <Loader2 className="h-8 w-8 animate-spin text-white" />
+              {isCameraLoading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <Loader2 className="h-12 w-12 animate-spin mx-auto mb-3" />
+                    <p>Starting camera...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Camera controls overlay */}
+              {isCapturing && availableCameras.length > 1 && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    switchCamera();
+                  }}
+                  variant="outline"
+                  size="icon"
+                  className="absolute top-2 right-2 bg-background/80 hover:bg-background"
+                >
+                  <SwitchCamera className="h-4 w-4" />
+                </Button>
+              )}
+
+              {/* Tap to capture hint */}
+              {isCapturing && (
+                <div className="absolute bottom-4 left-0 right-0 text-center">
+                  <span className="bg-black/60 text-white px-3 py-1 rounded-full text-sm">
+                    Tap to capture
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Capture Button */}
+            <Button
+              onClick={capturePhoto}
+              disabled={!isCapturing}
+              className="w-full h-14 text-lg"
+              size="lg"
+            >
+              <Camera className="mr-2 h-6 w-6" />
+              Capture Photo
+            </Button>
+
+            {/* Captured Images */}
+            {capturedImages.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Captured ({capturedImages.length})
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {capturedImages.map((img) => (
+                    <div key={img.id} className="relative">
+                      <img
+                        src={img.dataUrl}
+                        alt="Captured"
+                        className="w-full aspect-square object-cover rounded-lg border"
+                      />
+                      {img.uploading && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                          <Loader2 className="h-4 w-4 animate-spin text-white" />
+                        </div>
+                      )}
+                      {img.uploaded && (
+                        <div className="absolute inset-0 bg-green-500/50 flex items-center justify-center rounded-lg">
+                          <Check className="h-5 w-5 text-white" />
+                        </div>
+                      )}
+                      {!img.uploaded && !img.uploading && (
+                        <button
+                          onClick={() => removeImage(img.id)}
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 text-xs flex items-center justify-center"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Gallery upload option */}
+            <div className="pt-2 border-t">
+              <label className="cursor-pointer">
+                <Button variant="outline" className="w-full" asChild>
+                  <span>
+                    <ImagePlus className="mr-2 h-4 w-4" />
+                    Choose from Gallery
+                  </span>
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </label>
+            </div>
           </div>
-        )}
-
-        {/* Camera switch button */}
-        {availableCameras.length > 1 && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 bg-black/50 text-white hover:bg-black/70"
-            onClick={switchCamera}
-          >
-            <SwitchCamera className="h-5 w-5" />
-          </Button>
-        )}
+        </Card>
       </div>
 
-      {/* Captured Images Strip */}
-      {capturedImages.length > 0 && (
-        <div className="bg-slate-800 p-2">
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {capturedImages.map((img) => (
-              <div key={img.id} className="relative flex-shrink-0">
-                <img
-                  src={img.dataUrl}
-                  alt="Captured"
-                  className="h-16 w-16 object-cover rounded"
-                />
-                {img.uploading && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded">
-                    <Loader2 className="h-4 w-4 animate-spin text-white" />
-                  </div>
-                )}
-                {img.uploaded && (
-                  <div className="absolute inset-0 bg-green-500/50 flex items-center justify-center rounded">
-                    <Check className="h-4 w-4 text-white" />
-                  </div>
-                )}
-                {!img.uploaded && !img.uploading && (
-                  <button
-                    onClick={() => removeImage(img.id)}
-                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Controls */}
-      <div className="bg-slate-800 p-4 pb-8 safe-area-inset-bottom">
-        <div className="flex items-center justify-center gap-4">
-          {/* Gallery button */}
+      {/* Sticky Upload Button */}
+      {capturedImages.filter(img => !img.uploaded).length > 0 && (
+        <div className="sticky bottom-0 p-4 bg-background border-t" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
           <Button
-            variant="ghost"
-            size="icon"
-            className="bg-slate-700 text-white h-12 w-12 rounded-full"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <ImagePlus className="h-5 w-5" />
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleFileUpload}
-          />
-
-          {/* Capture button */}
-          <Button
-            size="icon"
-            className="h-16 w-16 rounded-full bg-white hover:bg-slate-100"
-            onClick={capturePhoto}
-            disabled={!isCapturing}
-          >
-            <Camera className="h-8 w-8 text-slate-900" />
-          </Button>
-
-          {/* Upload button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="bg-green-600 hover:bg-green-700 text-white h-12 w-12 rounded-full disabled:opacity-50"
             onClick={uploadImages}
             disabled={capturedImages.filter(img => !img.uploaded && !img.uploading).length === 0}
+            className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
+            size="lg"
           >
-            <Upload className="h-5 w-5" />
+            <Upload className="mr-2 h-6 w-6" />
+            Upload {capturedImages.filter(img => !img.uploaded && !img.uploading).length} Photo{capturedImages.filter(img => !img.uploaded && !img.uploading).length !== 1 ? 's' : ''}
           </Button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
