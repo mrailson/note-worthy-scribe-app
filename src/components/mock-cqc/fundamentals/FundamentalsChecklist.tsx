@@ -25,9 +25,19 @@ import {
 } from './fundamentalsConfig';
 import { FundamentalItemCard } from './FundamentalItemCard';
 
+export interface FundamentalsStats {
+  total: number;
+  verified: number;
+  issuesFound: number;
+  notApplicable: number;
+  notChecked: number;
+  percent: number;
+}
+
 interface FundamentalsChecklistProps {
   sessionId: string;
   inspectionType: InspectionType;
+  onStatsChange?: (stats: FundamentalsStats) => void;
 }
 
 interface FundamentalRecord {
@@ -59,7 +69,7 @@ const getCategoryIcon = (iconName: string) => {
   return icons[iconName] || ClipboardCheck;
 };
 
-export const FundamentalsChecklist = ({ sessionId, inspectionType }: FundamentalsChecklistProps) => {
+export const FundamentalsChecklist = ({ sessionId, inspectionType, onStatsChange }: FundamentalsChecklistProps) => {
   const { toast } = useToast();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [records, setRecords] = useState<FundamentalRecord[]>([]);
@@ -195,7 +205,54 @@ export const FundamentalsChecklist = ({ sessionId, inspectionType }: Fundamental
     };
   };
 
+  // Calculate detailed stats for callback
+  const getDetailedStats = (): FundamentalsStats => {
+    let totalItems = 0;
+    let verified = 0;
+    let issuesFound = 0;
+    let notApplicable = 0;
+    let notChecked = 0;
+
+    FUNDAMENTALS_CATEGORIES.forEach(cat => {
+      const visibleItems = getVisibleItems(cat, inspectionType);
+      const visibleKeys = visibleItems.map(i => i.key);
+      totalItems += visibleItems.length;
+      
+      const categoryRecords = records.filter(r => 
+        r.category === cat.key && 
+        visibleKeys.includes(r.item_key)
+      );
+
+      categoryRecords.forEach(r => {
+        if (r.status === 'verified') verified++;
+        else if (r.status === 'issue_found') issuesFound++;
+        else if (r.status === 'not_applicable') notApplicable++;
+        else notChecked++;
+      });
+
+      // Count items without records as not checked
+      notChecked += visibleItems.length - categoryRecords.length;
+    });
+
+    return { 
+      total: totalItems, 
+      verified,
+      issuesFound,
+      notApplicable,
+      notChecked,
+      percent: totalItems > 0 ? Math.round(((verified + issuesFound + notApplicable) / totalItems) * 100) : 0 
+    };
+  };
+
   const overall = getOverallProgress();
+  const detailedStats = getDetailedStats();
+
+  // Notify parent of stats changes
+  useEffect(() => {
+    if (onStatsChange && !isLoading) {
+      onStatsChange(detailedStats);
+    }
+  }, [records, isLoading, inspectionType]);
 
   // Filter categories that have visible items
   const visibleCategories = FUNDAMENTALS_CATEGORIES.filter(cat => 
