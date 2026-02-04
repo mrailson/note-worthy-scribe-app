@@ -6184,6 +6184,44 @@ export type Database = {
           },
         ]
       }
+      mock_inspection_site_issues: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          photo_file_name: string | null
+          photo_url: string | null
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          photo_file_name?: string | null
+          photo_url?: string | null
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          photo_file_name?: string | null
+          photo_url?: string | null
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_inspection_site_issues_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "mock_inspection_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monitoring_alerts: {
         Row: {
           alert_type: string
