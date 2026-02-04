@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { CheckCircle2, AlertCircle, MinusCircle, Circle, Ban, ChevronDown, Info, MessageSquare, Paperclip } from 'lucide-react';
+import { CheckCircle2, AlertCircle, MinusCircle, Circle, Ban, ChevronDown, Info, MessageSquare, Paperclip, Search, ClipboardCheck, Star } from 'lucide-react';
 import { InspectionElement } from '@/hooks/useMockInspection';
 import { StatusQuickPick } from './StatusQuickPick';
 import { EvidenceAttachment } from './EvidenceAttachment';
@@ -15,6 +15,86 @@ interface InspectionElementCardProps {
   onToggle: () => void;
   onUpdate: (updates: Partial<InspectionElement>) => Promise<boolean>;
 }
+
+// Parse structured guidance text into sections
+const parseGuidance = (guidance: string) => {
+  const sections: { lookFor?: string; cqcExpects?: string; whatGoodLooksLike?: string; fallback?: string } = {};
+  
+  // Check if it's the new structured format
+  const lookForMatch = guidance.match(/LOOK FOR:\s*([\s\S]*?)(?=CQC EXPECTS:|WHAT GOOD LOOKS LIKE:|$)/i);
+  const cqcExpectsMatch = guidance.match(/CQC EXPECTS:\s*([\s\S]*?)(?=WHAT GOOD LOOKS LIKE:|$)/i);
+  const whatGoodMatch = guidance.match(/WHAT GOOD LOOKS LIKE:\s*([\s\S]*?)$/i);
+  
+  if (lookForMatch || cqcExpectsMatch || whatGoodMatch) {
+    if (lookForMatch) sections.lookFor = lookForMatch[1].trim();
+    if (cqcExpectsMatch) sections.cqcExpects = cqcExpectsMatch[1].trim();
+    if (whatGoodMatch) sections.whatGoodLooksLike = whatGoodMatch[1].trim();
+  } else {
+    // Fallback for old format
+    sections.fallback = guidance;
+  }
+  
+  return sections;
+};
+
+// Guidance Panel Component
+const GuidancePanel = ({ guidance }: { guidance: string }) => {
+  const sections = parseGuidance(guidance);
+  
+  if (sections.fallback) {
+    return (
+      <div className="p-3 bg-accent/50 rounded-lg border border-border">
+        <div className="flex items-start gap-2">
+          <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium mb-1">What evidence to look for:</p>
+            <p className="text-sm text-muted-foreground">{sections.fallback}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-3">
+      {sections.lookFor && (
+        <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800/50">
+          <div className="flex items-start gap-2">
+            <Search className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-1">Look For</p>
+              <p className="text-sm text-blue-700 dark:text-blue-400/90">{sections.lookFor}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {sections.cqcExpects && (
+        <div className="p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800/50">
+          <div className="flex items-start gap-2">
+            <ClipboardCheck className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">CQC Expects</p>
+              <p className="text-sm text-amber-700 dark:text-amber-400/90">{sections.cqcExpects}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {sections.whatGoodLooksLike && (
+        <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800/50">
+          <div className="flex items-start gap-2">
+            <Star className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-green-800 dark:text-green-300 mb-1">What Good Looks Like</p>
+              <p className="text-sm text-green-700 dark:text-green-400/90">{sections.whatGoodLooksLike}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const getStatusConfig = (status: string) => {
   switch (status) {
@@ -169,20 +249,8 @@ export const InspectionElementCard = ({
         
         <CollapsibleContent>
           <CardContent className="pt-0 pb-4 px-4 space-y-4">
-            {/* Evidence Guidance */}
-            <div className="p-3 bg-accent/50 rounded-lg border border-border">
-              <div className="flex items-start gap-2">
-                <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium mb-1">
-                    What evidence to look for:
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {element.evidence_guidance}
-                  </p>
-                </div>
-              </div>
-            </div>
+            {/* Evidence Guidance - Structured */}
+            <GuidancePanel guidance={element.evidence_guidance} />
 
             {/* Quick Pick Status */}
             <div>
