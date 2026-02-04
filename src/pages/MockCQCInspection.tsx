@@ -4,8 +4,10 @@ import { Helmet } from 'react-helmet-async';
 import { Header } from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ClipboardCheck, Play, History, ArrowRight, Building2, Shield, Users, Heart, Clock, Trash2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { ClipboardCheck, Play, History, ArrowRight, Building2, Shield, Users, Heart, Clock, Trash2, Search, X } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
@@ -33,6 +35,8 @@ const MockCQCInspection = () => {
   const { toast } = useToast();
   const [practices, setPractices] = useState<Practice[]>([]);
   const [selectedPracticeId, setSelectedPracticeId] = useState<string>('');
+  const [practiceSearch, setPracticeSearch] = useState('');
+  const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [startingInspection, setStartingInspection] = useState(false);
   const [inProgressSessions, setInProgressSessions] = useState<InProgressSession[]>([]);
@@ -311,21 +315,71 @@ const MockCQCInspection = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Practice/Site</label>
-                <Select value={selectedPracticeId} onValueChange={setSelectedPracticeId}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={loading ? "Loading practices..." : "Choose a practice"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {practices.map(practice => (
-                      <SelectItem key={practice.id} value={practice.id}>
-                        <div className="flex items-center gap-2">
+                <Popover open={practiceSearchOpen} onOpenChange={setPracticeSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={practiceSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedPracticeId ? (
+                        <span className="flex items-center gap-2">
                           <Building2 className="h-4 w-4" />
-                          {practice.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                          {practices.find(p => p.id === selectedPracticeId)?.name}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground flex items-center gap-2">
+                          <Search className="h-4 w-4" />
+                          {loading ? "Loading practices..." : "Search for a practice..."}
+                        </span>
+                      )}
+                      {selectedPracticeId && (
+                        <X 
+                          className="h-4 w-4 opacity-50 hover:opacity-100" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPracticeId('');
+                            setPracticeSearch('');
+                          }}
+                        />
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Type to search practices..." 
+                        value={practiceSearch}
+                        onValueChange={setPracticeSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>No practice found.</CommandEmpty>
+                        <CommandGroup>
+                          {practices
+                            .filter(practice => 
+                              practice.name.toLowerCase().includes(practiceSearch.toLowerCase())
+                            )
+                            .slice(0, 10)
+                            .map(practice => (
+                              <CommandItem
+                                key={practice.id}
+                                value={practice.name}
+                                onSelect={() => {
+                                  setSelectedPracticeId(practice.id);
+                                  setPracticeSearchOpen(false);
+                                  setPracticeSearch('');
+                                }}
+                              >
+                                <Building2 className="mr-2 h-4 w-4" />
+                                {practice.name}
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <Button 
