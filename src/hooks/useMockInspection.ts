@@ -120,22 +120,21 @@ export const useMockInspection = () => {
     }
   };
 
-  const upgradeInspectionType = async (newType: InspectionType): Promise<boolean> => {
+  const changeInspectionType = async (newType: InspectionType): Promise<boolean> => {
     if (!activeSession) return false;
 
-    // Can only upgrade, not downgrade
     const typeOrder: InspectionType[] = ['short', 'mid', 'long'];
     const currentIndex = typeOrder.indexOf(activeSession.inspection_type);
     const newIndex = typeOrder.indexOf(newType);
+    
+    if (newIndex === currentIndex) return false;
 
-    if (newIndex <= currentIndex) {
-      toast({
-        title: "Cannot downgrade inspection type",
-        description: "You can only upgrade to a more comprehensive inspection.",
-        variant: "destructive"
-      });
-      return false;
-    }
+    const isUpgrade = newIndex > currentIndex;
+    const typeLabels: Record<InspectionType, string> = {
+      'short': 'Short',
+      'mid': 'Standard', 
+      'long': 'Full'
+    };
 
     try {
       const { error } = await supabase
@@ -148,15 +147,17 @@ export const useMockInspection = () => {
       setActiveSession(prev => prev ? { ...prev, inspection_type: newType } : null);
       
       toast({
-        title: "Inspection upgraded",
-        description: `Upgraded to ${newType === 'mid' ? 'Standard' : 'Full'} inspection. Additional items are now visible.`
+        title: isUpgrade ? "Inspection upgraded" : "Inspection type changed",
+        description: isUpgrade 
+          ? `Upgraded to ${typeLabels[newType]} inspection. Additional items are now visible.`
+          : `Changed to ${typeLabels[newType]} inspection. Some items may no longer be visible.`
       });
 
       return true;
     } catch (error) {
-      console.error('Error upgrading inspection:', error);
+      console.error('Error changing inspection type:', error);
       toast({
-        title: "Failed to upgrade inspection",
+        title: "Failed to change inspection type",
         variant: "destructive"
       });
       return false;
@@ -295,7 +296,7 @@ export const useMockInspection = () => {
     loadSession,
     updateElement,
     completeInspection,
-    upgradeInspectionType,
+    changeInspectionType,
     getProgress,
     getElementsByDomain
   };

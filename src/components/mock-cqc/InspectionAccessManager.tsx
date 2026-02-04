@@ -147,23 +147,37 @@ export const InspectionAccessManager = ({
 
   const loadAvailableUsers = async () => {
     try {
-      // Load users from the same practice
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('user_id, email, full_name, practice_id:gp_practices!profiles_practice_id_fkey(id)')
+      // Load users from the same practice via user_roles table (where practice_id is stored)
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id, practice_id')
+        .eq('practice_id', sessionPracticeId)
         .not('user_id', 'eq', user?.id);
 
-      if (error) throw error;
+      if (roleError) throw roleError;
 
-      // Filter to users in the same practice
-      const practiceUsers = (data || [])
-        .filter((p: any) => p.practice_id?.id === sessionPracticeId)
-        .map((p: any) => ({
-          id: p.user_id,
-          email: p.email,
-          full_name: p.full_name,
-          practice_id: p.practice_id?.id
-        }));
+      if (!roleData || roleData.length === 0) {
+        if (!isSystemAdmin) {
+          setAvailableUsers([]);
+        }
+        return;
+      }
+
+      // Get profile info for these users
+      const userIds = roleData.map(r => r.user_id);
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, email, full_name')
+        .in('user_id', userIds);
+
+      if (profileError) throw profileError;
+
+      const practiceUsers = (profileData || []).map((p: any) => ({
+        id: p.user_id,
+        email: p.email,
+        full_name: p.full_name,
+        practice_id: sessionPracticeId
+      }));
 
       if (!isSystemAdmin) {
         setAvailableUsers(practiceUsers);
@@ -175,18 +189,34 @@ export const InspectionAccessManager = ({
 
   const loadAllUsers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('user_id, email, full_name, practice_id:gp_practices!profiles_practice_id_fkey(id)')
+      // Get all users with their practice from user_roles
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id, practice_id')
         .not('user_id', 'eq', user?.id);
 
-      if (error) throw error;
+      if (roleError) throw roleError;
 
-      const users = (data || []).map((p: any) => ({
+      // Get profile info
+      const userIds = [...new Set((roleData || []).map(r => r.user_id))];
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, email, full_name')
+        .in('user_id', userIds);
+
+      if (profileError) throw profileError;
+
+      // Create practice lookup
+      const practiceMap = new Map<string, string>();
+      (roleData || []).forEach(r => {
+        if (r.practice_id) practiceMap.set(r.user_id, r.practice_id);
+      });
+
+      const users = (profileData || []).map((p: any) => ({
         id: p.user_id,
         email: p.email,
         full_name: p.full_name,
-        practice_id: p.practice_id?.id
+        practice_id: practiceMap.get(p.user_id) || null
       }));
 
       setAllUsers(users);
