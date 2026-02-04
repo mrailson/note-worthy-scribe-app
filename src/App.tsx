@@ -117,6 +117,7 @@ const PolicyServiceMyPolicies = lazy(() => import("./pages/PolicyServiceMyPolici
 const PolicyServiceProfile = lazy(() => import("./pages/PolicyServiceProfile"));
 const AIChatCapture = lazy(() => import("./pages/AIChatCapture"));
 const ComplaintCapture = lazy(() => import("./pages/ComplaintCapture"));
+const MockCQCInspection = lazy(() => import("./pages/MockCQCInspection"));
 
 // Global loading fallback
 const PageLoader = () => (
@@ -317,6 +318,11 @@ const App = () => {
                 <Route path="/lg-capture/my-stats" element={<LGUploadQueueProvider><LGCaptureMyStats /></LGUploadQueueProvider>} />
                 <Route path="/lg-capture/bulk" element={<LGUploadQueueProvider><LGCaptureBulk /></LGUploadQueueProvider>} />
                 <Route path="/bp-calculator" element={<BPCalculator />} />
+                <Route path="/mock-cqc-inspection" element={
+                  <ProtectedRoute requiredModule="enhanced_access">
+                    <MockCQCInspection />
+                  </ProtectedRoute>
+                } />
                 <Route path="/public/bp-calculator" element={<PublicBPCalculator />} />
                 <Route path="/scribe" element={<Scribe />} />
                 <Route path="/ai4gp-prompts" element={<AI4GPPromptGuide />} />
