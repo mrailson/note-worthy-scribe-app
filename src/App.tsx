@@ -118,6 +118,7 @@ const PolicyServiceProfile = lazy(() => import("./pages/PolicyServiceProfile"));
 const AIChatCapture = lazy(() => import("./pages/AIChatCapture"));
 const ComplaintCapture = lazy(() => import("./pages/ComplaintCapture"));
 const MockCQCInspection = lazy(() => import("./pages/MockCQCInspection"));
+const InspectionCapture = lazy(() => import("./pages/InspectionCapture"));
 
 // Global loading fallback
 const PageLoader = () => (
@@ -331,6 +332,7 @@ const App = () => {
                 <Route path="/ai-capture/:sessionToken" element={<AIChatCapture />} />
                 <Route path="/c/:shortCode" element={<AIChatCapture />} />
                 <Route path="/complaint-capture/:shortCode" element={<ComplaintCapture />} />
+                <Route path="/inspection-capture/:shortCode" element={<InspectionCapture />} />
                 
                 {/* Survey Routes */}
                 <Route path="/surveys" element={
