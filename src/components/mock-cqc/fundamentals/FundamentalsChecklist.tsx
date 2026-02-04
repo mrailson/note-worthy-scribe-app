@@ -264,7 +264,9 @@ export const FundamentalsChecklist = ({ sessionId, inspectionType }: Fundamental
                         item={item}
                         record={record}
                         sessionId={sessionId}
+                        categoryKey={category.key}
                         onUpdate={(updates) => updateRecord(item.key, updates)}
+                        onRecordCreated={(newRecord) => setRecords(prev => [...prev, newRecord])}
                       />
                     );
                   })}
