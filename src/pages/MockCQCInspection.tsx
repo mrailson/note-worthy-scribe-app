@@ -33,6 +33,7 @@ interface InProgressSession {
   started_at: string;
   progress: number;
   inspection_type: InspectionType;
+  is_shared?: boolean;
 }
 
 const MockCQCInspection = () => {
@@ -94,17 +95,18 @@ const MockCQCInspection = () => {
     if (!user) return;
 
     try {
-      // Fetch in-progress sessions for this user
+      // Fetch in-progress sessions this user owns OR has been granted access to.
+      // RLS already filters to sessions the user can see (owner OR shared via mock_inspection_access).
       const { data: sessions, error } = await supabase
         .from('mock_inspection_sessions')
         .select(`
           id,
+          user_id,
           practice_id,
           started_at,
           inspection_type,
           gp_practices!inner(name)
         `)
-        .eq('user_id', user.id)
         .eq('status', 'in_progress')
         .order('started_at', { ascending: false });
 
@@ -131,7 +133,8 @@ const MockCQCInspection = () => {
               practice_name: session.gp_practices?.name || 'Unknown Practice',
               started_at: session.started_at,
               progress,
-              inspection_type: (session.inspection_type || 'long') as InspectionType
+              inspection_type: (session.inspection_type || 'long') as InspectionType,
+              is_shared: session.user_id !== user.id
             };
           })
         );
