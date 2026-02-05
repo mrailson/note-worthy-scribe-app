@@ -1,82 +1,183 @@
 
-# Professional Chat Bubble Styling for Ask AI Modal
 
-## Overview
-Improve the AI response bubble in the Ask AI modal to display with professional formatting, proper spacing, and clean typography. The current implementation uses basic `prose` styling which results in cramped, hard-to-read content.
+# Plan: Fix Dual Recording Issues (Triple Meetings & Dual Transcription Sources)
 
-## Changes
+## Summary
 
-### 1. Use the NHS Markdown Renderer
-Replace the basic `ReactMarkdown` rendering with the existing `renderNHSMarkdown` utility that's already used in other parts of the application (Meeting Manager, MeetingQAPanel). This provides:
-- Properly styled headings with blue colour and consistent sizing
-- Well-spaced bullet points with visual markers
-- Structured numbered lists
-- Professional table formatting
-- Proper paragraph spacing with `leading-relaxed`
-- Section highlighting for important notes
+The investigation identified **two distinct issues** affecting Rachel Parry's recordings:
 
-### 2. Enhanced Bubble Container Styling
-Update the assistant message bubble with improved padding, spacing and typography:
-- Increase internal padding for better breathing room
-- Add proper text sizing and line height
-- Ensure consistent spacing between content elements
+1. **Triple Meeting Creation**: Three separate meeting records were created within 1 second due to missing debounce/lock protection on the Start Recording button
+2. **Dual Transcription Sources**: One meeting received chunks from both `ios-simple` (320 chunks) and `legacy` (106 chunks), causing inflated word counts (~21K words)
 
-### 3. Styling Details
+---
 
-**Current problematic styling:**
+## Root Cause Analysis
+
+### Issue 1: Triple Meeting Creation
+- The Start Recording button has no `disabled` state during initialisation
+- The `startRecording` function lacks an `isStarting` lock/ref
+- Users who multi-click (or experience UI lag) trigger multiple database insertions before `isRecording` becomes true
+
+### Issue 2: Dual Transcription Running Simultaneously
+- On iOS devices, `checkBrowserSupport()` should detect iOS and route to `startIPhoneWhisperTranscription` (which uses `ios-simple`)
+- However, the user appears to have both engines running:
+  - `SimpleIOSTranscriber` → saves as `ios-simple`
+  - `DesktopWhisperTranscriber` → saves as `legacy` (via database default)
+- This suggests either:
+  - iOS detection failed (iPad Pro masquerading as Mac), OR
+  - Both transcription paths were triggered somehow
+
+---
+
+## Proposed Fix (Safe, Non-Breaking)
+
+### Fix 1: Add Start Recording Lock (Prevents Triple Meetings)
+
+Add an `isStartingRecording` ref to prevent concurrent execution:
+
+```typescript
+// Add near other refs
+const isStartingRecordingRef = useRef(false);
+
+// At start of startRecording function
+const startRecording = async () => {
+  // Prevent double-starts from rapid clicks
+  if (isStartingRecordingRef.current || isRecording) {
+    console.log('⚠️ Recording already starting or active, ignoring');
+    return;
+  }
+  
+  isStartingRecordingRef.current = true;
+  
+  try {
+    // ... existing logic
+  } finally {
+    isStartingRecordingRef.current = false;
+  }
+};
 ```
-prose prose-sm prose-p:my-2 prose-ul:my-2 prose-li:my-0.5 prose-headings:my-3
+
+Also disable the button while starting:
+
+```tsx
+<Button
+  onClick={startRecording}
+  disabled={isRecording || isStartingRecordingRef.current}
+  // ... other props
+>
 ```
 
-**New professional styling approach:**
-- Use `renderNHSMarkdown` with `enableNHSStyling: true`
-- Set appropriate `baseFontSize` (13-14px) for readability
-- Apply container styling for proper text colour and spacing
+**Risk Level**: Very Low - additive change only
 
-### Technical Implementation
+---
 
-**File: `src/components/mock-cqc/InspectionItemAskAI.tsx`**
+### Fix 2: Ensure Single Transcription Path (Prevents Dual Sources)
 
-1. **Add import** for the NHS markdown renderer:
-   ```typescript
-   import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
-   ```
+Update `DesktopWhisperTranscriber` to explicitly set `transcriber_type: 'whisper'` instead of relying on the database default:
 
-2. **Update the assistant message rendering** (around line 300-303):
-   Replace `ReactMarkdown` with `dangerouslySetInnerHTML` using the NHS renderer:
-   ```typescript
-   {message.role === 'assistant' ? (
-     <div 
-       className="text-sm leading-relaxed text-gray-700"
-       dangerouslySetInnerHTML={{ 
-         __html: renderNHSMarkdown(message.content, { 
-           enableNHSStyling: true,
-           baseFontSize: 14 
-         }) 
-       }}
-     />
-   ) : (
-     ...
-   )}
-   ```
+```typescript
+// In DesktopWhisperTranscriber.ts, line ~860
+const { error: dbError } = await supabase
+  .from('meeting_transcription_chunks')
+  .insert({
+    meeting_id: this.meetingId,
+    session_id: this.sessionId,
+    chunk_number: currentChunkNumber,
+    transcription_text: JSON.stringify(newSegments),
+    confidence: data.confidence || 0.9,
+    is_final: true,
+    user_id: (await supabase.auth.getUser()).data.user?.id,
+    transcriber_type: 'whisper',  // ADD THIS - explicit type
+    merge_rejection_reason: null
+  });
+```
 
-3. **Enhance bubble container** (around line 292-298):
-   Increase padding and add better spacing:
-   ```typescript
-   className={cn(
-     "rounded-xl",
-     message.role === 'user'
-       ? "bg-primary text-primary-foreground px-4 py-3 max-w-[75%]"
-       : "bg-white border border-gray-200 shadow-sm px-6 py-5 max-w-[95%]"
-   )}
-   ```
+**Risk Level**: Very Low - makes type explicit, no logic change
 
-4. **Remove ReactMarkdown import** if no longer needed elsewhere in the file
+---
 
-## Expected Result
-- Clean, professional layout matching the Meeting Manager chat experience
-- Proper heading hierarchy with blue-coloured section titles
-- Well-spaced bullet points that don't run together
-- Readable paragraph text with appropriate line height
-- White background with subtle border for clear visual distinction
-- Consistent styling across all AI chat interfaces in the application
+### Fix 3: Improve iOS Detection for iPad Pro
+
+Update `checkBrowserSupport` to handle iPad Pro (which reports as "MacIntel"):
+
+```typescript
+const checkBrowserSupport = () => {
+  // Enhanced iOS detection for iPad Pro
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  // ... rest of function
+};
+```
+
+**Risk Level**: Low - aligns with existing pattern in other utilities
+
+---
+
+### Fix 4: Add Transcriber Exclusivity Guard (Belt & Braces)
+
+Add a guard in `startWhisperTranscription` to ensure only ONE transcriber runs:
+
+```typescript
+const startWhisperTranscription = async (meetingId: string) => {
+  const browserSupport = checkBrowserSupport();
+  
+  if (browserSupport.isIOS) {
+    console.log('📱 iOS detected - using SimpleIOSTranscriber exclusively');
+    // Ensure desktop transcriber is not running
+    if (desktopTranscriberRef.current) {
+      console.warn('⚠️ Stopping orphaned desktop transcriber');
+      desktopTranscriberRef.current.stopTranscription();
+      desktopTranscriberRef.current = null;
+    }
+    await startIPhoneWhisperTranscription(meetingId);
+  } else {
+    console.log('🖥️ Desktop detected - using DesktopWhisperTranscriber');
+    // Ensure iOS transcriber is not running
+    if (simpleIOSTranscriberRef.current) {
+      console.warn('⚠️ Stopping orphaned iOS transcriber');
+      simpleIOSTranscriberRef.current.stop();
+      simpleIOSTranscriberRef.current = null;
+    }
+    await startDesktopWhisperTranscription(meetingId);
+  }
+};
+```
+
+**Risk Level**: Low - defensive cleanup only
+
+---
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/MeetingRecorder.tsx` | Add `isStartingRecordingRef`, disable button, improve iOS detection, add transcriber exclusivity guard |
+| `src/utils/DesktopWhisperTranscriber.ts` | Add explicit `transcriber_type: 'whisper'` |
+
+---
+
+## Technical Details
+
+### Why This Won't Break Existing Recordings
+
+1. **Lock ref** - Only prevents new duplicate recordings; doesn't affect in-progress ones
+2. **Explicit transcriber_type** - The consolidation and merge logic already handles multiple source types gracefully
+3. **iOS detection enhancement** - Same pattern already used in `BrowserSpeechTranscriber.ts` and `PatientVoiceRecorderLive.tsx`
+4. **Exclusivity guard** - Only cleans up if a transcriber ref exists (which shouldn't happen normally)
+
+### Database Impact
+
+- Existing `legacy` chunks remain unaffected
+- New desktop recordings will show as `whisper` type
+- Word count calculations remain unchanged (uses `MAX()` across sources)
+
+---
+
+## Testing Recommendations
+
+After implementation:
+1. Test recording start on desktop Chrome/Edge - should create exactly ONE meeting
+2. Test recording start on iOS Safari - should only use `ios-simple` transcriber
+3. Test rapid double-click on Start button - should be ignored
+4. Verify existing meetings with `legacy` chunks still display correctly
+
