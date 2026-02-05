@@ -36,12 +36,19 @@ interface Message {
   content: string;
 }
 
+interface QuickPrompt {
+  label: string;
+  icon: React.ElementType;
+  prompt: string;
+}
+
 interface InspectionItemAskAIProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   itemName: string;
   itemDescription: string;
   categoryName: string;
+  customPrompts?: QuickPrompt[];
 }
 
 // Generate quick prompts based on the item context
@@ -78,7 +85,8 @@ export const InspectionItemAskAI = ({
   onOpenChange,
   itemName,
   itemDescription,
-  categoryName
+  categoryName,
+  customPrompts
 }: InspectionItemAskAIProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -146,7 +154,7 @@ export const InspectionItemAskAI = ({
     }
   };
 
-  const quickPrompts = getQuickPrompts(itemName, categoryName);
+  const quickPrompts = customPrompts || getQuickPrompts(itemName, categoryName);
 
   // Scroll to bottom when messages change
   useEffect(() => {

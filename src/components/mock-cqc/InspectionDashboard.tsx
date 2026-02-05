@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Download, ArrowUpCircle, ArrowDownCircle, Zap, ClipboardCheck, ShieldCheck, ChevronsUpDown, Shield, Info, Bot } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Download, ArrowUpCircle, ArrowDownCircle, Zap, ClipboardCheck, ShieldCheck, ChevronsUpDown, Shield, Info, Bot, Calendar, Users, BookOpen, Scale, HelpCircle } from 'lucide-react';
 import { DomainSection } from './DomainSection';
 import { InspectionReport } from './InspectionReport';
 import { SiteIssuesSection } from './SiteIssuesSection';
@@ -527,6 +527,33 @@ export const InspectionDashboard = ({
         itemName="CQC Inspection"
         itemDescription="Get help with any aspect of your CQC inspection, including compliance requirements, evidence gathering, or best practices for GP practices."
         categoryName="General CQC Support"
+        customPrompts={[
+          {
+            label: 'How do I prepare for a CQC inspection?',
+            icon: Calendar,
+            prompt: 'What are the key steps a Practice Manager should take to prepare for a CQC inspection? Include a timeline of actions and priority areas to focus on.'
+          },
+          {
+            label: 'What do CQC inspectors look for?',
+            icon: ClipboardCheck,
+            prompt: 'What are the main things CQC inspectors look for during a GP practice inspection? How do they assess each of the five key questions (Safe, Effective, Caring, Responsive, Well-led)?'
+          },
+          {
+            label: 'How are practices rated?',
+            icon: Scale,
+            prompt: 'How does the CQC rating system work? What distinguishes an Outstanding practice from Good, Requires Improvement, or Inadequate? What evidence typically supports each rating level?'
+          },
+          {
+            label: 'Staff interview preparation',
+            icon: Users,
+            prompt: 'How should I prepare my staff for CQC inspector interviews? What questions are commonly asked and what are the best ways to answer them confidently?'
+          },
+          {
+            label: 'What happens after an inspection?',
+            icon: HelpCircle,
+            prompt: 'What happens after a CQC inspection? How long until we receive the report? What options do we have if we disagree with findings? How do action plans work?'
+          }
+        ]}
       />
     </>
   );
