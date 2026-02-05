@@ -17,6 +17,8 @@ import { InspectionDashboard } from '@/components/mock-cqc/InspectionDashboard';
 import { useMockInspection, InspectionType } from '@/hooks/useMockInspection';
 import { INSPECTION_TYPES, getItemCountsByType } from '@/components/mock-cqc/fundamentals';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 interface Practice {
@@ -38,7 +40,7 @@ interface InProgressSession {
 
 const MockCQCInspection = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isSystemAdmin } = useAuth();
   const { toast } = useToast();
   const [practices, setPractices] = useState<Practice[]>([]);
   const [selectedPracticeId, setSelectedPracticeId] = useState<string>('');
@@ -49,6 +51,7 @@ const MockCQCInspection = () => {
   const [inProgressSessions, setInProgressSessions] = useState<InProgressSession[]>([]);
   const [resumingSessionId, setResumingSessionId] = useState<string | null>(null);
   const [selectedInspectionType, setSelectedInspectionType] = useState<InspectionType>('short');
+  const [deleteConfirmChecked, setDeleteConfirmChecked] = useState<Record<string, boolean>>({});
 
   const {
     activeSession,
@@ -516,30 +519,68 @@ const MockCQCInspection = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete this inspection?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete the inspection for {session.practice_name} and all associated data. This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleDeleteSession(session.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      {/* Only show delete button if: progress < 2% OR user is system admin */}
+                      {(session.progress < 2 || isSystemAdmin) && (
+                        <AlertDialog onOpenChange={(open) => {
+                          if (!open) {
+                            setDeleteConfirmChecked(prev => ({ ...prev, [session.id]: false }));
+                          }
+                        }}>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="text-destructive">
+                                ⚠️ Delete this inspection?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription className="space-y-3">
+                                <span className="block">
+                                  This will <strong>permanently delete</strong> the inspection for <strong>{session.practice_name}</strong> and all associated data including notes, photos, and evidence.
+                                </span>
+                                {session.progress >= 2 && (
+                                  <span className="block text-destructive font-medium">
+                                    Warning: This inspection is {session.progress}% complete. All progress will be lost.
+                                  </span>
+                                )}
+                                <span className="block font-semibold text-foreground">
+                                  This action cannot be undone.
+                                </span>
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <div className="flex items-center space-x-2 py-4 px-1">
+                              <Checkbox 
+                                id={`confirm-delete-${session.id}`}
+                                checked={deleteConfirmChecked[session.id] || false}
+                                onCheckedChange={(checked) => 
+                                  setDeleteConfirmChecked(prev => ({ 
+                                    ...prev, 
+                                    [session.id]: checked === true 
+                                  }))
+                                }
+                              />
+                              <Label 
+                                htmlFor={`confirm-delete-${session.id}`} 
+                                className="text-sm font-medium leading-none cursor-pointer"
+                              >
+                                I understand this will permanently delete all inspection data
+                              </Label>
+                            </div>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDeleteSession(session.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                disabled={!deleteConfirmChecked[session.id]}
+                              >
+                                Delete Permanently
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                       <Button
                         onClick={() => handleResumeSession(session.id)}
                         disabled={resumingSessionId === session.id}
