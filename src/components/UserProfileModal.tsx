@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, User, Building2, KeyRound, Upload, X, FileImage, PenTool, Image as ImageIcon, Mail, FileText, Save, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
@@ -474,13 +474,33 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Personal Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Personal Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Tabs defaultValue="personal" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="personal" className="text-xs sm:text-sm">
+              <User className="h-4 w-4 mr-1 hidden sm:inline" />
+              Personal
+            </TabsTrigger>
+            <TabsTrigger value="practice" className="text-xs sm:text-sm">
+              <Building2 className="h-4 w-4 mr-1 hidden sm:inline" />
+              Practice
+            </TabsTrigger>
+            <TabsTrigger value="password" className="text-xs sm:text-sm">
+              <KeyRound className="h-4 w-4 mr-1 hidden sm:inline" />
+              Password
+            </TabsTrigger>
+            <TabsTrigger value="signature" className="text-xs sm:text-sm">
+              <PenTool className="h-4 w-4 mr-1 hidden sm:inline" />
+              Signature
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Personal Information Tab */}
+          <TabsContent value="personal" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Personal Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               <div>
                 <Label>Email</Label>
                 <Input
@@ -612,18 +632,20 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   'Save Personal Information'
                 )}
               </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          {/* Practice Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Practice Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          {/* Practice Details Tab (includes Logo) */}
+          <TabsContent value="practice" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Practice Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="practice_name">Practice Name</Label>
                 <Input
@@ -717,18 +739,18 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   </>
                 )}
               </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Practice Logo */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ImageIcon className="h-5 w-5" />
-                Practice Logo
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            {/* Practice Logo - in Practice tab */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5" />
+                  Practice Logo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               {practiceDetails.practice_logo_url ? (
                 <div className="space-y-4">
                   <div className="relative border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 bg-muted/10">
@@ -803,141 +825,149 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   </>
                 )}
               </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          {/* Digital Signature */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PenTool className="h-5 w-5" />
-                Digital Signature
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Signature */}
-              <div>
-                <Label className="flex items-center gap-2 mb-3">
-                  <FileText className="h-4 w-4" />
-                  Signature
-                </Label>
-                <SignatureEditor
-                  content={userProfile.letter_signature || ''}
-                  onChange={(content) => setUserProfile(prev => ({ ...prev, letter_signature: content }))}
-                  placeholder="Create your professional signature..."
-                />
-              </div>
-
-              <Button 
-                onClick={handleSaveSignatures}
-                disabled={signatureLoading}
-                className="w-full"
-              >
-                {signatureLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving Signature...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Signature
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Password Management */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <KeyRound className="h-5 w-5" />
-                Password Management
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Direct Password Change */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium">Change Password</h4>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="new-password"
-                      name="new-password"
-                      type={showNewPassword ? 'text' : 'password'}
-                      autoComplete="new-password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Enter new password"
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
+          {/* Password Management Tab */}
+          <TabsContent value="password" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <KeyRound className="h-5 w-5" />
+                  Password Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Direct Password Change */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Change Password</h4>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="new-password"
+                        name="new-password"
+                        type={showNewPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirm New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirm-password"
+                        name="confirm-password"
+                        type={showConfirmNewPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        placeholder="Confirm new password"
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showConfirmNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Password Requirements */}
+                  <div className="space-y-1 text-sm">
+                    <div className={`flex items-center gap-2 ${newPassword.length >= 8 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {newPassword.length >= 8 ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                      At least 8 characters
+                    </div>
+                    <div className={`flex items-center gap-2 ${/\d/.test(newPassword) ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {/\d/.test(newPassword) ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                      Contains at least one number
+                    </div>
+                    <div className={`flex items-center gap-2 ${newPassword && confirmNewPassword && newPassword === confirmNewPassword ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {newPassword && confirmNewPassword && newPassword === confirmNewPassword ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                      Passwords match
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={handleChangePassword}
+                    disabled={passwordChangeLoading || newPassword.length < 8 || !/\d/.test(newPassword) || newPassword !== confirmNewPassword}
+                    className="w-full"
+                  >
+                    {passwordChangeLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Changing Password...
+                      </>
+                    ) : (
+                      'Change Password'
+                    )}
+                  </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="confirm-password"
-                      name="confirm-password"
-                      type={showConfirmNewPassword ? 'text' : 'password'}
-                      autoComplete="new-password"
-                      value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      placeholder="Confirm new password"
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showConfirmNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Password Requirements */}
-                <div className="space-y-1 text-sm">
-                  <div className={`flex items-center gap-2 ${newPassword.length >= 8 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                    {newPassword.length >= 8 ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                    At least 8 characters
-                  </div>
-                  <div className={`flex items-center gap-2 ${newPassword && confirmNewPassword && newPassword === confirmNewPassword ? 'text-green-600' : 'text-muted-foreground'}`}>
-                    {newPassword && confirmNewPassword && newPassword === confirmNewPassword ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                    Passwords match
-                  </div>
+          {/* Digital Signature Tab */}
+          <TabsContent value="signature" className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2">
+                  <PenTool className="h-5 w-5" />
+                  Digital Signature
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Signature */}
+                <div>
+                  <Label className="flex items-center gap-2 mb-3">
+                    <FileText className="h-4 w-4" />
+                    Signature
+                  </Label>
+                  <SignatureEditor
+                    content={userProfile.letter_signature || ''}
+                    onChange={(content) => setUserProfile(prev => ({ ...prev, letter_signature: content }))}
+                    placeholder="Create your professional signature..."
+                  />
                 </div>
 
                 <Button 
-                  onClick={handleChangePassword}
-                  disabled={passwordChangeLoading || newPassword.length < 8 || newPassword !== confirmNewPassword}
+                  onClick={handleSaveSignatures}
+                  disabled={signatureLoading}
                   className="w-full"
                 >
-                  {passwordChangeLoading ? (
+                  {signatureLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Changing Password...
+                      Saving Signature...
                     </>
                   ) : (
-                    'Change Password'
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Signature
+                    </>
                   )}
                 </Button>
-              </div>
-
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
