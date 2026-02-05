@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Header } from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +9,12 @@ import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Do
 import { DomainSection } from './DomainSection';
 import { InspectionReport } from './InspectionReport';
 import { SiteIssuesSection } from './SiteIssuesSection';
-import { FundamentalsChecklist, INSPECTION_TYPES, FundamentalsStats } from './fundamentals';
+import { StatusSummaryCard } from './StatusSummaryCard';
+import { FundamentalsChecklist, INSPECTION_TYPES, FundamentalsStats, FundamentalRecord } from './fundamentals';
 import { InspectionSession, InspectionElement, InspectionType, useMockInspection } from '@/hooks/useMockInspection';
 import { InspectionAccessManager } from './InspectionAccessManager';
 import { useAuth } from '@/contexts/AuthContext';
+import { generateFilteredInspectionReport } from '@/utils/generateFilteredInspectionReport';
 
 interface InspectionDashboardProps {
   session: InspectionSession;
@@ -82,8 +84,86 @@ export const InspectionDashboard = ({
     issuesFound: 0,
     notApplicable: 0,
     notChecked: 0,
-    percent: 0
+    percent: 0,
+    records: []
   });
+
+  // Helper to generate filtered report for fundamentals
+  const generateFundamentalsReport = useCallback(async (status: string, statusLabel: string) => {
+    const records = fundamentalsStats.records || [];
+    const filteredRecords = records.filter(r => r.status === status);
+    
+    await generateFilteredInspectionReport({
+      title: `Mock CQC Inspection - ${statusLabel}`,
+      practice: { name: practiceName },
+      statusLabel,
+      items: filteredRecords.map(r => ({
+        id: r.id,
+        key: r.item_key,
+        name: r.item_name,
+        category: r.category,
+        status: r.status,
+        notes: r.notes,
+        assignedTo: r.assigned_to,
+        fixByDate: r.fix_by_date,
+        fixByPreset: r.fix_by_preset,
+        photoUrl: r.photo_url,
+        photoFileName: r.photo_file_name
+      }))
+    });
+  }, [fundamentalsStats.records, practiceName]);
+
+  // Helper to generate filtered report for domain elements
+  const generateDomainElementsReport = useCallback(async (status: string, statusLabel: string) => {
+    const filteredElements = localElements.filter(e => e.status === status);
+    
+    await generateFilteredInspectionReport({
+      title: `Mock CQC Inspection - ${statusLabel}`,
+      practice: { name: practiceName },
+      statusLabel,
+      items: filteredElements.map(e => ({
+        id: e.id,
+        key: e.element_key,
+        name: e.element_name,
+        domain: e.domain,
+        status: e.status,
+        notes: e.evidence_notes,
+        evidenceFiles: Array.isArray(e.evidence_files) 
+          ? (e.evidence_files as Array<{ type: string; url?: string; name: string }>)
+          : []
+      }))
+    });
+  }, [localElements, practiceName]);
+
+  // Get items for hover display - fundamentals
+  const getFundamentalsItems = useCallback((status: string) => {
+    const records = fundamentalsStats.records || [];
+    return records
+      .filter(r => r.status === status)
+      .map(r => ({
+        id: r.id,
+        key: r.item_key,
+        name: r.item_name,
+        notes: r.notes,
+        assignedTo: r.assigned_to,
+        fixByDate: r.fix_by_date,
+        fixByPreset: r.fix_by_preset,
+        photoUrl: r.photo_url,
+        photoFileName: r.photo_file_name
+      }));
+  }, [fundamentalsStats.records]);
+
+  // Get items for hover display - domain elements
+  const getDomainElementItems = useCallback((status: string) => {
+    return localElements
+      .filter(e => e.status === status)
+      .map(e => ({
+        id: e.id,
+        key: e.element_key,
+        name: e.element_name,
+        notes: e.evidence_notes
+      }));
+  }, [localElements]);
   const { updateElement: updateElementInDb, completeInspection } = useMockInspection();
 
   // Check if current user is the owner of this session
@@ -253,34 +333,50 @@ export const InspectionDashboard = ({
               <div className="mb-4">
                 <p className="text-xs font-medium text-muted-foreground mb-2">Fundamentals Checklist</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <div>
-                      <p className="text-base font-semibold text-green-600">{fundamentalsStats.verified}</p>
-                      <p className="text-xs text-muted-foreground">Verified</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-950/30">
-                    <AlertCircle className="h-4 w-4 text-red-600" />
-                    <div>
-                      <p className="text-base font-semibold text-red-600">{fundamentalsStats.issuesFound}</p>
-                      <p className="text-xs text-muted-foreground">Issues Found</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/30">
-                    <MinusCircle className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-base font-semibold">{fundamentalsStats.notApplicable}</p>
-                      <p className="text-xs text-muted-foreground">N/A</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50">
-                    <Circle className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-base font-semibold">{fundamentalsStats.notChecked}</p>
-                      <p className="text-xs text-muted-foreground">Not Checked</p>
-                    </div>
-                  </div>
+                  <StatusSummaryCard
+                    icon={CheckCircle2}
+                    iconColorClass="text-green-600"
+                    count={fundamentalsStats.verified}
+                    label="Verified"
+                    bgColorClass="bg-green-50 dark:bg-green-950/30"
+                    items={getFundamentalsItems('verified')}
+                    practiceName={practiceName}
+                    onDownloadReport={fundamentalsStats.verified > 0 
+                      ? () => generateFundamentalsReport('verified', 'Verified Items')
+                      : undefined
+                    }
+                  />
+                  <StatusSummaryCard
+                    icon={AlertCircle}
+                    iconColorClass="text-red-600"
+                    count={fundamentalsStats.issuesFound}
+                    label="Issues Found"
+                    bgColorClass="bg-red-50 dark:bg-red-950/30"
+                    items={getFundamentalsItems('issue_found')}
+                    practiceName={practiceName}
+                    onDownloadReport={fundamentalsStats.issuesFound > 0 
+                      ? () => generateFundamentalsReport('issue_found', 'Issues Found')
+                      : undefined
+                    }
+                  />
+                  <StatusSummaryCard
+                    icon={MinusCircle}
+                    iconColorClass="text-muted-foreground"
+                    count={fundamentalsStats.notApplicable}
+                    label="N/A"
+                    bgColorClass="bg-muted/30"
+                    items={getFundamentalsItems('not_applicable')}
+                    practiceName={practiceName}
+                  />
+                  <StatusSummaryCard
+                    icon={Circle}
+                    iconColorClass="text-muted-foreground"
+                    count={fundamentalsStats.notChecked}
+                    label="Not Checked"
+                    bgColorClass="bg-muted/50"
+                    items={[]}
+                    practiceName={practiceName}
+                  />
                 </div>
               </div>
 
@@ -288,34 +384,54 @@ export const InspectionDashboard = ({
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">Domain Elements</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50 dark:bg-green-950/30">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <div>
-                      <p className="text-base font-semibold text-green-600">{progress.met}</p>
-                      <p className="text-xs text-muted-foreground">Met</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30">
-                    <MinusCircle className="h-4 w-4 text-amber-600" />
-                    <div>
-                      <p className="text-base font-semibold text-amber-600">{progress.partiallyMet}</p>
-                      <p className="text-xs text-muted-foreground">Partially Met</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50 dark:bg-red-950/30">
-                    <AlertCircle className="h-4 w-4 text-red-600" />
-                    <div>
-                      <p className="text-base font-semibold text-red-600">{progress.notMet}</p>
-                      <p className="text-xs text-muted-foreground">Not Met</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-muted/50">
-                    <Circle className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-base font-semibold">{progress.total - progress.assessed}</p>
-                      <p className="text-xs text-muted-foreground">Not Assessed</p>
-                    </div>
-                  </div>
+                  <StatusSummaryCard
+                    icon={CheckCircle2}
+                    iconColorClass="text-green-600"
+                    count={progress.met}
+                    label="Met"
+                    bgColorClass="bg-green-50 dark:bg-green-950/30"
+                    items={getDomainElementItems('met')}
+                    practiceName={practiceName}
+                    onDownloadReport={progress.met > 0 
+                      ? () => generateDomainElementsReport('met', 'Elements Met')
+                      : undefined
+                    }
+                  />
+                  <StatusSummaryCard
+                    icon={MinusCircle}
+                    iconColorClass="text-amber-600"
+                    count={progress.partiallyMet}
+                    label="Partially Met"
+                    bgColorClass="bg-amber-50 dark:bg-amber-950/30"
+                    items={getDomainElementItems('partially_met')}
+                    practiceName={practiceName}
+                    onDownloadReport={progress.partiallyMet > 0 
+                      ? () => generateDomainElementsReport('partially_met', 'Partially Met Elements')
+                      : undefined
+                    }
+                  />
+                  <StatusSummaryCard
+                    icon={AlertCircle}
+                    iconColorClass="text-red-600"
+                    count={progress.notMet}
+                    label="Not Met"
+                    bgColorClass="bg-red-50 dark:bg-red-950/30"
+                    items={getDomainElementItems('not_met')}
+                    practiceName={practiceName}
+                    onDownloadReport={progress.notMet > 0 
+                      ? () => generateDomainElementsReport('not_met', 'Not Met Elements')
+                      : undefined
+                    }
+                  />
+                  <StatusSummaryCard
+                    icon={Circle}
+                    iconColorClass="text-muted-foreground"
+                    count={progress.total - progress.assessed}
+                    label="Not Assessed"
+                    bgColorClass="bg-muted/50"
+                    items={[]}
+                    practiceName={practiceName}
+                  />
                 </div>
               </div>
             </CardContent>
