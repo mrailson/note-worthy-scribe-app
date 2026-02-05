@@ -25,22 +25,7 @@ import {
 } from './fundamentalsConfig';
 import { FundamentalItemCard } from './FundamentalItemCard';
 
-export interface FundamentalsStats {
-  total: number;
-  verified: number;
-  issuesFound: number;
-  notApplicable: number;
-  notChecked: number;
-  percent: number;
-}
-
-interface FundamentalsChecklistProps {
-  sessionId: string;
-  inspectionType: InspectionType;
-  onStatsChange?: (stats: FundamentalsStats) => void;
-}
-
-interface FundamentalRecord {
+export interface FundamentalRecord {
   id: string;
   session_id: string;
   category: string;
@@ -55,6 +40,23 @@ interface FundamentalRecord {
   fix_by_date: string | null;
   fix_by_preset: string | null;
 }
+
+export interface FundamentalsStats {
+  total: number;
+  verified: number;
+  issuesFound: number;
+  notApplicable: number;
+  notChecked: number;
+  percent: number;
+  records?: FundamentalRecord[];
+}
+
+interface FundamentalsChecklistProps {
+  sessionId: string;
+  inspectionType: InspectionType;
+  onStatsChange?: (stats: FundamentalsStats) => void;
+}
+
 
 const getCategoryIcon = (iconName: string) => {
   const icons: Record<string, React.ElementType> = {
@@ -240,7 +242,8 @@ export const FundamentalsChecklist = ({ sessionId, inspectionType, onStatsChange
       issuesFound,
       notApplicable,
       notChecked,
-      percent: totalItems > 0 ? Math.round(((verified + issuesFound + notApplicable) / totalItems) * 100) : 0 
+      percent: totalItems > 0 ? Math.round(((verified + issuesFound + notApplicable) / totalItems) * 100) : 0,
+      records // Include the records for filtering
     };
   };
 
