@@ -20,7 +20,8 @@ import {
   Mic,
   MicOff,
   ChevronsUp,
-  Maximize2
+  Maximize2,
+  ArrowLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -457,6 +458,23 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Scroll to top of latest answer</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMessages([])}
+                      className="h-8 px-3 gap-1.5"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span className="text-xs hidden sm:inline">Back to Questions</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Return to quick questions menu</p>
                   </TooltipContent>
                 </Tooltip>
 
