@@ -31,7 +31,7 @@ export const useMockInspectionAccess = () => {
 
       // Check if user has module-level access
       // (matches usage elsewhere in the app, e.g. Header/ServiceVisibilitySettings)
-      if (hasModuleAccess('cqc_compliance_access')) {
+      if (hasModuleAccess('cqc_compliance')) {
         setHasSessionAccess(true);
         setIsLoading(false);
         return;
@@ -67,7 +67,7 @@ export const useMockInspectionAccess = () => {
   }, [user, hasModuleAccess, isSystemAdmin, authLoading]);
 
   const hasMockInspectionAccess =
-    isSystemAdmin || hasModuleAccess('cqc_compliance_access') || hasSessionAccess;
+    isSystemAdmin || hasModuleAccess('cqc_compliance') || hasSessionAccess;
 
   return {
     hasMockInspectionAccess,
