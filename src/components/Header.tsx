@@ -472,13 +472,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             <Wrench className="h-4 w-4 mr-2" />
                             Admin Dashboard
                           </DropdownMenuItem>
-                           <DropdownMenuItem 
-                             onClick={() => navigate('/admin?tab=dev-costs')}
-                             className="cursor-pointer py-3"
-                           >
-                             <TrendingUp className="h-4 w-4 mr-2" />
-                             Dev Costs
-                           </DropdownMenuItem>
                          </DropdownMenuSubContent>
                      </DropdownMenuSub>
                     )}
@@ -705,12 +698,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/notebook-studio')}>
                                     <Presentation className="h-4 w-4 mr-2" />
                                     Notewell Studio
-                                  </Button>
-                                </DrawerClose>
-                                <DrawerClose asChild>
-                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/admin?tab=dev-costs')}>
-                                    <TrendingUp className="h-4 w-4 mr-2" />
-                                    Dev Costs
                                   </Button>
                                 </DrawerClose>
                               </CollapsibleContent>
