@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createPcmStream } from "@/lib/audio/pcm16";
 
-export type DeepgramPreviewStatus = 'idle' | 'connecting' | 'connected' | 'recording' | 'error' | 'stopped';
+export type DeepgramPreviewStatus = 'idle' | 'connecting' | 'connected' | 'recording' | 'reconnecting' | 'error' | 'stopped';
 
 interface UseDeepgramRealtimePreviewReturn {
   liveTranscript: string;
@@ -11,12 +11,16 @@ interface UseDeepgramRealtimePreviewReturn {
   isActive: boolean;
   error: string | null;
   chunkCount: number;
+  reconnectAttempts: number;
   startPreview: (meetingId: string, externalStream?: MediaStream, options?: { preserveTranscript?: boolean }) => Promise<void>;
   stopPreview: () => void;
   clearTranscript: () => void;
 }
 
 const MAX_WORDS = 100; // Keep last 100 words for live preview
+const MAX_RECONNECT_ATTEMPTS = 5;
+const INITIAL_RECONNECT_DELAY = 1000; // 1 second
+const MAX_RECONNECT_DELAY = 30000; // 30 seconds
 
 export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn => {
   const [liveTranscript, setLiveTranscript] = useState<string>("");
@@ -25,12 +29,16 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [chunkCount, setChunkCount] = useState(0);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
   const wsRef = useRef<WebSocket | null>(null);
   const pcmStreamRef = useRef<{ stop: () => void } | null>(null);
   const meetingIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const chunkCounterRef = useRef<number>(0);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const intentionalStopRef = useRef<boolean>(false);
+  const reconnectAttemptsRef = useRef<number>(0);
 
   // Track accumulated transcript
   const baseTranscriptRef = useRef<string>("");
@@ -165,7 +173,162 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
       wsRef.current.close();
       wsRef.current = null;
     }
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
   }, []);
+
+  // Internal reconnect function
+  const attemptReconnect = useCallback(async () => {
+    if (intentionalStopRef.current) {
+      console.log('🔌 Deepgram: Skipping reconnect - intentional stop');
+      return;
+    }
+
+    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.error('❌ Deepgram: Max reconnection attempts reached');
+      setError(`Connection lost after ${MAX_RECONNECT_ATTEMPTS} reconnection attempts`);
+      setStatus('error');
+      setIsActive(false);
+      return;
+    }
+
+    const meetingId = meetingIdRef.current;
+    if (!meetingId) {
+      console.log('🔌 Deepgram: No meeting ID for reconnect');
+      return;
+    }
+
+    reconnectAttemptsRef.current += 1;
+    setReconnectAttempts(reconnectAttemptsRef.current);
+
+    // Exponential backoff with jitter
+    const delay = Math.min(
+      INITIAL_RECONNECT_DELAY * Math.pow(2, reconnectAttemptsRef.current - 1) + Math.random() * 500,
+      MAX_RECONNECT_DELAY
+    );
+
+    console.log(`🔄 Deepgram: Reconnecting in ${Math.round(delay)}ms (attempt ${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})`);
+    setStatus('reconnecting');
+    setError(null);
+
+    reconnectTimeoutRef.current = setTimeout(async () => {
+      try {
+        // Clean up old connection first
+        if (wsRef.current) {
+          wsRef.current.close();
+          wsRef.current = null;
+        }
+        if (pcmStreamRef.current) {
+          pcmStreamRef.current.stop();
+          pcmStreamRef.current = null;
+        }
+
+        // Connect to Deepgram streaming WebSocket
+        const wsUrl = `wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-streaming`;
+        console.log('📡 Deepgram: Reconnecting to WebSocket:', wsUrl);
+
+        wsRef.current = new WebSocket(wsUrl);
+        wsRef.current.binaryType = 'arraybuffer';
+
+        wsRef.current.onopen = async () => {
+          console.log('✅ Deepgram: WebSocket reconnected');
+          setStatus('connected');
+          reconnectAttemptsRef.current = 0;
+          setReconnectAttempts(0);
+          setError(null);
+
+          // Send session start
+          wsRef.current?.send(JSON.stringify({ type: 'session.start' }));
+        };
+
+        wsRef.current.onmessage = async (event) => {
+          try {
+            const data = JSON.parse(event.data);
+
+            if (data.type === 'error') {
+              console.error('❌ Deepgram error:', data.error);
+              setError(`Deepgram error: ${data.error}`);
+              return;
+            }
+
+            if (data.type === 'session_begins') {
+              console.log('✅ Deepgram: Session resumed after reconnect');
+              setStatus('recording');
+              setIsActive(true);
+
+              // Start PCM audio capture
+              try {
+                pcmStreamRef.current = await createPcmStream((pcmBuffer) => {
+                  if (wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(pcmBuffer);
+                  }
+                });
+                console.log('✅ Deepgram: PCM audio capture resumed');
+              } catch (audioError) {
+                console.error('❌ Deepgram: Audio capture failed on reconnect:', audioError);
+                setError('Failed to capture audio: ' + (audioError instanceof Error ? audioError.message : 'Unknown error'));
+              }
+              return;
+            }
+
+            // Handle transcription results
+            if (data.channel?.alternatives || data.results?.channels) {
+              const channels = data.channel?.alternatives
+                ? [{ alternatives: data.channel.alternatives }]
+                : (data.results?.channels || []);
+
+              for (const channel of channels) {
+                const alternatives = channel.alternatives || [];
+                if (alternatives.length > 0) {
+                  const bestAlt = alternatives[0];
+                  const transcript = bestAlt.transcript?.trim();
+
+                  if (transcript) {
+                    const isFinal = data.is_final || data.speech_final || false;
+                    const confidence = bestAlt.confidence || 0.9;
+                    updateTranscript(transcript, isFinal, confidence);
+                  }
+                }
+              }
+              return;
+            }
+
+            if (data.type === 'session_terminated') {
+              console.log('🔌 Deepgram: Session terminated during reconnect');
+              attemptReconnect();
+              return;
+            }
+
+          } catch (parseError) {
+            console.error('❌ Deepgram: Parse error:', parseError);
+          }
+        };
+
+        wsRef.current.onerror = (err) => {
+          console.error('❌ Deepgram: WebSocket error during reconnect:', err);
+          attemptReconnect();
+        };
+
+        wsRef.current.onclose = (event) => {
+          console.log('🔌 Deepgram: WebSocket closed during/after reconnect', event.code, event.reason);
+          
+          if (!intentionalStopRef.current && event.code !== 1000) {
+            attemptReconnect();
+          } else if (event.code === 1000) {
+            setStatus('stopped');
+            setIsActive(false);
+          }
+        };
+
+      } catch (err) {
+        console.error('❌ Deepgram: Reconnection attempt failed:', err);
+        attemptReconnect();
+      }
+    }, delay);
+  }, [updateTranscript]);
 
   const startPreview = useCallback(async (
     meetingId: string,
@@ -184,6 +347,9 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
       setError(null);
       meetingIdRef.current = meetingId;
       sessionIdRef.current = meetingId;
+      intentionalStopRef.current = false;
+      reconnectAttemptsRef.current = 0;
+      setReconnectAttempts(0);
 
       if (!preserveTranscript) {
         setLiveTranscript("");
@@ -287,16 +453,24 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
 
       wsRef.current.onclose = (event) => {
         console.log('🔌 Deepgram: WebSocket closed', event.code, event.reason);
-        setIsActive(false);
 
-        if (event.code !== 1000) {
-          setError(`Connection closed (${event.code})`);
-          setStatus('error');
-        } else {
+        // Don't trigger reconnect if this was an intentional stop
+        if (intentionalStopRef.current) {
           setStatus('stopped');
+          setIsActive(false);
+          cleanup();
+          return;
         }
 
-        cleanup();
+        // Attempt reconnection for unexpected closures
+        if (event.code !== 1000) {
+          console.log('🔄 Deepgram: Unexpected disconnection, attempting reconnect...');
+          attemptReconnect();
+        } else {
+          setStatus('stopped');
+          setIsActive(false);
+          cleanup();
+        }
       };
 
     } catch (err) {
@@ -306,10 +480,17 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
       setIsActive(false);
       cleanup();
     }
-  }, [isActive, updateTranscript, cleanup]);
+  }, [isActive, updateTranscript, cleanup, attemptReconnect]);
 
   const stopPreview = useCallback(() => {
     console.log('🛑 Deepgram: Stopping preview...');
+    intentionalStopRef.current = true;
+    
+    // Clear any pending reconnect
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
 
     // Send terminate message
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -336,6 +517,8 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
     chunkCounterRef.current = 0;
     setChunkCount(0);
     setError(null);
+    reconnectAttemptsRef.current = 0;
+    setReconnectAttempts(0);
   }, []);
 
   // Cleanup on unmount
@@ -352,6 +535,7 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
     isActive,
     error,
     chunkCount,
+    reconnectAttempts,
     startPreview,
     stopPreview,
     clearTranscript
