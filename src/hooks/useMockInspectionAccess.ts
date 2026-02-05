@@ -30,18 +30,21 @@ export const useMockInspectionAccess = () => {
       }
 
       // Check if user has module-level access
-      if (hasModuleAccess('cqc_compliance')) {
+      // (matches usage elsewhere in the app, e.g. Header/ServiceVisibilitySettings)
+      if (hasModuleAccess('cqc_compliance_access')) {
         setHasSessionAccess(true);
         setIsLoading(false);
         return;
       }
 
-      // Check if user has been granted session-level access
+      // Check if user has any accessible mock inspection sessions.
+      // This is more reliable than querying mock_inspection_access directly,
+      // because session visibility already encapsulates all access rules (owner/shared/admin)
+      // via existing RLS policies.
       try {
         const { data, error } = await supabase
-          .from('mock_inspection_access')
+          .from('mock_inspection_sessions')
           .select('id')
-          .eq('granted_to_user_id', user.id)
           .limit(1);
 
         if (error) {
@@ -58,12 +61,13 @@ export const useMockInspectionAccess = () => {
       setIsLoading(false);
     };
 
-    if (!authLoading) {
-      checkSessionAccess();
-    }
+    // Don't block the access check on authLoading; we can still validate session access
+    // as soon as we have a user id (module access will update automatically once loaded).
+    checkSessionAccess();
   }, [user, hasModuleAccess, isSystemAdmin, authLoading]);
 
-  const hasMockInspectionAccess = isSystemAdmin || hasModuleAccess('cqc_compliance') || hasSessionAccess;
+  const hasMockInspectionAccess =
+    isSystemAdmin || hasModuleAccess('cqc_compliance_access') || hasSessionAccess;
 
   return {
     hasMockInspectionAccess,
