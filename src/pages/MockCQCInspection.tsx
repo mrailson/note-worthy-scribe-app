@@ -319,167 +319,6 @@ const MockCQCInspection = () => {
             </Card>
           </div>
 
-          {/* Start Inspection Card */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Play className="h-5 w-5" />
-                Start New Inspection
-              </CardTitle>
-              <CardDescription>
-                Select a practice/site and begin your mock inspection. You'll work through elements from each CQC domain, 
-                with Safe and Well-led domains prioritised. There's no time limit – take as long as you need.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select Practice/Site</label>
-                <Popover open={practiceSearchOpen} onOpenChange={setPracticeSearchOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={practiceSearchOpen}
-                      className="w-full justify-between"
-                    >
-                      {selectedPracticeId ? (
-                        <span className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4" />
-                          {practices.find(p => p.id === selectedPracticeId)?.name}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground flex items-center gap-2">
-                          <Search className="h-4 w-4" />
-                          {loading ? "Loading practices..." : "Search for a practice..."}
-                        </span>
-                      )}
-                      {selectedPracticeId && (
-                        <X 
-                          className="h-4 w-4 opacity-50 hover:opacity-100" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPracticeId('');
-                            setPracticeSearch('');
-                          }}
-                        />
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                    <Command>
-                      <CommandInput 
-                        placeholder="Type to search practices..." 
-                        value={practiceSearch}
-                        onValueChange={setPracticeSearch}
-                      />
-                      <CommandList>
-                        <CommandEmpty>No practice found.</CommandEmpty>
-                        <CommandGroup>
-                          {practices
-                            .filter(practice => {
-                              if (!practiceSearch.trim()) return true;
-                              const searchLower = practiceSearch.toLowerCase().trim();
-                              const nameLower = practice.name.toLowerCase();
-                              const codeLower = (practice.practice_code || '').toLowerCase();
-                              const postcodeLower = (practice.postcode || '').toLowerCase();
-                              
-                              // Match by name
-                              if (nameLower.includes(searchLower)) return true;
-                              // Match by practice code (K code)
-                              if (codeLower.includes(searchLower)) return true;
-                              // Handle 'K' prefix searches (e.g., "K84001" or just "84001")
-                              if (searchLower.startsWith('k') && codeLower.includes(searchLower.substring(1))) return true;
-                              // Match by postcode
-                              if (postcodeLower.includes(searchLower)) return true;
-                              
-                              return false;
-                            })
-                            .slice(0, 10)
-                            .map(practice => (
-                              <CommandItem
-                                key={practice.id}
-                                value={`${practice.name} ${practice.practice_code || ''} ${practice.postcode || ''}`}
-                                onSelect={() => {
-                                  setSelectedPracticeId(practice.id);
-                                  setPracticeSearchOpen(false);
-                                  setPracticeSearch('');
-                                }}
-                              >
-                                <Building2 className="mr-2 h-4 w-4" />
-                                <div className="flex flex-col">
-                                  <span>{practice.name}</span>
-                                  {(practice.practice_code || practice.postcode) && (
-                                    <span className="text-xs text-muted-foreground">
-                                      {[practice.practice_code, practice.postcode].filter(Boolean).join(' • ')}
-                                    </span>
-                                  )}
-                                </div>
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Inspection Type Selection */}
-              <div className="space-y-3">
-                <label className="text-sm font-medium">Choose Inspection Depth</label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {(Object.keys(INSPECTION_TYPES) as InspectionType[]).map((type) => {
-                    const config = INSPECTION_TYPES[type];
-                    const isSelected = selectedInspectionType === type;
-                    const count = type === 'short' ? itemCounts.short : type === 'mid' ? itemCounts.mid : itemCounts.long;
-                    
-                    return (
-                      <button
-                        key={type}
-                        onClick={() => setSelectedInspectionType(type)}
-                        className={cn(
-                          "p-4 rounded-lg border-2 text-left transition-all",
-                          isSelected 
-                            ? `${config.borderColor} ${config.bgColor}` 
-                            : "border-border hover:border-muted-foreground/50"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          {type === 'short' && <Zap className={cn("h-5 w-5", isSelected ? config.color : "text-muted-foreground")} />}
-                          {type === 'mid' && <ClipboardCheck className={cn("h-5 w-5", isSelected ? config.color : "text-muted-foreground")} />}
-                          {type === 'long' && <ShieldCheck className={cn("h-5 w-5", isSelected ? config.color : "text-muted-foreground")} />}
-                          <span className={cn("font-semibold", isSelected ? config.color : "")}>{config.label}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-2">{config.duration}</p>
-                        <p className="text-xs text-muted-foreground">{config.description}</p>
-                        <Badge variant="outline" className="mt-2 text-xs">
-                          {count} fundamental items
-                        </Badge>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  💡 You can upgrade to a more comprehensive inspection at any time – your progress will be preserved.
-                </p>
-              </div>
-
-              <Button 
-                onClick={handleStartInspection}
-                disabled={!selectedPracticeId || startingInspection || sessionLoading}
-                className="w-full"
-              >
-                {startingInspection ? (
-                  "Preparing inspection..."
-                ) : (
-                  <>
-                    Start {INSPECTION_TYPES[selectedInspectionType].label} Inspection
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
           {/* In Progress Sessions */}
           {inProgressSessions.length > 0 && (
             <Card className="mb-6 border-primary/30 bg-primary/5">
@@ -595,6 +434,177 @@ const MockCQCInspection = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Start Inspection Card */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Play className="h-5 w-5" />
+                Start New Inspection
+              </CardTitle>
+              <CardDescription>
+                Select a practice/site and begin your mock inspection. You'll work through elements from each CQC domain, 
+                with Safe and Well-led domains prioritised. There's no time limit – take as long as you need.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Select Practice/Site</label>
+                <Popover open={practiceSearchOpen} onOpenChange={setPracticeSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={practiceSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedPracticeId ? (
+                        <span className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4" />
+                          {practices.find(p => p.id === selectedPracticeId)?.name}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground flex items-center gap-2">
+                          <Search className="h-4 w-4" />
+                          {loading ? "Loading practices..." : "Search for a practice..."}
+                        </span>
+                      )}
+                      {selectedPracticeId && (
+                        <X 
+                          className="h-4 w-4 opacity-50 hover:opacity-100" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPracticeId('');
+                            setPracticeSearch('');
+                          }}
+                        />
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Type to search practices..." 
+                        value={practiceSearch}
+                        onValueChange={setPracticeSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>No practice found.</CommandEmpty>
+                        <CommandGroup>
+                          {practices
+                            .filter(practice => {
+                              if (!practiceSearch.trim()) return true;
+                              const searchLower = practiceSearch.toLowerCase().trim();
+                              const nameLower = practice.name.toLowerCase();
+                              const codeLower = (practice.practice_code || '').toLowerCase();
+                              const postcodeLower = (practice.postcode || '').toLowerCase();
+                              
+                              // Match by name
+                              if (nameLower.includes(searchLower)) return true;
+                              // Match by practice code (K code)
+                              if (codeLower.includes(searchLower)) return true;
+                              // Handle 'K' prefix searches (e.g., "K84001" or just "84001")
+                              if (searchLower.startsWith('k') && codeLower.includes(searchLower.substring(1))) return true;
+                              // Match by postcode
+                              if (postcodeLower.includes(searchLower)) return true;
+                              
+                              return false;
+                            })
+                            .slice(0, 10)
+                            .map(practice => (
+                              <CommandItem
+                                key={practice.id}
+                                value={`${practice.name} ${practice.practice_code || ''} ${practice.postcode || ''}`}
+                                onSelect={() => {
+                                  setSelectedPracticeId(practice.id);
+                                  setPracticeSearchOpen(false);
+                                  setPracticeSearch('');
+                                }}
+                              >
+                                <Building2 className="mr-2 h-4 w-4" />
+                                <div className="flex flex-col">
+                                  <span>{practice.name}</span>
+                                  {(practice.practice_code || practice.postcode) && (
+                                    <span className="text-xs text-muted-foreground">
+                                      {[practice.practice_code, practice.postcode].filter(Boolean).join(' • ')}
+                                    </span>
+                                  )}
+                                </div>
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Inspection Type Selection */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium">Choose Inspection Depth</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {(Object.keys(INSPECTION_TYPES) as InspectionType[]).map((type) => {
+                    const config = INSPECTION_TYPES[type];
+                    const IconComponent = type === 'short' ? Zap : type === 'mid' ? ShieldCheck : ClipboardCheck;
+                    const isSelected = selectedInspectionType === type;
+                    
+                    return (
+                      <Card
+                        key={type}
+                        className={cn(
+                          "cursor-pointer transition-all hover:border-primary/50",
+                          isSelected ? "border-primary ring-2 ring-primary/20" : ""
+                        )}
+                        onClick={() => setSelectedInspectionType(type)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-2 mb-2">
+                            <IconComponent className={cn(
+                              "h-5 w-5 mt-0.5",
+                              isSelected ? "text-primary" : "text-muted-foreground"
+                            )} />
+                            <div>
+                              <h4 className={cn(
+                                "font-semibold",
+                                isSelected ? "text-primary" : ""
+                              )}>
+                                {config.label}
+                              </h4>
+                              <p className="text-xs text-muted-foreground">{config.duration}</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-2">{config.description}</p>
+                          <Badge variant="outline" className="text-xs">
+                            {itemCounts[type]} fundamental items
+                          </Badge>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span className="text-primary">💡</span>
+                  You can upgrade to a more comprehensive inspection at any time – your progress will be preserved.
+                </p>
+              </div>
+              
+              <Button 
+                className="w-full" 
+                size="lg"
+                onClick={handleStartInspection}
+                disabled={!selectedPracticeId || startingInspection || sessionLoading}
+              >
+                {startingInspection ? (
+                  'Starting inspection...'
+                ) : (
+                  <>
+                    Start {INSPECTION_TYPES[selectedInspectionType].label} Inspection
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* Past Inspections - Future Enhancement */}
           <Card className="opacity-60">
