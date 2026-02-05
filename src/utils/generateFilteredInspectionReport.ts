@@ -205,8 +205,7 @@ export const generateFilteredInspectionReport = async (data: FilteredReportData)
       new Paragraph({
         children: [
           new TextRun({ text: `${i + 1}. `, bold: true }),
-          new TextRun({ text: `${item.key}: `, bold: true }),
-          new TextRun({ text: item.name })
+          new TextRun({ text: item.name, bold: true })
         ],
         spacing: { before: 200, after: 100 }
       })
