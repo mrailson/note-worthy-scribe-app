@@ -489,13 +489,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                          </DropdownMenuSubContent>
                      </DropdownMenuSub>
                     )}
-                   <DropdownMenuItem 
-                     onClick={() => navigate('/attendees')}
-                     className="cursor-pointer py-3"
-                   >
-                     <Users className="h-4 w-4 mr-2" />
-                     Manage Attendees
-                   </DropdownMenuItem>
                    <DropdownMenuSeparator />
                    <DropdownMenuItem 
                      onClick={signOut}
