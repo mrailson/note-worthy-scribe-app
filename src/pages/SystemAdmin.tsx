@@ -76,7 +76,6 @@ import { StorageManagement } from '@/components/admin/StorageManagement';
 import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAccess';
 import { AI4GPServicesOverview } from '@/components/admin/AI4GPServicesOverview';
 import { PolicyEnhancementModelSettings } from '@/components/admin/PolicyEnhancementModelSettings';
-import { DevelopmentCosts } from '@/components/admin/DevelopmentCosts';
 import { ICBTrafficLightManager } from '@/components/admin/ICBTrafficLightManager';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
 
@@ -1967,11 +1966,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <span className="hidden sm:inline">Pilot Usage Report</span>
               <span className="sm:hidden">Pilot</span>
             </TabsTrigger>
-            <TabsTrigger value="dev-costs" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
-              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Dev Costs</span>
-              <span className="sm:hidden">Costs</span>
-            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -2329,11 +2323,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* AI4GP Services Tab */}
           <TabsContent value="ai4gp-services" className="space-y-6">
             <AI4GPServicesOverview />
-          </TabsContent>
-
-          {/* Development Costs Tab */}
-          <TabsContent value="dev-costs" className="space-y-6">
-            <DevelopmentCosts />
           </TabsContent>
 
           {/* User Management Tab */}

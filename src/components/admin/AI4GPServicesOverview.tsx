@@ -9,6 +9,8 @@ import { PolicyUsageReport } from './PolicyUsageReport';
 import { MeetingUsageReport } from './MeetingUsageReport';
 import { GPScribeStats } from './GPScribeStats';
 import { TranslationUsageReport } from './TranslationUsageReport';
+import { DevelopmentCosts } from './DevelopmentCosts';
+import { TrendingUp } from 'lucide-react';
 
 export const AI4GPServicesOverview = () => {
   const [activeTab, setActiveTab] = useState('genie');
@@ -27,7 +29,7 @@ export const AI4GPServicesOverview = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
               <TabsTrigger value="genie" className="flex items-center gap-2">
                 <Bot className="h-4 w-4" />
                 <span className="hidden sm:inline">Overview</span>
@@ -63,6 +65,11 @@ export const AI4GPServicesOverview = () => {
                 <span className="hidden sm:inline">Translation</span>
                 <span className="sm:hidden">Trans</span>
               </TabsTrigger>
+              <TabsTrigger value="dev-costs" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                <span className="hidden sm:inline">Dev Costs</span>
+                <span className="sm:hidden">Costs</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="genie" className="mt-6">
@@ -91,6 +98,10 @@ export const AI4GPServicesOverview = () => {
 
             <TabsContent value="translation" className="mt-6">
               <TranslationUsageReport />
+            </TabsContent>
+
+            <TabsContent value="dev-costs" className="mt-6">
+              <DevelopmentCosts />
             </TabsContent>
           </Tabs>
         </CardContent>
