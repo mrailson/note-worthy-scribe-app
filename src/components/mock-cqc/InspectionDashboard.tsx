@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Download, ArrowUpCircle, ArrowDownCircle, Zap, ClipboardCheck, ShieldCheck, ChevronsUpDown } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Download, ArrowUpCircle, ArrowDownCircle, Zap, ClipboardCheck, ShieldCheck, ChevronsUpDown, Shield, Info } from 'lucide-react';
 import { DomainSection } from './DomainSection';
 import { InspectionReport } from './InspectionReport';
 import { SiteIssuesSection } from './SiteIssuesSection';
@@ -336,6 +336,21 @@ export const InspectionDashboard = ({
               </p>
             </div>
           )}
+
+          {/* Data Protection Disclaimer */}
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800/50">
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">Data Protection Reminder</p>
+                <p className="text-sm text-amber-700 dark:text-amber-400/90">
+                  This tool is <strong>not intended</strong> for storing Patient Identifiable Data (PID), Staff Identifiable Data, 
+                  or any other personal information. Please use general descriptions and reference numbers only. 
+                  All notes and evidence should be anonymised.
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Fundamentals Checklist - Primary Walkthrough */}
           <div className="mb-6">
