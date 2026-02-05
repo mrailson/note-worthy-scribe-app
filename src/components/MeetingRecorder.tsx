@@ -202,6 +202,9 @@ export const MeetingRecorder = ({
 
   // Auto-start recording ref (effect added after user declaration)
   const autoStartTriggeredRef = useRef(false);
+  
+  // Lock to prevent double-starts from rapid clicks
+  const isStartingRecordingRef = useRef(false);
 
   // Word count calculation moved after assemblyPreview declaration (line ~533)
 
@@ -2039,7 +2042,9 @@ export const MeetingRecorder = ({
     const isEdge = /Edg/.test(navigator.userAgent);
     const isFirefox = /Firefox/.test(navigator.userAgent);
     const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    // Enhanced iOS detection: iPad Pro reports as "MacIntel" but has touch points
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     const hasDisplayMedia = navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia;
@@ -2654,8 +2659,22 @@ export const MeetingRecorder = ({
     const browserSupport = checkBrowserSupport();
     
     if (browserSupport.isIOS) {
+      console.log('📱 iOS detected - using SimpleIOSTranscriber exclusively');
+      // Ensure desktop transcriber is not running (defensive cleanup)
+      if (desktopTranscriberRef.current) {
+        console.warn('⚠️ Stopping orphaned desktop transcriber');
+        desktopTranscriberRef.current.stopTranscription();
+        desktopTranscriberRef.current = null;
+      }
       await startIPhoneWhisperTranscription(meetingId);
     } else {
+      console.log('🖥️ Desktop detected - using DesktopWhisperTranscriber');
+      // Ensure iOS transcriber is not running (defensive cleanup)
+      if (simpleIOSTranscriberRef.current) {
+        console.warn('⚠️ Stopping orphaned iOS transcriber');
+        simpleIOSTranscriberRef.current.stop();
+        simpleIOSTranscriberRef.current = null;
+      }
       await startDesktopWhisperTranscription(meetingId);
     }
   };
@@ -3963,6 +3982,14 @@ export const MeetingRecorder = ({
   };
 
   const startRecording = async () => {
+    // Prevent double-starts from rapid clicks
+    if (isStartingRecordingRef.current || isRecording) {
+      console.log('⚠️ Recording already starting or active, ignoring duplicate start request');
+      return;
+    }
+    
+    isStartingRecordingRef.current = true;
+    
     try {
       console.log('Starting recording...');
       
@@ -4326,6 +4353,9 @@ export const MeetingRecorder = ({
       setConnectionStatus("Error");
       setMicCaptured(false);
       setSystemAudioCaptured(false);
+    } finally {
+      // Always reset the starting lock to allow future attempts
+      isStartingRecordingRef.current = false;
     }
   };
 

@@ -862,6 +862,7 @@ export class DesktopWhisperTranscriber {
                   confidence: data.confidence || 0.9,
                   is_final: true,
                   user_id: (await supabase.auth.getUser()).data.user?.id,
+                  transcriber_type: 'whisper', // Explicit type to prevent confusion with legacy
                   merge_rejection_reason: null
                 });
 
@@ -891,6 +892,7 @@ export class DesktopWhisperTranscriber {
                   confidence: data.confidence || 0.9,
                   is_final: true,
                   user_id: (await supabase.auth.getUser()).data.user?.id,
+                  transcriber_type: 'whisper', // Explicit type to prevent confusion with legacy
                   merge_rejection_reason: rejectionReason
                 });
             }
