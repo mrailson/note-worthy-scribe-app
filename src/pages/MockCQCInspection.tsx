@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ClipboardCheck, Play, History, ArrowRight, Building2, Shield, Users, Heart, Clock, Trash2, Search, X, Zap, ShieldCheck } from 'lucide-react';
+import { ClipboardCheck, Play, History, ArrowRight, Building2, Shield, Users, Heart, Clock, Trash2, Search, X, Zap, ShieldCheck, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
@@ -435,18 +436,25 @@ const MockCQCInspection = () => {
             </Card>
           )}
 
-          {/* Start Inspection Card */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Play className="h-5 w-5" />
-                Start New Inspection
-              </CardTitle>
-              <CardDescription>
-                Select a practice/site and begin your mock inspection. You'll work through elements from each CQC domain, 
-                with Safe and Well-led domains prioritised. There's no time limit – take as long as you need.
-              </CardDescription>
-            </CardHeader>
+          {/* Start Inspection Card - Collapsible */}
+          <Collapsible defaultOpen={false} className="mb-6">
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Play className="h-5 w-5" />
+                      Start New Inspection
+                    </CardTitle>
+                    <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                  </div>
+                  <CardDescription>
+                    Select a practice/site and begin your mock inspection. You'll work through elements from each CQC domain, 
+                    with Safe and Well-led domains prioritised. There's no time limit – take as long as you need.
+                  </CardDescription>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Practice/Site</label>
@@ -604,7 +612,9 @@ const MockCQCInspection = () => {
                 )}
               </Button>
             </CardContent>
-          </Card>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
 
           {/* Past Inspections - Future Enhancement */}
           <Card className="opacity-60">
