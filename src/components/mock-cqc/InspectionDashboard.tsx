@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Download, ArrowUpCircle, ArrowDownCircle, Zap, ClipboardCheck, ShieldCheck, ChevronsUpDown, Shield, Info } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, AlertCircle, MinusCircle, Circle, FileText, Download, ArrowUpCircle, ArrowDownCircle, Zap, ClipboardCheck, ShieldCheck, ChevronsUpDown, Shield, Info, Bot } from 'lucide-react';
 import { DomainSection } from './DomainSection';
 import { InspectionReport } from './InspectionReport';
 import { SiteIssuesSection } from './SiteIssuesSection';
@@ -13,6 +13,7 @@ import { StatusSummaryCard } from './StatusSummaryCard';
 import { FundamentalsChecklist, INSPECTION_TYPES, FundamentalsStats, FundamentalRecord } from './fundamentals';
 import { InspectionSession, InspectionElement, InspectionType, useMockInspection } from '@/hooks/useMockInspection';
 import { InspectionAccessManager } from './InspectionAccessManager';
+import { InspectionItemAskAI } from './InspectionItemAskAI';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateFilteredInspectionReport } from '@/utils/generateFilteredInspectionReport';
 
@@ -87,6 +88,7 @@ export const InspectionDashboard = ({
     percent: 0,
     records: []
   });
+  const [showGeneralAskAI, setShowGeneralAskAI] = useState(false);
 
   // Helper to generate filtered report for fundamentals
   const generateFundamentalsReport = useCallback(async (status: string, statusLabel: string) => {
@@ -440,16 +442,27 @@ export const InspectionDashboard = ({
           {/* Encouragement Message */}
           {progress.percentComplete > 0 && progress.percentComplete < 100 && (
             <div className="mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <p className="text-sm">
-                {progress.percentComplete < 25 
-                  ? "🚀 Great start! Take your time working through each area."
-                  : progress.percentComplete < 50
-                  ? "👍 Making good progress! You're building a clearer picture of your compliance."
-                  : progress.percentComplete < 75
-                  ? "💪 Over halfway there! Keep going, you're doing brilliantly."
-                  : "🎯 Nearly complete! Just a few more areas to review."
-                }
-              </p>
+              <div className="flex items-center justify-between gap-4">
+                <p className="text-sm">
+                  {progress.percentComplete < 25 
+                    ? "🚀 Great start! Take your time working through each area."
+                    : progress.percentComplete < 50
+                    ? "👍 Making good progress! You're building a clearer picture of your compliance."
+                    : progress.percentComplete < 75
+                    ? "💪 Over halfway there! Keep going, you're doing brilliantly."
+                    : "🎯 Nearly complete! Just a few more areas to review."
+                  }
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowGeneralAskAI(true)}
+                  className="gap-2 flex-shrink-0"
+                >
+                  <Bot className="h-4 w-4" />
+                  Ask AI
+                </Button>
+              </div>
             </div>
           )}
 
@@ -506,6 +519,15 @@ export const InspectionDashboard = ({
           </div>
         </main>
       </div>
+
+      {/* General Ask AI Modal */}
+      <InspectionItemAskAI
+        open={showGeneralAskAI}
+        onOpenChange={setShowGeneralAskAI}
+        itemName="CQC Inspection"
+        itemDescription="Get help with any aspect of your CQC inspection, including compliance requirements, evidence gathering, or best practices for GP practices."
+        categoryName="General CQC Support"
+      />
     </>
   );
 };
