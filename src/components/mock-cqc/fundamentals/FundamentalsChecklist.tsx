@@ -319,39 +319,39 @@ export const FundamentalsChecklist = ({ sessionId, inspectionType, onStatsChange
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-nowrap flex-shrink-0">
                       {/* Status badges with fixed widths for alignment */}
-                      <div className="w-20 flex justify-end">
+                      <div className="w-[85px] flex justify-end flex-shrink-0">
                         {progress.verified > 0 && (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs gap-1">
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs gap-1 whitespace-nowrap">
                             <CheckCircle2 className="h-3 w-3" />
                             {progress.verified} Verified
                           </Badge>
                         )}
                       </div>
-                      <div className="w-16 flex justify-end">
+                      <div className="w-[70px] flex justify-end flex-shrink-0">
                         {progress.issues > 0 && (
-                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs gap-1">
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs gap-1 whitespace-nowrap">
                             <AlertCircle className="h-3 w-3" />
                             {progress.issues} {progress.issues === 1 ? 'Issue' : 'Issues'}
                           </Badge>
                         )}
                       </div>
-                      <div className="w-12 flex justify-end">
+                      <div className="w-[50px] flex justify-end flex-shrink-0">
                         {progress.notApplicable > 0 && (
-                          <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">
+                          <Badge variant="outline" className="bg-muted text-muted-foreground text-xs whitespace-nowrap">
                             {progress.notApplicable} N/A
                           </Badge>
                         )}
                       </div>
-                      <div className="text-right ml-2 w-24">
+                      <div className="text-right ml-2 w-20 flex-shrink-0">
                         <span className="text-sm font-medium">{progress.percent}%</span>
                         <Progress value={progress.percent} className="h-1.5 w-20 mt-1" />
                       </div>
                       {isExpanded ? (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       ) : (
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       )}
                     </div>
                   </button>
