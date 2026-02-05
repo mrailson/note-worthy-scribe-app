@@ -110,7 +110,7 @@ export const StatusSummaryCard = ({
           <div className="space-y-2">
             {items.slice(0, 10).map((item) => (
               <div key={item.id} className="text-xs space-y-1 p-2 bg-muted/50 rounded">
-                <p className="font-medium">{item.key}: {item.name}</p>
+                <p className="font-medium">{item.name}</p>
                 {item.notes && (
                   <p className="text-muted-foreground line-clamp-2">{item.notes}</p>
                 )}
