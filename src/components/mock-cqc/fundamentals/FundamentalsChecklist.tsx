@@ -333,7 +333,7 @@ export const FundamentalsChecklist = ({ sessionId, inspectionType, onStatsChange
                         {progress.issues > 0 && (
                           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs gap-1">
                             <AlertCircle className="h-3 w-3" />
-                            {progress.issues} Issues
+                            {progress.issues} {progress.issues === 1 ? 'Issue' : 'Issues'}
                           </Badge>
                         )}
                       </div>
