@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   ClipboardCheck, 
   ChevronDown, 
@@ -12,7 +13,9 @@ import {
   Droplets,
   Users,
   Shield,
-  Building
+  Building,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -73,6 +76,7 @@ const getCategoryIcon = (iconName: string) => {
 
 export const FundamentalsChecklist = ({ sessionId, inspectionType, onStatsChange }: FundamentalsChecklistProps) => {
   const { toast } = useToast();
+  const [isCardOpen, setIsCardOpen] = useState(true);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [records, setRecords] = useState<FundamentalRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -173,7 +177,7 @@ export const FundamentalsChecklist = ({ sessionId, inspectionType, onStatsChange
   // Calculate progress for each category (only counting visible items)
   const getCategoryProgress = (categoryKey: string) => {
     const category = FUNDAMENTALS_CATEGORIES.find(c => c.key === categoryKey);
-    if (!category) return { checked: 0, total: 0, percent: 0 };
+    if (!category) return { checked: 0, total: 0, percent: 0, verified: 0, issues: 0, notApplicable: 0 };
 
     const visibleItems = getVisibleItems(category, inspectionType);
     const visibleKeys = visibleItems.map(i => i.key);
@@ -181,7 +185,10 @@ export const FundamentalsChecklist = ({ sessionId, inspectionType, onStatsChange
 
     const total = visibleItems.length;
     const checked = categoryRecords.filter(r => r.status !== 'not_checked').length;
-    return { checked, total, percent: total > 0 ? Math.round((checked / total) * 100) : 0 };
+    const verified = categoryRecords.filter(r => r.status === 'verified').length;
+    const issues = categoryRecords.filter(r => r.status === 'issue_found').length;
+    const notApplicable = categoryRecords.filter(r => r.status === 'not_applicable').length;
+    return { checked, total, percent: total > 0 ? Math.round((checked / total) * 100) : 0, verified, issues, notApplicable };
   };
 
   // Calculate overall progress (only counting visible items)
@@ -263,83 +270,111 @@ export const FundamentalsChecklist = ({ sessionId, inspectionType, onStatsChange
   );
 
   return (
-    <Card className="border-2 border-primary/20">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <ClipboardCheck className="h-5 w-5 text-primary" />
-            Fundamentals Checklist
-          </CardTitle>
-          <Badge variant={overall.percent === 100 ? "default" : "secondary"}>
-            {overall.checked}/{overall.total} items
-          </Badge>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Essential compliance evidence for your practice walkthrough
-        </p>
-        <Progress value={overall.percent} className="h-2 mt-3" />
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {visibleCategories.map((category) => {
-          const Icon = getCategoryIcon(category.icon);
-          const isExpanded = expandedCategories.has(category.key);
-          const progress = getCategoryProgress(category.key);
-          const categoryRecords = records.filter(r => r.category === category.key);
-          const visibleItems = getVisibleItems(category, inspectionType);
+    <Collapsible open={isCardOpen} onOpenChange={setIsCardOpen}>
+      <Card className="border-2 border-primary/20">
+        <CollapsibleTrigger asChild>
+          <CardHeader className="pb-4 cursor-pointer hover:bg-muted/30 transition-colors">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ClipboardCheck className="h-5 w-5 text-primary" />
+                Fundamentals Checklist
+                <ChevronDown className={cn(
+                  "h-5 w-5 text-muted-foreground transition-transform duration-200",
+                  !isCardOpen && "-rotate-90"
+                )} />
+              </CardTitle>
+              <Badge variant={overall.percent === 100 ? "default" : "secondary"}>
+                {overall.checked}/{overall.total} items
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Essential compliance evidence for your practice walkthrough
+            </p>
+            <Progress value={overall.percent} className="h-2 mt-3" />
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="space-y-3">
+            {visibleCategories.map((category) => {
+              const Icon = getCategoryIcon(category.icon);
+              const isExpanded = expandedCategories.has(category.key);
+              const progress = getCategoryProgress(category.key);
+              const categoryRecords = records.filter(r => r.category === category.key);
+              const visibleItems = getVisibleItems(category, inspectionType);
 
-          return (
-            <div key={category.key} className="border rounded-lg overflow-hidden">
-              <button
-                onClick={() => toggleCategory(category.key)}
-                className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn("p-2 rounded-lg bg-muted", category.color)}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-medium">{category.name}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {visibleItems.length} items
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right mr-2">
-                    <span className="text-sm font-medium">{progress.percent}%</span>
-                    <Progress value={progress.percent} className="h-1.5 w-20 mt-1" />
-                  </div>
-                  {isExpanded ? (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              return (
+                <div key={category.key} className="border rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => toggleCategory(category.key)}
+                    className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn("p-2 rounded-lg bg-muted", category.color)}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="text-left">
+                        <h3 className="font-medium">{category.name}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          ({progress.checked} items checked)
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {/* Status badges */}
+                      {progress.verified > 0 && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          {progress.verified} Verified
+                        </Badge>
+                      )}
+                      {progress.issues > 0 && (
+                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {progress.issues} Issues
+                        </Badge>
+                      )}
+                      {progress.notApplicable > 0 && (
+                        <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">
+                          {progress.notApplicable} N/A
+                        </Badge>
+                      )}
+                      <div className="text-right ml-2">
+                        <span className="text-sm font-medium">{progress.percent}%</span>
+                        <Progress value={progress.percent} className="h-1.5 w-20 mt-1" />
+                      </div>
+                      {isExpanded ? (
+                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="border-t bg-muted/30 p-4 space-y-3">
+                      {visibleItems.map((item) => {
+                        const record = categoryRecords.find(r => r.item_key === item.key);
+                        return (
+                          <FundamentalItemCard
+                            key={item.key}
+                            item={item}
+                            record={record}
+                            sessionId={sessionId}
+                            categoryKey={category.key}
+                            categoryName={category.name}
+                            onUpdate={(updates) => updateRecord(item.key, updates)}
+                            onRecordCreated={(newRecord) => setRecords(prev => [...prev, newRecord])}
+                          />
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
-              </button>
-
-              {isExpanded && (
-                <div className="border-t bg-muted/30 p-4 space-y-3">
-                  {visibleItems.map((item) => {
-                    const record = categoryRecords.find(r => r.item_key === item.key);
-                    return (
-                      <FundamentalItemCard
-                        key={item.key}
-                        item={item}
-                        record={record}
-                        sessionId={sessionId}
-                        categoryKey={category.key}
-                        categoryName={category.name}
-                        onUpdate={(updates) => updateRecord(item.key, updates)}
-                        onRecordCreated={(newRecord) => setRecords(prev => [...prev, newRecord])}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+              );
+            })}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 };
