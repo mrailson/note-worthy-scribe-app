@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Bot, 
   Send, 
@@ -17,7 +18,9 @@ import {
   HelpCircle,
   Search,
   Mic,
-  MicOff
+  MicOff,
+  ChevronsUp,
+  Maximize2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -83,7 +86,9 @@ export const InspectionItemAskAI = ({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
+  const lastAssistantMessageRef = useRef<HTMLDivElement>(null);
   const { sendEmailAutomatically, isSending } = useAutoEmail();
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Speech recognition setup
   useEffect(() => {
@@ -159,6 +164,22 @@ export const InspectionItemAskAI = ({
       setInput('');
     }
   }, [open, itemName]);
+
+  // Scroll to top of the last assistant message
+  const scrollToLastAssistantMessage = () => {
+    if (lastAssistantMessageRef.current && scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        const messageTop = lastAssistantMessageRef.current.offsetTop - 20;
+        scrollContainer.scrollTo({ top: messageTop, behavior: 'smooth' });
+      }
+    }
+  };
+
+  // Toggle full screen mode
+  const toggleFullScreen = () => {
+    setIsFullScreen(prev => !prev);
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -268,7 +289,12 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0 [&>button]:hidden">
+      <DialogContent className={cn(
+        "flex flex-col p-0 gap-0 [&>button]:hidden transition-all duration-200",
+        isFullScreen 
+          ? "max-w-[95vw] h-[95vh]" 
+          : "max-w-4xl h-[85vh]"
+      )}>
         <DialogHeader className="px-4 py-3 border-b flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -276,6 +302,15 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
               <DialogTitle className="text-base font-semibold">Ask AI about {itemName}</DialogTitle>
             </div>
             <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleFullScreen}
+                className="h-8 px-2"
+                title={isFullScreen ? "Exit full screen" : "Full screen"}
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -344,43 +379,50 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
                 </div>
               </div>
             ) : (
-              messages.map((message, idx) => (
-                <div
-                  key={idx}
-                  className={cn(
-                    "flex gap-3",
-                    message.role === 'user' ? "justify-end" : "justify-start"
-                  )}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Bot className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
+              messages.map((message, idx) => {
+                // Track if this is the last assistant message
+                const isLastAssistant = message.role === 'assistant' && 
+                  idx === messages.map((m, i) => m.role === 'assistant' ? i : -1).filter(i => i >= 0).pop();
+                
+                return (
                   <div
+                    key={idx}
+                    ref={isLastAssistant ? lastAssistantMessageRef : undefined}
                     className={cn(
-                      "rounded-xl",
-                      message.role === 'user'
-                        ? "bg-primary text-primary-foreground px-4 py-3 max-w-[75%]"
-                        : "bg-white border border-gray-200 shadow-sm px-6 py-5 max-w-[95%]"
+                      "flex gap-3",
+                      message.role === 'user' ? "justify-end" : "justify-start"
                     )}
                   >
-                    {message.role === 'assistant' ? (
-                      <div 
-                        className="text-sm leading-relaxed text-gray-700"
-                        dangerouslySetInnerHTML={{ 
-                          __html: renderNHSMarkdown(message.content, { 
-                            enableNHSStyling: true,
-                            baseFontSize: 14 
-                          }) 
-                        }}
-                      />
-                    ) : (
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    {message.role === 'assistant' && (
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Bot className="h-4 w-4 text-primary" />
+                      </div>
                     )}
+                    <div
+                      className={cn(
+                        "rounded-xl",
+                        message.role === 'user'
+                          ? "bg-primary text-primary-foreground px-4 py-3 max-w-[75%]"
+                          : "bg-card border border-border shadow-sm px-6 py-5 max-w-[95%]"
+                      )}
+                    >
+                      {message.role === 'assistant' ? (
+                        <div 
+                          className="text-sm leading-relaxed text-foreground/80"
+                          dangerouslySetInnerHTML={{ 
+                            __html: renderNHSMarkdown(message.content, { 
+                              enableNHSStyling: true,
+                              baseFontSize: 14 
+                            }) 
+                          }}
+                        />
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
             {isLoading && (
               <div className="flex gap-3 justify-start">
@@ -396,6 +438,66 @@ Be concise but thorough. Use bullet points for clarity when listing items.`;
         </ScrollArea>
 
         <div className="p-4 border-t flex-shrink-0 bg-muted/30">
+          {/* Quick action icons bar */}
+          {messages.length > 0 && (
+            <TooltipProvider>
+              <div className="flex items-center justify-center gap-2 mb-3 pb-3 border-b border-border/50">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={scrollToLastAssistantMessage}
+                      disabled={!messages.some(m => m.role === 'assistant')}
+                      className="h-8 px-3 gap-1.5"
+                    >
+                      <ChevronsUp className="h-4 w-4" />
+                      <span className="text-xs hidden sm:inline">Jump to Answer</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Scroll to top of latest answer</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExportToWord}
+                      disabled={messages.length === 0 || isLoading}
+                      className="h-8 px-3 gap-1.5"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span className="text-xs hidden sm:inline">Export Word</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Download as Word document</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleFullScreen}
+                      className="h-8 px-3 gap-1.5"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                      <span className="text-xs hidden sm:inline">{isFullScreen ? 'Exit Full' : 'Full View'}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{isFullScreen ? 'Exit full screen view' : 'Expand to full screen'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
+          )}
+
           <div className="flex gap-2 items-end">
             <div className="flex-1 relative">
               <Textarea
