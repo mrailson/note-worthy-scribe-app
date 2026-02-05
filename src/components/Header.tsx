@@ -473,13 +473,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Admin Dashboard
                           </DropdownMenuItem>
                            <DropdownMenuItem 
-                             onClick={() => navigate('/notebook-studio')}
-                             className="cursor-pointer py-3"
-                           >
-                             <Presentation className="h-4 w-4 mr-2" />
-                             Notewell Studio
-                           </DropdownMenuItem>
-                           <DropdownMenuItem 
                              onClick={() => navigate('/admin?tab=dev-costs')}
                              className="cursor-pointer py-3"
                            >
