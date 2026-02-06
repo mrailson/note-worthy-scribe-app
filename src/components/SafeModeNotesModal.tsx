@@ -999,9 +999,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       // Fetch all transcript fields from meetings table
       const { data: meetingData } = await supabase
         .from('meetings')
-        .select('live_transcript_text, whisper_transcript_text, assembly_transcript_text')
+        .select('live_transcript_text, whisper_transcript_text, assembly_transcript_text, best_of_all_transcript')
         .eq('id', meeting.id)
         .maybeSingle();
+
+      // Set Best of All transcript (stored canonical post-dedup result)
+      setBestOfAllTranscript((meetingData as any)?.best_of_all_transcript || '');
 
       // Set batch transcript (whisper or live_transcript_text fallback)
       const batchText = meetingData?.whisper_transcript_text || meetingData?.live_transcript_text || '';
@@ -1144,14 +1147,20 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   }, [meeting?.id, isLoadingTranscript]);
 
   // Auto-select best available transcript source for notes
-  // Priority: Best of Both (consolidated) → Batch → Live
+  // Priority: Best of All (3) → Best of Both (consolidated) → Batch → Live
   useEffect(() => {
     if (isLoadingTranscript) return;
     
+    const hasBestOfAll = bestOfAllTranscript && bestOfAllTranscript.trim().length > 0;
     const hasBatch = batchTranscript && batchTranscript.trim().length > 0;
     const hasLive = liveTranscript && liveTranscript.trim().length > 0;
     
-    if (hasBatch && hasLive) {
+    if (hasBestOfAll) {
+      // Best of All available - canonical 3-engine transcript
+      setNotesTranscriptSource('best_of_all');
+      setTranscriptSubTab('best_of_all');
+      console.log('📝 Auto-selected: Best of All (3-engine canonical transcript)');
+    } else if (hasBatch && hasLive) {
       // Both available - use Best of Both (consolidated)
       setNotesTranscriptSource('consolidated');
       console.log('📝 Auto-selected: Best of Both (both transcripts available)');
@@ -1164,7 +1173,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       setNotesTranscriptSource('live');
       console.log('📝 Auto-selected: Live (only AssemblyAI available)');
     }
-  }, [batchTranscript, liveTranscript, isLoadingTranscript]);
+  }, [bestOfAllTranscript, batchTranscript, liveTranscript, isLoadingTranscript]);
 
   // Generate consolidated transcript using AI
   const generateConsolidatedTranscript = useCallback(async () => {
@@ -1239,7 +1248,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const handleDownloadWord = async () => {
     // Use raw notesContent for Word export - the Word generator handles section parsing properly
     // This ensures Key Points and other sections are preserved correctly
-    const content = activeTab === 'notes' ? notesContent : transcript;
+    // For transcript exports, prefer Best of All when that tab is active
+    const content = activeTab === 'notes' 
+      ? notesContent 
+      : (transcriptSubTab === 'best_of_all' && bestOfAllTranscript 
+          ? bestOfAllTranscript 
+          : transcript);
     const title = meeting?.title || 'Meeting Notes';
 
     try {
@@ -3806,7 +3820,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                             </Badge>
                           )}
                         </Button>
-                        {deepgramTranscript && (
+                      {deepgramTranscript && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -3822,6 +3836,48 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Copy Deepgram transcript</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                      <div className="flex items-center">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={transcriptSubTab === 'best_of_all' ? 'default' : 'ghost'}
+                              size="sm"
+                              onClick={() => setTranscriptSubTab('best_of_all')}
+                              className={`h-7 text-xs rounded-r-none gap-1 ${transcriptSubTab === 'best_of_all' ? 'bg-gradient-to-r from-primary to-purple-600' : ''}`}
+                            >
+                              <Sparkles className="h-3 w-3" />
+                              Best of All (3)
+                              {bestOfAllTranscript && (
+                                <Badge variant="secondary" className="ml-1.5 h-4 px-1 text-[10px]">
+                                  {bestOfAllTranscript.trim().split(/\s+/).filter(w => w.length > 0).length}
+                                </Badge>
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p className="font-medium">Canonical Transcript</p>
+                            <p className="text-xs mt-1">Merged from AssemblyAI, Deepgram and batch transcription with deterministic de-duplication.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        {bestOfAllTranscript && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-1.5 rounded-l-none border-l border-border/50"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(bestOfAllTranscript);
+                                  toast.success('Best of All transcript copied');
+                                }}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Copy Best of All transcript</TooltipContent>
                           </Tooltip>
                         )}
                       </div>
@@ -3878,13 +3934,34 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                                 className={`h-6 text-xs px-2 gap-1 ${notesTranscriptSource === 'consolidated' ? 'bg-gradient-to-r from-primary to-purple-600' : ''}`}
                                 disabled={!batchTranscript || !liveTranscript}
                               >
-                                <Sparkles className="h-3 w-3" />
+                          <Sparkles className="h-3 w-3" />
                                 Best of Both
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
                               <p className="font-medium">NHS Governance-Ready Notes</p>
                               <p className="text-xs mt-1">Uses Batch as primary source of fact, Live for nuance and intent. Includes confidence rating and clinical safety notes.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={notesTranscriptSource === 'best_of_all' ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={() => {
+                                  setNotesTranscriptSource('best_of_all');
+                                  saveNotesTranscriptSource('best_of_all');
+                                }}
+                                className={`h-6 text-xs px-2 gap-1 ${notesTranscriptSource === 'best_of_all' ? 'bg-gradient-to-r from-primary to-purple-600' : ''}`}
+                                disabled={!bestOfAllTranscript}
+                              >
+                                <Sparkles className="h-3 w-3" />
+                                Best of All
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p className="font-medium">Canonical Transcript</p>
+                              <p className="text-xs mt-1">Merged from AssemblyAI, Deepgram and batch transcription with deterministic de-duplication. This is the production truth.</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>
@@ -3940,12 +4017,17 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Find & Replace Panel */}
-                  {showTranscriptFindReplace && (batchTranscript || liveTranscript) && (
+                  {/* Find & Replace Panel - disabled for read-only Best of All tab */}
+                  {showTranscriptFindReplace && (batchTranscript || liveTranscript) && transcriptSubTab !== 'best_of_all' && (
                     <EnhancedFindReplacePanel
-                      getCurrentText={() => transcriptSubTab === 'batch' ? batchTranscript : liveTranscript}
+                      getCurrentText={() => {
+                        if (transcriptSubTab === 'batch') return batchTranscript;
+                        if (transcriptSubTab === 'deepgram') return deepgramTranscript;
+                        return liveTranscript;
+                      }}
                       onApply={(updatedText) => {
                         if (transcriptSubTab === 'batch') setBatchTranscript(updatedText);
+                        else if (transcriptSubTab === 'deepgram') setDeepgramTranscript(updatedText);
                         else setLiveTranscript(updatedText);
                       }}
                       meetingId={meeting?.id}
@@ -3955,6 +4037,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                         }
                       }}
                     />
+                  )}
+                  {showTranscriptFindReplace && transcriptSubTab === 'best_of_all' && (
+                    <div className="px-3 py-2 bg-muted/50 rounded-md border border-border text-xs text-muted-foreground">
+                      Find & Replace is not available for the Best of All transcript (read-only canonical source).
+                    </div>
                   )}
 
                   {/* Regeneration Animation Overlay */}
@@ -4104,6 +4191,40 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           <div className="text-center py-12 text-muted-foreground">
                             <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
                             <p>No Deepgram transcript available for this meeting.</p>
+                          </div>
+                        )
+                      )}
+
+                      {/* Best of All (3) Transcript View — read-only canonical */}
+                      {transcriptSubTab === 'best_of_all' && (
+                        bestOfAllTranscript ? (
+                          <div className="relative">
+                            <div className="mb-3 px-3 py-1.5 bg-gradient-to-r from-primary/10 to-purple-600/10 rounded-md border border-primary/20">
+                              <p className="text-xs text-muted-foreground">
+                                Merged from AssemblyAI, Deepgram and batch transcription with deterministic de-duplication.
+                                This is the canonical transcript used for notes, Ask AI, and exports.
+                              </p>
+                            </div>
+                            {viewMode === 'plain' ? (
+                              <pre 
+                                className="whitespace-pre-wrap font-sans text-foreground leading-relaxed"
+                                style={{ fontSize: `${fontSize}px` }}
+                              >
+                                {bestOfAllTranscript}
+                              </pre>
+                            ) : (
+                              <div 
+                                className="prose prose-sm dark:prose-invert max-w-none text-justify"
+                                style={{ fontSize: `${fontSize}px` }}
+                                dangerouslySetInnerHTML={{ __html: formatTranscript(bestOfAllTranscript) }}
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No Best of All transcript available.</p>
+                            <p className="text-xs mt-2">This is generated during meeting consolidation when multiple transcript sources are available.</p>
                           </div>
                         )
                       )}
