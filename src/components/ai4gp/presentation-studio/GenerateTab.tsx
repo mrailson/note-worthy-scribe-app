@@ -130,7 +130,11 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
             </div>
             <Progress value={progress} className="h-2" />
             <p className="text-center text-sm text-muted-foreground">
-              This may take a minute...
+              This may take a few minutes (allow 10 seconds per slide) — expected within{' '}
+              {(() => {
+                const mins = Math.round((settings.slideCount * 10) / 60);
+                return mins <= 1 ? '1 minute' : `${mins} minutes`;
+              })()}
             </p>
             <Button 
               variant="outline" 
