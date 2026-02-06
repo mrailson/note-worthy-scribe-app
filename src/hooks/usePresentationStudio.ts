@@ -1,7 +1,8 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { NHS_PALETTES } from '@/utils/colourPalettes';
 import type {
   PresentationStudioSettings,
@@ -65,8 +66,76 @@ const DEFAULT_SETTINGS: PresentationStudioSettings = {
   customInstructions: '',
 };
 
+// Keys for persisted settings (Branding & Slides tabs)
+const STORAGE_KEY_PREFIX = 'presentation-studio-settings';
+
+// Settings that persist per user (Branding + Slides tabs)
+interface PersistedSettings {
+  // Branding
+  includeBranding: boolean;
+  brandingLevel: PresentationStudioSettings['brandingLevel'];
+  customPracticeName: string;
+  logoImage: string | null;
+  logoPlacement: PresentationStudioSettings['logoPlacement'];
+  includeFooterDate: boolean;
+  includePageNumbers: boolean;
+  customFooterText: string;
+  colourPalette: PresentationStudioSettings['colourPalette'];
+  // Slides
+  slideCount: number;
+  slideTypes: SlideTypeSelection[];
+  complexityLevel: PresentationStudioSettings['complexityLevel'];
+  includeSpeakerNotes: boolean;
+  generateImages: boolean;
+  includeVoiceover: boolean;
+  voiceId: string;
+}
+
+const getStorageKey = (userId: string) => `${STORAGE_KEY_PREFIX}-${userId}`;
+
+const loadPersistedSettings = (userId: string): Partial<PersistedSettings> | null => {
+  try {
+    const stored = localStorage.getItem(getStorageKey(userId));
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (e) {
+    console.warn('Failed to load persisted presentation settings:', e);
+  }
+  return null;
+};
+
+const savePersistedSettings = (userId: string, settings: PresentationStudioSettings) => {
+  try {
+    const toStore: PersistedSettings = {
+      // Branding
+      includeBranding: settings.includeBranding,
+      brandingLevel: settings.brandingLevel,
+      customPracticeName: settings.customPracticeName,
+      logoImage: settings.logoImage,
+      logoPlacement: settings.logoPlacement,
+      includeFooterDate: settings.includeFooterDate,
+      includePageNumbers: settings.includePageNumbers,
+      customFooterText: settings.customFooterText,
+      colourPalette: settings.colourPalette,
+      // Slides
+      slideCount: settings.slideCount,
+      slideTypes: settings.slideTypes,
+      complexityLevel: settings.complexityLevel,
+      includeSpeakerNotes: settings.includeSpeakerNotes,
+      generateImages: settings.generateImages,
+      includeVoiceover: settings.includeVoiceover,
+      voiceId: settings.voiceId,
+    };
+    localStorage.setItem(getStorageKey(userId), JSON.stringify(toStore));
+  } catch (e) {
+    console.warn('Failed to save presentation settings:', e);
+  }
+};
+
 export function usePresentationStudio() {
   const { practiceContext } = usePracticeContext();
+  const { user } = useAuth();
   
   const [state, setState] = useState<PresentationStudioState>({
     settings: DEFAULT_SETTINGS,
@@ -80,6 +149,47 @@ export function usePresentationStudio() {
   });
   
   const abortControllerRef = useRef<AbortController | null>(null);
+  const hasLoadedRef = useRef(false);
+
+  // Load persisted settings on mount (once per user)
+  useEffect(() => {
+    if (user?.id && !hasLoadedRef.current) {
+      const persisted = loadPersistedSettings(user.id);
+      if (persisted) {
+        console.log('📂 Loading persisted Presentation Studio settings');
+        setState(prev => ({
+          ...prev,
+          settings: { ...prev.settings, ...persisted },
+        }));
+      }
+      hasLoadedRef.current = true;
+    }
+  }, [user?.id]);
+
+  // Save settings whenever Branding or Slides settings change
+  useEffect(() => {
+    if (user?.id && hasLoadedRef.current) {
+      savePersistedSettings(user.id, state.settings);
+    }
+  }, [
+    user?.id,
+    state.settings.includeBranding,
+    state.settings.brandingLevel,
+    state.settings.customPracticeName,
+    state.settings.logoImage,
+    state.settings.logoPlacement,
+    state.settings.includeFooterDate,
+    state.settings.includePageNumbers,
+    state.settings.customFooterText,
+    state.settings.colourPalette,
+    state.settings.slideCount,
+    state.settings.slideTypes,
+    state.settings.complexityLevel,
+    state.settings.includeSpeakerNotes,
+    state.settings.generateImages,
+    state.settings.includeVoiceover,
+    state.settings.voiceId,
+  ]);
 
   // Update settings
   const updateSettings = useCallback((updates: Partial<PresentationStudioSettings>) => {
