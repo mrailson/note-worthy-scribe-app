@@ -79,8 +79,8 @@ export const useGammaPowerPointWithVoiceover = () => {
       return;
     }
 
-    // Clamp slide count between 4 and 10
-    const validSlideCount = Math.min(10, Math.max(4, slideCount));
+    // Clamp slide count between 4 and 30 (Presentation Studio supports up to 30)
+    const validSlideCount = Math.min(30, Math.max(4, slideCount));
 
     setIsGenerating(true);
     setCurrentPhase('slides');
@@ -114,7 +114,9 @@ export const useGammaPowerPointWithVoiceover = () => {
         const generationId = startData.generationId;
         console.log(`[Voiceover+Gamma] Generation started: ${generationId} — polling...`);
 
-        const maxPollDuration = 180_000; // 3 minutes
+        const maxPollDuration = validSlideCount > 10
+          ? 60_000 + validSlideCount * 10_000
+          : 180_000; // 3 minutes for ≤10 slides
         const pollInterval = 5_000;
         const pollStart = Date.now();
 

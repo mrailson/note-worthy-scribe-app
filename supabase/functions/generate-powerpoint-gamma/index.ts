@@ -187,51 +187,69 @@ serve(async (req) => {
       inputText += `\n\nKey content to include:\n${supportingContent}`;
     }
 
-    // Build additional instructions
-    let additionalInstructions = `Use British English spelling and terminology throughout. Target audience: ${audience}. Use professional, clean design. Each slide should have a clear, actionable message.`;
+    // Build additional instructions — condensed to stay within Gamma's 5000-char limit
+    let additionalInstructions = `British English spelling throughout. Audience: ${audience}. Professional design. Each slide: clear, actionable message.`;
 
-    // Image requirements
-    additionalInstructions += ` IMAGES: Every slide MUST include at least one relevant, high-quality image. Use photorealistic AI-generated images that relate to the slide topic. Do NOT leave any slide without a visual element. Use full-bleed or large images where appropriate to create visual impact.`;
+    // Image requirements (condensed)
+    additionalInstructions += ` Every slide must include a high-quality photorealistic image relevant to the topic. No slide without a visual.`;
 
-    // Speaker notes — conditionally include based on request flag
+    // Speaker notes (condensed)
     if (includeSpeakerNotes) {
-      additionalInstructions += ` PRESENTER NOTES (MANDATORY): For every card, write detailed presenter notes and place them ONLY in the card's "notes" field (the hidden notes area visible in Presenter View). DO NOT add any section, heading, or text block labelled "Speaker Notes", "Presenter Notes", or "Notes" on the visible card content. The visible card must contain ONLY concise bullet points and images. The notes field should contain talking points, additional context, and background details written in full sentences using British English.`;
+      additionalInstructions += ` PRESENTER NOTES: Write detailed notes in the hidden "notes" field only (Presenter View). Never add visible "Speaker Notes" sections on slides. Visible content: concise bullets and images only. Notes: full-sentence talking points in British English.`;
     }
 
-    additionalInstructions += ` CRITICAL DATA INTEGRITY RULES: 1) ONLY use statistics, percentages, numbers, dates, and metrics that are EXPLICITLY present in the provided content. 2) NEVER invent, estimate, or fabricate any numerical data, statistics, or percentages. 3) If specific data is not provided, use qualitative descriptions instead (e.g., "significant improvement" rather than inventing "87% improvement"). 4) Do not add example figures or placeholder statistics. 5) If the content lacks sufficient data for a metrics slide, use qualitative summary points instead. 6) All facts must come directly from the source content provided.`;
+    // Data integrity (condensed)
+    additionalInstructions += ` DATA INTEGRITY: Only use statistics/numbers explicitly in the source content. Never fabricate figures. Use qualitative descriptions if data is absent.`;
 
+    // Custom instructions (highest priority — added early)
     if (customInstructions) {
-      additionalInstructions += ` Additional requirements: ${customInstructions}`;
+      additionalInstructions += ` ${customInstructions}`;
     }
 
+    // NHS/healthcare (condensed)
     if (presentationType.toLowerCase().includes('nhs') || 
         presentationType.toLowerCase().includes('healthcare') ||
         presentationType.toLowerCase().includes('clinical')) {
-      additionalInstructions += ` Follow NHS branding guidelines where appropriate. Use healthcare-appropriate terminology. Ensure accessibility compliance.`;
+      additionalInstructions += ` Follow NHS branding. Healthcare terminology. Accessibility compliant.`;
     }
 
+    // Colour palette (condensed)
     if (localThemeStyle) {
-      additionalInstructions += ` IMPORTANT COLOUR SCHEME: Use these exact colours throughout the presentation - Primary: ${localThemeStyle.primaryColor}, Secondary: ${localThemeStyle.secondaryColor}, Accent: ${localThemeStyle.accentColor}. Theme style: ${localThemeStyle.themeName}. Apply consistent branding with these colours on headings, backgrounds, and key visual elements.`;
+      additionalInstructions += ` Colours: Primary ${localThemeStyle.primaryColor}, Secondary ${localThemeStyle.secondaryColor}, Accent ${localThemeStyle.accentColor}. Apply on headings, backgrounds, key elements.`;
     }
 
+    // Font style (condensed)
     if (fontStyle) {
-      const fontDescriptions: Record<string, string> = {
-        'professional': 'Use professional, clean fonts like Calibri or Arial',
-        'modern': 'Use modern, contemporary fonts with clean lines',
-        'elegant': 'Use elegant, serif fonts for a sophisticated look',
-        'clean': 'Use clean, sans-serif fonts for maximum readability',
+      const fontMap: Record<string, string> = {
+        'professional': 'Professional fonts (Calibri/Arial)',
+        'modern': 'Modern sans-serif fonts',
+        'elegant': 'Elegant serif fonts',
+        'clean': 'Clean sans-serif for readability',
       };
-      additionalInstructions += ` ${fontDescriptions[fontStyle] || 'Use professional fonts'}.`;
+      additionalInstructions += ` ${fontMap[fontStyle] || 'Professional fonts'}.`;
     }
 
+    // Branding (condensed)
     if (branding) {
       if (branding.logoUrl) {
-        additionalInstructions += ` Include organisation logo positioned at ${branding.logoPosition || 'top right'} on each slide.`;
+        additionalInstructions += ` Logo at ${branding.logoPosition || 'top right'} on each slide.`;
       }
       if (branding.showCardNumbers !== false) {
-        additionalInstructions += ` Show slide numbers at ${branding.cardNumberPosition || 'bottom right'}.`;
+        additionalInstructions += ` Slide numbers at ${branding.cardNumberPosition || 'bottom right'}.`;
       }
     }
+
+    // Hard safety cap at 4900 chars to stay under Gamma's 5000-char limit
+    if (additionalInstructions.length > 4900) {
+      console.warn(`[Gamma] additionalInstructions too long (${additionalInstructions.length} chars), truncating to 4900`);
+      additionalInstructions = additionalInstructions.substring(0, 4900);
+      const lastPeriod = additionalInstructions.lastIndexOf('.');
+      if (lastPeriod > 4000) {
+        additionalInstructions = additionalInstructions.substring(0, lastPeriod + 1);
+      }
+    }
+
+    console.log(`[Gamma] additionalInstructions length: ${additionalInstructions.length} chars`);
 
     // Build request payload
     const requestPayload: Record<string, any> = {
