@@ -5484,9 +5484,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       // Batch lightweight counts to avoid heavy per-meeting queries
       const meetingIds = (meetingsData || []).map(m => m.id);
 
-      const [transcriptCounts, summaryExists, documentCounts, wordCountResult] = await Promise.all([
+      const [transcriptCounts, summaryExists, documentCounts] = await Promise.all([
         // Transcript chunk counts — skip heavy row fetch, use 0 as default
-        // Chunk counts are rarely displayed and not worth fetching 43k+ rows
         Promise.resolve({} as Record<string, number>),
 
         // Summary existence per meeting
@@ -5513,21 +5512,14 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
             });
             return counts;
-          }),
-
-        // Total word count — use lightweight word_count column instead of fetching transcript blobs
-        supabase
-          .from('meetings')
-          .select('word_count')
-          .eq('user_id', user.id)
-          .not('word_count', 'is', null)
-          .then(({ data }) => {
-            return (data || []).reduce((sum: number, r: any) => sum + (r.word_count || 0), 0);
           })
       ]);
 
-      // Update total transcript words state
-      setTotalTranscriptWords(wordCountResult);
+      // Use word_count from already-fetched meetings instead of a separate query
+      const totalWords = (meetingsData || []).reduce(
+        (sum: number, m: any) => sum + (m.word_count || 0), 0
+      );
+      setTotalTranscriptWords(totalWords);
 
       // Build enriched objects without fetching heavy transcript contents
       const meetingsWithCounts = (meetingsData || []).map((meeting: any) => ({
