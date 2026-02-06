@@ -280,6 +280,23 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
     return total;
   }, 0);
   
+  // Calculate total file size across all chunks
+  const totalFileSize = chunks.reduce((total, chunk) => total + (chunk.originalFileSize || 0), 0);
+  
+  // Determine unique file types
+  const uniqueFileTypes = Array.from(
+    new Set(chunks.map(c => c.fileType).filter(Boolean))
+  ).map(t => (t as string).replace('audio/', '').split(';')[0]);
+  const fileTypeSummary = uniqueFileTypes.length > 0 ? uniqueFileTypes.join(', ') : null;
+  
+  // Format file size for display
+  const formatSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+  
   // Format total time as H:MM:SS
   const hours = Math.floor(totalTimeSeconds / 3600);
   const minutes = Math.floor((totalTimeSeconds % 3600) / 60);
@@ -295,6 +312,8 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
     totalWords,
     chunksMergedToTranscript,
     chunksRecorded,
+    totalFileSize,
+    fileTypeSummary,
     isRecording 
   });
 
@@ -337,6 +356,16 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
             <Badge variant="outline" className="bg-accent/10 text-accent-foreground text-xs">
               📝 Words: {totalWords}
             </Badge>
+            {totalFileSize > 0 && (
+              <Badge variant="outline" className="bg-primary/10 text-primary text-xs">
+                📦 Size: {formatSize(totalFileSize)}
+              </Badge>
+            )}
+            {fileTypeSummary && (
+              <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">
+                🎧 {fileTypeSummary}
+              </Badge>
+            )}
             <Badge 
               variant="outline" 
               className={`${chunksMergedToTranscript === chunksRecorded ? "bg-success/10 text-success" : "bg-warning/10 text-warning hover:bg-warning/30"} text-xs ${onMergeUnmergedChunks && chunksMergedToTranscript < chunksRecorded ? "cursor-pointer" : ""}`}
@@ -371,6 +400,10 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
             📊 <strong>Total:</strong> {chunks.length} chunks • 
             <span className="ml-1">⏱️ {formattedTotalTime}</span> • 
             <span className="ml-1">📝 {totalWords} words</span> • 
+            {totalFileSize > 0 && <span className="ml-1">📦 {formatSize(totalFileSize)}</span>}
+            {totalFileSize > 0 && ' • '}
+            {fileTypeSummary && <span className="ml-1">🎧 {fileTypeSummary}</span>}
+            {fileTypeSummary && ' • '}
             <span className="text-success ml-1">✅ {savedChunks}</span> • 
             <span className="text-warning ml-1">⏳ {pendingChunks}</span>
             {failedChunks > 0 && <span className="text-destructive ml-1">❌ {failedChunks}</span>}
