@@ -338,33 +338,64 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = []
             <DialogTitle>Edit Hours Entry</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {/* Claimant Section */}
-            <div className="grid grid-cols-2 gap-4 p-3 bg-muted/50 rounded-lg border">
-              <div>
-                <Label htmlFor="edit-claimant-type" className="text-xs font-medium">Claim Type</Label>
-                <Select value={editClaimantType} onValueChange={setEditClaimantType}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select claim type..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CLAIMANT_TYPES.map(type => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="edit-claimant-name" className="text-xs font-medium">Claimant Name</Label>
-                <Input
-                  id="edit-claimant-name"
-                  placeholder="Enter name..."
-                  value={editClaimantName}
-                  onChange={(e) => setEditClaimantName(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
+            {/* Claimant Selection */}
+            <div className="p-3 bg-muted/50 rounded-lg border">
+              <Label className="text-xs font-medium mb-2 block">Claim For</Label>
+              <Select
+                value={
+                  editClaimantType === 'personal' || !editClaimantType
+                    ? 'personal'
+                    : claimants.find(c => c.name === editClaimantName && c.role === editClaimantType)?.id || editClaimantType
+                }
+                onValueChange={(value) => {
+                  if (value === 'personal') {
+                    setEditClaimantType('personal');
+                    setEditClaimantName('');
+                  } else {
+                    const claimant = claimants.find(c => c.id === value);
+                    if (claimant) {
+                      setEditClaimantType(claimant.role);
+                      setEditClaimantName(claimant.name);
+                    } else if (value === 'gp' || value === 'pm') {
+                      setEditClaimantType(value);
+                      setEditClaimantName('');
+                    }
+                  }
+                }}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select who this claim is for..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="personal">Personal Rate (Your own hours)</SelectItem>
+                  
+                  {claimants.filter(c => c.role === 'gp' && c.is_active).length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1">
+                        GPs (£100/hr)
+                      </div>
+                      {claimants.filter(c => c.role === 'gp' && c.is_active).map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                  
+                  {claimants.filter(c => c.role === 'pm' && c.is_active).length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1">
+                        Practice Managers (£50/hr)
+                      </div>
+                      {claimants.filter(c => c.role === 'pm' && c.is_active).map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
