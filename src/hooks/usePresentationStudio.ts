@@ -306,12 +306,56 @@ export function usePresentationStudio() {
         docsCount: settings.supportingDocuments.filter(d => d.selected).length,
       });
 
-      // Call edge function
-      const { data, error } = await supabase.functions.invoke('generate-powerpoint-gamma', {
-        body: request,
-      });
+      // Call edge function with extended timeout for large presentations
+      // Default supabase.functions.invoke times out too quickly for 20-30 slide decks
+      // which can take 2-3 minutes on the Gamma API side
+      const timeoutMs = settings.slideCount > 10
+        ? 60_000 + settings.slideCount * 8_000   // e.g. 30 slides ≈ 300s
+        : 120_000;                                 // ≤10 slides → 2 min
 
-      if (error) throw error;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      let data: any;
+      try {
+        // Get the current session for auth
+        const { data: { session } } = await supabase.auth.getSession();
+        const supabaseUrl = (supabase as any).supabaseUrl
+          || import.meta.env.VITE_SUPABASE_URL
+          || 'https://dphcnbricafkbtizkoal.supabase.co';
+        const anonKey = (supabase as any).supabaseKey
+          || import.meta.env.VITE_SUPABASE_ANON_KEY
+          || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs';
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/generate-powerpoint-gamma`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token || anonKey}`,
+            'apikey': anonKey,
+          },
+          body: JSON.stringify(request),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Edge function error (${response.status}): ${errText}`);
+        }
+
+        data = await response.json();
+      } catch (fetchErr: any) {
+        clearTimeout(timeoutId);
+        if (fetchErr.name === 'AbortError') {
+          throw new Error(
+            `Presentation generation timed out after ${Math.round(timeoutMs / 1000)}s. ` +
+            `Try reducing the slide count or simplifying supporting materials.`
+          );
+        }
+        throw fetchErr;
+      }
 
       setPhase('creating-slides', 60);
 
