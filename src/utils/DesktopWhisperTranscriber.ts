@@ -732,17 +732,24 @@ export class DesktopWhisperTranscriber {
           console.log(`✅ Content-rich Whisper chunk retained (${chunkWordCount} words, ${chunkDurationSec.toFixed(1)}s) despite confidence ${(chunkConfidence * 100).toFixed(1)}% - downstream dedup will handle`);
         }
         
-        // CRITICAL: Reject chunks with very high no_speech_prob (>0.85) - likely silence/noise
-        // BUT: always keep content-rich chunks
-        if (noSpeechProb > 0.85 && !isContentRich) {
-          console.log(`🚫 Rejecting chunk: high no_speech_prob (${(noSpeechProb * 100).toFixed(1)}%) - likely silence/noise`);
-          // Notify watchdog that we're still processing (not stalled), just filtering
+        // Hallucination detection based on LEXICAL signals only — confidence is NOT a rejection signal.
+        // Low-confidence chunks that are lexically diverse and coherent are always retained.
+        
+        // Calculate lexical diversity for this chunk
+        const chunkWords = cleanText.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+        const chunkUniqueWords = new Set(chunkWords).size;
+        const chunkUniqueRatio = chunkWords.length > 0 ? chunkUniqueWords / chunkWords.length : 1;
+        const isLexicallyDiverse = chunkUniqueRatio >= 0.25 || isContentRich;
+        
+        // High no_speech_prob: only reject if ALSO not lexically diverse
+        if (noSpeechProb > 0.85 && !isLexicallyDiverse) {
+          console.log(`🚫 Rejecting chunk: high no_speech_prob (${(noSpeechProb * 100).toFixed(1)}%) AND low lexical diversity (${(chunkUniqueRatio * 100).toFixed(0)}%)`);
           this.onChunkFiltered?.({
             text: cleanText || '[silence/noise]',
             confidence: chunkConfidence,
             noSpeechProb,
             avgLogprob,
-            reason: `High no_speech_prob: ${(noSpeechProb * 100).toFixed(1)}% (likely silence/noise)`,
+            reason: `High no_speech_prob + low lexical diversity (${(chunkUniqueRatio * 100).toFixed(0)}%)`,
             audioSizeBytes: blobSizeBytes,
             mimeType: blobMimeType,
             startTimeSeconds: chunkStartTimeSeconds,
@@ -752,36 +759,15 @@ export class DesktopWhisperTranscriber {
           return;
         }
         
-        // CRITICAL: Reject chunks with extremely low confidence (<0.12)
-        // BUT: always keep content-rich chunks - rely on downstream dedup
-        if (chunkConfidence < 0.12 && !isContentRich) {
-          console.log(`🚫 Rejecting chunk: extremely low confidence (${(chunkConfidence * 100).toFixed(1)}%)`);
-          // Notify watchdog that we're still processing (not stalled), just filtering
-          this.onChunkFiltered?.({
-            text: cleanText || '[low confidence audio]',
-            confidence: chunkConfidence,
-            noSpeechProb,
-            avgLogprob,
-            reason: `Extremely low confidence: ${(chunkConfidence * 100).toFixed(1)}%`,
-            audioSizeBytes: blobSizeBytes,
-            mimeType: blobMimeType,
-            startTimeSeconds: chunkStartTimeSeconds,
-            endTimeSeconds: chunkEndTimeSeconds,
-            processingTimeMs: Date.now() - chunkProcessingStartTime
-          });
-          return;
+        // Log low confidence as informational only
+        if (chunkConfidence < 0.25) {
+          console.log(`ℹ️ Low confidence ${(chunkConfidence * 100).toFixed(1)}% but lexical diversity ${(chunkUniqueRatio * 100).toFixed(0)}% — retaining chunk`);
         }
         
-        // Log warnings for suspicious chunks but don't block them
-        if (avgLogprob < -1.5) {
-          console.log(`⚠️ Low avg_logprob (likely noisy / hard to hear), checking for hallucination`);
-        }
-        
-        // ENHANCED: Use comprehensive hallucination detection with confidence scoring
-        // BUT: always keep content-rich chunks
+        // Use comprehensive hallucination detection (repetition patterns, known phrases)
+        // This does NOT use confidence as a gating signal
         if (this.isLikelyRepetitiveNoise(cleanText, chunkConfidence) && !isContentRich) {
-          console.log('🚫 Skipping likely hallucinated/repetitive chunk');
-          // Notify watchdog that we're still processing (not stalled), just filtering
+          console.log('🚫 Skipping likely hallucinated/repetitive chunk (lexical pattern match)');
           this.onChunkFiltered?.({
             text: cleanText,
             confidence: chunkConfidence,
@@ -797,22 +783,21 @@ export class DesktopWhisperTranscriber {
           return;
         }
         
-        // Additional check: if low confidence + low logprob, be extra cautious
-        // BUT: always keep content-rich chunks
-        if (chunkConfidence < 0.25 && avgLogprob < -1.0 && !isContentRich) {
-          // Double-check for hallucination phrases even with partial matches
+        // Dead-giveaway phrase check — only reject if text contains obvious hallucination phrases
+        // AND chunk is not lexically diverse (genuine speech won't have these phrases with diverse content)
+        if (!isLexicallyDiverse) {
           const lowerText = cleanText.toLowerCase();
-          const suspiciousPhrases = ['thank you', 'subscribe', 'like and', 'next video', 'see you'];
-          const hasSuspicious = suspiciousPhrases.some(p => lowerText.includes(p));
-          if (hasSuspicious) {
-            console.log(`🚫 Rejecting low-confidence chunk with suspicious phrase: "${cleanText.substring(0, 50)}..."`);
-            // Notify watchdog that we're still processing (not stalled), just filtering
+          const deadGiveaways = ['thank you for watching', 'please subscribe', 'like and subscribe',
+            'see you in the next video', 'link in the description'];
+          const hasDeadGiveaway = deadGiveaways.some(p => lowerText.includes(p));
+          if (hasDeadGiveaway) {
+            console.log(`🚫 Rejecting chunk with dead-giveaway phrase + low diversity: "${cleanText.substring(0, 50)}..."`);
             this.onChunkFiltered?.({
               text: cleanText,
               confidence: chunkConfidence,
               noSpeechProb,
               avgLogprob,
-              reason: `Suspicious phrase + low confidence (${(chunkConfidence * 100).toFixed(1)}%)`,
+              reason: `Dead-giveaway hallucination phrase + low lexical diversity`,
               audioSizeBytes: blobSizeBytes,
               mimeType: blobMimeType,
               startTimeSeconds: chunkStartTimeSeconds,

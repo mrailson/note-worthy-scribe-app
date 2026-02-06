@@ -355,8 +355,9 @@ export function isLikelyHallucination(
     return { isHallucination: false };
   }
   
-  // If confidence is very low, be more suspicious
-  const isLowConfidence = typeof confidence === 'number' && confidence < confidenceThreshold;
+  // NOTE: Confidence is NOT used as a rejection signal.
+  // Hallucination is flagged purely via repetition density, unique-phrase ratios, and known patterns.
+  // Low-confidence chunks that are lexically diverse and coherent are always retained.
   
   // Check for laughter patterns first (most obvious)
   if (checkLaughter) {
@@ -365,32 +366,29 @@ export function isLikelyHallucination(
   }
   
   // CRITICAL: Check for repeated phrase patterns (catches "X, X, X, X..." hallucinations)
-  // This runs BEFORE other checks as it's a strong signal regardless of confidence
   if (checkRepeatedPhrases) {
     const phraseRepetitionCheck = hasRepeatedPhrases(trimmedText);
     if (phraseRepetitionCheck.isHallucination) return phraseRepetitionCheck;
   }
   
-  // Check for known hallucination phrases
+  // Check for known hallucination phrases — dead giveaways are always flagged regardless of confidence
   if (checkPhrases) {
     const phraseCheck = containsHallucinationPhrase(trimmedText);
     if (phraseCheck.isHallucination) {
-      // If it's a known phrase AND low confidence, definitely a hallucination
-      if (isLowConfidence) {
-        return {
-          ...phraseCheck,
-          reason: `${phraseCheck.reason} (with low confidence: ${(confidence! * 100).toFixed(1)}%)`,
-          confidence: 0.98
-        };
-      }
-      // Even with high confidence, some phrases are dead giveaways
-      const deadGiveaways = ['thank you for watching', 'please subscribe', 'like and subscribe'];
+      const deadGiveaways = ['thank you for watching', 'please subscribe', 'like and subscribe',
+        'don\'t forget to subscribe', 'see you in the next video', 'link in the description'];
       if (deadGiveaways.some(dg => trimmedText.toLowerCase().includes(dg))) {
         return phraseCheck;
       }
-      // For other phrases, only flag if combined with low confidence
-      if (isLowConfidence) {
-        return phraseCheck;
+      // Non-dead-giveaway phrases: only flag if text is also repetitive (not lexically diverse)
+      const words = trimmedText.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+      const uniqueRatio = words.length > 0 ? new Set(words).size / words.length : 1;
+      if (uniqueRatio < 0.30) {
+        return {
+          ...phraseCheck,
+          reason: `${phraseCheck.reason} (combined with low lexical diversity: ${(uniqueRatio * 100).toFixed(0)}%)`,
+          confidence: 0.95
+        };
       }
     }
   }
@@ -407,15 +405,7 @@ export function isLikelyHallucination(
     if (urlCheck.isHallucination) return urlCheck;
   }
   
-  // Final check: very low confidence with no other issues
-  if (isLowConfidence && confidence! < 0.10) {
-    return {
-      isHallucination: true,
-      reason: `Extremely low confidence: ${(confidence! * 100).toFixed(1)}%`,
-      confidence: 0.7
-    };
-  }
-  
+  // No confidence-based rejection — lexically diverse low-confidence chunks are retained
   return { isHallucination: false };
 }
 

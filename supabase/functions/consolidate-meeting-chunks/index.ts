@@ -625,9 +625,14 @@ const HALLUCINATION_PATTERNS = [
 ];
 
 function isLikelyHallucination(text: string, confidence: number): { isHallucination: boolean; reason: string } {
-  if (confidence < 0.30) {
-    return { isHallucination: true, reason: `Confidence ${(confidence * 100).toFixed(1)}% below 30% threshold` };
-  }
+  // NOTE: Confidence is NOT used as a rejection signal.
+  // Hallucination is detected purely via repetition density, unique-phrase ratios, and pattern matching.
+  // Low-confidence chunks that are lexically diverse and coherent are retained.
+
+  const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+  const wordCount = words.length;
+
+  // 1. Hallucination phrase pattern matching
   let matchCount = 0;
   for (const pattern of HALLUCINATION_PATTERNS) {
     const matches = text.match(pattern);
@@ -636,6 +641,27 @@ function isLikelyHallucination(text: string, confidence: number): { isHallucinat
   if (matchCount > 2) {
     return { isHallucination: true, reason: `${matchCount} hallucination patterns detected` };
   }
+
+  // 2. Unique-word ratio (lexical diversity) — only flag if very low AND text is short-ish
+  if (wordCount >= 8) {
+    const uniqueWords = new Set(words).size;
+    const uniqueRatio = uniqueWords / wordCount;
+    if (uniqueRatio < 0.20) {
+      return { isHallucination: true, reason: `Very low lexical diversity: ${(uniqueRatio * 100).toFixed(0)}% unique words` };
+    }
+  }
+
+  // 3. Phrase-level repetition (catches "X, X, X, X..." looping)
+  const phrases = text.split(/[,.]/).map(p => p.trim().toLowerCase()).filter(p => p.length > 3);
+  if (phrases.length >= 4) {
+    const uniquePhrases = new Set(phrases).size;
+    const phraseUniqueRatio = uniquePhrases / phrases.length;
+    if (phraseUniqueRatio < 0.25) {
+      return { isHallucination: true, reason: `Repeated phrase loop: ${uniquePhrases}/${phrases.length} unique (${(phraseUniqueRatio * 100).toFixed(0)}%)` };
+    }
+  }
+
+  // 4. Sentence-level repetition
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
   if (sentences.length > 3) {
     const uniqueSentences = new Set(sentences.map(s => s.trim().toLowerCase()));
@@ -644,6 +670,12 @@ function isLikelyHallucination(text: string, confidence: number): { isHallucinat
       return { isHallucination: true, reason: `${(repetitionRatio * 100).toFixed(0)}% sentence repetition detected` };
     }
   }
+
+  // 5. Log low confidence as informational only — NOT a rejection signal
+  if (confidence < 0.30) {
+    console.log(`ℹ️ Low confidence ${(confidence * 100).toFixed(1)}% but chunk is lexically diverse — retaining`);
+  }
+
   return { isHallucination: false, reason: '' };
 }
 

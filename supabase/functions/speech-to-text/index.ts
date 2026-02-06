@@ -351,18 +351,22 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
       }
     }
 
-    // Reject very high no_speech_prob — BUT keep content-rich chunks (≥120 words)
-    if (no_speech_prob > 0.85 && confidence < 0.3) {
-      const words = (finalText || '').split(/\s+/).filter(Boolean);
-      const isContentRich = words.length >= 120;
-      if (!isContentRich) {
-        console.log(`🚫 [${requestId}] Rejecting due to high no_speech_prob (${(no_speech_prob * 100).toFixed(1)}%)`);
+    // High no_speech_prob: only reject if text also fails lexical diversity check
+    // Confidence alone is NOT a rejection signal — use repetition density instead
+    if (no_speech_prob > 0.85 && finalText) {
+      const words = finalText.split(/\s+/).filter(Boolean);
+      const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
+      const uniqueRatio = words.length > 0 ? uniqueWords / words.length : 1;
+      const isLexicallyDiverse = uniqueRatio >= 0.25 || words.length >= 120;
+      
+      if (!isLexicallyDiverse) {
+        console.log(`🚫 [${requestId}] Rejecting: high no_speech_prob (${(no_speech_prob * 100).toFixed(1)}%) AND low lexical diversity (${(uniqueRatio * 100).toFixed(0)}%)`);
         finalText = '';
         confidence = 0.0;
         segments = [];
         hallucinationDetected = true;
       } else {
-        console.log(`✅ [${requestId}] Content-rich chunk retained (${words.length} words) despite high no_speech_prob — downstream dedup will handle`);
+        console.log(`✅ [${requestId}] Retaining chunk despite high no_speech_prob — lexically diverse (${(uniqueRatio * 100).toFixed(0)}% unique, ${words.length} words)`);
       }
     }
 
