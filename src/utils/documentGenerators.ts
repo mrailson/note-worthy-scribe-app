@@ -56,14 +56,13 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
         
         const matchedText = match[0];
         
-        // Handle bold and italic (***text***)
+        // Handle bold and italic (***text***) - render as bold only for cleaner output
         if (matchedText.startsWith('***') && matchedText.endsWith('***')) {
           const content = matchedText.slice(3, -3);
           children.push(new TextRun({
             text: content,
             ...baseRun,
             bold: true,
-            italics: rtl ? false : true,
           }));
         }
         // Handle bold (**text**)
@@ -75,13 +74,14 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
             bold: true,
           }));
         }
-        // Handle italic (*text*)
+        // Handle single asterisk (*text*) - render as bold for cleaner professional output
+        // AI models use these heavily; italic creates cluttered documents
         else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
           const content = matchedText.slice(1, -1);
           children.push(new TextRun({
             text: content,
             ...baseRun,
-            italics: rtl ? false : true,
+            bold: true,
           }));
         }
         // Handle code (`text`)
