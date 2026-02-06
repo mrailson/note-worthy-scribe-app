@@ -2457,6 +2457,42 @@ export const MeetingRecorder = ({
     // Skip empty transcripts
     if (!data.text || !data.text.trim()) return;
     
+    const trimmedText = data.text.trim();
+    
+    // --- Deduplication gate ---
+    // Normalise text for comparison: lowercase, strip punctuation, collapse whitespace
+    const normalise = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+    const normNew = normalise(trimmedText);
+    const newTokens = normNew.split(' ').filter(w => w.length >= 3);
+    
+    // Check recent chunks (last 10) for near-duplicate text (Jaccard >= 0.80)
+    const isDuplicate = (() => {
+      if (newTokens.length < 3) return false; // Too short to compare meaningfully
+      const recentChunks = chunkSaveStatuses.slice(-10);
+      for (const existing of recentChunks) {
+        if (!existing.text || existing.text.trim().length === 0) continue;
+        const normExisting = normalise(existing.text);
+        const existingTokens = normExisting.split(' ').filter(w => w.length >= 3);
+        if (existingTokens.length < 3) continue;
+        
+        // Jaccard similarity on significant words
+        const setA = new Set(newTokens);
+        const setB = new Set(existingTokens);
+        let intersection = 0;
+        for (const w of setA) { if (setB.has(w)) intersection++; }
+        const union = new Set([...setA, ...setB]).size;
+        const jaccard = union > 0 ? intersection / union : 0;
+        
+        if (jaccard >= 0.80) {
+          console.log(`🚫 Duplicate chunk blocked (Jaccard ${(jaccard * 100).toFixed(0)}% with chunk #${existing.chunkNumber}): "${trimmedText.substring(0, 50)}..."`);
+          return true;
+        }
+      }
+      return false;
+    })();
+    
+    if (isDuplicate) return;
+    
     // Add chunk status tracking for iPhone/mobile transcription with timestamps
     // CRITICAL: Use synchronous ref for correct chunk numbering (setState is async)
     chunkCounterRef.current += 1;
@@ -2465,7 +2501,7 @@ export const MeetingRecorder = ({
     
     console.log(`📊 Chunk counter: ${currentChunkNumber} (ref: ${chunkCounterRef.current})`);
     
-    const chunkLength = data.text.trim().length;
+    const chunkLength = trimmedText.length;
     const uniqueChunkId = `chunk_${Date.now()}_${currentChunkNumber}`;
     const approxNowSeconds = recordingStartMonotonicRef.current != null
       ? (performance.now() - recordingStartMonotonicRef.current) / 1000
@@ -2475,7 +2511,7 @@ export const MeetingRecorder = ({
     const newChunkStatus: ChunkSaveStatus = {
       id: uniqueChunkId,
       chunkNumber: currentChunkNumber,
-      text: data.text.trim(),
+      text: trimmedText,
       chunkLength: chunkLength,
       saveStatus: 'saving',
       retryCount: 0,
