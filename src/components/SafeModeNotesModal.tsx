@@ -1031,39 +1031,79 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         setTranscript(liveText);
       } else {
         // Fallback 1: Try meeting_transcription_chunks table (primary storage during recording)
+        // Include transcriber_type to separate Whisper vs AssemblyAI chunks
         const { data: chunkData } = await supabase
           .from('meeting_transcription_chunks')
-          .select('transcription_text, cleaned_text, cleaning_status, chunk_number')
+          .select('transcription_text, cleaned_text, cleaning_status, chunk_number, transcriber_type')
           .eq('meeting_id', meeting.id)
           .order('chunk_number', { ascending: true });
 
         if (chunkData && chunkData.length > 0) {
           console.log(`📦 SafeMode: Falling back to ${chunkData.length} chunks from meeting_transcription_chunks`);
-          const combinedChunks = chunkData
-            .map(chunk => {
-              // Prefer cleaned text if available
-              if (chunk.cleaned_text && chunk.cleaning_status === 'completed') {
-                return chunk.cleaned_text;
+          
+          // Helper to extract text from a chunk
+          const extractChunkText = (chunk: typeof chunkData[0]): string => {
+            if (chunk.cleaned_text && chunk.cleaning_status === 'completed') {
+              return chunk.cleaned_text;
+            }
+            try {
+              const parsed = JSON.parse(chunk.transcription_text);
+              if (Array.isArray(parsed)) {
+                return parsed.map((seg: { text?: string }) => seg.text || '').join(' ');
               }
-              // Otherwise parse raw transcription_text
-              try {
-                const parsed = JSON.parse(chunk.transcription_text);
-                if (Array.isArray(parsed)) {
-                  return parsed.map((seg: { text?: string }) => seg.text || '').join(' ');
-                }
-                return chunk.transcription_text;
-              } catch {
-                return chunk.transcription_text;
-              }
-            })
+              return chunk.transcription_text;
+            } catch {
+              return chunk.transcription_text;
+            }
+          };
+
+          // Separate chunks by transcriber type
+          const whisperChunks = chunkData.filter(c => 
+            !c.transcriber_type || c.transcriber_type === 'whisper' || c.transcriber_type === 'legacy' || c.transcriber_type === 'ios-simple'
+          );
+          const assemblyChunks = chunkData.filter(c => c.transcriber_type === 'assembly');
+
+          // Build Whisper/Batch transcript
+          const whisperText = whisperChunks
+            .map(extractChunkText)
             .filter(Boolean)
             .join(' ')
             .trim();
-          
-          if (combinedChunks) {
-            setTranscript(combinedChunks);
-            setBatchTranscript(combinedChunks);
-            console.log(`✅ SafeMode: Loaded ${combinedChunks.length} chars from chunks fallback`);
+
+          // Build AssemblyAI/Live transcript  
+          const assemblyText = assemblyChunks
+            .map(extractChunkText)
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+
+          if (whisperText) {
+            setBatchTranscript(whisperText);
+            setTranscript(whisperText);
+            console.log(`✅ SafeMode: Loaded ${whisperText.length} chars for Whisper tab from ${whisperChunks.length} chunks`);
+          }
+
+          if (assemblyText) {
+            setLiveTranscript(assemblyText);
+            console.log(`✅ SafeMode: Loaded ${assemblyText.length} chars for AssemblyAI tab from ${assemblyChunks.length} chunks`);
+            // If no whisper text, use assembly as primary
+            if (!whisperText) {
+              setTranscript(assemblyText);
+            }
+          }
+
+          // If neither produced text, combine everything as fallback
+          if (!whisperText && !assemblyText) {
+            const combinedAll = chunkData
+              .map(extractChunkText)
+              .filter(Boolean)
+              .join(' ')
+              .trim();
+            if (combinedAll) {
+              setTranscript(combinedAll);
+              setBatchTranscript(combinedAll);
+              console.log(`✅ SafeMode: Loaded ${combinedAll.length} chars (all chunks combined)`);
+            }
           }
         } else {
           // Fallback 2: Try legacy meeting_transcripts table

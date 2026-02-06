@@ -557,14 +557,55 @@ serve(async (req) => {
       }
     }
 
-    // Update the meeting with the best transcript
-    const { error: updateError } = await supabase.from('meetings').update({
+    // Build dedicated AssemblyAI-only transcript for the assembly tab
+    let assemblyOnlyTranscript = '';
+    if (assemblyRaw.length > 0) {
+      assemblyOnlyTranscript = assemblyRaw
+        .sort((a, b) => a.idx - b.idx)
+        .map(c => normaliseText(c.text))
+        .filter(t => t.length > 0)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      console.log(`📝 Built AssemblyAI-only transcript: ${assemblyOnlyTranscript.length} chars from ${assemblyRaw.length} chunks`);
+    }
+
+    // Build dedicated Whisper-only transcript for the whisper tab
+    let whisperOnlyTranscript = '';
+    if (whisperRaw.length > 0) {
+      whisperOnlyTranscript = whisperRaw
+        .sort((a, b) => a.idx - b.idx)
+        .map(c => normaliseText(c.text))
+        .filter(t => t.length > 0)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      console.log(`📝 Built Whisper-only transcript: ${whisperOnlyTranscript.length} chars from ${whisperRaw.length} chunks`);
+    }
+
+    // Update the meeting with the best transcript AND per-source transcripts
+    const updatePayload: Record<string, any> = {
       live_transcript_text: bestTranscript,
-      whisper_transcript_text: bestSource === 'consolidated' ? bestTranscript : undefined,
       word_count: bestWordCount,
       primary_transcript_source: bestSource,
       updated_at: new Date().toISOString()
-    }).eq('id', meetingId);
+    };
+
+    // Always populate whisper_transcript_text (either whisper-only or best transcript)
+    if (whisperOnlyTranscript) {
+      updatePayload.whisper_transcript_text = whisperOnlyTranscript;
+    } else if (bestSource === 'consolidated') {
+      updatePayload.whisper_transcript_text = bestTranscript;
+    }
+
+    // Always populate assembly_transcript_text when assembly chunks exist
+    if (assemblyOnlyTranscript) {
+      updatePayload.assembly_transcript_text = assemblyOnlyTranscript;
+    }
+
+    const { error: updateError } = await supabase.from('meetings')
+      .update(updatePayload)
+      .eq('id', meetingId);
 
     if (updateError) {
       throw new Error(`Error updating meeting: ${updateError.message}`);

@@ -10,6 +10,8 @@ interface VisibilityProtectionConfig {
   onVisible?: (hiddenDurationMs: number) => void;
   /** Duration threshold in ms to show warning (default: 30000 = 30 seconds) */
   warningThresholdMs?: number;
+  /** Callback to flush transcript data before OS may kill the process */
+  onFlushBeforeHide?: () => void;
 }
 
 interface VisibilityProtectionState {
@@ -30,7 +32,8 @@ export function useVisibilityProtection(config: VisibilityProtectionConfig) {
     isActive,
     onHidden,
     onVisible,
-    warningThresholdMs = 30000
+    warningThresholdMs = 30000,
+    onFlushBeforeHide
   } = config;
 
   const [state, setState] = useState<VisibilityProtectionState>({
@@ -60,6 +63,17 @@ export function useVisibilityProtection(config: VisibilityProtectionConfig) {
         hiddenCountRef.current += 1;
 
         console.log(`👁️ Tab hidden (count: ${hiddenCountRef.current})`);
+        
+        // Flush any buffered transcript data before OS may kill process
+        // This is critical on mobile where backgrounded tabs can be terminated
+        if (onFlushBeforeHide) {
+          console.log('💾 Flushing transcript data before hide...');
+          try {
+            onFlushBeforeHide();
+          } catch (e) {
+            console.warn('⚠️ Flush before hide failed:', e);
+          }
+        }
         
         // Log only - no toast per user request
         warningToastIdRef.current = `visibility-warning-${now}`;
@@ -120,7 +134,7 @@ export function useVisibilityProtection(config: VisibilityProtectionConfig) {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pagehide', handlePageHide);
     };
-  }, [isActive, onHidden, onVisible, warningThresholdMs]);
+  }, [isActive, onHidden, onVisible, warningThresholdMs, onFlushBeforeHide]);
 
   // Request notification permission for background alerts
   const requestNotificationPermission = useCallback(async () => {
