@@ -1,45 +1,32 @@
-# Plan: Fix Dual Recording Issues (Triple Meetings & Dual Transcription Sources)
 
-## ✅ IMPLEMENTED
+# Improve AI Response Formatting: Horizontal Rules and Spacing
 
-All four fixes have been successfully implemented:
+## Problem
+When the AI returns content with `---` (markdown horizontal rules), they appear as literal dashes text instead of clean visual dividers. Additionally, the spacing between sections feels cramped, making the content harder to scan.
 
-### Fix 1: Add Start Recording Lock ✅
-- Added `isStartingRecordingRef` at line 206 of MeetingRecorder.tsx
-- Added guard at start of `startRecording` function (line 3965)
-- Added `finally` block to reset the lock (line 4357)
+## What Will Change
+1. **Horizontal rules (`---`)** will render as subtle, professional dividers instead of literal dashes
+2. **Section spacing** will be increased so content breathes better between headings and paragraphs
+3. The overall reading experience will feel more like a well-formatted document
 
-### Fix 2: Explicit Transcriber Type ✅
-- Added `transcriber_type: 'whisper'` to both insert statements in DesktopWhisperTranscriber.ts (lines 866 and 897)
+## Technical Details
 
-### Fix 3: Improved iOS Detection for iPad Pro ✅
-- Updated `checkBrowserSupport` (line 2042) to detect MacIntel with touch points as iOS:
-  ```typescript
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  ```
+### File: `src/lib/nhsMarkdownRenderer.ts`
 
-### Fix 4: Transcriber Exclusivity Guard ✅
-- Updated `startWhisperTranscription` (line 2666) to:
-  - Stop orphaned desktop transcriber before starting iOS transcriber
-  - Stop orphaned iOS transcriber before starting desktop transcriber
-  - Added logging for device detection path
+**1. Add horizontal rule conversion**
+- Insert a new regex rule before the paragraph processing (around line 204) to convert `---`, `***`, and `___` patterns into styled `<hr>` elements
+- Style: a subtle border with generous vertical margin (`my-6`) to create clear section breaks
+- Must be processed **before** bold/italic rules to avoid conflicts with `***`
 
----
+**2. Improve section spacing**
+- Increase paragraph bottom margin from `mb-3` to `mb-4` for better breathing room
+- Increase header top margins slightly (e.g. H2 from `mt-5` to `mt-6`, H3 from `mt-4` to `mt-5`) to create clearer visual separation between sections
 
-## Summary of Changes
+**3. Add `hr` to DOMPurify allowed tags**
+- The sanitiser currently strips any tags not in the allow list — `hr` needs to be added to `ALLOWED_TAGS` on line 276
 
-| File | Change |
-|------|--------|
-| `src/components/MeetingRecorder.tsx` | Added `isStartingRecordingRef`, lock guard, finally block, improved iOS detection, transcriber exclusivity guard |
-| `src/utils/DesktopWhisperTranscriber.ts` | Added explicit `transcriber_type: 'whisper'` to both chunk inserts |
-
----
-
-## Testing Recommendations
-
-After deployment:
-1. Test recording start on desktop Chrome/Edge - should create exactly ONE meeting
-2. Test recording start on iOS Safari - should only use `ios-simple` transcriber
-3. Test rapid double-click on Start button - should be ignored
-4. Verify existing meetings with `legacy` chunks still display correctly
+### Summary of Changes
+- Single file edit: `src/lib/nhsMarkdownRenderer.ts`
+- Add horizontal rule regex before paragraph processing
+- Adjust spacing classes on paragraphs and headers
+- Add `hr` to the DOMPurify allow list
