@@ -7,9 +7,207 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ============= BEST-OF-BOTH MERGER (Deno-compatible) =============
+// ============= POST-MERGE DEDUP (inlined for Deno) =============
 
-type Engine = 'assembly' | 'whisper';
+interface DedupDecision {
+  i: number;
+  action: 'DROP' | 'TRIM_START';
+  reason_code: 'DUP_NEAR_EXACT' | 'DUP_BOUNDARY_OVERLAP' | 'DUP_ABA_REPEAT' | 'DEDUP_BLOCKED_CRITICAL_NEW_INFO';
+  compared_to: number;
+  jaccard: number;
+  containment: number;
+  overlap_tokens_removed?: number;
+  critical_tokens_new?: string[];
+  snippet: { prev: string; curr: string };
+}
+
+interface PostMergeDedupResult {
+  segments: string[];
+  decisions: DedupDecision[];
+  stats: { inputCount: number; outputCount: number; dropped: number; trimmed: number; blockedByGuard: number };
+}
+
+interface NormSegment {
+  raw: string;
+  normTokens: string[];
+  normString: string;
+}
+
+const JACCARD_THRESHOLD = 0.82;
+const CONTAINMENT_THRESHOLD = 0.90;
+const MIN_TOKEN_COUNT = 12;
+const MAX_OVERLAP_TOKENS = 20;
+const MIN_OVERLAP_TOKENS = 8;
+const SNIPPET_LENGTH = 120;
+
+const DIGIT_PATTERN = /\b\d+(\.\d+)?\b/g;
+const MEDICATION_TOKENS = new Set(['mg','mcg','ml','od','bd','tds','prn','qds','stat','nocte','mane','tablet','tablets','capsule','capsules','inhaler','injection','patch','cream']);
+const PATHWAY_TOKENS = new Set(['2ww','urgent','cardiology','ecg','troponin','dermatology','neurology','oncology','respiratory','gastroenterology','endoscopy','mri','ct','xray','x-ray','ultrasound','referral','pathway']);
+const SAFEGUARDING_TOKENS = new Set(['harm','suicide','suicidal','self-harm','selfharm','999','a&e','ae','emergency','ambulance','safeguarding','abuse','neglect','risk','overdose','crisis']);
+
+function dedupNormalise(text: string): NormSegment {
+  const raw = text;
+  let norm = text.toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z0-9\s]/g, '').trim();
+  const normForTokens = norm.replace(/\b\d+(\.\d+)?\b/g, '<NUM>');
+  const normTokens = normForTokens.split(/\s+/).filter(Boolean);
+  return { raw, normTokens, normString: norm };
+}
+
+function dedupTokenJaccard(a: string[], b: string[]): number {
+  if (!a.length || !b.length) return 0;
+  const setA = new Set(a);
+  const setB = new Set(b);
+  let inter = 0;
+  for (const t of setA) if (setB.has(t)) inter++;
+  const union = setA.size + setB.size - inter;
+  return union === 0 ? 0 : inter / union;
+}
+
+function dedupContainment(a: string, b: string): number {
+  if (!a.length || !b.length) return 0;
+  const cAB = a.length <= b.length && b.includes(a) ? a.length / b.length : 0;
+  const cBA = b.length <= a.length && a.includes(b) ? b.length / a.length : 0;
+  return Math.max(cAB, cBA);
+}
+
+function extractCriticalTokens(text: string): Set<string> {
+  const tokens = new Set<string>();
+  const lower = text.toLowerCase();
+  const digits = lower.match(DIGIT_PATTERN);
+  if (digits) for (const d of digits) tokens.add(d);
+  const words = lower.replace(/[^a-z0-9\s&-]/g, ' ').split(/\s+/);
+  for (const w of words) {
+    if (MEDICATION_TOKENS.has(w)) tokens.add(w);
+    if (PATHWAY_TOKENS.has(w)) tokens.add(w);
+    if (SAFEGUARDING_TOKENS.has(w)) tokens.add(w);
+  }
+  if (lower.includes('chest pain pathway')) tokens.add('chest pain pathway');
+  if (lower.includes('a&e')) tokens.add('a&e');
+  return tokens;
+}
+
+function dedupNewCritical(current: string, previous: string): string[] {
+  const curr = extractCriticalTokens(current);
+  const prev = extractCriticalTokens(previous);
+  const result: string[] = [];
+  for (const t of curr) if (!prev.has(t)) result.push(t);
+  return result;
+}
+
+function dedupSnippet(text: string): string {
+  return text.length <= SNIPPET_LENGTH ? text : text.substring(0, SNIPPET_LENGTH) + '...';
+}
+
+function dedupTryBoundaryTrim(current: NormSegment, previous: NormSegment): { trimmedText: string; tokensRemoved: number } | null {
+  const prevRawTokens = previous.raw.split(/\s+/);
+  const currRawTokens = current.raw.split(/\s+/);
+  if (currRawTokens.length < MIN_OVERLAP_TOKENS || prevRawTokens.length < MIN_OVERLAP_TOKENS) return null;
+  for (let n = Math.min(MAX_OVERLAP_TOKENS, previous.normTokens.length, current.normTokens.length); n >= MIN_OVERLAP_TOKENS; n--) {
+    const tail = previous.normTokens.slice(-n);
+    const head = current.normTokens.slice(0, n);
+    let match = true;
+    for (let j = 0; j < n; j++) { if (tail[j] !== head[j]) { match = false; break; } }
+    if (match) {
+      const trimmed = currRawTokens.slice(n);
+      if (trimmed.length === 0) return null;
+      return { trimmedText: trimmed.join(' '), tokensRemoved: n };
+    }
+  }
+  return null;
+}
+
+function postMergeDedup(segments: string[]): PostMergeDedupResult {
+  const decisions: DedupDecision[] = [];
+  const stats = { inputCount: segments.length, outputCount: 0, dropped: 0, trimmed: 0, blockedByGuard: 0 };
+  if (segments.length === 0) return { segments: [], decisions, stats };
+
+  const normed = segments.map(dedupNormalise);
+  const result: string[] = [];
+  let prevKept: NormSegment | null = null;
+  let prevPrevKept: NormSegment | null = null;
+  let prevKeptIdx = -1;
+  let prevPrevKeptIdx = -1;
+
+  for (let i = 0; i < normed.length; i++) {
+    const seg = normed[i];
+    if (!seg.raw.trim()) continue;
+
+    if (prevKept === null) {
+      result.push(seg.raw);
+      prevKept = seg;
+      prevKeptIdx = i;
+      continue;
+    }
+
+    const jaccard = dedupTokenJaccard(seg.normTokens, prevKept.normTokens);
+    const containment = dedupContainment(seg.normString, prevKept.normString);
+    const meetsJ = jaccard >= JACCARD_THRESHOLD && Math.min(seg.normTokens.length, prevKept.normTokens.length) >= MIN_TOKEN_COUNT;
+    const meetsC = containment >= CONTAINMENT_THRESHOLD;
+
+    if (meetsJ || meetsC) {
+      const newCrit = dedupNewCritical(seg.raw, prevKept.raw);
+      if (newCrit.length > 0) {
+        const trim = dedupTryBoundaryTrim(seg, prevKept);
+        if (trim) {
+          result.push(trim.trimmedText);
+          decisions.push({ i, action: 'TRIM_START', reason_code: 'DEDUP_BLOCKED_CRITICAL_NEW_INFO', compared_to: prevKeptIdx, jaccard, containment, overlap_tokens_removed: trim.tokensRemoved, critical_tokens_new: newCrit, snippet: { prev: dedupSnippet(prevKept.raw), curr: dedupSnippet(seg.raw) } });
+          stats.trimmed++; stats.blockedByGuard++;
+          prevPrevKept = prevKept; prevPrevKeptIdx = prevKeptIdx;
+          prevKept = dedupNormalise(trim.trimmedText); prevKeptIdx = i;
+        } else {
+          result.push(seg.raw);
+          decisions.push({ i, action: 'TRIM_START', reason_code: 'DEDUP_BLOCKED_CRITICAL_NEW_INFO', compared_to: prevKeptIdx, jaccard, containment, overlap_tokens_removed: 0, critical_tokens_new: newCrit, snippet: { prev: dedupSnippet(prevKept.raw), curr: dedupSnippet(seg.raw) } });
+          stats.blockedByGuard++;
+          prevPrevKept = prevKept; prevPrevKeptIdx = prevKeptIdx;
+          prevKept = seg; prevKeptIdx = i;
+        }
+        continue;
+      }
+      decisions.push({ i, action: 'DROP', reason_code: 'DUP_NEAR_EXACT', compared_to: prevKeptIdx, jaccard, containment, snippet: { prev: dedupSnippet(prevKept.raw), curr: dedupSnippet(seg.raw) } });
+      stats.dropped++;
+      continue;
+    }
+
+    const trim = dedupTryBoundaryTrim(seg, prevKept);
+    if (trim) {
+      result.push(trim.trimmedText);
+      decisions.push({ i, action: 'TRIM_START', reason_code: 'DUP_BOUNDARY_OVERLAP', compared_to: prevKeptIdx, jaccard, containment, overlap_tokens_removed: trim.tokensRemoved, snippet: { prev: dedupSnippet(prevKept.raw), curr: dedupSnippet(seg.raw) } });
+      stats.trimmed++;
+      prevPrevKept = prevKept; prevPrevKeptIdx = prevKeptIdx;
+      prevKept = dedupNormalise(trim.trimmedText); prevKeptIdx = i;
+      continue;
+    }
+
+    if (prevPrevKept !== null) {
+      const abaJ = dedupTokenJaccard(seg.normTokens, prevPrevKept.normTokens);
+      if (abaJ >= JACCARD_THRESHOLD && seg.normTokens.length >= MIN_TOKEN_COUNT) {
+        const newCrit = dedupNewCritical(seg.raw, prevPrevKept.raw);
+        if (newCrit.length > 0) {
+          result.push(seg.raw);
+          decisions.push({ i, action: 'TRIM_START', reason_code: 'DEDUP_BLOCKED_CRITICAL_NEW_INFO', compared_to: prevPrevKeptIdx, jaccard: abaJ, containment: 0, overlap_tokens_removed: 0, critical_tokens_new: newCrit, snippet: { prev: dedupSnippet(prevPrevKept.raw), curr: dedupSnippet(seg.raw) } });
+          stats.blockedByGuard++;
+          prevPrevKept = prevKept; prevPrevKeptIdx = prevKeptIdx;
+          prevKept = seg; prevKeptIdx = i;
+          continue;
+        }
+        decisions.push({ i, action: 'DROP', reason_code: 'DUP_ABA_REPEAT', compared_to: prevPrevKeptIdx, jaccard: abaJ, containment: 0, snippet: { prev: dedupSnippet(prevPrevKept.raw), curr: dedupSnippet(seg.raw) } });
+        stats.dropped++;
+        continue;
+      }
+    }
+
+    result.push(seg.raw);
+    prevPrevKept = prevKept; prevPrevKeptIdx = prevKeptIdx;
+    prevKept = seg; prevKeptIdx = i;
+  }
+
+  stats.outputCount = result.length;
+  return { segments: result, decisions, stats };
+}
+
+// ============= BEST-OF-ALL MERGER (Deno-compatible, 3-engine) =============
+
+type Engine = 'assembly' | 'whisper' | 'deepgram';
 
 interface RawChunk {
   engine: Engine;
@@ -52,27 +250,28 @@ const DEFAULT_MERGE_CONFIG: MergeConfig = {
   bufferWindow: 4,
 };
 
+function getEngineTier(engine: Engine): number {
+  return (engine === 'assembly' || engine === 'deepgram') ? 1 : 2;
+}
+
 function normaliseConfidence(engine: Engine, confidence?: number): number {
   if (engine === 'assembly') return 0.80;
+  if (engine === 'deepgram') {
+    if (confidence == null) return 0.75;
+    if (confidence > 1) return Math.max(0, Math.min(1, confidence / 100));
+    return Math.max(0, Math.min(1, confidence));
+  }
   if (confidence == null) return 0.0;
   if (confidence > 1) return Math.max(0, Math.min(1, confidence / 100));
   return Math.max(0, Math.min(1, confidence));
 }
 
 function normaliseText(s: string): string {
-  return (s || '')
-    .replace(/\s+/g, ' ')
-    .replace(/[""]/g, '"')  // Smart double quotes → straight
-    .replace(/['']/g, "'")  // Smart single quotes → straight
-    .trim();
+  return (s || '').replace(/\s+/g, ' ').replace(/[""]/g, '"').replace(/['']/g, "'").trim();
 }
 
 function tokenise(s: string): string[] {
-  return normaliseText(s)
-    .toLowerCase()
-    .replace(/[^a-z0-9\s']/g, ' ')
-    .split(/\s+/)
-    .filter(Boolean);
+  return normaliseText(s).toLowerCase().replace(/[^a-z0-9\s']/g, ' ').split(/\s+/).filter(Boolean);
 }
 
 function jaccardSim(aTokens: string[], bTokens: string[]): number {
@@ -140,10 +339,7 @@ function findBestOverlapCandidate(recent: NormChunk[], chunk: NormChunk, cfg: Me
   for (const r of recent) {
     if (!timeOverlaps(r, chunk, cfg)) continue;
     const sim = jaccardSim(r.tokens, chunk.tokens);
-    if (sim >= cfg.overlapSimilarity && sim > bestSim) {
-      best = r;
-      bestSim = sim;
-    }
+    if (sim >= cfg.overlapSimilarity && sim > bestSim) { best = r; bestSim = sim; }
   }
   return best;
 }
@@ -152,24 +348,40 @@ function chooseWinner(a: NormChunk, b: NormChunk, cfg: MergeConfig): NormChunk {
   const aScore = scoreChunk(a);
   const bScore = scoreChunk(b);
   if (a.engine !== b.engine) {
-    const assembly = a.engine === 'assembly' ? a : b;
-    const whisper = a.engine === 'whisper' ? a : b;
-    const assemblyScore = assembly.engine === a.engine ? aScore : bScore;
-    const whisperScore = whisper.engine === a.engine ? aScore : bScore;
-    if (whisperScore >= assemblyScore + cfg.strongConfMargin) return whisper;
-    return assembly;
+    const aTier = getEngineTier(a.engine);
+    const bTier = getEngineTier(b.engine);
+    if (aTier !== bTier) {
+      const higher = aTier < bTier ? a : b;
+      const lower = aTier < bTier ? b : a;
+      const higherScore = higher === a ? aScore : bScore;
+      const lowerScore = lower === a ? aScore : bScore;
+      if (lowerScore >= higherScore + cfg.strongConfMargin) return lower;
+      return higher;
+    }
+    return bScore > aScore ? b : a;
   }
   return bScore > aScore ? b : a;
 }
 
-function mergeBestOfBoth(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], cfg: MergeConfig = DEFAULT_MERGE_CONFIG) {
+function postProcessTranscript(s: string): string {
+  let out = (s || '').replace(/\s+/g, ' ').trim();
+  out = out.replace(/([.!?])\s+([a-z])/g, (_, p1, p2) => `${p1} ${p2.toUpperCase()}`);
+  out = out.replace(/\b(the|a|an|and|but|so|we|i|you|is|are|was|were|to|of|in|on|for|it)\s+\1\b/gi, '$1');
+  out = out.replace(/\s+,/g, ',').replace(/\s+\./g, '.');
+  out = out.replace(/\.{3,}\s*/g, '... ').trim();
+  return out;
+}
+
+function mergeBestOfAll(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], deepgramRaw: RawChunk[], cfg: MergeConfig = DEFAULT_MERGE_CONFIG) {
   const whisper = normaliseChunks(whisperRaw, cfg).sort((a, b) => a.idx - b.idx);
   const assembly = normaliseChunks(assemblyRaw, cfg).sort((a, b) => (a.startSec - b.startSec) || (a.idx - b.idx));
+  const deepgram = normaliseChunks(deepgramRaw, cfg).sort((a, b) => a.idx - b.idx);
   
-  const combined = [...assembly, ...whisper].sort((a, b) => {
+  const combined = [...assembly, ...deepgram, ...whisper].sort((a, b) => {
     const t = a.startSec - b.startSec;
     if (t !== 0) return t;
-    if (a.engine !== b.engine) return a.engine === 'assembly' ? -1 : 1;
+    const tierDiff = getEngineTier(a.engine) - getEngineTier(b.engine);
+    if (tierDiff !== 0) return tierDiff;
     return a.idx - b.idx;
   });
 
@@ -181,10 +393,10 @@ function mergeBestOfBoth(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], cfg: M
 
   for (const chunk of combined) {
     if (chunk.engine === 'whisper' && chunk.conf < cfg.whisperConfFloor) {
-      const hasAssemblyNear = kept.slice(-cfg.maxLookback).some(k =>
-        k.engine === 'assembly' && timeOverlaps(k, chunk, cfg) && jaccardSim(k.tokens, chunk.tokens) >= 0.25
+      const hasTier1Near = kept.slice(-cfg.maxLookback).some(k =>
+        getEngineTier(k.engine) === 1 && timeOverlaps(k, chunk, cfg) && jaccardSim(k.tokens, chunk.tokens) >= 0.25
       );
-      if (hasAssemblyNear) { dropped.push(chunk); continue; }
+      if (hasTier1Near) { dropped.push(chunk); continue; }
     }
 
     const recent = kept.slice(-cfg.maxLookback);
@@ -193,29 +405,19 @@ function mergeBestOfBoth(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], cfg: M
     if (!overlapCandidate) {
       const contSim = continuitySimAgainstRecent(recent, chunk);
       const last = kept[kept.length - 1];
-      const hangingThreshold = last && looksLikeHangingFragment(last.text)
-        ? cfg.continuityMinSim * 1.8
-        : cfg.continuityMinSim;
+      const hangingThreshold = last && looksLikeHangingFragment(last.text) ? cfg.continuityMinSim * 1.8 : cfg.continuityMinSim;
       
       if (recent.length > 0 && contSim < hangingThreshold) {
         buffer.push(chunk);
-        if (buffer.length > cfg.bufferWindow) {
-          const oldest = buffer.shift()!;
-          dropped.push(oldest);
-          bufferedDrops++;
-        }
+        if (buffer.length > cfg.bufferWindow) { dropped.push(buffer.shift()!); bufferedDrops++; }
         continue;
       }
       
       kept.push(chunk);
-      
       for (let i = buffer.length - 1; i >= 0; i--) {
         const b = buffer[i];
         const sim = continuitySimAgainstRecent(kept.slice(-cfg.maxLookback), b);
-        if (sim >= cfg.continuityMinSim) {
-          kept.push(b);
-          buffer.splice(i, 1);
-        }
+        if (sim >= cfg.continuityMinSim) { kept.push(b); buffer.splice(i, 1); }
       }
       continue;
     }
@@ -232,26 +434,35 @@ function mergeBestOfBoth(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], cfg: M
     }
   }
 
-  for (const b of buffer) {
-    dropped.push(b);
-    bufferedDrops++;
+  for (const b of buffer) { dropped.push(b); bufferedDrops++; }
+
+  kept.sort((a, b) => {
+    const t = a.startSec - b.startSec;
+    if (t !== 0) return t;
+    const tierDiff = getEngineTier(a.engine) - getEngineTier(b.engine);
+    if (tierDiff !== 0) return tierDiff;
+    return a.idx - b.idx;
+  });
+
+  // Post-merge deterministic dedup — runs on raw segment text BEFORE sentence reflow
+  const dedupResult = postMergeDedup(kept.map(k => k.text));
+  
+  if (dedupResult.decisions.length > 0) {
+    console.log(`[Dedup] ${dedupResult.stats.dropped} dropped, ${dedupResult.stats.trimmed} trimmed, ${dedupResult.stats.blockedByGuard} blocked`);
   }
 
-  kept.sort((a, b) => (a.startSec - b.startSec) || (a.engine === 'assembly' ? -1 : 1));
-  
-  let transcript = kept.map(k => k.text).join(' ').replace(/\s+/g, ' ').trim();
-  transcript = transcript.replace(/([.!?])\s+([a-z])/g, (_, p1, p2) => `${p1} ${p2.toUpperCase()}`);
-  transcript = transcript.replace(/\b(the|a|an|and|but|so|we|i|you|is|are|was|were|to|of|in|on|for|it)\s+\1\b/gi, '$1');
-  transcript = transcript.replace(/\s+,/g, ',').replace(/\s+\./g, '.');
-  transcript = transcript.replace(/\.{3,}\s*/g, '... ').trim();
+  const transcript = postProcessTranscript(dedupResult.segments.join(' '));
 
   return {
     transcript,
     kept,
     dropped,
+    dedupDecisions: dedupResult.decisions,
+    dedupStats: dedupResult.stats,
     stats: {
       whisperChunks: whisperRaw.length,
       assemblyChunks: assemblyRaw.length,
+      deepgramChunks: deepgramRaw.length,
       keptCount: kept.length,
       droppedCount: dropped.length,
       overlapConflicts,
@@ -259,6 +470,8 @@ function mergeBestOfBoth(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], cfg: M
     }
   };
 }
+
+// ============= HALLUCINATION DETECTION =============
 
 const HALLUCINATION_PATTERNS = [
   /thank you (very much )?for (your )?attention/gi,
@@ -275,7 +488,6 @@ function isLikelyHallucination(text: string, confidence: number): { isHallucinat
   if (confidence < 0.30) {
     return { isHallucination: true, reason: `Confidence ${(confidence * 100).toFixed(1)}% below 30% threshold` };
   }
-
   let matchCount = 0;
   for (const pattern of HALLUCINATION_PATTERNS) {
     const matches = text.match(pattern);
@@ -284,7 +496,6 @@ function isLikelyHallucination(text: string, confidence: number): { isHallucinat
   if (matchCount > 2) {
     return { isHallucination: true, reason: `${matchCount} hallucination patterns detected` };
   }
-
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
   if (sentences.length > 3) {
     const uniqueSentences = new Set(sentences.map(s => s.trim().toLowerCase()));
@@ -304,7 +515,6 @@ function isTextHallucinated(text: string): boolean {
     if (matches) matchCount += matches.length;
   }
   if (matchCount > 3) return true;
-  
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
   if (sentences.length > 3) {
     const uniqueSentences = new Set(sentences.map(s => s.trim().toLowerCase()));
@@ -332,7 +542,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log(`🔄 Consolidating chunks for meeting: ${meetingId} using Best-of-Both merge`);
+    console.log(`🔄 Consolidating chunks for meeting: ${meetingId} using Best-of-All 3-engine merge`);
     console.log(`📝 Live transcript provided: ${liveTranscript ? `${liveTranscript.length} chars` : 'none'}`);
 
     // Fetch existing meeting data
@@ -361,15 +571,30 @@ serve(async (req) => {
       throw new Error(`Error fetching chunks: ${chunkError.message}`);
     }
 
+    // Fetch Deepgram chunks from dedicated table
+    const { data: deepgramChunksData, error: deepgramError } = await supabase
+      .from('deepgram_transcriptions')
+      .select('chunk_number, transcription_text, confidence, is_final')
+      .eq('meeting_id', meetingId)
+      .eq('is_final', true)
+      .order('chunk_number');
+
+    if (deepgramError) {
+      console.warn('⚠️ Failed to fetch Deepgram chunks:', deepgramError.message);
+    }
+
+    const deepgramChunkCount = deepgramChunksData?.length || 0;
+    console.log(`📊 Deepgram chunks fetched: ${deepgramChunkCount}`);
+
     // If no chunks AND we have a live transcript, save it and return
-    if ((!chunks || chunks.length === 0) && liveTranscript && liveTranscript.length > 50) {
+    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0) && liveTranscript && liveTranscript.length > 50) {
       console.log('✅ No chunks found, using provided live transcript');
       const wordCount = liveTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
       
       await supabase.from('meetings').update({
         live_transcript_text: liveTranscript,
         word_count: wordCount,
-        primary_transcript_source: 'whisper', // Changed from 'browser_live' - closest allowed value
+        primary_transcript_source: 'whisper',
         updated_at: new Date().toISOString()
       }).eq('id', meetingId);
 
@@ -382,7 +607,7 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    if (!chunks || chunks.length === 0) {
+    if ((!chunks || chunks.length === 0) && (!deepgramChunksData || deepgramChunksData.length === 0)) {
       return new Response(JSON.stringify({
         success: false,
         message: 'No chunks found and no live transcript provided',
@@ -390,18 +615,19 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    console.log(`📊 Found ${chunks.length} chunks to consolidate`);
+    console.log(`📊 Found ${chunks?.length || 0} meeting_transcription_chunks + ${deepgramChunkCount} Deepgram chunks to consolidate`);
 
-    // Build RawChunks for Best-of-Both merger
+    // Build RawChunks for Best-of-All merger
     const whisperRaw: RawChunk[] = [];
     const assemblyRaw: RawChunk[] = [];
+    const deepgramRaw: RawChunk[] = [];
     const rejectedChunks: { chunkNumber: number; reason: string }[] = [];
 
-    for (const chunk of chunks) {
+    // Process meeting_transcription_chunks (Whisper + AssemblyAI)
+    for (const chunk of (chunks || [])) {
       const chunkText = chunk.cleaned_text || chunk.transcription_text || '';
       const confidence = chunk.confidence || 0;
 
-      // Parse JSON if needed
       let textToCheck = chunkText;
       try {
         const parsed = JSON.parse(chunkText);
@@ -410,7 +636,6 @@ serve(async (req) => {
         }
       } catch { /* Not JSON */ }
 
-      // Pre-filter obvious hallucinations
       const hallucinationCheck = isLikelyHallucination(textToCheck, confidence);
       if (hallucinationCheck.isHallucination) {
         console.log(`🚫 Chunk ${chunk.chunk_number} pre-filtered: ${hallucinationCheck.reason}`);
@@ -423,7 +648,6 @@ serve(async (req) => {
         continue;
       }
 
-      // Add to appropriate array based on transcriber_type
       const rawChunk: RawChunk = {
         engine: chunk.transcriber_type === 'assembly' ? 'assembly' : 'whisper',
         idx: chunk.chunk_number,
@@ -431,7 +655,6 @@ serve(async (req) => {
         confidence: confidence
       };
 
-      // Add timing for assembly if available
       if (chunk.transcriber_type === 'assembly' && chunk.start_time) {
         try {
           rawChunk.startSec = new Date(chunk.start_time).getTime() / 1000;
@@ -448,10 +671,23 @@ serve(async (req) => {
       }
     }
 
-    console.log(`📊 After pre-filter: ${whisperRaw.length} Whisper, ${assemblyRaw.length} Assembly chunks`);
+    // Process Deepgram chunks
+    for (const dgChunk of (deepgramChunksData || [])) {
+      const text = dgChunk.transcription_text || '';
+      if (!text.trim()) continue;
+
+      deepgramRaw.push({
+        engine: 'deepgram',
+        idx: dgChunk.chunk_number,
+        text: text,
+        confidence: dgChunk.confidence || undefined
+      });
+    }
+
+    console.log(`📊 After pre-filter: ${whisperRaw.length} Whisper, ${assemblyRaw.length} Assembly, ${deepgramRaw.length} Deepgram chunks`);
 
     // If all chunks were filtered, fall back to live transcript or existing
-    if (whisperRaw.length === 0 && assemblyRaw.length === 0) {
+    if (whisperRaw.length === 0 && assemblyRaw.length === 0 && deepgramRaw.length === 0) {
       if (liveTranscript && liveTranscript.length > 50 && !isTextHallucinated(liveTranscript)) {
         console.log('✅ All chunks filtered, using provided live transcript');
         const wordCount = liveTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
@@ -459,7 +695,7 @@ serve(async (req) => {
         await supabase.from('meetings').update({
           live_transcript_text: liveTranscript,
           word_count: wordCount,
-          primary_transcript_source: 'whisper', // Changed from 'browser_live' - closest allowed value
+          primary_transcript_source: 'whisper',
           updated_at: new Date().toISOString()
         }).eq('id', meetingId);
 
@@ -467,7 +703,7 @@ serve(async (req) => {
           success: true,
           message: 'All chunks filtered - used live transcript',
           source: 'browser_live',
-          chunksProcessed: chunks.length,
+          chunksProcessed: (chunks?.length || 0) + deepgramChunkCount,
           chunksFiltered: rejectedChunks.length,
           transcriptLength: liveTranscript.length,
           wordCount,
@@ -481,7 +717,7 @@ serve(async (req) => {
           success: true,
           message: 'All chunks filtered - kept existing transcript',
           source: 'existing',
-          chunksProcessed: chunks.length,
+          chunksProcessed: (chunks?.length || 0) + deepgramChunkCount,
           chunksFiltered: rejectedChunks.length,
           keptExistingTranscript: true,
           rejectedChunks
@@ -499,26 +735,27 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         message: 'All chunks filtered as hallucinations - transcript marked as unavailable',
-        chunksProcessed: chunks.length,
+        chunksProcessed: (chunks?.length || 0) + deepgramChunkCount,
         chunksFiltered: rejectedChunks.length,
         rejectedChunks
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // ============= PERFORM BEST-OF-BOTH MERGE =============
-    const mergeResult = mergeBestOfBoth(whisperRaw, assemblyRaw, DEFAULT_MERGE_CONFIG);
+    // ============= PERFORM BEST-OF-ALL 3-ENGINE MERGE =============
+    const mergeResult = mergeBestOfAll(whisperRaw, assemblyRaw, deepgramRaw, DEFAULT_MERGE_CONFIG);
     
-    console.log(`🔀 Best-of-Both merge complete:`);
-    console.log(`   Whisper: ${mergeResult.stats.whisperChunks}, Assembly: ${mergeResult.stats.assemblyChunks}`);
+    console.log(`🔀 Best-of-All merge complete:`);
+    console.log(`   Whisper: ${mergeResult.stats.whisperChunks}, Assembly: ${mergeResult.stats.assemblyChunks}, Deepgram: ${mergeResult.stats.deepgramChunks}`);
     console.log(`   Kept: ${mergeResult.stats.keptCount}, Dropped: ${mergeResult.stats.droppedCount}`);
     console.log(`   Overlap conflicts resolved: ${mergeResult.stats.overlapConflicts}`);
+    console.log(`   Dedup: input=${mergeResult.dedupStats.inputCount}, output=${mergeResult.dedupStats.outputCount}, dropped=${mergeResult.dedupStats.dropped}, trimmed=${mergeResult.dedupStats.trimmed}`);
     console.log(`   Final transcript: ${mergeResult.transcript.length} chars`);
 
     const mergedWordCount = mergeResult.transcript.split(/\s+/).filter(w => w.length > 0).length;
 
     // Check if merged result is worse than alternatives
     let bestTranscript = mergeResult.transcript;
-    let bestSource = 'consolidated'; // Changed from 'best_of_both' to match DB constraint
+    let bestSource = 'consolidated';
     let bestWordCount = mergedWordCount;
 
     const mergedIsHallucinated = isTextHallucinated(mergeResult.transcript);
@@ -530,12 +767,12 @@ serve(async (req) => {
       
       if (mergedIsHallucinated && !liveIsHallucinated) {
         bestTranscript = liveTranscript;
-        bestSource = 'whisper'; // Changed from 'browser_live' - closest allowed value
+        bestSource = 'whisper';
         bestWordCount = liveWordCount;
         console.log('✅ Using live transcript (merged was hallucinated)');
       } else if (!liveIsHallucinated && liveWordCount > mergedWordCount * 1.5) {
         bestTranscript = liveTranscript;
-        bestSource = 'whisper'; // Changed from 'browser_live' - closest allowed value
+        bestSource = 'whisper';
         bestWordCount = liveWordCount;
         console.log('✅ Using live transcript (significantly longer and valid)');
       }
@@ -550,7 +787,8 @@ serve(async (req) => {
           message: 'Kept existing transcript - new consolidation was lower quality',
           source: 'existing_preserved',
           mergeStats: mergeResult.stats,
-          chunksProcessed: chunks.length,
+          dedupStats: mergeResult.dedupStats,
+          chunksProcessed: (chunks?.length || 0) + deepgramChunkCount,
           chunksFiltered: rejectedChunks.length,
           keptExistingTranscript: true
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -583,18 +821,51 @@ serve(async (req) => {
       console.log(`📝 Built Whisper-only transcript: ${whisperOnlyTranscript.length} chars from ${whisperRaw.length} chunks`);
     }
 
+    // Build dedicated Deepgram-only transcript for the Deepgram tab
+    let deepgramOnlyTranscript = '';
+    if (deepgramRaw.length > 0) {
+      deepgramOnlyTranscript = deepgramRaw
+        .sort((a, b) => a.idx - b.idx)
+        .map(c => normaliseText(c.text))
+        .filter(t => t.length > 0)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      console.log(`📝 Built Deepgram-only transcript: ${deepgramOnlyTranscript.length} chars from ${deepgramRaw.length} chunks`);
+    }
+
+    // Count how many distinct engine types contributed to kept segments
+    const distinctEngines = new Set(mergeResult.kept.map(k => k.engine));
+    const isMultiSource = distinctEngines.size >= 2;
+    const dedupTranscriptNonEmpty = mergeResult.transcript.trim().length > 0;
+
     // Update the meeting with the best transcript AND per-source transcripts
     const updatePayload: Record<string, any> = {
       live_transcript_text: bestTranscript,
       word_count: bestWordCount,
       primary_transcript_source: bestSource,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      // Always store best_of_all_transcript if we have it
+      best_of_all_transcript: dedupTranscriptNonEmpty ? mergeResult.transcript : null,
+      // Store merge decision log for auditability
+      merge_decision_log: {
+        decisions: mergeResult.dedupDecisions?.slice(0, 100), // Limit for storage
+        stats: mergeResult.dedupStats,
+        mergeStats: mergeResult.stats,
+        distinctEngines: Array.from(distinctEngines),
+        generatedAt: new Date().toISOString()
+      }
     };
 
-    // Always populate whisper_transcript_text (either whisper-only or best transcript)
+    // Only set primary_transcript_source to 'best_of_all' when dedup produced output AND multi-source
+    if (dedupTranscriptNonEmpty && isMultiSource) {
+      updatePayload.primary_transcript_source = 'best_of_all';
+    }
+
+    // Always populate whisper_transcript_text
     if (whisperOnlyTranscript) {
       updatePayload.whisper_transcript_text = whisperOnlyTranscript;
-    } else if (bestSource === 'consolidated') {
+    } else if (bestSource === 'consolidated' || bestSource === 'best_of_all') {
       updatePayload.whisper_transcript_text = bestTranscript;
     }
 
@@ -613,14 +884,17 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Transcript consolidated using Best-of-Both merge',
-      source: bestSource,
+      message: 'Transcript consolidated using Best-of-All 3-engine merge',
+      source: updatePayload.primary_transcript_source,
       mergeStats: mergeResult.stats,
-      chunksProcessed: chunks.length,
+      dedupStats: mergeResult.dedupStats,
+      chunksProcessed: (chunks?.length || 0) + deepgramChunkCount,
       chunksFiltered: rejectedChunks.length,
       totalWords: bestWordCount,
       transcriptLength: bestTranscript.length,
-      rejectedChunks: rejectedChunks.slice(0, 10) // Limit for response size
+      bestOfAllLength: mergeResult.transcript.length,
+      distinctEngines: Array.from(distinctEngines),
+      rejectedChunks: rejectedChunks.slice(0, 10)
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {

@@ -1,24 +1,29 @@
 /**
- * Best-of-Both Transcript Merger
+ * Best-of-All Transcript Merger (v3)
  * 
- * Deterministic, fast, auditable algorithm for merging dual transcription sources
- * (Whisper batch + AssemblyAI live) into a single high-quality transcript.
+ * Deterministic, fast, auditable algorithm for merging three transcription sources
+ * (Whisper/OpenAI batch + AssemblyAI live + Deepgram live) into a single
+ * high-quality canonical transcript.
  * 
  * Key principles:
- * - AssemblyAI-first for overlaps (more complete coverage)
- * - Whisper used for high-confidence corrections
+ * - Tier-based engine ranking: Assembly & Deepgram = Tier 1 (live), Whisper = Tier 2 (batch)
+ * - Within same tier: score decides
+ * - Cross-tier: lower-tier engine needs strongConfMargin to override higher-tier
  * - Winner-takes-all on overlaps (no blending)
- * - Synthetic timeline for Whisper (ignore unreliable timestamps)
+ * - Synthetic timeline for Whisper and Deepgram (ignore unreliable timestamps)
+ * - Post-merge deterministic deduplication pass
  * - Confidence floor for Whisper chunks
  */
 
-export type Engine = 'assembly' | 'whisper';
+import { postMergeDedup, type DedupDecision, type PostMergeDedupResult } from './postMergeDedup';
+
+export type Engine = 'assembly' | 'whisper' | 'deepgram';
 
 export interface RawChunk {
   engine: Engine;
   idx: number;               // Monotonic per engine or global
   text: string;
-  confidence?: number;       // Whisper avg confidence 0..1 or 0..100 (normalised)
+  confidence?: number;       // Confidence 0..1 or 0..100 (normalised)
   startSec?: number;         // Use only for assembly if available
   endSec?: number;
 }
@@ -26,8 +31,8 @@ export interface RawChunk {
 export interface NormChunk {
   engine: Engine;
   idx: number;
-  startSec: number;          // Synthetic if whisper
-  endSec: number;            // Synthetic if whisper
+  startSec: number;          // Synthetic if whisper/deepgram
+  endSec: number;            // Synthetic if whisper/deepgram
   text: string;
   conf: number;              // Normalised 0..1
   tokens: string[];          // Cached for similarity
@@ -38,7 +43,7 @@ export interface MergeConfig {
   overlapSec: number;            // e.g. 1.5 (capture overlap; merge handles duplicates)
   whisperConfFloor: number;      // e.g. 0.30
   overlapSimilarity: number;     // e.g. 0.60 (winner-takes-all threshold)
-  strongConfMargin: number;      // e.g. 0.12 (how much higher to override assembly-first)
+  strongConfMargin: number;      // e.g. 0.12 (how much higher to override tier-1)
   maxLookback: number;           // e.g. 3 (how many recent chunks to consider for overlap)
   continuityMinSim: number;      // e.g. 0.10 (minimum similarity for non-overlapping chunks)
   bufferWindow: number;          // e.g. 4 (how many chunks to hold in buffer)
@@ -48,13 +53,20 @@ export interface MergeResult {
   transcript: string;
   kept: NormChunk[];
   dropped: NormChunk[];
+  dedupDecisions?: DedupDecision[];
   stats: {
     whisperChunks: number;
     assemblyChunks: number;
+    deepgramChunks: number;
     keptCount: number;
     droppedCount: number;
     overlapConflicts: number;
     bufferedDrops: number;
+    dedupInputCount: number;
+    dedupOutputCount: number;
+    dedupDropped: number;
+    dedupTrimmed: number;
+    dedupBlockedByGuard: number;
   };
 }
 
@@ -69,12 +81,29 @@ export const DEFAULT_MERGE_CONFIG: MergeConfig = {
   bufferWindow: 4,
 };
 
+/* ----------------------- Engine Tier System ----------------------- */
+
+/** 
+ * Engine tiers: Tier 1 = live engines (Assembly, Deepgram), Tier 2 = batch (Whisper).
+ * Within same tier, score decides. Cross-tier needs strongConfMargin to override.
+ */
+function getEngineTier(engine: Engine): number {
+  if (engine === 'assembly' || engine === 'deepgram') return 1;
+  return 2; // whisper
+}
+
 /* ----------------------- Utilities ----------------------- */
 
 function normaliseConfidence(engine: Engine, confidence?: number): number {
   if (engine === 'assembly') return 0.80; // Default for assembly if not provided
+  if (engine === 'deepgram') {
+    // Deepgram reports real confidence values, use them
+    if (confidence == null) return 0.75;
+    if (confidence > 1) return Math.max(0, Math.min(1, confidence / 100));
+    return Math.max(0, Math.min(1, confidence));
+  }
+  // Whisper
   if (confidence == null) return 0.0;
-  // Handle either 0..1 or 0..100 inputs
   if (confidence > 1) return Math.max(0, Math.min(1, confidence / 100));
   return Math.max(0, Math.min(1, confidence));
 }
@@ -158,7 +187,7 @@ function continuitySimAgainstRecent(recent: NormChunk[], chunk: NormChunk): numb
 
 /**
  * Create a stable timeline:
- *  - Whisper: synthetic based on idx * chunkDurationSec
+ *  - Whisper/Deepgram: synthetic based on idx * chunkDurationSec
  *  - Assembly: use provided start/end if present, otherwise same synthetic approach
  */
 function normaliseChunks(raw: RawChunk[], cfg: MergeConfig): NormChunk[] {
@@ -213,27 +242,34 @@ function findBestOverlapCandidate(
 }
 
 /**
- * Assembly-first policy:
- *  - If overlap exists, prefer assembly unless whisper is meaningfully better (score margin)
- *  - Otherwise, choose by chunk score
+ * Tier-based winner selection:
+ *  - If engines are in the same tier, score decides
+ *  - If cross-tier, tier-1 is preferred unless tier-2 has a strong score margin
  */
 function chooseWinner(a: NormChunk, b: NormChunk, cfg: MergeConfig): NormChunk {
-  // Enforce assembly-first on overlaps
   const aScore = scoreChunk(a);
   const bScore = scoreChunk(b);
 
-  // If one is assembly and the other whisper:
+  // If different engines, apply tier logic
   if (a.engine !== b.engine) {
-    const assembly = a.engine === 'assembly' ? a : b;
-    const whisper = a.engine === 'whisper' ? a : b;
-    const assemblyScore = assembly.engine === a.engine ? aScore : bScore;
-    const whisperScore = whisper.engine === a.engine ? aScore : bScore;
+    const aTier = getEngineTier(a.engine);
+    const bTier = getEngineTier(b.engine);
 
-    // Keep assembly unless whisper clearly better
-    if (whisperScore >= assemblyScore + cfg.strongConfMargin) {
-      return whisper;
+    if (aTier !== bTier) {
+      // Cross-tier: prefer the higher tier (lower number) unless lower tier has strong margin
+      const higherTier = aTier < bTier ? a : b;
+      const lowerTier = aTier < bTier ? b : a;
+      const higherScore = higherTier === a ? aScore : bScore;
+      const lowerScore = lowerTier === a ? aScore : bScore;
+
+      if (lowerScore >= higherScore + cfg.strongConfMargin) {
+        return lowerTier; // Lower tier wins with strong margin
+      }
+      return higherTier; // Higher tier wins by default
     }
-    return assembly;
+
+    // Same tier but different engines: score decides
+    return bScore > aScore ? b : a;
   }
 
   // Same engine: score decides
@@ -243,15 +279,16 @@ function chooseWinner(a: NormChunk, b: NormChunk, cfg: MergeConfig): NormChunk {
 /* ----------------------- Core merge logic ----------------------- */
 
 /**
- * "Best-of-both" merge:
- *  - Build a single sequence ordered by time (prefer assembly timings when available)
+ * "Best-of-All" 3-engine merge:
+ *  - Build a single sequence ordered by time
  *  - Resolve overlaps by winner-takes-all (no blending)
- *  - Default preference: AssemblyAI for overlaps
- *  - Whisper chunks below confidence floor are only used when there is no overlapping Assembly
+ *  - Tier-based preference: Assembly/Deepgram (Tier 1) > Whisper (Tier 2)
+ *  - Post-merge deterministic deduplication
  */
-export function mergeBestOfBoth(
+export function mergeBestOfAll(
   whisperRaw: RawChunk[],
   assemblyRaw: RawChunk[],
+  deepgramRaw: RawChunk[],
   cfg: MergeConfig = DEFAULT_MERGE_CONFIG
 ): MergeResult {
   const whisper = normaliseChunks(whisperRaw, cfg)
@@ -260,12 +297,16 @@ export function mergeBestOfBoth(
   const assembly = normaliseChunks(assemblyRaw, cfg)
     .sort((a, b) => (a.startSec - b.startSec) || (a.idx - b.idx));
 
-  // Combine into a single stream sorted by start time then engine preference
-  const combined = [...assembly, ...whisper].sort((a, b) => {
+  const deepgram = normaliseChunks(deepgramRaw, cfg)
+    .sort((a, b) => a.idx - b.idx);
+
+  // Combine into a single stream sorted by start time then engine tier preference
+  const combined = [...assembly, ...deepgram, ...whisper].sort((a, b) => {
     const t = a.startSec - b.startSec;
     if (t !== 0) return t;
-    // Tie-break: assembly first
-    if (a.engine !== b.engine) return a.engine === 'assembly' ? -1 : 1;
+    // Tie-break: higher tier first (lower tier number = higher priority)
+    const tierDiff = getEngineTier(a.engine) - getEngineTier(b.engine);
+    if (tierDiff !== 0) return tierDiff;
     return a.idx - b.idx;
   });
 
@@ -276,16 +317,16 @@ export function mergeBestOfBoth(
   let bufferedDrops = 0;
 
   for (const chunk of combined) {
-    // If whisper below floor, only consider keeping if there is no close assembly overlap.
+    // If whisper below floor, only consider keeping if there is no close tier-1 overlap.
     if (chunk.engine === 'whisper' && chunk.conf < cfg.whisperConfFloor) {
-      const hasAssemblyNear = kept
+      const hasTier1Near = kept
         .slice(-cfg.maxLookback)
         .some(k =>
-          k.engine === 'assembly' &&
+          getEngineTier(k.engine) === 1 &&
           timeOverlaps(k, chunk, cfg) &&
           jaccardSim(k.tokens, chunk.tokens) >= 0.25 // Low bar: "near the same bit"
         );
-      if (hasAssemblyNear) {
+      if (hasTier1Near) {
         dropped.push(chunk);
         continue;
       }
@@ -356,26 +397,57 @@ export function mergeBestOfBoth(
   }
 
   // Sort kept by time again (in case replacements changed local ordering)
-  kept.sort((a, b) => (a.startSec - b.startSec) || (a.engine === 'assembly' ? -1 : 1));
+  kept.sort((a, b) => {
+    const t = a.startSec - b.startSec;
+    if (t !== 0) return t;
+    const tierDiff = getEngineTier(a.engine) - getEngineTier(b.engine);
+    if (tierDiff !== 0) return tierDiff;
+    return a.idx - b.idx;
+  });
 
-  // Assemble transcript with minimal join punctuation handling
-  const transcript = postProcessTranscript(
-    kept.map(k => k.text).join(' '),
-  );
+  // Post-merge deterministic deduplication — runs on raw segment text
+  // BEFORE paragraph/sentence reflow to avoid malformed sentences
+  const dedupResult = postMergeDedup(kept.map(k => k.text));
+
+  if (dedupResult.decisions.length > 0) {
+    console.log(`[Dedup] ${dedupResult.stats.dropped} dropped, ${dedupResult.stats.trimmed} trimmed, ${dedupResult.stats.blockedByGuard} blocked`);
+  }
+
+  // Assemble transcript from deduplicated segments with post-processing
+  const transcript = postProcessTranscript(dedupResult.segments.join(' '));
 
   return {
     transcript,
     kept,
     dropped,
+    dedupDecisions: dedupResult.decisions,
     stats: {
       whisperChunks: whisperRaw.length,
       assemblyChunks: assemblyRaw.length,
+      deepgramChunks: deepgramRaw.length,
       keptCount: kept.length,
       droppedCount: dropped.length,
       overlapConflicts,
       bufferedDrops,
+      dedupInputCount: dedupResult.stats.inputCount,
+      dedupOutputCount: dedupResult.stats.outputCount,
+      dedupDropped: dedupResult.stats.dropped,
+      dedupTrimmed: dedupResult.stats.trimmed,
+      dedupBlockedByGuard: dedupResult.stats.blockedByGuard,
     }
   };
+}
+
+/**
+ * Backwards-compatible wrapper: 2-engine merge (no Deepgram).
+ * Calls mergeBestOfAll with an empty deepgram array.
+ */
+export function mergeBestOfBoth(
+  whisperRaw: RawChunk[],
+  assemblyRaw: RawChunk[],
+  cfg: MergeConfig = DEFAULT_MERGE_CONFIG
+): MergeResult {
+  return mergeBestOfAll(whisperRaw, assemblyRaw, [], cfg);
 }
 
 /* ----------------------- Post-processing (regex-only) ----------------------- */
@@ -403,7 +475,7 @@ function postProcessTranscript(s: string): string {
 
 /**
  * Convert database chunk records to RawChunk format for the merger.
- * Handles both Whisper and AssemblyAI source types.
+ * Handles Whisper, AssemblyAI, and Deepgram source types.
  */
 export function dbChunksToRawChunks(
   chunks: Array<{
@@ -414,9 +486,10 @@ export function dbChunksToRawChunks(
     start_time?: string | null;
     end_time?: string | null;
   }>
-): { whisper: RawChunk[]; assembly: RawChunk[] } {
+): { whisper: RawChunk[]; assembly: RawChunk[]; deepgram: RawChunk[] } {
   const whisper: RawChunk[] = [];
   const assembly: RawChunk[] = [];
+  const deepgram: RawChunk[] = [];
 
   for (const chunk of chunks) {
     // Parse text - might be JSON segments or plain text
@@ -430,8 +503,12 @@ export function dbChunksToRawChunks(
       // Not JSON, use as-is
     }
 
+    const engine: Engine = chunk.source === 'assembly' ? 'assembly'
+      : chunk.source === 'deepgram' ? 'deepgram'
+      : 'whisper';
+
     const rawChunk: RawChunk = {
-      engine: chunk.source === 'assembly' ? 'assembly' : 'whisper',
+      engine,
       idx: chunk.chunk_number,
       text,
       confidence: chunk.confidence_score ?? undefined,
@@ -451,12 +528,14 @@ export function dbChunksToRawChunks(
       }
     }
 
-    if (rawChunk.engine === 'assembly') {
+    if (engine === 'assembly') {
       assembly.push(rawChunk);
+    } else if (engine === 'deepgram') {
+      deepgram.push(rawChunk);
     } else {
       whisper.push(rawChunk);
     }
   }
 
-  return { whisper, assembly };
+  return { whisper, assembly, deepgram };
 }
