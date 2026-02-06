@@ -1,246 +1,371 @@
-## ✅ IMPLEMENTED
 
-# Standardise Batch Transcription Audio -- Server-Side Preprocessing (Corrected)
+
+# Post-Merge Deduplication + "Best of All (3)" Canonical Transcript
 
 ## Summary
 
-Eliminate WAV encoding from the client entirely. Standardise all batch transcription to a single preprocessed stream before ASR by transcoding server-side using ffmpeg. Clients will continue uploading their native browser format (WebM/Opus on desktop/Android, M4A/AAC on iOS) -- no format changes on mobile at all. A new edge function handles transcoding to FLAC 16-bit, 16 kHz, mono before forwarding to any ASR provider.
+Three deliverables integrated across the full pipeline:
 
-Transcoding to FLAC ensures consistent preprocessing and input characteristics across ASR engines; it does not restore information lost in Opus/AAC capture. The benefit comes from standardised resampling, stable loudness, and a single canonical intermediate format -- not from the container itself.
+1. **New utility** -- `src/utils/postMergeDedup.ts`: deterministic four-step dedup algorithm (normalise, compare nearby, apply rules, safety guards)
+2. **Integration** -- Wire `postMergeDedup()` into both client-side `BestOfBothMerger.ts` and server-side `consolidate-meeting-chunks`, plus upgrade the merger to accept 3 engines (Batch + AssemblyAI + Deepgram)
+3. **New UI tab + downstream defaults** -- "Best of All (3)" in SafeMode transcript panel, plus update Ask AI, notes generation, and exports to prefer the canonical transcript
 
-## Critical Corrections Applied
+## Critical Clarifications Addressed
 
-| Issue | Correction |
-|-------|-----------|
-| Pure-JS FLAC encoder proposed | Rejected entirely. No browser-side FLAC encoding. Server-side ffmpeg only |
-| "VERBATIM FLAC" claimed 40-60% compression | Verbatim FLAC is ~same size as WAV. Real compression requires ffmpeg's predictive coding, done server-side |
-| "FLAC preserves accuracy" framing | FLAC does not restore information lost in Opus/AAC. Accuracy benefit comes from consistent preprocessing |
-| Multiple conflicting ffmpeg normalisation commands | Single chosen approach: `highpass=f=80` + `loudnorm` (EBU R128). No alternatives left in spec |
-| "Supabase Edge can shell out" | Corrected: Deno edge functions cannot run native binaries. Primary approach is ffmpeg.wasm; fallback is external worker service |
-| Fallback "wrap PCM in FLAC headers" claimed as trivial | Removed. Fallback is honest: client resamples via OfflineAudioContext, uploads WAV/PCM, server forwards as WAV if transcoding is unavailable |
-| No instruction to protect mobile capture codec | Added explicit rule: never force WAV or any uncompressed codec on mobile MediaRecorder |
+| Clarification | Resolution |
+|---|---|
+| Is merge truly 3-engine? | **No, currently 2-engine only.** The `Engine` type is `'assembly' \| 'whisper'` and `consolidate-meeting-chunks` only queries `meeting_transcription_chunks`. Deepgram data lives in a separate `deepgram_transcriptions` table and is never fed to the merger. This plan upgrades the merger to 3 engines by adding `'deepgram'` to the Engine type and fetching Deepgram chunks into the merge pipeline. |
+| DB constraint values | Current constraint is `('whisper','assembly','consolidated')`. Plan adds `'deepgram'` and `'best_of_all'` -- full set: `('whisper','assembly','deepgram','consolidated','best_of_all')` |
+| When to set `best_of_all` source | Only when `dedupTranscript` is non-empty AND at least 2 sources contributed chunks. Otherwise keep prior `primary_transcript_source` value but still store `best_of_all_transcript` if generated. |
+| Downstream defaults | `meeting-qa-chat`, `auto-generate-meeting-notes`, and the UI's `handleRegenerateFromTranscript` / `saveNotesTranscriptSource` all updated to prefer `best_of_all_transcript` when it exists. |
 
-## Current State (What Exists)
+## Database Changes
 
-| Component | Current Behaviour | Changes? |
-|-----------|-------------------|----------|
-| `audioTranscoder.ts` | Resamples to 16 kHz mono, encodes as 16-bit PCM WAV (manual RIFF header writer) | Remove WAV encoder entirely |
-| `audioSilenceTrimmer.ts` | Trims silence, re-encodes to WAV via duplicate WAV encoder | Remove duplicate WAV encoder |
-| `MeetingRecorder.tsx` | Only path that calls `transcodeToWhisperFormat()` before upload | Remove client-side transcode call |
-| `DesktopWhisperTranscriber.ts` | Sends raw WebM/Opus (128 kbps) directly | No change -- already correct |
-| `WhisperTranscriber.ts` | Sends raw WebM/Opus directly | No change -- already correct |
-| `SimpleIOSTranscriber.ts` | Sends raw M4A/MP4 directly (20s rotation) | No change -- already correct |
-| `WhisperBatchTranscriber.ts` | Sends raw WebM directly | No change -- already correct |
-| `speech-to-text/index.ts` | Accepts base64 audio, forwards to OpenAI `whisper-1` as-is | Add server-side transcode step |
-| `speech-to-text-chunked/index.ts` | Accepts FormData blob, forwards to OpenAI `whisper-1` as-is | Add server-side transcode step |
-| `process-meeting-audio/index.ts` | Forces `.webm` extension on everything, forwards to OpenAI | Add server-side transcode step, remove forced `.webm` |
-| `standalone-whisper/index.ts` | Trial-and-error format loop (tries mp4, mp3, wav, webm, ogg) | Replace with single FLAC path via transcode |
+Migration SQL:
 
-Key insight: Four of five transcribers already upload native format without any client-side transcoding. Only `MeetingRecorder.tsx` transcodes to WAV. The plan removes that one WAV path and adds server-side standardisation to all edge functions.
+```sql
+-- Add columns for canonical transcript and audit log
+ALTER TABLE public.meetings
+  ADD COLUMN IF NOT EXISTS best_of_all_transcript text,
+  ADD COLUMN IF NOT EXISTS merge_decision_log jsonb;
 
-## Architecture
+-- Update CHECK constraint to include deepgram and best_of_all
+ALTER TABLE public.meetings
+  DROP CONSTRAINT IF EXISTS meetings_primary_transcript_source_check;
 
-```text
-BEFORE                                        AFTER
-======                                        =====
-Browser                                       Browser
-  |                                             |
-  +-- MeetingRecorder: transcode to WAV -->     +-- All paths: upload native format
-  +-- Desktop: raw WebM/Opus ------------>        (WebM/Opus or M4A/AAC)
-  +-- iOS: raw M4A/AAC ----------------->         |
-  +-- Whisper: raw WebM ----------------->        v
-  +-- Batch: raw WebM ----------------->      Edge Function receives blob
-  |                                             |
-  v                                             v
-Edge Function                               transcode-audio (ffmpeg.wasm)
-  |                                             |-- highpass=f=80
-  v                                             |-- loudnorm (EBU R128)
-Forward to OpenAI as-is                         |-- resample 16kHz mono
-(inconsistent formats)                          |-- encode FLAC 16-bit
-                                                |-- NO noise suppression
-                                                |
-                                                v
-                                            FLAC blob (~300-500KB per 25s)
-                                                |
-                                                v
-                                            Forward to ASR provider
-                                            (OpenAI / Deepgram / AssemblyAI)
+ALTER TABLE public.meetings
+  ADD CONSTRAINT meetings_primary_transcript_source_check
+  CHECK (primary_transcript_source IS NULL OR primary_transcript_source = ANY(
+    ARRAY['whisper','assembly','deepgram','consolidated','best_of_all']
+  ));
 ```
 
-## What Changes
+## File 1: `src/utils/postMergeDedup.ts` (New, ~280 lines)
 
-### 1. New Edge Function: `transcode-audio`
+Self-contained, no external dependencies. Exports `postMergeDedup()` plus types (`DedupDecision`, `PostMergeDedupResult`).
 
-A server-side transcoding service that accepts any audio format and returns FLAC 16 kHz mono 16-bit.
+### Algorithm
 
-**Single ffmpeg command (no competing alternatives)**:
-```text
-ffmpeg -i input \
-  -af "highpass=f=80,loudnorm=I=-16:TP=-1.5:LRA=11" \
-  -ar 16000 -ac 1 -c:a flac -sample_fmt s16 \
-  output.flac
+**Step 0 -- Normalise** (comparison only; output preserves original):
+- Lowercase, collapse whitespace, strip punctuation (keep letters/digits)
+- Mask numbers with `<NUM>` for similarity (prevents "same sentence, different number" being treated as different)
+- Tokenise on spaces
+- Store per segment: `raw`, `normTokens`, `normString`
+
+**Step 1 -- Nearby comparison:**
+- Compare `S[i]` to `S[i-1]` (previous kept) and `S[i-2]` (A-B-A detection)
+
+**Step 2 -- Two deterministic tests:**
+- Token Jaccard: `J = |intersection| / |union|`
+- Substring containment: `C = max(len(a)/len(b) if a in b, len(b)/len(a) if b in a)`
+
+**Step 3 -- Drop rules (checked in order):**
+
+| Rule | Condition | Action | Code |
+|---|---|---|---|
+| 1 | `(J >= 0.82 AND min(tokenCount) >= 12)` OR `C >= 0.90` | Drop S[i] | `DUP_NEAR_EXACT` |
+| 2 | Last N tokens of S[i-1] == first N tokens of S[i], N from 20 down to 8 | Trim N tokens from start of S[i] | `DUP_BOUNDARY_OVERLAP` |
+| 3 | `J(S[i], S[i-2]) >= 0.82 AND tokenCount >= 12` | Drop S[i] | `DUP_ABA_REPEAT` |
+
+**Step 4 -- Safety guards:**
+Before any DROP, check if newer segment contains critical tokens absent from previous kept:
+- Digits (`999`, `15`, `58`, `3.5`)
+- Medication patterns (`mg`, `mcg`, `ml`, `od`, `bd`, `tds`, `prn`, `qds`)
+- Pathway keywords (`2ww`, `urgent`, `cardiology`, `ecg`, `troponin`, `chest pain pathway`)
+- Safeguarding phrases (`harm`, `suicide`, `999`, `a&e`, `emergency`, `ambulance`, `safeguarding`)
+
+If new critical tokens exist: block DROP, prefer Rule 2 trim instead. Log `DEDUP_BLOCKED_CRITICAL_NEW_INFO`.
+
+**Returns:** `{ segments: string[], decisions: DedupDecision[], stats: { inputCount, outputCount, dropped, trimmed, blockedByGuard } }`
+
+## File 2: `src/utils/BestOfBothMerger.ts` (Modify)
+
+### Changes
+
+1. **Extend `Engine` type** from `'assembly' | 'whisper'` to `'assembly' | 'whisper' | 'deepgram'`
+
+2. **Update `normaliseConfidence`** -- add `if (engine === 'deepgram')` branch: use provided confidence (Deepgram reports real confidence values), default to 0.75 if missing
+
+3. **Update `chooseWinner`** -- generalise the engine-preference logic:
+   - Currently hardcoded as assembly-first vs whisper
+   - Change to: rank engines by tier (assembly = tier 1, deepgram = tier 1, whisper = tier 2)
+   - Within same tier: use score
+   - Cross-tier: lower-tier engine needs `strongConfMargin` to override higher-tier
+   - This ensures Deepgram is treated as a peer to AssemblyAI (both are live engines), and batch (whisper) can still override when meaningfully better
+
+4. **Extend `MergeResult.stats`** with dedup fields:
+   ```
+   deepgramChunks: number
+   dedupInputCount: number
+   dedupOutputCount: number
+   dedupDropped: number
+   dedupTrimmed: number
+   dedupBlockedByGuard: number
+   ```
+
+5. **Add `dedupDecisions` field** to `MergeResult`
+
+6. **Rename `mergeBestOfBoth` to `mergeBestOfAll`** (keep `mergeBestOfBoth` as a wrapper that calls `mergeBestOfAll` with empty deepgram array, for backwards compatibility)
+
+7. **New function signature:**
+   ```
+   mergeBestOfAll(
+     whisperRaw: RawChunk[],
+     assemblyRaw: RawChunk[],
+     deepgramRaw: RawChunk[],
+     cfg: MergeConfig
+   ): MergeResult
+   ```
+
+8. **Integrate dedup** after line 359 (sort kept) and **before** `postProcessTranscript`:
+   ```
+   const dedupResult = postMergeDedup(kept.map(k => k.text));
+   const transcript = postProcessTranscript(dedupResult.segments.join(' '));
+   ```
+   Key: dedup runs on raw segment text **before** sentence reflow.
+
+9. **Update `dbChunksToRawChunks`** to recognise `source === 'deepgram'` and route to a `deepgram` array in the return value.
+
+## File 3: `supabase/functions/consolidate-meeting-chunks/index.ts` (Modify)
+
+### Changes
+
+1. **Update `Engine` type** to include `'deepgram'`
+
+2. **Update `normaliseConfidence`** for deepgram engine
+
+3. **Update `chooseWinner`** with same tier-based logic as client-side
+
+4. **Rename `mergeBestOfBoth` to `mergeBestOfAll`** internally (accept 3 arrays)
+
+5. **Fetch Deepgram chunks** from `deepgram_transcriptions` table:
+   ```
+   const { data: deepgramChunks } = await supabase
+     .from('deepgram_transcriptions')
+     .select('chunk_number, transcription_text, confidence, is_final')
+     .eq('meeting_id', meetingId)
+     .eq('is_final', true)
+     .order('chunk_number');
+   ```
+   Map to `RawChunk[]` with `engine: 'deepgram'`.
+
+6. **Inline `postMergeDedup` algorithm** (Deno cannot import from `src/`). ~200 lines of pure logic placed before the merge function.
+
+7. **Call dedup** after merge, before best-transcript comparison:
+   ```
+   const dedupResult = postMergeDedup(mergeResult.kept.map(k => k.text));
+   const dedupTranscript = postProcessTranscript(dedupResult.segments.join(' '));
+   mergeResult.transcript = dedupTranscript;
+   ```
+
+8. **Update `updatePayload`:**
+   ```
+   best_of_all_transcript: dedupTranscript,
+   merge_decision_log: {
+     decisions: dedupResult.decisions,
+     stats: dedupResult.stats,
+     mergeStats: mergeResult.stats,
+     generatedAt: new Date().toISOString()
+   }
+   ```
+   Only set `primary_transcript_source: 'best_of_all'` when `dedupTranscript` is non-empty AND at least 2 distinct engine types contributed kept segments. Otherwise keep prior value.
+
+9. **Build Deepgram-only transcript** for the Deepgram tab (same pattern as existing assembly-only and whisper-only transcript builders at lines 560-584).
+
+10. **Include dedup stats** in the JSON response.
+
+## File 4: `supabase/functions/meeting-qa-chat/index.ts` (Modify)
+
+### Changes
+
+1. **Add `best_of_all_transcript`** to the select query (line 87):
+   ```
+   .select('id, title, assembly_transcript_text, whisper_transcript_text, best_of_all_transcript, primary_transcript_source, ...')
+   ```
+
+2. **Update transcript selection** (lines 101-104):
+   ```
+   const transcript = meeting.best_of_all_transcript
+     || (meeting.primary_transcript_source === 'assembly'
+       ? meeting.assembly_transcript_text
+       : meeting.whisper_transcript_text || meeting.assembly_transcript_text);
+   ```
+   Best of All is always preferred when it exists.
+
+## File 5: `supabase/functions/auto-generate-meeting-notes/index.ts` (Modify)
+
+### Changes
+
+1. **Add `'best_of_all'` as a recognised `transcriptSource` value**
+
+2. **Add new branch** before the existing `consolidated` check (line 254):
+   ```
+   if (transcriptSource === 'best_of_all') {
+     const { data: meetingTranscript } = await supabase
+       .from('meetings')
+       .select('best_of_all_transcript')
+       .eq('id', meetingId)
+       .single();
+
+     fullTranscript = meetingTranscript?.best_of_all_transcript || '';
+     actualTranscriptSource = 'best_of_all';
+
+     // Fallback to consolidated if best_of_all is empty
+     if (!fullTranscript.trim()) {
+       // fall through to consolidated logic
+     }
+   }
+   ```
+
+3. **Update auto mode** (the `else` block at ~line 393) to check `best_of_all_transcript` first before calling the RPC.
+
+## File 6: `src/components/SafeModeNotesModal.tsx` (Modify)
+
+### State changes
+
+1. Add `bestOfAllTranscript` state:
+   ```
+   const [bestOfAllTranscript, setBestOfAllTranscript] = useState('');
+   ```
+
+2. Update `transcriptSubTab` type:
+   ```
+   const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live' | 'deepgram' | 'best_of_all'>('batch');
+   ```
+
+3. Update `notesTranscriptSource` type:
+   ```
+   const [notesTranscriptSource, setNotesTranscriptSource] = useState<'batch' | 'live' | 'consolidated' | 'best_of_all'>('batch');
+   ```
+
+### Data loading (`loadTranscript`, ~line 990)
+
+Add `best_of_all_transcript` to the select query:
+```
+.select('live_transcript_text, whisper_transcript_text, assembly_transcript_text, best_of_all_transcript')
+```
+Set `setBestOfAllTranscript(meetingData?.best_of_all_transcript || '')`.
+
+### Auto-source selection (~line 1136)
+
+Update priority order:
+```
+Best of All (if available) --> Consolidated --> Batch --> Live
+```
+If `bestOfAllTranscript` is non-empty, auto-select `'best_of_all'` as the notes source and set the transcript sub-tab to `'best_of_all'`.
+
+### `saveNotesTranscriptSource` (~line 280)
+
+Add mapping for `'best_of_all'`:
+```
+const dbSource = source === 'best_of_all' ? 'best_of_all'
+  : source === 'batch' ? 'whisper'
+  : source === 'live' ? 'assembly'
+  : 'consolidated';
 ```
 
-This uses EBU R128 loudness normalisation (`loudnorm`), which is:
-- Consistent across recordings (targets -16 LUFS)
-- Prevents clipping (true peak limited to -1.5 dBFS)
-- Better than simple peak normalisation for speech (handles varying speaker volumes)
-- A single, well-defined filter chain with no ambiguity
+### `handleRegenerateFromTranscript` (~line 301)
 
-**No noise suppression** is applied -- ASR models handle this better natively.
+Add `best_of_all` mapping:
+```
+transcriptSource: notesTranscriptSource === 'best_of_all'
+  ? 'best_of_all'
+  : notesTranscriptSource === 'consolidated'
+    ? 'consolidated'
+    : ...
+```
 
-**Runtime environment**:
-- Primary: ffmpeg.wasm compiled for Deno (if performance and memory permit within edge function limits)
-- Preferred fallback: A small dedicated transcoding worker (Cloud Run, Fly.io, or Lambda) called by the edge function via HTTP
-- Last resort: Client does lightweight resample to 16 kHz mono via `OfflineAudioContext`, uploads as WAV/PCM; server forwards as WAV without FLAC conversion (larger files but still functional)
+Update the regeneration overlay label (~line 3987) to include `'Best of All (3)'`.
 
-The function accepts audio as either base64 JSON body or FormData blob, and returns the transcoded FLAC as a binary response or base64 JSON.
+### Transcript sub-tabs UI (~line 3717)
 
-### 2. Remove Client-Side WAV Encoding
+Add a "Best of All (3)" tab button after the Deepgram button, styled with a gradient when active. Includes:
+- Word count badge
+- Copy button
+- Tooltip: "Merged from AssemblyAI, Deepgram and batch transcription with deterministic de-duplication"
 
-**`src/utils/audioTranscoder.ts`**:
-- Remove `audioBufferToWav()` function entirely (the manual RIFF header writer at lines 93-143)
-- Remove `writeString()` helper (lines 145-149)
-- Simplify `transcodeToWhisperFormat()` to return the original blob unchanged (pass-through)
-- Update `shouldTranscode()` to always return `false` (client no longer transcodes)
-- Mark the file as deprecated with comments pointing to server-side `transcode-audio`
-- Update `TranscodeOptions` type to remove `format` field
+### Notes source selector (~line 3859)
 
-**`src/utils/audioSilenceTrimmer.ts`**:
-- Remove the duplicate WAV encoder (`audioBufferToBlob()`)
-- Keep the silence detection/trimming logic (still useful for filtering silent chunks before upload)
-- Change `trimSilence()` to return the original blob after trimming, in its native format, without re-encoding to WAV
+Add a "Best of All" option after the existing "Best of Both" button. Disabled when `bestOfAllTranscript` is empty. Tooltip explains it is the canonical transcript.
 
-**CRITICAL RULE**: Do not force `audio/wav` or any uncompressed codec on mobile `MediaRecorder`. The capture codec must remain the browser's native format (WebM/Opus or M4A/AAC).
+### Transcript content rendering (~line 4099)
 
-### 3. Simplify Client Upload Paths
+Add a `best_of_all` view block (after the Deepgram view, before the closing `</>` at line 4100):
+- Read-only (no inline editing)
+- Info banner: "Merged from AssemblyAI, Deepgram and batch transcription with deterministic de-duplication. This is the canonical transcript used for notes, Ask AI, and exports."
+- Supports both plain and formatted view modes
+- Empty state with explanation when not available
 
-**`MeetingRecorder.tsx`** (the only transcriber that currently transcodes):
-- Remove the `transcodeToWhisperFormat()` call (lines ~1542-1549)
-- Send the silence-trimmed blob directly in its native format
-- Update chunk durations: first chunk 20s, subsequent chunks 25s
+### Find & Replace panel (~line 3934)
 
-**Other transcribers** (no changes needed -- they already upload native format):
-- `DesktopWhisperTranscriber.ts`: Already sends raw WebM/Opus at 128 kbps
-- `WhisperTranscriber.ts`: Already sends raw WebM/Opus
-- `SimpleIOSTranscriber.ts`: Already sends raw M4A/AAC with 20s rotation
-- `WhisperBatchTranscriber.ts`: Already sends raw WebM
+Update `getCurrentText` to handle `best_of_all` sub-tab (read-only, so no `onApply` needed -- or disable Find & Replace when this tab is active since it is read-only).
 
-### 4. Update Chunking Configuration
+### Export content (~line 1232)
 
-**`src/config/whisperChunking.ts`**:
-- `chunkDurationMs`: 15000 to 25000 (25 seconds)
-- `overlapMs`: 1000 to 2500 (2.5 seconds)
-- `accumulateUntilMs`: 15000 to 25000
+When `activeTab === 'notes'`, the export uses `notesContent` (unchanged). When `activeTab === 'transcript'`, update to prefer `bestOfAllTranscript` when the Best of All tab is selected.
 
-**`MeetingRecorder.tsx`**:
-- First chunk duration: 10s to 20s
-- Subsequent chunk duration: 30s to 25s
+## Files Summary
 
-Other transcribers already use appropriate durations within the 20-30s guidance.
-
-### 5. Update STT Edge Functions to Transcode Before ASR
-
-Each batch transcription edge function will call the `transcode-audio` service before forwarding to the ASR provider. The transcode call is an internal function-to-function invocation.
-
-**`speech-to-text/index.ts`** (base64 path, used by MeetingRecorder and DesktopWhisperTranscriber):
-- After receiving the base64 audio and decoding to bytes, invoke `transcode-audio` to get FLAC
-- Forward the FLAC blob to OpenAI instead of the raw format
-- Add FLAC to the MIME type mapping: `'audio/flac' -> 'flac'`
-- Remove the WAV default fallback (line 55: `let detectedMimeType = mimeType || 'audio/wav'` becomes `'audio/webm'`)
-
-**`speech-to-text-chunked/index.ts`** (FormData path, used by WhisperTranscriber and SimpleIOSTranscriber):
-- After receiving the FormData blob, invoke `transcode-audio`
-- Forward FLAC to OpenAI
-- Add `'audio/flac' -> 'flac'` to file extension detection (after line 125)
-- No other structural changes -- the retry logic and response parsing remain the same
-
-**`process-meeting-audio/index.ts`** (FormData path):
-- After receiving the file, invoke `transcode-audio`
-- Remove the forced `.webm` extension logic (lines 61-64 and line 81)
-- Forward FLAC to OpenAI
-- Remove the hardcoded `audio/webm` type override
-
-**`standalone-whisper/index.ts`** (base64 path, batch fallback):
-- After receiving the base64 audio, invoke `transcode-audio`
-- Remove the entire multi-format trial loop (lines 62-119) -- no longer needed
-- Forward single FLAC blob to OpenAI
-- Significantly simplifies this function
-
-### 6. Minimum Capture Bitrate Guidance
-
-Current settings are already adequate:
-
-| Platform | Format | Current Bitrate | Minimum for Accuracy |
-|----------|--------|-----------------|---------------------|
-| Desktop/Android | WebM/Opus | 128 kbps | 48 kbps (32 kbps absolute minimum) |
-| iOS | M4A/AAC | iOS default (~64-128 kbps) | 64 kbps |
-
-No code changes needed. Current capture quality is well above minimum thresholds.
-
-### 7. File Size Safety Check
-
-Add a pre-upload size check in the `transcode-audio` function:
-- Warn in logs if input exceeds 20 MB
-- Reject with 413 if input exceeds 24 MB
-- At typical capture bitrates, a 25-second chunk is 150-400 KB -- well under the limit
-- This is purely a safety net for edge cases
-
-## Technical Details
-
-### Files to Create
+### Create
 
 | File | Purpose |
-|------|---------|
-| `supabase/functions/transcode-audio/index.ts` | Server-side ffmpeg transcoding to FLAC 16 kHz mono 16-bit with highpass and loudnorm |
+|---|---|
+| `src/utils/postMergeDedup.ts` | Deterministic post-merge dedup with normalisation, 3 rules, safety guards, decision logging |
 
-### Files to Modify
+### Modify
 
 | File | Change |
-|------|--------|
-| `src/utils/audioTranscoder.ts` | Remove WAV encoder, simplify to pass-through, deprecate |
-| `src/utils/audioSilenceTrimmer.ts` | Remove duplicate WAV encoder, keep silence detection, return native format |
-| `src/config/whisperChunking.ts` | Update `chunkDurationMs` to 25000, `overlapMs` to 2500, `accumulateUntilMs` to 25000 |
-| `src/components/MeetingRecorder.tsx` | Remove `transcodeToWhisperFormat()` call, update chunk durations (20s first, 25s subsequent) |
-| `supabase/functions/speech-to-text/index.ts` | Add transcode-audio call before OpenAI, add FLAC MIME support, remove WAV default |
-| `supabase/functions/speech-to-text-chunked/index.ts` | Add transcode-audio call before OpenAI, add FLAC extension mapping |
-| `supabase/functions/process-meeting-audio/index.ts` | Add transcode-audio call, remove forced `.webm` extension and type override |
-| `supabase/functions/standalone-whisper/index.ts` | Add transcode-audio call, remove multi-format trial loop entirely |
-| `supabase/config.toml` | Register `transcode-audio` function with `verify_jwt = false` (internal use) |
+|---|---|
+| `src/utils/BestOfBothMerger.ts` | Add `deepgram` engine, rename to `mergeBestOfAll` (keep `mergeBestOfBoth` wrapper), integrate dedup, persist stats |
+| `supabase/functions/consolidate-meeting-chunks/index.ts` | Fetch Deepgram chunks, 3-engine merge, inline dedup, persist `best_of_all_transcript` + `merge_decision_log`, conditional `primary_transcript_source` |
+| `supabase/functions/meeting-qa-chat/index.ts` | Prefer `best_of_all_transcript` for Ask AI context |
+| `supabase/functions/auto-generate-meeting-notes/index.ts` | Add `best_of_all` transcript source branch, update auto mode to check it first |
+| `src/components/SafeModeNotesModal.tsx` | New state, load `best_of_all_transcript`, new tab, updated auto-selection, updated notes source selector, downstream defaults |
 
-### Size Comparison (25-second speech chunk)
+### Database Migration
+
+Add `best_of_all_transcript` (text), `merge_decision_log` (jsonb), update `primary_transcript_source` CHECK constraint to include `'deepgram'` and `'best_of_all'`.
+
+## Pipeline After Implementation
 
 ```text
-Format              Approx Size   Role
-WebM/Opus (48kbps)  ~150 KB       Client upload (desktop/Android)
-M4A/AAC (64kbps)    ~200 KB       Client upload (iOS)
-WAV 16kHz mono      ~800 KB       ELIMINATED (was only used by MeetingRecorder)
-FLAC 16kHz mono     ~300-500 KB   Server intermediate (canonical format for all ASR)
+Raw engines:
+  Batch (OpenAI gpt-4o-transcribe)
+  Live (AssemblyAI)
+  Live (Deepgram Nova-3)
+      |
+      v
+  3-engine winner selection (mergeBestOfAll)
+      |
+      v
+  Post-merge deterministic dedup (postMergeDedup)
+  -- Rule 1: near-exact (Jaccard >= 0.82 or containment >= 0.90)
+  -- Rule 2: boundary overlap trim (8-20 tokens)
+  -- Rule 3: A-B-A repeat
+  -- Safety guard: critical token protection
+      |
+      v
+  Persist:
+  -- best_of_all_transcript (canonical)
+  -- merge_decision_log (audit: decisions + stats)
+  -- primary_transcript_source = 'best_of_all' (when multi-source)
+      |
+      v
+  "Best of All (3)" tab (read-only, canonical)
+      |
+      v
+  Notes generation / Ask AI / PDF & Word exports
+  (all default to best_of_all_transcript when available)
 ```
 
-The client uploads are already small (150-200 KB). The FLAC intermediate (300-500 KB) is larger than the compressed upload but ensures consistent, lossless-from-the-resample-point input to all ASR engines. The WAV path (800 KB) is eliminated entirely.
+## Implementation Order
 
-### Implementation Order
-
-1. Create `transcode-audio` edge function with ffmpeg.wasm (or identify fallback approach if WASM is too heavy)
-2. Test `transcode-audio` with sample WebM and M4A inputs to verify FLAC output quality
-3. Register in `supabase/config.toml` and deploy
-4. Update `speech-to-text-chunked` to call `transcode-audio` (most frequently used path -- test first)
-5. Update remaining edge functions (`speech-to-text`, `process-meeting-audio`, `standalone-whisper`)
-6. Remove client-side WAV encoding from `audioTranscoder.ts` and `audioSilenceTrimmer.ts`
-7. Remove `transcodeToWhisperFormat()` call from `MeetingRecorder.tsx`
-8. Update chunking config (`whisperChunking.ts`)
-9. Deploy all edge functions and verify with real recordings on desktop, Android, and iOS
-
-### Risk: ffmpeg.wasm in Supabase Edge Functions
-
-Supabase Edge Functions run on Deno with constrained memory and no native binary access. ffmpeg.wasm may be too large or too slow for the edge function environment.
-
-**Mitigation strategy** (in priority order):
-
-1. **ffmpeg.wasm**: Test first. If it loads within Deno's memory limits and transcodes a 25-second chunk in under 5 seconds, use it
-2. **External transcoding worker**: Deploy a lightweight Cloud Run / Fly.io / Lambda service that runs native ffmpeg. The edge function calls it via HTTP, passing the audio blob, and receives FLAC back. Adds ~1-2s network latency but is reliable and well-tested
-3. **Client resample + server forwards WAV**: If neither server-side option works, the client continues to resample to 16 kHz mono via `OfflineAudioContext` and uploads as WAV/PCM. The server forwards WAV directly to ASR without FLAC conversion. This is the least preferred option as it keeps larger file sizes and more client CPU usage, but it works
-
-The implementation should start with option 1 and have option 2 ready as an immediate fallback. Option 3 is the "nothing changes" safety net.
+1. Database migration (add columns, update constraint)
+2. Create `src/utils/postMergeDedup.ts`
+3. Update `src/utils/BestOfBothMerger.ts` (3-engine support + dedup integration)
+4. Update `supabase/functions/consolidate-meeting-chunks/index.ts` (Deepgram fetch, 3-engine merge, inlined dedup, persist canonical)
+5. Update `supabase/functions/meeting-qa-chat/index.ts` (prefer best_of_all)
+6. Update `supabase/functions/auto-generate-meeting-notes/index.ts` (best_of_all source branch)
+7. Update `src/components/SafeModeNotesModal.tsx` (new tab, state, auto-selection, downstream defaults)
+8. Deploy edge functions and test
 
