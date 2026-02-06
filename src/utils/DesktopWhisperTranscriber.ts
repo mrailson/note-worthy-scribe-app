@@ -61,8 +61,8 @@ export class DesktopWhisperTranscriber {
   private isSpeaking = false;
   private chunkStartTime = 0;
   private readonly SILENCE_THRESHOLD = 0.015; // RMS threshold for speech detection
-  private readonly SILENCE_DURATION_MS = 1500; // 1.5 seconds of silence triggers flush
-  private readonly MIN_CHUNK_DURATION_MS = 2000; // Minimum 2 seconds before flushing
+  private readonly SILENCE_DURATION_MS = 5000; // 5 seconds of silence triggers flush
+  private readonly MIN_CHUNK_DURATION_MS = 60000; // Minimum 60s before silence-based flushing (Option A: 90s chunks)
   
   // Extended silence detection for auto-stop (20 minutes of no speech activity)
   private readonly SILENCE_AUTO_STOP_MS = 20 * 60 * 1000; // 20 minutes
