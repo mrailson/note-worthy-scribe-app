@@ -319,19 +319,9 @@ export const useGammaPowerPoint = () => {
       throw new Error('No download URL or file data received from Gamma');
     } catch (error) {
       console.error('Gamma generation failed:', error);
-      toast.error('Gamma generation failed, using local generator...');
-      
-      // Fallback to local generation
-      try {
-        const { generatePowerPoint } = await import('@/utils/documentGenerators');
-        await generatePowerPoint(content, title);
-        toast.success('Presentation downloaded (local fallback)');
-        return { success: true, title: title || 'Presentation' };
-      } catch (fallbackError) {
-        console.error('Fallback generation also failed:', fallbackError);
-        toast.error('Failed to generate presentation');
-        return { success: false, error: 'Generation failed' };
-      }
+      const errorMessage = error instanceof Error ? error.message : 'Gamma generation failed';
+      toast.error(`Gamma generation failed: ${errorMessage}`);
+      return { success: false, error: errorMessage };
     } finally {
       setIsGenerating(false);
     }
