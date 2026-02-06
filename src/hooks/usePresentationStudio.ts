@@ -62,6 +62,7 @@ const DEFAULT_SETTINGS: PresentationStudioSettings = {
   includeSpeakerNotes: true,
   includeVoiceover: false,
   voiceId: 'JBFqnCBsd6RMkjVDRZzb', // George - British Male Professional
+  customInstructions: '',
 };
 
 export function usePresentationStudio() {
@@ -293,6 +294,7 @@ export function usePresentationStudio() {
             type: d.type,
           })),
         isStudioRequest: true,
+        customInstructions: settings.customInstructions?.trim() || undefined,
       };
 
       setPhase('generating-content', 30);

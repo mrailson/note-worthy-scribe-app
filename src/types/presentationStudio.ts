@@ -78,7 +78,7 @@ export const SLIDE_COUNT_PRESETS = [
   { label: 'Quick (5-6)', min: 5, max: 6, description: 'Brief overview' },
   { label: 'Standard (8-10)', min: 8, max: 10, description: 'Typical presentation' },
   { label: 'Comprehensive (12-15)', min: 12, max: 15, description: 'Detailed coverage' },
-  { label: 'Custom', min: 3, max: 20, description: 'Choose your own' },
+  { label: 'Custom', min: 3, max: 30, description: 'Choose your own' },
 ] as const;
 
 // Type IDs
@@ -141,6 +141,7 @@ export interface PresentationStudioSettings {
   includeSpeakerNotes: boolean;
   includeVoiceover: boolean;
   voiceId: string;
+  customInstructions: string;
 }
 
 // Generation Progress Phase
@@ -230,4 +231,5 @@ export interface PresentationStudioRequest {
     type: string;
   }[];
   isStudioRequest: true;
+  customInstructions?: string;
 }

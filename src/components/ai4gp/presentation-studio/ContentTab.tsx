@@ -1,12 +1,13 @@
 import React, { useCallback, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, X, FileText, Upload, FileSpreadsheet, File, Trash2, Check, ChevronDown, Loader2, Paperclip, Users, BarChart3 } from 'lucide-react';
+import { Plus, X, FileText, Upload, FileSpreadsheet, File, Trash2, Check, ChevronDown, Loader2, Paperclip, Users, BarChart3, MessageSquare } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -445,6 +446,24 @@ export const ContentTab: React.FC<ContentTabProps> = ({
             </div>
           </ScrollArea>
         )}
+      </div>
+
+      {/* Custom Instructions */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <MessageSquare className="h-4 w-4" />
+          Custom Instructions (optional)
+        </Label>
+        <Textarea
+          placeholder="e.g., Focus on cost savings in Q3, include comparison with last year's figures, use simple language suitable for non-clinical staff..."
+          value={settings.customInstructions || ''}
+          onChange={(e) => onUpdate({ customInstructions: e.target.value })}
+          rows={3}
+          className="resize-none"
+        />
+        <p className="text-xs text-muted-foreground">
+          Add specific instructions to guide how your presentation is generated. These will be combined with your supporting materials.
+        </p>
       </div>
 
       {/* Key Points */}
