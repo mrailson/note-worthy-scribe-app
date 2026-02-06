@@ -1021,6 +1021,24 @@ serve(async (req) => {
     const isMultiSource = distinctEngines.size >= 2;
     const dedupTranscriptNonEmpty = mergeResult.transcript.trim().length > 0;
 
+    // Final paragraph-level dedup on bestTranscript (covers fallback paths)
+    const bestTranscriptDedup = cleanWhisperTranscriptInline(bestTranscript);
+    if (bestTranscriptDedup.paragraphsDropped > 0 || bestTranscriptDedup.overlapsTrimmed > 0) {
+      console.log(`[BestTranscriptDedup] ${bestTranscriptDedup.paragraphsDropped} paragraphs dropped, ${bestTranscriptDedup.overlapsTrimmed} overlaps trimmed`);
+      bestTranscript = bestTranscriptDedup.text;
+      bestWordCount = bestTranscript.split(/\s+/).filter(w => w.length > 0).length;
+    }
+
+    // Safety dedup on best_of_all_transcript before storage
+    let bestOfAllText = mergeResult.transcript;
+    if (dedupTranscriptNonEmpty) {
+      const boaDedup = cleanWhisperTranscriptInline(bestOfAllText);
+      if (boaDedup.paragraphsDropped > 0 || boaDedup.overlapsTrimmed > 0) {
+        console.log(`[BestOfAllDedup] ${boaDedup.paragraphsDropped} paragraphs dropped, ${boaDedup.overlapsTrimmed} overlaps trimmed`);
+        bestOfAllText = boaDedup.text;
+      }
+    }
+
     // Update the meeting with the best transcript AND per-source transcripts
     const updatePayload: Record<string, any> = {
       live_transcript_text: bestTranscript,
@@ -1028,7 +1046,7 @@ serve(async (req) => {
       primary_transcript_source: bestSource,
       updated_at: new Date().toISOString(),
       // Always store best_of_all_transcript if we have it
-      best_of_all_transcript: dedupTranscriptNonEmpty ? mergeResult.transcript : null,
+      best_of_all_transcript: dedupTranscriptNonEmpty ? bestOfAllText : null,
       // Store merge decision log with Whisper clean diagnostics
       merge_decision_log: {
         decisions: mergeResult.dedupDecisions?.slice(0, 100),
