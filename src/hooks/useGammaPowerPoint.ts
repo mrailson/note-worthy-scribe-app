@@ -168,7 +168,8 @@ export const useGammaPowerPoint = () => {
         supportingContent,
         slideCount: validSlideCount,
         presentationType: 'Professional Healthcare Presentation',
-        audience: 'healthcare professionals'
+        audience: 'healthcare professionals',
+        includeSpeakerNotes: true,
       };
 
       // Include theme settings

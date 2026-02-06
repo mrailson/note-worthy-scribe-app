@@ -121,6 +121,7 @@ serve(async (req) => {
       branding,
       fontStyle,
       supportingFiles,
+      includeSpeakerNotes = true,
     } = requestBody;
 
     // Handle supportingContent
@@ -192,8 +193,10 @@ serve(async (req) => {
     // Image requirements
     additionalInstructions += ` IMAGES: Every slide MUST include at least one relevant, high-quality image. Use photorealistic AI-generated images that relate to the slide topic. Do NOT leave any slide without a visual element. Use full-bleed or large images where appropriate to create visual impact.`;
 
-    // Speaker notes — use Gamma-native "notes" field, NOT visible card content
-    additionalInstructions += ` PRESENTER NOTES (MANDATORY): For every card, write detailed presenter notes and place them ONLY in the card's "notes" field (the hidden notes area visible in Presenter View). DO NOT add any section, heading, or text block labelled "Speaker Notes", "Presenter Notes", or "Notes" on the visible card content. The visible card must contain ONLY concise bullet points and images. The notes field should contain talking points, additional context, and background details written in full sentences using British English.`;
+    // Speaker notes — conditionally include based on request flag
+    if (includeSpeakerNotes) {
+      additionalInstructions += ` PRESENTER NOTES (MANDATORY): For every card, write detailed presenter notes and place them ONLY in the card's "notes" field (the hidden notes area visible in Presenter View). DO NOT add any section, heading, or text block labelled "Speaker Notes", "Presenter Notes", or "Notes" on the visible card content. The visible card must contain ONLY concise bullet points and images. The notes field should contain talking points, additional context, and background details written in full sentences using British English.`;
+    }
 
     additionalInstructions += ` CRITICAL DATA INTEGRITY RULES: 1) ONLY use statistics, percentages, numbers, dates, and metrics that are EXPLICITLY present in the provided content. 2) NEVER invent, estimate, or fabricate any numerical data, statistics, or percentages. 3) If specific data is not provided, use qualitative descriptions instead (e.g., "significant improvement" rather than inventing "87% improvement"). 4) Do not add example figures or placeholder statistics. 5) If the content lacks sufficient data for a metrics slide, use qualitative summary points instead. 6) All facts must come directly from the source content provided.`;
 
