@@ -1516,7 +1516,42 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       }),
     ];
 
-    transcriptChunks.forEach((chunk) => {
+    // Deduplicate chunks by (engine, normalised text) keeping the earliest start time
+    const normaliseForHash = (text: string): string =>
+      text.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+
+    const deduplicatedChunks = (() => {
+      const seen = new Map<string, any>();
+      for (const chunk of transcriptChunks) {
+        const normText = normaliseForHash(extractCleanChunkText(chunk));
+        if (!normText) continue;
+        const engine = (chunk.engine || chunk.transcription_engine || 'default').toLowerCase();
+        const key = `${engine}::${normText}`;
+        const existing = seen.get(key);
+        if (!existing) {
+          seen.set(key, chunk);
+        } else {
+          // Keep the one with the earliest start time
+          const { startMs: existingStart } = extractChunkTiming(existing);
+          const { startMs: currentStart } = extractChunkTiming(chunk);
+          if (currentStart < existingStart) {
+            seen.set(key, chunk);
+          }
+        }
+      }
+      // Preserve original order
+      return transcriptChunks.filter(c => {
+        const normText = normaliseForHash(extractCleanChunkText(c));
+        if (!normText) return false;
+        const engine = (c.engine || c.transcription_engine || 'default').toLowerCase();
+        const key = `${engine}::${normText}`;
+        return seen.get(key) === c;
+      });
+    })();
+
+    const duplicatesRemoved = transcriptChunks.length - deduplicatedChunks.length;
+
+    deduplicatedChunks.forEach((chunk) => {
       const chunkText = extractCleanChunkText(chunk);
       const wordCount = chunk.word_count || chunkText.split(/\s+/).filter(w => w.length > 0).length;
       const { startMs, endMs } = extractChunkTiming(chunk);
@@ -1541,21 +1576,21 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       );
     });
 
-    // Calculate totals
-    const totalWords = transcriptChunks.reduce((sum, c) => {
+    // Calculate totals (use deduplicated chunks)
+    const totalWords = deduplicatedChunks.reduce((sum, c) => {
       const text = extractCleanChunkText(c);
       return sum + text.split(/\s+/).filter(w => w.length > 0).length;
     }, 0);
-    const avgConfidence = transcriptChunks.length > 0 
-      ? transcriptChunks.reduce((sum, c) => sum + (c.confidence || 0), 0) / transcriptChunks.length 
+    const avgConfidence = deduplicatedChunks.length > 0 
+      ? deduplicatedChunks.reduce((sum, c) => sum + (c.confidence || 0), 0) / deduplicatedChunks.length 
       : 0;
     const transcriptWords = transcript.trim().split(/\s+/).filter(w => w.length > 0).length;
-    const mergedCount = transcriptChunks.filter(c => isChunkInTranscript(extractCleanChunkText(c))).length;
-    const missingCount = transcriptChunks.length - mergedCount;
+    const mergedCount = deduplicatedChunks.filter(c => isChunkInTranscript(extractCleanChunkText(c))).length;
+    const missingCount = deduplicatedChunks.length - mergedCount;
 
     // Calculate total recording duration in hours to determine acceptable missing threshold
     let totalDurationMs = 0;
-    transcriptChunks.forEach((chunk) => {
+    deduplicatedChunks.forEach((chunk) => {
       const { startMs, endMs } = extractChunkTiming(chunk);
       if (endMs > totalDurationMs) {
         totalDurationMs = endMs;
@@ -1687,7 +1722,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     docSections.push(
       new Paragraph({ text: '' }),
       new Paragraph({ text: 'Batch Processing Summary', heading: HeadingLevel.HEADING_2 }),
-      new Paragraph({ text: `Total Chunks: ${transcriptChunks.length}` }),
+      new Paragraph({ text: `Total Chunks: ${deduplicatedChunks.length}${duplicatesRemoved > 0 ? ` (${duplicatesRemoved} duplicates removed)` : ''}` }),
       new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
       new Paragraph({ text: `Net Words (merged transcript): ${transcriptWords}` }),
       new Paragraph({ text: `Words Filtered: ${totalWords - transcriptWords}` }),
@@ -1695,7 +1730,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       new Paragraph({ 
         children: [
           new TextRun({ 
-            text: `Chunks Merged: ${mergedCount}/${transcriptChunks.length}`,
+            text: `Chunks Merged: ${mergedCount}/${deduplicatedChunks.length}`,
             color: mergedTextColor,
             bold: true
           })
