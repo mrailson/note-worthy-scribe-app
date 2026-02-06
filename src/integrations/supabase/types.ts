@@ -10349,6 +10349,7 @@ export type Database = {
           created_at: string
           duration_minutes: number
           id: string
+          is_paused: boolean
           last_chunk_at: string
           status: string
           title: string
