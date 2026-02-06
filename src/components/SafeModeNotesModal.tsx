@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { dedupTranscriptText } from '@/lib/dedupTranscriptText';
 import wordIcon from '@/assets/word-icon.png';
 import { useTextSelection } from '@/hooks/useTextSelection';
 import { SelectionFindReplacePopup } from '@/components/SelectionFindReplacePopup';
@@ -1003,15 +1004,18 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
         .eq('id', meeting.id)
         .maybeSingle();
 
-      // Set Best of All transcript (stored canonical post-dedup result)
-      setBestOfAllTranscript((meetingData as any)?.best_of_all_transcript || '');
+      // Set Best of All transcript — run shared dedup to remove any repeated paragraphs
+      const rawBestOfAll = (meetingData as any)?.best_of_all_transcript || '';
+      setBestOfAllTranscript(rawBestOfAll ? dedupTranscriptText(rawBestOfAll).text : '');
 
-      // Set batch transcript (whisper or live_transcript_text fallback)
-      const batchText = meetingData?.whisper_transcript_text || meetingData?.live_transcript_text || '';
+      // Set batch transcript (whisper or live_transcript_text fallback) — dedup to remove repeated chunks
+      const rawBatchText = meetingData?.whisper_transcript_text || meetingData?.live_transcript_text || '';
+      const batchText = rawBatchText ? dedupTranscriptText(rawBatchText).text : '';
       setBatchTranscript(batchText);
       
-      // Set live transcript (AssemblyAI)
-      const liveText = meetingData?.assembly_transcript_text || '';
+      // Set live transcript (AssemblyAI) — dedup for consistency
+      const rawLiveText = meetingData?.assembly_transcript_text || '';
+      const liveText = rawLiveText ? dedupTranscriptText(rawLiveText).text : '';
       setLiveTranscript(liveText);
 
       // Load Deepgram transcript from deepgram_transcriptions table
@@ -1024,11 +1028,12 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           .order('chunk_number', { ascending: true });
 
         if (deepgramData && deepgramData.length > 0) {
-          const deepgramText = deepgramData
+          const rawDeepgramText = deepgramData
             .map(d => d.transcription_text)
             .filter(Boolean)
             .join(' ');
-          setDeepgramTranscript(deepgramText);
+          // Apply shared dedup for consistency with other transcript sources
+          setDeepgramTranscript(rawDeepgramText ? dedupTranscriptText(rawDeepgramText).text : '');
         } else {
           setDeepgramTranscript('');
         }
@@ -1091,17 +1096,19 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             .trim();
 
           if (whisperText) {
-            setBatchTranscript(whisperText);
-            setTranscript(whisperText);
-            console.log(`✅ SafeMode: Loaded ${whisperText.length} chars for Whisper tab from ${whisperChunks.length} chunks`);
+            const dedupedWhisper = dedupTranscriptText(whisperText).text;
+            setBatchTranscript(dedupedWhisper);
+            setTranscript(dedupedWhisper);
+            console.log(`✅ SafeMode: Loaded ${dedupedWhisper.length} chars for Whisper tab from ${whisperChunks.length} chunks (deduped from ${whisperText.length})`);
           }
 
           if (assemblyText) {
-            setLiveTranscript(assemblyText);
-            console.log(`✅ SafeMode: Loaded ${assemblyText.length} chars for AssemblyAI tab from ${assemblyChunks.length} chunks`);
+            const dedupedAssembly = dedupTranscriptText(assemblyText).text;
+            setLiveTranscript(dedupedAssembly);
+            console.log(`✅ SafeMode: Loaded ${dedupedAssembly.length} chars for AssemblyAI tab from ${assemblyChunks.length} chunks (deduped from ${assemblyText.length})`);
             // If no whisper text, use assembly as primary
             if (!whisperText) {
-              setTranscript(assemblyText);
+              setTranscript(dedupedAssembly);
             }
           }
 
@@ -1113,9 +1120,10 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               .join(' ')
               .trim();
             if (combinedAll) {
-              setTranscript(combinedAll);
-              setBatchTranscript(combinedAll);
-              console.log(`✅ SafeMode: Loaded ${combinedAll.length} chars (all chunks combined)`);
+              const dedupedCombined = dedupTranscriptText(combinedAll).text;
+              setTranscript(dedupedCombined);
+              setBatchTranscript(dedupedCombined);
+              console.log(`✅ SafeMode: Loaded ${dedupedCombined.length} chars (all chunks combined, deduped from ${combinedAll.length})`);
             }
           }
         } else {
@@ -1131,8 +1139,9 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               .map(t => t.content)
               .filter(Boolean)
               .join('\n\n');
-            setTranscript(combinedTranscript);
-            setBatchTranscript(combinedTranscript);
+            const dedupedLegacy = dedupTranscriptText(combinedTranscript).text;
+            setTranscript(dedupedLegacy);
+            setBatchTranscript(dedupedLegacy);
           } else {
             setTranscript('No transcript available for this meeting.');
           }
