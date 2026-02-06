@@ -93,9 +93,9 @@ serve(async (req) => {
     // Check which meetings have notes already generated
     const { data: meetingsWithNotes } = await supabase
       .from('meetings')
-      .select('id, notes_generated')
+      .select('id, notes_generation_status')
       .in('id', meetingIds)
-      .eq('notes_generated', true)
+      .eq('notes_generation_status', 'completed')
 
     const safeToDeleteMeetingIds = new Set(meetingsWithNotes?.map(m => m.id) || [])
     
