@@ -1,160 +1,162 @@
 
 
-# Fix Supabase Rate Limiting - Query Optimisation Plan
+# Supabase Rate Limiting -- Root Cause Analysis and Fix Plan
 
-## Problem Summary
+## What's Going Wrong
 
-Your Supabase project is hitting rate limits because every meeting update (from edge functions, real-time events, etc.) triggers a full reload of **all 261 meetings** plus 4 parallel heavy sub-queries. The worst offender fetches the full `whisper_transcript_text` blob for every meeting just to count words — even though 243 of 261 meetings already have the answer stored in a `word_count` column.
+Despite the previous optimisation round, the application is still generating excessive database queries due to three main problems:
 
-During a typical notes-generation run (Standard + Overview + Audio), the edge functions update the meeting row 3-5 times, each triggering cascading reloads across multiple components — producing 12-20 heavy query bursts within seconds.
+### Problem 1: Triple Subscription on the `meetings` Table
 
-## Fixes (5 tasks)
+Three separate components each maintain their own real-time listener on the same table:
 
----
+| Component | Channel | Events | Action on Trigger |
+|-----------|---------|--------|-------------------|
+| `MeetingRecorder.tsx` | `meeting-changes` | INSERT, UPDATE | INSERT: full `loadMeetingHistory()` (debounce 3s); UPDATE: local patch |
+| `MeetingHistory.tsx` | `meeting-history-changes-{id}` | INSERT, UPDATE, DELETE | INSERT/DELETE: full `fetchMeetings()` (debounce 2s); UPDATE: local patch |
+| `MeetingHistoryList.tsx` | `meeting-updates-{id}` | ALL on `meeting_notes_multi` and `meeting_overviews` | Calls `onRefresh()` (which calls `fetchMeetings` again, debounce 5s) |
 
-### Task 1: Use the existing `word_count` column instead of fetching transcript blobs
+During an AI processing run, a single meeting row is updated 3-5 times. Each update fires events that hit all three listeners. Even with debouncing, the net result is 6-15 full reload calls within a 10-second window.
 
-**What changes:** In `MeetingRecorder.tsx`, the `loadMeetingHistory` function currently fetches the full `whisper_transcript_text` for all meetings to count words client-side. This is the single most expensive query.
+### Problem 2: `meeting_transcription_chunks` Still Being Scanned
 
-**Fix:** Replace the transcript-blob query with a simple `SELECT SUM(word_count)` using the already-populated `word_count` column (243/261 meetings have it). Add `word_count` to the main meeting select so it's available per-meeting too.
+The previous plan (Task 2) was supposed to remove the chunk-counting query, but `MeetingHistory.tsx` (line 1355) still runs:
 
-**Impact:** Eliminates fetching ~1 million words of text on every reload.
+```
+supabase.from('meeting_transcription_chunks')
+  .select('meeting_id', { count: 'exact' })
+  .in('meeting_id', meetingIds)
+```
 
----
+This scans the 43,000+ row `meeting_transcription_chunks` table on every page load and every real-time refresh.
 
-### Task 2: Replace chunk-counting query with server-side aggregation
+### Problem 3: Tab-Focus Refresh with Low Throttle
 
-**What changes:** The `meeting_transcription_chunks` query currently fetches every `meeting_id` row (43,161 rows) and counts them in JavaScript. Similarly, `meeting_documents` rows are fetched individually.
+`MeetingHistory.tsx` (line 1236) calls `fetchMeetings()` every time the browser tab regains focus, throttled to only 2 seconds. Users switching between tabs during a meeting triggers repeated full reloads.
 
-**Fix:** Use Supabase's `select('meeting_id', { count: 'exact', head: true })` grouped approach, or better: add `transcript_count` to the main meetings query using the already-available `transcript_count` field pattern. For chunks, use a lightweight RPC or simply stop fetching chunk counts on the list page (they're rarely displayed).
+### Problem 4: Unbounded Word Count Query
 
-**Impact:** Reduces 43,000+ row fetches to a single aggregated query.
-
----
-
-### Task 3: Remove duplicate word-count fetching in MeetingHistoryList
-
-**What changes:** `MeetingHistoryList.tsx` independently fetches `content` from `meeting_transcripts` for all visible meetings to compute word counts (lines 362-391). This duplicates the work already done by `MeetingRecorder.tsx` and fetches large text blobs unnecessarily.
-
-**Fix:** Remove this `useEffect` entirely. Instead, use the `word_count` field from the meeting object (which will be included from Task 1) or the `wordCounts` already passed down.
-
-**Impact:** Eliminates another full-transcript-blob fetch on every page render.
+`MeetingRecorder.tsx` (line 5519) queries `word_count` for ALL meetings (not just the paginated 50). With 261+ meetings, this is an unnecessary scan on every reload.
 
 ---
 
-### Task 4: Debounce and deduplicate real-time subscriptions
+## Fix Plan (4 Tasks)
 
-**What changes:** Three separate components maintain overlapping real-time subscriptions:
-- `MeetingRecorder.tsx` — no debounce, calls `loadMeetingHistory()` on every INSERT/UPDATE
-- `MeetingHistoryList.tsx` — 2s debounce but listens to `meetings`, `meeting_notes_multi`, AND `meeting_overviews` (wildcard `*`)
-- `MeetingHistory.tsx` — its own subscription with partial debounce
+### Task 1: Remove the chunk-counting query from `MeetingHistory.tsx`
 
-Each edge function update triggers all three, causing cascading reloads.
+The `meeting_transcription_chunks` count is displayed as a minor badge and is not worth scanning 43,000+ rows for. Remove this query and default to 0.
 
-**Fix:**
-1. **MeetingRecorder.tsx**: Add a 3-second debounce to the real-time handler. For `UPDATE` events, update the specific meeting in local state (like `MeetingHistory.tsx` already does) instead of calling `loadMeetingHistory()`.
-2. **MeetingHistoryList.tsx**: Remove the `meetings` table listener (parent already handles it). Keep `meeting_notes_multi` and `meeting_overviews` listeners but increase debounce to 5 seconds.
-3. Both components: use a shared `lastRefreshTime` ref pattern to prevent overlapping refreshes.
+**File:** `src/pages/MeetingHistory.tsx`
 
-**Impact:** Reduces 12-20 query bursts per processing run down to 2-3.
+Changes:
+- Replace the `meeting_transcription_chunks` query in the `Promise.all` block (lines 1353-1365) with `Promise.resolve({})`, matching what `MeetingRecorder.tsx` already does
+- The `transcript_count` field will default to 0 (it's rarely displayed)
 
----
+### Task 2: Remove the duplicate `meetings` subscription from `MeetingHistory.tsx`
 
-### Task 5: Paginate the main meetings query in MeetingRecorder
+The `MeetingHistory.tsx` page and `MeetingRecorder.tsx` both listen to the same `meetings` table. Since `MeetingRecorder` is the parent component and already handles INSERT (debounced reload) and UPDATE (local patch), the child page does not need its own subscription.
 
-**What changes:** `loadMeetingHistory()` currently fetches all 261 meetings with no limit. As the dataset grows, this will only get worse.
+**File:** `src/pages/MeetingHistory.tsx`
 
-**Fix:** Add `.limit(50)` to the main meetings query (matching what the UI actually paginates). The total word count can use the lightweight `SUM(word_count)` query from Task 1 which doesn't need all rows.
+Changes:
+- Remove the entire real-time subscription `useEffect` block (lines 1066-1144) that creates the `meeting-history-changes-{user.id}` channel
+- The page will rely on:
+  - Its parent (`MeetingRecorder`) for real-time updates via prop changes
+  - The `onRefresh` callback from `MeetingHistoryList` for notes/overview updates
+  - The existing tab-focus refresh (with increased throttle -- see Task 3)
 
-**Impact:** Reduces the base query from 261 rows (growing) to 50, and proportionally reduces all sub-queries.
+### Task 3: Increase tab-focus refresh throttle
+
+Reduce the frequency of refreshes triggered by tab switching and localStorage signals.
+
+**File:** `src/pages/MeetingHistory.tsx`
+
+Changes:
+- Increase `MIN_REFRESH_INTERVAL` from 2000ms to 10000ms (10 seconds) at line 1208
+- Increase the setTimeout delay from 300ms to 1000ms at line 1219
+- This prevents rapid-fire reloads when users switch tabs frequently during AI processing
+
+### Task 4: Cap the word count query to paginated results only
+
+Instead of scanning all 261+ meetings for word counts, use only the 50 already-fetched meetings.
+
+**File:** `src/components/MeetingRecorder.tsx`
+
+Changes:
+- Replace the separate `word_count` query (lines 5519-5526) that scans all meetings with a simple client-side sum of the `word_count` field already present on the 50 fetched meetings
+- Update `setTotalTranscriptWords` to use the local sum: `meetingsData.reduce((sum, m) => sum + (m.word_count || 0), 0)`
+- Remove the fourth item from the `Promise.all` array entirely
 
 ---
 
 ## Technical Details
 
-### Task 1 — Detailed changes in `MeetingRecorder.tsx`
+### Task 1 -- Chunk count removal
 
-```text
-In loadMeetingHistory():
+In `src/pages/MeetingHistory.tsx`, replace lines 1353-1365:
 
-1. Add 'word_count' to the main .select() call (line ~5451)
-2. Replace the whisper_transcript_text query (lines 5526-5538) with:
-   supabase
-     .from('meetings')
-     .select('word_count')
-     .eq('user_id', user.id)
-     .not('word_count', 'is', null)
-     .then(({ data }) => {
-       return (data || []).reduce((sum, r) => sum + (r.word_count || 0), 0);
-     })
-3. In the meetingsWithCounts mapping, use meeting.word_count directly
+```typescript
+const [transcriptCounts, summaryExists, documentCounts] = await Promise.all([
+  // Chunk counts skipped — not worth scanning 43k+ rows
+  Promise.resolve({} as Record<string, number>),
+
+  // Check summary existence (unchanged)
+  supabase
+    .from('meeting_summaries')
+    ...
+
+  // Document counts (unchanged)
+  supabase
+    .from('meeting_documents')
+    ...
+]);
 ```
 
-### Task 2 — Chunk count simplification
+### Task 2 -- Subscription removal
 
-```text
-Replace the meeting_transcription_chunks query (lines 5487-5497) with:
-- Simply remove it. The transcript_count is used for a minor UI badge.
-- If needed, use a database function (RPC) that returns 
-  SELECT meeting_id, count(*) FROM meeting_transcription_chunks 
-  WHERE meeting_id = ANY($1) GROUP BY meeting_id
-  — returning only the counts, not 43k rows.
+Remove the entire `useEffect` block at lines 1066-1144 in `src/pages/MeetingHistory.tsx`. This eliminates one of the three competing real-time channels on the `meetings` table.
+
+### Task 3 -- Throttle increase
+
+In `src/pages/MeetingHistory.tsx`:
+- Line 1208: Change `const MIN_REFRESH_INTERVAL = 2000;` to `const MIN_REFRESH_INTERVAL = 10000;`
+- Line 1219: Change `}, 300);` to `}, 1000);`
+
+### Task 4 -- Word count simplification
+
+In `src/components/MeetingRecorder.tsx`, replace the `Promise.all` block (lines 5487-5527) to remove the fourth query:
+
+```typescript
+const [transcriptCounts, summaryExists, documentCounts] = await Promise.all([
+  Promise.resolve({} as Record<string, number>),
+  // summary existence check (unchanged)
+  // document counts (unchanged)
+]);
+
+// Use word_count from already-fetched meetings instead of a separate query
+const totalWords = (meetingsData || []).reduce(
+  (sum: number, m: any) => sum + (m.word_count || 0), 0
+);
+setTotalTranscriptWords(totalWords);
 ```
 
-### Task 3 — Remove duplicate in `MeetingHistoryList.tsx`
+---
 
-```text
-Delete the useEffect at lines 362-391 entirely.
-Remove the wordCounts state variable.
-Use meeting.word_count (from props) wherever word counts are displayed.
-```
+## Expected Impact
 
-### Task 4 — Debounce pattern for `MeetingRecorder.tsx`
-
-```text
-Replace the real-time useEffect (lines 5582-5621):
-
-1. Add debounce tracking:
-   const lastRefreshRef = useRef(0);
-   const DEBOUNCE_MS = 3000;
-
-2. For UPDATE events: update local state directly from payload
-   setMeetings(prev => prev.map(m => 
-     m.id === payload.new.id ? { ...m, ...payload.new } : m
-   ));
-
-3. For INSERT events only: debounced loadMeetingHistory()
-   const now = Date.now();
-   if (now - lastRefreshRef.current < DEBOUNCE_MS) return;
-   lastRefreshRef.current = now;
-   loadMeetingHistory();
-```
-
-### Task 5 — Pagination
-
-```text
-Add .limit(50) to the main meetings query (line 5478):
-  .order('created_at', { ascending: false })
-  .limit(50)
-
-The total word count query (Task 1) remains unbounded since it's 
-a lightweight numeric-only query.
-```
-
-## Expected Outcome
-
-| Metric | Before | After |
-|--------|--------|-------|
-| Rows fetched per reload | ~43,500+ | ~300 |
-| Data transferred per reload | ~5-10 MB (transcript blobs) | ~50 KB (metadata only) |
-| Reloads per processing run | 12-20 | 2-3 |
-| Peak queries per second | 40-80 | 5-10 |
+| Metric | Current | After Fix |
+|--------|---------|-----------|
+| Real-time channels on `meetings` table | 3 | 1 (MeetingRecorder only) |
+| Queries per AI processing run | 12-20 bursts | 3-5 bursts |
+| Rows scanned per reload (chunks) | 43,000+ | 0 |
+| Parallel queries per reload | 4 | 2 |
+| Tab-focus refresh interval | 2 seconds | 10 seconds |
+| Word count query scope | All 261+ meetings | 50 (paginated) |
 
 ## Implementation Order
 
-1. Task 1 (word_count column) — biggest single impact
-2. Task 3 (remove duplicate fetch) — quick win
-3. Task 4 (debounce subscriptions) — stops cascading reloads
-4. Task 2 (chunk count aggregation) — reduces row scanning
-5. Task 5 (pagination) — future-proofs growth
+1. Task 1 (remove chunk query) -- quick win, biggest row-scan reduction
+2. Task 4 (word count simplification) -- removes a query from every reload
+3. Task 2 (remove duplicate subscription) -- stops cascading reloads
+4. Task 3 (increase throttle) -- reduces ambient query volume
 
