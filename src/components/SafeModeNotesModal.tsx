@@ -195,12 +195,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [transcriptChunks, setTranscriptChunks] = useState<any[]>([]);
   const [isLoadingChunks, setIsLoadingChunks] = useState(false);
   
-  // Transcript state (Batch/Live/Deepgram/Consolidated)
+  // Transcript state (Batch/Live/Deepgram/Best of All/Consolidated)
   const [batchTranscript, setBatchTranscript] = useState('');
   const [liveTranscript, setLiveTranscript] = useState('');
   const [deepgramTranscript, setDeepgramTranscript] = useState('');
   const [consolidatedTranscript, setConsolidatedTranscript] = useState('');
-  const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live' | 'deepgram'>('batch');
+  const [bestOfAllTranscript, setBestOfAllTranscript] = useState('');
+  const [transcriptSubTab, setTranscriptSubTab] = useState<'batch' | 'live' | 'deepgram' | 'best_of_all'>('batch');
   const [isConsolidating, setIsConsolidating] = useState(false);
   const [consolidationStats, setConsolidationStats] = useState<{
     batchWords: number;
@@ -262,7 +263,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   const [isRegeneratingNotes, setIsRegeneratingNotes] = useState(false);
   
   // Notes transcript source selection (which transcript to use for generating notes)
-  const [notesTranscriptSource, setNotesTranscriptSource] = useState<'batch' | 'live' | 'consolidated'>('batch');
+  const [notesTranscriptSource, setNotesTranscriptSource] = useState<'batch' | 'live' | 'consolidated' | 'best_of_all'>('batch');
   const [isRegeneratingFromTranscript, setIsRegeneratingFromTranscript] = useState(false);
 
   // Get icon for note type
@@ -277,10 +278,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
   };
 
   // Save notes transcript source preference
-  const saveNotesTranscriptSource = useCallback(async (source: 'batch' | 'live' | 'consolidated') => {
+  const saveNotesTranscriptSource = useCallback(async (source: 'batch' | 'live' | 'consolidated' | 'best_of_all') => {
     if (!meeting?.id) return;
     
-    const dbSource = source === 'batch' ? 'whisper' : source === 'live' ? 'assembly' : 'consolidated';
+    const dbSource = source === 'best_of_all' ? 'best_of_all'
+      : source === 'batch' ? 'whisper' 
+      : source === 'live' ? 'assembly' 
+      : 'consolidated';
     const { error } = await supabase
       .from('meetings')
       .update({ primary_transcript_source: dbSource })
@@ -290,9 +294,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       console.error('Error saving transcript source preference:', error);
       toast.error('Failed to save transcript source preference');
     } else {
-      const label = source === 'consolidated' 
-        ? 'Best of Both (Batch + Live)' 
-        : source === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)';
+      const label = source === 'best_of_all'
+        ? 'Best of All (3-engine)'
+        : source === 'consolidated' 
+          ? 'Best of Both (Batch + Live)' 
+          : source === 'batch' ? 'Batch (Whisper)' : 'Live (AssemblyAI)';
       toast.success(`Notes will now be generated from ${label}`);
     }
   }, [meeting?.id]);
@@ -307,11 +313,13 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
     setIsRegeneratingFromTranscript(true);
     
     try {
-      const sourceLabel = notesTranscriptSource === 'consolidated'
-        ? 'Best of Both (Batch + Live)'
-        : notesTranscriptSource === 'batch' 
-          ? 'Batch (Whisper)' 
-          : 'Live (AssemblyAI)';
+      const sourceLabel = notesTranscriptSource === 'best_of_all'
+        ? 'Best of All (3-engine)'
+        : notesTranscriptSource === 'consolidated'
+          ? 'Best of Both (Batch + Live)'
+          : notesTranscriptSource === 'batch' 
+            ? 'Batch (Whisper)' 
+            : 'Live (AssemblyAI)';
       
       toast.info(`Regenerating notes from ${sourceLabel}...`);
       
@@ -321,9 +329,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
           forceRegenerate: true,
           detailLevel: 'standard',
           noteType: noteType,
-          transcriptSource: notesTranscriptSource === 'consolidated' 
-            ? 'consolidated' 
-            : notesTranscriptSource === 'batch' ? 'whisper' : 'assembly'
+          transcriptSource: notesTranscriptSource === 'best_of_all'
+            ? 'best_of_all'
+            : notesTranscriptSource === 'consolidated' 
+              ? 'consolidated' 
+              : notesTranscriptSource === 'batch' ? 'whisper' : 'assembly'
         }
       });
       

@@ -84,7 +84,7 @@ serve(async (req) => {
     // Fetch full meeting data
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
-      .select('id, title, assembly_transcript_text, whisper_transcript_text, primary_transcript_source, created_at, start_time, meeting_type, overview')
+      .select('id, title, assembly_transcript_text, whisper_transcript_text, best_of_all_transcript, primary_transcript_source, created_at, start_time, meeting_type, overview')
       .eq('id', meetingId)
       .single();
 
@@ -98,10 +98,11 @@ serve(async (req) => {
 
     console.log('Meeting found:', meeting.title);
 
-    // Determine which transcript to use
-    const transcript = meeting.primary_transcript_source === 'assembly' 
-      ? meeting.assembly_transcript_text 
-      : meeting.whisper_transcript_text || meeting.assembly_transcript_text;
+    // Determine which transcript to use — prefer best_of_all when available
+    const transcript = meeting.best_of_all_transcript
+      || (meeting.primary_transcript_source === 'assembly' 
+        ? meeting.assembly_transcript_text 
+        : meeting.whisper_transcript_text || meeting.assembly_transcript_text);
 
     // Build context from meeting data
     const meetingDate = meeting.created_at ? new Date(meeting.created_at).toLocaleDateString('en-GB') : 'N/A';

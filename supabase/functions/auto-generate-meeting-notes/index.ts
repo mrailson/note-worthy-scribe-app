@@ -251,7 +251,26 @@ serve(async (req) => {
     let actualTranscriptSource = 'unknown';
     let itemCount = 0;
 
-    if (transcriptSource === 'consolidated') {
+    if (transcriptSource === 'best_of_all') {
+      // Use Best of All (3-engine merged + deduped) transcript
+      console.log('📄 User requested Best of All transcript');
+      const { data: meetingTranscript } = await supabase
+        .from('meetings')
+        .select('best_of_all_transcript')
+        .eq('id', meetingId)
+        .single();
+      
+      fullTranscript = meetingTranscript?.best_of_all_transcript || '';
+      actualTranscriptSource = 'best_of_all';
+      
+      // Fallback to consolidated if best_of_all is empty
+      if (!fullTranscript.trim()) {
+        console.log('⚠️ Best of All transcript empty, falling back to consolidated');
+        // Fall through to consolidated logic below
+      }
+    }
+    
+    if ((transcriptSource === 'best_of_all' && !fullTranscript.trim()) || transcriptSource === 'consolidated') {
       // Use BOTH transcripts for consolidated "Best of Both" notes generation
       console.log('📄 User requested consolidated dual-transcript mode');
       const { data: meetingTranscript } = await supabase
@@ -408,23 +427,34 @@ serve(async (req) => {
         actualTranscriptSource = 'whisper_fallback';
       }
     } else {
-      // Auto mode: use existing get_meeting_full_transcript function (default behaviour)
-      console.log('📄 Using auto transcript selection via get_meeting_full_transcript');
-      const { data: finalTranscriptResult, error: transcriptError } = await supabase
-        .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
+      // Auto mode: prefer best_of_all_transcript first, then fall back to RPC
+      console.log('📄 Auto mode: checking best_of_all_transcript first...');
+      const { data: boaCheck } = await supabase
+        .from('meetings')
+        .select('best_of_all_transcript')
+        .eq('id', meetingId)
+        .single();
+      
+      if (boaCheck?.best_of_all_transcript && boaCheck.best_of_all_transcript.trim().length > 50) {
+        console.log('✅ Auto mode: using best_of_all_transcript');
+        fullTranscript = boaCheck.best_of_all_transcript;
+        actualTranscriptSource = 'best_of_all';
+      } else {
+        console.log('📄 Using auto transcript selection via get_meeting_full_transcript');
+        const { data: finalTranscriptResult, error: transcriptError } = await supabase
+          .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
 
-      if (transcriptError) {
-        console.error('❌ Error fetching transcript:', transcriptError);
-        await supabase
-          .from('meetings')
-          .update({ notes_generation_status: 'failed' })
-          .eq('id', meetingId);
-        throw new Error(`Failed to fetch transcript: ${transcriptError.message}`);
-      }
+        if (transcriptError) {
+          console.error('❌ Error fetching transcript:', transcriptError);
+          await supabase
+            .from('meetings')
+            .update({ notes_generation_status: 'failed' })
+            .eq('id', meetingId);
+          throw new Error(`Failed to fetch transcript: ${transcriptError.message}`);
+        }
 
-      const transcriptData = finalTranscriptResult?.[0];
-      fullTranscript = transcriptData?.transcript || '';
-      actualTranscriptSource = transcriptData?.source || 'auto';
+        const transcriptData = finalTranscriptResult?.[0];
+        fullTranscript = transcriptData?.transcript || '';
       itemCount = transcriptData?.item_count || 0;
     }
     
