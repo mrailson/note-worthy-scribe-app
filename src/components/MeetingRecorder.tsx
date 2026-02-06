@@ -2481,7 +2481,9 @@ export const MeetingRecorder = ({
       retryCount: 0,
       confidence: data.confidence || 0.9,
       startTime: lastChunkEndTime.current || Math.max(0, chunkStartSeconds - 2), // Use previous end or approximate
-      endTime: chunkStartSeconds // End time is when chunk arrives
+      endTime: chunkStartSeconds, // End time is when chunk arrives
+      originalFileSize: (data as any).audioSizeBytes || 0,
+      fileType: (data as any).mimeType || 'audio/webm'
     };
     
     // Update last chunk end time for iPhone chunks
@@ -2743,7 +2745,21 @@ export const MeetingRecorder = ({
       meetingSettings, // Pass meeting settings for confidence gating
       meetingId,
       (hasActivity: boolean) => setAudioActivity(hasActivity), // Callback for audio activity
-      () => watchdog.reportChunkProcessed(), // Callback when chunk is processed
+      (metadata: any) => {
+        watchdog.reportChunkProcessed();
+        if (metadata?.audioSizeBytes) {
+          setChunkSaveStatuses(prev => {
+            const updated = [...prev];
+            for (let i = updated.length - 1; i >= 0; i--) {
+              if (!updated[i].originalFileSize) {
+                updated[i] = { ...updated[i], originalFileSize: metadata.audioSizeBytes, fileType: metadata.mimeType || 'audio/webm' };
+                break;
+              }
+            }
+            return updated;
+          });
+        }
+      },
       () => watchdog.reportChunkFiltered(), // Callback when chunk is filtered (not stalled, just low quality)
       selectedMicrophoneId // Pass selected microphone device
     );
@@ -3239,7 +3255,7 @@ export const MeetingRecorder = ({
           saveTimestamp: new Date().toISOString(),
           retryCount: 0,
           confidence: result.confidence || 0.85,
-          startTime: (chunkTime - 15000) / 1000, // 15 seconds ago in seconds
+          startTime: (chunkTime - 90000) / 1000, // 90 seconds ago in seconds
           endTime: chunkTime / 1000, // now in seconds
           originalFileSize: wavSize,
           transcodedFileSize: wavSize,
@@ -3258,9 +3274,9 @@ export const MeetingRecorder = ({
               meeting_id: currentMeetingId,
               chunk_number: chunkNumber,
               start_time: chunkStartTime.toISOString(),
-              end_time: new Date(chunkStartTime.getTime() + 15000).toISOString(), // 15 seconds
+              end_time: new Date(chunkStartTime.getTime() + 90000).toISOString(), // 90 seconds
               processing_status: 'completed',
-              chunk_duration_ms: 15000,
+              chunk_duration_ms: 90000,
               file_size: wavSize,
               original_file_size: wavSize, // System audio is processed directly as WAV
               transcoded_file_size: wavSize,
