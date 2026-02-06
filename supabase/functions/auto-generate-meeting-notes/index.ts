@@ -455,7 +455,8 @@ serve(async (req) => {
 
         const transcriptData = finalTranscriptResult?.[0];
         fullTranscript = transcriptData?.transcript || '';
-      itemCount = transcriptData?.item_count || 0;
+        itemCount = transcriptData?.item_count || 0;
+      }
     }
     
     console.log(`📄 Using transcript from ${actualTranscriptSource}, ${fullTranscript.length} chars`);
