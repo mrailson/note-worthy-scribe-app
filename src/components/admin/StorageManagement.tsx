@@ -131,6 +131,9 @@ export const StorageManagement: React.FC = () => {
   const [isPurgingOldChunks, setIsPurgingOldChunks] = useState(false);
   const [purgeChunksPreview, setPurgeChunksPreview] = useState<{ wouldDelete: number; affectedUsers: number; affectedMeetings: number } | null>(null);
   const [showPurgeChunksDialog, setShowPurgeChunksDialog] = useState(false);
+  const [isPurgingChunks14d, setIsPurgingChunks14d] = useState(false);
+  const [purgeChunks14dPreview, setPurgeChunks14dPreview] = useState<{ wouldDelete: number; affectedUsers: number; affectedMeetings: number } | null>(null);
+  const [showPurgeChunks14dDialog, setShowPurgeChunks14dDialog] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -388,6 +391,57 @@ export const StorageManagement: React.FC = () => {
       toast.error(error.message || 'Failed to purge old transcript chunks');
     } finally {
       setIsPurgingOldChunks(false);
+    }
+  };
+
+  // 14-day chunk purge handlers
+  const handlePurgeChunks14dPreview = async () => {
+    setIsPurgingChunks14d(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('purge-old-transcript-chunks', {
+        body: { dryRun: true, daysOld: 14 }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setPurgeChunks14dPreview({
+          wouldDelete: data.wouldDelete || 0,
+          affectedUsers: data.affectedUsers || 0,
+          affectedMeetings: data.affectedMeetings || 0
+        });
+        setShowPurgeChunks14dDialog(true);
+      }
+    } catch (error) {
+      console.error('Error checking 14d chunks purge preview:', error);
+      toast.error('Failed to check purgeable transcript chunks (14d)');
+    } finally {
+      setIsPurgingChunks14d(false);
+    }
+  };
+
+  const handlePurgeChunks14d = async () => {
+    setIsPurgingChunks14d(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('purge-old-transcript-chunks', {
+        body: { daysOld: 14 }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(data.message || `Deleted ${data.deletedCount} old transcript chunks`);
+        setShowPurgeChunks14dDialog(false);
+        setPurgeChunks14dPreview(null);
+        fetchData();
+      } else {
+        throw new Error(data.error || 'Purge failed');
+      }
+    } catch (error: any) {
+      console.error('Error purging 14d old chunks:', error);
+      toast.error(error.message || 'Failed to purge old transcript chunks (14d)');
+    } finally {
+      setIsPurgingChunks14d(false);
     }
   };
 
@@ -657,6 +711,49 @@ export const StorageManagement: React.FC = () => {
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   {isPurgingOldChunks ? 'Purging...' : `Delete ${purgeChunksPreview?.wouldDelete.toLocaleString() || 0} Chunks`}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AlertDialog open={showPurgeChunks14dDialog} onOpenChange={setShowPurgeChunks14dDialog}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={handlePurgeChunks14dPreview}
+                disabled={isPurgingChunks14d}
+              >
+                <Mic className={cn("h-4 w-4 mr-2", isPurgingChunks14d && "animate-spin")} />
+                Purge &gt;14d Chunks
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Purge Transcript Chunks (&gt;14 days)</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2">
+                    <p>This will permanently delete transcript chunks older than 14 days from meetings that have already generated notes.</p>
+                    {purgeChunks14dPreview && (
+                      <div className="bg-muted p-3 rounded-md mt-2">
+                        <p className="font-medium">Preview:</p>
+                        <p>• {purgeChunks14dPreview.wouldDelete.toLocaleString()} chunks will be deleted</p>
+                        <p>• {purgeChunks14dPreview.affectedMeetings} meetings affected</p>
+                        <p>• {purgeChunks14dPreview.affectedUsers} users affected</p>
+                      </div>
+                    )}
+                    <p className="text-amber-600 font-medium">Meeting notes and transcripts will NOT be affected.</p>
+                    <p className="text-muted-foreground text-sm">Only removes per-chunk metadata (timestamps, confidence scores). The consolidated transcript remains in the meetings table.</p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handlePurgeChunks14d}
+                  disabled={isPurgingChunks14d || !purgeChunks14dPreview || purgeChunks14dPreview.wouldDelete === 0}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isPurgingChunks14d ? 'Purging...' : `Delete ${purgeChunks14dPreview?.wouldDelete.toLocaleString() || 0} Chunks`}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
