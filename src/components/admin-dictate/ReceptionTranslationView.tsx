@@ -2253,19 +2253,25 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
         {/* Patient language column - ALWAYS RIGHT */}
         <div className={`${patientColumnFlex} text-right`}>
-          <div className={`inline-block max-w-full rounded-lg p-3 text-left ${
-            isStaffMessage 
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800' 
-              : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
-          }`}>
+          <div 
+            className={`inline-block max-w-full rounded-lg p-3 text-left ${
+              isStaffMessage 
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800' 
+                : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
+            }`}
+            style={{ 
+              fontSize: patientFontSize,
+              transformOrigin: 'top right'
+            }}
+          >
             <div className="flex items-center gap-2 mb-1">
-              <p className="font-medium" style={{ fontSize: patientLabelSize }}>
+              <p className="font-medium text-[0.85em]">
                 {languageInfo?.flag} {isStaffMessage 
                   ? (GP_PRACTICE_SAID[patientLanguage] || GP_PRACTICE_SAID['en']) 
                   : (PATIENT_SAID[patientLanguage] || PATIENT_SAID['en'])}
               </p>
             </div>
-            <p className="mb-2" style={{ fontSize: patientFontSize, lineHeight: 1.4 }}>
+            <p className="mb-2" style={{ lineHeight: 1.4 }}>
               {patientLanguageText}
             </p>
             {/* Audio player button - only show for staff messages with TTS-supported languages */}
