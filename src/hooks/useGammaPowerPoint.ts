@@ -155,8 +155,8 @@ export const useGammaPowerPoint = () => {
       return { success: false, error: 'No content provided' };
     }
 
-    // Clamp slide count between 4 and 10
-    const validSlideCount = Math.min(10, Math.max(4, slideCount));
+    // Clamp slide count between 4 and 30 (Presentation Studio supports up to 30)
+    const validSlideCount = Math.min(30, Math.max(4, slideCount));
 
     setIsGenerating(true);
 
