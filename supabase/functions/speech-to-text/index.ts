@@ -6,118 +6,168 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-client',
 };
 
+// ── Preprocessing helper ────────────────────────────────────────────────────
+
+function inferExtension(mime: string): string {
+  const m = (mime || '').toLowerCase();
+  if (m.includes('flac')) return 'flac';
+  if (m.includes('webm')) return 'webm';
+  if (m.includes('wav')) return 'wav';
+  if (m.includes('ogg')) return 'ogg';
+  if (m.includes('m4a') || m.includes('mp4') || m.includes('aac')) return 'm4a';
+  if (m.includes('mp3') || m.includes('mpeg')) return 'mp3';
+  return 'bin';
+}
+
+/**
+ * Preprocess audio through the transcode-audio service.
+ * Feature-flagged via ENABLE_SERVER_PREPROCESSING env var.
+ * Falls back to direct forward on error/timeout.
+ */
+async function preprocessAudioViaTranscode(
+  audioBytes: Uint8Array,
+  declaredMime: string,
+  requestId: string
+): Promise<{ bytes: Uint8Array; mimeType: string; extension: string; preprocessed: boolean }> {
+  const enabled = Deno.env.get('ENABLE_SERVER_PREPROCESSING') === 'true';
+
+  if (!enabled) {
+    console.log(`ℹ️ [${requestId}] Server preprocessing disabled (ENABLE_SERVER_PREPROCESSING !== 'true')`);
+    return { bytes: audioBytes, mimeType: declaredMime, extension: inferExtension(declaredMime), preprocessed: false };
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+  if (!supabaseUrl || !anonKey) {
+    console.warn(`⚠️ [${requestId}] Missing SUPABASE_URL or SUPABASE_ANON_KEY, skipping preprocessing`);
+    return { bytes: audioBytes, mimeType: declaredMime, extension: inferExtension(declaredMime), preprocessed: false };
+  }
+
+  const transcodeUrl = `${supabaseUrl}/functions/v1/transcode-audio`;
+  console.log(`🔄 [${requestId}] Preprocessing: sending ${audioBytes.length}B (${declaredMime}) to transcode-audio…`);
+
+  try {
+    const fd = new FormData();
+    fd.append('file', new Blob([audioBytes], { type: declaredMime }), 'input.audio');
+
+    const response = await fetch(transcodeUrl, {
+      method: 'POST',
+      headers: { 'apikey': anonKey },
+      body: fd,
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      console.warn(`⚠️ [${requestId}] transcode-audio error ${response.status}: ${errBody.slice(0, 200)}, falling back to direct forward`);
+      return { bytes: audioBytes, mimeType: declaredMime, extension: inferExtension(declaredMime), preprocessed: false };
+    }
+
+    const resultBytes = new Uint8Array(await response.arrayBuffer());
+    const resultMime = response.headers.get('Content-Type') || declaredMime;
+    const resultExt = response.headers.get('X-Audio-Extension') || inferExtension(resultMime);
+    const wasTranscoded = response.headers.get('X-Audio-Transcoded') === 'true';
+
+    console.log(`✅ [${requestId}] Preprocessing complete: ${audioBytes.length}B → ${resultBytes.length}B, ${declaredMime} → ${resultMime} (.${resultExt}), transcoded=${wasTranscoded}`);
+    return { bytes: resultBytes, mimeType: resultMime, extension: resultExt, preprocessed: true };
+  } catch (err: any) {
+    const isTimeout = err?.name === 'TimeoutError' || err?.name === 'AbortError';
+    console.warn(`⚠️ [${requestId}] transcode-audio ${isTimeout ? 'timed out' : 'failed'}: ${err?.message || err}, falling back to direct forward`);
+    return { bytes: audioBytes, mimeType: declaredMime, extension: inferExtension(declaredMime), preprocessed: false };
+  }
+}
+
+// ── Main handler ────────────────────────────────────────────────────────────
+
 serve(async (req) => {
-  console.log('📨 SPEECH-TO-TEXT: Request received:', req.method);
-  
-  // Handle CORS preflight requests
+  const requestId = crypto.randomUUID().slice(0, 8);
+  console.log(`📨 [${requestId}] SPEECH-TO-TEXT: Request received: ${req.method}`);
+
   if (req.method === 'OPTIONS') {
-    console.log('✅ SPEECH-TO-TEXT: Handling CORS preflight');
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log('🔑 SPEECH-TO-TEXT: Getting OpenAI API key...');
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    
     if (!OPENAI_API_KEY) {
-      console.error('❌ SPEECH-TO-TEXT: OpenAI API key not found');
+      console.error(`❌ [${requestId}] OpenAI API key not found`);
       throw new Error('OpenAI API key not configured');
     }
 
-    console.log('📥 SPEECH-TO-TEXT: Parsing request body...');
     const { audio, mimeType, fileName, language } = await req.json();
-    
+
     if (!audio) {
-      console.error('❌ SPEECH-TO-TEXT: No audio data provided');
+      console.error(`❌ [${requestId}] No audio data provided`);
       throw new Error('No audio data provided');
     }
 
-    // Use provided language or default to English
     const transcriptionLanguage = language || 'en';
 
-    console.log('📊 SPEECH-TO-TEXT: Audio data received');
-    console.log('   - Size:', audio.length, 'characters');
-    console.log('   - MIME type:', mimeType || 'not provided');
-    console.log('   - File name:', fileName || 'not provided');
-    console.log('   - Language:', transcriptionLanguage);
+    console.log(`📊 [${requestId}] Audio received: size=${audio.length} chars, mime=${mimeType || 'not provided'}, file=${fileName || 'not provided'}, lang=${transcriptionLanguage}`);
 
     // Convert base64 to binary
-    console.log('🔄 SPEECH-TO-TEXT: Converting base64 to audio file...');
     const binaryString = atob(audio);
-    const bytes = new Uint8Array(binaryString.length);
+    const rawBytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+      rawBytes[i] = binaryString.charCodeAt(i);
     }
 
-    console.log('📦 SPEECH-TO-TEXT: Created audio buffer, size:', bytes.length, 'bytes');
+    console.log(`📦 [${requestId}] Raw audio buffer: ${rawBytes.length} bytes`);
 
-    // Determine the correct MIME type and file extension
-    // Default to webm (native browser format) instead of wav
-    let detectedMimeType = mimeType || 'audio/webm';
-    let fileExtension = 'webm';
-    
-    // Map MIME types to file extensions (including iOS-friendly formats and FLAC)
-    const lowerMime = (detectedMimeType || '').toLowerCase();
-    if (lowerMime.includes('flac')) {
-      detectedMimeType = 'audio/flac';
-      fileExtension = 'flac';
-    } else if (lowerMime.includes('mp3') || lowerMime.includes('mpeg')) {
-      detectedMimeType = 'audio/mpeg';
-      fileExtension = 'mp3';
-    } else if (lowerMime.includes('wav')) {
-      detectedMimeType = 'audio/wav';
-      fileExtension = 'wav';
-    } else if (lowerMime.includes('m4a')) {
-      detectedMimeType = 'audio/m4a';
-      fileExtension = 'm4a';
-    } else if (lowerMime.includes('aac')) {
-      detectedMimeType = 'audio/aac';
-      fileExtension = 'aac';
-    } else if (lowerMime.includes('mp4')) {
-      detectedMimeType = 'audio/mp4';
-      fileExtension = 'm4a';
-    } else if (lowerMime.includes('ogg')) {
-      detectedMimeType = 'audio/ogg';
-      fileExtension = 'ogg';
-    } else if (lowerMime.includes('webm')) {
-      detectedMimeType = 'audio/webm';
-      fileExtension = 'webm';
-    }
-    
-    // If we have a fileName, try to extract extension from it
-    if (fileName) {
-      const fileNameExt = fileName.split('.').pop()?.toLowerCase();
-      if (fileNameExt === 'mp3' || fileNameExt === 'wav' || fileNameExt === 'm4a' || fileNameExt === 'ogg' || fileNameExt === 'webm' || fileNameExt === 'flac') {
-        fileExtension = fileNameExt;
-        if (fileNameExt === 'mp3') detectedMimeType = 'audio/mpeg';
-        else if (fileNameExt === 'wav') detectedMimeType = 'audio/wav';
-        else if (fileNameExt === 'm4a') detectedMimeType = 'audio/m4a';
-        else if (fileNameExt === 'ogg') detectedMimeType = 'audio/ogg';
-        else if (fileNameExt === 'webm') detectedMimeType = 'audio/webm';
-        else if (fileNameExt === 'flac') detectedMimeType = 'audio/flac';
+    // ── Preprocess through transcode-audio ──
+    // Use application/octet-stream as default if no MIME provided (avoids mislabelling iOS audio as webm)
+    const declaredMime = mimeType || 'application/octet-stream';
+    const preprocessed = await preprocessAudioViaTranscode(rawBytes, declaredMime, requestId);
+
+    // Use preprocessed output for MIME/extension
+    let detectedMimeType = preprocessed.mimeType;
+    let fileExtension = preprocessed.extension;
+
+    // If preprocessing was NOT used (disabled or failed), apply local MIME mapping as before
+    if (!preprocessed.preprocessed) {
+      const lowerMime = (detectedMimeType || '').toLowerCase();
+      if (lowerMime.includes('flac')) { detectedMimeType = 'audio/flac'; fileExtension = 'flac'; }
+      else if (lowerMime.includes('mp3') || lowerMime.includes('mpeg')) { detectedMimeType = 'audio/mpeg'; fileExtension = 'mp3'; }
+      else if (lowerMime.includes('wav')) { detectedMimeType = 'audio/wav'; fileExtension = 'wav'; }
+      else if (lowerMime.includes('m4a')) { detectedMimeType = 'audio/m4a'; fileExtension = 'm4a'; }
+      else if (lowerMime.includes('aac')) { detectedMimeType = 'audio/aac'; fileExtension = 'aac'; }
+      else if (lowerMime.includes('mp4')) { detectedMimeType = 'audio/mp4'; fileExtension = 'm4a'; }
+      else if (lowerMime.includes('ogg')) { detectedMimeType = 'audio/ogg'; fileExtension = 'ogg'; }
+      else if (lowerMime.includes('webm')) { detectedMimeType = 'audio/webm'; fileExtension = 'webm'; }
+      // If still octet-stream, default to webm (most common browser format)
+      else if (lowerMime === 'application/octet-stream') { detectedMimeType = 'audio/webm'; fileExtension = 'webm'; }
+
+      // If we have a fileName, try to extract extension from it
+      if (fileName) {
+        const fileNameExt = fileName.split('.').pop()?.toLowerCase();
+        if (fileNameExt === 'mp3' || fileNameExt === 'wav' || fileNameExt === 'm4a' || fileNameExt === 'ogg' || fileNameExt === 'webm' || fileNameExt === 'flac') {
+          fileExtension = fileNameExt;
+          if (fileNameExt === 'mp3') detectedMimeType = 'audio/mpeg';
+          else if (fileNameExt === 'wav') detectedMimeType = 'audio/wav';
+          else if (fileNameExt === 'm4a') detectedMimeType = 'audio/m4a';
+          else if (fileNameExt === 'ogg') detectedMimeType = 'audio/ogg';
+          else if (fileNameExt === 'webm') detectedMimeType = 'audio/webm';
+          else if (fileNameExt === 'flac') detectedMimeType = 'audio/flac';
+        }
       }
     }
-    
-    console.log('🎵 SPEECH-TO-TEXT: Using audio format:', detectedMimeType, 'with extension:', fileExtension);
+
+    console.log(`🎵 [${requestId}] Forwarding to OpenAI as: ${detectedMimeType} (.${fileExtension}), ${preprocessed.bytes.length}B, preprocessed=${preprocessed.preprocessed}`);
 
     // Create form data for OpenAI API
     const formData = new FormData();
-    const audioBlob = new Blob([bytes], { type: detectedMimeType });
+    const audioBlob = new Blob([preprocessed.bytes], { type: detectedMimeType });
     formData.append('file', audioBlob, `audio.${fileExtension}`);
     formData.append('model', 'whisper-1');
     formData.append('language', transcriptionLanguage);
     formData.append('response_format', 'verbose_json');
-    // Anti-hallucination parameters
     formData.append('temperature', '0');
-    
+
     // Build language-appropriate prompt
-    // For English, use comprehensive UK GP/NHS clinical terminology
-    // For other languages, use a generic medical context prompt
     let whisperPrompt: string;
-    
+
     if (transcriptionLanguage === 'en') {
-      // Comprehensive UK GP/NHS clinical terminology prompt for accurate medical transcription
-      // This prevents misheard words and ensures proper UK medical spelling
       whisperPrompt = `UK GP consultation. NHS primary care.
 
 Clinical terms: SNOMED, NICE guidelines, BNF, QoF, QOF, DES, ICS, PCN, hypertension, hyperlipidaemia, hypothyroidism, diabetes mellitus, type 2 diabetes, ischaemic heart disease, IHD, COPD, chronic obstructive pulmonary disease, asthma, chronic kidney disease, CKD, atrial fibrillation, AF, angina, myocardial infarction, heart failure, osteoarthritis, rheumatoid arthritis, fibromyalgia, depression, anxiety, insomnia.
@@ -134,101 +184,89 @@ Abbreviations: F2F, face to face, T/C, telephone consultation, DNA, did not atte
 
 Examination terms: auscultation, palpation, percussion, bilateral, unilateral, tenderness, guarding, rebound, crepitations, crackles, wheeze, rhonchi, oedema, erythema, pallor, cyanosis, jaundice, clubbing.`;
     } else {
-      // For non-English languages, use a simple context prompt
-      // The language parameter tells Whisper what language to expect
       whisperPrompt = `Healthcare conversation. Medical consultation. Patient speaking.`;
     }
 
     formData.append('prompt', whisperPrompt);
 
-    console.log('📡 SPEECH-TO-TEXT: Sending request to OpenAI Whisper API...');
-    
-    // Retry logic for OpenAI API with exponential backoff
+    console.log(`📡 [${requestId}] Sending to OpenAI Whisper API…`);
+
+    // Retry logic with exponential backoff
     let response;
     let lastError;
     const maxRetries = 3;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`🔄 SPEECH-TO-TEXT: Attempt ${attempt}/${maxRetries}`);
-        
+        console.log(`🔄 [${requestId}] Attempt ${attempt}/${maxRetries}`);
+
         response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          },
+          headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` },
           body: formData,
-          // Add timeout (increase to 120s to avoid premature aborts on slow network)
-          signal: AbortSignal.timeout(120000), // 120 second timeout
+          signal: AbortSignal.timeout(120000),
         });
 
-        console.log('📨 SPEECH-TO-TEXT: OpenAI response status:', response.status);
+        console.log(`📨 [${requestId}] OpenAI response status: ${response.status}`);
 
-        if (response.ok) {
-          break; // Success, exit retry loop
-        }
-        
+        if (response.ok) break;
+
         const errorText = await response.text();
-        console.error(`❌ SPEECH-TO-TEXT: OpenAI API error (attempt ${attempt}):`, response.status, errorText);
-        
-        // Don't retry on client errors (4xx), only server errors (5xx) and network issues
+        console.error(`❌ [${requestId}] OpenAI API error (attempt ${attempt}): ${response.status} ${errorText}`);
+
         if (response.status >= 400 && response.status < 500) {
           throw new Error(`OpenAI API client error: ${response.status} - ${errorText}`);
         }
-        
+
         lastError = new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-        
-        // Exponential backoff: wait 1s, 2s, 4s between retries
+
         if (attempt < maxRetries) {
           const delay = Math.pow(2, attempt - 1) * 1000;
-          console.log(`⏳ SPEECH-TO-TEXT: Waiting ${delay}ms before retry...`);
+          console.log(`⏳ [${requestId}] Waiting ${delay}ms before retry…`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
-        
       } catch (error: any) {
-        console.error(`❌ SPEECH-TO-TEXT: Network/timeout error (attempt ${attempt}):`, error);
+        console.error(`❌ [${requestId}] Network/timeout error (attempt ${attempt}):`, error);
         lastError = error;
-        // For timeout/abort, still retry if attempts remain
         if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
           if (attempt < maxRetries) {
             const delay = Math.pow(2, attempt - 1) * 1000;
-            console.log(`⏳ SPEECH-TO-TEXT: Timeout/abort - retrying after ${delay}ms...`);
+            console.log(`⏳ [${requestId}] Timeout/abort - retrying after ${delay}ms…`);
             await new Promise(resolve => setTimeout(resolve, delay));
-            continue; // retry next loop
+            continue;
           } else {
             break;
           }
         }
         if (attempt < maxRetries) {
           const delay = Math.pow(2, attempt - 1) * 1000;
-          console.log(`⏳ SPEECH-TO-TEXT: Waiting ${delay}ms before retry...`);
+          console.log(`⏳ [${requestId}] Waiting ${delay}ms before retry…`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
 
     if (!response || !response.ok) {
-      console.error('❌ SPEECH-TO-TEXT: All retry attempts failed');
+      console.error(`❌ [${requestId}] All retry attempts failed`);
       throw lastError || new Error('Failed to connect to OpenAI API after all retries');
     }
 
     const result = await response.json();
-    console.log('✅ SPEECH-TO-TEXT: Transcription successful, text length:', result.text?.length || 0);
-    console.log('📝 SPEECH-TO-TEXT: Transcript preview:', result.text?.slice(0, 100) + '...');
+    console.log(`✅ [${requestId}] Transcription successful, text length: ${result.text?.length || 0}`);
+    console.log(`📝 [${requestId}] Transcript preview: ${result.text?.slice(0, 100)}…`);
 
     // Calculate real confidence from segments
-    let confidence = 0.5; // Default fallback
+    let confidence = 0.5;
     let avg_logprob = -0.3;
     let no_speech_prob = 0.3;
-    
+
     if (result.segments && result.segments.length > 0) {
-      avg_logprob = result.segments.reduce((sum: number, seg: any) => 
+      avg_logprob = result.segments.reduce((sum: number, seg: any) =>
         sum + (seg.avg_logprob || -2), 0) / result.segments.length;
-      no_speech_prob = result.segments.reduce((sum: number, seg: any) => 
+      no_speech_prob = result.segments.reduce((sum: number, seg: any) =>
         sum + (seg.no_speech_prob || 0.5), 0) / result.segments.length;
-      
-      // Convert log probability and no-speech probability to confidence score
-      confidence = Math.max(0, Math.min(1, 
+
+      confidence = Math.max(0, Math.min(1,
         (avg_logprob + 1) / 1 * (1 - no_speech_prob)
       ));
     }
@@ -252,15 +290,12 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
       'music playing', 'background music', 'upbeat music',
     ];
 
-    // Check for hallucination phrases
     if (finalText) {
       const lowerText = finalText.toLowerCase();
-      
       for (const phrase of HALLUCINATION_PHRASES) {
         if (lowerText.includes(phrase)) {
-          console.log(`🚫 SPEECH-TO-TEXT: Hallucination phrase detected: "${phrase}"`);
+          console.log(`🚫 [${requestId}] Hallucination phrase detected: "${phrase}"`);
           hallucinationDetected = true;
-          // Clear text if it's mostly this phrase
           if (finalText.length < 100) {
             finalText = '';
             confidence = 0.0;
@@ -272,47 +307,40 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
     }
 
     // Detect and filter out pure repetitive hallucinations
-    // FIXED: Removed 150 character limit - repetitive hallucinations can be any length
     if (finalText && finalText.length > 0) {
       const words = finalText.toLowerCase().split(/\s+/).filter(Boolean);
-      
-      // Count occurrences of known hallucination terms
+
       const pcnCount = (finalText.match(/\bpcn\b/gi) || []).length;
       const nmhtCount = (finalText.match(/\bnmht\b/gi) || []).length;
       const totalHallucinationTerms = pcnCount + nmhtCount;
-      
-      // Only filter if it's MOSTLY these terms repeated (>70% of words)
+
       const hallucinationRatio = words.length > 0 ? totalHallucinationTerms / words.length : 0;
       const isPureRepetition = hallucinationRatio > 0.7 && totalHallucinationTerms >= 5;
-      
-      // Check for low unique word ratio (repetitive content)
+
       const uniqueWords = new Set(words).size;
       const uniqueRatio = words.length > 0 ? uniqueWords / words.length : 1;
       const isRepetitive = words.length >= 8 && uniqueRatio < 0.30;
-      
-      // NEW: Check for repeated phrase patterns (e.g., "go-to-market team, go-to-market team, ...")
+
       const phrases = finalText.split(/[,.]/).map(p => p.trim().toLowerCase()).filter(p => p.length > 3);
       let hasPhraseRepetition = false;
       if (phrases.length >= 4) {
         const uniquePhrases = new Set(phrases).size;
         const phraseUniqueRatio = uniquePhrases / phrases.length;
         if (phraseUniqueRatio < 0.3) {
-          console.log(`🚫 SPEECH-TO-TEXT: Detected repeated phrase pattern: ${uniquePhrases}/${phrases.length} unique (${(phraseUniqueRatio * 100).toFixed(0)}%)`);
+          console.log(`🚫 [${requestId}] Detected repeated phrase pattern: ${uniquePhrases}/${phrases.length} unique (${(phraseUniqueRatio * 100).toFixed(0)}%)`);
           hasPhraseRepetition = true;
         }
       }
-      
-      // FIXED: Repetitive content is ALWAYS suspicious - don't require low confidence/logprob
+
       if (isPureRepetition || hasPhraseRepetition) {
-        console.log('🚫 SPEECH-TO-TEXT: Detected repetitive hallucination (pure repetition or phrase pattern)');
+        console.log(`🚫 [${requestId}] Detected repetitive hallucination`);
         finalText = '';
         confidence = 0.0;
         no_speech_prob = Math.max(no_speech_prob, 0.95);
         segments = [];
         hallucinationDetected = true;
       } else if (isRepetitive) {
-        // For word-level repetition, still be cautious but can check quality metrics
-        console.log('🚫 SPEECH-TO-TEXT: Detected repetitive content (unique ratio:', uniqueRatio.toFixed(2), ')');
+        console.log(`🚫 [${requestId}] Detected repetitive content (unique ratio: ${uniqueRatio.toFixed(2)})`);
         finalText = '';
         confidence = 0.0;
         no_speech_prob = Math.max(no_speech_prob, 0.95);
@@ -321,20 +349,20 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
       }
     }
 
-    // Reject very high no_speech_prob (>0.85) - likely silence/noise processed as speech
+    // Reject very high no_speech_prob
     if (no_speech_prob > 0.85 && confidence < 0.3) {
-      console.log(`🚫 SPEECH-TO-TEXT: Rejecting due to high no_speech_prob (${(no_speech_prob * 100).toFixed(1)}%)`);
+      console.log(`🚫 [${requestId}] Rejecting due to high no_speech_prob (${(no_speech_prob * 100).toFixed(1)}%)`);
       finalText = '';
       confidence = 0.0;
       segments = [];
       hallucinationDetected = true;
     }
 
-    console.log('📊 SPEECH-TO-TEXT: Calculated confidence:', confidence, hallucinationDetected ? '(hallucination filtered)' : '');
-    
-    // DIAGNOSTIC FIX: Ensure segments always exists
+    console.log(`📊 [${requestId}] Confidence: ${confidence}${hallucinationDetected ? ' (hallucination filtered)' : ''}`);
+
+    // Ensure segments always exists
     if (segments.length === 0 && finalText) {
-      console.log('⚠️ SPEECH-TO-TEXT: No segments from Whisper, creating synthetic segment');
+      console.log(`⚠️ [${requestId}] No segments from Whisper, creating synthetic segment`);
       segments = [{
         start: 0,
         end: result.duration || 1,
@@ -343,41 +371,33 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
         no_speech_prob: no_speech_prob
       }];
     }
-    
-    console.log('📦 SPEECH-TO-TEXT: Returning', segments.length, 'segments');
+
+    console.log(`📦 [${requestId}] Returning ${segments.length} segments`);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         text: finalText,
-        confidence: confidence,
-        avg_logprob: avg_logprob,
-        no_speech_prob: no_speech_prob,
+        confidence,
+        avg_logprob,
+        no_speech_prob,
         duration: result.duration,
         language: result.language,
-        segments: segments,
+        segments,
         hallucination_detected: hallucinationDetected
       }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('❌ SPEECH-TO-TEXT: Error processing request:', error);
+    console.error(`❌ [${requestId}] Error processing request:`, error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message || 'Failed to transcribe audio',
         details: error.toString()
       }),
       {
         status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
