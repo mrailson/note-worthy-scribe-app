@@ -92,7 +92,7 @@ export function createTranscriber(
 export function getServiceDisplayName(service: TranscriptionService): string {
   const names: Record<TranscriptionService, string> = {
     'assemblyai': 'AssemblyAI',
-    'deepgram': 'Deepgram Nova-2',
+    'deepgram': 'Deepgram Nova-3',
     'amazon-transcribe': 'Amazon Transcribe',
     'google-cloud': 'Google Cloud Speech',
     'browser-speech': 'Browser Speech',

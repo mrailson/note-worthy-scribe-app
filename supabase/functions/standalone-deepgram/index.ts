@@ -38,7 +38,7 @@ serve(async (req) => {
 
     // Send to Deepgram API
     const response = await fetch(
-      'https://api.deepgram.com/v1/listen?model=nova-2&language=en-GB&smart_format=true&diarize=false&punctuate=true',
+      'https://api.deepgram.com/v1/listen?model=nova-3&language=en-GB&smart_format=true&diarize=false&punctuate=true',
       {
         method: 'POST',
         headers: {

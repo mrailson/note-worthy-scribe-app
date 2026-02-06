@@ -33,7 +33,7 @@ serve(async (req) => {
       
       // Connect to Deepgram
       // Update Deepgram URL to expect WebM format instead of raw opus
-      const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-2-conversationalai&language=en-GB&punctuate=true&interim_results=true&smart_format=true&vad_events=true&endpointing=300&encoding=webm&keywords=NHS:2,clinical:2,prescription:2,medication:2,patient:2,treatment:2,diagnosis:2,referral:2`;
+      const deepgramUrl = `wss://api.deepgram.com/v1/listen?model=nova-3&language=en-GB&punctuate=true&interim_results=true&smart_format=true&vad_events=true&endpointing=300&encoding=webm&keywords=NHS:2,clinical:2,prescription:2,medication:2,patient:2,treatment:2,diagnosis:2,referral:2`;
       
       let deepgramSocket: WebSocket;
       

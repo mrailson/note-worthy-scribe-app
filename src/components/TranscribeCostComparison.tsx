@@ -4,7 +4,7 @@ const costData = [
   { service: "Browser Default (free)", perMin: 0.0, perHour: 0.0, tenHours: 0.0, fiftyHours: 0.0, hundredHours: 0.0 },
   { service: "AssemblyAI Streaming", perMin: 0.0018, perHour: 0.11, tenHours: 1.08, fiftyHours: 5.40, hundredHours: 10.80 },
   { service: "gpt-4o-mini-transcribe", perMin: 0.0022, perHour: 0.13, tenHours: 1.32, fiftyHours: 6.60, hundredHours: 13.20 },
-  { service: "Deepgram Nova-2 Streaming", perMin: 0.0044, perHour: 0.26, tenHours: 2.64, fiftyHours: 13.20, hundredHours: 26.40 },
+  { service: "Deepgram Nova-3 Streaming", perMin: 0.0044, perHour: 0.26, tenHours: 2.64, fiftyHours: 13.20, hundredHours: 26.40 },
   { service: "gpt-4o-transcribe", perMin: 0.0045, perHour: 0.27, tenHours: 2.70, fiftyHours: 13.50, hundredHours: 27.00 },
   { service: "whisper-1", perMin: 0.0045, perHour: 0.27, tenHours: 2.70, fiftyHours: 13.50, hundredHours: 27.00 },
 ];

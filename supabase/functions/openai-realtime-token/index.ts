@@ -27,7 +27,7 @@ serve(async (req) => {
     console.log('📝 Request params:', { language, medicalBias, model });
 
     // Configure Deepgram parameters
-    const deepgramModel = model || (medicalBias ? 'nova-2-medical' : 'nova-2-general');
+    const deepgramModel = model || (medicalBias ? 'nova-3-medical' : 'nova-3');
     const languageCode = language === 'auto' ? 'en' : (language || 'en');
 
     // Create WebSocket URL with authentication token for Deepgram Streaming API
