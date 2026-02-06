@@ -286,11 +286,15 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
 
     if (finalText) {
       const lowerText = finalText.toLowerCase();
+      const textWordCount = finalText.split(/\s+/).filter(Boolean).length;
+      // Content-rich chunks (≥120 words) are always kept — downstream dedup handles repetition
+      const isContentRich = textWordCount >= 120;
+      
       for (const phrase of HALLUCINATION_PHRASES) {
         if (lowerText.includes(phrase)) {
           console.log(`🚫 [${requestId}] Hallucination phrase detected: "${phrase}"`);
           hallucinationDetected = true;
-          if (finalText.length < 100) {
+          if (finalText.length < 100 && !isContentRich) {
             finalText = '';
             confidence = 0.0;
             segments = [];
@@ -303,6 +307,8 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
     // Detect and filter out pure repetitive hallucinations
     if (finalText && finalText.length > 0) {
       const words = finalText.toLowerCase().split(/\s+/).filter(Boolean);
+      // Content-rich chunks (≥120 words) bypass repetition rejection — rely on downstream dedup
+      const isContentRich = words.length >= 120;
 
       const pcnCount = (finalText.match(/\bpcn\b/gi) || []).length;
       const nmhtCount = (finalText.match(/\bnmht\b/gi) || []).length;
@@ -326,30 +332,38 @@ Examination terms: auscultation, palpation, percussion, bilateral, unilateral, t
         }
       }
 
-      if (isPureRepetition || hasPhraseRepetition) {
+      if ((isPureRepetition || hasPhraseRepetition) && !isContentRich) {
         console.log(`🚫 [${requestId}] Detected repetitive hallucination`);
         finalText = '';
         confidence = 0.0;
         no_speech_prob = Math.max(no_speech_prob, 0.95);
         segments = [];
         hallucinationDetected = true;
-      } else if (isRepetitive) {
+      } else if (isRepetitive && !isContentRich) {
         console.log(`🚫 [${requestId}] Detected repetitive content (unique ratio: ${uniqueRatio.toFixed(2)})`);
         finalText = '';
         confidence = 0.0;
         no_speech_prob = Math.max(no_speech_prob, 0.95);
         segments = [];
         hallucinationDetected = true;
+      } else if (isContentRich && (isPureRepetition || isRepetitive || hasPhraseRepetition)) {
+        console.log(`✅ [${requestId}] Content-rich chunk retained (${words.length} words) despite repetition signal — downstream dedup will handle`);
       }
     }
 
-    // Reject very high no_speech_prob
+    // Reject very high no_speech_prob — BUT keep content-rich chunks (≥120 words)
     if (no_speech_prob > 0.85 && confidence < 0.3) {
-      console.log(`🚫 [${requestId}] Rejecting due to high no_speech_prob (${(no_speech_prob * 100).toFixed(1)}%)`);
-      finalText = '';
-      confidence = 0.0;
-      segments = [];
-      hallucinationDetected = true;
+      const words = (finalText || '').split(/\s+/).filter(Boolean);
+      const isContentRich = words.length >= 120;
+      if (!isContentRich) {
+        console.log(`🚫 [${requestId}] Rejecting due to high no_speech_prob (${(no_speech_prob * 100).toFixed(1)}%)`);
+        finalText = '';
+        confidence = 0.0;
+        segments = [];
+        hallucinationDetected = true;
+      } else {
+        console.log(`✅ [${requestId}] Content-rich chunk retained (${words.length} words) despite high no_speech_prob — downstream dedup will handle`);
+      }
     }
 
     console.log(`📊 [${requestId}] Confidence: ${confidence}${hallucinationDetected ? ' (hallucination filtered)' : ''}`);

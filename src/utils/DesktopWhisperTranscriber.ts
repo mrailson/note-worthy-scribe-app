@@ -719,12 +719,26 @@ export class DesktopWhisperTranscriber {
         
         console.log(`📊 Quality metrics - confidence: ${(chunkConfidence * 100).toFixed(1)}%, avg_logprob: ${avgLogprob.toFixed(3)}, no_speech_prob: ${noSpeechProb.toFixed(3)}`);
         
+        const cleanText = data.text.trim();
+        const chunkWordCount = cleanText.split(/\s+/).filter(w => w.length > 0).length;
+        const chunkDurationSec = (chunkStartTimeSeconds !== undefined && chunkEndTimeSeconds !== undefined)
+          ? chunkEndTimeSeconds - chunkStartTimeSeconds
+          : 0;
+        
+        // Content-rich chunks (>=120 words or >=30s) are ALWAYS kept - downstream dedup handles repetition
+        const isContentRich = chunkWordCount >= 120 || chunkDurationSec >= 30;
+        
+        if (isContentRich && (chunkConfidence < 0.25 || noSpeechProb > 0.85)) {
+          console.log(`✅ Content-rich Whisper chunk retained (${chunkWordCount} words, ${chunkDurationSec.toFixed(1)}s) despite confidence ${(chunkConfidence * 100).toFixed(1)}% - downstream dedup will handle`);
+        }
+        
         // CRITICAL: Reject chunks with very high no_speech_prob (>0.85) - likely silence/noise
-        if (noSpeechProb > 0.85) {
+        // BUT: always keep content-rich chunks
+        if (noSpeechProb > 0.85 && !isContentRich) {
           console.log(`🚫 Rejecting chunk: high no_speech_prob (${(noSpeechProb * 100).toFixed(1)}%) - likely silence/noise`);
           // Notify watchdog that we're still processing (not stalled), just filtering
           this.onChunkFiltered?.({
-            text: data.text?.trim() || '[silence/noise]',
+            text: cleanText || '[silence/noise]',
             confidence: chunkConfidence,
             noSpeechProb,
             avgLogprob,
@@ -739,11 +753,12 @@ export class DesktopWhisperTranscriber {
         }
         
         // CRITICAL: Reject chunks with extremely low confidence (<0.12)
-        if (chunkConfidence < 0.12) {
+        // BUT: always keep content-rich chunks - rely on downstream dedup
+        if (chunkConfidence < 0.12 && !isContentRich) {
           console.log(`🚫 Rejecting chunk: extremely low confidence (${(chunkConfidence * 100).toFixed(1)}%)`);
           // Notify watchdog that we're still processing (not stalled), just filtering
           this.onChunkFiltered?.({
-            text: data.text?.trim() || '[low confidence audio]',
+            text: cleanText || '[low confidence audio]',
             confidence: chunkConfidence,
             noSpeechProb,
             avgLogprob,
@@ -762,10 +777,9 @@ export class DesktopWhisperTranscriber {
           console.log(`⚠️ Low avg_logprob (likely noisy / hard to hear), checking for hallucination`);
         }
         
-        const cleanText = data.text.trim();
-        
         // ENHANCED: Use comprehensive hallucination detection with confidence scoring
-        if (this.isLikelyRepetitiveNoise(cleanText, chunkConfidence)) {
+        // BUT: always keep content-rich chunks
+        if (this.isLikelyRepetitiveNoise(cleanText, chunkConfidence) && !isContentRich) {
           console.log('🚫 Skipping likely hallucinated/repetitive chunk');
           // Notify watchdog that we're still processing (not stalled), just filtering
           this.onChunkFiltered?.({
@@ -784,7 +798,8 @@ export class DesktopWhisperTranscriber {
         }
         
         // Additional check: if low confidence + low logprob, be extra cautious
-        if (chunkConfidence < 0.25 && avgLogprob < -1.0) {
+        // BUT: always keep content-rich chunks
+        if (chunkConfidence < 0.25 && avgLogprob < -1.0 && !isContentRich) {
           // Double-check for hallucination phrases even with partial matches
           const lowerText = cleanText.toLowerCase();
           const suspiciousPhrases = ['thank you', 'subscribe', 'like and', 'next video', 'see you'];
