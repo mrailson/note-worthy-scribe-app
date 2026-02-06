@@ -159,12 +159,13 @@ const loadPersistedHistory = (userId: string): PresentationHistoryItem[] => {
 
 const savePersistedHistory = (userId: string, history: PresentationHistoryItem[]) => {
   try {
-    // Strip pptxBase64 to avoid exceeding localStorage limits
+    // Strip pptxBase64 and voiceoverPptxBase64 to avoid exceeding localStorage limits
     const lightweight = history.slice(0, 50).map(item => ({
       ...item,
       result: {
         ...item.result,
         pptxBase64: undefined, // Too large for localStorage
+        voiceoverPptxBase64: undefined, // Too large for localStorage
       },
     }));
     localStorage.setItem(getHistoryKey(userId), JSON.stringify(lightweight));
@@ -531,7 +532,6 @@ export function usePresentationStudio() {
       }
 
       // If voiceover requested, run full audio pipeline
-      let voiceoverDownloadUrl: string | undefined;
       let voiceoverPptxBase64: string | undefined;
       let hasVoiceover = false;
 
@@ -629,25 +629,27 @@ export function usePresentationStudio() {
               toast.success(`Voiceover added: ${audioCount} audio clips embedded`);
             } else {
               console.error('🎤 Voiceover: PPTX build failed:', pptxError || pptxData?.error);
-              toast.warning('Voiceover packaging failed — downloading slides without audio');
+              toast.warning('Voiceover packaging failed — Gamma PPTX still available');
             }
           }
         } catch (voiceoverError) {
           console.error('🎤 Voiceover pipeline failed:', voiceoverError);
-          toast.warning('Voiceover generation failed — downloading slides without audio');
+          toast.warning('Voiceover generation failed — Gamma PPTX still available');
         }
       }
 
       setPhase('packaging', 95);
 
+      // Always preserve the Gamma download URL/base64 — voiceover version stored separately
       const result: GeneratedPresentation = {
         id: `pres-${Date.now()}`,
         title: data.presentation?.title || settings.topic,
         slideCount: data.presentation?.slides?.length || settings.slideCount,
-        downloadUrl: hasVoiceover ? undefined : data.downloadUrl,
-        pptxBase64: hasVoiceover ? voiceoverPptxBase64 : data.pptxBase64,
+        downloadUrl: data.downloadUrl,
+        pptxBase64: data.pptxBase64,
         gammaUrl: data.gammaUrl,
         hasVoiceover,
+        voiceoverPptxBase64: hasVoiceover ? voiceoverPptxBase64 : undefined,
         generatedAt: new Date(),
       };
 
@@ -689,7 +691,7 @@ export function usePresentationStudio() {
     }
   }, [state, practiceContext]);
 
-  // Download presentation
+  // Download presentation — withVoiceover selects the audio-embedded local PPTX
   const downloadPresentation = useCallback(async (withVoiceover: boolean = false, customResult?: GeneratedPresentation) => {
     const result = customResult || state.currentResult;
     if (!result) {
@@ -698,8 +700,33 @@ export function usePresentationStudio() {
     }
 
     try {
+      // If requesting voiceover version and it exists, use it
+      if (withVoiceover && result.voiceoverPptxBase64) {
+        const byteCharacters = atob(result.voiceoverPptxBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { 
+          type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${result.title.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 50)} (with voiceover).pptx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success('Voiceover presentation downloaded!');
+        return;
+      }
+
+      // Otherwise download the Gamma version (always preferred)
       if (result.downloadUrl) {
-        // Direct download from URL
+        // Direct download from Gamma URL
         const link = document.createElement('a');
         link.href = result.downloadUrl;
         link.target = '_blank';
@@ -708,7 +735,7 @@ export function usePresentationStudio() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        toast.success('Presentation downloaded!');
+        toast.success('Gamma presentation downloaded!');
       } else if (result.pptxBase64) {
         // Download from base64
         const byteCharacters = atob(result.pptxBase64);

@@ -45,6 +45,17 @@ export const useGammaPowerPointWithVoiceover = () => {
     URL.revokeObjectURL(url);
   };
 
+  const downloadFromUrl = (url: string, title: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.download = `${title.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 50)}.pptx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const prepareContentForGamma = (content: string, title?: string): { topic: string; supportingContent: string } => {
     const titleMatch = content.match(/^#\s+(.+)$/m) || content.match(/^##\s+(.+)$/m);
     const topic = title || titleMatch?.[1]?.slice(0, 100) || 'AI Generated Presentation';
@@ -52,7 +63,12 @@ export const useGammaPowerPointWithVoiceover = () => {
     return { topic, supportingContent };
   };
 
-  const generateFullPresentation = async (
+  /**
+   * Generate a Gamma presentation FIRST, then add voiceover audio on top.
+   * This ensures the high-quality Gamma slides are always used as the base,
+   * with voiceover audio embedded alongside speaker notes.
+   */
+  const generateWithGammaAndVoiceover = async (
     content: string, 
     title?: string,
     voiceId: string = 'JBFqnCBsd6RMkjVDRZzb', // George - British Male Professional
@@ -72,15 +88,84 @@ export const useGammaPowerPointWithVoiceover = () => {
     try {
       const { topic, supportingContent } = prepareContentForGamma(content, title);
 
-      // Phase 1: Generate slide structure with scripts using Claude
-      console.log('[Voiceover] Phase 1: Generating slide content and scripts...');
+      // ─── Phase 1: Generate via Gamma (start-and-poll) ───
+      console.log('[Voiceover+Gamma] Phase 1: Starting Gamma generation...');
+
+      const { data: startData, error: startError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
+        body: {
+          topic,
+          supportingContent,
+          slideCount: validSlideCount,
+          presentationType: 'Professional Healthcare Presentation',
+          audience: 'healthcare professionals',
+          includeSpeakerNotes: true,
+        },
+      });
+
+      if (startError) throw new Error(startError.message || 'Edge function error');
+
+      let gammaData: any = null;
+
+      // Handle direct result (legacy path)
+      if (startData?.success && (startData?.downloadUrl || startData?.pptxBase64)) {
+        gammaData = startData;
+      } else if (startData?.generationId) {
+        // Poll for completion
+        const generationId = startData.generationId;
+        console.log(`[Voiceover+Gamma] Generation started: ${generationId} — polling...`);
+
+        const maxPollDuration = 180_000; // 3 minutes
+        const pollInterval = 5_000;
+        const pollStart = Date.now();
+
+        while (Date.now() - pollStart < maxPollDuration) {
+          await new Promise(r => setTimeout(r, pollInterval));
+
+          const { data: pollData, error: pollError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
+            body: { action: 'poll', generationId },
+          });
+
+          if (pollError) {
+            console.warn('[Voiceover+Gamma] Poll failed, retrying...', pollError);
+            continue;
+          }
+
+          if (pollData?.status === 'completed') {
+            gammaData = pollData;
+            break;
+          }
+
+          if (pollData?.status === 'failed') {
+            throw new Error(pollData.error || 'Gamma generation failed');
+          }
+        }
+      } else {
+        throw new Error(startData?.error || 'Failed to start Gamma generation');
+      }
+
+      if (!gammaData?.success) {
+        throw new Error('Gamma generation failed — no result received');
+      }
+
+      // Download the Gamma PPTX first (user gets the high-quality version immediately)
+      const gammaTitle = gammaData.title || topic;
+      if (gammaData.downloadUrl) {
+        downloadFromUrl(gammaData.downloadUrl, gammaTitle);
+      } else if (gammaData.pptxBase64) {
+        downloadBase64AsPptx(gammaData.pptxBase64, gammaTitle);
+      }
+      console.log('[Voiceover+Gamma] Gamma PPTX downloaded');
+
+      // ─── Phase 2: Generate narration scripts ───
+      setCurrentPhase('scripts');
+      console.log('[Voiceover+Gamma] Phase 2: Generating narration scripts...');
       
       const { data: scriptsData, error: scriptsError } = await supabase.functions.invoke('generate-presentation-scripts', {
         body: {
           topic,
           content: supportingContent,
-          slideCount: validSlideCount
-        }
+          slideCount: validSlideCount,
+        },
       });
 
       if (scriptsError) {
@@ -90,14 +175,14 @@ export const useGammaPowerPointWithVoiceover = () => {
       const scripts: VoiceoverScript[] = scriptsData?.scripts || [];
       
       if (scripts.length === 0) {
-        throw new Error('No slide content generated');
+        throw new Error('No slide content generated for voiceover');
       }
 
-      console.log(`[Voiceover] Generated ${scripts.length} slide scripts`);
+      console.log(`[Voiceover+Gamma] Generated ${scripts.length} narration scripts`);
 
-      // Phase 2: Generate audio for each slide
+      // ─── Phase 3: Generate audio for each slide ───
       setCurrentPhase('audio');
-      console.log('[Voiceover] Phase 2: Generating British English voiceover...');
+      console.log('[Voiceover+Gamma] Phase 3: Generating British English voiceover...');
 
       const slidesWithAudio: SlideWithAudio[] = [];
       
@@ -109,64 +194,64 @@ export const useGammaPowerPointWithVoiceover = () => {
             .split(/[.!?]+/)
             .map(s => s.trim())
             .filter(s => s.length > 10)
-            .slice(0, 5), // Max 5 bullets per slide
+            .slice(0, 5),
           speakerNotes: script.narrationScript,
         };
 
         try {
-          console.log(`[Voiceover] Generating audio for slide ${script.slideNumber}/${scripts.length}...`);
+          console.log(`[Voiceover+Gamma] Generating audio for slide ${script.slideNumber}/${scripts.length}...`);
           
           const { data: audioData, error: audioError } = await supabase.functions.invoke('generate-slide-narration', {
             body: {
               slideNumber: script.slideNumber,
               slideContent: script.title,
               speakerNotes: script.narrationScript,
-              voiceId
-            }
+              voiceId,
+            },
           });
 
           if (!audioError && audioData?.audioBase64) {
             slide.audioBase64 = audioData.audioBase64;
-            console.log(`[Voiceover] Audio generated for slide ${script.slideNumber}`);
+            console.log(`[Voiceover+Gamma] Audio generated for slide ${script.slideNumber}`);
           } else {
-            console.warn(`[Voiceover] No audio for slide ${script.slideNumber}:`, audioError || 'No data');
+            console.warn(`[Voiceover+Gamma] No audio for slide ${script.slideNumber}:`, audioError || 'No data');
           }
         } catch (err) {
-          console.error(`[Voiceover] Audio error for slide ${script.slideNumber}:`, err);
+          console.error(`[Voiceover+Gamma] Audio error for slide ${script.slideNumber}:`, err);
         }
 
         slidesWithAudio.push(slide);
       }
 
       const audioCount = slidesWithAudio.filter(s => s.audioBase64).length;
-      console.log(`[Voiceover] Audio generated for ${audioCount}/${scripts.length} slides`);
+      console.log(`[Voiceover+Gamma] Audio generated for ${audioCount}/${scripts.length} slides`);
 
-      // Phase 3: Build PPTX with embedded notes and audio
+      // ─── Phase 4: Build PPTX with embedded notes and audio ───
       setCurrentPhase('packaging');
-      console.log('[Voiceover] Phase 3: Building PPTX with embedded notes and audio...');
+      console.log('[Voiceover+Gamma] Phase 4: Building PPTX with embedded audio...');
 
       const { data: pptxData, error: pptxError } = await supabase.functions.invoke('generate-pptx-with-audio', {
         body: {
           title: topic,
-          slides: slidesWithAudio
-        }
+          slides: slidesWithAudio,
+        },
       });
 
       if (pptxError) {
-        throw new Error(pptxError.message || 'Failed to build PPTX');
+        throw new Error(pptxError.message || 'Failed to build PPTX with audio');
       }
 
       if (!pptxData?.success || !pptxData?.pptxBase64) {
-        throw new Error(pptxData?.error || 'PPTX generation failed');
+        throw new Error(pptxData?.error || 'PPTX with audio generation failed');
       }
 
-      // Download the final PPTX
-      downloadBase64AsPptx(pptxData.pptxBase64, topic);
+      // Download the voiceover PPTX as a separate file
+      downloadBase64AsPptx(pptxData.pptxBase64, `${topic} (with voiceover)`);
       
       toast.success(`Presentation downloaded with ${scripts.length} slides, speaker notes${audioCount > 0 ? ` and ${audioCount} audio clips` : ''}!`);
 
     } catch (error) {
-      console.error('Full presentation generation failed:', error);
+      console.error('[Voiceover+Gamma] Full presentation generation failed:', error);
       toast.error(`Generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsGenerating(false);
@@ -175,7 +260,7 @@ export const useGammaPowerPointWithVoiceover = () => {
   };
 
   return { 
-    generateFullPresentation, 
+    generateWithGammaAndVoiceover, 
     isGenerating, 
     currentPhase 
   };
