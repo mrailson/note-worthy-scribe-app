@@ -369,23 +369,124 @@ export function usePresentationStudio() {
         throw new Error(data?.error || 'Presentation generation failed');
       }
 
-      // If voiceover requested, generate audio
-      if (settings.includeVoiceover && data.presentation) {
-        setPhase('generating-audio', 75);
-        // This would call the voiceover generation - for now we skip
-        await new Promise(r => setTimeout(r, 500));
+      // If voiceover requested, run full audio pipeline
+      let voiceoverDownloadUrl: string | undefined;
+      let voiceoverPptxBase64: string | undefined;
+      let hasVoiceover = false;
+
+      if (settings.includeVoiceover) {
+        try {
+          // Step 1: Generate narration scripts from the topic/content
+          setPhase('generating-audio', 75);
+          console.log('🎤 Voiceover: Generating narration scripts...');
+
+          const { data: scriptsData, error: scriptsError } = await supabase.functions.invoke('generate-presentation-scripts', {
+            body: {
+              topic: settings.topic || 'Presentation',
+              content: settings.supportingDocuments
+                .filter(d => d.selected && d.content)
+                .map(d => d.content)
+                .join('\n\n') || settings.topic,
+              slideCount: settings.slideCount,
+            },
+          });
+
+          if (scriptsError) throw new Error(scriptsError.message || 'Failed to generate scripts');
+
+          const scripts = scriptsData?.scripts || [];
+          console.log(`🎤 Voiceover: Generated ${scripts.length} narration scripts`);
+
+          if (scripts.length > 0) {
+            // Step 2: Generate audio for each slide
+            const slidesWithAudio: Array<{
+              slideNumber: number;
+              title: string;
+              bullets: string[];
+              speakerNotes: string;
+              audioBase64?: string;
+            }> = [];
+
+            for (let i = 0; i < scripts.length; i++) {
+              const script = scripts[i];
+              const progressPct = 75 + ((i / scripts.length) * 10); // 75-85%
+              setPhase('generating-audio', Math.round(progressPct));
+
+              const slide = {
+                slideNumber: script.slideNumber,
+                title: script.title,
+                bullets: script.narrationScript
+                  .split(/[.!?]+/)
+                  .map((s: string) => s.trim())
+                  .filter((s: string) => s.length > 10)
+                  .slice(0, 5),
+                speakerNotes: script.narrationScript,
+                audioBase64: undefined as string | undefined,
+              };
+
+              try {
+                console.log(`🎤 Voiceover: Generating audio for slide ${i + 1}/${scripts.length}...`);
+                const { data: audioData, error: audioError } = await supabase.functions.invoke('generate-slide-narration', {
+                  body: {
+                    slideNumber: script.slideNumber,
+                    slideContent: script.title,
+                    speakerNotes: script.narrationScript,
+                    voiceId: settings.voiceId || 'JBFqnCBsd6RMkjVDRZzb',
+                  },
+                });
+
+                if (!audioError && audioData?.audioBase64) {
+                  slide.audioBase64 = audioData.audioBase64;
+                  console.log(`🎤 Voiceover: Audio generated for slide ${i + 1}`);
+                } else {
+                  console.warn(`🎤 Voiceover: No audio for slide ${i + 1}:`, audioError || 'No data');
+                }
+              } catch (err) {
+                console.error(`🎤 Voiceover: Audio error for slide ${i + 1}:`, err);
+              }
+
+              slidesWithAudio.push(slide);
+            }
+
+            const audioCount = slidesWithAudio.filter(s => s.audioBase64).length;
+            console.log(`🎤 Voiceover: Audio generated for ${audioCount}/${scripts.length} slides`);
+
+            // Step 3: Build PPTX with embedded notes and audio
+            setPhase('packaging', 90);
+            console.log('🎤 Voiceover: Building PPTX with embedded audio...');
+
+            const { data: pptxData, error: pptxError } = await supabase.functions.invoke('generate-pptx-with-audio', {
+              body: {
+                title: settings.topic || 'Presentation',
+                slides: slidesWithAudio,
+              },
+            });
+
+            if (!pptxError && pptxData?.success && pptxData?.pptxBase64) {
+              voiceoverPptxBase64 = pptxData.pptxBase64;
+              hasVoiceover = true;
+              console.log('🎤 Voiceover: PPTX with audio ready!');
+              toast.success(`Voiceover added: ${audioCount} audio clips embedded`);
+            } else {
+              console.error('🎤 Voiceover: PPTX build failed:', pptxError || pptxData?.error);
+              toast.warning('Voiceover packaging failed — downloading slides without audio');
+            }
+          }
+        } catch (voiceoverError) {
+          console.error('🎤 Voiceover pipeline failed:', voiceoverError);
+          toast.warning('Voiceover generation failed — downloading slides without audio');
+        }
       }
 
-      setPhase('packaging', 90);
+      setPhase('packaging', 95);
 
       const result: GeneratedPresentation = {
         id: `pres-${Date.now()}`,
         title: data.presentation?.title || settings.topic,
         slideCount: data.presentation?.slides?.length || settings.slideCount,
-        downloadUrl: data.downloadUrl,
-        pptxBase64: data.pptxBase64,
+        downloadUrl: hasVoiceover ? undefined : data.downloadUrl,
+        pptxBase64: hasVoiceover ? voiceoverPptxBase64 : data.pptxBase64,
         gammaUrl: data.gammaUrl,
-        hasVoiceover: settings.includeVoiceover && !!data.audioGenerated,
+        hasVoiceover,
         generatedAt: new Date(),
       };
 
