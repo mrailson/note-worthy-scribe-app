@@ -68,6 +68,7 @@ const DEFAULT_SETTINGS: PresentationStudioSettings = {
 
 // Keys for persisted settings (Branding & Slides tabs)
 const STORAGE_KEY_PREFIX = 'presentation-studio-settings';
+const HISTORY_KEY_PREFIX = 'presentation-studio-history';
 
 // Settings that persist per user (Branding + Slides tabs)
 interface PersistedSettings {
@@ -92,6 +93,7 @@ interface PersistedSettings {
 }
 
 const getStorageKey = (userId: string) => `${STORAGE_KEY_PREFIX}-${userId}`;
+const getHistoryKey = (userId: string) => `${HISTORY_KEY_PREFIX}-${userId}`;
 
 const loadPersistedSettings = (userId: string): Partial<PersistedSettings> | null => {
   try {
@@ -133,6 +135,44 @@ const savePersistedSettings = (userId: string, settings: PresentationStudioSetti
   }
 };
 
+// History persistence — stores metadata + downloadUrl (excludes pptxBase64 to save space)
+const loadPersistedHistory = (userId: string): PresentationHistoryItem[] => {
+  try {
+    const stored = localStorage.getItem(getHistoryKey(userId));
+    if (stored) {
+      const parsed = JSON.parse(stored) as PresentationHistoryItem[];
+      // Rehydrate dates
+      return parsed.map(item => ({
+        ...item,
+        timestamp: new Date(item.timestamp),
+        result: {
+          ...item.result,
+          generatedAt: new Date(item.result.generatedAt),
+        },
+      }));
+    }
+  } catch (e) {
+    console.warn('Failed to load presentation history:', e);
+  }
+  return [];
+};
+
+const savePersistedHistory = (userId: string, history: PresentationHistoryItem[]) => {
+  try {
+    // Strip pptxBase64 to avoid exceeding localStorage limits
+    const lightweight = history.slice(0, 50).map(item => ({
+      ...item,
+      result: {
+        ...item.result,
+        pptxBase64: undefined, // Too large for localStorage
+      },
+    }));
+    localStorage.setItem(getHistoryKey(userId), JSON.stringify(lightweight));
+  } catch (e) {
+    console.warn('Failed to save presentation history:', e);
+  }
+};
+
 // Presentation Studio hook with persisted Branding & Slides settings
 export function usePresentationStudio() {
   const { user } = useAuth();
@@ -152,16 +192,20 @@ export function usePresentationStudio() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const hasLoadedRef = useRef(false);
 
-  // Load persisted settings on mount (once per user)
+  // Load persisted settings + history on mount (once per user)
   useEffect(() => {
     if (user?.id && !hasLoadedRef.current) {
       const persisted = loadPersistedSettings(user.id);
-      if (persisted) {
-        console.log('📂 Loading persisted Presentation Studio settings');
-        setState(prev => ({
-          ...prev,
-          settings: { ...prev.settings, ...persisted },
-        }));
+      const history = loadPersistedHistory(user.id);
+      
+      setState(prev => ({
+        ...prev,
+        settings: persisted ? { ...prev.settings, ...persisted } : prev.settings,
+        generationHistory: history.length > 0 ? history : prev.generationHistory,
+      }));
+      
+      if (persisted || history.length > 0) {
+        console.log(`📂 Loaded persisted settings${history.length > 0 ? ` + ${history.length} history items` : ''}`);
       }
       hasLoadedRef.current = true;
     }
@@ -192,7 +236,13 @@ export function usePresentationStudio() {
     state.settings.voiceId,
   ]);
 
-  // Update settings
+  // Save history whenever it changes
+  useEffect(() => {
+    if (user?.id && hasLoadedRef.current && state.generationHistory.length > 0) {
+      savePersistedHistory(user.id, state.generationHistory);
+    }
+  }, [user?.id, state.generationHistory]);
+
   const updateSettings = useCallback((updates: Partial<PresentationStudioSettings>) => {
     setState(prev => ({
       ...prev,
