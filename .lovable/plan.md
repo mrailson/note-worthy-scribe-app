@@ -1,152 +1,131 @@
 
-# Recording and Transcription Reliability Audit and Improvement Plan
+# Enhance Orphaned Whisper Connections: Pause Status and Graceful End & Generate
 
-## Current Architecture Overview
+## Overview
 
-The system already has a sophisticated multi-layered recording pipeline. Here is what is in place today:
+Upgrade the Orphaned Whisper Connections panel on the Admin page to:
+1. Show whether a meeting is **Paused** (using the `is_paused` database column)
+2. Add a friendly **"End & Generate"** button alongside the existing Kill button that gracefully closes the meeting, triggers transcript consolidation, notes generation, and emails the user their meeting minutes
+
+## What Changes
+
+### 1. Update the `get_all_live_recordings` RPC to include `is_paused`
+
+Currently the database function does not return the `is_paused` column, so the admin UI has no way to distinguish between a deliberately paused meeting and a stalled one. A new SQL migration will add `is_paused` to the return type and SELECT statement.
+
+This means when `words_last_5_mins` is 0 and `is_paused` is true, the UI will show a calm "Paused" badge instead of a scary red "Stalled" warning.
+
+### 2. Add "Paused" badge to the Orphaned Whisper Monitor UI
+
+When a meeting has `is_paused = true`:
+- Show a blue/purple **"Paused"** badge instead of the red stalled warning
+- The "+0 last 5 min" indicator will use a neutral colour rather than red
+- Paused meetings are still shown in the orphaned list (they are still consuming resources) but are visually distinguished from genuinely stalled meetings
+
+### 3. Add "End & Generate" button
+
+A new button next to the existing Kill button that performs a graceful meeting closure:
 
 ```text
-+----------------------------------+
-|        RECORDING SESSION         |
-|  (Browser: Desktop / Mobile)     |
-+----------------------------------+
-          |          |          |
-          v          v          v
-    +---------+ +---------+ +---------+
-    | Whisper | |AssemblyAI| | Deepgram|
-    | (Batch) | | (Live)   | | (Live)  |
-    +---------+ +---------+ +---------+
-          |          |          |
-          v          v          v
-+----------------------------------+
-|    meeting_transcription_chunks  |
-|    deepgram_transcriptions       |
-+----------------------------------+
-          |
-          v
-+----------------------------------+
-|   consolidate-meeting-chunks     |
-|   (Best-of-Both Merger)          |
-+----------------------------------+
-          |
-          v
-+----------------------------------+
-|   meetings table (final text)    |
-|   + notes generation queue       |
-+----------------------------------+
+[End & Generate]  [Kill]
 ```
 
-### What Already Works Well
-- **Three-engine redundancy**: Whisper (batch accuracy), AssemblyAI (real-time), and Deepgram (real-time backup)
-- **iOS-specific transcriber**: SimpleIOSTranscriber uses recorder rotation every 20 seconds to handle iOS fMP4 format issues
-- **Transcription Watchdog**: Detects stalls after 2 minutes (warning) and 3 minutes (critical)
-- **Recording Health Monitor**: Polls database every 30 seconds for server-side closure detection
-- **Connection Health Monitor**: Tracks WebSocket status and heartbeats every 5 seconds
-- **Visibility Protection**: Detects tab backgrounding with duration tracking
-- **Kill Signal System**: Listens for server-side force-stop via Supabase Realtime broadcast
-- **Audio Backup**: Saves raw audio to Supabase Storage every 60 seconds as insurance
-- **Continuation Mode**: Detects orphaned meetings on page refresh and offers "Resume Recording"
-- **Auto-Close Service**: Server-side cron closes stale recordings after 90 minutes of inactivity
-- **Double-click protection**: Prevents accidental stop with confirmation dialogs
-- **beforeunload warning**: Prompts user if they try to close the tab while recording
-- **Stall Modal**: Shows reconnection options with auto-reconnect countdown on mobile
+- **End & Generate** (primary/blue): Stops the recording, runs consolidation, queues notes generation, and sends the completed notes to the user via email
+- **Kill** (red/destructive): Remains as-is for emergency force-stop without notes generation
 
----
+### 4. Create new edge function: `graceful-end-meeting`
 
-## Identified Gaps and Improvements
+This server-side function will orchestrate the full graceful closure pipeline:
 
-### 1. AssemblyAI Has No Auto-Reconnect on Connection Drop (HIGH PRIORITY)
+1. **Stop the meeting** -- Set status to `completed`, set `end_time`
+2. **Broadcast kill signal** -- Notify any connected client to stop recording
+3. **Consolidate transcript chunks** -- Invoke `consolidate-meeting-chunks` to merge Whisper, AssemblyAI, and Deepgram data
+4. **Queue notes generation** -- Insert into `meeting_notes_queue` with `pending` status
+5. **Trigger immediate generation** -- Invoke `auto-generate-meeting-notes` directly (rather than waiting for the queue processor cron)
+6. **Send email notification** -- Look up the user's email from profiles, fetch the generated notes, and invoke `send-meeting-email-resend` with a professional HTML email containing the meeting title, date, duration, and AI-generated minutes
+7. **Audit log** -- Record the admin action in `system_audit_log`
 
-**The Problem**: The Deepgram hook (`useDeepgramRealtimePreview`) has robust auto-reconnection with exponential backoff (up to 5 attempts). However, the AssemblyAI preview hook (`useAssemblyRealtimePreview`) simply sets `status: 'error'` when the WebSocket closes unexpectedly and does NOT attempt to reconnect automatically. The `AssemblyRealtimeClient` class has reconnection callbacks (`onReconnecting`, `onReconnected`) but these rely on the underlying client library -- the hook itself has no retry logic if the connection fails outright.
+### 5. Update confirmation dialog
 
-**Impact**: If the AssemblyAI WebSocket drops mid-meeting (network blip, token expiry, server hiccup), the live AssemblyAI feed silently stops. Users only notice if they spot the health indicator turning yellow/red.
+The "End & Generate" button will show its own confirmation dialog with a friendlier tone:
 
-**Fix**: Add auto-reconnection to `useAssemblyRealtimePreview` matching Deepgram's pattern -- exponential backoff, max 5 attempts, preserve accumulated transcript across reconnections.
-
-### 2. Consolidation Drops AssemblyAI Transcript Column (HIGH PRIORITY)
-
-**The Problem**: The `consolidate-meeting-chunks` edge function merges Whisper and AssemblyAI into a "best-of-both" transcript but only writes to `live_transcript_text` and `whisper_transcript_text`. The `assembly_transcript_text` column is never populated, so the AssemblyAI tab in the notes modal always appears empty after regeneration.
-
-**Fix**: Build a dedicated assembly-only transcript from the AssemblyAI chunks and write it to the `assembly_transcript_text` column during consolidation.
-
-### 3. SafeMode Fallback Mixes All Chunk Sources Together (HIGH PRIORITY)
-
-**The Problem**: When transcript text columns are empty and the UI falls back to reading raw chunks from `meeting_transcription_chunks`, it dumps ALL chunks into the Whisper tab regardless of their `transcriber_type`. AssemblyAI and Deepgram tabs stay empty.
-
-**Fix**: Include `transcriber_type` in the fallback query and separate chunks into Whisper vs AssemblyAI buckets. Move the Deepgram fetch so it always runs, not just when the main columns have data.
-
-### 4. No Automatic MediaRecorder Restart on Stall (MEDIUM PRIORITY)
-
-**The Problem**: The `useTranscriptionWatchdog` has an `onAutoRecoveryAttempt` callback slot, but the actual implementation of what happens when this fires is inconsistent. On mobile, it logs "Auto-triggering recovery attempt" but the recovery action varies -- sometimes it shows a modal, sometimes it does nothing concrete. The watchdog should automatically restart the MediaRecorder and re-initialise the transcription WebSocket without requiring user intervention.
-
-**Fix**: Implement a concrete `attemptAutoRecovery` function in MeetingRecorder that: (a) restarts the MediaRecorder from the existing audio stream, (b) re-initialises any dropped WebSocket connections, (c) logs the recovery attempt for analytics.
-
-### 5. Audio Backup Not Always Started (MEDIUM PRIORITY)
-
-**The Problem**: The `useAudioBackup` hook exists and saves raw audio every 60 seconds, but its activation depends on `isActive` being set. If the recording path skips the backup initialisation (e.g., on certain device paths or during continuation mode), the insurance layer is missing.
-
-**Fix**: Ensure `startBackup(stream)` is called unconditionally whenever a recording starts, regardless of device type or continuation mode.
-
-### 6. No Periodic Server-Side Transcript Integrity Check (MEDIUM PRIORITY)
-
-**The Problem**: The system trusts that chunks arriving at the database are complete and sequential. If a chunk fails to save (network error, DB contention) the gap is never detected until consolidation, where it manifests as missing content.
-
-**Fix**: Add a lightweight client-side "chunk sequence validator" that periodically (every 2 minutes) queries the database to compare expected chunk count vs actual saved count. If a gap is detected, alert the user and attempt to re-send any buffered but un-acknowledged chunks.
-
-### 7. Deepgram Saves to Separate Table, Consolidation Ignores It (LOW-MEDIUM)
-
-**The Problem**: Deepgram transcriptions are saved to `deepgram_transcriptions` table, but the `consolidate-meeting-chunks` function only reads from `meeting_transcription_chunks`. The third engine's data is effectively discarded during the final merge.
-
-**Fix**: Update consolidation to also read from `deepgram_transcriptions` and include it as a third source in the best-of-both comparison, or at minimum save it to `deepgram_transcript_text` on the meetings table for UI display.
-
-### 8. iOS Background Audio Heartbeat Should Be More Aggressive (LOW PRIORITY)
-
-**The Problem**: The iOS transcriber uses a Web Worker heartbeat to prevent timer throttling, but iOS Safari can still suspend audio contexts when the screen locks. The current approach relies on the user keeping the screen on.
-
-**Fix**: Add a "Keep Screen Alive" toggle that uses the Wake Lock API (`navigator.wakeLock.request('screen')`) on supported devices. This prevents screen dimming during active recording on both iOS and Android.
-
-### 9. No Client-Side Transcript Snapshot on Visibility Change (LOW PRIORITY)
-
-**The Problem**: When a tab is backgrounded, the `useVisibilityProtection` hook logs the event but doesn't take any protective action with the transcript data. If the browser process is killed while backgrounded, any in-memory partial transcript that hasn't been committed to the database is lost.
-
-**Fix**: On `visibilityState === 'hidden'`, immediately flush any buffered transcript data to the database and trigger an audio backup save. This acts as a "snapshot" before the OS potentially kills the process.
-
----
-
-## Implementation Priority
-
-| Priority | Improvement | Risk if Not Fixed | Effort |
-|----------|------------|-------------------|--------|
-| HIGH | AssemblyAI auto-reconnect | Silent data loss on network blips | Medium |
-| HIGH | Fix consolidation assembly column | Missing transcript source after regeneration | Small |
-| HIGH | Fix SafeMode chunk source separation | Wrong/empty tabs in fallback mode | Small |
-| MEDIUM | Auto MediaRecorder restart on stall | Manual intervention needed for recovery | Medium |
-| MEDIUM | Ensure audio backup always starts | No insurance layer on some code paths | Small |
-| MEDIUM | Periodic chunk sequence validation | Undetected gaps in transcript | Medium |
-| LOW-MED | Include Deepgram in consolidation | Third engine data wasted | Medium |
-| LOW | Wake Lock API for mobile | Screen lock kills recording | Small |
-| LOW | Flush transcript on visibility change | Data loss if OS kills process | Small |
-
----
+> **End Meeting & Generate Notes**
+>
+> This will gracefully end "Team Standup" and:
+> - Consolidate all transcript sources
+> - Generate AI meeting minutes
+> - Email the notes to user@example.com
+>
+> Current duration: 2h 15m | Words: 11,190
+>
+> [Cancel] [End & Generate Notes]
 
 ## Technical Details
 
+### Files to Create
+
+**`supabase/functions/graceful-end-meeting/index.ts`** -- New edge function that orchestrates the full pipeline:
+- Accepts `{ meetingId: string }` in the request body
+- Uses service role key to bypass RLS
+- Performs all 7 steps listed above in sequence
+- Returns success/failure with details of each step
+- Has proper error handling so partial failures don't lose data (e.g., if email fails, the notes are still generated)
+
 ### Files to Modify
 
-1. **`src/hooks/useAssemblyRealtimePreview.ts`** -- Add auto-reconnection with exponential backoff, matching Deepgram's pattern (max 5 attempts, 1s-30s delay range, `intentionalStopRef` to prevent reconnect on manual stop)
+**`supabase/migrations/[new]` (new SQL migration)** -- Update `get_all_live_recordings`:
+- Add `is_paused boolean` to the RETURNS TABLE definition
+- Add `m.is_paused` to the SELECT statement
 
-2. **`supabase/functions/consolidate-meeting-chunks/index.ts`** -- Build and persist `assembly_transcript_text` from AssemblyAI-source chunks during the final database update
+**`src/components/admin/OrphanedWhisperMonitor.tsx`**:
+- Add `is_paused` to the `OrphanedMeeting` interface
+- Map `is_paused` from the RPC response data
+- Add "Paused" badge display logic (blue badge when `is_paused && words_last_5_mins === 0`)
+- Change the stalled indicator colour to neutral when paused
+- Add new "End & Generate" button alongside Kill
+- Add new confirmation dialog state for the graceful end action
+- Add `handleGracefulEnd` function that calls `graceful-end-meeting` edge function
+- Show a success toast with "Notes are being generated and will be emailed to [user]"
 
-3. **`src/components/SafeModeNotesModal.tsx`** -- Update `loadTranscript` fallback to include `transcriber_type` in chunk query, separate into Whisper/AssemblyAI buckets, and always run Deepgram fetch
+**`supabase/config.toml`** -- Register the new `graceful-end-meeting` function with `verify_jwt = false`
 
-4. **`src/hooks/useTranscriptionWatchdog.ts`** -- Strengthen `onAutoRecoveryAttempt` with concrete MediaRecorder restart logic
+### UI Layout Change (per meeting row)
 
-5. **`src/hooks/useVisibilityProtection.ts`** -- Add transcript flush and audio backup save on `hidden` event
+```text
+Before:
+[User info] [Stats] [Kill]
 
-6. **`src/hooks/useAudioBackup.ts`** -- Verify and enforce that `startBackup` is called in all recording paths (desktop, iOS, continuation)
+After:
+[User info] [Paused badge if applicable] [Stats] [End & Generate] [Kill]
+```
 
-7. **New utility: `src/hooks/useChunkSequenceValidator.ts`** -- Periodic database query to verify chunk integrity during recording
+On mobile or narrow screens, the buttons will stack vertically.
 
-8. **`src/hooks/useRecordingProtection.ts`** -- Add Wake Lock API support for mobile devices to prevent screen dimming
+### Edge Function Pipeline Flow
 
-These changes are all additive safety improvements. None modify the core recording flow, so they carry minimal risk to existing functionality.
+```text
+Admin clicks "End & Generate"
+         |
+         v
+graceful-end-meeting (edge function)
+         |
+         +-- 1. Update meetings.status = 'completed'
+         +-- 2. Broadcast force_stop to meeting-kill channel
+         +-- 3. Invoke consolidate-meeting-chunks
+         +-- 4. Upsert meeting_notes_queue (status: 'pending')
+         +-- 5. Invoke auto-generate-meeting-notes
+         +-- 6. Fetch user email from profiles
+         +-- 7. Wait briefly for notes, then invoke send-meeting-email-resend
+         +-- 8. Insert system_audit_log entry
+         |
+         v
+Return { success: true, steps: [...] }
+```
+
+### Error Handling Strategy
+
+Each step in the pipeline is wrapped independently so that:
+- If consolidation fails, notes generation still attempts (it can read raw chunks)
+- If notes generation fails, the queue entry remains for the cron processor to retry
+- If email fails, a warning is returned but the meeting is still properly closed
+- The admin always sees which steps succeeded/failed in the toast notification
