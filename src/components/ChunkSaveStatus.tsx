@@ -24,6 +24,7 @@ interface ChunkSaveStatus {
   originalFileSize?: number; // Original file size in bytes before transcoding
   transcodedFileSize?: number; // Transcoded file size in bytes
   fileType?: string; // Audio file type (e.g., 'audio/webm', 'audio/wav')
+  engine?: string; // Transcription engine (e.g., 'whisper', 'assemblyai', 'deepgram')
 }
 
 interface ChunkSaveStatusProps {
@@ -87,8 +88,52 @@ const renderChunkTextWithLastWordHighlight = (text: string) => {
   );
 };
 
+/**
+ * Normalise text for deduplication: lowercase, strip punctuation, collapse whitespace.
+ */
+const normaliseTextForHash = (text: string): string =>
+  text.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+
+/**
+ * Deduplicate chunks by (engine, normalised text hash), keeping the chunk with the earliest startTime.
+ */
+const deduplicateChunks = (chunks: ChunkSaveStatus[]): ChunkSaveStatus[] => {
+  const seen = new Map<string, ChunkSaveStatus>();
+
+  for (const chunk of chunks) {
+    const normText = normaliseTextForHash(chunk.text);
+    if (!normText) continue;
+
+    const key = `${(chunk.engine || 'default').toLowerCase()}::${normText}`;
+    const existing = seen.get(key);
+
+    if (!existing) {
+      seen.set(key, chunk);
+    } else {
+      // Keep the one with the earliest startTime
+      const existingStart = existing.startTime ?? Infinity;
+      const currentStart = chunk.startTime ?? Infinity;
+      if (currentStart < existingStart) {
+        seen.set(key, chunk);
+      }
+    }
+  }
+
+  // Preserve original order (by earliest appearance)
+  return chunks.filter(c => {
+    const normText = normaliseTextForHash(c.text);
+    if (!normText) return false;
+    const key = `${(c.engine || 'default').toLowerCase()}::${normText}`;
+    return seen.get(key) === c;
+  });
+};
+
 // Export chunks to Word document
-const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: string, isChunkInTranscript: (text: string) => boolean) => {
+const exportChunksToWord = async (rawChunks: ChunkSaveStatus[], mainTranscript: string, isChunkInTranscript: (text: string) => boolean) => {
+  // Deduplicate chunks by (engine, normalised text) keeping earliest startTime
+  const chunks = deduplicateChunks(rawChunks);
+  const duplicatesRemoved = rawChunks.length - chunks.length;
+
   const formatTime = (seconds: number | undefined): string => {
     if (seconds === undefined) return 'N/A';
     const mins = Math.floor(seconds / 60);
@@ -187,7 +232,7 @@ const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: str
           text: 'Summary',
           heading: HeadingLevel.HEADING_2,
         }),
-        new Paragraph({ text: `Total Chunks: ${chunks.length}` }),
+        new Paragraph({ text: `Total Chunks: ${chunks.length}${duplicatesRemoved > 0 ? ` (${duplicatesRemoved} duplicates removed)` : ''}` }),
         new Paragraph({ text: `Gross Words (all chunks): ${totalWords}` }),
         new Paragraph({ text: `Net Words (merged transcript): ${netTranscriptWords}` }),
         new Paragraph({ text: `Words Filtered: ${totalWords - netTranscriptWords}` }),
