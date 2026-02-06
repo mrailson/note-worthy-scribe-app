@@ -91,7 +91,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { generateWithGamma, isGenerating: isPowerPointGenerating } = useGammaPowerPoint();
-  const { generateFullPresentation, isGenerating: isFullPowerPointGenerating, currentPhase } = useGammaPowerPointWithVoiceover();
+  const { generateWithGammaAndVoiceover, isGenerating: isFullPowerPointGenerating, currentPhase } = useGammaPowerPointWithVoiceover();
   
   // PowerPoint dialog state - independent of generation so user can dismiss and carry on
   const [showPowerPointDialog, setShowPowerPointDialog] = useState(false);
@@ -130,7 +130,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const handleExportPowerPointWithVoiceover = (content: string, title?: string, slideCount?: number) => {
     setPptComplete(false);
     setPptError(null);
-    generateFullPresentation(content, title, 'JBFqnCBsd6RMkjVDRZzb', slideCount || 4).catch((err) => {
+    generateWithGammaAndVoiceover(content, title, 'JBFqnCBsd6RMkjVDRZzb', slideCount || 4).catch((err) => {
       setPptError(err?.message || 'Generation failed');
     });
   };
