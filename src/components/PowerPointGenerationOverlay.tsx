@@ -6,6 +6,7 @@ interface PowerPointGenerationOverlayProps {
   isVisible: boolean;
   currentPhase?: VoiceoverPhase;
   isFullVersion?: boolean;
+  slideCount?: number;
 }
 
 const TIPS = [
@@ -56,9 +57,12 @@ const PHASE_INFO = {
 export const PowerPointGenerationOverlay: React.FC<PowerPointGenerationOverlayProps> = ({ 
   isVisible, 
   currentPhase,
-  isFullVersion = false 
+  isFullVersion = false,
+  slideCount = 10
 }) => {
-  const totalTime = isFullVersion ? 120 : 90;
+  // Base 90s (or 120s for full version), plus 10s per slide above 10
+  const extraTime = slideCount > 10 ? (slideCount - 10) * 10 : 0;
+  const totalTime = (isFullVersion ? 120 : 90) + extraTime;
   const [seconds, setSeconds] = useState(totalTime);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [tipFade, setTipFade] = useState(true);
