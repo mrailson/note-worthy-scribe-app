@@ -306,55 +306,61 @@ export function usePresentationStudio() {
         docsCount: settings.supportingDocuments.filter(d => d.selected).length,
       });
 
-      // Call edge function with extended timeout for large presentations
-      // Default supabase.functions.invoke times out too quickly for 20-30 slide decks
-      // which can take 2-3 minutes on the Gamma API side
-      const timeoutMs = settings.slideCount > 10
-        ? 60_000 + settings.slideCount * 8_000   // e.g. 30 slides ≈ 300s
-        : 120_000;                                 // ≤10 slides → 2 min
+      // Phase 1: Start generation — edge function returns immediately with generationId
+      const { data: startData, error: startError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
+        body: request,
+      });
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      if (startError) throw startError;
+      if (!startData?.generationId) throw new Error(startData?.error || 'Failed to start generation');
 
-      let data: any;
-      try {
-        // Get the current session for auth
-        const { data: { session } } = await supabase.auth.getSession();
-        const supabaseUrl = (supabase as any).supabaseUrl
-          || import.meta.env.VITE_SUPABASE_URL
-          || 'https://dphcnbricafkbtizkoal.supabase.co';
-        const anonKey = (supabase as any).supabaseKey
-          || import.meta.env.VITE_SUPABASE_ANON_KEY
-          || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs';
+      const generationId = startData.generationId;
+      console.log(`🎬 Generation started: ${generationId} — polling for completion`);
 
-        const response = await fetch(`${supabaseUrl}/functions/v1/generate-powerpoint-gamma`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token || anonKey}`,
-            'apikey': anonKey,
-          },
-          body: JSON.stringify(request),
-          signal: controller.signal,
+      // Phase 2: Poll for completion from the client side
+      // This avoids the edge function hitting Supabase's ~150s execution limit
+      const maxPollDuration = settings.slideCount > 10
+        ? 60_000 + settings.slideCount * 10_000  // e.g. 30 slides ≈ 360s
+        : 180_000;                                 // ≤10 slides → 3 min
+      const pollInterval = 5_000; // 5 seconds between polls
+      const pollStart = Date.now();
+
+      let data: any = null;
+
+      while (Date.now() - pollStart < maxPollDuration) {
+        await new Promise(r => setTimeout(r, pollInterval));
+
+        // Update progress based on elapsed time
+        const elapsed = Date.now() - pollStart;
+        const progressPct = Math.min(30 + (elapsed / maxPollDuration) * 55, 85);
+        setPhase('generating-content', Math.round(progressPct));
+
+        const { data: pollData, error: pollError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
+          body: { action: 'poll', generationId },
         });
 
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`Edge function error (${response.status}): ${errText}`);
+        if (pollError) {
+          console.warn('Poll request failed, retrying...', pollError);
+          continue; // Retry on transient errors
         }
 
-        data = await response.json();
-      } catch (fetchErr: any) {
-        clearTimeout(timeoutId);
-        if (fetchErr.name === 'AbortError') {
-          throw new Error(
-            `Presentation generation timed out after ${Math.round(timeoutMs / 1000)}s. ` +
-            `Try reducing the slide count or simplifying supporting materials.`
-          );
+        if (pollData?.status === 'completed') {
+          data = pollData;
+          break;
         }
-        throw fetchErr;
+
+        if (pollData?.status === 'failed') {
+          throw new Error(pollData.error || 'Gamma generation failed');
+        }
+
+        console.log(`⏳ Still generating... (${Math.round(elapsed / 1000)}s elapsed)`);
+      }
+
+      if (!data) {
+        throw new Error(
+          `Presentation generation timed out after ${Math.round(maxPollDuration / 1000)}s. ` +
+          `Try reducing the slide count or simplifying supporting materials.`
+        );
       }
 
       setPhase('creating-slides', 60);
