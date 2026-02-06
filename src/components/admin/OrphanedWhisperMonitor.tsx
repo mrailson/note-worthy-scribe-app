@@ -12,7 +12,7 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle, Radio, Clock, User, Skull, PoundSterling, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Radio, Clock, User, Skull, PoundSterling, RefreshCw, Pause, FileText, Mail, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, differenceInMinutes } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -32,13 +32,16 @@ interface OrphanedMeeting {
   total_word_count: number;
   words_last_5_mins: number;
   running_cost: number;
+  is_paused: boolean;
 }
 
 export function OrphanedWhisperMonitor() {
   const [orphanedMeetings, setOrphanedMeetings] = useState<OrphanedMeeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [forceStoppingId, setForceStoppingId] = useState<string | null>(null);
+  const [gracefulEndingId, setGracefulEndingId] = useState<string | null>(null);
   const [confirmKillMeeting, setConfirmKillMeeting] = useState<OrphanedMeeting | null>(null);
+  const [confirmGracefulEnd, setConfirmGracefulEnd] = useState<OrphanedMeeting | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const calculateCost = (durationMins: number): number => {
@@ -94,6 +97,7 @@ export function OrphanedWhisperMonitor() {
             total_word_count: m.total_word_count || 0,
             words_last_5_mins: m.words_last_5_mins || 0,
             running_cost: calculateCost(durationMins),
+            is_paused: m.is_paused || false,
           };
         })
         .filter((m: OrphanedMeeting) => {
@@ -141,6 +145,45 @@ export function OrphanedWhisperMonitor() {
     } finally {
       setForceStoppingId(null);
       setConfirmKillMeeting(null);
+    }
+  };
+
+  const handleGracefulEnd = async (meeting: OrphanedMeeting) => {
+    setGracefulEndingId(meeting.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('graceful-end-meeting', {
+        body: { meetingId: meeting.id }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        const failedSteps = (data.steps || []).filter((s: any) => !s.success);
+        
+        if (failedSteps.length === 0) {
+          toast.success(
+            `Meeting ended successfully. Notes are being generated and will be emailed to ${data.userEmail || meeting.user_email || 'the user'}.`,
+            { duration: 6000 }
+          );
+        } else {
+          const failedNames = failedSteps.map((s: any) => s.step).join(', ');
+          toast.warning(
+            `Meeting ended but some steps had issues: ${failedNames}. Check the audit log for details.`,
+            { duration: 8000 }
+          );
+        }
+
+        // Remove from list
+        setOrphanedMeetings(prev => prev.filter(m => m.id !== meeting.id));
+      } else {
+        toast.error(data?.error || 'Failed to gracefully end meeting');
+      }
+    } catch (error) {
+      console.error('Error gracefully ending meeting:', error);
+      toast.error('Failed to end meeting');
+    } finally {
+      setGracefulEndingId(null);
+      setConfirmGracefulEnd(null);
     }
   };
 
@@ -213,20 +256,35 @@ export function OrphanedWhisperMonitor() {
               {/* Meeting list */}
               {orphanedMeetings.map((meeting) => {
                 const isStalled = meeting.words_last_5_mins === 0 && meeting.total_word_count > 0;
+                const isPaused = meeting.is_paused;
+                const isBeingEnded = gracefulEndingId === meeting.id;
+                const isBeingKilled = forceStoppingId === meeting.id;
+
                 return (
                   <div 
                     key={meeting.id} 
-                    className="flex items-center justify-between p-3 rounded-lg border bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700"
+                    className={cn(
+                      "flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border gap-3",
+                      isPaused
+                        ? "bg-blue-50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-700"
+                        : "bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700"
+                    )}
                   >
                     <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-1 text-sm">
-                        <User className="h-3 w-3" />
+                      <div className="flex items-center gap-2 text-sm flex-wrap">
+                        <User className="h-3 w-3 flex-shrink-0" />
                         <span className="font-medium">{meeting.user_email || meeting.user_name || 'Unknown user'}</span>
+                        {isPaused && (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 border-blue-300 dark:border-blue-600 gap-1">
+                            <Pause className="h-3 w-3" />
+                            Paused
+                          </Badge>
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {meeting.title}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           Started {formatTime(meeting.created_at)}
@@ -238,16 +296,22 @@ export function OrphanedWhisperMonitor() {
                     </div>
                     
                     {/* Stats */}
-                    <div className="flex flex-col items-end mr-3 text-xs space-y-1">
+                    <div className="flex flex-col items-end mr-0 sm:mr-3 text-xs space-y-1">
                       <div className="flex items-center gap-1">
                         <Radio className="h-3 w-3 text-muted-foreground" />
                         <span>{meeting.total_word_count.toLocaleString()} words</span>
                       </div>
                       <div className={cn(
                         "flex items-center gap-1",
-                        isStalled ? "text-red-600" : "text-amber-600"
+                        isPaused && isStalled
+                          ? "text-blue-600 dark:text-blue-400"
+                          : isStalled
+                            ? "text-red-600"
+                            : "text-amber-600"
                       )}>
-                        {isStalled ? (
+                        {isPaused && isStalled ? (
+                          <Pause className="h-3 w-3" />
+                        ) : isStalled ? (
                           <AlertTriangle className="h-3 w-3" />
                         ) : (
                           <Clock className="h-3 w-3" />
@@ -260,22 +324,46 @@ export function OrphanedWhisperMonitor() {
                       </div>
                     </div>
                     
-                    {/* Kill button */}
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setConfirmKillMeeting(meeting)}
-                      disabled={forceStoppingId === meeting.id}
-                    >
-                      {forceStoppingId === meeting.id ? (
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Skull className="h-4 w-4 mr-1" />
-                          Kill
-                        </>
-                      )}
-                    </Button>
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {/* End & Generate button */}
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => setConfirmGracefulEnd(meeting)}
+                        disabled={isBeingEnded || isBeingKilled}
+                        className="gap-1"
+                      >
+                        {isBeingEnded ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Ending…
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4" />
+                            End &amp; Generate
+                          </>
+                        )}
+                      </Button>
+
+                      {/* Kill button */}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setConfirmKillMeeting(meeting)}
+                        disabled={isBeingEnded || isBeingKilled}
+                      >
+                        {isBeingKilled ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Skull className="h-4 w-4 mr-1" />
+                            Kill
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -284,7 +372,7 @@ export function OrphanedWhisperMonitor() {
         </CardContent>
       </Card>
 
-      {/* Confirmation Dialog */}
+      {/* Kill Confirmation Dialog */}
       <AlertDialog open={!!confirmKillMeeting} onOpenChange={() => setConfirmKillMeeting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -295,7 +383,7 @@ export function OrphanedWhisperMonitor() {
             <AlertDialogDescription>
               Are you sure you want to force stop "{confirmKillMeeting?.title}"?
               <br /><br />
-              This will immediately end the recording. The user will be notified that their meeting was stopped.
+              This will immediately end the recording <strong>without generating notes or emailing the user</strong>. Use "End &amp; Generate" instead for a graceful closure.
               <br /><br />
               <span className="font-medium">
                 Current running cost: {formatCost(confirmKillMeeting?.running_cost || 0)}
@@ -309,6 +397,52 @@ export function OrphanedWhisperMonitor() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Force Stop
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Graceful End Confirmation Dialog */}
+      <AlertDialog open={!!confirmGracefulEnd} onOpenChange={() => setConfirmGracefulEnd(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              End Meeting &amp; Generate Notes
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  This will gracefully end <strong>"{confirmGracefulEnd?.title}"</strong> and:
+                </p>
+                <ul className="space-y-1.5 text-sm">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                    Consolidate all transcript sources
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                    Generate AI meeting minutes
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    Email the notes to {confirmGracefulEnd?.user_email || 'the user'}
+                  </li>
+                </ul>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1 border-t">
+                  <span>Duration: {formatDuration(confirmGracefulEnd?.duration_minutes || 0)}</span>
+                  <span>Words: {(confirmGracefulEnd?.total_word_count || 0).toLocaleString()}</span>
+                  <span>Cost: {formatCost(confirmGracefulEnd?.running_cost || 0)}</span>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmGracefulEnd && handleGracefulEnd(confirmGracefulEnd)}
+            >
+              End &amp; Generate Notes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

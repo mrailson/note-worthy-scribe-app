@@ -488,3 +488,6 @@ verify_jwt = false
 
 [functions.upload-inspection-capture]
 verify_jwt = false
+
+[functions.graceful-end-meeting]
+verify_jwt = false
