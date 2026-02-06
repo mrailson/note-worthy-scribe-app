@@ -100,14 +100,16 @@ const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: str
     // Header row
     new TableRow({
       children: [
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '#', bold: true })] })], width: { size: 5, type: WidthType.PERCENTAGE } }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Start', bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'End', bold: true })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Duration', bold: true })] })], width: { size: 8, type: WidthType.PERCENTAGE } }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Words', bold: true })] })], width: { size: 6, type: WidthType.PERCENTAGE } }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Conf', bold: true })] })], width: { size: 6, type: WidthType.PERCENTAGE } }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Merged', bold: true })] })], width: { size: 7, type: WidthType.PERCENTAGE } }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Text', bold: true })] })], width: { size: 48, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: '#', bold: true })] })], width: { size: 4, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Start', bold: true })] })], width: { size: 8, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'End', bold: true })] })], width: { size: 8, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Duration', bold: true })] })], width: { size: 7, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Words', bold: true })] })], width: { size: 5, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Conf', bold: true })] })], width: { size: 5, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Size', bold: true })] })], width: { size: 6, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Format', bold: true })] })], width: { size: 6, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Merged', bold: true })] })], width: { size: 6, type: WidthType.PERCENTAGE } }),
+        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Text', bold: true })] })], width: { size: 45, type: WidthType.PERCENTAGE } }),
       ],
     }),
   ];
@@ -121,6 +123,15 @@ const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: str
     const merged = isChunkInTranscript(chunk.text) ? '✓' : '✗';
     const rejectionNote = chunk.mergeRejectionReason ? ` [${chunk.mergeRejectionReason}]` : '';
 
+    const fileSizeStr = chunk.originalFileSize 
+      ? (chunk.originalFileSize < 1024 * 1024 
+        ? `${(chunk.originalFileSize / 1024).toFixed(0)} KB` 
+        : `${(chunk.originalFileSize / (1024 * 1024)).toFixed(1)} MB`)
+      : 'N/A';
+    const fileTypeStr = chunk.fileType 
+      ? chunk.fileType.replace('audio/', '').split(';')[0] 
+      : 'N/A';
+
     tableRows.push(
       new TableRow({
         children: [
@@ -130,6 +141,8 @@ const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: str
           new TableCell({ children: [new Paragraph(duration)] }),
           new TableCell({ children: [new Paragraph(String(wordCount))] }),
           new TableCell({ children: [new Paragraph(`${Math.round(chunk.confidence * 100)}%`)] }),
+          new TableCell({ children: [new Paragraph(fileSizeStr)] }),
+          new TableCell({ children: [new Paragraph(fileTypeStr)] }),
           new TableCell({ children: [new Paragraph(merged)] }),
           new TableCell({ children: [new Paragraph(chunk.text.trim() + rejectionNote)] }),
         ],
@@ -149,6 +162,11 @@ const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: str
     ? chunks.reduce((sum, c) => sum + c.confidence, 0) / chunks.length 
     : 0;
   const mergedCount = chunks.filter(c => isChunkInTranscript(c.text)).length;
+
+  // Calculate total file size and unique file types for export summary
+  const totalFileSize = chunks.reduce((sum, c) => sum + (c.originalFileSize || 0), 0);
+  const fileTypes = Array.from(new Set(chunks.map(c => c.fileType).filter(Boolean)))
+    .map(t => (t as string).replace('audio/', '').split(';')[0]);
 
   // Calculate net transcript word count
   const netTranscriptWords = mainTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
@@ -174,6 +192,8 @@ const exportChunksToWord = async (chunks: ChunkSaveStatus[], mainTranscript: str
         new Paragraph({ text: `Net Words (merged transcript): ${netTranscriptWords}` }),
         new Paragraph({ text: `Words Filtered: ${totalWords - netTranscriptWords}` }),
         new Paragraph({ text: `Total Duration: ${Math.floor(totalDuration / 60)}m ${Math.floor(totalDuration % 60)}s` }),
+        new Paragraph({ text: `Total File Size: ${totalFileSize < 1024 * 1024 ? `${(totalFileSize / 1024).toFixed(0)} KB` : `${(totalFileSize / (1024 * 1024)).toFixed(1)} MB`}` }),
+        new Paragraph({ text: `Audio Format: ${fileTypes.length > 0 ? fileTypes.join(', ') : 'N/A'}` }),
         new Paragraph({ text: `Average Confidence: ${Math.round(avgConfidence * 100)}%` }),
         new Paragraph({ text: `Chunks Merged: ${mergedCount}/${chunks.length}` }),
         new Paragraph({ text: '' }),
@@ -356,11 +376,9 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
             <Badge variant="outline" className="bg-accent/10 text-accent-foreground text-xs">
               📝 Words: {totalWords}
             </Badge>
-            {totalFileSize > 0 && (
-              <Badge variant="outline" className="bg-primary/10 text-primary text-xs">
-                📦 Size: {formatSize(totalFileSize)}
-              </Badge>
-            )}
+            <Badge variant="outline" className="bg-primary/10 text-primary text-xs">
+              📦 Size: {formatSize(totalFileSize)}
+            </Badge>
             {fileTypeSummary && (
               <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">
                 🎧 {fileTypeSummary}
@@ -400,8 +418,8 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
             📊 <strong>Total:</strong> {chunks.length} chunks • 
             <span className="ml-1">⏱️ {formattedTotalTime}</span> • 
             <span className="ml-1">📝 {totalWords} words</span> • 
-            {totalFileSize > 0 && <span className="ml-1">📦 {formatSize(totalFileSize)}</span>}
-            {totalFileSize > 0 && ' • '}
+            <span className="ml-1">📦 {formatSize(totalFileSize)}</span>
+            {' • '}
             {fileTypeSummary && <span className="ml-1">🎧 {fileTypeSummary}</span>}
             {fileTypeSummary && ' • '}
             <span className="text-success ml-1">✅ {savedChunks}</span> • 
@@ -448,7 +466,7 @@ export const ChunkSaveStatus: React.FC<ChunkSaveStatusProps> = ({
                               {chunk.startTime !== undefined && chunk.endTime !== undefined && (
                                 <span className="text-xs text-primary font-mono">
                                   {Math.floor(chunk.startTime / 60)}:{(chunk.startTime % 60).toFixed(0).padStart(2, '0')} → {Math.floor(chunk.endTime / 60)}:{(chunk.endTime % 60).toFixed(0).padStart(2, '0')} ({(chunk.endTime - chunk.startTime).toFixed(1)}s) • {chunkWords} words • {Math.round(chunk.confidence * 100)}%
-                                  {chunk.originalFileSize && <span className="ml-1">• 📦 {(chunk.originalFileSize / 1024).toFixed(0)}KB {chunk.fileType && `[${chunk.fileType.replace('audio/', '')}]`}</span>}
+                                  <span className="ml-1">• 📦 {chunk.originalFileSize ? `${(chunk.originalFileSize / 1024).toFixed(0)}KB` : '—'} [{chunk.fileType ? chunk.fileType.replace('audio/', '').split(';')[0] : '—'}]</span>
                                 </span>
                               )}
                             </div>
