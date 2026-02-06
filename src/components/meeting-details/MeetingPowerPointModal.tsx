@@ -50,7 +50,12 @@ const GENERATION_TIPS = [
   "Almost ready! Finalising your presentation...",
 ];
 
-const TOTAL_DURATION = 90; // 90 seconds
+// Base duration 90s, plus 10s per slide above 10
+const calculateDuration = (slideCount: number) => {
+  const base = 90;
+  const extra = slideCount > 10 ? (slideCount - 10) * 10 : 0;
+  return base + extra;
+};
 
 export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
   isOpen,
@@ -59,7 +64,8 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
   options,
 }) => {
   const { generatePowerPoint, isGenerating, currentPhase, error } = useMeetingPowerPoint();
-  const [timeRemaining, setTimeRemaining] = useState(TOTAL_DURATION);
+  const totalDuration = calculateDuration(options?.slideCount ?? 10);
+  const [timeRemaining, setTimeRemaining] = useState(totalDuration);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
@@ -72,7 +78,7 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
   useEffect(() => {
     if (isOpen && !hasStarted && !isComplete) {
       setHasStarted(true);
-      setTimeRemaining(TOTAL_DURATION);
+      setTimeRemaining(totalDuration);
       setCurrentTipIndex(0);
       setIsComplete(false);
       setHasFailed(false);
@@ -140,14 +146,14 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
       setIsComplete(false);
       setHasFailed(false);
       setDownloadUrl(null);
-      setTimeRemaining(TOTAL_DURATION);
+      setTimeRemaining(totalDuration);
       setCurrentTipIndex(0);
       if (timerRef.current) clearInterval(timerRef.current);
       if (tipTimerRef.current) clearInterval(tipTimerRef.current);
     }
   }, [isOpen]);
 
-  const progress = ((TOTAL_DURATION - timeRemaining) / TOTAL_DURATION) * 100;
+  const progress = ((totalDuration - timeRemaining) / totalDuration) * 100;
   const circumference = 2 * Math.PI * 45; // radius = 45
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
