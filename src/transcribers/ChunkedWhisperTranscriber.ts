@@ -6,6 +6,7 @@ import {
   DeduplicationState 
 } from '@/lib/whisperDeduplication';
 import { repairSentences, lightRepair } from '@/lib/sentenceRepair';
+import { cleanWhisperTranscript } from '@/lib/cleanWhisperTranscript';
 import { 
   evaluateConfidence, 
   createConfidenceGateState, 
@@ -151,6 +152,19 @@ export class ChunkedWhisperTranscriber {
       this.deduplicationState = dedupeResult.state;
     }
     
+    // Apply whole-transcript clean when we have at least 2 chunks
+    // This catches paragraph-level repeats that per-chunk dedup misses
+    if (this.chunkIndex >= 2 && finalText) {
+      const cleanResult = cleanWhisperTranscript(finalText);
+      if (cleanResult.paragraphsDropped > 0 || cleanResult.overlapsTrimmed > 0 || cleanResult.sentencesDropped > 0) {
+        console.log(`🧹 Whisper clean (chunk ${this.chunkIndex - 1}): ` +
+          `${cleanResult.paragraphsDropped} paragraphs dropped, ` +
+          `${cleanResult.sentencesDropped} sentences dropped, ` +
+          `${cleanResult.overlapsTrimmed} overlaps trimmed`);
+        finalText = cleanResult.text;
+      }
+    }
+
     // Apply sentence repair if enabled
     if (C.sentenceRepair?.enabled && finalText) {
       // Use light repair for real-time (less aggressive)

@@ -240,8 +240,8 @@ interface MergeConfig {
 }
 
 const DEFAULT_MERGE_CONFIG: MergeConfig = {
-  chunkDurationSec: 15,
-  overlapSec: 1.5,
+  chunkDurationSec: 90,
+  overlapSec: 3,
   whisperConfFloor: 0.30,
   overlapSimilarity: 0.60,
   strongConfMargin: 0.12,
@@ -251,7 +251,19 @@ const DEFAULT_MERGE_CONFIG: MergeConfig = {
 };
 
 function getEngineTier(engine: Engine): number {
-  return (engine === 'assembly' || engine === 'deepgram') ? 1 : 2;
+  if (engine === 'whisper') return 1;  // Batch = gold standard
+  return 2; // assembly, deepgram = gap-fill
+}
+
+// Gap-fill similarity gate helper
+function gapFillJaccard(candidateTokens: string[], whisperTokens: string[]): number {
+  if (!candidateTokens.length || !whisperTokens.length) return 0;
+  const a = new Set(candidateTokens);
+  const b = new Set(whisperTokens);
+  let inter = 0;
+  for (const t of a) if (b.has(t)) inter++;
+  const union = a.size + b.size - inter;
+  return union === 0 ? 0 : inter / union;
 }
 
 function normaliseConfidence(engine: Engine, confidence?: number): number {
@@ -403,6 +415,20 @@ function mergeBestOfAll(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], deepgra
     const overlapCandidate = findBestOverlapCandidate(recent, chunk, cfg);
     
     if (!overlapCandidate) {
+      // Gap-fill similarity gate: block non-whisper candidates if Whisper already covers the content
+      if (chunk.engine !== 'whisper') {
+        const keptWhisperChunks = kept.filter(k => k.engine === 'whisper');
+        if (keptWhisperChunks.length > 0) {
+          const maxSim = Math.max(
+            ...keptWhisperChunks.map(w => gapFillJaccard(chunk.tokens, w.tokens))
+          );
+          if (maxSim >= 0.75) {
+            dropped.push(chunk);
+            continue;
+          }
+        }
+      }
+
       const contSim = continuitySimAgainstRecent(recent, chunk);
       const last = kept[kept.length - 1];
       const hangingThreshold = last && looksLikeHangingFragment(last.text) ? cfg.continuityMinSim * 1.8 : cfg.continuityMinSim;
@@ -469,6 +495,108 @@ function mergeBestOfAll(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], deepgra
       bufferedDrops
     }
   };
+}
+
+// ============= INLINED CLEAN WHISPER TRANSCRIPT (Deno-compatible) =============
+
+interface WhisperCleanResult {
+  text: string;
+  paragraphsDropped: number;
+  overlapsTrimmed: number;
+}
+
+function cleanNormalise(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, ' ').replace(/([.!?,;:])\1+/g, '$1').trim();
+}
+
+function fnv1a32(input: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+function splitIntoCleanBlocks(text: string): string[] {
+  const splits = text.split(/\n\n+/).map(b => b.trim()).filter(Boolean);
+  if (splits.length >= 2) return splits;
+  // Fall back to sentence grouping
+  const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 0);
+  if (sentences.length <= 3) return sentences.length > 0 ? [sentences.join(' ')] : [];
+  const blocks: string[] = [];
+  for (let i = 0; i < sentences.length; i += 3) {
+    blocks.push(sentences.slice(i, i + 3).join(' '));
+  }
+  return blocks;
+}
+
+function trimRawByNormLen(raw: string, normLen: number): string {
+  let normCount = 0;
+  let rawIdx = 0;
+  const lower = raw.toLowerCase();
+  while (rawIdx < raw.length && normCount < normLen) {
+    const ch = lower[rawIdx];
+    if (ch !== ' ' || (rawIdx > 0 && lower[rawIdx - 1] !== ' ')) normCount++;
+    rawIdx++;
+  }
+  while (rawIdx < raw.length && raw[rawIdx] === ' ') rawIdx++;
+  return raw.substring(rawIdx);
+}
+
+function cleanWhisperTranscriptInline(rawText: string): WhisperCleanResult {
+  if (!rawText?.trim()) return { text: '', paragraphsDropped: 0, overlapsTrimmed: 0 };
+
+  const WINDOW = 350;
+  const MIN_WIN = 50;
+  const RATIO = 0.60;
+
+  // Step A — Block-level overlap trim
+  let blocks = splitIntoCleanBlocks(rawText);
+  let overlapsTrimmed = 0;
+
+  if (blocks.length >= 2) {
+    const trimmed = [blocks[0]];
+    for (let i = 1; i < blocks.length; i++) {
+      const tailNorm = cleanNormalise(trimmed[trimmed.length - 1].slice(-WINDOW));
+      const headNorm = cleanNormalise(blocks[i].slice(0, WINDOW));
+      if (tailNorm.length < MIN_WIN || headNorm.length < MIN_WIN) { trimmed.push(blocks[i]); continue; }
+      let bestLen = 0;
+      const maxScan = Math.min(headNorm.length, tailNorm.length, WINDOW);
+      for (let len = maxScan; len >= MIN_WIN; len--) {
+        if (tailNorm.endsWith(headNorm.substring(0, len))) { bestLen = len; break; }
+      }
+      if (bestLen > 0 && (bestLen / headNorm.length) >= RATIO) {
+        const tr = trimRawByNormLen(blocks[i], bestLen);
+        if (tr.trim().length > 0) { trimmed.push(tr); overlapsTrimmed++; }
+        else overlapsTrimmed++;
+      } else {
+        trimmed.push(blocks[i]);
+      }
+    }
+    blocks = trimmed;
+  }
+
+  // Step B — Paragraph-hash dedup (FNV-1a, sliding window of 50)
+  let paragraphsDropped = 0;
+  const HASH_WINDOW = 50;
+  const recentHashes: number[] = [];
+  const surviving: string[] = [];
+  for (const block of blocks) {
+    const norm = cleanNormalise(block);
+    if (norm.length < 10) { surviving.push(block); continue; }
+    const hash = fnv1a32(norm);
+    if (recentHashes.includes(hash)) { paragraphsDropped++; continue; }
+    surviving.push(block);
+    recentHashes.push(hash);
+    if (recentHashes.length > HASH_WINDOW) recentHashes.shift();
+  }
+
+  return { text: surviving.join('\n\n'), paragraphsDropped, overlapsTrimmed };
+}
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(w => w.length > 0).length;
 }
 
 // ============= HALLUCINATION DETECTION =============
@@ -741,11 +869,57 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // ============= CLEAN WHISPER BEFORE MERGING =============
+    // Build raw Whisper transcript by concatenating chunks in order
+    const whisperRawText = whisperRaw.length > 0
+      ? whisperRaw
+          .sort((a, b) => a.idx - b.idx)
+          .map(c => normaliseText(c.text))
+          .filter(t => t.length > 0)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+      : '';
+    
+    const whisperRawWordCount = countWords(whisperRawText);
+    
+    // Clean Whisper transcript (overlap trim + paragraph dedup)
+    const whisperCleanResult = whisperRawText
+      ? cleanWhisperTranscriptInline(whisperRawText)
+      : { text: '', paragraphsDropped: 0, overlapsTrimmed: 0 };
+    
+    const whisperCleanText = whisperCleanResult.text;
+    const whisperCleanWordCount = countWords(whisperCleanText);
+    
+    console.log(`🧹 Whisper clean: ${whisperRawWordCount} → ${whisperCleanWordCount} words ` +
+      `(${whisperCleanResult.paragraphsDropped} paragraphs dropped, ${whisperCleanResult.overlapsTrimmed} overlaps trimmed)`);
+
+    // Feed Whisper as ONE single gold chunk into the merger
+    const whisperGoldChunks: RawChunk[] = [];
+    if (whisperCleanText.trim()) {
+      // Find the max endSec from all engines for the gold chunk's span
+      const allEndSecs = [
+        ...assemblyRaw.map(c => c.endSec || 0),
+        ...deepgramRaw.map(c => c.endSec || 0),
+        ...whisperRaw.map(c => (c.idx + 1) * DEFAULT_MERGE_CONFIG.chunkDurationSec)
+      ];
+      const maxEndSec = allEndSecs.length > 0 ? Math.max(...allEndSecs) : DEFAULT_MERGE_CONFIG.chunkDurationSec;
+      
+      whisperGoldChunks.push({
+        engine: 'whisper',
+        idx: 0,
+        text: whisperCleanText,
+        confidence: 0.85, // High confidence for cleaned batch transcript
+        startSec: 0,
+        endSec: maxEndSec
+      });
+    }
+
     // ============= PERFORM BEST-OF-ALL 3-ENGINE MERGE =============
-    const mergeResult = mergeBestOfAll(whisperRaw, assemblyRaw, deepgramRaw, DEFAULT_MERGE_CONFIG);
+    const mergeResult = mergeBestOfAll(whisperGoldChunks, assemblyRaw, deepgramRaw, DEFAULT_MERGE_CONFIG);
     
     console.log(`🔀 Best-of-All merge complete:`);
-    console.log(`   Whisper: ${mergeResult.stats.whisperChunks}, Assembly: ${mergeResult.stats.assemblyChunks}, Deepgram: ${mergeResult.stats.deepgramChunks}`);
+    console.log(`   Whisper (gold): ${whisperGoldChunks.length} chunk(s), Assembly: ${mergeResult.stats.assemblyChunks}, Deepgram: ${mergeResult.stats.deepgramChunks}`);
     console.log(`   Kept: ${mergeResult.stats.keptCount}, Dropped: ${mergeResult.stats.droppedCount}`);
     console.log(`   Overlap conflicts resolved: ${mergeResult.stats.overlapConflicts}`);
     console.log(`   Dedup: input=${mergeResult.dedupStats.inputCount}, output=${mergeResult.dedupStats.outputCount}, dropped=${mergeResult.dedupStats.dropped}, trimmed=${mergeResult.dedupStats.trimmed}`);
@@ -808,17 +982,10 @@ serve(async (req) => {
       console.log(`📝 Built AssemblyAI-only transcript: ${assemblyOnlyTranscript.length} chars from ${assemblyRaw.length} chunks`);
     }
 
-    // Build dedicated Whisper-only transcript for the whisper tab
-    let whisperOnlyTranscript = '';
-    if (whisperRaw.length > 0) {
-      whisperOnlyTranscript = whisperRaw
-        .sort((a, b) => a.idx - b.idx)
-        .map(c => normaliseText(c.text))
-        .filter(t => t.length > 0)
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      console.log(`📝 Built Whisper-only transcript: ${whisperOnlyTranscript.length} chars from ${whisperRaw.length} chunks`);
+    // Whisper-only transcript = whisperClean (already built above)
+    const whisperOnlyTranscript = whisperCleanText;
+    if (whisperOnlyTranscript) {
+      console.log(`📝 Whisper-only transcript (cleaned): ${whisperOnlyTranscript.length} chars`);
     }
 
     // Build dedicated Deepgram-only transcript for the Deepgram tab
@@ -847,12 +1014,22 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
       // Always store best_of_all_transcript if we have it
       best_of_all_transcript: dedupTranscriptNonEmpty ? mergeResult.transcript : null,
-      // Store merge decision log for auditability
+      // Store merge decision log with Whisper clean diagnostics
       merge_decision_log: {
-        decisions: mergeResult.dedupDecisions?.slice(0, 100), // Limit for storage
+        decisions: mergeResult.dedupDecisions?.slice(0, 100),
         stats: mergeResult.dedupStats,
         mergeStats: mergeResult.stats,
         distinctEngines: Array.from(distinctEngines),
+        whisperCleanStats: {
+          paragraphsDropped: whisperCleanResult.paragraphsDropped,
+          overlapsTrimmed: whisperCleanResult.overlapsTrimmed,
+        },
+        whisperRawWordCount,
+        whisperCleanWordCount,
+        assemblyRawWordCount: countWords(assemblyRaw.map(c => c.text).join(' ')),
+        deepgramRawWordCount: countWords(deepgramRaw.map(c => c.text).join(' ')),
+        finalWordCount: mergedWordCount,
+        finalEqualsWhisperClean: mergeResult.transcript.trim() === whisperCleanText.trim(),
         generatedAt: new Date().toISOString()
       }
     };
@@ -884,10 +1061,20 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Transcript consolidated using Best-of-All 3-engine merge',
+      message: 'Transcript consolidated using Best-of-All 3-engine merge (Whisper-gold)',
       source: updatePayload.primary_transcript_source,
       mergeStats: mergeResult.stats,
       dedupStats: mergeResult.dedupStats,
+      whisperCleanStats: {
+        paragraphsDropped: whisperCleanResult.paragraphsDropped,
+        overlapsTrimmed: whisperCleanResult.overlapsTrimmed,
+      },
+      whisperRawWordCount,
+      whisperCleanWordCount,
+      assemblyRawWordCount: countWords(assemblyRaw.map(c => c.text).join(' ')),
+      deepgramRawWordCount: countWords(deepgramRaw.map(c => c.text).join(' ')),
+      finalWordCount: mergedWordCount,
+      finalEqualsWhisperClean: mergeResult.transcript.trim() === whisperCleanText.trim(),
       chunksProcessed: (chunks?.length || 0) + deepgramChunkCount,
       chunksFiltered: rejectedChunks.length,
       totalWords: bestWordCount,
