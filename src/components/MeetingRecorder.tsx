@@ -5468,6 +5468,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           recording_created_at,
           notes_style_3,
           folder_id,
+          word_count,
           meeting_overviews (
             overview,
             audio_overview_url,
@@ -5475,7 +5476,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             audio_overview_duration
           )
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
 
@@ -5483,18 +5485,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       const meetingIds = (meetingsData || []).map(m => m.id);
 
       const [transcriptCounts, summaryExists, documentCounts, wordCountResult] = await Promise.all([
-        // Transcript chunk counts per meeting
-        supabase
-          .from('meeting_transcription_chunks')
-          .select('meeting_id', { count: 'exact' })
-          .in('meeting_id', meetingIds)
-          .then(({ data }) => {
-            const counts: Record<string, number> = {};
-            data?.forEach((row: any) => {
-              counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
-            });
-            return counts;
-          }),
+        // Transcript chunk counts — skip heavy row fetch, use 0 as default
+        // Chunk counts are rarely displayed and not worth fetching 43k+ rows
+        Promise.resolve({} as Record<string, number>),
 
         // Summary existence per meeting
         supabase
@@ -5522,19 +5515,14 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             return counts;
           }),
 
-        // Total word count from whisper transcripts (lightweight - just count characters and estimate)
+        // Total word count — use lightweight word_count column instead of fetching transcript blobs
         supabase
           .from('meetings')
-          .select('whisper_transcript_text')
-          .in('id', meetingIds)
+          .select('word_count')
+          .eq('user_id', user.id)
+          .not('word_count', 'is', null)
           .then(({ data }) => {
-            let totalWords = 0;
-            data?.forEach((row: any) => {
-              if (row.whisper_transcript_text) {
-                totalWords += row.whisper_transcript_text.split(/\s+/).filter((w: string) => w.length > 0).length;
-              }
-            });
-            return totalWords;
+            return (data || []).reduce((sum: number, r: any) => sum + (r.word_count || 0), 0);
           })
       ]);
 
@@ -5551,7 +5539,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         audio_overview_url: meeting.meeting_overviews?.audio_overview_url || null,
         audio_overview_text: meeting.meeting_overviews?.audio_overview_text || null,
         audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null,
-        word_count: null,
+        word_count: meeting.word_count || 0,
         document_count: documentCounts[meeting.id] || 0,
         documents: [],
         access_type: 'owner',
@@ -5578,7 +5566,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     }
   }, [user]);
 
-  // Real-time updates for new meetings
+  // Real-time updates for new meetings — debounced to prevent query cascades
+  const lastRefreshRef = useRef(0);
+  const DEBOUNCE_MS = 3000;
+
   useEffect(() => {
     if (!user) return;
 
@@ -5593,8 +5584,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('🔄 New meeting inserted, refreshing history...', payload);
-          // Refresh meeting history when a new meeting is added
+          console.log('🔄 New meeting inserted (debounced refresh)...', payload);
+          const now = Date.now();
+          if (now - lastRefreshRef.current < DEBOUNCE_MS) return;
+          lastRefreshRef.current = now;
           loadMeetingHistory();
           showToast.success('Meeting history updated automatically', { section: 'meeting_manager' });
         }
@@ -5608,9 +5601,13 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('🔄 Meeting updated, refreshing history...', payload);
-          // Refresh meeting history when a meeting is updated
-          loadMeetingHistory();
+          // For updates, patch local state directly instead of full reload
+          console.log('🔄 Meeting updated, patching local state...', payload);
+          setMeetings(prev => prev.map(m =>
+            m.id === (payload.new as any).id
+              ? { ...m, ...(payload.new as any) }
+              : m
+          ));
         }
       )
       .subscribe();

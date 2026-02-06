@@ -358,37 +358,7 @@ export const MeetingHistoryList = ({
     fetchAttendeesForVisibleMeetings();
   }, [meetings, user?.id, user?.email]);
 
-  // Fetch transcript-based word counts for meetings
-  useEffect(() => {
-    const fetchWordCounts = async () => {
-      const meetingIds = meetings.map(m => m.id);
-      if (meetingIds.length === 0) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('meeting_transcripts')
-          .select('meeting_id, content')
-          .in('meeting_id', meetingIds);
-
-        if (error) {
-          console.error('❌ Error fetching word counts:', error);
-          return;
-        }
-
-        const map: Record<string, number> = {};
-        (data || []).forEach((row: any) => {
-          const count = (row.content || '').trim().split(/\s+/).filter((w: string) => w.length > 0).length;
-          map[row.meeting_id] = Math.max(map[row.meeting_id] || 0, count);
-        });
-
-        setWordCounts(map);
-      } catch (e) {
-        console.error('❌ Error computing word counts:', e);
-      }
-    };
-
-    fetchWordCounts();
-  }, [meetings]);
+  // Word counts now come from meeting.word_count (populated by parent) — no separate fetch needed
 
   // Real-time subscription for automatic refresh when meetings are updated
   // MEMORY FIX: Use debounced refresh and properly track timeouts
@@ -400,7 +370,7 @@ export const MeetingHistoryList = ({
     // Track pending timeouts for cleanup
     const pendingTimeouts: NodeJS.Timeout[] = [];
     let lastRefreshTime = 0;
-    const DEBOUNCE_MS = 2000; // Debounce multiple rapid updates
+    const DEBOUNCE_MS = 5000; // Increased debounce — parent handles meetings table
 
     const debouncedRefresh = () => {
       const now = Date.now();
@@ -415,21 +385,9 @@ export const MeetingHistoryList = ({
     };
 
     // Create a channel for real-time updates
+    // NOTE: meetings table listener REMOVED — parent (MeetingRecorder) handles it
     const channel = supabase
       .channel(`meeting-updates-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'meetings',
-          filter: `user_id=eq.${user.id}`
-        },
-        () => {
-          const timeoutId = setTimeout(debouncedRefresh, 500);
-          pendingTimeouts.push(timeoutId);
-        }
-      )
       .on(
         'postgres_changes',
         {
@@ -438,7 +396,7 @@ export const MeetingHistoryList = ({
           table: 'meeting_notes_multi'
         },
         () => {
-          const timeoutId = setTimeout(debouncedRefresh, 500);
+          const timeoutId = setTimeout(debouncedRefresh, 1000);
           pendingTimeouts.push(timeoutId);
         }
       )
@@ -450,7 +408,7 @@ export const MeetingHistoryList = ({
           table: 'meeting_overviews'
         },
         () => {
-          const timeoutId = setTimeout(debouncedRefresh, 500);
+          const timeoutId = setTimeout(debouncedRefresh, 1000);
           pendingTimeouts.push(timeoutId);
         }
       )
@@ -575,8 +533,7 @@ export const MeetingHistoryList = ({
   // Add state for collapsible audio sections
   const [collapsedAudioSections, setCollapsedAudioSections] = useState<Record<string, boolean>>({});
   
-  // Word counts computed from transcripts
-  const [wordCounts, setWordCounts] = useState<Record<string, number>>({});
+  // Word counts now come from meeting.word_count prop — no local state needed
   
   // Add state for confirmation dialog
   const [confirmProcessDialog, setConfirmProcessDialog] = useState<{
@@ -2317,7 +2274,7 @@ export const MeetingHistoryList = ({
                           {(() => {
                             const wc = (meeting.word_count && meeting.word_count > 0)
                               ? meeting.word_count
-                              : (wordCounts[meeting.id] ?? computeWordCount(meeting));
+                              : computeWordCount(meeting);
                             const display = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K words` : `${wc} words`;
                             return (
                               <>
