@@ -93,16 +93,46 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const { generateWithGamma, isGenerating: isPowerPointGenerating } = useGammaPowerPoint();
   const { generateFullPresentation, isGenerating: isFullPowerPointGenerating, currentPhase } = useGammaPowerPointWithVoiceover();
   
+  // PowerPoint dialog state - independent of generation so user can dismiss and carry on
+  const [showPowerPointDialog, setShowPowerPointDialog] = useState(false);
+  const [pptError, setPptError] = useState<string | null>(null);
+  const [pptComplete, setPptComplete] = useState(false);
+  
+  // Auto-open dialog when generation starts
+  useEffect(() => {
+    if (isPowerPointGenerating || isFullPowerPointGenerating) {
+      setShowPowerPointDialog(true);
+      setPptError(null);
+      setPptComplete(false);
+    }
+  }, [isPowerPointGenerating, isFullPowerPointGenerating]);
+  
+  // Mark complete when generation finishes successfully
+  useEffect(() => {
+    if (!isPowerPointGenerating && !isFullPowerPointGenerating && showPowerPointDialog && !pptError) {
+      // Only set complete if we were actually generating (dialog is open)
+      setPptComplete(true);
+    }
+  }, [isPowerPointGenerating, isFullPowerPointGenerating]);
+  
   // Chat view settings
   const { settings: chatViewSettings, updateSetting: updateChatViewSetting, resetToDefaults: resetChatViewSettings } = useChatViewSettings();
 
   // Wrapper functions for PowerPoint export that match expected signatures
   const handleExportPowerPoint = (content: string, title?: string, slideCount?: number) => {
-    generateWithGamma(content, title, true, slideCount || 4);
+    setPptComplete(false);
+    setPptError(null);
+    generateWithGamma(content, title, true, slideCount || 4).catch((err) => {
+      setPptError(err?.message || 'Generation failed');
+    });
   };
   
   const handleExportPowerPointWithVoiceover = (content: string, title?: string, slideCount?: number) => {
-    generateFullPresentation(content, title, 'JBFqnCBsd6RMkjVDRZzb', slideCount || 4);
+    setPptComplete(false);
+    setPptError(null);
+    generateFullPresentation(content, title, 'JBFqnCBsd6RMkjVDRZzb', slideCount || 4).catch((err) => {
+      setPptError(err?.message || 'Generation failed');
+    });
   };
   
   // Disclaimer management
@@ -1073,8 +1103,12 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
       {/* PowerPoint Generation Overlay */}
       <PowerPointGenerationOverlay 
         isVisible={isPowerPointGenerating || isFullPowerPointGenerating} 
+        open={showPowerPointDialog}
+        onOpenChange={setShowPowerPointDialog}
         currentPhase={currentPhase}
         isFullVersion={isFullPowerPointGenerating}
+        isComplete={pptComplete}
+        error={pptError}
       />
 
 
