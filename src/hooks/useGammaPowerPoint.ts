@@ -205,12 +205,86 @@ export const useGammaPowerPoint = () => {
 
       console.log('[Gamma Hook] Request body:', requestBody);
 
-      const { data, error } = await supabase.functions.invoke('generate-powerpoint-gamma', {
+      // Phase 1: Start generation — edge function returns immediately with generationId
+      const { data: startData, error: startError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
         body: requestBody
       });
 
-      if (error) {
-        throw new Error(error.message || 'Edge function error');
+      if (startError) {
+        throw new Error(startError.message || 'Edge function error');
+      }
+
+      // If the edge function returned a final result directly (legacy path), use it
+      if (startData?.success && (startData?.downloadUrl || startData?.pptxBase64)) {
+        // Direct result — no polling needed
+        const data = startData;
+        const presentationTitle = data.title || topic;
+
+        if (data.downloadUrl) {
+          console.log('[Gamma Hook] Using direct download URL from Gamma');
+          downloadFromUrl(data.downloadUrl, presentationTitle);
+          toast.success('Professional presentation downloaded!');
+          return { success: true, downloadUrl: data.downloadUrl, gammaUrl: data.gammaUrl, title: presentationTitle };
+        }
+        if (data.pptxBase64) {
+          console.log('[Gamma Hook] Using legacy base64 response');
+          if (storeInCloud && user) {
+            const cloudUrl = await uploadToStorage(data.pptxBase64, presentationTitle);
+            if (cloudUrl) {
+              downloadFromUrl(cloudUrl, presentationTitle);
+              toast.success('Professional presentation downloaded!');
+              return { success: true, downloadUrl: cloudUrl, title: presentationTitle };
+            }
+          }
+          downloadBase64AsPptx(data.pptxBase64, presentationTitle);
+          toast.success('Professional presentation downloaded!');
+          return { success: true, title: presentationTitle };
+        }
+      }
+
+      // Phase 2: Start-and-poll — edge function returned a generationId
+      if (!startData?.generationId) {
+        throw new Error(startData?.error || 'Failed to start Gamma generation');
+      }
+
+      const generationId = startData.generationId;
+      console.log(`[Gamma Hook] Generation started: ${generationId} — polling for completion`);
+
+      // Poll for completion (scale timeout with slide count)
+      const maxPollDuration = validSlideCount > 10
+        ? 60_000 + validSlideCount * 10_000
+        : 180_000; // 3 minutes for ≤10 slides
+      const pollInterval = 5_000;
+      const pollStart = Date.now();
+
+      let data: any = null;
+
+      while (Date.now() - pollStart < maxPollDuration) {
+        await new Promise(r => setTimeout(r, pollInterval));
+
+        const { data: pollData, error: pollError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
+          body: { action: 'poll', generationId },
+        });
+
+        if (pollError) {
+          console.warn('[Gamma Hook] Poll request failed, retrying...', pollError);
+          continue;
+        }
+
+        if (pollData?.status === 'completed') {
+          data = pollData;
+          break;
+        }
+
+        if (pollData?.status === 'failed') {
+          throw new Error(pollData.error || 'Gamma generation failed');
+        }
+
+        console.log(`[Gamma Hook] Still generating... (${Math.round((Date.now() - pollStart) / 1000)}s elapsed)`);
+      }
+
+      if (!data) {
+        throw new Error(`Presentation generation timed out after ${Math.round(maxPollDuration / 1000)}s`);
       }
 
       if (!data?.success) {
@@ -218,51 +292,29 @@ export const useGammaPowerPoint = () => {
       }
 
       const presentationTitle = data.title || topic;
-      
-      // Handle direct download URL from Gamma (preferred - avoids memory limits)
+
       if (data.downloadUrl) {
         console.log('[Gamma Hook] Using direct download URL from Gamma');
         downloadFromUrl(data.downloadUrl, presentationTitle);
         toast.success('Professional presentation downloaded!');
-        
-        return {
-          success: true,
-          downloadUrl: data.downloadUrl,
-          gammaUrl: data.gammaUrl,
-          title: presentationTitle
-        };
+        return { success: true, downloadUrl: data.downloadUrl, gammaUrl: data.gammaUrl, title: presentationTitle };
       }
-      
-      // Legacy fallback: Handle base64 response (for backwards compatibility)
+
       if (data.pptxBase64) {
         console.log('[Gamma Hook] Using legacy base64 response');
-        
-        // Store in Supabase Storage to avoid bloating the messages JSON
         if (storeInCloud && user) {
           const cloudUrl = await uploadToStorage(data.pptxBase64, presentationTitle);
-          
           if (cloudUrl) {
             downloadFromUrl(cloudUrl, presentationTitle);
             toast.success('Professional presentation downloaded!');
-            
-            return {
-              success: true,
-              downloadUrl: cloudUrl,
-              title: presentationTitle
-            };
+            return { success: true, downloadUrl: cloudUrl, title: presentationTitle };
           }
         }
-        
-        // Direct download without cloud storage
         downloadBase64AsPptx(data.pptxBase64, presentationTitle);
         toast.success('Professional presentation downloaded!');
-        
-        return {
-          success: true,
-          title: presentationTitle
-        };
+        return { success: true, title: presentationTitle };
       }
-      
+
       throw new Error('No download URL or file data received from Gamma');
     } catch (error) {
       console.error('Gamma generation failed:', error);
