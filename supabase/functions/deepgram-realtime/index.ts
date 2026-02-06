@@ -23,7 +23,7 @@ serve(async (req) => {
     if (action === 'connect') {
       // Generate Deepgram WebSocket URL with API key
       const websocketUrl = `wss://api.deepgram.com/v1/listen?` + new URLSearchParams({
-        model: 'nova-2',
+        model: 'nova-3',
         language: 'en-GB',
         smart_format: 'true',
         interim_results: 'true',

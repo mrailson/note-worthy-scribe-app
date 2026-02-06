@@ -6849,7 +6849,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
                     <Waves className="h-4 w-4 text-blue-500" />
-                    Live Transcript (Deepgram Nova-2)
+                    Live Transcript (Deepgram Nova-3)
                     {deepgramPreview.isActive && (
                       <Badge variant="default" className="gap-1 bg-blue-600 hover:bg-blue-700 text-xs">
                         <span className="relative flex h-1.5 w-1.5">

@@ -25,7 +25,7 @@ export const TRANSCRIPTION_SERVICES: TranscriptionServiceInfo[] = [
   },
   { 
     id: 'deepgram', 
-    name: 'Deepgram Nova-2', 
+    name: 'Deepgram Nova-3', 
     description: 'Fast, low latency, medical vocab', 
     type: 'realtime', 
     available: true 

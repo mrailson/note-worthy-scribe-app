@@ -27,7 +27,7 @@ export const DeepgramStreamingMic: React.FC<DeepgramStreamingMicProps> = ({
 
   // Deepgram streaming parameters optimized for clinical use
   const DG_PARAMS = new URLSearchParams({
-    model: 'nova-2-conversationalai',
+    model: 'nova-3',
     language: 'en-GB',
     punctuate: 'true',
     interim_results: 'true',
