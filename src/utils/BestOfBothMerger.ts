@@ -16,6 +16,7 @@
  */
 
 import { postMergeDedup, type DedupDecision, type PostMergeDedupResult } from './postMergeDedup';
+import { dedupTranscriptText, type DedupResult } from '@/lib/dedupTranscriptText';
 
 export type Engine = 'assembly' | 'whisper' | 'deepgram';
 
@@ -54,6 +55,8 @@ export interface MergeResult {
   kept: NormChunk[];
   dropped: NormChunk[];
   dedupDecisions?: DedupDecision[];
+  /** Stats from the shared dedupTranscriptText pass on the final transcript */
+  finalDedupStats?: DedupResult;
   stats: {
     whisperChunks: number;
     assemblyChunks: number;
@@ -444,13 +447,22 @@ export function mergeBestOfAll(
   }
 
   // Assemble transcript from deduplicated segments with post-processing
-  const transcript = postProcessTranscript(dedupResult.segments.join(' '));
+  let transcript = postProcessTranscript(dedupResult.segments.join(' '));
+
+  // Apply shared dedupTranscriptText on the final merged transcript
+  // Same normalisation + hashing + thresholds as Whisper tab output
+  const finalDedup = dedupTranscriptText(transcript);
+  if (finalDedup.paragraphsDropped > 0 || finalDedup.overlapsTrimmed > 0) {
+    console.log(`[FinalDedup] ${finalDedup.paragraphsDropped} paragraphs dropped, ${finalDedup.overlapsTrimmed} overlaps trimmed`);
+    transcript = finalDedup.text;
+  }
 
   return {
     transcript,
     kept,
     dropped,
     dedupDecisions: dedupResult.decisions,
+    finalDedupStats: finalDedup,
     stats: {
       whisperChunks: whisperRaw.length,
       assemblyChunks: assemblyRaw.length,

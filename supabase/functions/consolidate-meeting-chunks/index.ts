@@ -477,7 +477,15 @@ function mergeBestOfAll(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], deepgra
     console.log(`[Dedup] ${dedupResult.stats.dropped} dropped, ${dedupResult.stats.trimmed} trimmed, ${dedupResult.stats.blockedByGuard} blocked`);
   }
 
-  const transcript = postProcessTranscript(dedupResult.segments.join(' '));
+  let transcript = postProcessTranscript(dedupResult.segments.join(' '));
+
+  // Apply shared dedupTranscriptText on the final merged transcript
+  // Same normalisation + hashing + thresholds as the Whisper clean step
+  const finalDedupResult = cleanWhisperTranscriptInline(transcript);
+  if (finalDedupResult.paragraphsDropped > 0 || finalDedupResult.overlapsTrimmed > 0) {
+    console.log(`[FinalDedup] ${finalDedupResult.paragraphsDropped} paragraphs dropped, ${finalDedupResult.overlapsTrimmed} overlaps trimmed`);
+    transcript = finalDedupResult.text;
+  }
 
   return {
     transcript,
@@ -485,6 +493,10 @@ function mergeBestOfAll(whisperRaw: RawChunk[], assemblyRaw: RawChunk[], deepgra
     dropped,
     dedupDecisions: dedupResult.decisions,
     dedupStats: dedupResult.stats,
+    finalDedupStats: {
+      paragraphsDropped: finalDedupResult.paragraphsDropped,
+      overlapsTrimmed: finalDedupResult.overlapsTrimmed,
+    },
     stats: {
       whisperChunks: whisperRaw.length,
       assemblyChunks: assemblyRaw.length,
@@ -923,6 +935,9 @@ serve(async (req) => {
     console.log(`   Kept: ${mergeResult.stats.keptCount}, Dropped: ${mergeResult.stats.droppedCount}`);
     console.log(`   Overlap conflicts resolved: ${mergeResult.stats.overlapConflicts}`);
     console.log(`   Dedup: input=${mergeResult.dedupStats.inputCount}, output=${mergeResult.dedupStats.outputCount}, dropped=${mergeResult.dedupStats.dropped}, trimmed=${mergeResult.dedupStats.trimmed}`);
+    if (mergeResult.finalDedupStats) {
+      console.log(`   FinalDedup: ${mergeResult.finalDedupStats.paragraphsDropped} paragraphs dropped, ${mergeResult.finalDedupStats.overlapsTrimmed} overlaps trimmed`);
+    }
     console.log(`   Final transcript: ${mergeResult.transcript.length} chars`);
 
     const mergedWordCount = mergeResult.transcript.split(/\s+/).filter(w => w.length > 0).length;
@@ -1020,15 +1035,17 @@ serve(async (req) => {
         stats: mergeResult.dedupStats,
         mergeStats: mergeResult.stats,
         distinctEngines: Array.from(distinctEngines),
-        whisperCleanStats: {
+        whisperDedupStats: {
           paragraphsDropped: whisperCleanResult.paragraphsDropped,
           overlapsTrimmed: whisperCleanResult.overlapsTrimmed,
         },
+        finalDedupStats: mergeResult.finalDedupStats || { paragraphsDropped: 0, overlapsTrimmed: 0 },
         whisperRawWordCount,
-        whisperCleanWordCount,
+        whisperDedupWordCount: whisperCleanWordCount,
         assemblyRawWordCount: countWords(assemblyRaw.map(c => c.text).join(' ')),
         deepgramRawWordCount: countWords(deepgramRaw.map(c => c.text).join(' ')),
-        finalWordCount: mergedWordCount,
+        finalRawWordCount: countWords(postProcessTranscript(mergeResult.kept.map(k => k.text).join(' '))),
+        finalDedupWordCount: mergedWordCount,
         finalEqualsWhisperClean: mergeResult.transcript.trim() === whisperCleanText.trim(),
         generatedAt: new Date().toISOString()
       }
@@ -1065,15 +1082,17 @@ serve(async (req) => {
       source: updatePayload.primary_transcript_source,
       mergeStats: mergeResult.stats,
       dedupStats: mergeResult.dedupStats,
-      whisperCleanStats: {
+      whisperDedupStats: {
         paragraphsDropped: whisperCleanResult.paragraphsDropped,
         overlapsTrimmed: whisperCleanResult.overlapsTrimmed,
       },
+      finalDedupStats: mergeResult.finalDedupStats || { paragraphsDropped: 0, overlapsTrimmed: 0 },
       whisperRawWordCount,
-      whisperCleanWordCount,
+      whisperDedupWordCount: whisperCleanWordCount,
       assemblyRawWordCount: countWords(assemblyRaw.map(c => c.text).join(' ')),
       deepgramRawWordCount: countWords(deepgramRaw.map(c => c.text).join(' ')),
-      finalWordCount: mergedWordCount,
+      finalRawWordCount: countWords(postProcessTranscript(mergeResult.kept.map(k => k.text).join(' '))),
+      finalDedupWordCount: mergedWordCount,
       finalEqualsWhisperClean: mergeResult.transcript.trim() === whisperCleanText.trim(),
       chunksProcessed: (chunks?.length || 0) + deepgramChunkCount,
       chunksFiltered: rejectedChunks.length,
