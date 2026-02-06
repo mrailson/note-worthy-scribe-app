@@ -133,9 +133,10 @@ const savePersistedSettings = (userId: string, settings: PresentationStudioSetti
   }
 };
 
+// Presentation Studio hook with persisted Branding & Slides settings
 export function usePresentationStudio() {
-  const { practiceContext } = usePracticeContext();
   const { user } = useAuth();
+  const { practiceContext } = usePracticeContext();
   
   const [state, setState] = useState<PresentationStudioState>({
     settings: DEFAULT_SETTINGS,
