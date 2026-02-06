@@ -187,15 +187,43 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const remainingChars = message.content.length - previewContent.length;
   const showMoreIndicator = isCollapsible && isAssistantCollapsed && remainingChars > 0;
 
-  // Memoize heavy markdown rendering to prevent memory churn
+  // Throttled content for streaming markdown – update at most every 400ms
+  // to avoid the massive heap growth from re-rendering markdown on every character.
+  const [throttledContent, setThrottledContent] = React.useState(message.content);
+  const throttleTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    if (!message.isStreaming) {
+      // When streaming ends, immediately sync to final content
+      if (throttleTimerRef.current) {
+        clearTimeout(throttleTimerRef.current);
+        throttleTimerRef.current = null;
+      }
+      setThrottledContent(message.content);
+      return;
+    }
+    // During streaming, throttle updates to every 400ms
+    if (!throttleTimerRef.current) {
+      throttleTimerRef.current = setTimeout(() => {
+        setThrottledContent(message.content);
+        throttleTimerRef.current = null;
+      }, 400);
+    }
+    return () => {
+      if (throttleTimerRef.current) {
+        clearTimeout(throttleTimerRef.current);
+        throttleTimerRef.current = null;
+      }
+    };
+  }, [message.content, message.isStreaming]);
+
+  // Memoize heavy markdown rendering – now works during streaming too via throttled content
   const renderedAssistantMarkdown = useMemo(() => {
     if (message.role !== 'assistant') return '';
-    // CRITICAL: During streaming, avoid heavy markdown parsing + DOMPurify sanitisation.
-    // This was causing massive heap growth (multi-GB) because message.content changes constantly.
-    if (message.isStreaming) return '';
-    const contentToRender = isCollapsible && isAssistantCollapsed ? previewContent : message.content;
+    const source = message.isStreaming ? throttledContent : message.content;
+    const contentToRender = isCollapsible && isAssistantCollapsed ? previewContent : source;
     return renderNHSMarkdown(contentToRender, { enableNHSStyling: true });
-  }, [message.role, message.content, message.isStreaming, isCollapsible, isAssistantCollapsed, previewContent]);
+  }, [message.role, message.content, message.isStreaming, throttledContent, isCollapsible, isAssistantCollapsed, previewContent]);
 
   const renderedUserMarkdown = useMemo(() => {
     if (message.role !== 'user') return '';
@@ -861,7 +889,17 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       overflowWrap: 'break-word'
                     }}
                   >
-                    {message.isStreaming ? (
+                    {renderedAssistantMarkdown ? (
+                      <div className="relative">
+                        <div dangerouslySetInnerHTML={{ __html: renderedAssistantMarkdown }} />
+                        {message.isStreaming && (
+                          <span
+                            className="inline-block w-2 h-4 align-text-bottom ml-1 bg-primary/80 animate-pulse"
+                            aria-hidden="true"
+                          />
+                        )}
+                      </div>
+                    ) : message.isStreaming ? (
                       displayContent ? (
                         <div className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed">
                           {isCollapsible && isAssistantCollapsed ? previewContent : displayContent}
@@ -871,9 +909,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                           />
                         </div>
                       ) : null
-                    ) : (
-                      <div dangerouslySetInnerHTML={{ __html: renderedAssistantMarkdown }} />
-                    )}
+                    ) : null}
                     {message.isStreaming && !displayContent && (
                       <div className="inline-flex items-center gap-2 text-muted-foreground mt-2">
                         <span className="text-sm">Notewell AI is thinking</span>
