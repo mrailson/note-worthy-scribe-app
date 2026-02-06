@@ -7,10 +7,12 @@
  * sentences of the new chunk.
  */
 
-// Configuration
-const SIMILARITY_THRESHOLD = 0.85; // Cosine similarity threshold
-const TOKEN_OVERLAP_THRESHOLD = 0.70; // Token overlap threshold
-const SENTENCES_TO_COMPARE = 2; // Number of sentences to compare at boundaries
+// Configuration – aligned with 90s chunk / 3s overlap stitching rule
+// Compare last 2–3 sentences of chunk N with first 2–3 of chunk N+1
+// If similarity ≥ 0.6 → drop the repeated prefix from chunk N+1
+const SIMILARITY_THRESHOLD = 0.60; // Cosine similarity threshold (lowered for overlap stitching)
+const TOKEN_OVERLAP_THRESHOLD = 0.60; // Token overlap (Jaccard) threshold
+const SENTENCES_TO_COMPARE = 3; // Number of sentences to compare at boundaries
 
 /**
  * Split text into sentences using common sentence boundaries

@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions";
 const MODEL = "whisper-1";
-const MAX_BYTES = 1_000_000; // ~1MB max chunk size
+const MAX_BYTES = 4_000_000; // ~4MB max chunk size (90s chunks)
 
 function sleep(ms: number) {
   return new Promise(r => setTimeout(r, ms));
@@ -195,9 +195,16 @@ serve(async (req) => {
     fd.append("file", new File([preprocessed.bytes], `chunk_${chunkIndex}.${fileExtension}`, { type: forwardMime }));
     fd.append("model", MODEL);
     fd.append("response_format", "verbose_json");
-    fd.append("temperature", "0");
-    fd.append("no_speech_threshold", "0.6");
-    fd.append("condition_on_previous_text", "false");
+    // Whisper decode settings (Option A – 90s chunks)
+    fd.append("temperature", "0");                         // Reduces creative drift
+    fd.append("condition_on_previous_text", "true");       // Continuity within chunk
+    fd.append("no_speech_threshold", "0.6");               // Hallucination silence gate
+    // Extended decode params (used by self-hosted Whisper; ignored by OpenAI API)
+    fd.append("beam_size", "5");
+    fd.append("no_repeat_ngram_size", "3");                // Stops local looping
+    fd.append("compression_ratio_threshold", "2.4");       // Catches runaway repetition
+    fd.append("logprob_threshold", "-1.0");
+    fd.append("hallucination_silence_threshold", "0.6");   // Avoids filler hallucinations
     fd.append("prompt", prompt || "");
     if (language) fd.append("language", language);
 
