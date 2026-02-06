@@ -944,18 +944,14 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     });
   };
   
-  // Map scale to tailwind-compatible font size classes
-  const getPatientFontSize = () => {
-    const baseRem = 1.125; // text-lg = 1.125rem
-    return `${(baseRem * patientTextScale).toFixed(3)}rem`;
-  };
+  // Computed font size for patient text (reactive via state dependency)
+  const patientFontSize = `${(1.125 * patientTextScale).toFixed(3)}rem`;
+  const patientLabelSize = `${(0.875 * Math.max(patientTextScale, 1)).toFixed(3)}rem`;
   
   // Patient column flex ratio scales with text size for more space
-  const getPatientColumnFlex = () => {
-    if (patientTextScale <= 1) return 'flex-1';
-    if (patientTextScale <= 1.5) return 'flex-[1.5]';
-    return 'flex-[2]';
-  };
+  const patientColumnFlex = patientTextScale <= 1 ? 'flex-1' 
+    : patientTextScale <= 1.5 ? 'flex-[1.5]' 
+    : 'flex-[2]';
   const [howItWorksOpen, setHowItWorksOpen] = useState(true);
   const systemAudioStreamRef = useRef<MediaStream | null>(null);
   const systemAudioRecorderRef = useRef<MediaRecorder | null>(null);
@@ -2256,20 +2252,20 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         </div>
 
         {/* Patient language column - ALWAYS RIGHT */}
-        <div className={`${getPatientColumnFlex()} text-right`}>
+        <div className={`${patientColumnFlex} text-right`}>
           <div className={`inline-block max-w-full rounded-lg p-3 text-left ${
             isStaffMessage 
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800' 
               : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
           }`}>
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-sm font-medium">
+              <p className="font-medium" style={{ fontSize: patientLabelSize }}>
                 {languageInfo?.flag} {isStaffMessage 
                   ? (GP_PRACTICE_SAID[patientLanguage] || GP_PRACTICE_SAID['en']) 
                   : (PATIENT_SAID[patientLanguage] || PATIENT_SAID['en'])}
               </p>
             </div>
-            <p className="mb-2" style={{ fontSize: getPatientFontSize(), lineHeight: 1.4 }}>
+            <p className="mb-2" style={{ fontSize: patientFontSize, lineHeight: 1.4 }}>
               {patientLanguageText}
             </p>
             {/* Audio player button - only show for staff messages with TTS-supported languages */}
