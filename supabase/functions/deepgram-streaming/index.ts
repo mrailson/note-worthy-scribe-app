@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
 
           console.log('🔗 Creating Deepgram WebSocket connection...');
           const deepgramUrl = `wss://api.deepgram.com/v1/listen?` + new URLSearchParams({
-            model: 'nova-2',
+            model: 'nova-3',
             language: 'en-GB',
             smart_format: 'true',
             interim_results: 'true',
