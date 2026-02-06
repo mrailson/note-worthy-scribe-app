@@ -400,13 +400,11 @@ export class DesktopWhisperTranscriber {
         ];
         console.log('🎵 User preference: MP3 format');
       } else {
-        // WebM preferred (default) - best compatibility
+        // WebM preferred (default) — audio-only MIME, no video containers
         mimeTypes = [
           'audio/webm;codecs=opus',
           'audio/webm',
-          'audio/mp4',
-          'audio/mp4;codecs=mp4a.40.2',
-          'audio/aac'
+          'audio/ogg;codecs=opus'
         ];
         console.log('🎵 User preference: WebM format');
       }

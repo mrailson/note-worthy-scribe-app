@@ -3503,9 +3503,9 @@ export const MeetingRecorder = ({
         addDebugLog(`🎵 Track ${index}: ${track.kind} - ${track.readyState} - ${track.enabled ? 'enabled' : 'disabled'}`);
       });
 
-      // Step 4: Set up MediaRecorder with iOS/mobile-optimized settings
+      // Step 4: Set up MediaRecorder with audio-only MIME type
       const browserSupport = checkBrowserSupport();
-      let mimeType = 'audio/webm';
+      let mimeType = 'audio/webm;codecs=opus';
       let bitrate = 128000;
       
       // iOS/Safari optimization - prefer formats that work better on mobile
@@ -3520,8 +3520,8 @@ export const MeetingRecorder = ({
           }
         }
       } else {
-        // Standard desktop browser formats
-        const standardFormats = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+        // Standard desktop browser formats — audio-only MIME, opus preferred
+        const standardFormats = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
         for (const format of standardFormats) {
           if (MediaRecorder.isTypeSupported(format)) {
             mimeType = format;

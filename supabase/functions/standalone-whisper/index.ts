@@ -66,7 +66,7 @@ function inferExtension(mime: string): string {
 
 /**
  * Preprocess audio through the transcode-audio service.
- * Feature-flagged via ENABLE_SERVER_PREPROCESSING env var.
+ * Always enabled — strips non-audio streams (-sn -dn) before Whisper.
  * Falls back to direct forward on error/timeout.
  */
 async function preprocessAudioViaTranscode(
@@ -74,12 +74,6 @@ async function preprocessAudioViaTranscode(
   declaredMime: string,
   requestId: string
 ): Promise<{ bytes: Uint8Array; mimeType: string; extension: string; preprocessed: boolean }> {
-  const enabled = Deno.env.get('ENABLE_SERVER_PREPROCESSING') === 'true';
-
-  if (!enabled) {
-    console.log(`ℹ️ [${requestId}] Server preprocessing disabled (ENABLE_SERVER_PREPROCESSING !== 'true')`);
-    return { bytes: audioBytes, mimeType: declaredMime, extension: inferExtension(declaredMime), preprocessed: false };
-  }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');

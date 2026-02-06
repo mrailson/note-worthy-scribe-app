@@ -187,8 +187,8 @@ export class UnifiedAudioCapture {
         }
       }
     } else {
-      // Standard desktop browser formats - prioritize Whisper-compatible ones
-      const standardFormats = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+      // Standard desktop browser formats — audio-only MIME, no video containers
+      const standardFormats = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
       for (const format of standardFormats) {
         if (MediaRecorder.isTypeSupported(format)) {
           mimeType = format;
