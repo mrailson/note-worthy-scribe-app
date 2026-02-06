@@ -29,7 +29,9 @@ import {
   ShieldX,
   Monitor,
   MonitorOff,
-  History
+  History,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -917,6 +919,43 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     return saved !== 'false'; // Default to true
   });
   const [showPatientSidebar, setShowPatientSidebar] = useState(true);
+  
+  // Patient text size scaling (1 = normal, steps of 0.25)
+  const [patientTextScale, setPatientTextScale] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('translation-patient-text-scale');
+      return saved ? parseFloat(saved) : 1;
+    } catch { return 1; }
+  });
+  
+  const increasePatientText = () => {
+    setPatientTextScale(prev => {
+      const next = Math.min(prev + 0.25, 2.5);
+      localStorage.setItem('translation-patient-text-scale', next.toString());
+      return next;
+    });
+  };
+  
+  const decreasePatientText = () => {
+    setPatientTextScale(prev => {
+      const next = Math.max(prev - 0.25, 0.75);
+      localStorage.setItem('translation-patient-text-scale', next.toString());
+      return next;
+    });
+  };
+  
+  // Map scale to tailwind-compatible font size classes
+  const getPatientFontSize = () => {
+    const baseRem = 1.125; // text-lg = 1.125rem
+    return `${(baseRem * patientTextScale).toFixed(3)}rem`;
+  };
+  
+  // Patient column flex ratio scales with text size for more space
+  const getPatientColumnFlex = () => {
+    if (patientTextScale <= 1) return 'flex-1';
+    if (patientTextScale <= 1.5) return 'flex-[1.5]';
+    return 'flex-[2]';
+  };
   const [howItWorksOpen, setHowItWorksOpen] = useState(true);
   const systemAudioStreamRef = useRef<MediaStream | null>(null);
   const systemAudioRecorderRef = useRef<MediaRecorder | null>(null);
@@ -2217,7 +2256,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         </div>
 
         {/* Patient language column - ALWAYS RIGHT */}
-        <div className="flex-1 text-right">
+        <div className={`${getPatientColumnFlex()} text-right`}>
           <div className={`inline-block max-w-full rounded-lg p-3 text-left ${
             isStaffMessage 
               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800' 
@@ -2230,7 +2269,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   : (PATIENT_SAID[patientLanguage] || PATIENT_SAID['en'])}
               </p>
             </div>
-            <p className="text-lg mb-2">
+            <p className="mb-2" style={{ fontSize: getPatientFontSize(), lineHeight: 1.4 }}>
               {patientLanguageText}
             </p>
             {/* Audio player button - only show for staff messages with TTS-supported languages */}
@@ -2326,6 +2365,35 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             <Badge variant="outline">
               {languageInfo.flag} {languageInfo.name}
             </Badge>
+          )}
+          {/* Patient text size controls */}
+          {translationMode === 'live-chat' && (
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground mr-1">Patient text</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={decreasePatientText}
+                disabled={patientTextScale <= 0.75}
+                title="Decrease patient text size"
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </Button>
+              <span className="text-xs font-medium w-8 text-center tabular-nums">
+                {Math.round(patientTextScale * 100)}%
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={increasePatientText}
+                disabled={patientTextScale >= 2.5}
+                title="Increase patient text size"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           )}
           {/* Patient Connection Status - only show in live chat mode */}
           {translationMode === 'live-chat' && (
