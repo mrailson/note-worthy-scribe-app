@@ -36,8 +36,8 @@ interface WatchdogState {
 
 export function useTranscriptionWatchdog(config: WatchdogConfig) {
   const {
-    warningThresholdMs = 120000, // 2 minutes - allows multiple chunk cycles with API latency
-    criticalThresholdMs = 180000, // 3 minutes - only for genuine failures
+    warningThresholdMs = 150000, // 2.5 minutes — allows 90s chunk recording + API round-trip
+    criticalThresholdMs = 240000, // 4 minutes — genuine failure only
     isActive,
     onStallDetected,
     onStallRecovered,
@@ -53,7 +53,7 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
     timeSinceLastChunk: 0,
     totalChunks: 0,
     lastChunkTimestamp: null,
-    expectedChunksPerMinute: 20, // ~3 seconds per chunk = 20 per minute
+    expectedChunksPerMinute: 1, // 90s Whisper chunks ≈ 0.66/min
     actualChunksPerMinute: 0
   });
 
@@ -172,7 +172,7 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
         timeSinceLastChunk,
         totalChunks: totalChunksRef.current,
         lastChunkTimestamp: lastChunkTimeRef.current ? new Date(lastChunkTimeRef.current) : null,
-        expectedChunksPerMinute: 20,
+        expectedChunksPerMinute: 1,
         actualChunksPerMinute: Math.round(actualChunksPerMinute * 10) / 10
       });
     };
@@ -262,7 +262,7 @@ export function useTranscriptionWatchdog(config: WatchdogConfig) {
       timeSinceLastChunk: 0,
       totalChunks: 0,
       lastChunkTimestamp: new Date(),
-      expectedChunksPerMinute: 20,
+      expectedChunksPerMinute: 1,
       actualChunksPerMinute: 0
     });
   }, [isActive]);

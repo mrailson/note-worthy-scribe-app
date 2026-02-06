@@ -16,9 +16,9 @@ interface UseTeamsAudioDetectionReturn {
   acknowledgeWorking: () => void;
 }
 
-const GRACE_PERIOD_SECONDS = 90;
+const GRACE_PERIOD_SECONDS = 180; // 3 minutes — first 90s Whisper chunk needs recording + API round-trip
 const MIN_WORDS_THRESHOLD = 50;
-const MIN_CHUNKS_PER_MINUTE = 3;
+const MIN_CHUNKS_PER_MINUTE = 0.5; // 90s chunks ≈ 0.66/min; threshold set slightly below
 const SUFFICIENT_WORDS_THRESHOLD = 100;
 
 export const useTeamsAudioDetection = ({
