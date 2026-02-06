@@ -1061,87 +1061,8 @@ const MeetingHistory = () => {
     fetchMeetings(page);
   };
 
-  // Real-time updates for meeting changes with enhanced reliability
-  // MEMORY FIX: Debounced with proper timeout cleanup
-  useEffect(() => {
-    if (!user) return;
-
-    console.log('🔌 Setting up real-time meeting subscriptions...');
-    
-    // Track pending timeouts for cleanup
-    const pendingTimeouts: NodeJS.Timeout[] = [];
-    let lastRefreshTime = 0;
-    const DEBOUNCE_MS = 2000;
-    
-    const debouncedFetch = () => {
-      const now = Date.now();
-      if (now - lastRefreshTime < DEBOUNCE_MS) return;
-      lastRefreshTime = now;
-      fetchMeetings(currentPage);
-    };
-    
-    const channel = supabase
-      .channel(`meeting-history-changes-${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'meetings',
-          filter: `user_id=eq.${user.id}`
-        },
-        () => {
-          console.log('🔄 New meeting inserted, refreshing...');
-          const timeoutId = setTimeout(debouncedFetch, 500);
-          pendingTimeouts.push(timeoutId);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'meetings',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          // Update the specific meeting in our list (no fetch needed)
-          setMeetings(prev => prev.map(meeting => 
-            meeting.id === payload.new.id 
-              ? { ...meeting, ...payload.new }
-              : meeting
-          ));
-          
-          // Update modal if it's the same meeting and notes completed
-          if (modalMeeting?.id === payload.new.id && 
-              payload.new.notes_generation_status === 'completed') {
-            loadNotesForModal(payload.new.id);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'meetings',
-          filter: `user_id=eq.${user.id}`
-        },
-        () => {
-          const timeoutId = setTimeout(debouncedFetch, 500);
-          pendingTimeouts.push(timeoutId);
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Real-time subscription status:', status);
-      });
-
-    return () => {
-      console.log('🔌 Cleaning up real-time subscriptions and timeouts...');
-      pendingTimeouts.forEach(id => clearTimeout(id));
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, currentPage]);
+  // Real-time subscription for meetings table REMOVED — parent (MeetingRecorder) handles it
+  // This component relies on prop changes, onRefresh callback, and tab-focus refresh
 
   // Fallback initial load - only runs once on mount as a safety net
   useEffect(() => {
@@ -1205,7 +1126,7 @@ const MeetingHistory = () => {
   useEffect(() => {
     let refreshTimer: NodeJS.Timeout;
     let lastRefreshTime = 0;
-    const MIN_REFRESH_INTERVAL = 2000; // Minimum 2 seconds between refreshes
+    const MIN_REFRESH_INTERVAL = 10000; // Minimum 10 seconds between refreshes
 
     // Debounced refresh function
     const debouncedRefresh = (reason: string) => {
@@ -1220,7 +1141,7 @@ const MeetingHistory = () => {
         console.log(`🔄 Refreshing: ${reason}`);
         lastRefreshTime = Date.now();
         fetchMeetings(currentPage);
-      }, 300);
+      }, 1000);
     };
 
     // Refresh when new meeting is saved via localStorage signal
@@ -1351,18 +1272,8 @@ const MeetingHistory = () => {
       const meetingIds = meetingsData.map(m => m.id);
       
       const [transcriptCounts, summaryExists, documentCounts] = await Promise.all([
-        // Just count transcripts
-        supabase
-          .from('meeting_transcription_chunks')
-          .select('meeting_id', { count: 'exact' })
-          .in('meeting_id', meetingIds)
-          .then(({ data }) => {
-            const counts: Record<string, number> = {};
-            data?.forEach(chunk => {
-              counts[chunk.meeting_id] = (counts[chunk.meeting_id] || 0) + 1;
-            });
-            return counts;
-          }),
+        // Chunk counts skipped — not worth scanning 43k+ rows
+        Promise.resolve({} as Record<string, number>),
         
         // Check summary existence
         supabase
