@@ -74,7 +74,7 @@ export class SimpleIOSTranscriber {
   private readonly PROMPT_TAIL_LENGTH = 150; // Reduced to minimize hallucination drag
   
   // Recorder rotation: produce complete MP4 files by stop/restart
-  private readonly SEGMENT_DURATION_MS = 20000; // Rotate every 20 seconds
+  private readonly SEGMENT_DURATION_MS = 90000; // Rotate every 90 seconds (Option A)
   private segmentStartMs = 0;
   private rotationInProgress = false;
   private stopRequested = false;

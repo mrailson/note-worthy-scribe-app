@@ -134,30 +134,29 @@ export function checkAudioQuality(
  * Based on OpenAI recommendations and ChatGPT analysis
  */
 export const OPTIMAL_CHUNK_DURATION = {
-  MIN_SECONDS: 20,
-  MAX_SECONDS: 30,
-  PREFERRED_SECONDS: 25,
+  MIN_SECONDS: 30,
+  MAX_SECONDS: 90,
+  PREFERRED_SECONDS: 90,
   
   // Convert to milliseconds
-  MIN_MS: 20000,
-  MAX_MS: 30000, 
-  PREFERRED_MS: 25000
+  MIN_MS: 30000,
+  MAX_MS: 90000, 
+  PREFERRED_MS: 90000
 } as const;
 
 /**
  * Get optimal chunk interval based on recording duration and context
+ * Uses 90s chunks (Option A) with a 30s first chunk for quick feedback
  * @param elapsedMs Time elapsed since recording started
  * @param isEarlyMode Whether in early/fast response mode
  * @returns Optimal chunk interval in milliseconds
  */
 export function getOptimalChunkInterval(elapsedMs: number, isEarlyMode: boolean = false): number {
-  // Early mode for first 60 seconds - faster chunks to avoid missing speech
-  if (isEarlyMode && elapsedMs < 60000) {
-    if (elapsedMs < 4000) return 3000; // 3s for first chunk - capture immediately to avoid missing speech
-    if (elapsedMs < 15000) return 8000; // 8s chunks for next 11 seconds - fast feedback
-    return 15000; // 15s chunks for rest of early mode - balance speed vs duplication
+  // First chunk: 30s for quick user feedback
+  if (isEarlyMode && elapsedMs < 30000) {
+    return 30000;
   }
   
-  // Normal mode - use optimal 25-second chunks
+  // Normal mode - use 90s chunks (Option A configuration)
   return OPTIMAL_CHUNK_DURATION.PREFERRED_MS;
 }

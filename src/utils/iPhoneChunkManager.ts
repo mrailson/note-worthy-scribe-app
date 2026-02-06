@@ -56,10 +56,10 @@ export class iPhoneChunkManager {
   
   constructor(config: ChunkManagerConfig = {}) {
     this.config = {
-      maxBufferDurationMs: config.maxBufferDurationMs ?? 90000,  // 90s default - prevent premature pruning
-      targetChunkDurationMs: config.targetChunkDurationMs ?? 25000,
-      overlapDurationMs: config.overlapDurationMs ?? 5000,
-      minChunkDurationMs: config.minChunkDurationMs ?? 8000
+      maxBufferDurationMs: config.maxBufferDurationMs ?? 120000,  // 120s default - accommodate 90s chunks
+      targetChunkDurationMs: config.targetChunkDurationMs ?? 90000, // 90s (Option A)
+      overlapDurationMs: config.overlapDurationMs ?? 3000,  // 3s overlap
+      minChunkDurationMs: config.minChunkDurationMs ?? 10000 // 10s minimum
     };
   }
 
