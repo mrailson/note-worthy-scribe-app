@@ -504,7 +504,7 @@ export function usePresentationStudio() {
         generationPhase: 'complete',
         generationProgress: 100,
         currentResult: result,
-        generationHistory: [historyItem, ...prev.generationHistory.slice(0, 9)], // Keep last 10
+        generationHistory: [historyItem, ...prev.generationHistory.slice(0, 49)], // Keep last 50
         activeTab: 'generate',
       }));
 
@@ -529,8 +529,8 @@ export function usePresentationStudio() {
   }, [state, practiceContext]);
 
   // Download presentation
-  const downloadPresentation = useCallback(async (withVoiceover: boolean = false) => {
-    const result = state.currentResult;
+  const downloadPresentation = useCallback(async (withVoiceover: boolean = false, customResult?: GeneratedPresentation) => {
+    const result = customResult || state.currentResult;
     if (!result) {
       toast.error('No presentation to download');
       return;

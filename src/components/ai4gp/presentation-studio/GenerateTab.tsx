@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { 
   Sparkles, 
@@ -14,7 +13,9 @@ import {
   FileText,
   Volume2,
   RefreshCw,
-  History
+  History,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -34,7 +35,7 @@ interface GenerateTabProps {
   history: PresentationHistoryItem[];
   error: string | null;
   onGenerate: () => void;
-  onDownload: (withVoiceover?: boolean) => void;
+  onDownload: (withVoiceover?: boolean, customResult?: GeneratedPresentation) => void;
   onCancel: () => void;
   onLoadHistory: (item: PresentationHistoryItem) => void;
 }
@@ -52,6 +53,8 @@ const PHASE_LABELS: Record<GenerationPhase, string> = {
   'error': 'Error',
 };
 
+const PAGE_SIZE = 5;
+
 export const GenerateTab: React.FC<GenerateTabProps> = ({
   settings,
   isGenerating,
@@ -65,10 +68,15 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
   onCancel,
   onLoadHistory,
 }) => {
+  const [historyPage, setHistoryPage] = useState(0);
+
   const enabledSlideTypes = settings.slideTypes.filter(st => st.enabled).length;
   const selectedDocs = settings.supportingDocuments.filter(d => d.selected).length;
-
   const canGenerate = (settings.topic.trim() || selectedDocs > 0) && !isGenerating;
+
+  // Pagination calculations
+  const totalPages = Math.ceil(history.length / PAGE_SIZE);
+  const paginatedHistory = history.slice(historyPage * PAGE_SIZE, (historyPage + 1) * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -194,39 +202,97 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
         </Card>
       )}
 
-      {/* Generation History */}
+      {/* Recent Generations — Paginated */}
       {history.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <History className="h-4 w-4" />
-            <span>Recent Generations</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <History className="h-4 w-4" />
+              <span>Recent Generations ({history.length})</span>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span>Page {historyPage + 1} of {totalPages}</span>
+              </div>
+            )}
           </div>
-          <ScrollArea className="h-[150px]">
-            <div className="space-y-2 pr-4">
-              {history.map((item) => (
-                <Card 
-                  key={item.id}
-                  className="cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => onLoadHistory(item)}
-                >
-                  <CardContent className="p-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium line-clamp-1">{item.result.title}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {format(item.timestamp, 'dd MMM, HH:mm')}
-                        <span>•</span>
-                        <span>{item.result.slideCount} slides</span>
-                      </div>
+
+          <div className="space-y-2">
+            {paginatedHistory.map((item) => (
+              <Card 
+                key={item.id}
+                className="hover:border-primary/50 transition-colors"
+              >
+                <CardContent className="p-3 flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onLoadHistory(item)}>
+                    <p className="text-sm font-medium line-clamp-1">{item.result.title}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3 flex-shrink-0" />
+                      {format(item.timestamp, 'dd MMM, HH:mm')}
+                      <span>•</span>
+                      <span>{item.result.slideCount} slides</span>
+                      {item.result.hasVoiceover && (
+                        <>
+                          <span>•</span>
+                          <Volume2 className="h-3 w-3 flex-shrink-0" />
+                        </>
+                      )}
                     </div>
-                    <Button variant="ghost" size="sm">
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {(item.result.downloadUrl || item.result.pptxBase64) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        title="Download PPTX"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDownload(false, item.result);
+                        }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => onLoadHistory(item)}
+                    >
                       Load
                     </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={historyPage === 0}
+                onClick={() => setHistoryPage(p => Math.max(0, p - 1))}
+                className="h-8"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={historyPage >= totalPages - 1}
+                onClick={() => setHistoryPage(p => Math.min(totalPages - 1, p + 1))}
+                className="h-8"
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
             </div>
-          </ScrollArea>
+          )}
         </div>
       )}
 
