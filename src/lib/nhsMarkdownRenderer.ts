@@ -100,15 +100,19 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
       return `<div class="mb-4"><h4 class="text-base font-semibold ${textColor} mb-2">${label}:</h4><p class="mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">${content}</p></div>`;
     })
     
+    // Horizontal rules (---, ***, ___) — must come before bold/italic processing
+    .replace(/^[\t ]*[-]{3,}[\t ]*$/gm, '<hr class="border-t border-border my-6" />')
+    .replace(/^[\t ]*[_]{3,}[\t ]*$/gm, '<hr class="border-t border-border my-6" />')
+    
     // Headers - Process headers at start of lines
     .replace(/^(#{1,6})\s+(.+)$/gm, (match, hashes, content) => {
       const level = hashes.length;
       const textColor = isUserMessage ? 'text-white' : 'text-primary';
       const classMap = {
-        1: `text-2xl font-bold ${textColor} mb-4 mt-6`,
-        2: `text-xl font-semibold ${textColor} mb-4 mt-5`,  
-        3: `text-lg font-semibold ${textColor} mb-3 mt-4`,
-        4: `text-base font-semibold ${textColor} mb-2 mt-3`,
+        1: `text-2xl font-bold ${textColor} mb-4 mt-7`,
+        2: `text-xl font-semibold ${textColor} mb-4 mt-6`,  
+        3: `text-lg font-semibold ${textColor} mb-3 mt-5`,
+        4: `text-base font-semibold ${textColor} mb-2 mt-4`,
         5: `text-sm font-semibold ${textColor} mb-2 mt-2`,
         6: `text-xs font-semibold ${textColor} mb-1 mt-1`
       };
@@ -202,11 +206,11 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     .replace(/^[-•]\s+(.+)$/gm, `<div class="flex items-start mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed font-semibold">•</span><span class="flex-1 leading-relaxed">$1</span></div>`)
     
     // Line breaks for paragraphs
-    .replace(/\n\n/g, `</p><p class="mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">`)
+    .replace(/\n\n/g, `</p><p class="mb-4 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">`)
     .replace(/^(.+)$/gm, (match, p1) => {
       // Don't wrap if it's already HTML
       if (match.includes('<')) return match;
-      return `<p class="mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">${p1}</p>`;
+      return `<p class="mb-4 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">${p1}</p>`;
     })
     
     // Clean up empty paragraphs and double wrapping
@@ -273,7 +277,7 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   
   // Sanitize the HTML with CSP-compliant flags
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'style'],
+    ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'li', 'a', 'br', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'style'],
     ALLOWED_ATTR: ['class', 'href', 'target', 'rel', 'style'],
     SAFE_FOR_TEMPLATES: true,   // Prevent template string evaluation
     RETURN_DOM_FRAGMENT: false, // Return string, not DOM node
