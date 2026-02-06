@@ -71,8 +71,8 @@ export interface MergeResult {
 }
 
 export const DEFAULT_MERGE_CONFIG: MergeConfig = {
-  chunkDurationSec: 15,
-  overlapSec: 1.5,
+  chunkDurationSec: 90,
+  overlapSec: 3,
   whisperConfFloor: 0.30,
   overlapSimilarity: 0.60,
   strongConfMargin: 0.12,
@@ -84,12 +84,27 @@ export const DEFAULT_MERGE_CONFIG: MergeConfig = {
 /* ----------------------- Engine Tier System ----------------------- */
 
 /** 
- * Engine tiers: Tier 1 = live engines (Assembly, Deepgram), Tier 2 = batch (Whisper).
+ * Engine tiers: Tier 1 = batch (Whisper/gpt-4o-transcribe) = gold standard.
+ * Tier 2 = live engines (Assembly, Deepgram) = gap-fill only.
  * Within same tier, score decides. Cross-tier needs strongConfMargin to override.
  */
 function getEngineTier(engine: Engine): number {
-  if (engine === 'assembly' || engine === 'deepgram') return 1;
-  return 2; // whisper
+  if (engine === 'whisper') return 1;  // Batch = gold standard
+  return 2; // assembly, deepgram = gap-fill
+}
+
+/**
+ * Token Jaccard similarity for gap-fill gate.
+ * Used to check if a non-whisper candidate is redundant against kept Whisper content.
+ */
+function tokenJaccardForGapFill(candidateTokens: string[], whisperTokens: string[]): number {
+  if (!candidateTokens.length || !whisperTokens.length) return 0;
+  const a = new Set(candidateTokens);
+  const b = new Set(whisperTokens);
+  let inter = 0;
+  for (const t of a) if (b.has(t)) inter++;
+  const union = a.size + b.size - inter;
+  return union === 0 ? 0 : inter / union;
 }
 
 /* ----------------------- Utilities ----------------------- */
@@ -338,6 +353,21 @@ export function mergeBestOfAll(
     const overlapCandidate = findBestOverlapCandidate(recent, chunk, cfg);
 
     if (!overlapCandidate) {
+      // Gap-fill similarity gate: block non-whisper candidates if Whisper already covers the content
+      if (chunk.engine !== 'whisper') {
+        const keptWhisperChunks = kept.filter(k => k.engine === 'whisper');
+        if (keptWhisperChunks.length > 0) {
+          const maxSim = Math.max(
+            ...keptWhisperChunks.map(w => tokenJaccardForGapFill(chunk.tokens, w.tokens))
+          );
+          if (maxSim >= 0.75) {
+            // Redundant: Whisper already covers this content
+            dropped.push(chunk);
+            continue;
+          }
+        }
+      }
+
       // No overlap detected - check continuity before accepting
       const contSim = continuitySimAgainstRecent(recent, chunk);
       
