@@ -32,6 +32,12 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   const volumeGuardTimerRef = useRef<number | null>(null);
   const prevVolumeRef = useRef(0.8);
   const lastInfographicUrlRef = useRef<string | null>(null);
+  
+  // Refs to avoid stale closures in ElevenLabs client tools
+  const userEmailRef = useRef<string | undefined>(undefined);
+  const userDisplayNameRef = useRef<string>('User');
+  const practiceNameRef = useRef<string | undefined>(undefined);
+  const profileLoadedRef = useRef(false);
 
   const extractImageUrlFromText = (text?: string): string | null => {
     if (!text) return null;
@@ -98,6 +104,14 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
   const practiceName = practiceContext?.practiceName || practiceContext?.pcnName;
   const userTitle = profile?.title || profile?.role;
 
+  // Keep refs in sync so ElevenLabs client tool closures always see current values
+  useEffect(() => {
+    userEmailRef.current = userEmail;
+    userDisplayNameRef.current = userDisplayName;
+    practiceNameRef.current = practiceName;
+    if (userEmail) profileLoadedRef.current = true;
+  }, [userEmail, userDisplayName, practiceName]);
+
   // Build dynamic prompt with user context for the agent
   const dynamicPrompt = useMemo(() => {
     const parts: string[] = [];
@@ -122,10 +136,12 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
     return parts.join(' ');
   }, [userDisplayName, userEmail, practiceName, userTitle]);
 
-  // Email sending function for client tool
+  // Email sending function for client tool — uses ref to avoid stale closure
   const sendEmailToUser = async (params: { subject: string; content: string; imageUrl?: string }) => {
-    if (!userEmail) {
-      toast.error('No email address found');
+    const currentEmail = userEmailRef.current;
+    if (!currentEmail) {
+      console.error('📧 No email found in ref. userEmailRef:', userEmailRef.current, 'profile:', profile?.email, 'user:', user?.email);
+      toast.error('No email address found — please ensure your profile has an email');
       return 'Failed to send email: No email address configured in your profile';
     }
 
@@ -148,13 +164,13 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         resolvedImageUrl = lastInfographicUrlRef.current || undefined;
       }
 
-      console.log('📧 PM Genie sending email to:', userEmail, resolvedImageUrl ? 'with infographic' : '');
+      console.log('📧 PM Genie sending email to:', currentEmail, resolvedImageUrl ? 'with infographic' : '');
       
       const { data, error } = await supabase.functions.invoke('pm-genie-send-email', {
         body: {
           subject: params.subject,
           content: params.content,
-          userEmail: userEmail,
+          userEmail: currentEmail,
           imageUrl: resolvedImageUrl
         }
       });
@@ -168,9 +184,9 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
       if (data?.success) {
         setEmailsSent(prev => prev + 1);
         toast.success('Email sent successfully!', {
-          description: `Check your inbox at ${userEmail}`
+          description: `Check your inbox at ${currentEmail}`
         });
-        return `Email sent successfully to ${userEmail}`;
+        return `Email sent successfully to ${currentEmail}`;
       } else {
         toast.error('Failed to send email');
         return 'Failed to send email: ' + (data?.error || 'Unknown error');
@@ -375,17 +391,22 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
       }
 
       // Start the session with dynamic user context
-      console.log('🎯 Starting PM Genie with user context:', { userDisplayName, userEmail, practiceName });
+      // Use refs to get the most current values (profile may have loaded after mount)
+      const currentEmail = userEmailRef.current;
+      const currentName = userDisplayNameRef.current;
+      const currentPractice = practiceNameRef.current;
+      console.log('🎯 Starting PM Genie with user context:', { currentName, currentEmail, currentPractice });
       
       await conversation.startSession({
         agentId: 'agent_01jzsg04q1fwy9bfydkhszan7s',
         signedUrl: data.signed_url,
         dynamicVariables: {
-          user_name: userDisplayName,
-          // Don't pass actual email - tell agent they have a registered email instead
-          user_email: userEmail ? 'your registered NHS email' : '',
-          practice_name: practiceName || '',
-          user_title: userTitle || ''
+          user_name: currentName,
+          user_email: currentEmail || '',
+          practice_name: currentPractice || '',
+          user_title: userTitle || '',
+          // Pass the full dynamic prompt so the agent knows about tools and user context
+          dynamic_context: dynamicPrompt
         }
       });
 
@@ -450,8 +471,21 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
     onClose();
   };
 
-  // Auto-start connection on mount and cleanup on unmount
+  // Auto-start connection once profile is loaded (avoids stale/empty user context)
+  const hasAutoStarted = useRef(false);
   useEffect(() => {
+    // Wait until we have user email before starting (profile loaded)
+    if (hasAutoStarted.current) return;
+    if (!user?.email && !profile?.email) return;
+    
+    // Update refs before starting
+    userEmailRef.current = profile?.email || user?.email;
+    userDisplayNameRef.current = profile?.full_name || profile?.display_name || user?.email?.split('@')[0] || 'User';
+    practiceNameRef.current = practiceContext?.practiceName || practiceContext?.pcnName;
+    profileLoadedRef.current = true;
+    
+    hasAutoStarted.current = true;
+    console.log('🚀 Profile loaded, auto-starting PM Genie with email:', userEmailRef.current);
     startConversation();
     
     // Cleanup function - ensure we end the session when component unmounts
@@ -480,7 +514,7 @@ export const EmbeddedPMGenie = ({ onClose }: EmbeddedPMGenieProps) => {
         console.warn('Error ending session on unmount:', err);
       }
     };
-  }, []);
+  }, [user?.email, profile?.email, profile?.full_name, profile?.display_name, practiceContext?.practiceName]);
   
   // Warn user before navigating away while call is active
   useEffect(() => {
