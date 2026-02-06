@@ -107,12 +107,12 @@ export class AndroidWhisperTranscriber {
       this.sessionId = meetingId;
     }
     
-    // Initialize chunk manager with Android-optimised settings
+    // Initialize chunk manager with Android-optimised settings (Option A: 90s chunks)
     this.chunkManager = new AndroidChunkManager({
-      maxBufferDurationMs: 60000,    // 60s buffer max
-      targetChunkDurationMs: 15000,  // 15s chunks - faster turnaround
+      maxBufferDurationMs: 120000,   // 120s buffer max (to accommodate 90s chunks)
+      targetChunkDurationMs: 90000,  // 90s chunks (Option A configuration)
       overlapDurationMs: 3000,       // 3s overlap
-      minChunkDurationMs: 5000       // Minimum 5s
+      minChunkDurationMs: 10000      // Minimum 10s
     });
     
     this.workerSupported = typeof Worker !== 'undefined';
@@ -494,7 +494,7 @@ export class AndroidWhisperTranscriber {
       // Initialize and start Web Worker
       this.initializeWorker();
       if (this.timerWorker) {
-        this.timerWorker.postMessage({ type: 'start', intervalMs: 10000 });
+        this.timerWorker.postMessage({ type: 'start', intervalMs: 90000 }); // 90s interval (Option A)
         this.lastWorkerTick = Date.now();
       }
 

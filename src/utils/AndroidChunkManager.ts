@@ -55,10 +55,10 @@ export class AndroidChunkManager {
   
   constructor(config: AndroidChunkManagerConfig = {}) {
     this.config = {
-      maxBufferDurationMs: config.maxBufferDurationMs ?? 60000,  // 60s default
-      targetChunkDurationMs: config.targetChunkDurationMs ?? 15000, // 15s - faster than iPhone
+      maxBufferDurationMs: config.maxBufferDurationMs ?? 120000,  // 120s default - accommodate 90s chunks
+      targetChunkDurationMs: config.targetChunkDurationMs ?? 90000, // 90s (Option A)
       overlapDurationMs: config.overlapDurationMs ?? 3000,
-      minChunkDurationMs: config.minChunkDurationMs ?? 5000
+      minChunkDurationMs: config.minChunkDurationMs ?? 10000 // 10s minimum
     };
   }
 

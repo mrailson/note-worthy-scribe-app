@@ -93,8 +93,8 @@ export class DesktopWhisperTranscriber {
   ) {
     this.sessionId = meetingId || this.generateSessionId();
     this.meetingId = meetingId || null;
-    // Use custom chunk duration if provided, otherwise default to 25 seconds
-    this.chunkIntervalMs = customChunkDurationMs || 25000;
+    // Use custom chunk duration if provided, otherwise default to 90s (Option A)
+    this.chunkIntervalMs = customChunkDurationMs || 90000;
     this.meetingSettings = withDefaultThresholds(meetingSettings);
     console.log(`🎙️ DesktopWhisperTranscriber initialized with audioFormat: ${audioFormat || 'webm'}, chunkDuration: ${this.chunkIntervalMs}ms`);
   }

@@ -127,10 +127,10 @@ export class iPhoneWhisperTranscriber {
     // Initialize chunk manager if using new strategy
     if (USE_NEW_IPHONE_CHUNKING) {
       this.chunkManager = new iPhoneChunkManager({
-        maxBufferDurationMs: 60000,    // 60s buffer max (reduced for faster processing)
-        targetChunkDurationMs: 15000,  // Process every 15s (was 25s) - faster turnaround
-        overlapDurationMs: 3000,       // 3s overlap (reduced)
-        minChunkDurationMs: 5000       // Minimum 5s before processing (was 8s)
+        maxBufferDurationMs: 120000,   // 120s buffer max (to accommodate 90s chunks)
+        targetChunkDurationMs: 90000,  // 90s chunks (Option A configuration)
+        overlapDurationMs: 3000,       // 3s overlap
+        minChunkDurationMs: 10000      // Minimum 10s before processing
       });
     }
     
@@ -601,7 +601,7 @@ export class iPhoneWhisperTranscriber {
       // Initialize and start Web Worker for reliable timing
       this.initializeWorker();
       if (this.timerWorker) {
-        this.timerWorker.postMessage({ type: 'start', intervalMs: 10000 }); // 10s interval
+        this.timerWorker.postMessage({ type: 'start', intervalMs: 90000 }); // 90s interval (Option A)
         this.lastWorkerTick = Date.now(); // Initialize heartbeat
       }
 
