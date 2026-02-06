@@ -11,22 +11,92 @@ const OPENAI_URL = "https://api.openai.com/v1/audio/transcriptions";
 const MODEL = "whisper-1";
 const MAX_BYTES = 1_000_000; // ~1MB max chunk size
 
-function sleep(ms: number) { 
-  return new Promise(r => setTimeout(r, ms)); 
+function sleep(ms: number) {
+  return new Promise(r => setTimeout(r, ms));
 }
 
-console.log("🎙️ Speech-to-Text-Chunked Edge Function starting...");
+// ── Preprocessing helper ────────────────────────────────────────────────────
+
+function inferExtension(mime: string): string {
+  const m = (mime || '').toLowerCase();
+  if (m.includes('flac')) return 'flac';
+  if (m.includes('webm')) return 'webm';
+  if (m.includes('wav')) return 'wav';
+  if (m.includes('ogg')) return 'ogg';
+  if (m.includes('m4a') || m.includes('mp4') || m.includes('aac')) return 'm4a';
+  if (m.includes('mp3') || m.includes('mpeg')) return 'mp3';
+  return 'bin';
+}
+
+/**
+ * Preprocess audio through the transcode-audio service.
+ * Feature-flagged via ENABLE_SERVER_PREPROCESSING env var.
+ * Falls back to direct forward on error/timeout.
+ */
+async function preprocessAudioViaTranscode(
+  audioBytes: Uint8Array,
+  declaredMime: string,
+  requestId: string
+): Promise<{ bytes: Uint8Array; mimeType: string; extension: string; preprocessed: boolean }> {
+  const enabled = Deno.env.get('ENABLE_SERVER_PREPROCESSING') === 'true';
+
+  if (!enabled) {
+    console.log(`ℹ️ [${requestId}] Server preprocessing disabled (ENABLE_SERVER_PREPROCESSING !== 'true')`);
+    return { bytes: audioBytes, mimeType: declaredMime, extension: inferExtension(declaredMime), preprocessed: false };
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+  if (!supabaseUrl || !anonKey) {
+    console.warn(`⚠️ [${requestId}] Missing SUPABASE_URL or SUPABASE_ANON_KEY, skipping preprocessing`);
+    return { bytes: audioBytes, mimeType: declaredMime, extension: inferExtension(declaredMime), preprocessed: false };
+  }
+
+  const transcodeUrl = `${supabaseUrl}/functions/v1/transcode-audio`;
+  console.log(`🔄 [${requestId}] Preprocessing: sending ${audioBytes.length}B (${declaredMime}) to transcode-audio…`);
+
+  try {
+    const fd = new FormData();
+    fd.append('file', new Blob([audioBytes], { type: declaredMime }), 'input.audio');
+
+    const response = await fetch(transcodeUrl, {
+      method: 'POST',
+      headers: { 'apikey': anonKey },
+      body: fd,
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      console.warn(`⚠️ [${requestId}] transcode-audio error ${response.status}: ${errBody.slice(0, 200)}, falling back to direct forward`);
+      return { bytes: audioBytes, mimeType: declaredMime, extension: inferExtension(declaredMime), preprocessed: false };
+    }
+
+    const resultBytes = new Uint8Array(await response.arrayBuffer());
+    const resultMime = response.headers.get('Content-Type') || declaredMime;
+    const resultExt = response.headers.get('X-Audio-Extension') || inferExtension(resultMime);
+    const wasTranscoded = response.headers.get('X-Audio-Transcoded') === 'true';
+
+    console.log(`✅ [${requestId}] Preprocessing complete: ${audioBytes.length}B → ${resultBytes.length}B, ${declaredMime} → ${resultMime} (.${resultExt}), transcoded=${wasTranscoded}`);
+    return { bytes: resultBytes, mimeType: resultMime, extension: resultExt, preprocessed: true };
+  } catch (err: any) {
+    const isTimeout = err?.name === 'TimeoutError' || err?.name === 'AbortError';
+    console.warn(`⚠️ [${requestId}] transcode-audio ${isTimeout ? 'timed out' : 'failed'}: ${err?.message || err}, falling back to direct forward`);
+    return { bytes: audioBytes, mimeType: declaredMime, extension: inferExtension(declaredMime), preprocessed: false };
+  }
+}
+
+// ── Main handler ────────────────────────────────────────────────────────────
+
+console.log("🎙️ Speech-to-Text-Chunked Edge Function starting…");
 
 serve(async (req) => {
   const requestId = crypto.randomUUID().slice(0, 8);
-  
-  // Handle CORS preflight requests
+
   if (req.method === 'OPTIONS') {
-    console.log(`✅ WHISPER EDGE: Handling CORS preflight`);
     return new Response(null, { headers: corsHeaders });
   }
-
-  console.log(`📨 WHISPER EDGE: ${req.method} request received`);
 
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -36,31 +106,28 @@ serve(async (req) => {
   }
 
   try {
-    // Get OpenAI API key
     const openAiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAiApiKey) {
       console.error(`❌ [${requestId}] OpenAI API key not found`);
-      return new Response(JSON.stringify({ error: "missing-openai-key" }), { 
+      return new Response(JSON.stringify({ error: "missing-openai-key" }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log(`🔑 [${requestId}] OpenAI API key found: ${openAiApiKey.slice(0, 10)}...`);
+    console.log(`🔑 [${requestId}] OpenAI API key found: ${openAiApiKey.slice(0, 10)}…`);
 
-    // Parse form data - fresh FormData every request
     const formData = await req.formData();
     const blob = formData.get('file') as Blob | null;
     const chunkIndex = Number(formData.get('chunkIndex') ?? 0);
     const isFinal = formData.get('isFinal') === 'true';
     const language = formData.get('language') as string | null;
-    const prompt = formData.get('prompt') as string | null; // Previous transcript tail for continuity
+    const prompt = formData.get('prompt') as string | null;
     const meetingId = formData.get('meetingId') as string;
     const sessionId = formData.get('sessionId') as string;
 
-    // Detect MIME type from blob
     const incomingMimeType = blob?.type || 'audio/webm';
-    
+
     console.log(`📋 [${requestId}] Form data parsed:`, {
       hasAudioFile: !!blob,
       fileSize: blob?.size,
@@ -74,13 +141,9 @@ serve(async (req) => {
 
     if (!blob || typeof blob.stream !== "function") {
       if (isFinal) {
-        // Final empty chunk - return success with empty result
-        console.log(`🏁 [${requestId}] Final empty chunk received - session complete`);
+        console.log(`🏁 [${requestId}] Final empty chunk received – session complete`);
         return new Response(JSON.stringify({
-          data: {
-            text: '',
-            segments: []
-          },
+          data: { text: '', segments: [] },
           isFinal: true,
           chunkIndex,
           message: 'Session completed'
@@ -88,62 +151,59 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      
-      return new Response(JSON.stringify({ error: "no-file" }), { 
+
+      return new Response(JSON.stringify({ error: "no-file" }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     if (blob.size > MAX_BYTES) {
-      return new Response(JSON.stringify({ 
-        error: "chunk-too-large", 
+      return new Response(JSON.stringify({
+        error: "chunk-too-large",
         size: blob.size,
-        maxSize: MAX_BYTES 
-      }), { 
+        maxSize: MAX_BYTES
+      }), {
         status: 413,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log(`📡 [${requestId}] Sending to OpenAI Whisper API...`, {
-      audioSize: blob.size,
-      mimeType: incomingMimeType,
-      chunkIndex,
-      isFinal,
-    });
+    // ── Preprocess through transcode-audio ──
+    const rawBytes = new Uint8Array(await blob.arrayBuffer());
+    const preprocessed = await preprocessAudioViaTranscode(rawBytes, incomingMimeType, requestId);
 
-    // Determine correct file extension based on MIME type
-    // This is CRITICAL for iOS which uses audio/mp4
-    let fileExtension = 'webm';
-    if (incomingMimeType.includes('flac')) {
-      fileExtension = 'flac';
-    } else if (incomingMimeType.includes('mp4') || incomingMimeType.includes('m4a') || incomingMimeType.includes('aac')) {
-      fileExtension = 'm4a';
-    } else if (incomingMimeType.includes('ogg')) {
-      fileExtension = 'ogg';
-    } else if (incomingMimeType.includes('wav')) {
-      fileExtension = 'wav';
+    // Determine file extension for OpenAI
+    let fileExtension: string;
+    if (preprocessed.preprocessed) {
+      fileExtension = preprocessed.extension;
+    } else {
+      // Fallback: local MIME-based extension detection
+      fileExtension = 'webm';
+      if (incomingMimeType.includes('flac')) fileExtension = 'flac';
+      else if (incomingMimeType.includes('mp4') || incomingMimeType.includes('m4a') || incomingMimeType.includes('aac')) fileExtension = 'm4a';
+      else if (incomingMimeType.includes('ogg')) fileExtension = 'ogg';
+      else if (incomingMimeType.includes('wav')) fileExtension = 'wav';
     }
 
-    // Build a NEW FormData payload for OpenAI every time - prevents reuse issues
+    const forwardMime = preprocessed.preprocessed ? preprocessed.mimeType : incomingMimeType;
+
+    console.log(`📡 [${requestId}] Forwarding to OpenAI: ${preprocessed.bytes.length}B as ${forwardMime} (.${fileExtension}), preprocessed=${preprocessed.preprocessed}`);
+
+    // Build a NEW FormData payload for OpenAI
     const fd = new FormData();
-    // Use the CORRECT MIME type and extension for the incoming audio
-    fd.append("file", new File([blob], `chunk_${chunkIndex}.${fileExtension}`, { type: incomingMimeType }));
+    fd.append("file", new File([preprocessed.bytes], `chunk_${chunkIndex}.${fileExtension}`, { type: forwardMime }));
     fd.append("model", MODEL);
     fd.append("response_format", "verbose_json");
-    // Anti-hallucination parameters
     fd.append("temperature", "0");
-    fd.append("no_speech_threshold", "0.6"); 
+    fd.append("no_speech_threshold", "0.6");
     fd.append("condition_on_previous_text", "false");
-    // Use prompt if provided (for continuity between chunks), otherwise empty
     fd.append("prompt", prompt || "");
     if (language) fd.append("language", language);
 
-    // Idempotency for safe retries
     const idem = crypto.randomUUID();
 
-    // Retry logic for 429/5xx from OpenAI with backoff
+    // Retry logic for 429/5xx
     let lastErr: any;
     for (let attempt = 0; attempt < 3; attempt++) {
       const res = await fetch(OPENAI_URL, {
@@ -155,51 +215,42 @@ serve(async (req) => {
         body: fd,
       });
 
-      const text = await res.text(); // loggable payload
-      console.log(`📥 [${requestId}] OpenAI API response status: ${res.status} (attempt ${attempt + 1})`);
+      const text = await res.text();
+      console.log(`📥 [${requestId}] OpenAI response status: ${res.status} (attempt ${attempt + 1})`);
 
       if (res.ok) {
         const result = JSON.parse(text);
-        console.log(`✅ [${requestId}] OpenAI transcription result:`, {
-          textLength: result.text?.length || 0,
-          text: result.text?.slice(0, 100) + (result.text?.length > 100 ? '...' : ''),
-        });
+        console.log(`✅ [${requestId}] Transcription result: ${result.text?.length || 0} chars`);
 
-        // Calculate real confidence from segments
-        let confidence = 0.5; // Default fallback
+        let confidence = 0.5;
         let audioQualityWarning: string | null = null;
         let avgNoSpeech = 0;
-        
+
         if (result.segments && result.segments.length > 0) {
-          const avgLogProb = result.segments.reduce((sum: number, seg: any) => 
+          const avgLogProb = result.segments.reduce((sum: number, seg: any) =>
             sum + (seg.avg_logprob || -2), 0) / result.segments.length;
-          avgNoSpeech = result.segments.reduce((sum: number, seg: any) => 
+          avgNoSpeech = result.segments.reduce((sum: number, seg: any) =>
             sum + (seg.no_speech_prob || 0.5), 0) / result.segments.length;
-          
-          // Convert log probability and no-speech probability to confidence score
-          confidence = Math.max(0, Math.min(1, 
+
+          confidence = Math.max(0, Math.min(1,
             (avgLogProb + 1) / 1 * (1 - avgNoSpeech)
           ));
-          
-          // Early audio quality detection - warn if mostly silence/music
+
           if (avgNoSpeech > 0.8) {
             audioQualityWarning = 'Audio contains insufficient speech for reliable transcription';
-            console.log(`⚠️ [${requestId}] High no-speech probability: ${(avgNoSpeech * 100).toFixed(1)}%`);
           } else if (avgNoSpeech > 0.6 && confidence < 0.3) {
             audioQualityWarning = 'Audio quality may be too low for reliable transcription';
-            console.log(`⚠️ [${requestId}] Low confidence with high no-speech: conf=${(confidence * 100).toFixed(1)}%, noSpeech=${(avgNoSpeech * 100).toFixed(1)}%`);
           }
         }
 
-        // Return the transcription result with segments for timestamp-based deduplication
         const response = {
           data: {
             text: result.text || '',
             segments: result.segments || []
           },
-          confidence: confidence, // Real confidence from Whisper segments
+          confidence,
           audioQuality: audioQualityWarning ? 'poor' : (confidence >= 0.6 ? 'good' : 'acceptable'),
-          audioQualityWarning: audioQualityWarning,
+          audioQualityWarning,
           noSpeechProbability: avgNoSpeech,
           chunkIndex,
           isFinal,
@@ -208,20 +259,11 @@ serve(async (req) => {
           timestamp: new Date().toISOString(),
         };
 
-        console.log(`📤 [${requestId}] Sending response:`, {
-          textLength: response.data.text.length,
-          segmentsCount: response.data.segments.length,
-          chunkIndex: response.chunkIndex,
-          isFinal: response.isFinal,
-        });
-
         return new Response(JSON.stringify(response), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      // Bubble up OpenAI's error body so the client can see it
-      // If rate limited or transient, retry with backoff+jitter
       if (res.status === 429 || res.status >= 500) {
         lastErr = { status: res.status, body: text };
         console.warn(`⚠️ [${requestId}] Retryable error ${res.status}, attempt ${attempt + 1}/3`);
@@ -229,32 +271,29 @@ serve(async (req) => {
         continue;
       }
 
-      // Non-retryable (e.g., 400 invalid file)
-      console.error(`❌ [${requestId}] Non-retryable OpenAI error:`, res.status, text);
-      return new Response(text || JSON.stringify({ error: "openai-failed" }), { 
+      console.error(`❌ [${requestId}] Non-retryable OpenAI error: ${res.status} ${text}`);
+      return new Response(text || JSON.stringify({ error: "openai-failed" }), {
         status: res.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // After retries failed
     console.error(`❌ [${requestId}] All retries failed:`, lastErr);
-    return new Response(JSON.stringify({ 
-      error: "openai-retry-failed", 
-      detail: lastErr 
-    }), { 
+    return new Response(JSON.stringify({
+      error: "openai-retry-failed",
+      detail: lastErr
+    }), {
       status: 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (e) {
-    // Always return JSON with details; no generic 500 with empty body
     console.error(`❌ [${requestId}] Edge function exception:`, e);
-    return new Response(JSON.stringify({ 
-      error: "edge-exception", 
+    return new Response(JSON.stringify({
+      error: "edge-exception",
       message: String(e?.message || e),
-      requestId 
-    }), { 
+      requestId
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
