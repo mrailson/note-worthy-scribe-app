@@ -52,12 +52,16 @@ serve(async (req) => {
     console.log('📦 SPEECH-TO-TEXT: Created audio buffer, size:', bytes.length, 'bytes');
 
     // Determine the correct MIME type and file extension
-    let detectedMimeType = mimeType || 'audio/wav';
-    let fileExtension = 'wav';
+    // Default to webm (native browser format) instead of wav
+    let detectedMimeType = mimeType || 'audio/webm';
+    let fileExtension = 'webm';
     
-    // Map MIME types to file extensions (including iOS-friendly formats)
+    // Map MIME types to file extensions (including iOS-friendly formats and FLAC)
     const lowerMime = (detectedMimeType || '').toLowerCase();
-    if (lowerMime.includes('mp3') || lowerMime.includes('mpeg')) {
+    if (lowerMime.includes('flac')) {
+      detectedMimeType = 'audio/flac';
+      fileExtension = 'flac';
+    } else if (lowerMime.includes('mp3') || lowerMime.includes('mpeg')) {
       detectedMimeType = 'audio/mpeg';
       fileExtension = 'mp3';
     } else if (lowerMime.includes('wav')) {
@@ -67,11 +71,9 @@ serve(async (req) => {
       detectedMimeType = 'audio/m4a';
       fileExtension = 'm4a';
     } else if (lowerMime.includes('aac')) {
-      // iOS often records AAC in an MP4 container
       detectedMimeType = 'audio/aac';
       fileExtension = 'aac';
     } else if (lowerMime.includes('mp4')) {
-      // Treat generic MP4 audio as m4a for Whisper
       detectedMimeType = 'audio/mp4';
       fileExtension = 'm4a';
     } else if (lowerMime.includes('ogg')) {
@@ -85,13 +87,14 @@ serve(async (req) => {
     // If we have a fileName, try to extract extension from it
     if (fileName) {
       const fileNameExt = fileName.split('.').pop()?.toLowerCase();
-      if (fileNameExt === 'mp3' || fileNameExt === 'wav' || fileNameExt === 'm4a' || fileNameExt === 'ogg' || fileNameExt === 'webm') {
+      if (fileNameExt === 'mp3' || fileNameExt === 'wav' || fileNameExt === 'm4a' || fileNameExt === 'ogg' || fileNameExt === 'webm' || fileNameExt === 'flac') {
         fileExtension = fileNameExt;
         if (fileNameExt === 'mp3') detectedMimeType = 'audio/mpeg';
         else if (fileNameExt === 'wav') detectedMimeType = 'audio/wav';
         else if (fileNameExt === 'm4a') detectedMimeType = 'audio/m4a';
         else if (fileNameExt === 'ogg') detectedMimeType = 'audio/ogg';
         else if (fileNameExt === 'webm') detectedMimeType = 'audio/webm';
+        else if (fileNameExt === 'flac') detectedMimeType = 'audio/flac';
       }
     }
     

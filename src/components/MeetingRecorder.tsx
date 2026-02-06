@@ -93,8 +93,10 @@ import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
 import { mergeLive } from '@/utils/liveMerge';
 import { mergeByTimestamps, segmentsToPlainText, type Segment } from '@/lib/segmentMerge';
 import { useMeetingData } from "@/hooks/useMeetingData";
-import { trimSilence } from '@/utils/audioSilenceTrimmer';
-import { transcodeToWhisperFormat, shouldTranscode } from '@/utils/audioTranscoder';
+// Client-side trimming/transcoding removed — server-side preprocessing via transcode-audio
+// Import retained for backward compatibility (functions are now pass-throughs)
+// import { trimSilence } from '@/utils/audioSilenceTrimmer';
+// import { transcodeToWhisperFormat, shouldTranscode } from '@/utils/audioTranscoder';
 import { buildAssemblyAudioStream, cleanupAssemblyAudioStream } from '@/utils/buildAssemblyAudioStream';
 import type { BuildAssemblyAudioStreamResult } from '@/utils/buildAssemblyAudioStream';
 
@@ -1360,12 +1362,12 @@ export const MeetingRecorder = ({
 
         console.log(`🎵 Started chunk ${currentChunkId}`);
 
-        // FAST FIRST CHUNK: Process after 10s for quick user feedback
-        // Subsequent chunks use 30s for better transcription accuracy
-        const chunkDuration = isFirstChunk ? 10000 : 30000;
+        // FAST FIRST CHUNK: Process after 20s for quick user feedback
+        // Subsequent chunks use 25s (standardised per transcription plan)
+        const chunkDuration = isFirstChunk ? 20000 : 25000;
         
         if (isFirstChunk) {
-          console.log('⚡ First chunk: Processing after 10s for quick feedback');
+          console.log('⚡ First chunk: Processing after 20s for quick feedback');
           isFirstChunk = false;
         }
 
@@ -1385,13 +1387,13 @@ export const MeetingRecorder = ({
       // Start first chunk immediately
       startNewChunk();
 
-      // FAST FIRST INTERVAL: Start second chunk after 10s, then use 27s intervals
+      // FAST FIRST INTERVAL: Start second chunk after 20s, then use 22.5s intervals
       setTimeout(() => {
         if (isRecording && isRecordingRef.current && chunksStream?.active) {
-          console.log('🔄 Starting second chunk at 10s mark');
+          console.log('🔄 Starting second chunk at 20s mark');
           startNewChunk();
           
-          // Now set up the regular 27s interval for subsequent chunks
+          // Now set up the regular 22.5s interval for subsequent chunks (25s chunk - 2.5s overlap)
           const chunkInterval = setInterval(() => {
             if (isRecording && isRecordingRef.current && chunksStream && chunksStream.active) {
               console.log(`🔄 Starting new chunk ${chunkId + 1} - system is active`);
@@ -1425,11 +1427,11 @@ export const MeetingRecorder = ({
                 audioContext.close();
               }
             }
-          }, 27000); // 27 seconds = 30 second chunk - 3 second overlap
+          }, 22500); // 22.5s = 25s chunk - 2.5s overlap
           
           segmentIntervalRef.current = chunkInterval;
         }
-      }, 10000); // First interval fires at 10s to match fast first chunk
+      }, 20000); // First interval fires at 20s to match fast first chunk
 
       // Add a heartbeat to show recording is active every 5 seconds
       const heartbeatInterval = setInterval(() => {
@@ -1528,25 +1530,16 @@ export const MeetingRecorder = ({
       let chunkBlob = new Blob(chunks, { type: 'audio/webm' });
       const originalSize = chunkBlob.size;
       
-      // FIXED: Calculate chunk end time based on when recording STOPPED for this chunk,
-      // not when we're processing it. Use the configured chunk duration (10s first, 30s after).
-      // First chunk (chunkId 0) is 10s, subsequent chunks are 30s
-      const chunkDurationSeconds = (chunkId === 0) ? 10 : 30;
+      // Calculate chunk end time based on when recording STOPPED for this chunk.
+      // First chunk (chunkId 0) is 20s, subsequent chunks are 25s
+      const chunkDurationSeconds = (chunkId === 0) ? 20 : 25;
       const endTime = new Date(startTime.getTime() + (chunkDurationSeconds * 1000));
       
-      // Step 1: Trim leading/trailing silence (>500ms) to improve last-word confidence
-      console.log(`✂️ Trimming silence from chunk ${chunkId}...`);
-      chunkBlob = await trimSilence(chunkBlob, { thresholdMs: 500, silenceLevel: -40 });
-      
-      // Step 2: Transcode to 16kHz mono WAV for Whisper optimisation (10-20× smaller)
-      if (shouldTranscode(chunkBlob)) {
-        console.log(`🎵 Transcoding chunk ${chunkId} to 16kHz mono...`);
-        chunkBlob = await transcodeToWhisperFormat(chunkBlob, { 
-          targetSampleRate: 16000, 
-          channels: 1 
-        });
-        console.log(`📉 Chunk ${chunkId}: ${(originalSize / 1024).toFixed(1)}KB → ${(chunkBlob.size / 1024).toFixed(1)}KB (${((1 - chunkBlob.size / originalSize) * 100).toFixed(0)}% reduction)`);
-      }
+      // Client-side trimming and transcoding removed — audio is uploaded in native
+      // browser format (WebM/Opus or M4A/AAC). Server-side preprocessing via
+      // transcode-audio edge function handles resampling, highpass filter, and
+      // loudness normalisation before forwarding to ASR providers.
+      console.log(`📤 Chunk ${chunkId}: uploading native format (${chunkBlob.type}), ${(chunkBlob.size / 1024).toFixed(1)}KB`);
       
       // Add timeout for the transcription request
       const controller = new AbortController();
@@ -1769,7 +1762,7 @@ export const MeetingRecorder = ({
                     start_time: startTime.toISOString(),
                     end_time: endTime.toISOString(),
                     processing_status: 'completed',
-                    chunk_duration_ms: 30000,
+                    chunk_duration_ms: 25000,
                     file_size: transcodedSize,
                     original_file_size: originalSize,
                     transcoded_file_size: transcodedSize,

@@ -8,6 +8,57 @@ const cors = {
   "Access-Control-Allow-Methods": "POST,OPTIONS",
 };
 
+/**
+ * Detect audio format from magic bytes for reliable MIME type assignment
+ */
+function detectFormatFromBytes(bytes: Uint8Array): { mimeType: string; extension: string } | null {
+  if (bytes.length < 12) return null;
+
+  // WebM: EBML header 0x1A 0x45 0xDF 0xA3
+  if (bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3) {
+    return { mimeType: 'audio/webm', extension: 'webm' };
+  }
+  // RIFF/WAV
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+    return { mimeType: 'audio/wav', extension: 'wav' };
+  }
+  // OGG
+  if (bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) {
+    return { mimeType: 'audio/ogg', extension: 'ogg' };
+  }
+  // FLAC
+  if (bytes[0] === 0x66 && bytes[1] === 0x4C && bytes[2] === 0x61 && bytes[3] === 0x43) {
+    return { mimeType: 'audio/flac', extension: 'flac' };
+  }
+  // MP4/M4A: 'ftyp' at bytes 4-7
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+    return { mimeType: 'audio/mp4', extension: 'm4a' };
+  }
+  // MP3: ID3 or MPEG sync
+  if (
+    (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) ||
+    (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0)
+  ) {
+    return { mimeType: 'audio/mpeg', extension: 'mp3' };
+  }
+
+  return null;
+}
+
+/**
+ * Normalise MIME type, stripping codec parameters
+ */
+function normaliseMime(raw: string): { mimeType: string; extension: string } {
+  const lower = (raw || '').toLowerCase().split(';')[0].trim();
+  if (lower.includes('flac')) return { mimeType: 'audio/flac', extension: 'flac' };
+  if (lower.includes('webm')) return { mimeType: 'audio/webm', extension: 'webm' };
+  if (lower.includes('wav')) return { mimeType: 'audio/wav', extension: 'wav' };
+  if (lower.includes('ogg')) return { mimeType: 'audio/ogg', extension: 'ogg' };
+  if (lower.includes('m4a') || lower.includes('mp4') || lower.includes('aac')) return { mimeType: 'audio/mp4', extension: 'm4a' };
+  if (lower.includes('mp3') || lower.includes('mpeg')) return { mimeType: 'audio/mpeg', extension: 'mp3' };
+  return { mimeType: 'audio/webm', extension: 'webm' };
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
@@ -57,14 +108,6 @@ serve(async (req: Request) => {
       size: file.size
     });
 
-    // Ensure filename & type for OpenAI - clean the mime type
-    const name = file.name && file.name !== "blob" ? file.name : "chunk.webm";
-    // Remove codecs from mime type - OpenAI only accepts "audio/webm" not "audio/webm;codecs=opus"
-    const cleanType = file.type ? file.type.split(';')[0] : "audio/webm";
-    const finalType = cleanType === "audio/webm" ? "audio/webm" : "audio/webm";
-    
-    console.log("🎵 Original type:", file.type, "-> Clean type:", finalType);
-    
     const bytes = new Uint8Array(await file.arrayBuffer());
     
     // Validate that we have actual audio data
@@ -77,8 +120,22 @@ serve(async (req: Request) => {
       byteLength: bytes.length,
       firstBytes: Array.from(bytes.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' ')
     });
+
+    // Smart format detection: prefer magic bytes, fall back to declared MIME
+    const detectedFormat = detectFormatFromBytes(bytes);
+    const declaredFormat = normaliseMime(file.type);
     
-    const normalized = new File([bytes], name.endsWith(".webm") ? name : `${name}.webm`, { type: finalType });
+    const finalMime = detectedFormat?.mimeType || declaredFormat.mimeType;
+    const finalExt = detectedFormat?.extension || declaredFormat.extension;
+    const fileName = `chunk.${finalExt}`;
+    
+    console.log("🎵 Format detection:", {
+      declared: file.type,
+      detected: detectedFormat?.mimeType || 'unknown',
+      using: `${finalMime} (.${finalExt})`
+    });
+
+    const normalized = new File([bytes], fileName, { type: finalMime });
 
     console.log("📤 Sending to OpenAI with anti-hallucination settings");
     const out = new FormData();

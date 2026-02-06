@@ -1,11 +1,11 @@
 export const WHISPER_CHUNKING = {
   mimeType: 'audio/webm;codecs=opus',
   mediaRecorderTimesliceMs: 4000,
-  // Updated: 15s chunks with 1s overlap (reduced from 1.5s to minimize echoing)
-  // Purpose: Match merge algorithm's synthetic timeline expectations
-  chunkDurationMs: 15000,      // 15 seconds per chunk (matches DEFAULT_MERGE_CONFIG.chunkDurationSec)
-  overlapMs: 1000,             // 1 second overlap (reduced from 1.5s - Whisper is resilient)
-  accumulateUntilMs: 15000,    // Accumulate audio for 15s before processing
+  // Updated: 25s chunks with 2.5s overlap (standardised per transcription plan)
+  // Purpose: Balance transcription accuracy with file size; within 20-30s guidance
+  chunkDurationMs: 25000,      // 25 seconds per chunk
+  overlapMs: 2500,             // 2.5 seconds overlap
+  accumulateUntilMs: 25000,    // Accumulate audio for 25s before processing
   maxChunkBytes: 1_500_000,
   maxInflight: 2,
   retry: { attempts: 3, backoffMs: [250, 600, 1200] },
