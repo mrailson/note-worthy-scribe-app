@@ -491,3 +491,6 @@ verify_jwt = false
 
 [functions.graceful-end-meeting]
 verify_jwt = false
+
+[functions.transcode-audio]
+verify_jwt = false

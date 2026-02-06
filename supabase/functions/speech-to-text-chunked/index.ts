@@ -116,7 +116,9 @@ serve(async (req) => {
     // Determine correct file extension based on MIME type
     // This is CRITICAL for iOS which uses audio/mp4
     let fileExtension = 'webm';
-    if (incomingMimeType.includes('mp4') || incomingMimeType.includes('m4a') || incomingMimeType.includes('aac')) {
+    if (incomingMimeType.includes('flac')) {
+      fileExtension = 'flac';
+    } else if (incomingMimeType.includes('mp4') || incomingMimeType.includes('m4a') || incomingMimeType.includes('aac')) {
       fileExtension = 'm4a';
     } else if (incomingMimeType.includes('ogg')) {
       fileExtension = 'ogg';

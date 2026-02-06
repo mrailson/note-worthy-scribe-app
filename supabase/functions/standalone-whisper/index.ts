@@ -6,6 +6,47 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Detect audio format from magic bytes for reliable format assignment.
+ * Replaces the previous trial-and-error approach of sending multiple formats.
+ */
+function detectFormat(bytes: Uint8Array): { mimeType: string; extension: string } {
+  if (bytes.length < 12) {
+    return { mimeType: 'audio/webm', extension: 'webm' };
+  }
+
+  // WebM: EBML header
+  if (bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3) {
+    return { mimeType: 'audio/webm', extension: 'webm' };
+  }
+  // RIFF/WAV
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) {
+    return { mimeType: 'audio/wav', extension: 'wav' };
+  }
+  // OGG
+  if (bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) {
+    return { mimeType: 'audio/ogg', extension: 'ogg' };
+  }
+  // FLAC
+  if (bytes[0] === 0x66 && bytes[1] === 0x4C && bytes[2] === 0x61 && bytes[3] === 0x43) {
+    return { mimeType: 'audio/flac', extension: 'flac' };
+  }
+  // MP4/M4A: 'ftyp' at bytes 4-7
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+    return { mimeType: 'audio/mp4', extension: 'm4a' };
+  }
+  // MP3: ID3 tag or MPEG sync word
+  if (
+    (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) ||
+    (bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0)
+  ) {
+    return { mimeType: 'audio/mpeg', extension: 'mp3' };
+  }
+
+  // Default to webm (most common browser format)
+  return { mimeType: 'audio/webm', extension: 'webm' };
+}
+
 // Process base64 in chunks to prevent memory issues
 function processBase64Chunks(base64String: string, chunkSize = 32768) {
   const chunks: Uint8Array[] = [];
@@ -53,72 +94,56 @@ serve(async (req) => {
       throw new Error('No audio data provided');
     }
 
-    console.log('Processing audio chunk, size:', audio.length);
+    console.log('Processing audio chunk, base64 size:', audio.length);
 
     // Convert base64 to binary
     const binaryAudio = processBase64Chunks(audio);
-    
-    // Try multiple audio formats that OpenAI accepts
-    const formats = [
-      { type: 'audio/mp4', ext: 'mp4' },
-      { type: 'audio/mpeg', ext: 'mp3' },
-      { type: 'audio/wav', ext: 'wav' },
-      { type: 'audio/webm', ext: 'webm' },
-      { type: 'audio/ogg', ext: 'ogg' }
-    ];
-    
-    let lastError = null;
-    
-    for (const format of formats) {
-      try {
-        // Prepare form data for Whisper API
-        const formData = new FormData();
-        const blob = new Blob([binaryAudio], { type: format.type });
-        formData.append('file', blob, `audio.${format.ext}`);
-        formData.append('model', 'whisper-1');
-        formData.append('language', 'en');
-        formData.append('response_format', 'json');
+    console.log('Binary audio size:', binaryAudio.length, 'bytes');
 
-        console.log(`Trying format: ${format.type}`);
+    // Smart format detection from magic bytes (replaces trial-and-error loop)
+    const format = detectFormat(binaryAudio);
+    console.log(`🎵 Detected format: ${format.mimeType} (.${format.extension})`);
 
-        // Send to OpenAI Whisper API
-        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
-          },
-          body: formData,
-        });
+    // Single attempt with detected format
+    const formData = new FormData();
+    const blob = new Blob([binaryAudio], { type: format.mimeType });
+    formData.append('file', blob, `audio.${format.extension}`);
+    formData.append('model', 'whisper-1');
+    formData.append('language', 'en');
+    formData.append('response_format', 'json');
 
-        if (response.ok) {
-          const result = await response.json();
-          console.log('Whisper transcription result:', result.text?.slice(0, 100) + '...');
+    console.log(`📡 Sending to OpenAI Whisper API as ${format.mimeType}`);
 
-          return new Response(
-            JSON.stringify({ 
-              text: result.text || '',
-              service: 'whisper',
-              format: format.type
-            }),
-            { 
-              headers: { 
-                ...corsHeaders, 
-                'Content-Type': 'application/json' 
-              } 
-            }
-          );
-        } else {
-          const errorText = await response.text();
-          lastError = `${format.type}: ${response.status} ${errorText}`;
-          console.log(`Format ${format.type} failed:`, lastError);
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+      },
+      body: formData,
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ Whisper transcription result:', result.text?.slice(0, 100) + '...');
+
+      return new Response(
+        JSON.stringify({ 
+          text: result.text || '',
+          service: 'whisper',
+          format: format.mimeType
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
         }
-      } catch (err) {
-        lastError = `${format.type}: ${err.message}`;
-        console.log(`Format ${format.type} error:`, err.message);
-      }
+      );
     }
-    
-    throw new Error(`All audio formats failed. Last error: ${lastError}`);
+
+    const errorText = await response.text();
+    console.error(`❌ OpenAI API error (${response.status}):`, errorText);
+    throw new Error(`OpenAI API error (${response.status}): ${errorText}`);
 
   } catch (error) {
     console.error('Standalone Whisper transcription error:', error);
