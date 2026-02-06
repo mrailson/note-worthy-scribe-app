@@ -66,13 +66,13 @@ export const SlidesTab: React.FC<SlidesTabProps> = ({
           value={[settings.slideCount]}
           onValueChange={(value) => onUpdate({ slideCount: value[0] })}
           min={3}
-          max={20}
+          max={30}
           step={1}
           className="py-2"
         />
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>3</span>
-          <span>20</span>
+          <span>30</span>
         </div>
       </div>
 
