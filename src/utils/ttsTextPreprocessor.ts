@@ -4,6 +4,8 @@
  * Supports language-specific filler word removal.
  */
 
+import { applyNHSPronunciation } from './nhsPronunciationMap';
+
 // Language-specific filler word patterns
 const LANGUAGE_FILLERS: Record<string, RegExp> = {
   // English
@@ -70,6 +72,11 @@ export function preprocessTextForTTS(text: string, languageCode?: string): strin
   if (!text?.trim()) return '';
 
   let processed = text.trim();
+
+  // Apply NHS acronym pronunciation normalisation (English only)
+  if (!languageCode || languageCode === 'en') {
+    processed = applyNHSPronunciation(processed);
+  }
 
   // Apply language-specific filler removal
   const fillerPattern = languageCode 

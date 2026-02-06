@@ -5,6 +5,52 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ── NHS Primary Care Pronunciation Rules ──────────────────────────────
+// Deterministic text replacements so ElevenLabs speaks UK NHS acronyms
+// naturally. Applied once, immediately before synthesis.
+// To add a term: append { match: '\\bACRONYM\\b', say: 'phonetic hint' }.
+const NHS_PRONUNCIATION_RULES: Array<{ match: string; say: string }> = [
+  // Organisations & Structures
+  { match: '\\bAPMS\\b',      say: 'ay pee em ess' },
+  { match: '\\bCQC\\b',       say: 'see cue see' },
+  { match: '\\bGMS\\b',       say: 'jee em ess' },
+  { match: '\\bICB\\b',       say: 'I C B' },
+  { match: '\\bICS\\b',       say: 'I C S' },
+  { match: '\\bNHSE\\b',      say: 'N H S E' },
+  { match: '\\bPCN\\b',       say: 'P C N' },
+  { match: '\\bPMS\\b',       say: 'pee em ess' },
+  // Workforce & Contracts
+  { match: '\\bARRS\\b',      say: 'ah-riss' },
+  { match: '\\bDES\\b',       say: 'D E S' },
+  { match: '\\bLES\\b',       say: 'L E S' },
+  { match: '\\bQOF\\b',       say: 'kwoff' },
+  { match: '\\bTUPE\\b',      say: 'too-pee' },
+  // Clinical Systems
+  { match: '\\bEMIS\\b',      say: 'ee-miss' },
+  { match: '\\bSNOMED\\b',    say: 'snow-med' },
+  { match: '\\bSystmOne\\b',  say: 'system one' },
+  { match: '\\bTPP\\b',       say: 'T P P' },
+  // Clinical Acronyms
+  { match: '\\bBNF\\b',       say: 'B N F' },
+  { match: '\\bDMARD\\b',     say: 'dee-mard' },
+  { match: '\\bDMARDs\\b',    say: 'dee-mards' },
+  { match: '\\bDNACPR\\b',    say: 'dee en ay see pee are' },
+  { match: '\\bEHCP\\b',      say: 'E H C P' },
+  { match: '\\bGDPR\\b',      say: 'G D P R' },
+  { match: '\\bHCA\\b',       say: 'H C A' },
+  { match: '\\bIIF\\b',       say: 'I I F' },
+  { match: '\\bMDT\\b',       say: 'M D T' },
+  { match: '\\bSSP\\b',       say: 'S S P' },
+];
+
+function applyNHSPronunciation(text: string): string {
+  let result = text;
+  for (const rule of NHS_PRONUNCIATION_RULES) {
+    result = result.replace(new RegExp(rule.match, 'g'), rule.say);
+  }
+  return result;
+}
+
 // Preprocess text for better TTS pronunciation
 function preprocessTextForTTS(text: string): string {
   let processed = text;
@@ -154,6 +200,9 @@ function preprocessTextForTTS(text: string): string {
   processed = processed.replace(/\b(\d+)(st|nd|rd|th)\b/gi, (match, num, suffix) => {
     return `${num}${suffix.toLowerCase()}`;
   });
+  
+  // Apply NHS acronym pronunciation normalisation
+  processed = applyNHSPronunciation(processed);
   
   return processed;
 }
