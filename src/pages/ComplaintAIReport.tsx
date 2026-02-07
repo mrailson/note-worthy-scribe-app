@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,15 +55,34 @@ export default function ComplaintAIReport() {
   const [showInfographicModal, setShowInfographicModal] = useState(false);
   const [showPowerPointModal, setShowPowerPointModal] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      loadReportData();
-    }
-  }, [id]);
+  // Guards: prevent duplicate / parallel AI report calls
+  const loadedForIdRef = useRef<string | null>(null);
+  const inFlightRef = useRef(false);
 
-  const loadReportData = async () => {
+  const loadReportData = useCallback(async (forceRegenerate = false) => {
+    if (!id) return;
+
+    // Prevent parallel calls – if a request is already in flight, bail out
+    if (inFlightRef.current) {
+      console.log('[AIReport] Skipped – request already in flight');
+      return;
+    }
+
+    // For initial load, only run once per complaint ID (guards against React Strict Mode double-mount)
+    if (!forceRegenerate && loadedForIdRef.current === id) {
+      console.log('[AIReport] Skipped – already loaded for', id);
+      return;
+    }
+
+    inFlightRef.current = true;
+    loadedForIdRef.current = id;
+
     try {
-      setLoading(true);
+      if (forceRegenerate) {
+        setRegenerating(true);
+      } else {
+        setLoading(true);
+      }
 
       // Fetch complaint details - use secure view for involved parties to avoid access_token exposure
       const { data: complaintData, error: complaintError } = await supabase
@@ -103,7 +122,8 @@ export default function ComplaintAIReport() {
         setAudioOverview(audioData);
       }
 
-      // Generate AI report
+      // Generate AI report (single sequential call – retries are handled inside the edge function)
+      console.log('[AIReport] Invoking generate-complaint-ai-report for', id);
       const { data: aiReport, error: aiError } = await supabase.functions.invoke(
         'generate-complaint-ai-report',
         { body: { complaintId: id } }
@@ -126,20 +146,35 @@ export default function ComplaintAIReport() {
       }
       setReportData(aiReport);
       setGeneratedAt(new Date());
+
+      if (forceRegenerate) {
+        showToast.success('Report regenerated successfully', { section: 'complaints' });
+      }
     } catch (error) {
       console.error('Error loading report:', error);
-      showToast.error('Failed to load AI report');
+      if (!forceRegenerate) {
+        showToast.error('Failed to load AI report');
+      }
+      // Allow retry on next attempt for this ID if it failed
+      if (!forceRegenerate) {
+        loadedForIdRef.current = null;
+      }
     } finally {
       setLoading(false);
+      setRegenerating(false);
+      inFlightRef.current = false;
     }
-  };
+  }, [id]);
 
-  const handleRegenerate = async () => {
-    setRegenerating(true);
-    await loadReportData();
-    setRegenerating(false);
-    showToast.success('Report regenerated successfully', { section: 'complaints' });
-  };
+  useEffect(() => {
+    if (id) {
+      loadReportData(false);
+    }
+  }, [id, loadReportData]);
+
+  const handleRegenerate = useCallback(async () => {
+    await loadReportData(true);
+  }, [loadReportData]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
