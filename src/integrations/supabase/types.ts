@@ -1331,6 +1331,7 @@ export type Database = {
       }
       complaint_investigation_evidence: {
         Row: {
+          ai_summary: string | null
           complaint_id: string
           description: string | null
           evidence_type: string
@@ -1343,6 +1344,7 @@ export type Database = {
           uploaded_by: string
         }
         Insert: {
+          ai_summary?: string | null
           complaint_id: string
           description?: string | null
           evidence_type: string
@@ -1355,6 +1357,7 @@ export type Database = {
           uploaded_by: string
         }
         Update: {
+          ai_summary?: string | null
           complaint_id?: string
           description?: string | null
           evidence_type?: string
