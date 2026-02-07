@@ -1,5 +1,3 @@
-import mammoth from "mammoth";
-
 export interface ImportedTranscript {
   content: string;
   meetingTitle?: string;
@@ -52,6 +50,7 @@ export class FileImporter {
   private static async importWordFile(file: File): Promise<ImportedTranscript> {
     console.log('📄 Processing Word document...');
     try {
+      const mammoth = (await import('mammoth')).default;
       const arrayBuffer = await file.arrayBuffer();
       const result = await mammoth.extractRawText({ arrayBuffer });
       

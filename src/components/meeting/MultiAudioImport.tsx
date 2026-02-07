@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { showToast } from '@/utils/toastWrapper';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import mammoth from 'mammoth';
+// mammoth loaded dynamically when needed
 import { ImageProcessor } from '@/utils/fileProcessors/ImageProcessor';
 
 interface MultiAudioImportProps {
@@ -102,6 +102,7 @@ const parseTeamsTranscript = (content: string): string => {
 
 // Read Word document
 const readWordDocument = async (file: File): Promise<string> => {
+  const mammoth = (await import('mammoth')).default;
   const arrayBuffer = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer });
   return result.value;
