@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMeetingAutoClose } from "@/hooks/useMeetingAutoClose";
 import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
 import { showToast } from "@/utils/toastWrapper";
-import type { ImportedTranscript } from "@/utils/FileImporter";
+import { ImportedTranscript } from "@/utils/FileImporter";
 import { Building2, ExternalLink, MessageSquare, FileText, Play } from "lucide-react";
 const Index = () => {
   const {

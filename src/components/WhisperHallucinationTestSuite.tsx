@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Mic, MicOff, Loader2, Play, Square, TestTube, Zap, CheckCircle, AlertTriangle, XCircle, Volume2, Upload, FileAudio, FileText, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-// mammoth loaded dynamically when needed
+import mammoth from 'mammoth';
 
 interface TestProfile {
   id: string;
@@ -322,7 +322,6 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
     }
 
     try {
-      const mammoth = (await import('mammoth')).default;
       const arrayBuffer = await file.arrayBuffer();
       const result = await mammoth.extractRawText({ arrayBuffer });
       

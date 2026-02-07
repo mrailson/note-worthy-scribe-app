@@ -1,6 +1,10 @@
+import { WordProcessor } from './WordProcessor';
+import { ExcelProcessor } from './ExcelProcessor';
+import { PDFProcessor } from './PDFProcessor';
 import { ImageProcessor } from './ImageProcessor';
 import { TextProcessor } from './TextProcessor';
 import { AudioProcessor } from './AudioProcessor';
+import { PowerPointProcessor } from './PowerPointProcessor';
 
 export interface ProcessedFile {
   name: string;
@@ -83,33 +87,21 @@ export class FileProcessorManager {
     
     try {
       switch (fileType) {
-        case 'word': {
-          // Dynamic import to avoid loading mammoth at startup
-          const { WordProcessor } = await import('./WordProcessor');
+        case 'word':
           content = await WordProcessor.extractText(file);
           break;
-        }
           
-        case 'excel': {
-          // Dynamic import to avoid loading xlsx-js-style at startup
-          const { ExcelProcessor } = await import('./ExcelProcessor');
+        case 'excel':
           content = await ExcelProcessor.extractText(file);
           break;
-        }
           
-        case 'pdf': {
-          // Dynamic import to avoid loading pdfjs-dist at startup
-          const { PDFProcessor } = await import('./PDFProcessor');
+        case 'pdf':
           content = await PDFProcessor.extractText(file);
           break;
-        }
           
-        case 'powerpoint': {
-          // Dynamic import for PowerPoint processor
-          const { PowerPointProcessor } = await import('./PowerPointProcessor');
+        case 'powerpoint':
           content = await PowerPointProcessor.extractText(file);
           break;
-        }
           
         case 'image':
           content = await ImageProcessor.processImage(file);

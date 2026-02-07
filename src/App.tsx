@@ -132,18 +132,6 @@ const PageLoader = () => (
 const App = () => {
   useEffect(() => {
     installHasAttributeSafeguard();
-
-    // Skip DOM observer on mobile/iPhone — it watches ALL mutations and
-    // calls querySelectorAll('*') on every changed node, which exhausts
-    // iPhone Safari's memory and causes tab crashes within seconds.
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
-    if (isMobile) {
-      console.log('📱 DOM Safety: Observer disabled on mobile to prevent crashes');
-      return;
-    }
-
     const observer = getSafeDOMObserver();
     observer.start();
     return () => observer.destroy();

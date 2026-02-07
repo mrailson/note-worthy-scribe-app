@@ -1,4 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker - use the bundled worker (no external CDN)
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 export class PDFProcessor {
   private static readonly MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB limit
@@ -47,15 +54,6 @@ export class PDFProcessor {
 
   private static async extractTextWithPdfJs(arrayBuffer: ArrayBuffer): Promise<string> {
     try {
-      // Dynamic import to avoid loading pdfjs-dist at startup
-      const pdfjsLib = await import('pdfjs-dist');
-      
-      // Configure worker dynamically
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-        'pdfjs-dist/build/pdf.worker.min.mjs',
-        import.meta.url
-      ).toString();
-
       console.log('📚 Loading PDF document...');
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;

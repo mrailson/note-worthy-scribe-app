@@ -1,7 +1,8 @@
+import mammoth from 'mammoth';
+
 export class WordProcessor {
   static async extractText(file: File): Promise<string> {
     try {
-      const mammoth = (await import('mammoth')).default;
       const arrayBuffer = await file.arrayBuffer();
       const result = await mammoth.extractRawText({ arrayBuffer });
       

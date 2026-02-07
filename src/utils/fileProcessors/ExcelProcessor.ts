@@ -1,13 +1,14 @@
+import * as XLSX from 'xlsx-js-style';
+
 export class ExcelProcessor {
   static async extractText(file: File): Promise<string> {
     try {
-      const XLSX = await import('xlsx-js-style');
       const arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       
       let extractedContent = `EXCEL SPREADSHEET CONTENT FROM: ${file.name}\n\n`;
       
-      workbook.SheetNames.forEach((sheetName: string, index: number) => {
+      workbook.SheetNames.forEach((sheetName, index) => {
         const sheet = workbook.Sheets[sheetName];
         const csvData = XLSX.utils.sheet_to_csv(sheet);
         

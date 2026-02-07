@@ -1,142 +1,76 @@
 
 
-## Receive Complaints and Compliments via Email
+## Auto-Transcribe and Analyse Audio Evidence on Upload
 
 ### Overview
+When an audio file (e.g. a phone call recording) is uploaded as evidence, it will automatically be transcribed using the existing `speech-to-text` edge function and then analysed by AI to produce a detailed report covering: call transcript summary, tone of the call, how the complaint was handled, any rudeness or hostility from the patient, and lessons for the practice.
 
-Set up a dedicated email address that your practice can receive complaints and compliments on (e.g. `feedback@yourdomain.com` or `feedback@yourteam.resend.app`). When an email arrives, it will be automatically processed by AI to determine whether it is a complaint or a compliment, extract all relevant details, and create the appropriate record in the system -- ready for your team to review.
+### Current Behaviour
+- Audio files are uploaded and given a static AI summary: *"Audio recording uploaded. Use the Transcribe button to extract the audio content."*
+- The user must manually click "Transcribe" to get the transcript
+- No automatic tone/call analysis is performed
 
-### How It Works
+### What Changes
 
-The system uses **Resend Inbound Emails**, which is part of the Resend service you already have configured. Resend receives emails sent to your designated address, parses the content and attachments, and sends a webhook (JSON payload) to an edge function in your system. The edge function then uses AI to classify and process the email.
+#### 1. Update `analyse-evidence-file` Edge Function
+Modify the `audio` case in the edge function to:
+1. **Transcribe the audio** by calling the existing `speech-to-text` edge function internally (service-to-service call via Supabase URL)
+2. **Analyse the transcript** using Gemini 3 Flash with a complaint-specific prompt that covers:
+   - Brief summary of the call contents
+   - Tone of the caller and staff (professional, rude, hostile, calm, distressed, etc.)
+   - How the complaint/issue was handled during the call
+   - Any concerning behaviour from the patient (rudeness, aggression, threats)
+   - Any concerning behaviour from staff (dismissive, unhelpful, rude)
+   - Lessons or recommendations for the practice
+3. Return both the `summary` (the AI analysis report) and `evidenceType: "audio"` as before
+4. Also return the raw `transcript` text so the frontend can auto-save it
 
-```text
-Email arrives at feedback address
-         |
-         v
-  Resend receives and parses email
-  (extracts body, subject, sender, attachments)
-         |
-         v
-  Webhook fires to edge function
-  "process-inbound-feedback"
-         |
-         v
-  AI classifies: Complaint or Compliment?
-         |
-    +---------+---------+
-    |                   |
-    v                   v
- COMPLAINT          COMPLIMENT
-    |                   |
-    v                   v
- Extract:            Extract:
- - Patient name      - Patient name
- - Incident date     - Date
- - Category          - Category
- - Description       - Description
- - Priority          - Staff mentioned
- - Staff mentioned   - Source = "email"
-    |                   |
-    v                   v
- Insert into         Insert into
- "complaints"        "compliments"
- table               table
-    |                   |
-    v                   v
- Auto-generate       Auto-generate
- reference number    reference number
- (trigger)           (trigger)
-    |                   |
-    +--------+----------+
-             |
-             v
-  Store original email as
-  a record for audit trail
-             |
-             v
-  Send confirmation email
-  back to the sender
-```
+#### 2. Update `InvestigationEvidence.tsx` Upload Pipeline
+In the `processFile` function, after receiving the analysis response for audio files:
+1. Auto-save the transcript to `complaint_investigation_transcripts` (the same table used by the manual Transcribe button) so it appears in the Audio Transcripts tab
+2. Store the detailed AI analysis as the `ai_summary` on the evidence record
+3. The audio file will show the full AI analysis in the evidence list instead of the generic placeholder
 
-### One-Time Setup Required (by you, in Resend dashboard)
+#### 3. Enhanced Evidence File Display for Audio
+Audio evidence files will now display the AI analysis report (tone, handling, lessons) directly in the Evidence Files tab, giving investigators immediate insight without needing to click Transcribe separately.
 
-Before I build this, you will need to do a small bit of setup in the Resend dashboard:
-
-1. **Go to** [resend.com/receiving](https://resend.com/receiving) and find your inbound email address (every Resend team gets a free `@yourteam.resend.app` address), or set up a custom domain
-2. **Create a webhook** at [resend.com/webhooks](https://resend.com/webhooks):
-   - Set the endpoint URL to: `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/process-inbound-feedback`
-   - Select the `email.received` event
-3. **Note your webhook signing secret** -- I will need to store this as a secret so the system can verify incoming webhooks are genuinely from Resend
-
-### What I Will Build
-
-#### 1. New Edge Function: `process-inbound-feedback`
-
-A public (no JWT required) edge function that:
-- Receives the Resend `email.received` webhook payload
-- Verifies the webhook signature using the signing secret (security)
-- Extracts the email subject, body (plain text and/or HTML), sender address, and any attachment metadata
-- Sends the content to Gemini AI to classify it as either a **complaint** or a **compliment**
-- For **complaints**: extracts patient name, incident date, category, description, priority, staff mentioned, and inserts into the `complaints` table with `complaint_source` set to `'email'`
-- For **compliments**: extracts patient name, date, category, description, staff mentioned, and inserts into the `compliments` table with `source` set to `'email'`
-- Stores the original raw email content alongside the record for audit purposes
-- Sends a confirmation email back to the sender via the existing `send-email-resend` function, including the assigned reference number
-
-#### 2. New Database Table: `inbound_feedback_emails`
-
-An audit trail table to store every inbound email received:
-
-| Column | Type | Purpose |
-|--------|------|---------|
-| id | uuid | Primary key |
-| from_email | text | Sender's email address |
-| from_name | text | Sender's display name |
-| subject | text | Email subject line |
-| body_text | text | Plain text body |
-| body_html | text | HTML body |
-| classification | text | 'complaint' or 'compliment' |
-| linked_complaint_id | uuid | FK to complaints (if applicable) |
-| linked_compliment_id | uuid | FK to compliments (if applicable) |
-| reference_number | text | The generated reference (CMP/CMPL) |
-| processing_status | text | 'pending', 'processed', 'failed' |
-| processing_error | text | Error message if processing failed |
-| resend_email_id | text | Resend's email ID for tracking |
-| practice_id | uuid | Practice the email is associated with |
-| created_at | timestamptz | When the email was received |
-
-RLS policies will restrict access to authenticated users within the same practice.
-
-#### 3. Update `complaintSourceLabels.ts`
-
-Add `'email'` as a new complaint source option so emails are properly labelled in the UI.
-
-#### 4. New UI: Inbound Email Log
-
-A small "Email Inbox" section within the Complaints & Compliments dashboard showing:
-- Recent inbound emails and their classification status
-- Whether they were processed as a complaint or compliment
-- Link to the created record
-- Any processing errors that need attention
-
-### File Changes Summary
+### File Changes
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `supabase/functions/process-inbound-feedback/index.ts` | Create | Webhook handler for Resend inbound emails |
-| `supabase/config.toml` | Edit | Add `process-inbound-feedback` with `verify_jwt = false` |
-| `src/utils/complaintSourceLabels.ts` | Edit | Add 'email' source option |
-| `src/pages/ComplaintsSystem.tsx` | Edit | Add inbound email log section |
-| Database migration | Create | `inbound_feedback_emails` table with RLS |
+| `supabase/functions/analyse-evidence-file/index.ts` | Edit | Add audio transcription via speech-to-text + AI analysis with complaint-context prompt |
+| `src/components/InvestigationEvidence.tsx` | Edit | Auto-save transcript to `complaint_investigation_transcripts` when audio is processed |
 
-### Secret Required
+### Technical Details
 
-- **`RESEND_WEBHOOK_SECRET`** -- the webhook signing secret from your Resend dashboard, used to verify that inbound webhooks are genuinely from Resend
+**Edge Function Audio Flow:**
+```text
+Audio file received (base64)
+    |
+    v
+Call speech-to-text edge function (internal service call)
+    |
+    v
+Receive transcript text
+    |
+    v
+Send transcript to Gemini 3 Flash with complaint-analysis prompt
+    |
+    v
+Return { evidenceType: "audio", summary: "[detailed analysis]", transcript: "[raw text]" }
+```
 
-### Security Considerations
+**AI Analysis Prompt will cover:**
+- Summary of call contents (2-3 sentences)
+- Tone assessment (caller and staff)
+- Complaint handling quality
+- Patient behaviour observations (rudeness, aggression, distress)
+- Staff behaviour observations (professionalism, empathy, dismissiveness)
+- Practice lessons and recommendations
 
-- The edge function is public (no JWT) since it receives webhooks from Resend, but it verifies the webhook signature cryptographically
-- Rate limiting is applied to prevent abuse
-- All inbound emails are logged for audit purposes
-- The service role key is used for database inserts (since there is no authenticated user context in a webhook)
+**Service-to-Service Call:**
+The `analyse-evidence-file` function will call `speech-to-text` using the Supabase internal URL (`SUPABASE_URL/functions/v1/speech-to-text`) with the `SUPABASE_ANON_KEY` for authentication. This reuses the existing Whisper transcription pipeline including preprocessing and hallucination detection.
+
+**Frontend Auto-Save:**
+When the analysis response includes a `transcript` field, the upload pipeline will automatically insert a record into `complaint_investigation_transcripts` with the transcribed text, so it immediately appears in the Audio Transcripts tab alongside any manually triggered transcriptions.
 
