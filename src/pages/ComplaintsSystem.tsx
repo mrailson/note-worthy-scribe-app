@@ -1429,8 +1429,13 @@ const ComplaintsSystem = () => {
     // If closed and has outcome type, append it
     if (complaint.status === 'closed' && complaint.complaint_outcomes?.[0]?.outcome_type) {
       const outcomeType = complaint.complaint_outcomes[0].outcome_type;
-      // Capitalize first letter of each word
-      const formattedOutcome = outcomeType
+      // Map outcome types to display labels
+      const outcomeLabels: Record<string, string> = {
+        rejected: 'Not Upheld',
+        upheld: 'Upheld',
+        partially_upheld: 'Partially Upheld',
+      };
+      const formattedOutcome = outcomeLabels[outcomeType] || outcomeType
         .split('_')
         .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
