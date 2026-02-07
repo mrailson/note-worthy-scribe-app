@@ -746,6 +746,8 @@ const ComplaintDetails = () => {
       if (error) throw error;
 
       setAcknowledgementLetter(data.acknowledgementLetter);
+      setEditedAcknowledgementContent(data.acknowledgementLetter);
+      setHasUnsavedChanges(false);
       showToast.success("Acknowledgement letter generated successfully", { section: 'complaints' });
     } catch (error) {
       console.error('Error generating acknowledgement:', error);
@@ -3468,9 +3470,21 @@ const ComplaintDetails = () => {
                   </Button>
                   <AcknowledgementQuickPick
                     currentLetter={editedAcknowledgementContent}
-                    onLetterChange={(newLetter) => {
+                    onLetterChange={async (newLetter) => {
                       setEditedAcknowledgementContent(newLetter);
-                      setHasUnsavedChanges(true);
+                      setAcknowledgementLetter(newLetter);
+                      setHasUnsavedChanges(false);
+                      // Auto-save AI-generated changes to DB
+                      try {
+                        if (acknowledgementId) {
+                          await supabase
+                            .from('complaint_acknowledgements')
+                            .update({ acknowledgement_letter: newLetter })
+                            .eq('id', acknowledgementId);
+                        }
+                      } catch (err) {
+                        console.error('Auto-save after quick edit failed:', err);
+                      }
                     }}
                     complaintId={complaint.id}
                     complaintDescription={complaint.complaint_description}
@@ -3482,6 +3496,8 @@ const ComplaintDetails = () => {
                     size="sm"
                     onClick={async () => {
                       await handleGenerateAcknowledgement(complaint.id);
+                      // Sync edited content after regeneration and clear unsaved flag
+                      setHasUnsavedChanges(false);
                     }}
                     disabled={isGeneratingAcknowledgement}
                   >
