@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import {
   Briefcase,
   Headphones,
-  Image,
+  LayoutPanelTop,
   Presentation,
   ChevronUp,
   ChevronDown,
@@ -163,7 +163,7 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
             <CardContent className="space-y-5">
               {/* Three briefing tools grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* 1. Audio Overview */}
+                {/* 1. Audio Briefing */}
                 <div className="rounded-xl border border-indigo-200 bg-white/80 backdrop-blur-sm p-4 flex flex-col items-center text-center space-y-3 shadow-sm hover:shadow-md transition-shadow">
                   <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
                     <Headphones className="h-6 w-6 text-white" />
@@ -174,17 +174,31 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                       1-2 min executive audio overview
                     </p>
                   </div>
+                  {!audioOverview?.audio_overview_url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onRegenerateAudio()}
+                      className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800"
+                    >
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      Generate Audio
+                    </Button>
+                  )}
+                  {audioOverview?.audio_overview_url && (
+                    <span className="text-xs font-medium text-green-600">✓ Ready — see player below</span>
+                  )}
                 </div>
 
-                {/* 2. Staff Infographic */}
+                {/* 2. Staff Notice Board */}
                 <div className="rounded-xl border border-purple-200 bg-white/80 backdrop-blur-sm p-4 flex flex-col items-center text-center space-y-3 shadow-sm hover:shadow-md transition-shadow">
                   <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg">
-                    <Image className="h-6 w-6 text-white" />
+                    <LayoutPanelTop className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-foreground text-sm">Staff Infographic</h3>
+                    <h3 className="font-semibold text-foreground text-sm">Staff Notice Board</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Visual learning overview for the team
+                      Single-page anonymised overview for the staffroom
                     </p>
                   </div>
                   <Button
@@ -199,7 +213,7 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                     ) : (
                       <Sparkles className="h-4 w-4 mr-1" />
                     )}
-                    Generate Infographic
+                    Generate Overview
                   </Button>
                 </div>
 
@@ -231,16 +245,18 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                 </div>
               </div>
 
-              {/* Audio player section (full width below the grid) */}
-              <div className="rounded-xl border border-indigo-200 bg-white/80 backdrop-blur-sm p-4">
-                <ComplaintAudioOverviewPlayer
-                  complaintId={complaint.id}
-                  audioOverviewUrl={audioOverview?.audio_overview_url}
-                  audioOverviewText={audioOverview?.audio_overview_text}
-                  audioOverviewDuration={audioOverview?.audio_overview_duration}
-                  onRegenerateAudio={onRegenerateAudio}
-                />
-              </div>
+              {/* Audio player – only show when audio has been generated */}
+              {audioOverview?.audio_overview_url && (
+                <div className="rounded-xl border border-indigo-200 bg-white/80 backdrop-blur-sm p-4">
+                  <ComplaintAudioOverviewPlayer
+                    complaintId={complaint.id}
+                    audioOverviewUrl={audioOverview.audio_overview_url}
+                    audioOverviewText={audioOverview.audio_overview_text}
+                    audioOverviewDuration={audioOverview.audio_overview_duration}
+                    onRegenerateAudio={onRegenerateAudio}
+                  />
+                </div>
+              )}
 
               {/* AI Critical Friend Review – only if audio exists */}
               {audioOverview?.audio_overview_url && (
