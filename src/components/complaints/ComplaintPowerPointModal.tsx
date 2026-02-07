@@ -67,7 +67,7 @@ export const ComplaintPowerPointModal: React.FC<ComplaintPowerPointModalProps> =
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const tipTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const estimatedDuration = slideCount * 10; // 10s per slide
+  const estimatedDuration = slideCount * 15; // 15s per slide (accounts for polling)
 
   const handleGenerate = () => {
     setHasStarted(true);
@@ -133,7 +133,7 @@ export const ComplaintPowerPointModal: React.FC<ComplaintPowerPointModalProps> =
   };
 
   const getTimeEstimateLabel = (count: number): string => {
-    const totalSeconds = count * 10;
+    const totalSeconds = count * 15;
     if (totalSeconds <= 60) return '~1 min';
     return `~${Math.ceil(totalSeconds / 60)} min`;
   };
