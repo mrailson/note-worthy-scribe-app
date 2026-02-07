@@ -1,162 +1,176 @@
 
+# Unify Recording Pipeline: Mic+System Audio to Match Mic-Only Settings
 
-# Supabase Rate Limiting -- Root Cause Analysis and Fix Plan
+## Problem
 
-## What's Going Wrong
+When recording with **Mic + System Audio**, three issues arise:
 
-Despite the previous optimisation round, the application is still generating excessive database queries due to three main problems:
+1. **Whisper runs TWO separate pipelines simultaneously:**
+   - The microphone gets the standard `DesktopWhisperTranscriber` path (90-second WebM chunks, full hallucination filtering, deduplication, confidence gating)
+   - The system audio gets a completely different custom path (`startCustomAudioProcessing`) that uses 15-second WAV chunks at 24 kHz, with manual `ScriptProcessorNode` encoding and none of the quality guards
 
-### Problem 1: Triple Subscription on the `meetings` Table
+2. **AssemblyAI and Deepgram use a third, separate mixed stream** via `buildAssemblyAudioStream`, which correctly mixes mic + system audio. But Whisper does not use this mixed stream.
 
-Three separate components each maintain their own real-time listener on the same table:
+3. **When the user clicks "Stop sharing"** in Chrome, the screen-share `MediaStreamTrack` fires an `ended` event that nobody listens for. The recording silently stops producing data. The health monitor then detects the meeting as "completed" and shows the misleading message: **"Recording was ended by the server."**
 
-| Component | Channel | Events | Action on Trigger |
-|-----------|---------|--------|-------------------|
-| `MeetingRecorder.tsx` | `meeting-changes` | INSERT, UPDATE | INSERT: full `loadMeetingHistory()` (debounce 3s); UPDATE: local patch |
-| `MeetingHistory.tsx` | `meeting-history-changes-{id}` | INSERT, UPDATE, DELETE | INSERT/DELETE: full `fetchMeetings()` (debounce 2s); UPDATE: local patch |
-| `MeetingHistoryList.tsx` | `meeting-updates-{id}` | ALL on `meeting_notes_multi` and `meeting_overviews` | Calls `onRefresh()` (which calls `fetchMeetings` again, debounce 5s) |
+## Current Architecture (Mic + System Audio on Chrome/Edge)
 
-During an AI processing run, a single meeting row is updated 3-5 times. Each update fires events that hit all three listeners. Even with debouncing, the net result is 6-15 full reload calls within a 10-second window.
-
-### Problem 2: `meeting_transcription_chunks` Still Being Scanned
-
-The previous plan (Task 2) was supposed to remove the chunk-counting query, but `MeetingHistory.tsx` (line 1355) still runs:
-
+```text
+startRecording()
+  |
+  +-- startComputerAudioTranscription()
+  |     |-- getDisplayMedia() --> screenStreamRef
+  |     +-- startCustomAudioProcessing(screenStream)
+  |           |-- ScriptProcessorNode at 24kHz
+  |           |-- 15-second WAV chunks
+  |           +-- Sends base64 WAV to speech-to-text (no quality gates)
+  |
+  +-- startMicrophoneTranscription()
+  |     +-- DesktopWhisperTranscriber (mic-only stream)
+  |           |-- getUserMedia() at 48kHz
+  |           |-- 90-second WebM/Opus chunks
+  |           +-- Full hallucination/dedup/confidence pipeline
+  |
+  +-- buildAssemblyAudioStream(screenStream, micStream)
+  |     +-- Web Audio mixer --> AssemblyAI (mixed)
+  |
+  +-- deepgramPreview.startPreview(mixedStream)
+        +-- Deepgram (mixed)
 ```
-supabase.from('meeting_transcription_chunks')
-  .select('meeting_id', { count: 'exact' })
-  .in('meeting_id', meetingIds)
+
+**Result:** Whisper processes mic and system audio separately with different formats, chunk sizes, and quality controls. AssemblyAI/Deepgram get a proper mixed stream, but Whisper does not.
+
+## Target Architecture (All Engines Use Same Mixed Stream)
+
+```text
+startRecording()
+  |
+  +-- getDisplayMedia() --> screenStream (if mic-and-system)
+  |
+  +-- buildAssemblyAudioStream(screenStream, micStream)
+  |     +-- Web Audio mixer --> mixedStream
+  |
+  +-- DesktopWhisperTranscriber(externalStream: mixedStream)
+  |     |-- 90-second WebM/Opus chunks (same as mic-only)
+  |     +-- Full hallucination/dedup/confidence pipeline
+  |
+  +-- assemblyPreview.startPreview(mixedStream)
+  |
+  +-- deepgramPreview.startPreview(mixedStream)
+  |
+  +-- track.onended listener on screen-share tracks
+        +-- Toast: "System audio stopped. Mic continues."
+        +-- Graceful fallback to mic-only (no session termination)
 ```
 
-This scans the 43,000+ row `meeting_transcription_chunks` table on every page load and every real-time refresh.
+## Implementation Plan
 
-### Problem 3: Tab-Focus Refresh with Low Throttle
+### Change 1: Reorder audio setup in `startRecording()`
 
-`MeetingHistory.tsx` (line 1236) calls `fetchMeetings()` every time the browser tab regains focus, throttled to only 2 seconds. Users switching between tabs during a meeting triggers repeated full reloads.
+**File:** `src/components/MeetingRecorder.tsx` (lines 4185-4320)
 
-### Problem 4: Unbounded Word Count Query
+Currently, the mic+system path calls:
+1. `startComputerAudioTranscription()` -- sets up the 15s WAV sidecar
+2. `startMicrophoneTranscription()` -- starts a mic-only Whisper instance
+3. `buildAssemblyAudioStream()` -- creates the mixed stream for Assembly/Deepgram
 
-`MeetingRecorder.tsx` (line 5519) queries `word_count` for ALL meetings (not just the paginated 50). With 261+ meetings, this is an unnecessary scan on every reload.
+New flow for `mic-and-system` mode on Chrome/Edge:
+1. Call `getDisplayMedia()` to get the screen-share stream (extract audio setup from `startComputerAudioTranscription`, but do NOT start the `ScriptProcessorNode` sidecar)
+2. Call `buildAssemblyAudioStream(screenStream, micStream)` to produce a single mixed stream
+3. Start `DesktopWhisperTranscriber` with `externalStream: mixedStream` -- this gives Whisper the exact same 90s WebM chunking and quality gates as mic-only mode
+4. Start AssemblyAI with the same `mixedStream`
+5. Start Deepgram with the same `mixedStream`
+6. Attach `track.onended` listeners to the screen-share audio tracks
 
----
-
-## Fix Plan (4 Tasks)
-
-### Task 1: Remove the chunk-counting query from `MeetingHistory.tsx`
-
-The `meeting_transcription_chunks` count is displayed as a minor badge and is not worth scanning 43,000+ rows for. Remove this query and default to 0.
-
-**File:** `src/pages/MeetingHistory.tsx`
-
-Changes:
-- Replace the `meeting_transcription_chunks` query in the `Promise.all` block (lines 1353-1365) with `Promise.resolve({})`, matching what `MeetingRecorder.tsx` already does
-- The `transcript_count` field will default to 0 (it's rarely displayed)
-
-### Task 2: Remove the duplicate `meetings` subscription from `MeetingHistory.tsx`
-
-The `MeetingHistory.tsx` page and `MeetingRecorder.tsx` both listen to the same `meetings` table. Since `MeetingRecorder` is the parent component and already handles INSERT (debounced reload) and UPDATE (local patch), the child page does not need its own subscription.
-
-**File:** `src/pages/MeetingHistory.tsx`
-
-Changes:
-- Remove the entire real-time subscription `useEffect` block (lines 1066-1144) that creates the `meeting-history-changes-{user.id}` channel
-- The page will rely on:
-  - Its parent (`MeetingRecorder`) for real-time updates via prop changes
-  - The `onRefresh` callback from `MeetingHistoryList` for notes/overview updates
-  - The existing tab-focus refresh (with increased throttle -- see Task 3)
-
-### Task 3: Increase tab-focus refresh throttle
-
-Reduce the frequency of refreshes triggered by tab switching and localStorage signals.
-
-**File:** `src/pages/MeetingHistory.tsx`
-
-Changes:
-- Increase `MIN_REFRESH_INTERVAL` from 2000ms to 10000ms (10 seconds) at line 1208
-- Increase the setTimeout delay from 300ms to 1000ms at line 1219
-- This prevents rapid-fire reloads when users switch tabs frequently during AI processing
-
-### Task 4: Cap the word count query to paginated results only
-
-Instead of scanning all 261+ meetings for word counts, use only the 50 already-fetched meetings.
+### Change 2: Extract screen-share acquisition from `startComputerAudioTranscription()`
 
 **File:** `src/components/MeetingRecorder.tsx`
 
-Changes:
-- Replace the separate `word_count` query (lines 5519-5526) that scans all meetings with a simple client-side sum of the `word_count` field already present on the 50 fetched meetings
-- Update `setTotalTranscriptWords` to use the local sum: `meetingsData.reduce((sum, m) => sum + (m.word_count || 0), 0)`
-- Remove the fourth item from the `Promise.all` array entirely
+Create a new lightweight function `acquireScreenShareStream()` that:
+- Calls `getDisplayMedia({ video: true, audio: true })`
+- Strips video tracks
+- Validates audio tracks exist
+- Stores reference in `screenStreamRef`
+- Returns the `MediaStream`
 
----
+This replaces the current `startComputerAudioTranscription()` which both acquires the stream AND starts the custom 15s WAV processing pipeline.
 
-## Technical Details
+### Change 3: Remove the custom sidecar pipeline
 
-### Task 1 -- Chunk count removal
+**File:** `src/components/MeetingRecorder.tsx`
 
-In `src/pages/MeetingHistory.tsx`, replace lines 1353-1365:
+Remove or disable these functions (they will no longer be called):
+- `startCustomAudioProcessing()` (lines ~3080-3224) -- the 15s WAV ScriptProcessorNode loop
+- `processAudioBuffer()` (lines ~3227-3330) -- the WAV encoding and direct `speech-to-text` call
+- `encodeWAV()` (lines ~3333-3366) -- manual WAV header encoding
 
-```typescript
-const [transcriptCounts, summaryExists, documentCounts] = await Promise.all([
-  // Chunk counts skipped — not worth scanning 43k+ rows
-  Promise.resolve({} as Record<string, number>),
+These are replaced by the standard `DesktopWhisperTranscriber` consuming the mixed stream.
 
-  // Check summary existence (unchanged)
-  supabase
-    .from('meeting_summaries')
-    ...
+### Change 4: Add `track.onended` listeners for graceful stream recovery
 
-  // Document counts (unchanged)
-  supabase
-    .from('meeting_documents')
-    ...
-]);
-```
+**File:** `src/components/MeetingRecorder.tsx`
 
-### Task 2 -- Subscription removal
+After acquiring the screen-share stream, attach `onended` handlers to each audio track:
 
-Remove the entire `useEffect` block at lines 1066-1144 in `src/pages/MeetingHistory.tsx`. This eliminates one of the three competing real-time channels on the `meetings` table.
+- When triggered:
+  - Show toast: "System audio sharing stopped. Microphone recording continues."
+  - Set `systemAudioCaptured` to `false`
+  - Set `assemblyInputMode` to `'mic-only'`
+  - Log the event for diagnostics
+  - Do NOT stop the recording -- the `DesktopWhisperTranscriber` will continue with the mic portion of the mixed stream (the mixer's mic input remains active)
 
-### Task 3 -- Throttle increase
+### Change 5: Improve termination messages in health monitor
 
-In `src/pages/MeetingHistory.tsx`:
-- Line 1208: Change `const MIN_REFRESH_INTERVAL = 2000;` to `const MIN_REFRESH_INTERVAL = 10000;`
-- Line 1219: Change `}, 300);` to `}, 1000);`
+**File:** `src/hooks/useRecordingHealthMonitor.ts`
 
-### Task 4 -- Word count simplification
+When the health monitor detects `status === 'completed'` while the client is still recording:
+- Query the `system_audit_log` table for the meeting ID to find the actual operation (e.g., `AUTO_CLOSE_INACTIVE`)
+- Map to specific user messages:
+  - `AUTO_CLOSE_INACTIVE`: "Recording was auto-closed due to 90 minutes of inactivity."
+  - Unknown/other: "Recording stopped unexpectedly. Your transcript has been saved."
+- Replace the current generic: "Recording was ended by the server."
 
-In `src/components/MeetingRecorder.tsx`, replace the `Promise.all` block (lines 5487-5527) to remove the fourth query:
+### Change 6: Map kill signal reasons to clear messages
 
-```typescript
-const [transcriptCounts, summaryExists, documentCounts] = await Promise.all([
-  Promise.resolve({} as Record<string, number>),
-  // summary existence check (unchanged)
-  // document counts (unchanged)
-]);
+**File:** `src/hooks/useMeetingKillSignal.ts`
 
-// Use word_count from already-fetched meetings instead of a separate query
-const totalWords = (meetingsData || []).reduce(
-  (sum: number, m: any) => sum + (m.word_count || 0), 0
-);
-setTotalTranscriptWords(totalWords);
-```
+When a `force_stop` broadcast is received:
+- Read the `reason` field from the payload (already sent by `auto-close-inactive-meetings` as `server_inactivity_timeout`)
+- Map to specific messages:
+  - `server_inactivity_timeout`: "Recording auto-closed after 90 minutes of inactivity"
+  - `admin_graceful_end`: "Recording was ended by a system administrator"
+  - Missing/unknown: "Recording was ended remotely"
 
----
+### Change 7: Fix race condition on short-meeting deletion
 
-## Expected Impact
+**File:** `src/components/MeetingRecorder.tsx` (lines ~4578-4616)
 
-| Metric | Current | After Fix |
-|--------|---------|-----------|
-| Real-time channels on `meetings` table | 3 | 1 (MeetingRecorder only) |
-| Queries per AI processing run | 12-20 bursts | 3-5 bursts |
-| Rows scanned per reload (chunks) | 43,000+ | 0 |
-| Parallel queries per reload | 4 | 2 |
-| Tab-focus refresh interval | 2 seconds | 10 seconds |
-| Word count query scope | All 261+ meetings | 50 (paginated) |
+When deleting a short meeting (under 100 words):
+- Set `isRecordingRef.current = false` BEFORE the database delete operation
+- This prevents the health monitor's next 30-second poll from seeing a missing/completed meeting and triggering a false "ended by server" toast
 
-## Implementation Order
+## Files Modified
 
-1. Task 1 (remove chunk query) -- quick win, biggest row-scan reduction
-2. Task 4 (word count simplification) -- removes a query from every reload
-3. Task 2 (remove duplicate subscription) -- stops cascading reloads
-4. Task 3 (increase throttle) -- reduces ambient query volume
+| File | Change Summary |
+|------|---------------|
+| `src/components/MeetingRecorder.tsx` | Reorder `startRecording()` to build mixed stream first; pass it to Whisper as `externalStream`; extract screen-share acquisition; remove sidecar pipeline; add `track.onended` listeners; fix short-meeting race condition |
+| `src/hooks/useRecordingHealthMonitor.ts` | Query `system_audit_log` for termination reason; show specific messages |
+| `src/hooks/useMeetingKillSignal.ts` | Map broadcast `reason` codes to user-friendly messages |
 
+## What Does NOT Change
+
+- `DesktopWhisperTranscriber` class itself (already supports `externalStream` parameter)
+- `buildAssemblyAudioStream` utility (already handles mixing correctly)
+- Database schema
+- Edge functions
+- iOS recording path (uses `SimpleIOSTranscriber`, unaffected)
+- The non-Chromium stereo recording fallback path (Safari/Firefox)
+- `startOverlappingChunks()` -- still used for the non-Chromium stereo path only
+
+## Expected Outcome
+
+- **Consistent chunks:** All Whisper transcripts use 90-second WebM/Opus chunks with full quality filtering, regardless of whether system audio is active
+- **Single pipeline:** One `DesktopWhisperTranscriber` instance per meeting, processing a single mixed stream
+- **All engines aligned:** Whisper, AssemblyAI, and Deepgram all consume the same mixed audio
+- **Graceful recovery:** Clicking "Stop sharing" shows a clear warning but does not terminate the meeting
+- **Accurate messages:** "Ended by server" only appears when the server genuinely closed the meeting
