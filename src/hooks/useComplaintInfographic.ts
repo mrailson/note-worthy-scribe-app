@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ComplaintInfographicData {
@@ -22,7 +22,7 @@ interface ComplaintInfographicData {
 
 interface GenerationResult {
   success: boolean;
-  imageUrl?: string;
+  blobUrl?: string;
   error?: string;
 }
 
@@ -30,24 +30,16 @@ export const useComplaintInfographic = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<'preparing' | 'generating' | 'downloading' | 'complete'>('preparing');
   const [error, setError] = useState<string | null>(null);
+  const [generatedBlobUrl, setGeneratedBlobUrl] = useState<string | null>(null);
+  const blobRef = useRef<Blob | null>(null);
 
-  /**
-   * Strip patient/staff names and other PII from text before sending to AI.
-   * Replaces common name patterns (Mr/Mrs/Dr/Ms/Miss + Name) and standalone
-   * capitalised proper-noun sequences that follow identifiers.
-   */
   const anonymiseText = (text: string): string => {
     if (!text) return text;
     let cleaned = text;
-    // Remove title + name patterns (e.g. "Mr. James Robert Williams", "Dr Smith")
     cleaned = cleaned.replace(/\b(Mr\.?|Mrs\.?|Ms\.?|Miss|Dr\.?|Professor|Prof\.?)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/g, '[the patient]');
-    // Remove "Patient: Name" or "Staff: Name" label patterns
     cleaned = cleaned.replace(/\b(patient|complainant|staff member|nurse|doctor|receptionist|GP)\s*:\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/gi, '$1');
-    // Remove NHS numbers (XXX XXX XXXX)
     cleaned = cleaned.replace(/\b\d{3}\s?\d{3}\s?\d{4}\b/g, '[NHS number redacted]');
-    // Remove email addresses
     cleaned = cleaned.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[email redacted]');
-    // Remove phone numbers
     cleaned = cleaned.replace(/\b(?:(?:\+44\s?|0)(?:\d\s?){9,10})\b/g, '[phone redacted]');
     return cleaned;
   };
@@ -69,7 +61,6 @@ export const useComplaintInfographic = () => {
       sections.push(`📊 Outcome: ${formattedOutcome}`);
     }
 
-    // Anonymise the overview before including
     const anonymisedOverview = anonymiseText(data.complaintOverview);
     sections.push(`\n📝 WHAT HAPPENED:`);
     sections.push(anonymisedOverview.length > 300 
@@ -198,18 +189,13 @@ DESIGN REQUIREMENTS:
         blob = await imageResponse.blob();
       }
 
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Complaint_Learning_${data.referenceNumber}_Infographic.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const blobUrl = window.URL.createObjectURL(blob);
+      blobRef.current = blob;
+      setGeneratedBlobUrl(blobUrl);
 
       setCurrentPhase('complete');
 
-      return { success: true, imageUrl };
+      return { success: true, blobUrl };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
@@ -220,10 +206,22 @@ DESIGN REQUIREMENTS:
     }
   };
 
+  const downloadInfographic = (referenceNumber: string) => {
+    if (!generatedBlobUrl) return;
+    const link = document.createElement('a');
+    link.href = generatedBlobUrl;
+    link.download = `Complaint_Learning_${referenceNumber}_Infographic.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return {
     generateInfographic,
+    downloadInfographic,
     isGenerating,
     currentPhase,
     error,
+    generatedBlobUrl,
   };
 };
