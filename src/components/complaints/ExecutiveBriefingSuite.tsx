@@ -193,6 +193,17 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                       <span className="text-xs font-medium">Generating…</span>
                     </div>
                   )}
+                  {audioOverview?.audio_overview_url && !isGeneratingAudio && (
+                    <div className="w-full text-left">
+                      <ComplaintAudioOverviewPlayer
+                        complaintId={complaint.id}
+                        audioOverviewUrl={audioOverview.audio_overview_url}
+                        audioOverviewText={audioOverview.audio_overview_text}
+                        audioOverviewDuration={audioOverview.audio_overview_duration}
+                        onRegenerateAudio={onRegenerateAudio}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* 2. Staff Notice Board */}
@@ -250,18 +261,6 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                 </div>
               </div>
 
-              {/* Audio player – persists once audio has been generated */}
-              {audioOverview?.audio_overview_url && (
-                <div className="rounded-xl border border-indigo-200 bg-white/80 backdrop-blur-sm p-4">
-                  <ComplaintAudioOverviewPlayer
-                    complaintId={complaint.id}
-                    audioOverviewUrl={audioOverview.audio_overview_url}
-                    audioOverviewText={audioOverview.audio_overview_text}
-                    audioOverviewDuration={audioOverview.audio_overview_duration}
-                    onRegenerateAudio={onRegenerateAudio}
-                  />
-                </div>
-              )}
 
               {/* AI Critical Friend Review – only if audio exists */}
               {audioOverview?.audio_overview_url && (
