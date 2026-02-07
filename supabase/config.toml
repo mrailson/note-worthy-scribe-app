@@ -482,3 +482,6 @@ verify_jwt = false
 
 [functions.send-security-report]
 verify_jwt = false
+
+[functions.analyse-evidence-file]
+verify_jwt = false
