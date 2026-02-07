@@ -128,6 +128,26 @@ export const useComplaintPowerPoint = () => {
     try {
       const supportingContent = formatComplaintContent(data);
 
+      // Fetch practice logo URL for branding
+      let practiceLogoUrl: string | null = null;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: practiceData } = await supabase
+            .from('practice_details')
+            .select('practice_logo_url')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          
+          if (practiceData?.practice_logo_url) {
+            practiceLogoUrl = practiceData.practice_logo_url;
+            console.log('[ComplaintPowerPoint] Found practice logo:', practiceLogoUrl);
+          }
+        }
+      } catch (logoErr) {
+        console.warn('[ComplaintPowerPoint] Could not fetch practice logo:', logoErr);
+      }
+
       setCurrentPhase('generating');
 
       const customInstructions = `IMPORTANT TONE AND CONTENT RULES:
@@ -172,6 +192,14 @@ ${slideCount}. Summary and "Powered by NoteWell AI" attribution`;
             supportingContent,
             customInstructions,
             audience: 'NHS staff during Protected Learning Time (PLT) sessions',
+            ...(practiceLogoUrl ? {
+              branding: {
+                logoUrl: practiceLogoUrl,
+                logoPosition: 'topRight',
+                showCardNumbers: true,
+                cardNumberPosition: 'bottomRight',
+              },
+            } : {}),
           },
         }
       );
