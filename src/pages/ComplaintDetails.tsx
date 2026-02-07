@@ -2997,7 +2997,7 @@ const ComplaintDetails = () => {
               <InvestigationEvidenceTab 
                 complaintId={complaint.id} 
                 practiceId={complaint.practice_id} 
-                onCreateOutcomeLetter={() => setShowQuestionnaireModal(true)}
+                onCreateOutcomeLetter={existingOutcome ? undefined : () => setShowQuestionnaireModal(true)}
               />
             </TabsContent>
 
