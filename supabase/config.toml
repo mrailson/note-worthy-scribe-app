@@ -485,3 +485,6 @@ verify_jwt = false
 
 [functions.analyse-evidence-file]
 verify_jwt = false
+
+[functions.process-inbound-email]
+verify_jwt = false
