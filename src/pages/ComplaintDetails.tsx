@@ -3022,6 +3022,7 @@ const ComplaintDetails = () => {
                   complaint={complaint}
                   audioOverview={audioOverview}
                   reviewConversations={reviewConversations}
+                  isGeneratingAudio={isGeneratingAudio}
                   onRegenerateAudio={handleRegenerateComplaintAudio}
                   onRefresh={fetchComplaintDetails}
                   onReviewComplete={() => fetchComplaintDetails()}
