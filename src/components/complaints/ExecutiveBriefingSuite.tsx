@@ -9,7 +9,6 @@ import {
   Presentation,
   ChevronUp,
   ChevronDown,
-  RefreshCw,
   Loader2,
   Sparkles,
 } from 'lucide-react';
@@ -136,41 +135,27 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
       <Collapsible open={isOpen} onOpenChange={onOpenChange}>
         <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50">
           <CardHeader>
-            <div className="flex items-start justify-between w-full">
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex-1 justify-between p-0 h-auto hover:bg-transparent"
-                >
-                  <div className="text-left">
-                    <CardTitle className="flex items-center gap-2 text-indigo-800">
-                      <Briefcase className="h-5 w-5" />
-                      Executive Briefing Suite
-                    </CardTitle>
-                    <CardDescription className="text-indigo-600">
-                      AI-powered briefing tools for management, partners and PLT sessions
-                    </CardDescription>
-                  </div>
-                  {isOpen ? (
-                    <ChevronUp className="h-5 w-5 text-indigo-800" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5 text-indigo-800" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
+            <CollapsibleTrigger asChild>
               <Button
                 variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRefresh();
-                }}
-                className="h-8 w-8 p-0 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100"
-                title="Refresh briefing data"
+                className="w-full justify-between p-0 h-auto hover:bg-transparent"
               >
-                <RefreshCw className="h-4 w-4" />
+                <div className="text-left">
+                  <CardTitle className="flex items-center gap-2 text-indigo-800">
+                    <Briefcase className="h-5 w-5" />
+                    Executive Briefing Suite
+                  </CardTitle>
+                  <CardDescription className="text-indigo-600">
+                    AI-powered briefing tools for management, partners and PLT sessions
+                  </CardDescription>
+                </div>
+                {isOpen ? (
+                  <ChevronUp className="h-5 w-5 text-indigo-800" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-indigo-800" />
+                )}
               </Button>
-            </div>
+            </CollapsibleTrigger>
           </CardHeader>
 
           <CollapsibleContent>
