@@ -85,7 +85,7 @@ export const useRecordingHealthMonitor = ({
       // If server shows meeting as completed but we're still recording
       if (serverStatus === 'completed' && isRecording) {
         console.error('🛑 Health monitor: Server closed meeting while client still recording!');
-        showToast.error('Recording was ended by the server. Check your connection and audio input.', {
+        showToast.error('Recording stopped unexpectedly. Your transcript has been saved.', {
           section: 'meeting_manager',
           duration: 15000
         });
