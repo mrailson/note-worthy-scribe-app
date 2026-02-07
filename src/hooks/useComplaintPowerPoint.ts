@@ -133,14 +133,20 @@ export const useComplaintPowerPoint = () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data: practiceData } = await supabase
+          const { data: practiceRows } = await supabase
             .from('practice_details')
             .select('practice_logo_url')
             .eq('user_id', user.id)
-            .maybeSingle();
+            .not('practice_logo_url', 'is', null)
+            .not('practice_logo_url', 'eq', '')
+            .limit(1);
           
-          if (practiceData?.practice_logo_url) {
-            practiceLogoUrl = practiceData.practice_logo_url;
+          // Pick the first row with a valid Supabase storage URL
+          const validLogo = practiceRows?.find(r => 
+            r.practice_logo_url?.startsWith('https://')
+          );
+          if (validLogo?.practice_logo_url) {
+            practiceLogoUrl = validLogo.practice_logo_url;
             console.log('[ComplaintPowerPoint] Found practice logo:', practiceLogoUrl);
           }
         }
@@ -150,36 +156,9 @@ export const useComplaintPowerPoint = () => {
 
       setCurrentPhase('generating');
 
-      const customInstructions = `IMPORTANT TONE AND CONTENT RULES:
-- This presentation is for Protected Learning Time (PLT) sessions and staff training
-- The tone must be friendly, supportive, and encouraging — "learning together as a team"
-- NEVER blame individuals or make anyone feel small
-- Frame everything as collective learning and growth
-- Use phrases like "What we learned", "How we're growing together", "Our team improvements"
-- Celebrate what went well alongside areas for improvement
-
-PRIVACY RULES (CRITICAL — ABSOLUTE REQUIREMENT):
-- You MUST NOT include ANY patient names, staff names, clinician names, or any person's name
-- You MUST NOT include dates of birth, NHS numbers, addresses, phone numbers, or email addresses
-- Replace any person-specific references with "the patient", "a team member", "a colleague"
-- Keep everything fully anonymised — this will be shown to all staff
-
-DESIGN REQUIREMENTS:
-- Professional NHS-aligned design with calming blues, teals, and greens
-- Warm and approachable — not clinical or cold
-- Include photorealistic images on every slide
-- Use growth/learning imagery (seedlings, lightbulbs, team collaboration)
-- British English spelling throughout
-- Create exactly ${slideCount} slides
-- Include detailed speaker notes in the notes pane for the presenter
-- Add "Powered by NoteWell AI" attribution on the final slide
-
-SLIDE STRUCTURE GUIDANCE:
-1. Title slide — "Learning Together: Complaint Review" with reference number and category
-2. What happened — Brief anonymised overview
-3-${slideCount - 2}. Key learnings, strengths, and improvement actions (distributed across slides)
-${slideCount - 1}. Action plan — What we're doing differently
-${slideCount}. Summary and "Powered by NoteWell AI" attribution`;
+      // Keep instructions concise — Gamma has a 5000-char limit on additionalInstructions
+      // and verbose instructions can crowd out image generation
+      const customInstructions = `Friendly PLT staff training tone — "learning together as a team". Never blame individuals. Celebrate strengths alongside improvements. PRIVACY: No patient/staff names, NHS numbers, emails, or phone numbers — fully anonymised. Use "the patient" or "a team member" instead. Create exactly ${slideCount} slides. British English. Speaker notes in notes pane only. Final slide: "Powered by NoteWell AI".${practiceLogoUrl ? ` Practice logo at top-right of every slide: ${practiceLogoUrl}` : ''}`;
 
       // Step 1: Start Gamma generation (returns generationId immediately)
       const { data: startResponse, error: startError } = await supabase.functions.invoke(
