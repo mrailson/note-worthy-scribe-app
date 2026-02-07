@@ -33,6 +33,7 @@ import { PatientDataDisclosureWarning, PatientDataWarningBanner } from "@/compon
 import { usePatientDataAccess } from "@/hooks/usePatientDataAccess";
 import { NHSComplianceBanner } from "@/components/NHSComplianceBanner";
 import { ComplimentsSummaryView, type Compliment } from "@/components/compliments/ComplimentsSummaryView";
+import { InboundEmailLog } from "@/components/complaints/InboundEmailLog";
 
 import {
   FileText,
@@ -1553,7 +1554,7 @@ const ComplaintsSystem = () => {
             "grid w-full gap-1 p-1",
             deviceInfo.isIPhone 
               ? "grid-cols-3 h-auto" 
-              : "grid-cols-2 sm:grid-cols-7 h-auto"
+              : "grid-cols-2 sm:grid-cols-8 h-auto"
           )}>
             <TabsTrigger 
               value="dashboard" 
@@ -1603,6 +1604,11 @@ const ComplaintsSystem = () => {
                 <TabsTrigger value="reports" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
                   <BarChart3 className="h-4 w-4" />
                   <span>Reports</span>
+                </TabsTrigger>
+                <TabsTrigger value="inbound-emails" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                  <Mail className="h-4 w-4" />
+                  <span className="hidden sm:inline">Inbound Emails</span>
+                  <span className="sm:hidden">Inbound</span>
                 </TabsTrigger>
                 <TabsTrigger value="settings" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
                   <Settings className="h-4 w-4" />
@@ -3028,6 +3034,11 @@ const ComplaintsSystem = () => {
             <HierarchicalReports />
           </TabsContent>
 
+
+          {/* Inbound Emails Tab */}
+          <TabsContent value="inbound-emails">
+            <InboundEmailLog />
+          </TabsContent>
 
           {/* Practice & Signatures Tab */}
           <TabsContent value="settings">

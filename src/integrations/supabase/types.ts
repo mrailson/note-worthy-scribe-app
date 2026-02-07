@@ -4215,6 +4215,74 @@ export type Database = {
         }
         Relationships: []
       }
+      inbound_emails: {
+        Row: {
+          attachment_count: number | null
+          classification: string | null
+          created_at: string
+          email_id: string | null
+          from_email: string | null
+          from_name: string | null
+          has_attachments: boolean | null
+          html_body: string | null
+          id: string
+          practice_id: string | null
+          processing_notes: string | null
+          processing_status: string
+          record_id: string | null
+          record_type: string | null
+          subject: string | null
+          text_body: string | null
+          to_email: string | null
+        }
+        Insert: {
+          attachment_count?: number | null
+          classification?: string | null
+          created_at?: string
+          email_id?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          has_attachments?: boolean | null
+          html_body?: string | null
+          id?: string
+          practice_id?: string | null
+          processing_notes?: string | null
+          processing_status?: string
+          record_id?: string | null
+          record_type?: string | null
+          subject?: string | null
+          text_body?: string | null
+          to_email?: string | null
+        }
+        Update: {
+          attachment_count?: number | null
+          classification?: string | null
+          created_at?: string
+          email_id?: string | null
+          from_email?: string | null
+          from_name?: string | null
+          has_attachments?: boolean | null
+          html_body?: string | null
+          id?: string
+          practice_id?: string | null
+          processing_notes?: string | null
+          processing_status?: string
+          record_id?: string | null
+          record_type?: string | null
+          subject?: string | null
+          text_body?: string | null
+          to_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_emails_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_audit_logs: {
         Row: {
           actor: string
