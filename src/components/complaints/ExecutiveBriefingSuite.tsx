@@ -17,12 +17,14 @@ import {
   Sparkles,
   Download,
   Maximize2,
+  ExternalLink,
   X,
 } from 'lucide-react';
 import { ComplaintAudioOverviewPlayer } from '@/components/complaints/ComplaintAudioOverviewPlayer';
 import { ComplaintReviewConversation } from '@/components/complaints/ComplaintReviewConversation';
 import { ComplaintPowerPointModal } from '@/components/complaints/ComplaintPowerPointModal';
 import { useComplaintInfographic } from '@/hooks/useComplaintInfographic';
+import { useComplaintPowerPoint } from '@/hooks/useComplaintPowerPoint';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
 import { format } from 'date-fns';
@@ -87,6 +89,13 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
     generatedBlobUrl,
     error: infographicError,
   } = useComplaintInfographic(complaint.id);
+
+  const {
+    generatePowerPoint,
+    downloadPersistedPowerPoint,
+    persistedData: persistedPowerPoint,
+    isGenerating: isGeneratingPowerPoint,
+  } = useComplaintPowerPoint(complaint.id);
 
   const fetchAIReportData = useCallback(async (): Promise<AIReportData | null> => {
     if (reportDataRef.current && reportFetchedRef.current === complaint.id) {
@@ -331,20 +340,81 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                       Presentation for PLT sessions
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handlePowerPointClick}
-                    disabled={loadingPowerPoint}
-                    className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
-                  >
-                    {loadingPowerPoint ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
+                  {!persistedPowerPoint && !loadingPowerPoint && !isGeneratingPowerPoint && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePowerPointClick}
+                      disabled={loadingPowerPoint}
+                      className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                    >
                       <Sparkles className="h-4 w-4 mr-1" />
-                    )}
-                    Generate PowerPoint
-                  </Button>
+                      Generate PowerPoint
+                    </Button>
+                  )}
+                  {(loadingPowerPoint || isGeneratingPowerPoint) && (
+                    <div className="w-full flex items-center justify-center gap-2 py-1 text-amber-600">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-xs font-medium">
+                        {loadingPowerPoint ? 'Preparing data…' : 'Generating presentation…'}
+                      </span>
+                    </div>
+                  )}
+                  {persistedPowerPoint && !loadingPowerPoint && !isGeneratingPowerPoint && (
+                    <div className="w-full space-y-2">
+                      {persistedPowerPoint.thumbnailUrl && (
+                        <div className="w-full rounded-lg overflow-hidden border border-amber-200">
+                          <img
+                            src={persistedPowerPoint.thumbnailUrl}
+                            alt="PowerPoint title slide"
+                            className="w-full h-auto object-contain"
+                          />
+                        </div>
+                      )}
+                      {persistedPowerPoint.slideCount && (
+                        <p className="text-xs text-muted-foreground">
+                          {persistedPowerPoint.slideCount} slides
+                        </p>
+                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadPersistedPowerPoint(complaint.reference_number);
+                          }}
+                          className="flex-1 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                        >
+                          <Download className="h-3.5 w-3.5 mr-1" />
+                          Download
+                        </Button>
+                        {persistedPowerPoint.gammaUrl && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(persistedPowerPoint.gammaUrl, '_blank', 'noopener,noreferrer');
+                            }}
+                            className="flex-1 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" />
+                            View
+                          </Button>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handlePowerPointClick}
+                        className="w-full text-xs text-muted-foreground hover:text-amber-700"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Regenerate
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -412,6 +482,7 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
         <ComplaintPowerPointModal
           isOpen={showPowerPointModal}
           onClose={() => setShowPowerPointModal(false)}
+          complaintId={complaint.id}
           complaintData={{
             referenceNumber: complaint.reference_number,
             category: complaint.category,

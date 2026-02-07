@@ -883,6 +883,10 @@ export type Database = {
           created_by: string | null
           id: string
           infographic_url: string | null
+          powerpoint_download_url: string | null
+          powerpoint_gamma_url: string | null
+          powerpoint_slide_count: number | null
+          powerpoint_thumbnail_url: string | null
           updated_at: string
         }
         Insert: {
@@ -894,6 +898,10 @@ export type Database = {
           created_by?: string | null
           id?: string
           infographic_url?: string | null
+          powerpoint_download_url?: string | null
+          powerpoint_gamma_url?: string | null
+          powerpoint_slide_count?: number | null
+          powerpoint_thumbnail_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -905,6 +913,10 @@ export type Database = {
           created_by?: string | null
           id?: string
           infographic_url?: string | null
+          powerpoint_download_url?: string | null
+          powerpoint_gamma_url?: string | null
+          powerpoint_slide_count?: number | null
+          powerpoint_thumbnail_url?: string | null
           updated_at?: string
         }
         Relationships: [
