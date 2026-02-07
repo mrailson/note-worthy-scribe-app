@@ -31,6 +31,27 @@ export const useComplaintInfographic = () => {
   const [currentPhase, setCurrentPhase] = useState<'preparing' | 'generating' | 'downloading' | 'complete'>('preparing');
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Strip patient/staff names and other PII from text before sending to AI.
+   * Replaces common name patterns (Mr/Mrs/Dr/Ms/Miss + Name) and standalone
+   * capitalised proper-noun sequences that follow identifiers.
+   */
+  const anonymiseText = (text: string): string => {
+    if (!text) return text;
+    let cleaned = text;
+    // Remove title + name patterns (e.g. "Mr. James Robert Williams", "Dr Smith")
+    cleaned = cleaned.replace(/\b(Mr\.?|Mrs\.?|Ms\.?|Miss|Dr\.?|Professor|Prof\.?)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/g, '[the patient]');
+    // Remove "Patient: Name" or "Staff: Name" label patterns
+    cleaned = cleaned.replace(/\b(patient|complainant|staff member|nurse|doctor|receptionist|GP)\s*:\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/gi, '$1');
+    // Remove NHS numbers (XXX XXX XXXX)
+    cleaned = cleaned.replace(/\b\d{3}\s?\d{3}\s?\d{4}\b/g, '[NHS number redacted]');
+    // Remove email addresses
+    cleaned = cleaned.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[email redacted]');
+    // Remove phone numbers
+    cleaned = cleaned.replace(/\b(?:(?:\+44\s?|0)(?:\d\s?){9,10})\b/g, '[phone redacted]');
+    return cleaned;
+  };
+
   const formatComplaintForInfographic = (data: ComplaintInfographicData): string => {
     const sections: string[] = [];
 
@@ -48,29 +69,31 @@ export const useComplaintInfographic = () => {
       sections.push(`📊 Outcome: ${formattedOutcome}`);
     }
 
+    // Anonymise the overview before including
+    const anonymisedOverview = anonymiseText(data.complaintOverview);
     sections.push(`\n📝 WHAT HAPPENED:`);
-    sections.push(data.complaintOverview.length > 300 
-      ? data.complaintOverview.substring(0, 300) + '...' 
-      : data.complaintOverview);
+    sections.push(anonymisedOverview.length > 300 
+      ? anonymisedOverview.substring(0, 300) + '...' 
+      : anonymisedOverview);
 
     if (data.keyLearnings.length > 0) {
       sections.push(`\n💡 KEY LEARNINGS:`);
       data.keyLearnings.slice(0, 5).forEach((l, i) => {
-        sections.push(`${i + 1}. ${l.learning} (${l.category})`);
+        sections.push(`${i + 1}. ${anonymiseText(l.learning)} (${l.category})`);
       });
     }
 
     if (data.practiceStrengths.length > 0) {
       sections.push(`\n✅ WHAT WE DID WELL:`);
       data.practiceStrengths.slice(0, 4).forEach(s => {
-        sections.push(`• ${s}`);
+        sections.push(`• ${anonymiseText(s)}`);
       });
     }
 
     if (data.improvementSuggestions.length > 0) {
       sections.push(`\n🌱 HOW WE'RE IMPROVING:`);
       data.improvementSuggestions.slice(0, 4).forEach((s, i) => {
-        sections.push(`${i + 1}. ${s.suggestion}`);
+        sections.push(`${i + 1}. ${anonymiseText(s.suggestion)}`);
       });
     }
 
@@ -101,10 +124,13 @@ IMPORTANT TONE RULES:
 - Use phrases like "What we learned", "How we're growing", "Our improvements"
 - Celebrate what went well alongside areas for improvement
 
-PRIVACY RULES (CRITICAL):
-- Do NOT include any patient names, dates of birth, or identifying information
-- Do NOT include any staff names or identifying details
-- Keep everything anonymised and focused on the learning
+PRIVACY RULES (CRITICAL — ABSOLUTE REQUIREMENT):
+- You MUST NOT include ANY patient names, staff names, clinician names, or any person's name anywhere in the infographic
+- You MUST NOT include dates of birth, NHS numbers, addresses, phone numbers, or email addresses
+- If the source content contains names (e.g. "Mr. James Williams"), you MUST replace them with generic references like "the patient" or "a staff member"
+- If a name appears in the "What Happened" section, rewrite the sentence to remove it entirely
+- Keep everything fully anonymised and focused ONLY on the learning
+- This infographic may be displayed publicly on staff notice boards — zero PII tolerance
 
 COMPLAINT REFERENCE: ${data.referenceNumber}
 CATEGORY: ${data.category}
