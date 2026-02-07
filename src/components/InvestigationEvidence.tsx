@@ -230,6 +230,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
 
       let evidenceType = 'other';
       let aiSummary = '';
+      let pendingTranscript: string | undefined;
 
       try {
         const { data: analysisData, error: analysisError } = await supabase.functions
@@ -247,6 +248,9 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         } else if (analysisData) {
           evidenceType = analysisData.evidenceType || 'other';
           aiSummary = analysisData.summary || '';
+          if (analysisData.transcript && evidenceType === 'audio') {
+            pendingTranscript = analysisData.transcript;
+          }
         }
       } catch (analysisErr) {
         console.error('Analysis call failed:', analysisErr);
@@ -280,6 +284,26 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
           .from('complaint_investigation_evidence')
           .update({ ai_summary: aiSummary } as any)
           .eq('id', (insertedRow as any).id);
+      }
+
+      // Auto-save transcript for audio files (after evidence record exists so we can link audio_file_id)
+      if (pendingTranscript && userId) {
+        try {
+          await supabase
+            .from('complaint_investigation_transcripts')
+            .insert({
+              complaint_id: complaintId,
+              audio_file_id: (insertedRow as any).id,
+              transcript_text: pendingTranscript,
+              transcribed_by: userId,
+              transcription_confidence: null,
+              audio_duration_seconds: null,
+            } as any);
+          fetchAudioTranscripts();
+          console.log(`Auto-saved transcript for ${file.name}`);
+        } catch (transcriptErr) {
+          console.error('Failed to auto-save transcript:', transcriptErr);
+        }
       }
 
       setEvidenceFiles(prev => [{ ...(insertedRow as any), ai_summary: aiSummary } as EvidenceFile, ...prev]);

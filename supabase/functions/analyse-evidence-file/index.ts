@@ -288,9 +288,108 @@ serve(async (req) => {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
+    let transcript: string | undefined;
+
     switch (evidenceType) {
       case "audio": {
-        summary = "Audio recording uploaded. Use the Transcribe button to extract the audio content.";
+        // Auto-transcribe via speech-to-text edge function
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+        if (supabaseUrl && anonKey) {
+          console.log(`🎵 Transcribing audio file: ${fileName}`);
+          try {
+            const sttResponse = await fetch(`${supabaseUrl}/functions/v1/speech-to-text`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "apikey": anonKey,
+                "Authorization": `Bearer ${anonKey}`,
+              },
+              body: JSON.stringify({
+                audio: base64Data,
+                mimeType: mimeType || "audio/mpeg",
+                fileName: fileName,
+              }),
+            });
+
+            if (sttResponse.ok) {
+              const sttData = await sttResponse.json();
+              const transcriptText = sttData?.text?.trim();
+
+              if (transcriptText && transcriptText.length > 0) {
+                transcript = transcriptText;
+                console.log(`✅ Transcription complete: ${transcriptText.split(/\s+/).length} words`);
+
+                // Now analyse the transcript with Gemini for complaint-context insights
+                const analysisPrompt = `You are analysing a transcribed phone call or audio recording that has been uploaded as evidence in an NHS GP practice complaint investigation.
+
+TRANSCRIPT:
+${transcriptText.substring(0, 12000)}
+
+Please provide a structured analysis covering the following areas. Be factual, balanced, and concise. Use British English throughout.
+
+1. **Call Summary** (2-3 sentences): What was the call about? Who appears to be speaking?
+
+2. **Tone Assessment**:
+   - Caller/Patient tone (e.g. calm, distressed, frustrated, aggressive, polite, reasonable)
+   - Staff tone (e.g. professional, empathetic, dismissive, defensive, helpful, rude)
+
+3. **Complaint Handling**: How was the complaint or issue handled during the call? Was the patient listened to? Were appropriate steps taken or offered?
+
+4. **Patient Behaviour**: Note any concerning behaviour from the patient — rudeness, hostility, threats, unreasonable demands, abusive language. If behaviour was reasonable, state that.
+
+5. **Staff Behaviour**: Note any concerning behaviour from staff — dismissiveness, lack of empathy, rudeness, failure to follow procedure. If behaviour was professional, state that.
+
+6. **Key Lessons & Recommendations**: What lessons can the practice learn from this interaction? Any recommendations for improvement?
+
+Keep each section brief (2-4 sentences). Do not fabricate details not present in the transcript.`;
+
+                try {
+                  const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      model: "google/gemini-3-flash-preview",
+                      messages: [
+                        { role: "user", content: analysisPrompt },
+                      ],
+                    }),
+                  });
+
+                  if (aiResponse.status === 429) {
+                    summary = `Audio transcribed (${transcriptText.split(/\s+/).length} words). AI analysis rate limited — try again later.`;
+                  } else if (aiResponse.status === 402) {
+                    summary = `Audio transcribed (${transcriptText.split(/\s+/).length} words). AI analysis unavailable — credit limit reached.`;
+                  } else if (aiResponse.ok) {
+                    const aiData = await aiResponse.json();
+                    summary = aiData.choices?.[0]?.message?.content?.trim() || `Audio transcribed successfully (${transcriptText.split(/\s+/).length} words). AI analysis could not be generated.`;
+                  } else {
+                    console.error("AI analysis error:", aiResponse.status);
+                    summary = `Audio transcribed (${transcriptText.split(/\s+/).length} words). AI analysis could not be generated.`;
+                  }
+                } catch (aiErr) {
+                  console.error("AI analysis call failed:", aiErr);
+                  summary = `Audio transcribed (${transcriptText.split(/\s+/).length} words). AI analysis could not be completed.`;
+                }
+              } else {
+                summary = "Audio recording uploaded but no speech was detected in the recording.";
+              }
+            } else {
+              const errText = await sttResponse.text();
+              console.error("Speech-to-text error:", sttResponse.status, errText);
+              summary = "Audio recording uploaded. Automatic transcription failed — use the Transcribe button to try manually.";
+            }
+          } catch (sttErr) {
+            console.error("Speech-to-text call failed:", sttErr);
+            summary = "Audio recording uploaded. Automatic transcription failed — use the Transcribe button to try manually.";
+          }
+        } else {
+          summary = "Audio recording uploaded. Transcription service not available.";
+        }
         break;
       }
 
@@ -364,8 +463,13 @@ serve(async (req) => {
 
     console.log(`Analysis complete for ${fileName}: type=${evidenceType}`);
 
+    const responseBody: Record<string, any> = { evidenceType, summary };
+    if (transcript) {
+      responseBody.transcript = transcript;
+    }
+
     return new Response(
-      JSON.stringify({ evidenceType, summary }),
+      JSON.stringify(responseBody),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
