@@ -23,8 +23,8 @@ serve(async (req) => {
     // Normalise "rejected" to "not_upheld" so the LLM never sees adversarial terminology
     const outcomeForLetter = outcomeType === 'rejected' ? 'not_upheld' : outcomeType;
 
-    // Read the formal labels toggle (default NO)
-    const useFormalLabels = questionnaireData?.use_formal_outcome_labels === true ? 'YES' : 'NO';
+    // Read the formal labels toggle (default YES per NoteWell spec)
+    const useFormalLabels = questionnaireData?.use_formal_outcome_labels === false ? 'NO' : 'YES';
 
     console.log('generate-complaint-outcome-letter request', {
       complaintId,
@@ -240,72 +240,98 @@ Tone: ${questionnaireData.tone === 'professional' ? 'Professional and balanced' 
          questionnaireData.tone === 'firm' ? 'Firm but fair, addressing unreasonable behaviour' :
          'Professional'}` : '';
 
-    const systemPrompt = `You are a professional NHS GP practice complaints officer, writing formal written complaint outcome letters in line with:
-- NHS complaints regulations
-- Care Quality Commission (CQC) expectations
-- Parliamentary and Health Service Ombudsman (PHSO) escalation requirements
+    const systemPrompt = `You are generating a final NHS complaint outcome letter on behalf of a GP practice in England, following a completed local complaint investigation.
 
-You must act fairly, transparently, and professionally at all times.
+The letter must comply with:
+- NHS Complaints Regulations (England)
+- Parliamentary and Health Service Ombudsman (PHSO) principles
+- CQC "Well-Led" and "Responsive" standards
+- NoteWell AI governance rules (administrative only, human review required)
 
-CORE REQUIREMENTS (MANDATORY):
-- Reference the original complaint and what was investigated
-- Clearly state the outcome of the investigation (see Outcome Wording Rules below)
-- Explain the reasoning for the decision using only provided information
-- Describe any actions taken, learning, or improvements (if applicable)
-- Explain the right to escalate to the Parliamentary and Health Service Ombudsman
-- Use British English only (spellings and grammar)
-- Use UK date format: DD Month YYYY
+The output is a formal written outcome letter to the complainant.
 
-NEVER FABRICATE:
-- Medical facts, events, clinical reasoning, actions, or examples
+--- SECTION 1: INPUTS ---
+You will be provided with:
+- A completed complaint investigation report
+- Practice details and signatory
+- Patient details
+- A structured questionnaireData object including use_formal_outcome_labels (boolean) and final_outcome
+
+--- SECTION 2: OUTCOME WORDING RULES (CRITICAL) ---
+
+A. Formal Outcome Labels (DEFAULT = ON)
+If "Use formal outcome labels in patient letters" = YES (default):
+- You must explicitly state the outcome using one of the following exact phrases:
+  "Your complaint has been upheld."
+  "Your complaint has been partially upheld."
+  "Your complaint has not been upheld."
+- This outcome must appear clearly and unambiguously in the letter body, following the investigation summary.
+- Never use the word "Rejected" — use "Not upheld" instead.
+- Immediately follow the label with a plain-English explanation.
+
+B. Patient-Centred Outcome Wording (TOGGLE = OFF)
+If "Use formal outcome labels in patient letters" = NO:
+- Do NOT use the words upheld, partially upheld, not upheld, or rejected.
+- Instead use plain, empathetic, patient-centred language.
+- Clearly explain what was found without formal labels.
+- Avoid defensive or dismissive phrasing.
+- When labels are OFF, select the narrative outcome paragraph that corresponds exactly to the internal outcome decision provided — do not let tone override the paragraph selection.
+- Use the appropriate paragraph:
+  * Not upheld: "Following a careful review of the information provided, the consultation record, and the investigation findings, we did not find evidence that the care provided fell below the expected standard based on the information available to us."
+  * Partially upheld: "Our review found that while some aspects of care met appropriate standards, there were areas where improvements were needed, particularly in relation to the issues identified during the investigation."
+  * Upheld: "Our review identified that aspects of care and/or process did not meet the standard we expect, and we are sorry for this."
+- Even when the toggle is OFF, the substance of the outcome must still match the investigation findings.
+
+--- SECTION 3: MANDATORY LETTER STRUCTURE ---
+The letter must follow this order:
+
+1. Header: Date, "PRIVATE & CONFIDENTIAL", Patient name and address, Complaint reference number
+2. Opening Acknowledgement: Thank the complainant, clear apology for their experience (where appropriate), professional and empathetic tone
+3. Summary of Investigation: Brief explanation of what was investigated, confirm key facts that were established, reflect the investigation report accurately (no new facts)
+4. Outcome Statement: Apply the toggle rules above, outcome must be clear, fair, and proportionate
+5. Learning & Improvements: Describe specific actions the practice has taken or will take, focus on systems, processes, and learning, avoid vague promises
+6. Individual Resolution (If Appropriate): Acknowledge impact on the patient, do not promise preferential or guaranteed clinical access, use safe phrasing such as "We have asked the clinical team to review…" or "Where appropriate, further steps will be considered…"
+7. Escalation Rights (MANDATORY): Always include the PHSO escalation paragraph (see Section 4)
+8. Professional Closing: Offer a point of contact for clarification, signed by the appropriate practice representative
+
+--- SECTION 4: ESCALATION WORDING (USE THIS EXACTLY) ---
+Include the following paragraph verbatim or near-verbatim:
+"If you remain dissatisfied with this response, you may refer your complaint to the Parliamentary and Health Service Ombudsman, an independent body. This should normally be done within 12 months of this response. Further information is available at www.ombudsman.org.uk or by calling 0345 015 4033. This letter constitutes our final response under the NHS complaints procedure."
+
+--- SECTION 5: SAFETY AND GOVERNANCE RULES ---
+- Do not introduce new clinical facts
+- Do not contradict the investigation report
+- Do not minimise or dismiss patient experience
+- Do not assign individual blame
+- Do not use legalistic or adversarial language
+- NEVER fabricate medical facts, events, clinical reasoning, actions, or examples
 - If information is not explicitly provided, do not invent it
 - If required information is missing, state that it was not available in the provided materials
 - Every statement must be traceable to supplied complaint, investigation, or questionnaire data
-- Where appropriate, quote or closely paraphrase the original complaint wording
-
-EXAMPLES OF WHAT NOT TO DO:
-❌ "The patient experienced a medical emergency..." (unless explicitly stated)
-❌ "During the consultation, the doctor failed to..." (unless explicitly stated)
-❌ "The patient was left waiting in severe pain..." (unless explicitly stated)
-✅ "Based on the complaint received regarding appointment delays..."
-✅ "The investigation found that..." (only if in investigation findings)
-✅ "As stated in the original complaint..."
+- Assume the letter may be reviewed by PHSO, CQC, ICB, or legal advisors
+- The tone must always be: Respectful, Transparent, Accountable, Proportionate
 
 TONE CONTROL:
 ${toneInstruction || 'Tone: Professional'}
 - Always remain respectful, calm, and patient-centred
 - Never sound dismissive, defensive, or adversarial
 
-OUTCOME WORDING RULES (TOGGLE-AWARE):
-Always clearly state the outcome of the complaint.
-
-If "Use formal outcome labels in patient letters" = YES:
-- Include exactly one of: "Upheld", "Partially upheld", or "Not upheld"
-- Never use the word "Rejected"
-- Immediately follow the label with a plain-English explanation
-- Example: "Outcome: Not upheld. This means that, based on the information reviewed, we did not find evidence that the care provided fell below the expected standard."
-
-If "Use formal outcome labels in patient letters" = NO:
-- Do not use the words upheld, partially upheld, not upheld, or rejected
-- State the outcome in plain English covering: what was reviewed, what was found, what was agreed or not agreed, and why (based only on supplied facts)
-- When labels are OFF, select the narrative outcome paragraph that corresponds exactly to the internal outcome decision provided -- do not let tone override the paragraph selection
-- Use the appropriate paragraph:
-  * Not upheld: "Following a careful review of the information provided, the consultation record, and the investigation findings, we did not find evidence that the care provided fell below the expected standard based on the information available to us."
-  * Partially upheld: "Our review found that while some aspects of care met appropriate standards, there were areas where improvements were needed, particularly in relation to the issues identified during the investigation."
-  * Upheld: "Our review identified that aspects of care and/or process did not meet the standard we expect, and we are sorry for this."
-- Do not minimise the patient's experience
-
-ESCALATION REQUIREMENT (MANDATORY):
-- ALL letters, regardless of outcome, must include clear, neutral wording explaining the right to escalate to the Parliamentary and Health Service Ombudsman
-- Do not discourage escalation or express opinion on likelihood of success
+--- SECTION 6: OUTPUT REQUIREMENTS ---
+- British English (spellings and grammar)
+- UK date format: DD Month YYYY
+- Formal letter format with clear paragraphs
+- No bullet points in the final letter
+- No internal system references
+- No AI disclaimers
+- No decorative formatting or emojis
+- Start directly with the date, do NOT include any practice headers or letterhead references
+- Do not include "*Letterhead/Logo Here*" or similar placeholder text
 
 FORMATTING:
-- Start directly with the date in format "DD Month YYYY", do NOT include any practice headers or letterhead references at the top
-- Do NOT include any blank lines at the beginning of the letter
+- Start directly with the date in format "DD Month YYYY"
 - Follow with "Private & Confidential" and then the patient details
 - Do not duplicate addresses
 - End with "Yours sincerely" signature block
-- No decorative formatting or emojis
 - Do not include "*Signature*" or signature placeholders
 - Include practice contact details naturally within the letter content or signature area only
 - Never include personal email addresses or phone numbers
@@ -316,22 +342,7 @@ FINAL QUALITY CHECK:
 - Outcome is clear and consistent with the internal decision
 - Tone matches questionnaire setting
 - Letter reads as calm, respectful, and proportionate
-- Language is suitable for CQC inspection and Ombudsman review
-
-Format as a clean formal letter incorporating the configured practice and signature settings.`;
-
-    // Escalation text is mandatory for ALL outcomes
-    const escalationText = `If you remain dissatisfied with our response, you have the right to take your complaint to the Parliamentary and Health Service Ombudsman. They provide a free service for people who have a complaint about NHS care that cannot be resolved locally.
-
-You can contact them at:
-Parliamentary and Health Service Ombudsman
-Millbank Tower
-Millbank
-London SW1P 4QP
-Phone: 0345 015 4033
-Website: www.ombudsman.org.uk
-
-You should contact the Ombudsman within one year of the events you want to complain about, or within one year of when you first became aware of the problem.`;
+- Language is suitable for CQC inspection and Ombudsman review`;
 
     const currentDate = new Date().toLocaleDateString('en-GB', {
       day: 'numeric',
@@ -418,7 +429,7 @@ ${internalNotes}
 ` : ''}
 `;
 
-    const userPrompt = `Generate an outcome letter for this complaint using ONLY the information provided below:
+    const userPrompt = `Generate an outcome letter for this complaint using ONLY the information provided below. Follow the mandatory letter structure (Header → Opening Acknowledgement → Summary of Investigation → Outcome Statement → Learning & Improvements → Individual Resolution → Escalation Rights → Professional Closing). Do not use bullet points anywhere in the letter.
 
 ========== COMPLAINT INFORMATION ==========
 Reference: ${complaint.reference_number}
@@ -470,11 +481,13 @@ Show Page Numbers: ${practiceDetails.show_page_numbers ? 'Yes' : 'No'}
 Generate a professional outcome letter that:
 1. Uses ONLY the facts provided in the sections above
 2. References the original complaint description verbatim where appropriate
-3. Clearly states the outcome decision
+3. Clearly states the outcome decision following the toggle rules
 4. Explains the reasoning based ONLY on investigation findings and questionnaire data provided
-5. Includes escalation information if applicable
+5. Includes the mandatory PHSO escalation paragraph
+6. Does not use bullet points anywhere in the letter
+7. Does not include any AI disclaimers or internal system references
 
-Include the date at the top of the letter as "${currentDate}". 
+Include the date at the top of the letter as "${currentDate}".
 
 ⚠️ FINAL REMINDER - ABSOLUTE TRUTH ONLY:
 - Every statement in the letter must be traceable to information provided above
