@@ -268,7 +268,6 @@ serve(async (req) => {
       imageOptions: {
         source: 'aiGenerated',
         style: 'photorealistic',
-        numImages: 'many',
       },
     };
 
