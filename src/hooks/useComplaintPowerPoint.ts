@@ -237,55 +237,79 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
   const formatComplaintContent = useCallback((data: ComplaintPowerPointData): string => {
     const sections: string[] = [];
 
-    sections.push('# Learning from Complaints — Staff Training');
+    // Structured slide-by-slide content guide for Gamma
+    sections.push('# Learning Together: Complaint Review');
+    sections.push('## A Staff Training Presentation');
     sections.push('');
-    sections.push(`**Reference:** ${data.referenceNumber}`);
-    sections.push(`**Category:** ${data.category}`);
-    sections.push(`**Received:** ${data.receivedDate}`);
+
+    // Slide 1: Title
+    sections.push('### SLIDE 1 — Title Slide');
+    sections.push(`Learning Together: Complaint Review`);
+    sections.push(`Reference: ${data.referenceNumber} | Category: ${data.category}`);
+    sections.push(`Date Received: ${data.receivedDate}`);
+    sections.push('Continuous improvement through shared learning');
+    sections.push('');
+
+    // Slide 2: What happened
+    const anonymisedOverview = anonymiseText(data.complaintOverview);
+    sections.push('### SLIDE 2 — What Happened');
+    sections.push('A summary of the complaint for team awareness:');
+    sections.push(anonymisedOverview.length > 500
+      ? anonymisedOverview.substring(0, 500) + '...'
+      : anonymisedOverview);
 
     if (data.outcomeType) {
       const formattedOutcome = data.outcomeType
         .split('_')
         .map(w => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ');
-      sections.push(`**Outcome:** ${formattedOutcome}`);
+      sections.push(`Outcome: ${formattedOutcome}`);
     }
-
-    const anonymisedOverview = anonymiseText(data.complaintOverview);
     sections.push('');
-    sections.push('## What Happened');
-    sections.push(anonymisedOverview);
 
+    // Slides 3+: Key learnings (one per slide if enough slides)
     if (data.keyLearnings.length > 0) {
-      sections.push('');
-      sections.push('## Key Learnings for the Team');
+      sections.push('### KEY LEARNINGS — One learning per slide');
       data.keyLearnings.forEach((l, i) => {
-        sections.push(`${i + 1}. ${anonymiseText(l.learning)} (${l.category} — ${l.impact} impact)`);
+        sections.push(`**Learning ${i + 1}: ${anonymiseText(l.learning)}**`);
+        sections.push(`Category: ${l.category} | Impact: ${l.impact}`);
+        sections.push('');
       });
     }
 
+    // What we did well
     if (data.practiceStrengths.length > 0) {
-      sections.push('');
-      sections.push('## What We Did Well');
+      sections.push('### SLIDE — What We Did Well');
+      sections.push('Celebrating our team strengths:');
       data.practiceStrengths.forEach(s => {
-        sections.push(`• ${anonymiseText(s)}`);
+        sections.push(`✓ ${anonymiseText(s)}`);
       });
+      sections.push('');
     }
 
+    // How we're improving
     if (data.improvementSuggestions.length > 0) {
-      sections.push('');
-      sections.push("## How We're Improving");
+      sections.push('### SLIDE — How We Are Improving');
+      sections.push('Actions and improvements underway:');
       data.improvementSuggestions.forEach((s, i) => {
-        sections.push(`${i + 1}. ${anonymiseText(s.suggestion)} [${s.priority} priority]`);
+        sections.push(`${i + 1}. **${anonymiseText(s.suggestion)}** [${s.priority} priority]`);
         sections.push(`   ${anonymiseText(s.rationale)}`);
       });
+      sections.push('');
     }
 
+    // Outcome summary
     if (data.outcomeRationale) {
-      sections.push('');
-      sections.push('## Outcome Summary');
+      sections.push('### SLIDE — Outcome & Next Steps');
       sections.push(anonymiseText(data.outcomeRationale));
+      sections.push('');
     }
+
+    // Closing
+    sections.push('### FINAL SLIDE — Thank You & Discussion');
+    sections.push('Questions and reflections from the team');
+    sections.push('How can we continue to improve together?');
+    sections.push('Powered by NoteWell AI');
 
     return sections.join('\n');
   }, []);
@@ -328,18 +352,34 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
 
       setCurrentPhase('generating');
 
-      const customInstructions = `Friendly PLT staff training tone — "learning together as a team". Never blame individuals. Celebrate strengths alongside improvements. PRIVACY: No patient/staff names, NHS numbers, emails, or phone numbers — fully anonymised. Use "the patient" or "a team member" instead. Create exactly ${slideCount} slides. British English. Speaker notes in notes pane only. Final slide: "Powered by NoteWell AI".${practiceLogoUrl ? ` Practice logo at top-right of every slide: ${practiceLogoUrl}` : ''}`;
+      // Rich, visually-directive instructions for Gamma
+      const customInstructions = [
+        // Tone & privacy
+        `TONE: Warm, supportive PLT staff training — "learning together as a team". Never blame individuals. Celebrate what went well alongside improvements.`,
+        `PRIVACY (CRITICAL): Fully anonymised — no patient/staff names, NHS numbers, emails, phone numbers. Use "the patient" or "a team member".`,
+        // Visual quality
+        `DESIGN: Executive-quality presentation with bold, modern visuals. Use full-bleed photorealistic hero images on every slide — healthcare settings, teamwork, growth metaphors (e.g. seedlings, lightbulbs, handshakes, stethoscopes, team huddles). Images must be large and impactful, not small thumbnails.`,
+        `LAYOUT: Mix layouts — full-image backgrounds with text overlay, split-screen image+content, icon grids for key points. Avoid plain text-only slides. Every slide should be visually engaging.`,
+        `COLOUR SCHEME: Professional NHS-inspired palette — deep navy (#003087), NHS blue (#005EB8), teal accents, warm greens for positives, amber for action items. White/light backgrounds for readability.`,
+        `TYPOGRAPHY: Clean sans-serif headings (bold, large). Concise bullet points — max 4-5 per slide. Let the imagery do the heavy lifting.`,
+        // Structure
+        `Exactly ${slideCount} slides. British English throughout.`,
+        `Speaker notes in the hidden notes pane only — never visible on slides. Notes should contain full presenter talking points.`,
+        `Final slide: "Thank You & Discussion" with "Powered by NoteWell AI" attribution.`,
+        practiceLogoUrl ? `Practice logo at top-right of every slide: ${practiceLogoUrl}` : '',
+      ].filter(Boolean).join(' ');
 
       const { data: startResponse, error: startError } = await supabase.functions.invoke(
         'generate-powerpoint-gamma',
         {
           body: {
             topic: `Learning Together: Complaint Review — ${data.referenceNumber} (${data.category})`,
-            presentationType: 'Training Session',
+            presentationType: 'NHS Staff Training Session',
             slideCount,
             supportingContent,
             customInstructions,
-            audience: 'NHS staff during Protected Learning Time (PLT) sessions',
+            audience: 'NHS GP practice staff during Protected Learning Time (PLT) sessions',
+            fontStyle: 'modern',
             ...(practiceLogoUrl ? {
               branding: {
                 logoUrl: practiceLogoUrl,
