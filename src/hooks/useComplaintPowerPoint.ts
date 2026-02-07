@@ -161,7 +161,7 @@ SLIDE STRUCTURE GUIDANCE:
 ${slideCount - 1}. Action plan — What we're doing differently
 ${slideCount}. Summary and "Powered by NoteWell AI" attribution`;
 
-      // Start Gamma generation
+      // Step 1: Start Gamma generation (returns generationId immediately)
       const { data: startResponse, error: startError } = await supabase.functions.invoke(
         'generate-powerpoint-gamma',
         {
@@ -180,40 +180,87 @@ ${slideCount}. Summary and "Powered by NoteWell AI" attribution`;
         throw new Error(startError.message || 'Failed to start PowerPoint generation');
       }
 
-      if (!startResponse?.success) {
+      if (!startResponse?.success || !startResponse?.generationId) {
         throw new Error(startResponse?.error || 'Generation failed to start');
+      }
+
+      const generationId = startResponse.generationId;
+      console.log('[ComplaintPowerPoint] Generation started, ID:', generationId);
+
+      // Step 2: Poll for completion
+      setCurrentPhase('polling');
+      const pollInterval = 5000; // 5 seconds
+      const maxPollTime = slideCount * 30000; // 30s per slide max
+      const startTime = Date.now();
+
+      let downloadUrl: string | undefined;
+      let gammaUrl: string | undefined;
+
+      while (Date.now() - startTime < maxPollTime) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+
+        const { data: pollResponse, error: pollError } = await supabase.functions.invoke(
+          'generate-powerpoint-gamma',
+          {
+            body: {
+              action: 'poll',
+              generationId,
+            },
+          }
+        );
+
+        if (pollError) {
+          console.error('[ComplaintPowerPoint] Poll error:', pollError);
+          continue; // Retry on transient errors
+        }
+
+        console.log('[ComplaintPowerPoint] Poll status:', pollResponse?.status);
+
+        if (pollResponse?.status === 'completed') {
+          downloadUrl = pollResponse.downloadUrl;
+          gammaUrl = pollResponse.gammaUrl;
+          break;
+        }
+
+        if (pollResponse?.status === 'failed') {
+          throw new Error(pollResponse?.error || 'Gamma generation failed');
+        }
+
+        // status === 'pending' → keep polling
+      }
+
+      if (!downloadUrl) {
+        throw new Error('PowerPoint generation timed out. Please try again.');
       }
 
       setCurrentPhase('downloading');
 
-      // Download via direct link
-      if (startResponse.downloadUrl) {
-        const safeRef = data.referenceNumber
-          .replace(/[^a-zA-Z0-9\s-]/g, '')
-          .replace(/\s+/g, '_')
-          .substring(0, 50);
+      // Trigger download
+      const safeRef = data.referenceNumber
+        .replace(/[^a-zA-Z0-9\s-]/g, '')
+        .replace(/\s+/g, '_')
+        .substring(0, 50);
 
-        const link = document.createElement('a');
-        link.href = startResponse.downloadUrl;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        link.download = `Staff_Training_${safeRef}.pptx`;
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = `Staff_Training_${safeRef}.pptx`;
 
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-        toast.success('Staff training PowerPoint ready!', {
-          description: 'If the download does not start automatically, your browser may have blocked it.',
-        });
-      }
+      toast.success('Staff training PowerPoint ready!', {
+        description: 'If the download does not start automatically, your browser may have blocked it.',
+      });
 
       setCurrentPhase('complete');
 
       return {
         success: true,
-        downloadUrl: startResponse.downloadUrl,
-        gammaUrl: startResponse.gammaUrl,
+        downloadUrl,
+        gammaUrl,
       };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
