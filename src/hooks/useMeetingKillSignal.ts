@@ -62,9 +62,9 @@ export const useMeetingKillSignal = (
       if (data?.status === 'completed') {
         console.log('🛑 Kill signal: Detected server-side closure via direct check');
         killTriggeredRef.current = true;
-        showToast.warning('Recording was ended by the server due to inactivity', {
+        showToast.warning('Recording was auto-closed due to inactivity. Your transcript has been saved.', {
           section: 'meeting_manager',
-          duration: 10000
+          duration: 15000
         });
         onKillSignalRef.current();
       }
@@ -110,8 +110,16 @@ export const useMeetingKillSignal = (
         console.log('🛑 Received server kill signal:', payload);
         killTriggeredRef.current = true;
         
-        // Use persistent toast that stays visible even if tab was backgrounded
-        showToast.warning('Recording ended by system due to inactivity', {
+        // Map reason codes to user-friendly messages
+        const reason = (payload as any)?.payload?.reason;
+        let message = 'Recording was ended remotely';
+        if (reason === 'server_inactivity_timeout') {
+          message = 'Recording auto-closed after 90 minutes of inactivity';
+        } else if (reason === 'admin_graceful_end') {
+          message = 'Recording was ended by a system administrator. Notes are being generated.';
+        }
+        
+        showToast.warning(message, {
           section: 'meeting_manager',
           duration: 15000
         });

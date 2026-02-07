@@ -2771,8 +2771,11 @@ export const MeetingRecorder = ({
   };
 
   // Desktop Whisper transcription for better accuracy
-  const startDesktopWhisperTranscription = async (meetingId: string) => {
+  const startDesktopWhisperTranscription = async (meetingId: string, externalStream?: MediaStream | null) => {
     addDebugLog('🖥️ Starting Desktop Whisper transcription...');
+    if (externalStream) {
+      console.log('🔊 Using external mixed stream for Whisper (mic + system audio unified)');
+    }
     
     const transcriber = new DesktopWhisperTranscriber(
       handleBrowserTranscript,
@@ -2797,7 +2800,8 @@ export const MeetingRecorder = ({
         }
       },
       () => watchdog.reportChunkFiltered(), // Callback when chunk is filtered (not stalled, just low quality)
-      selectedMicrophoneId // Pass selected microphone device
+      selectedMicrophoneId, // Pass selected microphone device
+      externalStream || null // Pass external stream for unified mic+system audio
     );
 
     // Connect silence auto-stop callback (20 min inactivity protection)
@@ -2917,13 +2921,35 @@ export const MeetingRecorder = ({
         
         if (isChromiumBased) {
           try {
-            // Start both system and mic transcription
-            await startComputerAudioTranscription(currentMeetingId);
+            // Unified pipeline: single mixed stream for all engines
+            const screenStream = await acquireScreenShareStream();
+            
+            // Clean up previous mixer if any
+            cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
+            assemblyAudioMixerRef.current = null;
+            
+            const mixerResult = await buildAssemblyAudioStream(screenStream, {
+              micConstraints: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+              onSystemAudioLost: () => {
+                setSystemAudioCaptured(false);
+                setAssemblyInputMode('mic-only');
+                showToast.warning('System audio sharing stopped. Microphone recording continues.', {
+                  section: 'meeting_manager', duration: 8000
+                });
+              }
+            });
+            assemblyAudioMixerRef.current = mixerResult;
+            
+            await startDesktopWhisperTranscription(currentMeetingId, mixerResult.mixedStream);
             setMicCaptured(true);
-            await startMicrophoneTranscription(currentMeetingId);
+            setSystemAudioCaptured(mixerResult.hasSystemAudio);
+            setAssemblyInputMode(mixerResult.hasSystemAudio ? 'mic-and-system' : 'mic-only');
+            
+            // Restart Assembly/Deepgram with new mixed stream
+            try { await assemblyPreview.startPreview(mixerResult.mixedStream); } catch (e) { console.warn('⚠️ AssemblyAI restart failed:', e); }
+            try { await deepgramPreview.startPreview(currentMeetingId, mixerResult.mixedStream); } catch (e) { console.warn('⚠️ Deepgram restart failed:', e); }
           } catch (systemError: any) {
             console.error('❌ System audio capture failed:', systemError);
-            // Fall back to mic only
             showToast.warning('System audio not captured - using microphone only', { section: 'meeting_manager' });
             setMicCaptured(true);
             await startMicrophoneTranscription(currentMeetingId);
@@ -2966,6 +2992,46 @@ export const MeetingRecorder = ({
     switchAudioSourceLive('microphone_and_system');
     teamsAudioDetection.dismissHint();
   }, [teamsAudioDetection]);
+
+  // Acquire screen share stream (audio only) without starting the legacy sidecar pipeline
+  const acquireScreenShareStream = async (): Promise<MediaStream> => {
+    showToast.info(
+      'To capture system audio, select a Chrome Tab (not Entire Screen) and tick "Share tab audio".',
+      { section: 'meeting_manager', duration: 8000, id: 'screen-share-guide' }
+    );
+    
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true
+      } as DisplayMediaStreamOptions);
+      
+      // Stop video tracks — we only need audio
+      stream.getVideoTracks().forEach(track => {
+        track.stop();
+        stream.removeTrack(track);
+      });
+      
+      const audioTracks = stream.getAudioTracks();
+      console.log('🖥️ Screen share audio tracks:', audioTracks.length,
+        audioTracks.map(t => ({ label: t.label, readyState: t.readyState })));
+      
+      if (audioTracks.length === 0) {
+        showToast.error(
+          'No system audio captured. Please select a Chrome Tab and check "Share tab audio".',
+          { section: 'meeting_manager', duration: 10000, id: 'no-audio-tracks' }
+        );
+        throw new Error('NO_AUDIO_TRACKS');
+      }
+      
+      screenStreamRef.current = stream;
+      return stream;
+    } catch (error: any) {
+      if (error.message === 'NO_AUDIO_TRACKS') throw new Error('NO_TAB_AUDIO_SELECTED');
+      if (error.name === 'NotAllowedError' || error.name === 'AbortError') throw new Error('SCREEN_SHARE_CANCELLED');
+      throw new Error('SCREEN_SHARE_FAILED');
+    }
+  };
 
   const startComputerAudioTranscription = async (meetingId: string) => {
     addDebugLog('💻 Starting computer audio capture via screen share...');
@@ -4190,13 +4256,42 @@ export const MeetingRecorder = ({
       } else if (recordingMode === 'mic-and-system') {
         // Microphone + System audio mode
         if (useScreenShare) {
-          // Chrome & Edge: Use screen share method for system audio
+          // Chrome/Edge: Unified pipeline — single mixed stream for all engines
           const browserName = isChromeCheck ? 'Chrome' : 'Edge';
-          addDebugLog(`🖥️ ${browserName} detected - using screen share for system audio...`);
-          await startComputerAudioTranscription(realMeetingId);
-          // Also start microphone transcription for the mic audio
-          await startMicrophoneTranscription(realMeetingId);
+          addDebugLog(`🖥️ ${browserName} - unified mic+system pipeline...`);
+          
+          // Step 1: Acquire screen share (audio only)
+          const screenStream = await acquireScreenShareStream();
+          
+          // Step 2: Build mixed stream via Web Audio mixer (mic + system)
+          const mixerResult = await buildAssemblyAudioStream(screenStream, {
+            micConstraints: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            onSystemAudioLost: () => {
+              console.log('🔇 System audio track ended — falling back to mic-only');
+              setSystemAudioCaptured(false);
+              setAssemblyInputMode('mic-only');
+              showToast.warning('System audio sharing stopped. Microphone recording continues.', {
+                section: 'meeting_manager', duration: 8000
+              });
+            },
+            onSystemAudioSilent: () => {
+              showToast.warning('System audio appears silent — check the shared tab has audio playing.', {
+                section: 'meeting_manager', duration: 8000
+              });
+            }
+          });
+          assemblyAudioMixerRef.current = mixerResult;
+          
+          // Step 3: Start Whisper with the same mixed stream (90s WebM chunks, full quality pipeline)
+          await startDesktopWhisperTranscription(realMeetingId, mixerResult.mixedStream);
+          
           setMicCaptured(true);
+          setSystemAudioCaptured(mixerResult.hasSystemAudio);
+          if (mixerResult.hasSystemAudio) {
+            setAssemblyInputMode('mic-and-system');
+          } else {
+            setAssemblyInputMode('mic-only');
+          }
         } else {
           // Other browsers: Use stereo recording
           addDebugLog('🎧 Starting stereo recording (mic + system audio)...');
@@ -4224,85 +4319,61 @@ export const MeetingRecorder = ({
       addDebugLog('✅ Recording started successfully');
       
       // Start AssemblyAI real-time transcription alongside Whisper
-      // Uses Web Audio mixer for proper system audio capture (same approach as Whisper)
       try {
         console.log('🎤 Starting AssemblyAI real-time preview...');
-
-        // If we are already processing system audio (Chromium screen-share path), prefer the
-        // derived/tapped stream for AssemblyAI so we don't consume the raw display stream twice.
-        const tappedStream = enhancedAudioCaptureRef.current?.assemblyStream as MediaStream | undefined;
-        const rawScreenStream = screenStreamRef.current;
-        const systemStreamForAssembly: MediaStream | null | undefined = tappedStream || rawScreenStream;
         
-        // Detailed logging to diagnose system audio issues
-        console.log('🎧 AssemblyAI system audio diagnosis:', {
-          hasTappedStream: !!tappedStream,
-          tappedTracks: tappedStream?.getAudioTracks?.().length ?? 0,
-          tappedTrackStates: tappedStream?.getAudioTracks?.().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })) ?? [],
-          hasRawScreenStream: !!rawScreenStream,
-          rawScreenTracks: rawScreenStream?.getAudioTracks?.().length ?? 0,
-          rawScreenTrackStates: rawScreenStream?.getAudioTracks?.().map(t => ({ label: t.label, readyState: t.readyState, enabled: t.enabled })) ?? [],
-          recordingMode,
-          usingSource: tappedStream ? 'tapped' : rawScreenStream ? 'raw' : 'none',
-        });
-        
-        // Build the mixed audio stream using Web Audio (not rewrapped tracks)
-        // This fixes Chrome "Entire screen" system audio capture
-        // LATENCY FIX: We pass the existing mic stream if available to avoid duplicate getUserMedia calls
-        const mixerResult = await buildAssemblyAudioStream(
-          systemStreamForAssembly, // Prefer tapped system-audio stream when available
-          { 
-            existingMicStream: micAudioStreamRef.current,
-            micConstraints: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-          }
-        );
-        
-        assemblyAudioMixerRef.current = mixerResult;
-        
-        console.log(`🎧 AssemblyAI audio mixer ready: hasSystemAudio=${mixerResult.hasSystemAudio}, reason=${mixerResult.systemAudioReason}, tracks=${mixerResult.mixedStream.getAudioTracks().length}`);
-        
-        // Update system audio captured flag and AssemblyAI input mode based on mixer result
-        if (mixerResult.hasSystemAudio) {
-          setSystemAudioCaptured(true);
-          setAssemblyInputMode('mic-and-system');
-          addDebugLog('✅ AssemblyAI: Mic + System audio');
-          console.log('✅ System audio is being captured for AssemblyAI transcription');
-        } else {
-          setAssemblyInputMode('mic-only');
+        // If mixer was already created (unified mic+system Chromium path), reuse it.
+        // Otherwise build one now (mic-only or non-Chromium paths).
+        if (!assemblyAudioMixerRef.current) {
+          const systemStreamForAssembly = screenStreamRef.current;
           
-          // Explicit fallback notification when user expected system audio
-          if (recordingMode === 'mic-and-system') {
-            const reasonMessage = mixerResult.systemAudioReason === 'no_screen_stream' 
-              ? 'No screen share active'
-              : mixerResult.systemAudioReason === 'no_audio_tracks'
-              ? 'Screen share has no audio (try sharing a Browser Tab with "Share tab audio")'
-              : mixerResult.systemAudioReason === 'tracks_not_live'
-              ? 'System audio track ended or is muted'
-              : 'System audio unavailable';
-            
-            addDebugLog(`⚠️ AssemblyAI: Mic only (${reasonMessage})`);
-            console.log(`⚠️ System audio not available for AssemblyAI: ${reasonMessage}`);
-            
-            // Show toast so user knows fallback occurred
-            showToast.warning(`Live transcript using microphone only. ${reasonMessage}`, {
-              section: 'meeting_manager',
-              duration: 6000
-            });
+          const mixerResult = await buildAssemblyAudioStream(
+            systemStreamForAssembly,
+            { 
+              existingMicStream: micAudioStreamRef.current,
+              micConstraints: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+            }
+          );
+          
+          assemblyAudioMixerRef.current = mixerResult;
+          
+          // Update system audio captured flag and AssemblyAI input mode
+          if (mixerResult.hasSystemAudio) {
+            setSystemAudioCaptured(true);
+            setAssemblyInputMode('mic-and-system');
+            addDebugLog('✅ AssemblyAI: Mic + System audio');
           } else {
-            addDebugLog('ℹ️ AssemblyAI: Mic only (mic-only mode)');
+            setAssemblyInputMode('mic-only');
+            
+            if (recordingMode === 'mic-and-system') {
+              const reasonMessage = mixerResult.systemAudioReason === 'no_screen_stream' 
+                ? 'No screen share active'
+                : mixerResult.systemAudioReason === 'no_audio_tracks'
+                ? 'Screen share has no audio (try sharing a Browser Tab with "Share tab audio")'
+                : mixerResult.systemAudioReason === 'tracks_not_live'
+                ? 'System audio track ended or is muted'
+                : 'System audio unavailable';
+              
+              addDebugLog(`⚠️ AssemblyAI: Mic only (${reasonMessage})`);
+              showToast.warning(`Live transcript using microphone only. ${reasonMessage}`, {
+                section: 'meeting_manager', duration: 6000
+              });
+            } else {
+              addDebugLog('ℹ️ AssemblyAI: Mic only (mic-only mode)');
+            }
           }
+        } else {
+          console.log('🎤 Reusing existing audio mixer for AssemblyAI (unified pipeline)');
         }
         
         // Start preview with the mixed stream
-        await assemblyPreview.startPreview(mixerResult.mixedStream);
-        console.log('✅ AssemblyAI real-time preview started with Web Audio mixer');
+        await assemblyPreview.startPreview(assemblyAudioMixerRef.current.mixedStream);
+        console.log('✅ AssemblyAI real-time preview started');
       } catch (assemblyError) {
         console.warn('⚠️ AssemblyAI preview failed to start (Whisper will continue):', assemblyError);
         setAssemblyInputMode('inactive');
-        // Clean up mixer if it was created
         cleanupAssemblyAudioStream(assemblyAudioMixerRef.current);
         assemblyAudioMixerRef.current = null;
-        // Don't fail the recording - Whisper is the primary transcription
       }
       
       // Start Deepgram real-time transcription alongside Whisper and AssemblyAI
