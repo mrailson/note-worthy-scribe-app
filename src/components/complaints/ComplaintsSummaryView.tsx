@@ -59,7 +59,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   investigation: { label: 'Investigation', color: 'bg-purple-100 text-purple-800 border-purple-300', icon: <AlertCircle className="h-3 w-3" /> },
   awaiting_response: { label: 'Awaiting Response', color: 'bg-orange-100 text-orange-800 border-orange-300', icon: <Clock className="h-3 w-3" /> },
   closed: { label: 'Closed', color: 'bg-green-100 text-green-800 border-green-300', icon: <CheckCircle2 className="h-3 w-3" /> },
-  rejected: { label: 'Rejected', color: 'bg-red-100 text-red-800 border-red-300', icon: <XCircle className="h-3 w-3" /> },
+  rejected: { label: 'Closed - Not Upheld', color: 'bg-red-100 text-red-800 border-red-300', icon: <XCircle className="h-3 w-3" /> },
 };
 
 const OUTCOME_LABELS: Record<string, string> = {
