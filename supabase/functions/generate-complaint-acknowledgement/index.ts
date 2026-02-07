@@ -45,7 +45,7 @@ serve(async (req) => {
       patient_name: complaint.patient_name
     });
 
-    // Get practice details - check practice_details by user_id first
+    // Get practice details - priority-based lookup matching My Profile settings
     let practiceDetails = null;
     let signatureDetails = null;
     let signatoryName = null;
@@ -53,39 +53,55 @@ serve(async (req) => {
     
     console.log('Fetching practice details for user:', complaint.created_by);
     
-    // First, try to get practice details by user_id (user's own practice settings)
+    // Fetch user profile (title, role, full_name, letter_signature) from My Profile
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('title, full_name, role, letter_signature')
+      .eq('user_id', complaint.created_by)
+      .maybeSingle();
+    
+    console.log('User profile data:', { 
+      title: userProfile?.title, 
+      full_name: userProfile?.full_name, 
+      role: userProfile?.role,
+      has_letter_signature: !!userProfile?.letter_signature 
+    });
+    
+    // PRIORITY 1: Get practice details by user_id (user's own practice settings from My Profile)
     const { data: userPracticeDetails, error: userPracticeError } = await supabase
       .from('practice_details')
-      .select('*')
+      .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
       .eq('user_id', complaint.created_by)
+      .not('practice_name', 'is', null)
+      .neq('practice_name', '')
+      .neq('practice_name', 'Default Practice')
+      .order('updated_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
     
     console.log('User practice_details query result:', { userPracticeDetails, error: userPracticeError?.message });
     
     if (userPracticeDetails) {
       practiceDetails = userPracticeDetails;
-      console.log('Retrieved practice details from user practice_details:', {
-        practice_name: practiceDetails.practice_name,
-        address: practiceDetails.address,
-        email: practiceDetails.email,
-        phone: practiceDetails.phone
-      });
+      console.log('✅ Using user-specific practice_details (highest priority):', practiceDetails.practice_name);
     } else {
-      // Fallback: Get practice from user_roles -> gp_practices
+      // PRIORITY 2: Fallback via user_roles → gp_practices
       console.log('Fallback: Checking user_roles for practice assignment');
       const { data: userRole } = await supabase
         .from('user_roles')
         .select('practice_id')
         .eq('user_id', complaint.created_by)
         .not('practice_id', 'is', null)
+        .limit(1)
         .maybeSingle();
       
-      if (userRole?.practice_id) {
-        // Get practice from gp_practices
+      const practiceId = userRole?.practice_id || complaint.practice_id;
+      
+      if (practiceId) {
         const { data: gpPractice } = await supabase
           .from('gp_practices')
           .select('id, name, address, phone, email, website')
-          .eq('id', userRole.practice_id)
+          .eq('id', practiceId)
           .maybeSingle();
         
         if (gpPractice) {
@@ -94,14 +110,18 @@ serve(async (req) => {
             address: gpPractice.address,
             phone: gpPractice.phone,
             email: gpPractice.email,
-            website: gpPractice.website
+            logo_url: null,
+            practice_logo_url: null,
+            footer_text: null,
+            website: gpPractice.website,
+            show_page_numbers: false
           };
-          console.log('Retrieved practice from gp_practices via user_roles:', practiceDetails);
+          console.log('✅ Retrieved practice from gp_practices via user_roles:', practiceDetails.practice_name);
         }
       }
     }
     
-    // Final fallback: Get from complaint's practice_id
+    // PRIORITY 3: Final fallback from complaint's practice_id
     if (!practiceDetails && complaint.practice_id) {
       console.log('Final fallback: Getting practice from complaint.practice_id');
       const { data: complaintPractice } = await supabase
@@ -116,10 +136,18 @@ serve(async (req) => {
           address: complaintPractice.address,
           phone: complaintPractice.phone,
           email: complaintPractice.email,
-          website: complaintPractice.website
+          logo_url: null,
+          practice_logo_url: null,
+          footer_text: null,
+          website: complaintPractice.website,
+          show_page_numbers: false
         };
-        console.log('Retrieved practice from complaint practice_id:', practiceDetails);
+        console.log('✅ Retrieved practice from complaint practice_id:', practiceDetails.practice_name);
       }
+    }
+
+    if (!practiceDetails) {
+      console.log('❌ No practice details found for complaint:', complaintId);
     }
 
     // Get signature details for the user who created the complaint
@@ -133,39 +161,49 @@ serve(async (req) => {
     signatureDetails = signature;
     console.log('Retrieved signature details:', signatureDetails);
     
-    // If no signature, get user name from auth.users metadata and profile title
+    // If no dedicated complaint signature, build from profile + auth data
     if (!signatureDetails) {
-      console.log('No signature found, fetching user details from auth and profile');
+      console.log('No signature found, building from profile and auth data');
       const { data: authUser } = await supabase.auth.admin.getUserById(complaint.created_by);
-      
-      // Also fetch the profile to get the title (Dr, Mr, Mrs, etc.)
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('title, full_name')
-        .eq('user_id', complaint.created_by)
-        .maybeSingle();
       
       if (authUser?.user) {
         const baseName = userProfile?.full_name || authUser.user.user_metadata?.full_name || authUser.user.email?.split('@')[0] || 'Complaints Manager';
         // Prepend title if available (e.g., "Dr Hussain Gandhi")
         signatoryName = userProfile?.title ? `${userProfile.title} ${baseName}` : baseName;
         
-        // Check if they have GP Partner role or similar
-        const { data: userRoleData } = await supabase
-          .from('user_roles')
-          .select('role, practice_role')
-          .eq('user_id', complaint.created_by)
-          .maybeSingle();
-        
-        // Determine title based on role
-        if (userRoleData?.practice_role) {
-          signatoryTitle = userRoleData.practice_role;
-        } else if (userRoleData?.role === 'practice_manager') {
-          signatoryTitle = 'Practice Manager';
+        // Determine role: prefer profile.role from My Profile, then user_roles
+        if (userProfile?.role) {
+          signatoryTitle = userProfile.role;
+          console.log('Using role from My Profile:', signatoryTitle);
         } else {
-          signatoryTitle = 'GP Partner'; // Default for clinical users
+          const { data: userRoleData } = await supabase
+            .from('user_roles')
+            .select('role, practice_role')
+            .eq('user_id', complaint.created_by)
+            .maybeSingle();
+          
+          if (userRoleData?.practice_role) {
+            signatoryTitle = userRoleData.practice_role;
+          } else if (userRoleData?.role === 'practice_manager') {
+            signatoryTitle = 'Practice Manager';
+          } else if (userRoleData?.role === 'practice_user' || userRoleData?.role === 'gp' || userRoleData?.role === 'clinical') {
+            signatoryTitle = 'GP Partner';
+          } else {
+            signatoryTitle = 'GP Partner';
+          }
         }
-        console.log('Using auth user details:', { signatoryName, signatoryTitle });
+        
+        // Use letter_signature from My Profile if available
+        const letterSignatureText = userProfile?.letter_signature || null;
+        
+        signatureDetails = {
+          name: signatoryName,
+          job_title: signatoryTitle,
+          qualifications: null,
+          signature_text: letterSignatureText,
+          email: practiceDetails?.email || null
+        };
+        console.log('Built signature from profile:', { name: signatoryName, title: signatoryTitle, hasLetterSignature: !!letterSignatureText });
       }
     }
 
