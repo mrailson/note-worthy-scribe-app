@@ -1,94 +1,76 @@
 
-# Update Complaint Outcome Letter System Prompt to Final Toggle-Aware Specification
+# Add Staff Training PowerPoint Generation to AI Report
 
 ## Overview
 
-Replace the existing system prompt in the outcome letter generator with the user's refined, best-practice-aligned NoteWell AI specification. This also aligns the regeneration function and corrects the default toggle value for formal outcome labels from OFF to ON.
+Add a "Staff PowerPoint" button next to the existing "Staff Infographic" button on the AI Report page. Clicking it opens a small modal (matching the infographic modal style) with a slide count selector (5-10), then generates a fully anonymised PowerPoint via the Gamma API -- designed for Protected Learning Time (PLT) sessions and staff training.
 
----
+## What Gets Built
 
-## Changes
+### 1. New Hook: `src/hooks/useComplaintPowerPoint.ts`
 
-### 1. Update default toggle value: Formal labels default ON
+A dedicated hook modelled on the existing `useComplaintInfographic.ts` and `useMeetingPowerPoint.ts` patterns:
 
-**File:** `src/components/ComplaintOutcomeQuestionnaire.tsx`
+- **Anonymisation**: Reuses the same `anonymiseText()` function from the infographic hook to strip all patient/staff names, NHS numbers, emails, and phone numbers before sending to Gamma
+- **Content formatting**: Builds a structured supporting content string from the report data (overview, key learnings, strengths, improvement suggestions, outcome rationale) -- all anonymised
+- **Gamma generation**: Calls `generate-powerpoint-gamma` with the start-and-poll pattern (same as meeting PowerPoint and Presentation Studio)
+- **Custom instructions**: Prompt emphasises:
+  - Friendly, supportive tone -- "learning together as a team"
+  - No individual blame, no patient/staff identifiers
+  - Suitable for PLT sessions and team training
+  - Professional NHS-aligned design
+  - British English throughout
+  - "Powered by NoteWell AI" attribution on last slide
+- **Download handling**: Triggers direct download via the Gamma download URL (same approach as `useMeetingPowerPoint`)
+- **State**: Exposes `isGenerating`, `currentPhase`, `error`, and `generatePowerPoint(data, slideCount)` 
 
-The new specification states **DEFAULT = ON** for formal outcome labels, but the current code defaults to `false`. Update the initial state:
+### 2. New Component: `src/components/complaints/ComplaintPowerPointModal.tsx`
 
-- Line 80: Change `use_formal_outcome_labels: false` to `use_formal_outcome_labels: true`
+A small modal matching the infographic modal's design (progress ring, rotating tips, timer):
 
-This also affects the regeneration pass-through in `ComplaintDetails.tsx` (line 1304), which uses `?? false` as the fallback -- change to `?? true`.
+- **Pre-generation view**: Shows a slide count selector (dropdown or radio group, values 5-10) with a "Generate" button. Brief description: "Create a staff training presentation for PLT sessions"
+- **Generating view**: Progress ring with countdown timer (estimated at 10s per slide, rounded up), rotating tips like:
+  - "Preparing anonymised complaint summary..."
+  - "Building key learnings slides..."
+  - "Adding improvement action slides..."
+  - "Creating professional NHS-styled design..."
+- **Complete view**: Success message with auto-close after 2 seconds
+- **Error view**: Error message with close button
+- Dynamic time estimate based on selected slide count (e.g. 5 slides = ~1 min, 10 slides = ~2 min)
 
-### 2. Replace the system prompt in `generate-complaint-outcome-letter`
+### 3. UI Integration: `src/pages/ComplaintAIReport.tsx`
 
-**File:** `supabase/functions/generate-complaint-outcome-letter/index.ts`
+- Add a `Presentation` icon button ("Staff PowerPoint") next to the existing "Staff Infographic" button in the title card actions area
+- Add state: `showPowerPointModal` and `selectedSlideCount`
+- Import and render `ComplaintPowerPointModal` alongside the existing `ComplaintInfographicModal`
+- Pass the same anonymised complaint data structure
 
-Replace the current `systemPrompt` (lines 243-321) with the user's full specification, structured as follows:
+## Data Flow
 
-- **Preamble:** Role definition and compliance standards (NHS Regulations, PHSO, CQC, NoteWell governance rules)
-- **Section 1 -- Inputs:** Document what inputs are expected (complaint report, practice details, signatory, patient details, questionnaireData with toggle and outcome)
-- **Section 2 -- Outcome Wording Rules:** Toggle-aware logic
-  - Formal labels ON (default): Must use exact phrases "upheld" / "partially upheld" / "not upheld"
-  - Formal labels OFF: Plain, empathetic language with specific template paragraphs per outcome type
-  - Never use "Rejected"
-- **Section 3 -- Mandatory Letter Structure:** Enforced order: Header, Opening Acknowledgement, Summary of Investigation, Outcome Statement, Learning and Improvements, Individual Resolution (with safe phrasing), Escalation Rights (mandatory), Professional Closing
-- **Section 4 -- Escalation Wording:** Verbatim paragraph provided in the spec
-- **Section 5 -- Safety and Governance Rules:** No fabrication, no blame, no adversarial language, assume review by PHSO/CQC/ICB/legal
-- **Section 6 -- Output Requirements:** British English, formal letter format, no bullet points, no internal system references, no AI disclaimers
+```text
+User clicks "Staff PowerPoint"
+  -> Modal opens with slide count selector (5-10)
+  -> User selects count and clicks "Generate"
+  -> useComplaintPowerPoint hook:
+      1. Anonymises all report data (names, NHS numbers, etc.)
+      2. Formats content into structured sections
+      3. Calls generate-powerpoint-gamma edge function (start)
+      4. Polls for completion (5s intervals, timeout based on slide count)
+      5. Triggers download of PPTX file
+  -> Modal shows progress, then auto-closes on success
+```
 
-Key differences from current prompt:
-- Adds "No bullet points in the final letter" (new rule)
-- Adds "No AI disclaimers" in output (new rule)
-- Adds explicit "Individual Resolution" section with safe phrasing guidelines
-- Adds "No internal system references" rule
-- Specifies mandatory letter structure order (7 sections)
-- Includes verbatim escalation paragraph
-- Explicit mention of CQC/ICB/legal review assumption
-- Cleaner structure with numbered sections
+## No Edge Function Changes Required
 
-The existing data-fetching code (practice details, signatures, investigation findings, staff responses, etc.) remains unchanged -- only the prompt text is replaced.
+The existing `generate-powerpoint-gamma` edge function already supports everything needed:
+- Topic, supporting content, custom instructions, slide count, audience
+- Start-and-poll architecture for long-running generations
+- PPTX export format
 
-Also update the user prompt (lines 421-495) to:
-- Reference the new mandatory structure order
-- Remove the standalone escalation text variable (lines 324-334) and instead embed the verbatim escalation wording directly in the system prompt as per the spec
-- Add instruction: "Do not use bullet points anywhere in the letter"
+## Files Created/Modified
 
-### 3. Align the regeneration function prompt
-
-**File:** `supabase/functions/regenerate-outcome-letter/index.ts`
-
-Update the system prompt (lines 38-67) to reference the same rules:
-
-- Add "No bullet points in the final letter" rule
-- Add "No AI disclaimers" rule  
-- Add "No internal system references" rule
-- Add the mandatory escalation paragraph preservation rule: "Always preserve the PHSO escalation paragraph. If it is missing from the current letter, add it."
-- Add safe phrasing rules for individual resolution sections
-- Maintain existing signature deduplication and no-placeholder rules
-
-### 4. Update the toggle default in the regeneration call
-
-**File:** `src/pages/ComplaintDetails.tsx`
-
-Line 1304: Change `?? false` to `?? true` to match the new default.
-
----
-
-## Files Modified
-
-| File | Change Summary |
-|------|---------------|
-| `supabase/functions/generate-complaint-outcome-letter/index.ts` | Replace system prompt with full NoteWell AI specification; update user prompt to enforce mandatory structure and no bullet points |
-| `supabase/functions/regenerate-outcome-letter/index.ts` | Align system prompt with new rules (no bullets, no AI disclaimers, escalation preservation, safe phrasing) |
-| `src/components/ComplaintOutcomeQuestionnaire.tsx` | Change `use_formal_outcome_labels` default from `false` to `true` |
-| `src/pages/ComplaintDetails.tsx` | Change fallback from `?? false` to `?? true` |
-
-## What Does NOT Change
-
-- Data-fetching logic (practice details, signatures, investigation data)
-- Practice/profile priority lookup order
-- Logo handling (HTML comment approach)
-- Frontend letter rendering (FormattedLetterContent.tsx)
-- Database schema
-- Acknowledgement letter function (separate prompt)
-- Word document export
+| File | Change |
+|------|--------|
+| `src/hooks/useComplaintPowerPoint.ts` | **New** -- hook for Gamma-based complaint PowerPoint generation with anonymisation |
+| `src/components/complaints/ComplaintPowerPointModal.tsx` | **New** -- modal with slide count selector (5-10), progress ring, and download handling |
+| `src/pages/ComplaintAIReport.tsx` | **Modified** -- add "Staff PowerPoint" button and modal rendering |
