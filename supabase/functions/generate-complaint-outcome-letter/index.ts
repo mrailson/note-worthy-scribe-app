@@ -62,46 +62,49 @@ serve(async (req) => {
       throw new Error('Complaint not found');
     }
 
-    // Get practice details - try practice_details first, then gp_practices as fallback
+    // Get practice details - matches the acknowledgement letter's priority-based lookup
     let practiceDetails = null;
     let signatureDetails = null;
 
-    console.log('Fetching practice details');
+    console.log('Fetching practice details for user:', complaint.created_by);
 
-    // First, get the practice_id from user_roles
-    const { data: userRole } = await supabase
-      .from('user_roles')
-      .select('practice_id')
+    // PRIORITY 1: Check practice_details by user_id (user's own practice settings from My Profile)
+    const { data: userPracticeDetails, error: userPracticeError } = await supabase
+      .from('practice_details')
+      .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
       .eq('user_id', complaint.created_by)
-      .not('practice_id', 'is', null)
+      .not('practice_name', 'is', null)
+      .neq('practice_name', '')
+      .neq('practice_name', 'Default Practice')
+      .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    console.log('User role query result:', { userRole });
+    console.log('User practice_details query result:', { userPracticeDetails, error: userPracticeError?.message });
 
-    // Determine which practice_id to use
-    const practiceId = userRole?.practice_id || complaint.practice_id;
-
-    if (practiceId) {
-      // Try practice_details table first
-      const { data: practice } = await supabase
-        .from('practice_details')
-        .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
-        .eq('id', practiceId)
+    if (userPracticeDetails) {
+      practiceDetails = userPracticeDetails;
+      console.log('✅ Using user-specific practice_details (highest priority):', practiceDetails.practice_name);
+    } else {
+      // PRIORITY 2: Fallback via user_roles → gp_practices
+      console.log('Fallback: Checking user_roles for practice assignment');
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('practice_id')
+        .eq('user_id', complaint.created_by)
+        .not('practice_id', 'is', null)
+        .limit(1)
         .maybeSingle();
-      
-      if (practice) {
-        practiceDetails = practice;
-        console.log('Retrieved practice details from practice_details table:', practiceDetails);
-      } else {
-        // Fallback to gp_practices table
-        console.log('No practice_details found, trying gp_practices table');
+
+      const practiceId = userRole?.practice_id || complaint.practice_id;
+
+      if (practiceId) {
         const { data: gpPractice } = await supabase
           .from('gp_practices')
-          .select('name, address, phone, email')
+          .select('id, name, address, phone, email, website')
           .eq('id', practiceId)
           .maybeSingle();
-        
+
         if (gpPractice) {
           practiceDetails = {
             practice_name: gpPractice.name,
@@ -111,16 +114,41 @@ serve(async (req) => {
             logo_url: null,
             practice_logo_url: null,
             footer_text: null,
-            website: null,
+            website: gpPractice.website,
             show_page_numbers: false
           };
-          console.log('Retrieved practice details from gp_practices table:', practiceDetails);
+          console.log('✅ Retrieved practice from gp_practices via user_roles:', practiceDetails.practice_name);
         }
       }
     }
-    
+
+    // PRIORITY 3: Final fallback from complaint's practice_id
+    if (!practiceDetails && complaint.practice_id) {
+      console.log('Final fallback: Getting practice from complaint.practice_id');
+      const { data: complaintPractice } = await supabase
+        .from('gp_practices')
+        .select('id, name, address, phone, email, website')
+        .eq('id', complaint.practice_id)
+        .maybeSingle();
+
+      if (complaintPractice) {
+        practiceDetails = {
+          practice_name: complaintPractice.name,
+          address: complaintPractice.address,
+          phone: complaintPractice.phone,
+          email: complaintPractice.email,
+          logo_url: null,
+          practice_logo_url: null,
+          footer_text: null,
+          website: complaintPractice.website,
+          show_page_numbers: false
+        };
+        console.log('✅ Retrieved practice from complaint practice_id:', practiceDetails.practice_name);
+      }
+    }
+
     if (!practiceDetails) {
-      console.log('No practice details found for practice_id:', practiceId);
+      console.log('❌ No practice details found for complaint:', complaintId);
     }
 
     // Get signature details for the user who created the complaint
