@@ -3409,7 +3409,7 @@ const ComplaintsSystem = () => {
                               <SelectValue placeholder="Select outcome" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="rejected">Complaint Rejected</SelectItem>
+                              <SelectItem value="rejected">Complaint Not Upheld</SelectItem>
                               <SelectItem value="upheld">Complaint Upheld</SelectItem>
                               <SelectItem value="partially_upheld">Partially upheld</SelectItem>
                             </SelectContent>
