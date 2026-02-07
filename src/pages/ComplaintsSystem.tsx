@@ -32,6 +32,7 @@ import {
 import { PatientDataDisclosureWarning, PatientDataWarningBanner } from "@/components/PatientDataDisclosure";
 import { usePatientDataAccess } from "@/hooks/usePatientDataAccess";
 import { NHSComplianceBanner } from "@/components/NHSComplianceBanner";
+import { ComplimentsSummaryView, type Compliment } from "@/components/compliments/ComplimentsSummaryView";
 
 import {
   FileText,
@@ -73,7 +74,9 @@ import {
   Copy,
   FlaskConical,
   LayoutGrid,
-  List
+  List,
+  Heart,
+  Share2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { showToast } from "@/utils/toastWrapper";
@@ -151,6 +154,8 @@ const ComplaintsSystem = () => {
   const deviceInfo = useDeviceInfo();
   
   const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [compliments, setCompliments] = useState<Compliment[]>([]);
+  const [complimentsLoading, setComplimentsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -159,6 +164,24 @@ const ComplaintsSystem = () => {
   const [selectedOutcome, setSelectedOutcome] = useState("all");
   const [dashboardFilter, setDashboardFilter] = useState("");
   const [showSummaryView, setShowSummaryView] = useState(false);
+  
+  // Compliment form states
+  const [complimentSubmitting, setComplimentSubmitting] = useState(false);
+  const [complimentSearchTerm, setComplimentSearchTerm] = useState("");
+  const [complimentCategoryFilter, setComplimentCategoryFilter] = useState("all");
+  const [showComplimentSuccess, setShowComplimentSuccess] = useState(false);
+  const [newComplimentRef, setNewComplimentRef] = useState("");
+  const [complimentFormData, setComplimentFormData] = useState({
+    patient_name: "",
+    patient_contact_email: "",
+    compliment_date: new Date().toISOString().split('T')[0],
+    compliment_title: "",
+    compliment_description: "",
+    category: "",
+    staff_mentioned: "",
+    location_service: "",
+    source: "patient",
+  });
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -444,6 +467,7 @@ const ComplaintsSystem = () => {
   useEffect(() => {
     if (user) {
       fetchComplaints();
+      fetchCompliments();
       fetchUserRole();
       fetchUserPractice();
     }
@@ -557,6 +581,91 @@ const ComplaintsSystem = () => {
       setLoading(false);
     }
   };
+
+  const fetchCompliments = async () => {
+    try {
+      setComplimentsLoading(true);
+      const { data, error } = await supabase
+        .from('compliments' as any)
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCompliments((data || []) as unknown as Compliment[]);
+    } catch (error) {
+      console.error('Error fetching compliments:', error);
+    } finally {
+      setComplimentsLoading(false);
+    }
+  };
+
+  const handleSubmitCompliment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      setComplimentSubmitting(true);
+      const complimentData = {
+        patient_name: complimentFormData.patient_name,
+        patient_contact_email: complimentFormData.patient_contact_email || null,
+        compliment_date: complimentFormData.compliment_date,
+        compliment_title: complimentFormData.compliment_title,
+        compliment_description: complimentFormData.compliment_description,
+        category: complimentFormData.category,
+        staff_mentioned: complimentFormData.staff_mentioned
+          ? complimentFormData.staff_mentioned.split(',').map(s => s.trim()).filter(Boolean)
+          : null,
+        location_service: complimentFormData.location_service || null,
+        source: complimentFormData.source,
+        created_by: user.id,
+        practice_id: userPracticeId,
+        reference_number: '',
+      };
+
+      const { data, error } = await supabase
+        .from('compliments' as any)
+        .insert(complimentData as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const result = data as any;
+      setNewComplimentRef(result.reference_number);
+      setShowComplimentSuccess(true);
+
+      // Reset form
+      setComplimentFormData({
+        patient_name: "",
+        patient_contact_email: "",
+        compliment_date: new Date().toISOString().split('T')[0],
+        compliment_title: "",
+        compliment_description: "",
+        category: "",
+        staff_mentioned: "",
+        location_service: "",
+        source: "patient",
+      });
+
+      fetchCompliments();
+      showToast.success("Compliment logged successfully!");
+    } catch (error) {
+      console.error('Error submitting compliment:', error);
+      showToast.error("Failed to submit compliment");
+    } finally {
+      setComplimentSubmitting(false);
+    }
+  };
+
+  const filteredCompliments = compliments.filter(compliment => {
+    const matchesSearch =
+      compliment.patient_name.toLowerCase().includes(complimentSearchTerm.toLowerCase()) ||
+      compliment.compliment_title.toLowerCase().includes(complimentSearchTerm.toLowerCase()) ||
+      compliment.reference_number.toLowerCase().includes(complimentSearchTerm.toLowerCase());
+    const matchesCategory = complimentCategoryFilter === 'all' || compliment.category === complimentCategoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
 
   const handleSubmitComplaint = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1407,10 +1516,10 @@ const ComplaintsSystem = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <SEO 
-        title="NHS Complaints Management System | NoteWell AI"
-        description="Secure, NHS-compliant complaint management system with full evidence tracking, audit trails, and automated acknowledgement letters for GP practices."
+        title="NHS Complaints & Compliments Management | NoteWell AI"
+        description="Secure, NHS-compliant complaint and compliment management system with full evidence tracking, audit trails, and automated acknowledgement letters for GP practices."
         canonical="https://www.gpnotewell.co.uk/complaints"
-        keywords="NHS complaints management, GP complaint system, medical complaints handling, NHS compliance, complaint audit trail"
+        keywords="NHS complaints management, GP complaint system, compliments, medical complaints handling, NHS compliance, complaint audit trail"
       />
       <Header onNewMeeting={() => {}} />
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
@@ -1419,12 +1528,12 @@ const ComplaintsSystem = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-xl sm:text-3xl font-bold text-foreground mb-2">
-                <span className="hidden sm:inline">🏥 GP Practice Complaint Management System</span>
-                <span className="sm:hidden">🏥 Complaints</span>
+                <span className="hidden sm:inline">🏥 GP Practice Complaints & Compliments</span>
+                <span className="sm:hidden">🏥 Complaints & Compliments</span>
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground">
-                <span className="hidden sm:inline">Secure, NHS-compliant complaint management with full evidence management and audit trail</span>
-                <span className="sm:hidden">NHS-compliant complaint management</span>
+                <span className="hidden sm:inline">Secure, NHS-compliant complaint and compliment management with full evidence management and audit trail</span>
+                <span className="sm:hidden">NHS-compliant feedback management</span>
               </p>
             </div>
           </div>
@@ -1437,7 +1546,7 @@ const ComplaintsSystem = () => {
             "grid w-full gap-1 p-1",
             deviceInfo.isIPhone 
               ? "grid-cols-3 h-auto" 
-              : "grid-cols-2 sm:grid-cols-5 h-auto"
+              : "grid-cols-2 sm:grid-cols-7 h-auto"
           )}>
             <TabsTrigger 
               value="dashboard" 
@@ -1474,13 +1583,23 @@ const ComplaintsSystem = () => {
             </TabsTrigger>
             {!deviceInfo.isIPhone && (
               <>
+                <TabsTrigger value="compliments" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                  <Heart className="h-4 w-4" />
+                  <span className="hidden sm:inline">Compliments</span>
+                  <span className="sm:hidden">Praise</span>
+                </TabsTrigger>
+                <TabsTrigger value="new-compliment" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">New Compliment</span>
+                  <span className="sm:hidden">+ Praise</span>
+                </TabsTrigger>
                 <TabsTrigger value="reports" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
                   <BarChart3 className="h-4 w-4" />
                   <span>Reports</span>
                 </TabsTrigger>
                 <TabsTrigger value="settings" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
                   <Settings className="h-4 w-4" />
-                  <span className="hidden sm:inline">Signature Settings</span>
+                  <span className="hidden sm:inline">Settings</span>
                   <span className="sm:hidden">Settings</span>
                 </TabsTrigger>
               </>
@@ -1493,7 +1612,7 @@ const ComplaintsSystem = () => {
           )}>
             <div className={cn(
               "grid gap-3 sm:gap-4",
-              deviceInfo.isIPhone ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4"
+              deviceInfo.isIPhone ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-5"
             )}>
               <Card 
                 className={cn(
@@ -1578,6 +1697,27 @@ const ComplaintsSystem = () => {
                       new Date(c.closed_at || '').getMonth() === new Date().getMonth()).length}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Click to view closed complaints</p>
+                </CardContent>
+              </Card>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow border-teal-200 dark:border-teal-800" 
+                    onClick={() => { setCurrentTab("compliments"); }}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <Heart className="h-4 w-4 text-teal-600" />
+                    Compliments
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-teal-600">
+                    {compliments.length}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {compliments.filter(c => {
+                      const d = new Date(c.compliment_date);
+                      const now = new Date();
+                      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                    }).length} this month
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -2678,7 +2818,205 @@ const ComplaintsSystem = () => {
           </TabsContent>
 
 
-          {/* Reports Tab */}
+          {/* Compliments Tab */}
+          <TabsContent value="compliments" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-teal-600" />
+                  Compliments
+                  <Badge variant="secondary">{filteredCompliments.length}</Badge>
+                </CardTitle>
+                <CardDescription>View and manage compliments received by the practice</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Search</Label>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search compliments..."
+                        value={complimentSearchTerm}
+                        onChange={(e) => setComplimentSearchTerm(e.target.value)}
+                        className="pl-8"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Select value={complimentCategoryFilter} onValueChange={setComplimentCategoryFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All categories</SelectItem>
+                        {categoryOptions.map(option => (
+                          <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <ComplimentsSummaryView compliments={filteredCompliments} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* New Compliment Tab */}
+          <TabsContent value="new-compliment" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-teal-600" />
+                  Log New Compliment
+                </CardTitle>
+                <CardDescription>Record positive feedback about the practice, staff, or services</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmitCompliment} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cmpl_patient_name">From (Name) *</Label>
+                      <Input
+                        id="cmpl_patient_name"
+                        value={complimentFormData.patient_name}
+                        onChange={(e) => setComplimentFormData(p => ({ ...p, patient_name: e.target.value }))}
+                        placeholder="Name of person giving the compliment"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmpl_email">Contact Email (optional)</Label>
+                      <Input
+                        id="cmpl_email"
+                        type="email"
+                        value={complimentFormData.patient_contact_email}
+                        onChange={(e) => setComplimentFormData(p => ({ ...p, patient_contact_email: e.target.value }))}
+                        placeholder="Email address"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cmpl_date">Date Received *</Label>
+                      <Input
+                        id="cmpl_date"
+                        type="date"
+                        value={complimentFormData.compliment_date}
+                        onChange={(e) => setComplimentFormData(p => ({ ...p, compliment_date: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Category *</Label>
+                      <Select
+                        value={complimentFormData.category}
+                        onValueChange={(v) => setComplimentFormData(p => ({ ...p, category: v }))}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                        <SelectContent>
+                          {categoryOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Source *</Label>
+                      <Select
+                        value={complimentFormData.source}
+                        onValueChange={(v) => setComplimentFormData(p => ({ ...p, source: v }))}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="patient">Patient</SelectItem>
+                          <SelectItem value="nhs_choices">NHS Choices Review</SelectItem>
+                          <SelectItem value="letter">Letter</SelectItem>
+                          <SelectItem value="verbal">Verbal</SelectItem>
+                          <SelectItem value="card">Card</SelectItem>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cmpl_title">Title/Subject *</Label>
+                    <Input
+                      id="cmpl_title"
+                      value={complimentFormData.compliment_title}
+                      onChange={(e) => setComplimentFormData(p => ({ ...p, compliment_title: e.target.value }))}
+                      placeholder="Brief summary of the compliment"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cmpl_desc">Description *</Label>
+                    <Textarea
+                      id="cmpl_desc"
+                      value={complimentFormData.compliment_description}
+                      onChange={(e) => setComplimentFormData(p => ({ ...p, compliment_description: e.target.value }))}
+                      placeholder="Full details of the compliment..."
+                      rows={5}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="cmpl_staff">Staff Mentioned</Label>
+                      <Input
+                        id="cmpl_staff"
+                        value={complimentFormData.staff_mentioned}
+                        onChange={(e) => setComplimentFormData(p => ({ ...p, staff_mentioned: e.target.value }))}
+                        placeholder="e.g. Dr Smith, Practice Nurse"
+                      />
+                      <p className="text-xs text-muted-foreground">Separate multiple names with commas</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cmpl_location">Location/Service</Label>
+                      <Input
+                        id="cmpl_location"
+                        value={complimentFormData.location_service}
+                        onChange={(e) => setComplimentFormData(p => ({ ...p, location_service: e.target.value }))}
+                        placeholder="e.g. Reception, GP Consultation"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 pt-4">
+                    <Button type="submit" disabled={complimentSubmitting} className="bg-teal-600 hover:bg-teal-700">
+                      <Heart className="h-4 w-4 mr-2" />
+                      {complimentSubmitting ? "Submitting..." : "Log Compliment"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setComplimentFormData({
+                        patient_name: "",
+                        patient_contact_email: "",
+                        compliment_date: new Date().toISOString().split('T')[0],
+                        compliment_title: "",
+                        compliment_description: "",
+                        category: "",
+                        staff_mentioned: "",
+                        location_service: "",
+                        source: "patient",
+                      })}
+                    >
+                      Clear Form
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+
           <TabsContent value="reports" className="space-y-6">
             <HierarchicalReports />
           </TabsContent>

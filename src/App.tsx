@@ -118,6 +118,7 @@ const PolicyServiceMyPolicies = lazy(() => import("./pages/PolicyServiceMyPolici
 const PolicyServiceProfile = lazy(() => import("./pages/PolicyServiceProfile"));
 const AIChatCapture = lazy(() => import("./pages/AIChatCapture"));
 const ComplaintCapture = lazy(() => import("./pages/ComplaintCapture"));
+const ComplimentDetails = lazy(() => import("./pages/ComplimentDetails"));
 const MockCQCInspection = lazy(() => import("./pages/MockCQCInspection"));
 const InspectionCapture = lazy(() => import("./pages/InspectionCapture"));
 
@@ -197,6 +198,7 @@ const App = () => {
                 <Route path="/public/fridge-temp/:id" element={<FridgeTemperatureEntry />} />
                 <Route path="/complaints" element={<ComplaintsSystem />} />
                 <Route path="/complaints/:id" element={<ComplaintDetails />} />
+                <Route path="/compliments/:id" element={<ComplimentDetails />} />
                 <Route path="/complaints/:id/ai-report" element={<ComplaintAIReport />} />
                 <Route path="/complaints-guide" element={<ComplaintsPresentationMode />} />
                 <Route path="/federation-presentation" element={<FederationPresentationMode />} />

@@ -1987,6 +1987,83 @@ export type Database = {
           },
         ]
       }
+      compliments: {
+        Row: {
+          category: string
+          compliment_date: string
+          compliment_description: string
+          compliment_title: string
+          created_at: string
+          created_by: string
+          id: string
+          location_service: string | null
+          notes: string | null
+          patient_contact_email: string | null
+          patient_contact_phone: string | null
+          patient_name: string
+          practice_id: string | null
+          reference_number: string
+          shared_at: string | null
+          shared_with_staff: boolean
+          source: string
+          staff_mentioned: string[] | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          compliment_date?: string
+          compliment_description: string
+          compliment_title: string
+          created_at?: string
+          created_by: string
+          id?: string
+          location_service?: string | null
+          notes?: string | null
+          patient_contact_email?: string | null
+          patient_contact_phone?: string | null
+          patient_name: string
+          practice_id?: string | null
+          reference_number?: string
+          shared_at?: string | null
+          shared_with_staff?: boolean
+          source?: string
+          staff_mentioned?: string[] | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          compliment_date?: string
+          compliment_description?: string
+          compliment_title?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          location_service?: string | null
+          notes?: string | null
+          patient_contact_email?: string | null
+          patient_contact_phone?: string | null
+          patient_name?: string
+          practice_id?: string | null
+          reference_number?: string
+          shared_at?: string | null
+          shared_with_staff?: boolean
+          source?: string
+          staff_mentioned?: string[] | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliments_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultation_history: {
         Row: {
           created_at: string
