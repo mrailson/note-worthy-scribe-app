@@ -16,6 +16,7 @@ import { Header } from "@/components/Header";
 import { ViewFullResponseModal } from "@/components/ViewFullResponseModal";
 import { AcknowledgementQuickPick } from "@/components/AcknowledgementQuickPick";
 import { ComplianceCheckCleanupButton } from "@/components/ComplianceCheckCleanupButton";
+import { ComplianceGuidanceLinks } from "@/components/complaints/ComplianceGuidanceLinks";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -3185,6 +3186,7 @@ const ComplaintDetails = () => {
                               <p className="text-xs text-muted-foreground mt-1 min-h-5">
                                 {check.checked_at ? `${check.is_compliant ? 'Completed' : 'Last updated'}: ${format(new Date(check.checked_at), 'dd/MM/yyyy HH:mm')}` : '\u00A0'}
                               </p>
+                              <ComplianceGuidanceLinks complianceItem={check.compliance_item} />
                             </div>
                           </div>
                         </CardContent>
