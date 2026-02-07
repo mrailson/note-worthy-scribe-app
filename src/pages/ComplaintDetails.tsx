@@ -52,7 +52,6 @@ import {
   BookOpen,
   Sparkles,
   Loader2,
-  Headphones,
   Copy
 } from "lucide-react";
 import { format } from "date-fns";
@@ -78,8 +77,7 @@ import { Maximize2, Minimize2, FileEdit, Eye as EyeIcon, Columns, ChevronUp } fr
 import { AIEditLetterDialog } from "@/components/AIEditLetterDialog";
 import { ManualAcknowledgementGenerator } from "@/components/ManualAcknowledgementGenerator";
 import { EnhancedAuditLogViewer } from "@/components/EnhancedAuditLogViewer";
-import { ComplaintAudioOverviewPlayer } from "@/components/complaints/ComplaintAudioOverviewPlayer";
-import { ComplaintReviewConversation } from "@/components/complaints/ComplaintReviewConversation";
+import { ExecutiveBriefingSuite } from "@/components/complaints/ExecutiveBriefingSuite";
 import { ComplaintReviewNote } from "@/components/complaints/ComplaintReviewNote";
 import { AddComplaintDocumentDialog } from "@/components/complaints/AddComplaintDocumentDialog";
 import { getComplaintSourceLabel, getAcknowledgementRecipientLabel } from "@/utils/complaintSourceLabels";
@@ -3018,79 +3016,27 @@ const ComplaintDetails = () => {
 
             {/* Compliance Tab */}
             <TabsContent value="compliance" className="space-y-6">
-              {/* Executive Audio Summary */}
+              {/* Executive Briefing Suite */}
               {existingOutcome && (
-                <Collapsible open={showAudioSummarySection} onOpenChange={setShowAudioSummarySection}>
-                  <Card className="border-blue-200 bg-blue-50">
-                    <CardHeader>
-                      <div className="flex items-start justify-between w-full">
-                        <CollapsibleTrigger asChild>
-                          <Button variant="ghost" className="flex-1 justify-between p-0 h-auto hover:bg-transparent">
-                            <div className="text-left">
-                              <CardTitle className="flex items-center gap-2 text-blue-800">
-                                <Headphones className="h-5 w-5" />
-                                Executive Audio Summary
-                              </CardTitle>
-                              <CardDescription className="text-blue-700">
-                                AI-generated audio briefing for management and partners
-                              </CardDescription>
-                            </div>
-                            {showAudioSummarySection ? (
-                              <ChevronUp className="h-5 w-5 text-blue-800" />
-                            ) : (
-                              <ChevronDown className="h-5 w-5 text-blue-800" />
-                            )}
-                          </Button>
-                        </CollapsibleTrigger>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            fetchComplaintDetails();
-                          }}
-                          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
-                          title="Refresh audio summary"
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CollapsibleContent>
-                      <CardContent className="space-y-4">
-                        <ComplaintAudioOverviewPlayer
-                          complaintId={complaint.id}
-                          audioOverviewUrl={audioOverview?.audio_overview_url}
-                          audioOverviewText={audioOverview?.audio_overview_text}
-                          audioOverviewDuration={audioOverview?.audio_overview_duration}
-                          onRegenerateAudio={handleRegenerateComplaintAudio}
-                        />
-                        
-                        {/* AI Critical Friend Complaint Review - Only show if audio exists */}
-                        {audioOverview?.audio_overview_url && (
-                          <ComplaintReviewConversation
-                            complaintId={complaint.id}
-                            reviewConversations={reviewConversations}
-                            onReviewComplete={() => {
-                              // Refetch review conversations after completion
-                              fetchComplaintDetails();
-                            }}
-                            onRegenerateSummary={(conversationId, newSummary) => {
-                              // Update the conversation in the local state
-                              setReviewConversations(prev => 
-                                prev.map(c => 
-                                  c.id === conversationId 
-                                    ? { ...c, conversation_summary: newSummary }
-                                    : c
-                                )
-                              );
-                            }}
-                          />
-                        )}
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
+                <ExecutiveBriefingSuite
+                  complaint={complaint}
+                  audioOverview={audioOverview}
+                  reviewConversations={reviewConversations}
+                  onRegenerateAudio={handleRegenerateComplaintAudio}
+                  onRefresh={fetchComplaintDetails}
+                  onReviewComplete={() => fetchComplaintDetails()}
+                  onRegenerateSummary={(conversationId, newSummary) => {
+                    setReviewConversations(prev =>
+                      prev.map(c =>
+                        c.id === conversationId
+                          ? { ...c, conversation_summary: newSummary }
+                          : c
+                      )
+                    );
+                  }}
+                  isOpen={showAudioSummarySection}
+                  onOpenChange={setShowAudioSummarySection}
+                />
               )}
 
               <Card>
