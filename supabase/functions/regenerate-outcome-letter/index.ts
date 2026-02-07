@@ -59,6 +59,11 @@ Standard requirements:
 - Always remain respectful, calm, and patient-centred. Never sound dismissive, defensive, or adversarial.
 - If required information is missing, state that it was not available in the provided materials rather than inventing details.
 
+SIGNATURE AND FORMATTING RULES:
+- Ensure the revised letter contains exactly ONE signature block ending with "Yours sincerely". Remove any duplicate signature sections, repeated practice details, or trailing address blocks.
+- Do NOT include the practice address in the signature block — it should only appear ONCE in the letter header.
+- Do not include "*Letterhead/Logo Here*" or similar placeholder text.
+
 Return ONLY the revised letter content without any preamble or explanation.`
           },
           {
