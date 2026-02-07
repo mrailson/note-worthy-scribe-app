@@ -36,6 +36,7 @@ interface ExecutiveBriefingSuiteProps {
     audio_overview_duration?: number | null;
   } | null;
   reviewConversations: any[];
+  isGeneratingAudio?: boolean;
   onRegenerateAudio: () => void;
   onRefresh: () => void;
   onReviewComplete: () => void;
@@ -56,6 +57,7 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
   complaint,
   audioOverview,
   reviewConversations,
+  isGeneratingAudio = false,
   onRegenerateAudio,
   onRefresh,
   onReviewComplete,
@@ -68,13 +70,21 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
   const [aiReportData, setAiReportData] = useState<AIReportData | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const reportFetchedRef = useRef<string | null>(null);
+  const reportDataRef = useRef<AIReportData | null>(null);
+  const inFlightRef = useRef(false);
 
   const fetchAIReportData = useCallback(async (): Promise<AIReportData | null> => {
     // Return cached data if already fetched for this complaint
-    if (aiReportData && reportFetchedRef.current === complaint.id) {
-      return aiReportData;
+    if (reportDataRef.current && reportFetchedRef.current === complaint.id) {
+      return reportDataRef.current;
     }
 
+    // Prevent parallel fetches
+    if (inFlightRef.current) {
+      return null;
+    }
+
+    inFlightRef.current = true;
     setLoadingReport(true);
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -86,6 +96,7 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
       if (!data) throw new Error('No report data returned');
 
       reportFetchedRef.current = complaint.id;
+      reportDataRef.current = data;
       setAiReportData(data);
       return data;
     } catch (err) {
@@ -94,22 +105,25 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
       return null;
     } finally {
       setLoadingReport(false);
+      inFlightRef.current = false;
     }
-  }, [complaint.id, aiReportData]);
+  }, [complaint.id]); // No aiReportData dependency — use ref instead
 
-  const handleInfographicClick = async () => {
+  const handleInfographicClick = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const data = await fetchAIReportData();
     if (data) {
       setShowInfographicModal(true);
     }
-  };
+  }, [fetchAIReportData]);
 
-  const handlePowerPointClick = async () => {
+  const handlePowerPointClick = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const data = await fetchAIReportData();
     if (data) {
       setShowPowerPointModal(true);
     }
-  };
+  }, [fetchAIReportData]);
 
   const receivedDate = format(
     new Date(complaint.received_at || complaint.created_at),
@@ -178,11 +192,19 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => onRegenerateAudio()}
+                      disabled={isGeneratingAudio}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRegenerateAudio();
+                      }}
                       className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800"
                     >
-                      <Sparkles className="h-4 w-4 mr-1" />
-                      Generate Audio
+                      {isGeneratingAudio ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 mr-1" />
+                      )}
+                      {isGeneratingAudio ? 'Generating…' : 'Generate Audio'}
                     </Button>
                   )}
                   {audioOverview?.audio_overview_url && (
