@@ -173,27 +173,25 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                       1-2 min executive audio overview
                     </p>
                   </div>
-                  {!audioOverview?.audio_overview_url && (
+                  {!audioOverview?.audio_overview_url && !isGeneratingAudio && (
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={isGeneratingAudio}
                       onClick={(e) => {
                         e.stopPropagation();
                         onRegenerateAudio();
                       }}
                       className="w-full border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800"
                     >
-                      {isGeneratingAudio ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Sparkles className="h-4 w-4 mr-1" />
-                      )}
-                      {isGeneratingAudio ? 'Generating…' : 'Generate Audio'}
+                      <Sparkles className="h-4 w-4 mr-1" />
+                      Generate Audio
                     </Button>
                   )}
-                  {audioOverview?.audio_overview_url && (
-                    <span className="text-xs font-medium text-green-600">✓ Ready — see player below</span>
+                  {isGeneratingAudio && (
+                    <div className="w-full flex items-center justify-center gap-2 py-1 text-indigo-600">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-xs font-medium">Generating…</span>
+                    </div>
                   )}
                 </div>
 
@@ -252,7 +250,7 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                 </div>
               </div>
 
-              {/* Audio player – only show when audio has been generated */}
+              {/* Audio player – persists once audio has been generated */}
               {audioOverview?.audio_overview_url && (
                 <div className="rounded-xl border border-indigo-200 bg-white/80 backdrop-blur-sm p-4">
                   <ComplaintAudioOverviewPlayer
