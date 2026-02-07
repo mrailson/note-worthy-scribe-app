@@ -78,7 +78,14 @@ import {
   List,
   Heart,
   Share2,
+  MoreHorizontal,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { showToast } from "@/utils/toastWrapper";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
@@ -1554,7 +1561,7 @@ const ComplaintsSystem = () => {
             "grid w-full gap-1 p-1",
             deviceInfo.isIPhone 
               ? "grid-cols-3 h-auto" 
-              : "grid-cols-2 sm:grid-cols-8 h-auto"
+              : "grid-cols-2 sm:grid-cols-5 h-auto"
           )}>
             <TabsTrigger 
               value="dashboard" 
@@ -1590,32 +1597,46 @@ const ComplaintsSystem = () => {
               <span className="sm:hidden">New</span>
             </TabsTrigger>
             {!deviceInfo.isIPhone && (
-              <>
-                <TabsTrigger value="compliments" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-                  <Heart className="h-4 w-4" />
-                  <span className="hidden sm:inline">Compliments</span>
-                  <span className="sm:hidden">Praise</span>
-                </TabsTrigger>
-                <TabsTrigger value="new-compliment" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">New Compliment</span>
-                  <span className="sm:hidden">+ Praise</span>
-                </TabsTrigger>
-                <TabsTrigger value="reports" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>Reports</span>
-                </TabsTrigger>
-                <TabsTrigger value="inbound-emails" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-                  <Mail className="h-4 w-4" />
-                  <span className="hidden sm:inline">Inbound Emails</span>
-                  <span className="sm:hidden">Inbound</span>
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-                  <Settings className="h-4 w-4" />
-                  <span className="hidden sm:inline">Settings</span>
-                  <span className="sm:hidden">Settings</span>
-                </TabsTrigger>
-              </>
+              <TabsTrigger value="reports" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                <BarChart3 className="h-4 w-4" />
+                <span>Reports</span>
+              </TabsTrigger>
+            )}
+            {!deviceInfo.isIPhone && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      "flex items-center justify-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation rounded-md px-3 py-1.5 font-medium transition-all",
+                      "hover:bg-accent hover:text-accent-foreground",
+                      ["compliments", "new-compliment", "inbound-emails", "settings"].includes(currentTab)
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="hidden sm:inline">More</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setCurrentTab("compliments")} className="flex items-center gap-2 cursor-pointer">
+                    <Heart className="h-4 w-4" />
+                    <span>Compliments</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setCurrentTab("new-compliment")} className="flex items-center gap-2 cursor-pointer">
+                    <Plus className="h-4 w-4" />
+                    <span>New Compliment</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setCurrentTab("inbound-emails")} className="flex items-center gap-2 cursor-pointer">
+                    <Mail className="h-4 w-4" />
+                    <span>Inbound Emails</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setCurrentTab("settings")} className="flex items-center gap-2 cursor-pointer">
+                    <Settings className="h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </TabsList>
 
