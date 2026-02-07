@@ -1789,7 +1789,7 @@ const ComplaintDetails = () => {
                 <span className="sm:hidden">Investigation</span>
               </TabsTrigger>
               <TabsTrigger value="compliance" className="flex-shrink-0 min-w-[80px] px-3 py-2 text-sm whitespace-nowrap touch-manipulation active:scale-95">
-                Compliance
+                Assurance &amp; Compliance
               </TabsTrigger>
               <TabsTrigger value="audit" className="flex-shrink-0 min-w-[80px] px-3 py-2 text-sm whitespace-nowrap touch-manipulation active:scale-95">
                 <span className="hidden sm:inline">Audit Log</span>

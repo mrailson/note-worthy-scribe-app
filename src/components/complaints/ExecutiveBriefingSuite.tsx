@@ -179,7 +179,7 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                 <div className="text-left">
                   <CardTitle className="flex items-center gap-2 text-indigo-800">
                     <Briefcase className="h-5 w-5" />
-                    Executive Briefing Suite
+                    Complaint Executive Overview
                   </CardTitle>
                   <CardDescription className="text-indigo-600">
                     AI-powered briefing tools for management, partners and PLT sessions
