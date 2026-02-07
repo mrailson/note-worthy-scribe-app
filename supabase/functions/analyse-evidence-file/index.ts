@@ -10,7 +10,7 @@ const corsHeaders = {
 // Detect evidence type from MIME type and filename
 function detectEvidenceType(mimeType: string, fileName: string): string {
   const ext = fileName.split(".").pop()?.toLowerCase() || "";
-  if (mimeType.startsWith("audio/") || ["mp3", "wav", "m4a", "ogg", "flac", "aac"].includes(ext)) return "audio";
+  if (mimeType.startsWith("audio/") || ["mp3", "wav", "m4a", "ogg", "flac", "aac", "opus", "amr", "3gp"].includes(ext)) return "audio";
   if (mimeType.startsWith("image/") || ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "tiff", "tif"].includes(ext)) return "image";
   if (mimeType === "application/pdf" || ext === "pdf") return "pdf";
   if (["doc", "docx"].includes(ext) || mimeType.includes("wordprocessing") || mimeType === "application/msword") return "document";
