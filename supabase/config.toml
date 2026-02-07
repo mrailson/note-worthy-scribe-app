@@ -21,9 +21,6 @@ verify_jwt = false
 [functions.assemblyai-transcription]
 verify_jwt = true
 
-[functions.generate-meeting-minutes]
-verify_jwt = true
-
 [functions.openai-realtime-session]
 verify_jwt = true
 
@@ -31,9 +28,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.deepgram-realtime]
-verify_jwt = true
-
-[functions.echo-proxy]
 verify_jwt = true
 
 [functions.speech-to-text]
@@ -85,9 +79,6 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.import-prior-approval-data]
-verify_jwt = true
-
-[functions.serve-pdf]
 verify_jwt = true
 
 [functions.fetch-icb-traffic-light-drugs]
@@ -173,9 +164,6 @@ verify_jwt = true
 
 [functions.generate-complaint-acknowledgement]
 verify_jwt = true
-
-[functions.send-welcome-email]
-verify_jwt = false
 
 [functions.standalone-deepgram]
 verify_jwt = false
@@ -329,9 +317,6 @@ verify_jwt = false
 
 [functions.validate-quick-record-token]
 verify_jwt = false
-
-[functions.tone-audit-optimiser]
-verify_jwt = true
 
 [functions.lg-verify-service]
 verify_jwt = true
