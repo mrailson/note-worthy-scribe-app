@@ -322,6 +322,15 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                           Full Screen
                         </Button>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleInfographicClick}
+                        className="w-full text-xs text-muted-foreground hover:text-purple-700"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Regenerate
+                      </Button>
                     </div>
                   )}
                   {infographicError && !isInfographicLoading && !isInfographicPreparing && (
