@@ -1,143 +1,115 @@
 
-# Plan: Add Compliments Capture to the Complaints System
 
-## Overview
+## Upload Evidence Overhaul: Drag-and-Drop with AI Analysis
 
-Extend the existing NHS Complaints Management System to also capture **Compliments** — positive feedback about the practice, staff, and services. Compliments will live alongside complaints as a unified "Patient Feedback" system, with their own streamlined workflow, reference numbering (CMPL prefix), and a dedicated dashboard card showing totals. The system will be much lighter-weight than complaints (no acknowledgement letters, outcome questionnaires, or compliance checklists needed) but will share the same underlying infrastructure where appropriate.
+### Overview
+Replace the current basic file input on the "Upload Evidence" tab with a modern drag-and-drop zone (matching the patterns used elsewhere in Notewell, e.g. Ask AI, Meeting Context). Files will be uploaded to Supabase storage, analysed by AI to generate a brief description, and displayed in the Evidence Files list with rich metadata.
 
----
+### Current State
+- The Upload Evidence tab uses a simple `<input type="file">` (single file only)
+- Requires the user to manually select an evidence type and optionally type a description
+- No drag-and-drop, no paste, no multi-file support
+- No AI analysis of uploaded content
 
-## What Will Change For You
+### What Changes
 
-- A new **"Compliments"** dashboard card will appear on the main complaints page, showing a count of compliments received
-- A new **"New Compliment"** tab will be added for quick entry of compliments
-- Compliments will appear in a dedicated **"View Compliments"** tab with search and filtering
-- Each compliment will have its own detail view, reachable at `/compliments/:id`
-- Compliments will use a **CMPL** prefix for reference numbers (e.g., CMPL260001)
-- The page title will update to reflect "Complaints & Compliments"
-- Reports will include compliments data alongside complaints
+#### 1. Database Migration
+Add an `ai_summary` column to the `complaint_investigation_evidence` table to store AI-generated file descriptions separately from the user-entered description:
 
----
-
-## Key Design Decisions
-
-1. **Separate table, not a column on complaints**: Compliments have a simpler data model (no priority, no consent, no outcomes, no compliance checklists). Using the existing `complaints` table would require making many NOT NULL columns nullable and adding complex conditional logic everywhere. A dedicated `compliments` table keeps things clean.
-
-2. **Shared categories**: Compliments will reuse the same category options (Clinical Care, Staff Attitude, Appointments, etc.) so you can see patterns across both complaints and compliments.
-
-3. **Lightweight workflow**: No acknowledgement letters, no outcome letters, no compliance tracking. Just log, optionally share with staff, and close.
-
-4. **Staff recognition**: A "Share with Staff" feature to forward compliments to named staff members, boosting morale.
-
----
-
-## Technical Details
-
-### 1. Database Migration
-
-Create a new `compliments` table:
-
-```text
-compliments
-  - id (uuid, PK)
-  - reference_number (text, NOT NULL) -- auto-generated CMPL prefix
-  - patient_name (text, NOT NULL)
-  - patient_contact_email (text, nullable)
-  - patient_contact_phone (text, nullable)
-  - compliment_date (date, NOT NULL) -- when the compliment was received
-  - compliment_title (text, NOT NULL)
-  - compliment_description (text, NOT NULL)
-  - category (text, NOT NULL) -- reuses complaint categories
-  - staff_mentioned (text[], nullable) -- staff being praised
-  - location_service (text, nullable)
-  - source (text, default 'patient') -- patient, nhs_choices, letter, verbal, etc.
-  - status (text, default 'received') -- received, shared, archived
-  - shared_with_staff (boolean, default false)
-  - shared_at (timestamptz, nullable)
-  - notes (text, nullable) -- internal notes
-  - created_by (uuid, NOT NULL) -- auth user who logged it
-  - practice_id (uuid, nullable) -- FK to gp_practices
-  - created_at (timestamptz, default now())
-  - updated_at (timestamptz, default now())
+```sql
+ALTER TABLE complaint_investigation_evidence 
+ADD COLUMN ai_summary text;
 ```
 
-Plus:
-- A `generate_compliment_reference()` function producing `CMPL` + YY + 4-digit sequence
-- A trigger to auto-assign reference numbers on INSERT
-- RLS policies mirroring the complaints table (authenticated users can CRUD)
-- An index on `reference_number` and `practice_id`
+#### 2. New Edge Function: `analyse-evidence-file`
+A new Supabase Edge Function that:
+- Accepts a file as base64 data along with its filename and MIME type
+- Detects the file category (document, image, audio, email, archive)
+- For documents (PDF, Word, Excel, PowerPoint, CSV, TXT): extracts text content using the same patterns as `extract-document-text` (JSZip for Office formats, Gemini for PDFs)
+- For images: uses Gemini vision to describe the image content
+- For audio files: returns a placeholder note (audio transcription is handled separately via the existing Transcribe button)
+- For email files (.eml, .msg): extracts headers and body text
+- For ZIP archives: lists the contained filenames
+- Returns a structured response with:
+  - `evidenceType`: auto-detected type (email, pdf, image, audio, document, spreadsheet, presentation, archive, other)
+  - `summary`: a brief 1-2 sentence AI-generated description of the file contents
+- Uses `LOVABLE_API_KEY` with `google/gemini-3-flash-preview` for AI analysis
+- Handles 429/402 rate limit errors gracefully
 
-### 2. New Pages & Components
+#### 3. Redesigned Upload Evidence Tab (`InvestigationEvidence.tsx`)
+Replace the current upload form with:
 
-**New files to create:**
-- `src/pages/ComplimentDetails.tsx` -- Detail view for a single compliment (much simpler than complaint details)
-- `src/components/compliments/ComplimentsSummaryView.tsx` -- Summary card list (mirrors ComplaintsSummaryView)
+- **Drag-and-drop zone** using `react-dropzone` (same pattern as `SimpleFileUpload` and Ask AI)
+  - Supports drag, drop, click-to-browse, and clipboard paste (Ctrl+V)
+  - Up to **20 files** at once
+  - Maximum **10MB per file**
+  - Accepted types: PDF, Word (.doc/.docx), Excel (.xls/.xlsx), PowerPoint (.ppt/.pptx), Images (.jpg/.jpeg/.png/.gif/.webp/.bmp/.svg/.tiff/.tif), Audio (.mp3/.wav/.m4a/.ogg/.flac/.aac), Text (.txt/.csv/.rtf), Emails (.eml/.msg), ZIP archives (.zip)
 
-**Route addition in `App.tsx`:**
-- `/compliments/:id` mapped to `ComplimentDetails`
+- **Upload progress UI**: once files are dropped, show a list of files being processed with:
+  - File name and size
+  - A spinner/progress indicator per file
+  - Status badges: "Uploading...", "Analysing...", "Complete", "Failed"
 
-### 3. Updates to Existing Files
+- **Processing pipeline per file**:
+  1. Upload file to Supabase storage (`communication-files` bucket)
+  2. Call `analyse-evidence-file` edge function with the file data
+  3. Auto-detect evidence type from AI response
+  4. Save to `complaint_investigation_evidence` with AI-generated description and auto-detected evidence type
+  5. Update the evidence files list in real-time as each file completes
 
-**`src/pages/ComplaintsSystem.tsx`** (the main page):
-- Update page title to "Complaints & Compliments"
-- Add a **Compliments count** dashboard card (green/teal themed) alongside the existing Total/Open/Overdue/Closed cards
-- Add a **"Compliments"** tab to the main TabsList
-- Add a **"New Compliment"** tab (or section within the Compliments tab)
-- Implement `fetchCompliments()` to load compliments from the new table
-- Add a simplified form for logging compliments (patient name, date, title, description, category, staff mentioned, source)
-- Add a compliments list view with search and category filtering
+- **Remove** the manual evidence type selector and description fields for the initial upload (the AI handles this automatically)
 
-**`src/pages/ComplimentDetails.tsx`** (new page):
-- Display compliment details in a clean, celebratory layout
-- Show staff mentioned with option to "Share with Staff" (mark as shared)
-- Option to add internal notes
-- Delete functionality
-- Export to Word
+#### 4. Enhanced Evidence Files Display
+Update the Evidence Files tab to show richer metadata per file:
+- File name (bold)
+- Auto-detected evidence type badge (colour-coded)
+- AI-generated summary/description (1-2 lines)
+- File size and upload date/time
+- Existing download, transcribe (for audio), and delete buttons remain
 
-### 4. Compliment Entry Form Fields
+### File Changes
 
-The form will be simpler than complaints:
-- Patient/source name (required)
-- Contact email (optional)
-- Date received (required, defaults to today)
-- Title/subject (required)
-- Description (required)
-- Category (required, same dropdown as complaints)
-- Staff mentioned (optional, comma-separated)
-- Location/service (optional)
-- Source (dropdown: Patient, NHS Choices Review, Letter, Verbal, Card, Email, Other)
+| File | Action | Purpose |
+|------|--------|---------|
+| `supabase/functions/analyse-evidence-file/index.ts` | Create | New edge function for AI file analysis |
+| `supabase/config.toml` | Edit | Add `analyse-evidence-file` function entry |
+| `src/components/InvestigationEvidence.tsx` | Edit | Replace upload tab with drag-and-drop + AI pipeline; enhance file list display |
+| Database migration | Create | Add `ai_summary` column to `complaint_investigation_evidence` |
 
-### 5. Dashboard Integration
+### Technical Details
 
-The existing 4-card dashboard grid will expand to include a 5th card:
-- **Compliments** card showing total count with a warm green/teal colour
-- Clicking it filters to show compliments in the compliments tab
-- The card will also show "This Month" count as a subtitle
+**Edge Function Architecture:**
+- The function receives base64-encoded file data (keeping file under 10MB means base64 stays under ~14MB, within Edge Function limits)
+- For Office formats (Word, Excel, PowerPoint): uses JSZip for deterministic XML text extraction (no AI needed)
+- For PDFs and images: uses Gemini 3 Flash via the Lovable AI Gateway for content extraction/description
+- For text/CSV/RTF files: direct text decoding
+- For emails (.eml): basic header/body parsing
+- For ZIP files: lists archive contents via JSZip
+- The AI then summarises the extracted content into a brief evidence description
+- Handles rate limiting (429) and payment (402) errors with user-friendly messages
 
-### 6. Reports Integration
+**Upload Flow:**
+```text
+User drops files
+    |
+    v
+For each file (parallel, up to 5 concurrent):
+    1. Upload to Supabase Storage
+    2. Convert to base64, send to analyse-evidence-file
+    3. Receive { evidenceType, summary }
+    4. Insert into complaint_investigation_evidence
+    5. Update UI with completed file
+    |
+    v
+All files shown in Evidence Files tab with AI summaries
+```
 
-The existing `HierarchicalReports` component will be updated to include a compliments section showing:
-- Total compliments vs complaints ratio
-- Most complimented categories
-- Most mentioned staff members
-- Monthly trends
+**Paste Support:**
+- Listen for `paste` events on the dropzone
+- Extract files from `clipboardData.items`
+- Process the same as dropped files
 
----
+**Concurrency:**
+- Process up to 5 files concurrently to balance speed and server load
+- Queue remaining files if more than 5 are dropped at once
 
-## Implementation Order
-
-1. Database migration (table, function, trigger, RLS, indexes)
-2. Update `ComplaintsSystem.tsx` with new tabs, dashboard card, form, and list view
-3. Create `ComplimentDetails.tsx` page
-4. Create `ComplimentsSummaryView.tsx` component
-5. Add route in `App.tsx`
-6. Update page title and SEO metadata
-
----
-
-## What Won't Change
-
-- All existing complaint functionality remains untouched
-- Existing complaint workflows, letters, compliance, and audit trails are unaffected
-- The complaint form, detail view, and all related edge functions stay the same
-- No changes to any edge functions or external API integrations
