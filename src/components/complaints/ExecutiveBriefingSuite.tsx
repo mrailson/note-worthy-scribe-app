@@ -86,7 +86,7 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
     isGenerating: isGeneratingInfographic,
     generatedBlobUrl,
     error: infographicError,
-  } = useComplaintInfographic();
+  } = useComplaintInfographic(complaint.id);
 
   const fetchAIReportData = useCallback(async (): Promise<AIReportData | null> => {
     if (reportDataRef.current && reportFetchedRef.current === complaint.id) {

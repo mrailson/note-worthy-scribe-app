@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ComplaintInfographicData {
@@ -26,72 +26,163 @@ interface GenerationResult {
   error?: string;
 }
 
-export const useComplaintInfographic = () => {
+const anonymiseText = (text: string): string => {
+  if (!text) return text;
+  let cleaned = text;
+  cleaned = cleaned.replace(/\b(Mr\.?|Mrs\.?|Ms\.?|Miss|Dr\.?|Professor|Prof\.?)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/g, '[the patient]');
+  cleaned = cleaned.replace(/\b(patient|complainant|staff member|nurse|doctor|receptionist|GP)\s*:\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/gi, '$1');
+  cleaned = cleaned.replace(/\b\d{3}\s?\d{3}\s?\d{4}\b/g, '[NHS number redacted]');
+  cleaned = cleaned.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[email redacted]');
+  cleaned = cleaned.replace(/\b(?:(?:\+44\s?|0)(?:\d\s?){9,10})\b/g, '[phone redacted]');
+  return cleaned;
+};
+
+const formatComplaintForInfographic = (data: ComplaintInfographicData): string => {
+  const sections: string[] = [];
+
+  sections.push(`LEARNING FROM COMPLAINTS`);
+  sections.push(`─────────────────────────────────`);
+  sections.push(`\n📋 Reference: ${data.referenceNumber}`);
+  sections.push(`📂 Category: ${data.category}`);
+  sections.push(`📅 Received: ${data.receivedDate}`);
+
+  if (data.outcomeType) {
+    const formattedOutcome = data.outcomeType
+      .split('_')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+    sections.push(`📊 Outcome: ${formattedOutcome}`);
+  }
+
+  const anonymisedOverview = anonymiseText(data.complaintOverview);
+  sections.push(`\n📝 WHAT HAPPENED:`);
+  sections.push(anonymisedOverview.length > 300
+    ? anonymisedOverview.substring(0, 300) + '...'
+    : anonymisedOverview);
+
+  if (data.keyLearnings.length > 0) {
+    sections.push(`\n💡 KEY LEARNINGS:`);
+    data.keyLearnings.slice(0, 5).forEach((l, i) => {
+      sections.push(`${i + 1}. ${anonymiseText(l.learning)} (${l.category})`);
+    });
+  }
+
+  if (data.practiceStrengths.length > 0) {
+    sections.push(`\n✅ WHAT WE DID WELL:`);
+    data.practiceStrengths.slice(0, 4).forEach(s => {
+      sections.push(`• ${anonymiseText(s)}`);
+    });
+  }
+
+  if (data.improvementSuggestions.length > 0) {
+    sections.push(`\n🌱 HOW WE'RE IMPROVING:`);
+    data.improvementSuggestions.slice(0, 4).forEach((s, i) => {
+      sections.push(`${i + 1}. ${anonymiseText(s.suggestion)}`);
+    });
+  }
+
+  return sections.join('\n');
+};
+
+/**
+ * Upload infographic blob to Supabase Storage and persist the public URL
+ * in the complaint_audio_overviews table (infographic_url column).
+ */
+const persistInfographic = async (
+  complaintId: string,
+  blob: Blob
+): Promise<string | null> => {
+  try {
+    const filePath = `${complaintId}/infographic_${Date.now()}.png`;
+
+    // Remove any old infographic for this complaint
+    const { data: existingFiles } = await supabase.storage
+      .from('complaint-infographics')
+      .list(complaintId);
+
+    if (existingFiles && existingFiles.length > 0) {
+      const paths = existingFiles.map(f => `${complaintId}/${f.name}`);
+      await supabase.storage.from('complaint-infographics').remove(paths);
+    }
+
+    // Upload the new image
+    const { error: uploadError } = await supabase.storage
+      .from('complaint-infographics')
+      .upload(filePath, blob, { contentType: 'image/png', upsert: true });
+
+    if (uploadError) {
+      console.error('[Infographic] Storage upload error:', uploadError);
+      return null;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('complaint-infographics')
+      .getPublicUrl(filePath);
+
+    const publicUrl = publicUrlData?.publicUrl;
+    if (!publicUrl) return null;
+
+    // Upsert the URL into complaint_audio_overviews
+    const { data: existing } = await supabase
+      .from('complaint_audio_overviews')
+      .select('id')
+      .eq('complaint_id', complaintId)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from('complaint_audio_overviews')
+        .update({ infographic_url: publicUrl })
+        .eq('complaint_id', complaintId);
+    } else {
+      // Create a new row if none exists (audio may not have been generated yet)
+      const { data: userData } = await supabase.auth.getUser();
+      await supabase
+        .from('complaint_audio_overviews')
+        .insert({
+          complaint_id: complaintId,
+          infographic_url: publicUrl,
+          created_by: userData.user?.id || null,
+        } as any);
+    }
+
+    console.log('[Infographic] Persisted to storage:', publicUrl);
+    return publicUrl;
+  } catch (err) {
+    console.error('[Infographic] Persistence error:', err);
+    return null;
+  }
+};
+
+export const useComplaintInfographic = (complaintId?: string) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<'preparing' | 'generating' | 'downloading' | 'complete'>('preparing');
   const [error, setError] = useState<string | null>(null);
   const [generatedBlobUrl, setGeneratedBlobUrl] = useState<string | null>(null);
+  const [persistedUrl, setPersistedUrl] = useState<string | null>(null);
   const blobRef = useRef<Blob | null>(null);
 
-  const anonymiseText = (text: string): string => {
-    if (!text) return text;
-    let cleaned = text;
-    cleaned = cleaned.replace(/\b(Mr\.?|Mrs\.?|Ms\.?|Miss|Dr\.?|Professor|Prof\.?)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/g, '[the patient]');
-    cleaned = cleaned.replace(/\b(patient|complainant|staff member|nurse|doctor|receptionist|GP)\s*:\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/gi, '$1');
-    cleaned = cleaned.replace(/\b\d{3}\s?\d{3}\s?\d{4}\b/g, '[NHS number redacted]');
-    cleaned = cleaned.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[email redacted]');
-    cleaned = cleaned.replace(/\b(?:(?:\+44\s?|0)(?:\d\s?){9,10})\b/g, '[phone redacted]');
-    return cleaned;
-  };
+  // Load persisted infographic on mount
+  useEffect(() => {
+    if (!complaintId) return;
 
-  const formatComplaintForInfographic = (data: ComplaintInfographicData): string => {
-    const sections: string[] = [];
+    const loadPersisted = async () => {
+      const { data } = await supabase
+        .from('complaint_audio_overviews')
+        .select('infographic_url')
+        .eq('complaint_id', complaintId)
+        .maybeSingle();
 
-    sections.push(`LEARNING FROM COMPLAINTS`);
-    sections.push(`─────────────────────────────────`);
-    sections.push(`\n📋 Reference: ${data.referenceNumber}`);
-    sections.push(`📂 Category: ${data.category}`);
-    sections.push(`📅 Received: ${data.receivedDate}`);
+      if (data?.infographic_url) {
+        setPersistedUrl(data.infographic_url);
+        setGeneratedBlobUrl(data.infographic_url);
+      }
+    };
 
-    if (data.outcomeType) {
-      const formattedOutcome = data.outcomeType
-        .split('_')
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ');
-      sections.push(`📊 Outcome: ${formattedOutcome}`);
-    }
+    loadPersisted();
+  }, [complaintId]);
 
-    const anonymisedOverview = anonymiseText(data.complaintOverview);
-    sections.push(`\n📝 WHAT HAPPENED:`);
-    sections.push(anonymisedOverview.length > 300 
-      ? anonymisedOverview.substring(0, 300) + '...' 
-      : anonymisedOverview);
-
-    if (data.keyLearnings.length > 0) {
-      sections.push(`\n💡 KEY LEARNINGS:`);
-      data.keyLearnings.slice(0, 5).forEach((l, i) => {
-        sections.push(`${i + 1}. ${anonymiseText(l.learning)} (${l.category})`);
-      });
-    }
-
-    if (data.practiceStrengths.length > 0) {
-      sections.push(`\n✅ WHAT WE DID WELL:`);
-      data.practiceStrengths.slice(0, 4).forEach(s => {
-        sections.push(`• ${anonymiseText(s)}`);
-      });
-    }
-
-    if (data.improvementSuggestions.length > 0) {
-      sections.push(`\n🌱 HOW WE'RE IMPROVING:`);
-      data.improvementSuggestions.slice(0, 4).forEach((s, i) => {
-        sections.push(`${i + 1}. ${anonymiseText(s.suggestion)}`);
-      });
-    }
-
-    return sections.join('\n');
-  };
-
-  const generateInfographic = async (data: ComplaintInfographicData): Promise<GenerationResult> => {
+  const generateInfographic = useCallback(async (data: ComplaintInfographicData): Promise<GenerationResult> => {
     setIsGenerating(true);
     setError(null);
     setCurrentPhase('preparing');
@@ -193,6 +284,13 @@ DESIGN REQUIREMENTS:
       blobRef.current = blob;
       setGeneratedBlobUrl(blobUrl);
 
+      // Persist to storage in the background
+      if (complaintId) {
+        persistInfographic(complaintId, blob).then(url => {
+          if (url) setPersistedUrl(url);
+        });
+      }
+
       setCurrentPhase('complete');
 
       return { success: true, blobUrl };
@@ -204,9 +302,9 @@ DESIGN REQUIREMENTS:
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [complaintId]);
 
-  const downloadInfographic = (referenceNumber: string) => {
+  const downloadInfographic = useCallback((referenceNumber: string) => {
     if (!generatedBlobUrl) return;
     const link = document.createElement('a');
     link.href = generatedBlobUrl;
@@ -214,7 +312,7 @@ DESIGN REQUIREMENTS:
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, [generatedBlobUrl]);
 
   return {
     generateInfographic,
@@ -223,5 +321,6 @@ DESIGN REQUIREMENTS:
     currentPhase,
     error,
     generatedBlobUrl,
+    persistedUrl,
   };
 };
