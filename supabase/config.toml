@@ -479,3 +479,6 @@ verify_jwt = false
 
 [functions.transcode-audio]
 verify_jwt = false
+
+[functions.send-security-report]
+verify_jwt = false

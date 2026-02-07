@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShieldAlert, CheckCircle2, AlertTriangle, Info as InfoIcon, FileText, Shield, ChevronRight, ArrowLeft, RefreshCw } from "lucide-react";
+import { ShieldAlert, CheckCircle2, AlertTriangle, Info as InfoIcon, FileText, Shield, ChevronRight, ArrowLeft, RefreshCw, Mail, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,7 @@ interface SecurityFinding {
 const SecurityReport = () => {
   const queryClient = useQueryClient();
   const [isScanning, setIsScanning] = useState(false);
+  const [isSendingReport, setIsSendingReport] = useState(false);
 
   // Fetch latest security scan findings
   const { data: scanData, isLoading, error } = useQuery({
@@ -72,6 +73,25 @@ const SecurityReport = () => {
       toast.error('Failed to run security scan');
     } finally {
       setIsScanning(false);
+    }
+  };
+
+  const handleEmailReport = async () => {
+    setIsSendingReport(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-security-report', {
+        body: { recipient_email: 'malcolm.railson@nhs.net' }
+      });
+
+      if (error) throw error;
+      if (data?.success === false) throw new Error(data?.error || 'Failed to send report');
+
+      toast.success('Security report sent to malcolm.railson@nhs.net');
+    } catch (err: any) {
+      console.error('Email report error:', err);
+      toast.error(err?.message || 'Failed to send security report');
+    } finally {
+      setIsSendingReport(false);
     }
   };
 
@@ -182,6 +202,19 @@ const SecurityReport = () => {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-3">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleEmailReport}
+                  disabled={isSendingReport}
+                >
+                  {isSendingReport ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Mail className="w-4 h-4 mr-2" />
+                  )}
+                  {isSendingReport ? 'Sending...' : 'Email Report'}
+                </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
