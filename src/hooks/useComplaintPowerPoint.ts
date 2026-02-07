@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { toast } from 'sonner';
 
 interface ComplaintPowerPointData {
@@ -203,6 +204,7 @@ const persistPowerPoint = async (
 };
 
 export const useComplaintPowerPoint = (complaintId?: string) => {
+  const { practiceContext } = usePracticeContext();
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<GenerationPhase>('preparing');
   const [error, setError] = useState<string | null>(null);
@@ -236,15 +238,22 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
 
   const formatComplaintContent = useCallback((data: ComplaintPowerPointData): string => {
     const sections: string[] = [];
+    const practiceName = practiceContext?.practiceName || '';
 
     // Structured slide-by-slide content guide for Gamma
     sections.push('# Learning Together: Complaint Review');
     sections.push('## A Staff Training Presentation');
+    if (practiceName) {
+      sections.push(`### ${practiceName}`);
+    }
     sections.push('');
 
     // Slide 1: Title
     sections.push('### SLIDE 1 — Title Slide');
     sections.push(`Learning Together: Complaint Review`);
+    if (practiceName) {
+      sections.push(`Practice: ${practiceName}`);
+    }
     sections.push(`Reference: ${data.referenceNumber} | Category: ${data.category}`);
     sections.push(`Date Received: ${data.receivedDate}`);
     sections.push('Continuous improvement through shared learning');
@@ -307,12 +316,15 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
 
     // Closing
     sections.push('### FINAL SLIDE — Thank You & Discussion');
+    if (practiceName) {
+      sections.push(`${practiceName}`);
+    }
     sections.push('Questions and reflections from the team');
     sections.push('How can we continue to improve together?');
     sections.push('Powered by NoteWell AI');
 
     return sections.join('\n');
-  }, []);
+  }, [practiceContext]);
 
   const generatePowerPoint = useCallback(async (
     data: ComplaintPowerPointData,
@@ -325,15 +337,21 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
     try {
       const supportingContent = formatComplaintContent(data);
 
-      // No practice logo — removed to keep presentations generic and shareable
+      const practiceName = practiceContext?.practiceName || '';
 
       setCurrentPhase('generating');
 
       // Rich, visually-directive instructions for Gamma
+      const practiceNameInstruction = practiceName
+        ? `BRANDING: Include the practice name "${practiceName}" on the title slide and final slide. The practice name should appear as a subtitle or header element — professional but prominent.`
+        : `BRANDING: No practice name available — keep branding generic.`;
+
       const customInstructions = [
         // Tone & privacy
         `TONE: Warm, supportive PLT staff training — "learning together as a team". Never blame individuals. Celebrate what went well alongside improvements.`,
         `PRIVACY (CRITICAL): Fully anonymised — no patient/staff names, NHS numbers, emails, phone numbers. Use "the patient" or "a team member".`,
+        // Practice branding
+        practiceNameInstruction,
         // Visual quality — GP practice themed with variety
         `DESIGN: Executive-quality presentation with bold, modern visuals. Use full-bleed photorealistic hero images on every slide. Images should be rooted in UK General Practice / primary care settings. Use a MIX of: GP consultation rooms, practice reception areas, waiting rooms, practice team meetings around a table, GPs at desks with computers, community health settings, patient-facing signage, appointment booking screens, practice buildings exterior, and warm doctor-patient interactions (no identifiable faces). Avoid repetitive "doctor in scrubs" hospital imagery — this is about General Practice, not acute care. Supplement with 1-2 conceptual/metaphorical images (growth, teamwork, improvement paths) for variety.`,
         `LAYOUT: Mix layouts — full-image backgrounds with text overlay, split-screen image+content, icon grids for key points. Avoid plain text-only slides. Every slide should be visually engaging.`,
@@ -342,8 +360,7 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         // Structure
         `Exactly ${slideCount} slides. British English throughout.`,
         `Speaker notes in the hidden notes pane only — never visible on slides. Notes should contain full presenter talking points.`,
-        `Final slide: "Thank You & Discussion" with "Powered by NoteWell AI" attribution.`,
-        `NO practice logos or external branding on any slide.`,
+        `Final slide: "Thank You & Discussion" with${practiceName ? ` "${practiceName}" and` : ''} "Powered by NoteWell AI" attribution.`,
       ].join(' ');
 
       const { data: startResponse, error: startError } = await supabase.functions.invoke(
