@@ -13,36 +13,36 @@ export interface ComplianceGuidanceLink {
 const COMPLIANCE_GUIDANCE: Record<number, ComplianceGuidanceLink[]> = {
   1: [
     { label: 'NHS Complaints Regulations 2009 (Regulation 15)', url: 'https://www.legislation.gov.uk/uksi/2009/309/regulation/15' },
-    { label: 'CQC Regulation 16 – Receiving and acting on complaints', url: 'https://www.cqc.org.uk/guidance-providers/regulations/regulation-16-receiving-acting-complaints' },
+    { label: 'CQC Regulation 16 – Receiving and acting on complaints', url: 'https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-16' },
   ],
   2: [
     { label: 'NHS Complaints Regulations 2009 (Regulation 14)', url: 'https://www.legislation.gov.uk/uksi/2009/309/regulation/14' },
-    { label: 'CQC Key Line of Enquiry – Responsive', url: 'https://www.cqc.org.uk/guidance-providers/gps/key-lines-enquiry-responsive' },
+    { label: 'CQC Assessment Framework – Responsive', url: 'https://www.cqc.org.uk/guidance-regulation/providers/assessment/single-assessment-framework/responsive' },
   ],
   3: [
     { label: 'NHS Complaints Regulations 2009', url: 'https://www.legislation.gov.uk/uksi/2009/309/contents' },
-    { label: 'CQC Regulation 17.2 – Good Governance', url: 'https://www.cqc.org.uk/guidance-providers/regulations/regulation-17-good-governance' },
+    { label: 'CQC Regulation 17 – Good Governance', url: 'https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-17' },
   ],
   4: [
     { label: 'Data Protection Act 2018', url: 'https://www.legislation.gov.uk/ukpga/2018/12/contents' },
     { label: 'UK GDPR – Article 6 (Lawful basis)', url: 'https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/lawful-basis/a-guide-to-lawful-basis/' },
-    { label: 'CQC Regulation 17 – Good Governance (Information)', url: 'https://www.cqc.org.uk/guidance-providers/regulations/regulation-17-good-governance' },
+    { label: 'CQC Regulation 17 – Good Governance (Information)', url: 'https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-17' },
   ],
   5: [
-    { label: 'CQC Regulation 17 – Good Governance', url: 'https://www.cqc.org.uk/guidance-providers/regulations/regulation-17-good-governance' },
-    { label: 'CQC Regulation 20 – Duty of Candour', url: 'https://www.cqc.org.uk/guidance-providers/regulations/regulation-20-duty-candour' },
+    { label: 'CQC Regulation 17 – Good Governance', url: 'https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-17' },
+    { label: 'CQC Regulation 20 – Duty of Candour', url: 'https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-20' },
   ],
   6: [
-    { label: 'CQC Key Line of Enquiry – Well-led', url: 'https://www.cqc.org.uk/guidance-providers/gps/key-lines-enquiry-well-led' },
+    { label: 'CQC Assessment Framework – Well-led', url: 'https://www.cqc.org.uk/guidance-regulation/providers/assessment/single-assessment-framework/well-led' },
     { label: 'NHS Resolution – Learning from complaints', url: 'https://resolution.nhs.uk/' },
   ],
   7: [
-    { label: 'CQC Regulation 17 – Good Governance (Records)', url: 'https://www.cqc.org.uk/guidance-providers/regulations/regulation-17-good-governance' },
+    { label: 'CQC Regulation 17 – Good Governance (Records)', url: 'https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-17' },
     { label: 'NHS England – Records Management Code of Practice', url: 'https://transform.england.nhs.uk/information-governance/guidance/records-management-code/' },
   ],
   8: [
-    { label: 'CQC Regulation 17 – Good Governance (Leadership)', url: 'https://www.cqc.org.uk/guidance-providers/regulations/regulation-17-good-governance' },
-    { label: 'CQC Key Line of Enquiry – Well-led', url: 'https://www.cqc.org.uk/guidance-providers/gps/key-lines-enquiry-well-led' },
+    { label: 'CQC Regulation 17 – Good Governance (Leadership)', url: 'https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-17' },
+    { label: 'CQC Assessment Framework – Well-led', url: 'https://www.cqc.org.uk/guidance-regulation/providers/assessment/single-assessment-framework/well-led' },
   ],
   9: [
     { label: 'NHS Complaints Regulations 2009 (Timescales)', url: 'https://www.legislation.gov.uk/uksi/2009/309/contents' },
@@ -57,20 +57,20 @@ const COMPLIANCE_GUIDANCE: Record<number, ComplianceGuidanceLink[]> = {
     { label: 'Parliamentary & Health Service Ombudsman (PHSO)', url: 'https://www.ombudsman.org.uk/' },
   ],
   12: [
-    { label: 'CQC Regulation 17 – Good Governance (Improvement)', url: 'https://www.cqc.org.uk/guidance-providers/regulations/regulation-17-good-governance' },
-    { label: 'CQC Key Line of Enquiry – Well-led (Learning culture)', url: 'https://www.cqc.org.uk/guidance-providers/gps/key-lines-enquiry-well-led' },
+    { label: 'CQC Regulation 17 – Good Governance (Improvement)', url: 'https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-17' },
+    { label: 'CQC Assessment Framework – Learning, improvement and innovation', url: 'https://www.cqc.org.uk/guidance-regulation/providers/assessment/single-assessment-framework/well-led/learning-improvement-innovation' },
   ],
   13: [
-    { label: 'CQC Key Line of Enquiry – Responsive', url: 'https://www.cqc.org.uk/guidance-providers/gps/key-lines-enquiry-responsive' },
-    { label: 'NHS England – Quality Improvement', url: 'https://www.england.nhs.uk/quality-service-improvement-and-redesign-qsir-tools/' },
+    { label: 'CQC Assessment Framework – Responsive', url: 'https://www.cqc.org.uk/guidance-regulation/providers/assessment/single-assessment-framework/responsive' },
+    { label: 'NHS England – Experience of Care Improvement Framework', url: 'https://www.england.nhs.uk/long-read/experience-of-care-improvement-framework/' },
   ],
   14: [
-    { label: 'CQC Regulation 18 – Staffing', url: 'https://www.cqc.org.uk/guidance-providers/regulations/regulation-18-staffing' },
-    { label: 'CQC Key Line of Enquiry – Well-led', url: 'https://www.cqc.org.uk/guidance-providers/gps/key-lines-enquiry-well-led' },
+    { label: 'CQC Regulation 18 – Staffing', url: 'https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-18' },
+    { label: 'CQC Assessment Framework – Well-led', url: 'https://www.cqc.org.uk/guidance-regulation/providers/assessment/single-assessment-framework/well-led' },
   ],
   15: [
-    { label: 'NHS England – Quality Assurance', url: 'https://www.england.nhs.uk/quality-service-improvement-and-redesign-qsir-tools/' },
-    { label: 'CQC Regulation 17 – Good Governance (Monitoring)', url: 'https://www.cqc.org.uk/guidance-providers/regulations/regulation-17-good-governance' },
+    { label: 'CQC Assessment Framework – Governance, management and sustainability', url: 'https://www.cqc.org.uk/guidance-regulation/providers/assessment/single-assessment-framework/well-led/governance-management-sustainability' },
+    { label: 'CQC Regulation 17 – Good Governance (Monitoring)', url: 'https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-17' },
   ],
 };
 
