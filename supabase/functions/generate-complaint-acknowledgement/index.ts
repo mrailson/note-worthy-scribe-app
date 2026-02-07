@@ -236,21 +236,22 @@ CRITICAL LANGUAGE REQUIREMENT - BRITISH ENGLISH ONLY:
 - Double-check every word ending in -ize/-ise, -or/-our, -er/-re
 
 IMPORTANT FORMATTING REQUIREMENTS:
-- Start with the practice logo/letterhead (if provided via logo URL)
-- Include the date in format "DD Month YYYY"
-- Follow with "PRIVATE & CONFIDENTIAL" in red text
+- Do NOT include any practice header, letterhead text, or "*Letterhead/Logo Here*" at the start of the letter. The logo is handled separately by the application.
+- Start directly with the date in format "DD Month YYYY"
+- Follow with "PRIVATE & CONFIDENTIAL"
 - Then include the patient's address details
 - Format as a clean, professional NHS letter
-- End with signature block that includes:
+- Include EXACTLY ONE signature block. Do not repeat the signatory name, practice name, or address anywhere else in the letter.
+- The signature block should contain:
   * "Yours sincerely,"
   * Two blank lines
   * The signatory's name
   * The signatory's job title
   * Practice name
-  * Full practice address on separate lines
+- Do NOT include the practice address in the signature block — it should only appear ONCE in the letter header
 - NEVER include personal email addresses or phone numbers in contact details
 - Only use practice-wide email and phone numbers
-- Include practice contact details naturally in the signature area
+- Include practice phone and email as plain text within the body of the letter where you mention how to contact the practice. Do NOT place them in the signature block.
 
 Format as a formal letter with NHS styling matching standard outcome letter formatting.`;
 
@@ -296,29 +297,23 @@ Generate a professional acknowledgement letter addressing the specific concerns 
 
 IMPORTANT SIGNATURE FORMATTING:
 - If patient address is provided, include it in the letter header after "Private & Confidential"
-- End the letter with a complete signature block that includes:
+- The letter must contain EXACTLY ONE "Yours sincerely" signature block. Do not repeat the signatory name, practice details, or address after the signature.
+- End the letter with a signature block that includes:
   1. "Yours sincerely,"
   2. Two blank lines
   3. ${signatureDetails?.name || signatoryName || 'Complaints Manager'} (ONLY ONCE - do not repeat the name)
   4. ${signatureDetails?.job_title || signatoryTitle || 'Practice Manager'}
   5. ${practiceDetails?.practice_name || 'The Practice'}
-  6. ${practiceDetails?.address || ''} (format address on separate lines with minimal spacing)
+- Do NOT include the practice address in the signature block
 
 CRITICAL CONTACT INFORMATION RULES:
 - Never include personal email addresses or direct contact details in the signature
 - You MUST use the EXACT practice contact details provided above
-- ${practiceDetails?.email ? `The practice email is: ${practiceDetails.email} - include this EXACT email address in the letter` : 'Include a generic practice email'}
-- ${practiceDetails?.phone ? `The practice phone number is: ${practiceDetails.phone} - include this EXACT phone number in the letter` : 'Indicate phone number is available upon request'}
+- ${practiceDetails?.email ? `The practice email is: ${practiceDetails.email} - include this EXACT email address in the body of the letter` : 'Include a generic practice email'}
+- ${practiceDetails?.phone ? `The practice phone number is: ${practiceDetails.phone} - include this EXACT phone number in the body of the letter` : 'Indicate phone number is available upon request'}
 - DO NOT use placeholders like "[Practice Phone Number]" or "[Practice Email Address]" or "[Signatory Name]" or "[Practice Name]"
 - Use the ACTUAL values provided in the Signature Details and Practice Details sections above
-
-FORMATTING THE CONTACT DETAILS:
-- Format contact details as a clean list without bullet points or dashes
-- Use bold labels followed by the value, properly aligned
-- Format as: **Phone**: [phone number] on one line
-- Format as: **Email**: [email address] on the next line
-- Ensure consistent spacing and alignment between label and value
-- Do not indent or use bullet points for these contact details`;
+- Include contact details as plain text in the letter body, NOT as bold-labelled lines in the signature`;
 
     console.log('Making OpenAI API request...');
     
