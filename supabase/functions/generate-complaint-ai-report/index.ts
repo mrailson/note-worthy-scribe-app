@@ -43,12 +43,26 @@ serve(async (req) => {
 
     // Calculate timeline compliance using correct date fields
     const receivedDate = complaint.received_at ? new Date(complaint.received_at) : new Date(complaint.created_at);
-    const acknowledgedDate = complaint.complaint_acknowledgements?.[0]?.sent_at 
-      ? new Date(complaint.complaint_acknowledgements[0].sent_at) 
-      : null;
-    const outcomeDate = complaint.complaint_outcomes?.[0]?.sent_at 
-      ? new Date(complaint.complaint_outcomes[0].sent_at) 
-      : null;
+    
+    // Acknowledgement date: prefer sent_at, fall back to created_at on the record, then complaint.acknowledged_at
+    const ackRecord = complaint.complaint_acknowledgements?.[0];
+    const acknowledgedDate = ackRecord?.sent_at 
+      ? new Date(ackRecord.sent_at)
+      : ackRecord?.created_at
+        ? new Date(ackRecord.created_at)
+        : complaint.acknowledged_at
+          ? new Date(complaint.acknowledged_at)
+          : null;
+    
+    // Outcome date: prefer sent_at, fall back to decided_at, then created_at
+    const outcomeRecord = complaint.complaint_outcomes?.[0];
+    const outcomeDate = outcomeRecord?.sent_at 
+      ? new Date(outcomeRecord.sent_at)
+      : outcomeRecord?.decided_at
+        ? new Date(outcomeRecord.decided_at)
+        : outcomeRecord?.created_at
+          ? new Date(outcomeRecord.created_at)
+          : null;
 
     const daysToAcknowledge = acknowledgedDate 
       ? Math.floor((acknowledgedDate.getTime() - receivedDate.getTime()) / (1000 * 60 * 60 * 24))
