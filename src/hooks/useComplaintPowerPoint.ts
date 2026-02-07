@@ -325,30 +325,7 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
     try {
       const supportingContent = formatComplaintContent(data);
 
-      // Fetch practice logo URL for branding
-      let practiceLogoUrl: string | null = null;
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: practiceRows } = await supabase
-            .from('practice_details')
-            .select('practice_logo_url')
-            .eq('user_id', user.id)
-            .not('practice_logo_url', 'is', null)
-            .not('practice_logo_url', 'eq', '')
-            .limit(1);
-
-          const validLogo = practiceRows?.find(r =>
-            r.practice_logo_url?.startsWith('https://')
-          );
-          if (validLogo?.practice_logo_url) {
-            practiceLogoUrl = validLogo.practice_logo_url;
-            console.log('[ComplaintPowerPoint] Found practice logo:', practiceLogoUrl);
-          }
-        }
-      } catch (logoErr) {
-        console.warn('[ComplaintPowerPoint] Could not fetch practice logo:', logoErr);
-      }
+      // No practice logo — removed to keep presentations generic and shareable
 
       setCurrentPhase('generating');
 
@@ -357,8 +334,8 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         // Tone & privacy
         `TONE: Warm, supportive PLT staff training — "learning together as a team". Never blame individuals. Celebrate what went well alongside improvements.`,
         `PRIVACY (CRITICAL): Fully anonymised — no patient/staff names, NHS numbers, emails, phone numbers. Use "the patient" or "a team member".`,
-        // Visual quality
-        `DESIGN: Executive-quality presentation with bold, modern visuals. Use full-bleed photorealistic hero images on every slide — healthcare settings, teamwork, growth metaphors (e.g. seedlings, lightbulbs, handshakes, stethoscopes, team huddles). Images must be large and impactful, not small thumbnails.`,
+        // Visual quality — diverse imagery, NOT just healthcare professionals
+        `DESIGN: Executive-quality presentation with bold, modern visuals. Use full-bleed photorealistic hero images on every slide. IMPORTANT: Use a WIDE VARIETY of image subjects — NOT just healthcare workers in scrubs. Mix in: nature metaphors (paths, bridges, sunrise, growing trees), abstract teamwork (puzzle pieces, gears, hands building), workspace scenes (modern offices, whiteboards, meeting rooms), community imagery (diverse people, neighbourhoods), and conceptual visuals (lightbulbs, compasses, targets, open doors). Only 1-2 slides should show clinical/healthcare imagery. Every other slide should use metaphorical or conceptual imagery.`,
         `LAYOUT: Mix layouts — full-image backgrounds with text overlay, split-screen image+content, icon grids for key points. Avoid plain text-only slides. Every slide should be visually engaging.`,
         `COLOUR SCHEME: Professional NHS-inspired palette — deep navy (#003087), NHS blue (#005EB8), teal accents, warm greens for positives, amber for action items. White/light backgrounds for readability.`,
         `TYPOGRAPHY: Clean sans-serif headings (bold, large). Concise bullet points — max 4-5 per slide. Let the imagery do the heavy lifting.`,
@@ -366,8 +343,8 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         `Exactly ${slideCount} slides. British English throughout.`,
         `Speaker notes in the hidden notes pane only — never visible on slides. Notes should contain full presenter talking points.`,
         `Final slide: "Thank You & Discussion" with "Powered by NoteWell AI" attribution.`,
-        practiceLogoUrl ? `Practice logo at top-right of every slide: ${practiceLogoUrl}` : '',
-      ].filter(Boolean).join(' ');
+        `NO practice logos or external branding on any slide.`,
+      ].join(' ');
 
       const { data: startResponse, error: startError } = await supabase.functions.invoke(
         'generate-powerpoint-gamma',
@@ -380,14 +357,6 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
             customInstructions,
             audience: 'NHS GP practice staff during Protected Learning Time (PLT) sessions',
             fontStyle: 'modern',
-            ...(practiceLogoUrl ? {
-              branding: {
-                logoUrl: practiceLogoUrl,
-                logoPosition: 'topRight',
-                showCardNumbers: true,
-                cardNumberPosition: 'bottomRight',
-              },
-            } : {}),
           },
         }
       );
