@@ -75,6 +75,7 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
   const [showFullscreenInfographic, setShowFullscreenInfographic] = useState(false);
   const [aiReportData, setAiReportData] = useState<AIReportData | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
+  const [loadingPowerPoint, setLoadingPowerPoint] = useState(false);
   const reportFetchedRef = useRef<string | null>(null);
   const reportDataRef = useRef<AIReportData | null>(null);
   const inFlightRef = useRef(false);
@@ -145,9 +146,14 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
 
   const handlePowerPointClick = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const data = await fetchAIReportData();
-    if (data) {
-      setShowPowerPointModal(true);
+    setLoadingPowerPoint(true);
+    try {
+      const data = await fetchAIReportData();
+      if (data) {
+        setShowPowerPointModal(true);
+      }
+    } finally {
+      setLoadingPowerPoint(false);
     }
   }, [fetchAIReportData]);
 
@@ -157,7 +163,8 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
   );
   const outcomeType = complaint.complaint_outcomes?.[0]?.outcome_type;
 
-  const isInfographicLoading = loadingReport || isGeneratingInfographic;
+  const isInfographicLoading = isGeneratingInfographic;
+  const isInfographicPreparing = loadingReport && !loadingPowerPoint;
 
   return (
     <>
@@ -246,7 +253,7 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                       Single-page anonymised overview for the staffroom
                     </p>
                   </div>
-                  {!generatedBlobUrl && !isInfographicLoading && (
+                  {!generatedBlobUrl && !isInfographicLoading && !isInfographicPreparing && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -257,15 +264,15 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                       Generate Overview
                     </Button>
                   )}
-                  {isInfographicLoading && (
+                  {(isInfographicLoading || isInfographicPreparing) && (
                     <div className="w-full flex items-center justify-center gap-2 py-1 text-purple-600">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span className="text-xs font-medium">
-                        {loadingReport ? 'Preparing data…' : 'Generating infographic…'}
+                        {isInfographicPreparing ? 'Preparing data…' : 'Generating infographic…'}
                       </span>
                     </div>
                   )}
-                  {generatedBlobUrl && !isInfographicLoading && (
+                  {generatedBlobUrl && !isInfographicLoading && !isInfographicPreparing && (
                     <div className="w-full space-y-2">
                       <button
                         onClick={(e) => {
@@ -308,7 +315,7 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                       </div>
                     </div>
                   )}
-                  {infographicError && !isInfographicLoading && (
+                  {infographicError && !isInfographicLoading && !isInfographicPreparing && (
                     <p className="text-xs text-destructive">{infographicError}</p>
                   )}
                 </div>
@@ -328,10 +335,10 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={handlePowerPointClick}
-                    disabled={loadingReport}
+                    disabled={loadingPowerPoint}
                     className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
                   >
-                    {loadingReport ? (
+                    {loadingPowerPoint ? (
                       <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                     ) : (
                       <Sparkles className="h-4 w-4 mr-1" />
