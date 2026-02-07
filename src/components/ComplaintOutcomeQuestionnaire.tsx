@@ -77,7 +77,7 @@ export const ComplaintOutcomeQuestionnaire = ({
     improvements_made: '',
     additional_context: '',
     is_vexatious: false,
-    use_formal_outcome_labels: false,
+    use_formal_outcome_labels: true,
   });
   const [complianceChecks, setComplianceChecks] = useState<ComplianceCheck[]>([]);
   const [complianceSummary, setComplianceSummary] = useState<any>(null);

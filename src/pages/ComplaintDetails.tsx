@@ -1301,7 +1301,7 @@ const ComplaintDetails = () => {
           instructions: instructions,
           complaintDescription: complaint.complaint_description,
           referenceNumber: complaint.reference_number,
-          useFormalLabels: outcomeQuestionnaireData?.use_formal_outcome_labels ?? false
+          useFormalLabels: outcomeQuestionnaireData?.use_formal_outcome_labels ?? true
         }
       });
 
