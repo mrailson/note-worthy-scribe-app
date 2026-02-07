@@ -1,12 +1,65 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Removes duplicate compliance checks and keeps only the numbered ones (1-15)
- * This fixes the issue where both old and new migration functions created entries
+ * Extracts the number from a compliance item string like "(3) Some text" → 3
+ * Returns 999 for items without a number prefix (sorts them to the end).
+ */
+export function extractComplianceNumber(complianceItem: string): number {
+  const match = complianceItem?.match(/^\((\d+)\)/);
+  return match ? parseInt(match[1], 10) : 999;
+}
+
+/**
+ * Sorts compliance checks by their numbered prefix (1–15).
+ * Falls back to created_at then id for stable ordering.
+ */
+export function sortComplianceChecks<T extends { compliance_item: string; created_at?: string | null; id: string }>(
+  checks: T[]
+): T[] {
+  return [...checks].sort((a, b) => {
+    const numA = extractComplianceNumber(a.compliance_item);
+    const numB = extractComplianceNumber(b.compliance_item);
+    if (numA !== numB) return numA - numB;
+    // Stable tie-breaker
+    const da = a.created_at || '';
+    const db = b.created_at || '';
+    if (da !== db) return da.localeCompare(db);
+    return a.id.localeCompare(b.id);
+  });
+}
+
+/**
+ * Client-side deduplication safety net.
+ * Keeps only the first occurrence of each compliance_item (after sorting by best record).
+ */
+export function deduplicateComplianceChecks<T extends { compliance_item: string; is_compliant: boolean; created_at?: string | null; id: string }>(
+  checks: T[]
+): T[] {
+  const seen = new Map<string, T>();
+  // Sort so compliant + newest comes first
+  const sorted = [...checks].sort((a, b) => {
+    const aComp = a.is_compliant ? 1 : 0;
+    const bComp = b.is_compliant ? 1 : 0;
+    if (bComp !== aComp) return bComp - aComp;
+    const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return bTime - aTime;
+  });
+  for (const check of sorted) {
+    const key = check.compliance_item.trim();
+    if (!seen.has(key)) {
+      seen.set(key, check);
+    }
+  }
+  return sortComplianceChecks(Array.from(seen.values()));
+}
+
+/**
+ * Removes duplicate compliance checks and keeps only the numbered ones (1-15).
+ * Now mostly a fallback — the DB unique constraint prevents future duplicates.
  */
 export async function cleanupDuplicateComplianceChecks(complaintId: string) {
   try {
-    // Fetch all checks for this complaint
     const { data: allChecks, error: fetchError } = await supabase
       .from('complaint_compliance_checks')
       .select('*')
@@ -63,7 +116,6 @@ export async function cleanupDuplicateComplianceChecks(complaintId: string) {
           const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
           return bTime - aTime;
         });
-        // keep first, delete the rest
         sorted.slice(1).forEach((c: any) => idsToDelete.push(c.id));
       });
 
@@ -90,14 +142,6 @@ export async function cleanupDuplicateComplianceChecks(complaintId: string) {
       deleted: 0,
       remaining: Object.keys(groups).length
     };
-
-    return {
-      success: true,
-      message: `No duplicates found. Total checks: ${allChecks.length}`,
-      deleted: 0,
-      remaining: allChecks.length
-    };
-
   } catch (error) {
     console.error('Error cleaning up compliance checks:', error);
     return {

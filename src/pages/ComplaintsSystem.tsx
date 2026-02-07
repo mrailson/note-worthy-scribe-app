@@ -1207,11 +1207,13 @@ const ComplaintsSystem = () => {
       const { data: checksData, error: checksError } = await supabase
         .from('complaint_compliance_checks')
         .select('*')
-        .eq('complaint_id', complaintId)
-        .order('compliance_item');
+        .eq('complaint_id', complaintId);
 
       if (checksError) throw checksError;
-      setComplianceChecks(checksData || []);
+      
+      // Deduplicate (safety net) and sort by numbered prefix
+      const { deduplicateComplianceChecks } = await import('@/utils/cleanupComplianceChecks');
+      setComplianceChecks(deduplicateComplianceChecks(checksData || []));
 
       // Fetch compliance summary
       const { data: summaryData, error: summaryError } = await supabase.rpc('get_complaint_compliance_summary', {

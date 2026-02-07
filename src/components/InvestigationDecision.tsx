@@ -137,11 +137,11 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
       const { data: checks, error: checksError } = await supabase
         .from('complaint_compliance_checks')
         .select('*')
-        .eq('complaint_id', complaintId)
-        .order('created_at', { ascending: true });
+        .eq('complaint_id', complaintId);
 
       if (checksError) throw checksError;
-      setComplianceChecks(checks || []);
+      const { deduplicateComplianceChecks } = await import('@/utils/cleanupComplianceChecks');
+      setComplianceChecks(deduplicateComplianceChecks(checks || []));
 
       // Get compliance summary
       const { data: summary, error: summaryError } = await supabase

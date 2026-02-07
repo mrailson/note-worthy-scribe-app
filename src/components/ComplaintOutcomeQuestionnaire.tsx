@@ -362,8 +362,7 @@ export const ComplaintOutcomeQuestionnaire = ({
       const { data: checks, error: checksError } = await supabase
         .from('complaint_compliance_checks')
         .select('*')
-        .eq('complaint_id', complaintId)
-        .order('created_at', { ascending: true });
+        .eq('complaint_id', complaintId);
 
       if (checksError) throw checksError;
 
@@ -454,11 +453,11 @@ export const ComplaintOutcomeQuestionnaire = ({
       const { data: updatedChecks, error: updatedError } = await supabase
         .from('complaint_compliance_checks')
         .select('*')
-        .eq('complaint_id', complaintId)
-        .order('created_at', { ascending: true });
+        .eq('complaint_id', complaintId);
 
       if (updatedError) throw updatedError;
-      setComplianceChecks(updatedChecks || []);
+      const { deduplicateComplianceChecks } = await import('@/utils/cleanupComplianceChecks');
+      setComplianceChecks(deduplicateComplianceChecks(updatedChecks || []));
 
       // Get compliance summary
       const { data: summary, error: summaryError } = await supabase
