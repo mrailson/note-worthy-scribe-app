@@ -56,7 +56,10 @@ export class FileProcessorManager {
     '.m4a': 'audio',
     '.ogg': 'audio',
     '.flac': 'audio',
-    '.aac': 'audio'
+    '.aac': 'audio',
+    '.opus': 'audio',
+    '.amr': 'audio',
+    '.3gp': 'audio'
   };
 
   static getFileType(fileName: string): string {

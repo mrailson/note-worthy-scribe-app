@@ -14,7 +14,7 @@ interface SimpleFileUploadProps {
 
 export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
   onFileUpload,
-  accept = '.pdf,.doc,.docx,.xlsx,.xls,.csv,.txt,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif,.ppt,.pptx,.mp3,.mp4,.wav,.m4a,.webm,.ogg,.mov,.avi,.mkv,.flac,.aac',
+  accept = '.pdf,.doc,.docx,.xlsx,.xls,.csv,.txt,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif,.ppt,.pptx,.mp3,.mp4,.wav,.m4a,.webm,.ogg,.mov,.avi,.mkv,.flac,.aac,.opus,.amr,.3gp',
   maxSize = 30,
   className = '',
   multiple = true
@@ -65,10 +65,13 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
       'audio/mpeg': ['.mp3'],
       'audio/wav': ['.wav'],
       'audio/x-m4a': ['.m4a'],
-      'audio/ogg': ['.ogg'],
+      'audio/ogg': ['.ogg', '.opus'],
+      'audio/opus': ['.opus'],
       'audio/webm': ['.webm'],
       'audio/flac': ['.flac'],
       'audio/aac': ['.aac'],
+      'audio/amr': ['.amr'],
+      'audio/3gpp': ['.3gp'],
       // Video
       'video/mp4': ['.mp4'],
       'video/webm': ['.webm'],
