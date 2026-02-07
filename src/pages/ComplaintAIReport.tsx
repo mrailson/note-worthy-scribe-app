@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, ThumbsUp, RefreshCw, Mail } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, ThumbsUp, RefreshCw, Mail, Image } from 'lucide-react';
 import { ComplaintAudioOverviewPlayer } from '@/components/complaints/ComplaintAudioOverviewPlayer';
+import { ComplaintInfographicModal } from '@/components/complaints/ComplaintInfographicModal';
 import { showToast } from '@/utils/toastWrapper';
 import { format } from 'date-fns';
 import { downloadComplaintReport } from '@/utils/downloadComplaintReport';
@@ -50,6 +51,7 @@ export default function ComplaintAIReport() {
   const [emailSending, setEmailSending] = useState(false);
   const [generatedAt, setGeneratedAt] = useState<Date>(new Date());
   const [audioOverview, setAudioOverview] = useState<any>(null);
+  const [showInfographicModal, setShowInfographicModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -581,12 +583,24 @@ NHS Complaints Management System
               <Badge variant="outline" className="text-lg px-4 py-2">
                 {complaint.category}
               </Badge>
-              <ComplaintAudioOverviewPlayer
-                complaintId={id as string}
-                audioOverviewUrl={audioOverview?.audio_overview_url}
-                audioOverviewText={audioOverview?.audio_overview_text}
-                audioOverviewDuration={audioOverview?.audio_overview_duration}
-              />
+              <div className="flex items-center gap-2">
+                <ComplaintAudioOverviewPlayer
+                  complaintId={id as string}
+                  audioOverviewUrl={audioOverview?.audio_overview_url}
+                  audioOverviewText={audioOverview?.audio_overview_text}
+                  audioOverviewDuration={audioOverview?.audio_overview_duration}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowInfographicModal(true)}
+                  disabled={!reportData}
+                  title="Create a staff learning infographic"
+                >
+                  <Image className="h-4 w-4 mr-1" />
+                  Staff Infographic
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -795,6 +809,24 @@ NHS Complaints Management System
           </p>
         </CardContent>
       </Card>
+
+      {/* Complaint Infographic Modal */}
+      {reportData && complaint && (
+        <ComplaintInfographicModal
+          isOpen={showInfographicModal}
+          onClose={() => setShowInfographicModal(false)}
+          complaintData={{
+            referenceNumber: complaint.reference_number,
+            category: complaint.category,
+            receivedDate: format(new Date(complaint.received_at || complaint.created_at), 'dd MMMM yyyy'),
+            outcomeType: complaint.complaint_outcomes?.[0]?.outcome_type,
+            complaintOverview: reportData.complaintOverview,
+            keyLearnings: reportData.keyLearnings,
+            practiceStrengths: reportData.practiceStrengths,
+            improvementSuggestions: reportData.improvementSuggestions,
+          }}
+        />
+      )}
     </div>
   );
 }
