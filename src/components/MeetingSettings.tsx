@@ -23,7 +23,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { FileImporter, ImportedTranscript } from "@/utils/FileImporter";
+import type { ImportedTranscript } from "@/utils/FileImporter";
 import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 
 interface MeetingSettingsProps {
@@ -244,6 +244,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     setIsImportingTranscript(true);
     try {
       console.log('🔄 Processing file with FileImporter...');
+      const { FileImporter } = await import("@/utils/FileImporter");
       const importedTranscript = await FileImporter.importTranscriptFile(file);
       console.log('✅ FileImporter completed:', importedTranscript.wordCount, 'words');
       
