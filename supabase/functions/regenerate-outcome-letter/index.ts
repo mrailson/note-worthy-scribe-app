@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { complaintId, currentLetter, instructions, complaintDescription, referenceNumber } = await req.json();
+    const { complaintId, currentLetter, instructions, complaintDescription, referenceNumber, useFormalLabels } = await req.json();
     
     if (!complaintId || !currentLetter || !instructions) {
       throw new Error('Missing required parameters');
@@ -43,7 +43,7 @@ CRITICAL REQUIREMENTS TO PREVENT FABRICATION:
 - NEVER infer, assume, or fabricate reasons, causes, or explanations for events
 - NEVER add medical emergencies, staffing issues, or other contextual details unless they are explicitly stated in the source materials
 - If asked to explain something, only reference facts already present in the complaint description or current letter
-- If information is not available, do not make it up - acknowledge the limitation or omit the detail
+- If information is not available, do not make it up - state that it was not available in the provided materials
 - Base ALL content strictly on the provided complaint description and current letter text
 
 Standard requirements:
@@ -54,6 +54,10 @@ Standard requirements:
 - Follow NHS complaint handling best practices
 - Keep the letter structure (header, body, conclusion, signature)
 - Only modify the parts that the user's instructions request
+- Preserve the outcome label style used in the current letter. If the letter uses formal labels (Upheld / Partially upheld / Not upheld), keep them. If it uses plain patient-centred language without labels, maintain that style.
+- Never use the word "Rejected" -- use "Not upheld" instead.
+- Always remain respectful, calm, and patient-centred. Never sound dismissive, defensive, or adversarial.
+- If required information is missing, state that it was not available in the provided materials rather than inventing details.
 
 Return ONLY the revised letter content without any preamble or explanation.`
           },
@@ -65,6 +69,8 @@ ${currentLetter}
 
 Complaint reference: ${referenceNumber}
 Original complaint: ${complaintDescription}
+
+Use formal outcome labels in patient letters: ${useFormalLabels === true ? 'YES' : useFormalLabels === 'YES' ? 'YES' : currentLetter.match(/Outcome:\s*(Upheld|Partially upheld|Not upheld)/i) ? 'YES' : 'NO'}
 
 Please revise this letter according to these instructions:
 ${instructions}

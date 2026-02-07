@@ -24,6 +24,7 @@ interface QuestionnaireData {
   improvements_made: string;
   additional_context: string;
   is_vexatious: boolean;
+  use_formal_outcome_labels: boolean;
 }
 
 interface ComplianceCheck {
@@ -76,6 +77,7 @@ export const ComplaintOutcomeQuestionnaire = ({
     improvements_made: '',
     additional_context: '',
     is_vexatious: false,
+    use_formal_outcome_labels: false,
   });
   const [complianceChecks, setComplianceChecks] = useState<ComplianceCheck[]>([]);
   const [complianceSummary, setComplianceSummary] = useState<any>(null);
@@ -1120,6 +1122,23 @@ export const ComplaintOutcomeQuestionnaire = ({
                   <SelectItem value="not_upheld">Complaint Not Upheld</SelectItem>
                 </SelectContent>
               </Select>
+
+              {/* Formal outcome labels toggle */}
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-blue-200">
+                <div className="space-y-0.5">
+                  <Label htmlFor="formal-labels" className="text-sm font-medium">
+                    Use formal outcome labels in patient letters
+                  </Label>
+                  <p className="text-xs text-slate-500">
+                    When off, the letter uses plain, patient-centred language instead of formal labels like 'Upheld' or 'Not upheld'.
+                  </p>
+                </div>
+                <Switch
+                  id="formal-labels"
+                  checked={data.use_formal_outcome_labels}
+                  onCheckedChange={(checked) => setData({ ...data, use_formal_outcome_labels: checked })}
+                />
+              </div>
             </div>
 
 
