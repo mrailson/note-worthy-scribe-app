@@ -93,7 +93,7 @@ serve(async (req) => {
     const involvedPartiesData = [];
     
     for (const party of involvedParties) {
-      const { data: insertedParty, error: insertError } = await supabaseUser
+      const { data: insertedParty, error: insertError } = await supabase
         .from('complaint_involved_parties')
         .insert({
           complaint_id: complaintId,
