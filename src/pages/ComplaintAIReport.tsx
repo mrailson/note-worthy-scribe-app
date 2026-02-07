@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, ThumbsUp, RefreshCw, Mail, Image } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, ThumbsUp, RefreshCw, Mail, Image, Presentation } from 'lucide-react';
 import { ComplaintAudioOverviewPlayer } from '@/components/complaints/ComplaintAudioOverviewPlayer';
 import { ComplaintInfographicModal } from '@/components/complaints/ComplaintInfographicModal';
+import { ComplaintPowerPointModal } from '@/components/complaints/ComplaintPowerPointModal';
 import { showToast } from '@/utils/toastWrapper';
 import { format } from 'date-fns';
 import { downloadComplaintReport } from '@/utils/downloadComplaintReport';
@@ -52,6 +53,7 @@ export default function ComplaintAIReport() {
   const [generatedAt, setGeneratedAt] = useState<Date>(new Date());
   const [audioOverview, setAudioOverview] = useState<any>(null);
   const [showInfographicModal, setShowInfographicModal] = useState(false);
+  const [showPowerPointModal, setShowPowerPointModal] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -600,6 +602,16 @@ NHS Complaints Management System
                   <Image className="h-4 w-4 mr-1" />
                   Staff Infographic
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPowerPointModal(true)}
+                  disabled={!reportData}
+                  title="Create a staff training PowerPoint for PLT sessions"
+                >
+                  <Presentation className="h-4 w-4 mr-1" />
+                  Staff PowerPoint
+                </Button>
               </div>
             </div>
           </div>
@@ -812,20 +824,37 @@ NHS Complaints Management System
 
       {/* Complaint Infographic Modal */}
       {reportData && complaint && (
-        <ComplaintInfographicModal
-          isOpen={showInfographicModal}
-          onClose={() => setShowInfographicModal(false)}
-          complaintData={{
-            referenceNumber: complaint.reference_number,
-            category: complaint.category,
-            receivedDate: format(new Date(complaint.received_at || complaint.created_at), 'dd MMMM yyyy'),
-            outcomeType: complaint.complaint_outcomes?.[0]?.outcome_type,
-            complaintOverview: reportData.complaintOverview,
-            keyLearnings: reportData.keyLearnings,
-            practiceStrengths: reportData.practiceStrengths,
-            improvementSuggestions: reportData.improvementSuggestions,
-          }}
-        />
+        <>
+          <ComplaintInfographicModal
+            isOpen={showInfographicModal}
+            onClose={() => setShowInfographicModal(false)}
+            complaintData={{
+              referenceNumber: complaint.reference_number,
+              category: complaint.category,
+              receivedDate: format(new Date(complaint.received_at || complaint.created_at), 'dd MMMM yyyy'),
+              outcomeType: complaint.complaint_outcomes?.[0]?.outcome_type,
+              complaintOverview: reportData.complaintOverview,
+              keyLearnings: reportData.keyLearnings,
+              practiceStrengths: reportData.practiceStrengths,
+              improvementSuggestions: reportData.improvementSuggestions,
+            }}
+          />
+          <ComplaintPowerPointModal
+            isOpen={showPowerPointModal}
+            onClose={() => setShowPowerPointModal(false)}
+            complaintData={{
+              referenceNumber: complaint.reference_number,
+              category: complaint.category,
+              receivedDate: format(new Date(complaint.received_at || complaint.created_at), 'dd MMMM yyyy'),
+              outcomeType: complaint.complaint_outcomes?.[0]?.outcome_type,
+              complaintOverview: reportData.complaintOverview,
+              keyLearnings: reportData.keyLearnings,
+              practiceStrengths: reportData.practiceStrengths,
+              improvementSuggestions: reportData.improvementSuggestions,
+              outcomeRationale: reportData.outcomeRationale,
+            }}
+          />
+        </>
       )}
     </div>
   );
