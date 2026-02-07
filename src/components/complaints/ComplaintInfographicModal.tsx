@@ -4,7 +4,7 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { Sparkles, X, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import { useComplaintInfographic } from '@/hooks/useComplaintInfographic';
 import { toast } from 'sonner';
 
@@ -60,28 +60,31 @@ export const ComplaintInfographicModal: React.FC<ComplaintInfographicModalProps>
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const tipTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const startGeneration = () => {
+    setHasStarted(true);
+    setIsComplete(false);
+    setHasFailed(false);
+    setTimeRemaining(TOTAL_DURATION);
+    setCurrentTipIndex(0);
+
+    generateInfographic(complaintData).then((result) => {
+      if (result.success) {
+        setIsComplete(true);
+        downloadInfographic(complaintData.referenceNumber);
+        toast.success('Staff learning infographic downloaded!');
+      } else {
+        setHasFailed(true);
+        toast.error(result.error || 'Failed to generate infographic');
+      }
+    });
+  };
+
+  // Auto-start on open
   useEffect(() => {
     if (isOpen && !hasStarted && !isComplete) {
-      setHasStarted(true);
-      setTimeRemaining(TOTAL_DURATION);
-      setCurrentTipIndex(0);
-      setIsComplete(false);
-      setHasFailed(false);
-
-      generateInfographic(complaintData).then((result) => {
-        if (result.success) {
-          setIsComplete(true);
-          // Auto-download from the hook
-          downloadInfographic(complaintData.referenceNumber);
-          toast.success('Staff learning infographic downloaded!');
-          setTimeout(() => onClose(), 2000);
-        } else {
-          setHasFailed(true);
-          toast.error(result.error || 'Failed to generate infographic');
-        }
-      });
+      startGeneration();
     }
-  }, [isOpen, hasStarted, isComplete, generateInfographic, downloadInfographic, complaintData, onClose]);
+  }, [isOpen, hasStarted, isComplete]);
 
   useEffect(() => {
     if (isOpen && hasStarted && !isComplete && !hasFailed) {
@@ -112,6 +115,12 @@ export const ComplaintInfographicModal: React.FC<ComplaintInfographicModalProps>
       if (tipTimerRef.current) clearInterval(tipTimerRef.current);
     }
   }, [isOpen]);
+
+  const handleRegenerate = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (tipTimerRef.current) clearInterval(tipTimerRef.current);
+    startGeneration();
+  };
 
   const progress = ((TOTAL_DURATION - timeRemaining) / TOTAL_DURATION) * 100;
   const circumference = 2 * Math.PI * 45;
@@ -188,17 +197,34 @@ export const ComplaintInfographicModal: React.FC<ComplaintInfographicModalProps>
 
           <div className="text-center space-y-2">
             {isComplete ? (
-              <p className="text-sm text-green-600 font-medium">
-                Your staff learning infographic has been downloaded!
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-green-600 font-medium">
+                  Your staff learning infographic has been downloaded!
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRegenerate}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Regenerate
+                </Button>
+              </div>
             ) : hasFailed ? (
               <div className="space-y-2">
                 <p className="text-sm text-destructive font-medium">
                   {error || 'Failed to generate infographic'}
                 </p>
-                <Button variant="outline" size="sm" onClick={handleClose}>
-                  Close
-                </Button>
+                <div className="flex gap-2 justify-center">
+                  <Button variant="outline" size="sm" onClick={handleRegenerate} className="gap-2">
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Try Again
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleClose}>
+                    Close
+                  </Button>
+                </div>
               </div>
             ) : (
               <>
