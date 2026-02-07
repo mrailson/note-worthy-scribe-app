@@ -1575,7 +1575,14 @@ const ComplaintDetails = () => {
                   {complaint.status === 'under_review' && acknowledgementSentToPatient && (
                     <Mail className="h-3 w-3 inline ml-1 mr-1" />
                   )}
-                  {getStatusLabel(complaint.status)}
+                  {complaint.status === 'closed' && outcomeType
+                    ? `Closed - Complaint ${
+                        outcomeType === 'rejected' ? 'Not Upheld' :
+                        outcomeType === 'upheld' ? 'Upheld' :
+                        outcomeType === 'partially_upheld' ? 'Partially Upheld' :
+                        outcomeType.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                      }`
+                    : getStatusLabel(complaint.status)}
                   {complaint.status === 'closed' && (
                     <Button
                       variant="ghost"
@@ -2039,7 +2046,14 @@ const ComplaintDetails = () => {
                           {complaint.status === 'under_review' && acknowledgementSentToPatient && (
                             <Mail className="h-3 w-3 mr-1" />
                           )}
-                          {getStatusLabel(complaint.status)}
+                          {complaint.status === 'closed' && outcomeType
+                            ? `Closed - Complaint ${
+                                outcomeType === 'rejected' ? 'Not Upheld' :
+                                outcomeType === 'upheld' ? 'Upheld' :
+                                outcomeType === 'partially_upheld' ? 'Partially Upheld' :
+                                outcomeType.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                              }`
+                            : getStatusLabel(complaint.status)}
                         </Badge>
                         {complaint.status === 'closed' && (
                           <Button
