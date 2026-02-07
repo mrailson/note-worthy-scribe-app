@@ -349,6 +349,30 @@ const ComplaintDetails = () => {
         setAcknowledgementSentAt(ackData.sent_at);
       }
 
+      // Fetch audio overview if available
+      const { data: audioData } = await supabase
+        .from('complaint_audio_overviews')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .maybeSingle();
+
+      if (audioData) {
+        setAudioOverview(audioData);
+      }
+
+      // Fetch review conversations
+      const { data: reviewData, error: reviewError } = await supabase
+        .from('complaint_review_conversations')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false });
+
+      if (reviewError) {
+        console.error('Error fetching review conversations:', reviewError);
+      } else if (reviewData) {
+        setReviewConversations(reviewData);
+      }
+
       // Set up real-time subscription for acknowledgement updates
       const acknowledgementChannel = supabase
         .channel(`acknowledgement_${complaintId}`)
@@ -378,30 +402,6 @@ const ComplaintDetails = () => {
       return () => {
         supabase.removeChannel(acknowledgementChannel);
       };
-
-      // Fetch audio overview if available
-      const { data: audioData } = await supabase
-        .from('complaint_audio_overviews')
-        .select('*')
-        .eq('complaint_id', complaintId)
-        .maybeSingle();
-
-      if (audioData) {
-        setAudioOverview(audioData);
-      }
-
-      // Fetch review conversations
-      const { data: reviewData, error: reviewError } = await supabase
-        .from('complaint_review_conversations')
-        .select('*')
-        .eq('complaint_id', complaintId)
-        .order('created_at', { ascending: false });
-
-      if (reviewError) {
-        console.error('Error fetching review conversations:', reviewError);
-      } else if (reviewData) {
-        setReviewConversations(reviewData);
-      }
 
     } catch (error) {
       console.error('Error fetching complaint details:', error);
