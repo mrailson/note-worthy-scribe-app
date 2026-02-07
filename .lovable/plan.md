@@ -1,176 +1,231 @@
 
-# Unify Recording Pipeline: Mic+System Audio to Match Mic-Only Settings
+# Consolidated NoteWell Outcome Prompt + Toggle-Aware Wording (Refined)
 
-## Problem
+## Overview
 
-When recording with **Mic + System Audio**, three issues arise:
+Replace the current system prompt with the finalised NoteWell consolidated prompt, add a "Use formal outcome labels in patient letters" toggle to the questionnaire UI, normalise "rejected" before it reaches any prompt, remove conditional escalation logic, and pass the toggle value through to regeneration.
 
-1. **Whisper runs TWO separate pipelines simultaneously:**
-   - The microphone gets the standard `DesktopWhisperTranscriber` path (90-second WebM chunks, full hallucination filtering, deduplication, confidence gating)
-   - The system audio gets a completely different custom path (`startCustomAudioProcessing`) that uses 15-second WAV chunks at 24 kHz, with manual `ScriptProcessorNode` encoding and none of the quality guards
+---
 
-2. **AssemblyAI and Deepgram use a third, separate mixed stream** via `buildAssemblyAudioStream`, which correctly mixes mic + system audio. But Whisper does not use this mixed stream.
+## Changes
 
-3. **When the user clicks "Stop sharing"** in Chrome, the screen-share `MediaStreamTrack` fires an `ended` event that nobody listens for. The recording silently stops producing data. The health monitor then detects the meeting as "completed" and shows the misleading message: **"Recording was ended by the server."**
+### 1. Add toggle to QuestionnaireData and UI
 
-## Current Architecture (Mic + System Audio on Chrome/Edge)
+**File:** `src/components/ComplaintOutcomeQuestionnaire.tsx`
 
-```text
-startRecording()
-  |
-  +-- startComputerAudioTranscription()
-  |     |-- getDisplayMedia() --> screenStreamRef
-  |     +-- startCustomAudioProcessing(screenStream)
-  |           |-- ScriptProcessorNode at 24kHz
-  |           |-- 15-second WAV chunks
-  |           +-- Sends base64 WAV to speech-to-text (no quality gates)
-  |
-  +-- startMicrophoneTranscription()
-  |     +-- DesktopWhisperTranscriber (mic-only stream)
-  |           |-- getUserMedia() at 48kHz
-  |           |-- 90-second WebM/Opus chunks
-  |           +-- Full hallucination/dedup/confidence pipeline
-  |
-  +-- buildAssemblyAudioStream(screenStream, micStream)
-  |     +-- Web Audio mixer --> AssemblyAI (mixed)
-  |
-  +-- deepgramPreview.startPreview(mixedStream)
-        +-- Deepgram (mixed)
-```
+- Add `use_formal_outcome_labels: boolean` to the `QuestionnaireData` interface (line 18), defaulting to `false` in the initial state (line 70).
+- Place a `Switch` toggle in Step 3 directly below the outcome `Select` dropdown (after line 1122), inside the same blue card. Label: **"Use formal outcome labels in patient letters"** (plural, matching prompt language). Helper text: *"When off, the letter uses plain, patient-centred language instead of formal labels like 'Upheld' or 'Not upheld'."*
+- The toggle value flows into `finalData` and is passed to the edge function via `questionnaireData`.
 
-**Result:** Whisper processes mic and system audio separately with different formats, chunk sizes, and quality controls. AssemblyAI/Deepgram get a proper mixed stream, but Whisper does not.
+### 2. Replace the entire system prompt
 
-## Target Architecture (All Engines Use Same Mixed Stream)
+**File:** `supabase/functions/generate-complaint-outcome-letter/index.ts` (lines 194-240)
+
+Replace the current `systemPrompt` variable with the full consolidated NoteWell prompt:
 
 ```text
-startRecording()
-  |
-  +-- getDisplayMedia() --> screenStream (if mic-and-system)
-  |
-  +-- buildAssemblyAudioStream(screenStream, micStream)
-  |     +-- Web Audio mixer --> mixedStream
-  |
-  +-- DesktopWhisperTranscriber(externalStream: mixedStream)
-  |     |-- 90-second WebM/Opus chunks (same as mic-only)
-  |     +-- Full hallucination/dedup/confidence pipeline
-  |
-  +-- assemblyPreview.startPreview(mixedStream)
-  |
-  +-- deepgramPreview.startPreview(mixedStream)
-  |
-  +-- track.onended listener on screen-share tracks
-        +-- Toast: "System audio stopped. Mic continues."
-        +-- Graceful fallback to mic-only (no session termination)
+You are a professional NHS GP practice complaints officer, writing formal
+written complaint outcome letters in line with:
+- NHS complaints regulations
+- Care Quality Commission (CQC) expectations
+- Parliamentary and Health Service Ombudsman (PHSO) escalation requirements
+
+You must act fairly, transparently, and professionally at all times.
+
+CORE REQUIREMENTS (MANDATORY):
+- Reference the original complaint and what was investigated
+- Clearly state the outcome of the investigation (see Outcome Wording Rules)
+- Explain the reasoning for the decision using only provided information
+- Describe any actions taken, learning, or improvements (if applicable)
+- Explain the right to escalate to the Parliamentary and Health Service Ombudsman
+- Use British English only (spellings and grammar)
+- Use UK date format: DD Month YYYY
+
+NEVER FABRICATE:
+- Medical facts, events, clinical reasoning, actions, or examples
+- If information is not explicitly provided, do not invent it
+- If required information is missing, state that it was not available in the
+  provided materials
+- Every statement must be traceable to supplied complaint, investigation, or
+  questionnaire data
+- Where appropriate, quote or closely paraphrase the original complaint wording
+
+TONE CONTROL:
+{dynamically set from questionnaire}
+- Always remain respectful, calm, and patient-centred
+- Never sound dismissive, defensive, or adversarial
+
+OUTCOME WORDING RULES (TOGGLE-AWARE):
+Always clearly state the outcome of the complaint.
+
+If "Use formal outcome labels in patient letters" = YES:
+- Include exactly one of: "Upheld", "Partially upheld", or "Not upheld"
+- Never use the word "Rejected"
+- Immediately follow the label with a plain-English explanation
+
+If "Use formal outcome labels in patient letters" = NO:
+- Do not use the words upheld, partially upheld, not upheld, or rejected
+- State the outcome in plain English covering: what was reviewed, what was found,
+  what was agreed or not agreed, and why (based only on supplied facts)
+- When labels are OFF, select the narrative outcome paragraph that corresponds
+  exactly to the internal outcome decision provided -- do not let tone override
+  the paragraph selection
+- Use the appropriate paragraph:
+  * Not upheld: "Following a careful review of the information provided, the
+    consultation record, and the investigation findings, we did not find evidence
+    that the care provided fell below the expected standard based on the
+    information available to us."
+  * Partially upheld: "Our review found that while some aspects of care met
+    appropriate standards, there were areas where improvements were needed,
+    particularly in relation to the issues identified during the investigation."
+  * Upheld: "Our review identified that aspects of care and/or process did not
+    meet the standard we expect, and we are sorry for this."
+- Do not minimise the patient's experience
+
+ESCALATION REQUIREMENT (MANDATORY):
+- ALL letters, regardless of outcome, must include clear, neutral wording
+  explaining the right to escalate to the Parliamentary and Health Service
+  Ombudsman
+- Do not discourage escalation or express opinion on likelihood of success
+
+FORMATTING:
+- Start the letter with the date (no letterhead)
+- Do not duplicate addresses
+- End with "Yours sincerely" signature block
+- No decorative formatting or emojis
+- Do not include "*Signature*" or signature placeholders
+- Include practice contact details in the letter content or signature area only
+- Never include personal email addresses or phone numbers
+
+FINAL QUALITY CHECK:
+- No invented facts or assumptions
+- Outcome is clear and consistent with the internal decision
+- Tone matches questionnaire setting
+- Letter reads as calm, respectful, and proportionate
+- Language is suitable for CQC inspection and Ombudsman review
 ```
 
-## Implementation Plan
+The `{dynamically set from questionnaire}` placeholder is filled by the existing `toneInstruction` variable (lines 185-192), which remains unchanged.
 
-### Change 1: Reorder audio setup in `startRecording()`
+### 3. Normalise "rejected" to "not_upheld" before building prompts
 
-**File:** `src/components/MeetingRecorder.tsx` (lines 4185-4320)
+**File:** `supabase/functions/generate-complaint-outcome-letter/index.ts` (after line 21)
 
-Currently, the mic+system path calls:
-1. `startComputerAudioTranscription()` -- sets up the 15s WAV sidecar
-2. `startMicrophoneTranscription()` -- starts a mic-only Whisper instance
-3. `buildAssemblyAudioStream()` -- creates the mixed stream for Assembly/Deepgram
+Add normalisation immediately after receiving `outcomeType`:
 
-New flow for `mic-and-system` mode on Chrome/Edge:
-1. Call `getDisplayMedia()` to get the screen-share stream (extract audio setup from `startComputerAudioTranscription`, but do NOT start the `ScriptProcessorNode` sidecar)
-2. Call `buildAssemblyAudioStream(screenStream, micStream)` to produce a single mixed stream
-3. Start `DesktopWhisperTranscriber` with `externalStream: mixedStream` -- this gives Whisper the exact same 90s WebM chunking and quality gates as mic-only mode
-4. Start AssemblyAI with the same `mixedStream`
-5. Start Deepgram with the same `mixedStream`
-6. Attach `track.onended` listeners to the screen-share audio tracks
+```typescript
+const outcomeForLetter =
+  outcomeType === 'rejected' ? 'not_upheld' : outcomeType;
+```
 
-### Change 2: Extract screen-share acquisition from `startComputerAudioTranscription()`
+Then use `outcomeForLetter` (not `outcomeType`) everywhere in prompt construction -- specifically in the user prompt's `Outcome:` line (line 357) and any conditional strings. The original `outcomeType` is only used for DB operations.
 
-**File:** `src/components/MeetingRecorder.tsx`
+This is the single biggest robustness improvement: the LLM never sees "rejected".
 
-Create a new lightweight function `acquireScreenShareStream()` that:
-- Calls `getDisplayMedia({ video: true, audio: true })`
-- Strips video tracks
-- Validates audio tracks exist
-- Stores reference in `screenStreamRef`
-- Returns the `MediaStream`
+### 4. Add toggle value to the user prompt
 
-This replaces the current `startComputerAudioTranscription()` which both acquires the stream AND starts the custom 15s WAV processing pipeline.
+**File:** `supabase/functions/generate-complaint-outcome-letter/index.ts` (line 357)
 
-### Change 3: Remove the custom sidecar pipeline
+In the `========== OUTCOME DECISION ==========` section, change:
 
-**File:** `src/components/MeetingRecorder.tsx`
+```
+Outcome: ${outcomeType}
+```
 
-Remove or disable these functions (they will no longer be called):
-- `startCustomAudioProcessing()` (lines ~3080-3224) -- the 15s WAV ScriptProcessorNode loop
-- `processAudioBuffer()` (lines ~3227-3330) -- the WAV encoding and direct `speech-to-text` call
-- `encodeWAV()` (lines ~3333-3366) -- manual WAV header encoding
+to:
 
-These are replaced by the standard `DesktopWhisperTranscriber` consuming the mixed stream.
+```
+Outcome: ${outcomeForLetter}
+Patient Letter Style:
+Use formal outcome labels in patient letters: ${useFormalLabels}
+```
 
-### Change 4: Add `track.onended` listeners for graceful stream recovery
+Where `useFormalLabels` reads from `questionnaireData?.use_formal_outcome_labels === true ? 'YES' : 'NO'`, defaulting to `NO`.
 
-**File:** `src/components/MeetingRecorder.tsx`
+### 5. Remove conditional escalation logic entirely
 
-After acquiring the screen-share stream, attach `onended` handlers to each audio track:
+**File:** `supabase/functions/generate-complaint-outcome-letter/index.ts` (lines 242-254)
 
-- When triggered:
-  - Show toast: "System audio sharing stopped. Microphone recording continues."
-  - Set `systemAudioCaptured` to `false`
-  - Set `assemblyInputMode` to `'mic-only'`
-  - Log the event for diagnostics
-  - Do NOT stop the recording -- the `DesktopWhisperTranscriber` will continue with the mic portion of the mixed stream (the mixer's mic input remains active)
+Delete the conditional:
 
-### Change 5: Improve termination messages in health monitor
+```typescript
+const escalationText = outcomeType === 'rejected' || outcomeType === 'partially_upheld'
+  ? `If you remain dissatisfied...`
+  : '';
+```
 
-**File:** `src/hooks/useRecordingHealthMonitor.ts`
+Replace with unconditional escalation text (mandatory for all outcomes per the consolidated prompt):
 
-When the health monitor detects `status === 'completed'` while the client is still recording:
-- Query the `system_audit_log` table for the meeting ID to find the actual operation (e.g., `AUTO_CLOSE_INACTIVE`)
-- Map to specific user messages:
-  - `AUTO_CLOSE_INACTIVE`: "Recording was auto-closed due to 90 minutes of inactivity."
-  - Unknown/other: "Recording stopped unexpectedly. Your transcript has been saved."
-- Replace the current generic: "Recording was ended by the server."
+```typescript
+const escalationText = `If you remain dissatisfied with our response, you have the right to take your complaint to the Parliamentary and Health Service Ombudsman. They provide a free service for people who have a complaint about NHS care that cannot be resolved locally.
 
-### Change 6: Map kill signal reasons to clear messages
+You can contact them at:
+Parliamentary and Health Service Ombudsman
+Millbank Tower
+Millbank
+London SW1P 4QP
+Phone: 0345 015 4033
+Website: www.ombudsman.org.uk
 
-**File:** `src/hooks/useMeetingKillSignal.ts`
+You should contact the Ombudsman within one year of the events you want to complain about, or within one year of when you first became aware of the problem.`;
+```
 
-When a `force_stop` broadcast is received:
-- Read the `reason` field from the payload (already sent by `auto-close-inactive-meetings` as `server_inactivity_timeout`)
-- Map to specific messages:
-  - `server_inactivity_timeout`: "Recording auto-closed after 90 minutes of inactivity"
-  - `admin_graceful_end`: "Recording was ended by a system administrator"
-  - Missing/unknown: "Recording was ended remotely"
+No condition, no dead logic.
 
-### Change 7: Fix race condition on short-meeting deletion
+### 6. Update the regeneration prompt + pass toggle deterministically
 
-**File:** `src/components/MeetingRecorder.tsx` (lines ~4578-4616)
+**File:** `supabase/functions/regenerate-outcome-letter/index.ts`
 
-When deleting a short meeting (under 100 words):
-- Set `isRecordingRef.current = false` BEFORE the database delete operation
-- This prevents the health monitor's next 30-second poll from seeing a missing/completed meeting and triggering a false "ended by server" toast
+Two changes:
+
+**a) Add to the "Standard requirements" section (lines 49-56):**
+
+```
+- Preserve the outcome label style used in the current letter. If the letter uses
+  formal labels (Upheld / Partially upheld / Not upheld), keep them. If it uses
+  plain patient-centred language without labels, maintain that style.
+- Never use the word "Rejected" -- use "Not upheld" instead.
+- Always remain respectful, calm, and patient-centred. Never sound dismissive,
+  defensive, or adversarial.
+- If required information is missing, state that it was not available in the
+  provided materials rather than inventing details.
+```
+
+**b) Accept and pass the toggle value into the regeneration user prompt:**
+
+Update `ComplaintDetails.tsx` (line 1297) to also pass `questionnaireData` (or at minimum the toggle) when calling the regeneration function. If the stored questionnaire data is available, pass it. If not, infer from the letter content:
+
+In the edge function's user prompt, add:
+
+```
+Use formal outcome labels in patient letters: YES/NO
+```
+
+This is read from the request body if provided. If not provided, the function infers it deterministically by checking whether the current letter contains "Outcome: Upheld", "Outcome: Partially upheld", or "Outcome: Not upheld" -- if yes, it's formal; otherwise plain.
+
+### 7. Pass toggle from ComplaintDetails to regeneration
+
+**File:** `src/pages/ComplaintDetails.tsx` (lines 1297-1305)
+
+Update the regeneration call to also pass the toggle value. Fetch the stored questionnaire data from the complaint outcome record, or infer from the letter. Minimal change: add a `useFormalLabels` field to the request body, defaulting to `false` if unknown.
+
+---
 
 ## Files Modified
 
-| File | Change Summary |
-|------|---------------|
-| `src/components/MeetingRecorder.tsx` | Reorder `startRecording()` to build mixed stream first; pass it to Whisper as `externalStream`; extract screen-share acquisition; remove sidecar pipeline; add `track.onended` listeners; fix short-meeting race condition |
-| `src/hooks/useRecordingHealthMonitor.ts` | Query `system_audit_log` for termination reason; show specific messages |
-| `src/hooks/useMeetingKillSignal.ts` | Map broadcast `reason` codes to user-friendly messages |
+| File | Summary |
+|------|---------|
+| `src/components/ComplaintOutcomeQuestionnaire.tsx` | Add `use_formal_outcome_labels` to interface and state; add Switch toggle in Step 3 below outcome selector |
+| `supabase/functions/generate-complaint-outcome-letter/index.ts` | Replace system prompt with consolidated NoteWell prompt; normalise "rejected" to "not_upheld" before prompt; add toggle to user prompt; make escalation unconditional |
+| `supabase/functions/regenerate-outcome-letter/index.ts` | Add label-style preservation rules; accept and use toggle value; add missing-info instruction |
+| `src/pages/ComplaintDetails.tsx` | Pass `useFormalLabels` to regeneration edge function |
 
 ## What Does NOT Change
 
-- `DesktopWhisperTranscriber` class itself (already supports `externalStream` parameter)
-- `buildAssemblyAudioStream` utility (already handles mixing correctly)
-- Database schema
-- Edge functions
-- iOS recording path (uses `SimpleIOSTranscriber`, unaffected)
-- The non-Chromium stereo recording fallback path (Safari/Firefox)
-- `startOverlappingChunks()` -- still used for the non-Chromium stereo path only
-
-## Expected Outcome
-
-- **Consistent chunks:** All Whisper transcripts use 90-second WebM/Opus chunks with full quality filtering, regardless of whether system audio is active
-- **Single pipeline:** One `DesktopWhisperTranscriber` instance per meeting, processing a single mixed stream
-- **All engines aligned:** Whisper, AssemblyAI, and Deepgram all consume the same mixed audio
-- **Graceful recovery:** Clicking "Stop sharing" shows a clear warning but does not terminate the meeting
-- **Accurate messages:** "Ended by server" only appears when the server genuinely closed the meeting
+- Database schema (toggle is passed within `questionnaireData` JSON, no new columns needed)
+- DB mapping of `not_upheld` to `rejected` on line 738 of questionnaire (kept for backward compatibility)
+- AI analysis function (`analyze-complaint-outcome`)
+- Acknowledgement letter functions
+- Demo response loading
+- Compliance checks logic
+- Other calling sites continue working with the default (NO formal labels)
