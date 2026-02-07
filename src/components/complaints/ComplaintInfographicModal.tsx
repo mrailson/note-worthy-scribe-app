@@ -51,7 +51,7 @@ export const ComplaintInfographicModal: React.FC<ComplaintInfographicModalProps>
   onClose,
   complaintData,
 }) => {
-  const { generateInfographic, isGenerating, currentPhase, error } = useComplaintInfographic();
+  const { generateInfographic, downloadInfographic, isGenerating, currentPhase, error } = useComplaintInfographic();
   const [timeRemaining, setTimeRemaining] = useState(TOTAL_DURATION);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
@@ -71,6 +71,8 @@ export const ComplaintInfographicModal: React.FC<ComplaintInfographicModalProps>
       generateInfographic(complaintData).then((result) => {
         if (result.success) {
           setIsComplete(true);
+          // Auto-download from the hook
+          downloadInfographic(complaintData.referenceNumber);
           toast.success('Staff learning infographic downloaded!');
           setTimeout(() => onClose(), 2000);
         } else {
@@ -79,7 +81,7 @@ export const ComplaintInfographicModal: React.FC<ComplaintInfographicModalProps>
         }
       });
     }
-  }, [isOpen, hasStarted, isComplete, generateInfographic, complaintData, onClose]);
+  }, [isOpen, hasStarted, isComplete, generateInfographic, downloadInfographic, complaintData, onClose]);
 
   useEffect(() => {
     if (isOpen && hasStarted && !isComplete && !hasFailed) {

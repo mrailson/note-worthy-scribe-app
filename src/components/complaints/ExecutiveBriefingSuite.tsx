@@ -3,6 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
+import {
   Briefcase,
   Headphones,
   LayoutPanelTop,
@@ -11,11 +15,14 @@ import {
   ChevronDown,
   Loader2,
   Sparkles,
+  Download,
+  Maximize2,
+  X,
 } from 'lucide-react';
 import { ComplaintAudioOverviewPlayer } from '@/components/complaints/ComplaintAudioOverviewPlayer';
 import { ComplaintReviewConversation } from '@/components/complaints/ComplaintReviewConversation';
-import { ComplaintInfographicModal } from '@/components/complaints/ComplaintInfographicModal';
 import { ComplaintPowerPointModal } from '@/components/complaints/ComplaintPowerPointModal';
+import { useComplaintInfographic } from '@/hooks/useComplaintInfographic';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
 import { format } from 'date-fns';
@@ -64,21 +71,27 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
   isOpen,
   onOpenChange,
 }) => {
-  const [showInfographicModal, setShowInfographicModal] = useState(false);
   const [showPowerPointModal, setShowPowerPointModal] = useState(false);
+  const [showFullscreenInfographic, setShowFullscreenInfographic] = useState(false);
   const [aiReportData, setAiReportData] = useState<AIReportData | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const reportFetchedRef = useRef<string | null>(null);
   const reportDataRef = useRef<AIReportData | null>(null);
   const inFlightRef = useRef(false);
 
+  const {
+    generateInfographic,
+    downloadInfographic,
+    isGenerating: isGeneratingInfographic,
+    generatedBlobUrl,
+    error: infographicError,
+  } = useComplaintInfographic();
+
   const fetchAIReportData = useCallback(async (): Promise<AIReportData | null> => {
-    // Return cached data if already fetched for this complaint
     if (reportDataRef.current && reportFetchedRef.current === complaint.id) {
       return reportDataRef.current;
     }
 
-    // Prevent parallel fetches
     if (inFlightRef.current) {
       return null;
     }
@@ -106,15 +119,29 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
       setLoadingReport(false);
       inFlightRef.current = false;
     }
-  }, [complaint.id]); // No aiReportData dependency — use ref instead
+  }, [complaint.id]);
 
   const handleInfographicClick = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     const data = await fetchAIReportData();
     if (data) {
-      setShowInfographicModal(true);
+      const result = await generateInfographic({
+        referenceNumber: complaint.reference_number,
+        category: complaint.category,
+        receivedDate,
+        outcomeType,
+        complaintOverview: data.complaintOverview,
+        keyLearnings: data.keyLearnings,
+        practiceStrengths: data.practiceStrengths,
+        improvementSuggestions: data.improvementSuggestions,
+      });
+      if (result.success) {
+        showToast.success('Staff learning infographic generated!');
+      } else {
+        showToast.error(result.error || 'Failed to generate infographic');
+      }
     }
-  }, [fetchAIReportData]);
+  }, [fetchAIReportData, generateInfographic, complaint.reference_number, complaint.category]);
 
   const handlePowerPointClick = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -129,6 +156,8 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
     'dd MMMM yyyy'
   );
   const outcomeType = complaint.complaint_outcomes?.[0]?.outcome_type;
+
+  const isInfographicLoading = loadingReport || isGeneratingInfographic;
 
   return (
     <>
@@ -217,20 +246,71 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                       Single-page anonymised overview for the staffroom
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleInfographicClick}
-                    disabled={loadingReport}
-                    className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800"
-                  >
-                    {loadingReport ? (
-                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                    ) : (
+                  {!generatedBlobUrl && !isInfographicLoading && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleInfographicClick}
+                      className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800"
+                    >
                       <Sparkles className="h-4 w-4 mr-1" />
-                    )}
-                    Generate Overview
-                  </Button>
+                      Generate Overview
+                    </Button>
+                  )}
+                  {isInfographicLoading && (
+                    <div className="w-full flex items-center justify-center gap-2 py-1 text-purple-600">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-xs font-medium">
+                        {loadingReport ? 'Preparing data…' : 'Generating infographic…'}
+                      </span>
+                    </div>
+                  )}
+                  {generatedBlobUrl && !isInfographicLoading && (
+                    <div className="w-full space-y-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowFullscreenInfographic(true);
+                        }}
+                        className="w-full rounded-lg overflow-hidden border border-purple-200 hover:border-purple-400 transition-colors cursor-pointer"
+                      >
+                        <img
+                          src={generatedBlobUrl}
+                          alt="Staff learning infographic"
+                          className="w-full h-auto object-contain"
+                        />
+                      </button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadInfographic(complaint.reference_number);
+                          }}
+                          className="flex-1 border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800"
+                        >
+                          <Download className="h-3.5 w-3.5 mr-1" />
+                          Download
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowFullscreenInfographic(true);
+                          }}
+                          className="flex-1 border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800"
+                        >
+                          <Maximize2 className="h-3.5 w-3.5 mr-1" />
+                          Full Screen
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {infographicError && !isInfographicLoading && (
+                    <p className="text-xs text-destructive">{infographicError}</p>
+                  )}
                 </div>
 
                 {/* 3. Staff PowerPoint */}
@@ -278,39 +358,65 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
         </Card>
       </Collapsible>
 
-      {/* Modals */}
+      {/* Fullscreen infographic viewer */}
+      <Dialog open={showFullscreenInfographic} onOpenChange={setShowFullscreenInfographic}>
+        <DialogContent className="max-w-5xl max-h-[90vh] p-0 gap-0 overflow-hidden [&>button]:hidden">
+          <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-purple-50 to-pink-50">
+            <div className="flex items-center gap-2">
+              <LayoutPanelTop className="h-4 w-4 text-purple-600" />
+              <span className="text-sm font-semibold text-foreground">
+                Staff Learning Infographic — {complaint.reference_number}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => downloadInfographic(complaint.reference_number)}
+                className="h-7 text-xs"
+              >
+                <Download className="h-3.5 w-3.5 mr-1" />
+                Download
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setShowFullscreenInfographic(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="overflow-auto p-4 flex items-center justify-center bg-muted/20">
+            {generatedBlobUrl && (
+              <img
+                src={generatedBlobUrl}
+                alt="Staff learning infographic"
+                className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-lg"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* PowerPoint Modal */}
       {aiReportData && (
-        <>
-          <ComplaintInfographicModal
-            isOpen={showInfographicModal}
-            onClose={() => setShowInfographicModal(false)}
-            complaintData={{
-              referenceNumber: complaint.reference_number,
-              category: complaint.category,
-              receivedDate,
-              outcomeType,
-              complaintOverview: aiReportData.complaintOverview,
-              keyLearnings: aiReportData.keyLearnings,
-              practiceStrengths: aiReportData.practiceStrengths,
-              improvementSuggestions: aiReportData.improvementSuggestions,
-            }}
-          />
-          <ComplaintPowerPointModal
-            isOpen={showPowerPointModal}
-            onClose={() => setShowPowerPointModal(false)}
-            complaintData={{
-              referenceNumber: complaint.reference_number,
-              category: complaint.category,
-              receivedDate,
-              outcomeType,
-              complaintOverview: aiReportData.complaintOverview,
-              keyLearnings: aiReportData.keyLearnings,
-              practiceStrengths: aiReportData.practiceStrengths,
-              improvementSuggestions: aiReportData.improvementSuggestions,
-              outcomeRationale: aiReportData.outcomeRationale,
-            }}
-          />
-        </>
+        <ComplaintPowerPointModal
+          isOpen={showPowerPointModal}
+          onClose={() => setShowPowerPointModal(false)}
+          complaintData={{
+            referenceNumber: complaint.reference_number,
+            category: complaint.category,
+            receivedDate,
+            outcomeType,
+            complaintOverview: aiReportData.complaintOverview,
+            keyLearnings: aiReportData.keyLearnings,
+            practiceStrengths: aiReportData.practiceStrengths,
+            improvementSuggestions: aiReportData.improvementSuggestions,
+            outcomeRationale: aiReportData.outcomeRationale,
+          }}
+        />
       )}
     </>
   );
