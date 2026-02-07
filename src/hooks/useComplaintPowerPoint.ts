@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -29,34 +29,212 @@ interface GenerationResult {
   error?: string;
 }
 
+interface PersistedPowerPoint {
+  downloadUrl: string;
+  gammaUrl?: string;
+  thumbnailUrl?: string;
+  slideCount?: number;
+}
+
 type GenerationPhase = 'preparing' | 'generating' | 'polling' | 'downloading' | 'complete';
 
-/**
- * Strip patient/staff names and other PII from text before sending to Gamma.
- * Mirrors the anonymisation logic from useComplaintInfographic.
- */
 const anonymiseText = (text: string): string => {
   if (!text) return text;
   let cleaned = text;
-  // Remove title + name patterns (e.g. "Mr. James Robert Williams", "Dr Smith")
   cleaned = cleaned.replace(/\b(Mr\.?|Mrs\.?|Ms\.?|Miss|Dr\.?|Professor|Prof\.?)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/g, '[a member of the team/patient]');
-  // Remove "Patient: Name" or "Staff: Name" label patterns
   cleaned = cleaned.replace(/\b(patient|complainant|staff member|nurse|doctor|receptionist|GP)\s*:\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/gi, '$1');
-  // Remove NHS numbers (XXX XXX XXXX)
   cleaned = cleaned.replace(/\b\d{3}\s?\d{3}\s?\d{4}\b/g, '[NHS number redacted]');
-  // Remove email addresses
   cleaned = cleaned.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '[email redacted]');
-  // Remove phone numbers
   cleaned = cleaned.replace(/\b(?:(?:\+44\s?|0)(?:\d\s?){9,10})\b/g, '[phone redacted]');
   return cleaned;
 };
 
-export const useComplaintPowerPoint = () => {
+/**
+ * Generate a canvas-based thumbnail for the title slide.
+ */
+const generateTitleSlideThumbnail = (
+  referenceNumber: string,
+  category: string,
+  slideCount: number
+): Promise<Blob> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 640;
+    canvas.height = 360;
+    const ctx = canvas.getContext('2d')!;
+
+    // Background gradient
+    const gradient = ctx.createLinearGradient(0, 0, 640, 360);
+    gradient.addColorStop(0, '#1e3a5f');
+    gradient.addColorStop(1, '#2d5f8a');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 640, 360);
+
+    // Subtle accent bar at top
+    const topBar = ctx.createLinearGradient(0, 0, 640, 0);
+    topBar.addColorStop(0, '#f59e0b');
+    topBar.addColorStop(1, '#f97316');
+    ctx.fillStyle = topBar;
+    ctx.fillRect(0, 0, 640, 6);
+
+    // Presentation icon (simplified)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.beginPath();
+    ctx.arc(520, 280, 80, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Title text
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Learning Together:', 40, 100);
+
+    ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('Complaint Review', 40, 132);
+
+    // Reference
+    ctx.fillStyle = '#f59e0b';
+    ctx.font = '600 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(referenceNumber, 40, 172);
+
+    // Category badge
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    const categoryText = category;
+    const catMetrics = ctx.measureText(categoryText);
+    ctx.roundRect(40, 188, catMetrics.width + 20, 28, 4);
+    ctx.fill();
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(categoryText, 50, 207);
+
+    // Slide count
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.font = '13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText(`${slideCount} slides • Staff Training Presentation`, 40, 260);
+
+    // Footer
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    ctx.fillText('Powered by NoteWell AI', 40, 330);
+
+    canvas.toBlob((blob) => {
+      resolve(blob!);
+    }, 'image/png');
+  });
+};
+
+/**
+ * Persist PowerPoint metadata and thumbnail to Supabase.
+ */
+const persistPowerPoint = async (
+  complaintId: string,
+  downloadUrl: string,
+  gammaUrl: string | undefined,
+  slideCount: number,
+  referenceNumber: string,
+  category: string,
+): Promise<string | null> => {
+  try {
+    // Generate thumbnail
+    const thumbnailBlob = await generateTitleSlideThumbnail(referenceNumber, category, slideCount);
+    const filePath = `${complaintId}/powerpoint_thumb_${Date.now()}.png`;
+
+    // Remove old thumbnails
+    const { data: existingFiles } = await supabase.storage
+      .from('complaint-infographics')
+      .list(complaintId, { search: 'powerpoint_thumb' });
+
+    if (existingFiles && existingFiles.length > 0) {
+      const paths = existingFiles.map(f => `${complaintId}/${f.name}`);
+      await supabase.storage.from('complaint-infographics').remove(paths);
+    }
+
+    // Upload thumbnail
+    const { error: uploadError } = await supabase.storage
+      .from('complaint-infographics')
+      .upload(filePath, thumbnailBlob, { contentType: 'image/png', upsert: true });
+
+    if (uploadError) {
+      console.error('[PowerPoint] Thumbnail upload error:', uploadError);
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('complaint-infographics')
+      .getPublicUrl(filePath);
+
+    const thumbnailUrl = publicUrlData?.publicUrl || null;
+
+    // Upsert into complaint_audio_overviews
+    const { data: existing } = await supabase
+      .from('complaint_audio_overviews')
+      .select('id')
+      .eq('complaint_id', complaintId)
+      .maybeSingle();
+
+    const pptData = {
+      powerpoint_download_url: downloadUrl,
+      powerpoint_gamma_url: gammaUrl || null,
+      powerpoint_thumbnail_url: thumbnailUrl,
+      powerpoint_slide_count: slideCount,
+    };
+
+    if (existing) {
+      await supabase
+        .from('complaint_audio_overviews')
+        .update(pptData as any)
+        .eq('complaint_id', complaintId);
+    } else {
+      const { data: userData } = await supabase.auth.getUser();
+      await supabase
+        .from('complaint_audio_overviews')
+        .insert({
+          complaint_id: complaintId,
+          created_by: userData.user?.id || null,
+          ...pptData,
+        } as any);
+    }
+
+    console.log('[PowerPoint] Persisted successfully');
+    return thumbnailUrl;
+  } catch (err) {
+    console.error('[PowerPoint] Persistence error:', err);
+    return null;
+  }
+};
+
+export const useComplaintPowerPoint = (complaintId?: string) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<GenerationPhase>('preparing');
   const [error, setError] = useState<string | null>(null);
+  const [persistedData, setPersistedData] = useState<PersistedPowerPoint | null>(null);
+  const loadedRef = useRef(false);
 
-  const formatComplaintContent = (data: ComplaintPowerPointData): string => {
+  // Load persisted PowerPoint on mount
+  useEffect(() => {
+    if (!complaintId || loadedRef.current) return;
+    loadedRef.current = true;
+
+    const load = async () => {
+      const { data } = await supabase
+        .from('complaint_audio_overviews')
+        .select('powerpoint_download_url, powerpoint_gamma_url, powerpoint_thumbnail_url, powerpoint_slide_count')
+        .eq('complaint_id', complaintId)
+        .maybeSingle();
+
+      if (data?.powerpoint_download_url) {
+        setPersistedData({
+          downloadUrl: data.powerpoint_download_url,
+          gammaUrl: data.powerpoint_gamma_url || undefined,
+          thumbnailUrl: data.powerpoint_thumbnail_url || undefined,
+          slideCount: data.powerpoint_slide_count || undefined,
+        });
+      }
+    };
+
+    load();
+  }, [complaintId]);
+
+  const formatComplaintContent = useCallback((data: ComplaintPowerPointData): string => {
     const sections: string[] = [];
 
     sections.push('# Learning from Complaints — Staff Training');
@@ -73,13 +251,11 @@ export const useComplaintPowerPoint = () => {
       sections.push(`**Outcome:** ${formattedOutcome}`);
     }
 
-    // Anonymised overview
     const anonymisedOverview = anonymiseText(data.complaintOverview);
     sections.push('');
     sections.push('## What Happened');
     sections.push(anonymisedOverview);
 
-    // Key learnings
     if (data.keyLearnings.length > 0) {
       sections.push('');
       sections.push('## Key Learnings for the Team');
@@ -88,7 +264,6 @@ export const useComplaintPowerPoint = () => {
       });
     }
 
-    // Strengths
     if (data.practiceStrengths.length > 0) {
       sections.push('');
       sections.push('## What We Did Well');
@@ -97,17 +272,15 @@ export const useComplaintPowerPoint = () => {
       });
     }
 
-    // Improvements
     if (data.improvementSuggestions.length > 0) {
       sections.push('');
-      sections.push('## How We\'re Improving');
+      sections.push("## How We're Improving");
       data.improvementSuggestions.forEach((s, i) => {
         sections.push(`${i + 1}. ${anonymiseText(s.suggestion)} [${s.priority} priority]`);
         sections.push(`   ${anonymiseText(s.rationale)}`);
       });
     }
 
-    // Outcome rationale
     if (data.outcomeRationale) {
       sections.push('');
       sections.push('## Outcome Summary');
@@ -115,9 +288,9 @@ export const useComplaintPowerPoint = () => {
     }
 
     return sections.join('\n');
-  };
+  }, []);
 
-  const generatePowerPoint = async (
+  const generatePowerPoint = useCallback(async (
     data: ComplaintPowerPointData,
     slideCount: number = 7
   ): Promise<GenerationResult> => {
@@ -140,9 +313,8 @@ export const useComplaintPowerPoint = () => {
             .not('practice_logo_url', 'is', null)
             .not('practice_logo_url', 'eq', '')
             .limit(1);
-          
-          // Pick the first row with a valid Supabase storage URL
-          const validLogo = practiceRows?.find(r => 
+
+          const validLogo = practiceRows?.find(r =>
             r.practice_logo_url?.startsWith('https://')
           );
           if (validLogo?.practice_logo_url) {
@@ -156,11 +328,8 @@ export const useComplaintPowerPoint = () => {
 
       setCurrentPhase('generating');
 
-      // Keep instructions concise — Gamma has a 5000-char limit on additionalInstructions
-      // and verbose instructions can crowd out image generation
       const customInstructions = `Friendly PLT staff training tone — "learning together as a team". Never blame individuals. Celebrate strengths alongside improvements. PRIVACY: No patient/staff names, NHS numbers, emails, or phone numbers — fully anonymised. Use "the patient" or "a team member" instead. Create exactly ${slideCount} slides. British English. Speaker notes in notes pane only. Final slide: "Powered by NoteWell AI".${practiceLogoUrl ? ` Practice logo at top-right of every slide: ${practiceLogoUrl}` : ''}`;
 
-      // Step 1: Start Gamma generation (returns generationId immediately)
       const { data: startResponse, error: startError } = await supabase.functions.invoke(
         'generate-powerpoint-gamma',
         {
@@ -194,10 +363,10 @@ export const useComplaintPowerPoint = () => {
       const generationId = startResponse.generationId;
       console.log('[ComplaintPowerPoint] Generation started, ID:', generationId);
 
-      // Step 2: Poll for completion
+      // Poll for completion
       setCurrentPhase('polling');
-      const pollInterval = 5000; // 5 seconds
-      const maxPollTime = slideCount * 30000; // 30s per slide max
+      const pollInterval = 5000;
+      const maxPollTime = slideCount * 30000;
       const startTime = Date.now();
 
       let downloadUrl: string | undefined;
@@ -218,7 +387,7 @@ export const useComplaintPowerPoint = () => {
 
         if (pollError) {
           console.error('[ComplaintPowerPoint] Poll error:', pollError);
-          continue; // Retry on transient errors
+          continue;
         }
 
         console.log('[ComplaintPowerPoint] Poll status:', pollResponse?.status);
@@ -232,8 +401,6 @@ export const useComplaintPowerPoint = () => {
         if (pollResponse?.status === 'failed') {
           throw new Error(pollResponse?.error || 'Gamma generation failed');
         }
-
-        // status === 'pending' → keep polling
       }
 
       if (!downloadUrl) {
@@ -253,7 +420,6 @@ export const useComplaintPowerPoint = () => {
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.download = `Staff_Training_${safeRef}.pptx`;
-
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -263,6 +429,25 @@ export const useComplaintPowerPoint = () => {
       });
 
       setCurrentPhase('complete');
+
+      // Persist in background
+      if (complaintId) {
+        persistPowerPoint(
+          complaintId,
+          downloadUrl,
+          gammaUrl,
+          slideCount,
+          data.referenceNumber,
+          data.category,
+        ).then((thumbnailUrl) => {
+          setPersistedData({
+            downloadUrl: downloadUrl!,
+            gammaUrl,
+            thumbnailUrl: thumbnailUrl || undefined,
+            slideCount,
+          });
+        });
+      }
 
       return {
         success: true,
@@ -277,12 +462,31 @@ export const useComplaintPowerPoint = () => {
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [complaintId, formatComplaintContent]);
+
+  const downloadPersistedPowerPoint = useCallback((referenceNumber: string) => {
+    if (!persistedData?.downloadUrl) return;
+    const safeRef = referenceNumber
+      .replace(/[^a-zA-Z0-9\s-]/g, '')
+      .replace(/\s+/g, '_')
+      .substring(0, 50);
+
+    const link = document.createElement('a');
+    link.href = persistedData.downloadUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.download = `Staff_Training_${safeRef}.pptx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [persistedData]);
 
   return {
     generatePowerPoint,
+    downloadPersistedPowerPoint,
     isGenerating,
     currentPhase,
     error,
+    persistedData,
   };
 };

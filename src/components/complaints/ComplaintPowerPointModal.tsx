@@ -38,6 +38,7 @@ interface ComplaintPowerPointData {
 interface ComplaintPowerPointModalProps {
   isOpen: boolean;
   onClose: () => void;
+  complaintId?: string;
   complaintData: ComplaintPowerPointData;
 }
 
@@ -55,9 +56,10 @@ const GENERATION_TIPS = [
 export const ComplaintPowerPointModal: React.FC<ComplaintPowerPointModalProps> = ({
   isOpen,
   onClose,
+  complaintId,
   complaintData,
 }) => {
-  const { generatePowerPoint, isGenerating, currentPhase, error } = useComplaintPowerPoint();
+  const { generatePowerPoint, isGenerating, currentPhase, error } = useComplaintPowerPoint(complaintId);
   const [slideCount, setSlideCount] = useState<number>(7);
   const [hasStarted, setHasStarted] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
