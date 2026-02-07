@@ -421,37 +421,9 @@ const ComplaintDetails = () => {
 
       if (checksError) throw checksError;
       
-      // Define standard complaint handling order
-      const standardOrder = [
-        'Acknowledgement sent within 3 working days',
-        'Investigation completed within 20 working days',
-        'NHS Constitution pledge - may be extended with good reason',
-        'Complainant informed of investigation timeline',
-        'All relevant staff interviewed',
-        'Medical records reviewed',
-        'Evidence collected and documented',
-        'Investigation findings documented',
-        'Response letter drafted',
-        'Response reviewed by appropriate authority',
-        'Final response sent to complainant',
-        'Complaint outcome recorded',
-        'Learning points identified',
-        'Action plan created if needed',
-        'Complainant satisfaction checked'
-      ];
-      
-      // Sort checks by the standard order with stable tie-breakers so items never jump
-      const orderMap = new Map(standardOrder.map((item, i) => [item, i]));
-      const sortedChecks = (checks || [])
-        .sort((a: any, b: any) => {
-          const rankA = orderMap.has(a.compliance_item) ? orderMap.get(a.compliance_item)! : 1000;
-          const rankB = orderMap.has(b.compliance_item) ? orderMap.get(b.compliance_item)! : 1000;
-          if (rankA !== rankB) return rankA - rankB;
-          const da = a.created_at || '';
-          const db = b.created_at || '';
-          if (da !== db) return da.localeCompare(db);
-          return String(a.id).localeCompare(String(b.id));
-        });
+      // Deduplicate (safety net) and sort by numbered prefix
+      const { deduplicateComplianceChecks } = await import('@/utils/cleanupComplianceChecks');
+      const sortedChecks = deduplicateComplianceChecks(checks || []);
       
       setComplianceChecks(sortedChecks);
 
