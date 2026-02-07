@@ -151,6 +151,20 @@ serve(async (req) => {
       console.log('❌ No practice details found for complaint:', complaintId);
     }
 
+    // Fetch user profile (title, role, full_name, letter_signature) from My Profile
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('title, full_name, role, letter_signature')
+      .eq('user_id', complaint.created_by)
+      .maybeSingle();
+    
+    console.log('User profile data:', { 
+      title: userProfile?.title, 
+      full_name: userProfile?.full_name, 
+      role: userProfile?.role,
+      has_letter_signature: !!userProfile?.letter_signature 
+    });
+
     // Get signature details for the user who created the complaint
     const { data: signature } = await supabase
       .from('complaint_signatures')
@@ -163,51 +177,49 @@ serve(async (req) => {
       signatureDetails = signature;
       console.log('Found signature details:', signatureDetails?.name);
     } else {
-      // Fallback: get user name from auth.users metadata and profile title (same approach as acknowledgement letter)
-      console.log('No signature found, fetching user details from auth and profile');
+      // Build from profile + auth data (same as acknowledgement letter)
+      console.log('No signature found, building from profile and auth data');
       const { data: authUser } = await supabase.auth.admin.getUserById(complaint.created_by);
-      
-      // Also fetch the profile to get the title (Dr, Mr, Mrs, etc.)
-      const { data: userProfile } = await supabase
-        .from('profiles')
-        .select('title, full_name')
-        .eq('user_id', complaint.created_by)
-        .maybeSingle();
       
       if (authUser?.user) {
         const baseName = userProfile?.full_name || authUser.user.user_metadata?.full_name || authUser.user.email?.split('@')[0] || 'Complaints Manager';
-        // Prepend title if available (e.g., "Dr Hussain Gandhi")
         const signatoryName = userProfile?.title ? `${userProfile.title} ${baseName}` : baseName;
         
-        // Check if they have GP Partner role or similar
-        const { data: userRoleData } = await supabase
-          .from('user_roles')
-          .select('role, practice_role')
-          .eq('user_id', complaint.created_by)
-          .maybeSingle();
-        
-        // Determine title based on role - map practice_user to GP Partner for clinical users
+        // Determine role: prefer profile.role from My Profile, then user_roles
         let signatoryTitle = 'Complaints Manager';
-        if (userRoleData?.practice_role) {
-          signatoryTitle = userRoleData.practice_role;
-        } else if (userRoleData?.role === 'practice_manager') {
-          signatoryTitle = 'Practice Manager';
-        } else if (userRoleData?.role === 'practice_user' || userRoleData?.role === 'gp' || userRoleData?.role === 'clinical') {
-          signatoryTitle = 'GP Partner'; // Clinical users default to GP Partner
+        if (userProfile?.role) {
+          signatoryTitle = userProfile.role;
+          console.log('Using role from My Profile:', signatoryTitle);
         } else {
-          signatoryTitle = 'GP Partner'; // Default for any other clinical users
+          const { data: userRoleData } = await supabase
+            .from('user_roles')
+            .select('role, practice_role')
+            .eq('user_id', complaint.created_by)
+            .maybeSingle();
+          
+          if (userRoleData?.practice_role) {
+            signatoryTitle = userRoleData.practice_role;
+          } else if (userRoleData?.role === 'practice_manager') {
+            signatoryTitle = 'Practice Manager';
+          } else if (userRoleData?.role === 'practice_user' || userRoleData?.role === 'gp' || userRoleData?.role === 'clinical') {
+            signatoryTitle = 'GP Partner';
+          } else {
+            signatoryTitle = 'GP Partner';
+          }
         }
+        
+        // Use letter_signature from My Profile if available
+        const letterSignatureText = userProfile?.letter_signature || null;
         
         signatureDetails = {
           name: signatoryName,
           job_title: signatoryTitle,
           qualifications: null,
-          signature_text: null,
+          signature_text: letterSignatureText,
           email: practiceDetails?.email || null
         };
-        console.log('Using auth user details for signature:', signatureDetails.name, signatureDetails.job_title);
+        console.log('Built signature from profile:', { name: signatoryName, title: signatoryTitle, hasLetterSignature: !!letterSignatureText });
       } else {
-        // Final fallback
         signatureDetails = {
           name: 'The Complaints Team',
           job_title: 'Complaints Manager',
