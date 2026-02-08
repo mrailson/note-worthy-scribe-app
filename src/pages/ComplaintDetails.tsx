@@ -1710,6 +1710,12 @@ const ComplaintDetails = () => {
                 {complaint.response_due_date && (
                   <div><strong>Due Date:</strong> {format(new Date(complaint.response_due_date), 'dd/MM/yyyy')}</div>
                 )}
+                <div className="w-56">
+                  <IndemnityConsiderationField
+                    complaintId={complaint.id}
+                    isOutcomeFinalised={!!complaint.closed_at}
+                  />
+                </div>
               </div>
               
               {/* Days Remaining / Processing Time Display */}
@@ -1772,20 +1778,12 @@ const ComplaintDetails = () => {
                 return null;
               })()}
               
-              <div className="mt-4 flex items-start gap-6">
-                <div className="flex-1">
-                  <strong className="text-foreground">Description:</strong>
-                  <p className="mt-1 text-base text-muted-foreground">{complaint.complaint_description
-                    .replace(/([.!?])(?!\s|$)(?=[A-Z"""'])/g, '$1 ')
-                    .replace(/\s{2,}/g, ' ')
-                  }</p>
-                </div>
-                <div className="w-64 flex-shrink-0">
-                  <IndemnityConsiderationField
-                    complaintId={complaint.id}
-                    isOutcomeFinalised={!!complaint.closed_at}
-                  />
-                </div>
+              <div className="mt-4">
+                <strong className="text-foreground">Description:</strong>
+                <p className="mt-1 text-base text-muted-foreground">{complaint.complaint_description
+                  .replace(/([.!?])(?!\s|$)(?=[A-Z"""'])/g, '$1 ')
+                  .replace(/\s{2,}/g, ' ')
+                }</p>
               </div>
             </CardContent>
           </Card>
