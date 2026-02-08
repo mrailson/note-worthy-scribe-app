@@ -69,6 +69,14 @@ serve(async (req) => {
     }
     
     let narrative: string;
+
+    // Collect all names to redact from generated text (for privacy safety net)
+    const namesToRedact: string[] = [];
+    if (complaint.patient_name) namesToRedact.push(complaint.patient_name);
+    if (complaint.complainant_name) namesToRedact.push(complaint.complainant_name);
+    (complaint.complaint_involved_parties || []).forEach((p: any) => {
+      if (p.staff_name) namesToRedact.push(p.staff_name);
+    });
     
     // Use overrideText if provided, otherwise generate with AI
     if (overrideText && overrideText.trim()) {
@@ -83,10 +91,10 @@ serve(async (req) => {
         throw new Error('LOVABLE_API_KEY not configured');
       }
 
-      // Gather staff responses
+      // Gather staff responses — anonymise names for privacy
       const staffResponses = (complaint.complaint_involved_parties || [])
         .filter((p: any) => p.response_text)
-        .map((p: any) => `${p.staff_name} (${p.staff_role}): ${p.response_text.slice(0, 500)}`)
+        .map((p: any, i: number) => `Staff Member ${i + 1} (${p.staff_role || 'Team Member'}): ${p.response_text.slice(0, 500)}`)
         .join('\n\n');
 
       // Gather internal notes
@@ -110,7 +118,13 @@ serve(async (req) => {
         }
       }
       
-      const systemPrompt = `You are an NHS complaints executive briefing specialist. Your task is to produce a calm, balanced spoken overview suitable for senior practice management.
+       const systemPrompt = `You are an NHS complaints executive briefing specialist. Your task is to produce a calm, balanced spoken overview suitable for senior practice management.
+
+PRIVACY — ABSOLUTE RULE:
+- NEVER mention any patient name, complainant name, staff member name, or any other personal name
+- Refer to individuals ONLY as "the patient", "the complainant", "a staff member", "a clinician", "a member of the team", etc.
+- If a name appears anywhere in the source material, you MUST replace it with a role-based reference
+- This applies to ALL names without exception
 
 Create a concise spoken summary under one minute (target 120–150 words).
 
@@ -150,21 +164,44 @@ Language:
 - Plain, spoken narrative style
 - No bullet points, labels, formatting symbols, stage directions, or script notations`;
 
+      // Helper to scrub names from text before sending to AI
+      const scrubNames = (text: string): string => {
+        let scrubbed = text;
+        for (const name of namesToRedact) {
+          if (!name || name.trim().length < 2) continue;
+          const fullPattern = new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+          scrubbed = scrubbed.replace(fullPattern, '[REDACTED]');
+          const parts = name.trim().split(/\s+/);
+          for (const part of parts) {
+            if (part.length < 3) continue;
+            const partPattern = new RegExp(`\\b${part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+            scrubbed = scrubbed.replace(partPattern, '[REDACTED]');
+          }
+        }
+        return scrubbed;
+      };
+
+      const scrubbedDescription = scrubNames(complaint.complaint_description.slice(0, 800));
+      const scrubbedStaffResponses = staffResponses ? scrubNames(staffResponses.slice(0, 1000)) : '';
+      const scrubbedNotes = internalNotes ? scrubNames(internalNotes.slice(0, 600)) : '';
+      const scrubbedOutcomeSummary = outcome.outcome_summary ? scrubNames(outcome.outcome_summary.slice(0, 800)) : '';
+
       const userPrompt = `Complaint Reference: ${complaint.reference_number}
 Complaint Received Date: ${complaint.submitted_at ? new Date(complaint.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : new Date(complaint.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
-Patient: ${complaint.patient_name}
 Category: ${complaint.category}
 Incident Date: ${complaint.incident_date}
 
 Complaint Description:
-${complaint.complaint_description.slice(0, 800)}
+${scrubbedDescription}
 
-${staffResponses ? `Staff Responses:\n${staffResponses.slice(0, 1000)}\n\n` : ''}
+${scrubbedStaffResponses ? `Staff Responses:\n${scrubbedStaffResponses}\n\n` : ''}
 
-${internalNotes ? `Investigation Notes:\n${internalNotes.slice(0, 600)}\n\n` : ''}
+${scrubbedNotes ? `Investigation Notes:\n${scrubbedNotes}\n\n` : ''}
 
 Outcome: ${outcome.outcome_type}
-${outcome.outcome_summary ? `\nOutcome Summary:\n${outcome.outcome_summary.slice(0, 800)}` : ''}
+${scrubbedOutcomeSummary ? `\nOutcome Summary:\n${scrubbedOutcomeSummary}` : ''}
+
+IMPORTANT: Do NOT mention any patient, complainant, or staff member by name. Use role-based references only (e.g. "the patient", "the complainant", "a staff member").
 
 Create an under-1-minute executive audio briefing using only the information provided above. Start with "Complaint number [sequential number in words] received on the [Complaint Received Date in format: the 7th of November] concerns [brief 5-7 word summary]." Then cover key learnings, actions taken (only as documented), and areas for ongoing consideration, framed reflectively in line with NHS best practice and CQC expectations.`;
 
@@ -200,6 +237,26 @@ Create an under-1-minute executive audio briefing using only the information pro
 
       const aiData = await aiResponse.json();
       narrative = aiData.choices[0].message.content;
+    }
+
+    // SAFETY NET: Scrub any personal names that may have leaked through
+    // This catches cases where the AI ignores the anonymisation instruction
+    if (namesToRedact && namesToRedact.length > 0) {
+      for (const name of namesToRedact) {
+        if (!name || name.trim().length < 2) continue;
+        // Replace full name
+        const fullNamePattern = new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        narrative = narrative.replace(fullNamePattern, 'the individual');
+        // Also replace individual name parts (first name, surname)
+        const parts = name.trim().split(/\s+/);
+        for (const part of parts) {
+          if (part.length < 3) continue; // Skip initials/short words
+          const partPattern = new RegExp(`\\b${part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+          narrative = narrative.replace(partPattern, 'the individual');
+        }
+      }
+      // Clean up awkward repetitions from replacement
+      narrative = narrative.replace(/the individual the individual/gi, 'the individual');
     }
     
     console.log('Generated narrative length:', narrative.length);
