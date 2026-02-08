@@ -2403,7 +2403,7 @@ const ComplaintDetails = () => {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="default">Letter Generated</Badge>
                             <button
                               onClick={() => handleGenerateAcknowledgement(complaint.id)}
@@ -2413,28 +2413,42 @@ const ComplaintDetails = () => {
                             >
                               <RefreshCw className={`h-3 w-3 ${submitting ? 'animate-spin' : ''}`} />
                             </button>
-                            {acknowledgementSentToPatient && (
-                              <Badge variant="default" className="bg-green-600">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Sent to {getAcknowledgementRecipientLabel(complaint?.complaint_source)}
-                              </Badge>
-                            )}
-                            {complaint?.status === 'under_review' && acknowledgementSentToPatient && (
-                              <Badge variant="secondary">
-                                <Clock className="h-3 w-3 mr-1" />
-                                Under Review
-                              </Badge>
+
+                            {acknowledgementSentToPatient ? (
+                              <>
+                                <Badge variant="default" className="bg-green-600">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Sent to {getAcknowledgementRecipientLabel(complaint?.complaint_source)}
+                                  {acknowledgementSentAt && (
+                                    <span className="ml-1 font-normal opacity-90">
+                                      {format(new Date(acknowledgementSentAt), 'dd/MM/yyyy HH:mm')}
+                                    </span>
+                                  )}
+                                </Badge>
+                                {complaint?.status === 'under_review' && (
+                                  <Badge variant="secondary">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    Under Review
+                                  </Badge>
+                                )}
+                              </>
+                            ) : (
+                              <div className="flex items-center gap-1.5 ml-1">
+                                <Checkbox 
+                                  id="ack-sent"
+                                  checked={false}
+                                  onCheckedChange={(checked) => handleMarkAcknowledgementSent(checked as boolean)}
+                                  className="h-3.5 w-3.5"
+                                />
+                                <Label htmlFor="ack-sent" className="text-xs text-muted-foreground cursor-pointer">
+                                  Mark as sent to {getAcknowledgementRecipientLabel(complaint?.complaint_source)}
+                                </Label>
+                              </div>
                             )}
                           </div>
                           {acknowledgementDate && (complaint?.submitted_at || complaint?.created_at) && (
                             <div className="text-sm text-muted-foreground">
                               Generated: {format(new Date(acknowledgementDate), 'dd/MM/yyyy HH:mm')}
-                              {acknowledgementSentAt && (
-                                <>
-                                  <br />
-                                  Sent to {getAcknowledgementRecipientLabel(complaint?.complaint_source).toLowerCase()}: {format(new Date(acknowledgementSentAt), 'dd/MM/yyyy HH:mm')}
-                                </>
-                              )}
                               <br />
                               <span className={`font-medium ${
                                 calculateWorkingDays(complaint.submitted_at || complaint.created_at, acknowledgementDate) <= 3 
@@ -2449,18 +2463,6 @@ const ComplaintDetails = () => {
                               </span>
                             </div>
                           )}
-                          
-                          {/* Checkbox for marking acknowledgement as sent */}
-                          <div className="flex items-center space-x-2 mt-1 p-2 border rounded bg-muted/30">
-                            <Checkbox 
-                              id="ack-sent"
-                              checked={acknowledgementSentToPatient}
-                              onCheckedChange={(checked) => handleMarkAcknowledgementSent(checked as boolean)}
-                            />
-                            <Label htmlFor="ack-sent" className="text-xs font-medium cursor-pointer">
-                              Mark acknowledgement as sent to {getAcknowledgementRecipientLabel(complaint?.complaint_source)}
-                            </Label>
-                          </div>
                         </div>
                         <div className="space-x-2">
                           {acknowledgementLetter && acknowledgementLetter.replace(/<!--.*?-->|\s/g, '').length > 0 ? (
