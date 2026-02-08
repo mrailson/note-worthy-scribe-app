@@ -2451,13 +2451,13 @@ const ComplaintDetails = () => {
                           )}
                           
                           {/* Checkbox for marking acknowledgement as sent */}
-                          <div className="flex items-center space-x-2 mt-2 p-3 border rounded-lg bg-muted/50">
+                          <div className="flex items-center space-x-2 mt-1 p-2 border rounded bg-muted/30">
                             <Checkbox 
                               id="ack-sent"
                               checked={acknowledgementSentToPatient}
                               onCheckedChange={(checked) => handleMarkAcknowledgementSent(checked as boolean)}
                             />
-                            <Label htmlFor="ack-sent" className="text-sm font-medium cursor-pointer">
+                            <Label htmlFor="ack-sent" className="text-xs font-medium cursor-pointer">
                               Mark acknowledgement as sent to {getAcknowledgementRecipientLabel(complaint?.complaint_source)}
                             </Label>
                           </div>

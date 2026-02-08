@@ -201,89 +201,80 @@ export const IndemnityConsiderationField = ({
   }
 
   return (
-    <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
-      <div className="flex items-center gap-2">
-        <Shield className="h-4 w-4 text-muted-foreground" />
-        <Label className="text-sm font-medium">Indemnity consideration</Label>
+    <div className="border rounded p-3 bg-muted/20 space-y-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Shield className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+        <Label className="text-xs font-medium">Indemnity consideration</Label>
+
+        <Select
+          value={status}
+          onValueChange={handleStatusChange}
+          disabled={locked}
+        >
+          <SelectTrigger className="h-8 text-xs w-auto min-w-[220px] max-w-[320px]">
+            <SelectValue placeholder="Select…" />
+          </SelectTrigger>
+          <SelectContent>
+            {INDEMNITY_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value} className="text-xs">
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {saving && (
-          <span className="text-xs text-muted-foreground ml-auto">Saving…</span>
+          <span className="text-[10px] text-muted-foreground">Saving…</span>
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        Some complaints benefit from early advice from a medical defence
-        organisation before correspondence is finalised.
-      </p>
-
-      <Select
-        value={status}
-        onValueChange={handleStatusChange}
-        disabled={locked}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select consideration status" />
-        </SelectTrigger>
-        <SelectContent>
-          {INDEMNITY_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
       {/* Helper note for the selected option */}
       {selectedOption?.helper && (
-        <p className="text-xs text-muted-foreground italic pl-1">
+        <p className="text-[11px] text-muted-foreground italic pl-6">
           {selectedOption.helper}
         </p>
       )}
 
       {/* Provider field — shown for "advice_sought" */}
       {selectedOption?.showProvider && (
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">
-            Provider (e.g. MDU, MPS, MDDUS, other)
+        <div className="flex items-center gap-2 pl-6">
+          <Label className="text-[11px] text-muted-foreground whitespace-nowrap">
+            Provider:
           </Label>
           <Input
             value={providerName}
             onChange={(e) => setProviderName(e.target.value)}
             onBlur={handleProviderBlur}
-            placeholder="e.g. MDU"
+            placeholder="e.g. MDU, MPS, MDDUS"
             disabled={locked}
-            className="text-sm"
+            className="h-7 text-xs max-w-[240px]"
           />
         </div>
       )}
 
       {/* Notes field — shown for "advice_planned" */}
       {selectedOption?.showNotes && (
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">
-            Notes (optional)
-          </Label>
+        <div className="pl-6">
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             onBlur={handleNotesBlur}
-            placeholder="Any additional notes…"
+            placeholder="Notes (optional)…"
             disabled={locked}
-            className="text-sm min-h-[60px]"
-            rows={2}
+            className="text-xs min-h-[40px] resize-none"
+            rows={1}
           />
         </div>
       )}
 
       {locked && (
-        <p className="text-xs text-muted-foreground italic">
-          This field is locked as the outcome has been finalised.
+        <p className="text-[10px] text-muted-foreground italic pl-6">
+          Locked — outcome finalised.
         </p>
       )}
 
-      {/* Discreet footer */}
-      <p className="text-[10px] text-muted-foreground/60 pt-1 border-t border-border/50">
-        Shared to support learning and service improvement — not to attribute
-        fault.
+      <p className="text-[9px] text-muted-foreground/50 pl-6">
+        Internal only — not included in patient correspondence.
       </p>
     </div>
   );
