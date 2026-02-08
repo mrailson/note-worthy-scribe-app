@@ -131,6 +131,7 @@ interface Complaint {
   gp_practices?: {
     name: string;
   };
+  resolved_practice_name?: string;
   complaint_outcomes?: Array<{
     outcome_summary: string;
     outcome_type: string;
@@ -587,11 +588,32 @@ const ComplaintsSystem = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      // Collect unique practice_ids to look up practice_details names
+      const practiceIds = [...new Set((data || []).map(c => c.practice_id).filter(Boolean))] as string[];
       
-      // Map complaints and update status to 'closed' if outcome summary exists
+      let practiceDetailsMap: Record<string, string> = {};
+      if (practiceIds.length > 0) {
+        const { data: pdData } = await supabase
+          .from('practice_details')
+          .select('id, practice_name')
+          .in('id', practiceIds)
+          .neq('practice_name', 'Default Practice');
+        
+        if (pdData) {
+          pdData.forEach(pd => {
+            practiceDetailsMap[pd.id] = pd.practice_name;
+          });
+        }
+      }
+      
+      // Map complaints: prioritise practice_details name over gp_practices name
       const mappedComplaints = (data || []).map(complaint => ({
         ...complaint,
-        status: complaint.complaint_outcomes?.[0]?.outcome_summary ? 'closed' : complaint.status
+        status: complaint.complaint_outcomes?.[0]?.outcome_summary ? 'closed' : complaint.status,
+        resolved_practice_name: (complaint.practice_id && practiceDetailsMap[complaint.practice_id])
+          ? practiceDetailsMap[complaint.practice_id]
+          : complaint.gp_practices?.name || null,
       }));
       
       setComplaints(mappedComplaints);
@@ -1928,7 +1950,7 @@ const ComplaintsSystem = () => {
                           </div>
                           {/* Practice Name */}
                           <div className="text-sm text-muted-foreground text-center truncate px-2">
-                            {complaint.gp_practices?.name || 'N/A'}
+                            {complaint.resolved_practice_name || complaint.gp_practices?.name || 'N/A'}
                           </div>
                           {/* Days remaining indicator */}
                           <div className="flex flex-col items-center w-[100px]">
