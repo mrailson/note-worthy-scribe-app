@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, fileName } = await req.json();
+    const { transcript, fileName, audioDuration } = await req.json();
 
     if (!transcript || transcript.trim().length === 0) {
       return new Response(
@@ -29,54 +29,48 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Generating AI review for: ${fileName}, transcript length: ${transcript.length}`);
+    console.log(`Generating AI call summary for: ${fileName}, transcript length: ${transcript.length}`);
 
-    const analysisPrompt = `You are a supportive, empathetic reviewer analysing a transcribed phone call or audio recording uploaded as evidence in an NHS GP practice complaint investigation.
+    const durationLine = audioDuration
+      ? `The audio recording is approximately ${Math.floor(audioDuration / 60)} minutes and ${audioDuration % 60} seconds long.`
+      : '';
 
-YOUR PRIMARY PURPOSE is to support the wellbeing and professional development of frontline staff. GP practice staff work under extraordinary pressure — high workloads, emotional encounters, and complex situations. Your review must reflect understanding and compassion for that reality.
+    const analysisPrompt = `You are a factual summariser analysing a transcribed phone call or audio recording uploaded as evidence in an NHS GP practice complaint investigation.
+
+YOUR PURPOSE is to produce a clear, factual, third-person summary of the call. Do NOT offer opinions, commentary on tone, praise, criticism, suggestions, or recommendations. Simply state what happened.
 
 ABSOLUTE RULES:
-- NEVER criticise individual staff members explicitly or implicitly
-- NEVER use words like "failed", "poorly", "lacked", "inadequate", "unprofessional", "dismissive", "combative", "argumentative", "condescending", or "provocative" to describe staff behaviour
-- NEVER say staff "should have", "needed to", or "must" do something
-- ALWAYS lead every section with genuine positives — what went well, what was commendable
-- Frame ALL improvement areas as gentle, optional, forward-looking suggestions using phrases like "the practice may wish to consider", "one approach that some practices find helpful is", "it could be worth exploring", or "a future consideration might be"
-- Recognise that staff may have been under significant pressure, managing competing demands, or dealing with an exceptionally difficult situation
-- If the interaction was challenging, acknowledge this compassionately and commend staff resilience
+- Report ONLY what was said and done — no interpretation, no judgement
+- Do NOT comment on tone, attitude, demeanour, or emotions of any party
+- Do NOT praise or criticise any party
+- Do NOT offer suggestions, recommendations, or lessons learned
+- Do NOT speculate about intent or motivation
+- Use British English throughout
+- Write in the third person
+- Keep the summary concise and factual
+
+${durationLine}
 
 TRANSCRIPT:
 ${transcript.substring(0, 12000)}
 
-Provide a structured analysis covering the following areas. Use British English throughout. Separate each section clearly with blank lines between paragraphs for readability.
+Provide a structured factual summary covering the following sections. Separate each section clearly with blank lines between paragraphs for readability.
 
-## 1. Call Summary
-2-3 sentences: What was the call about? Who appears to be speaking? Keep this purely factual.
+## 1. Call Overview
+2-3 sentences: State who appears to be involved in the call (e.g. patient, receptionist, GP), the apparent purpose of the call, and if identifiable, when it took place.${audioDuration ? ` The call duration was approximately ${Math.floor(audioDuration / 60)} minutes and ${audioDuration % 60} seconds.` : ''}
 
-## 2. What Was Done Well
-This is the MOST IMPORTANT section. Identify and celebrate positive aspects — professionalism, patience, following procedure, offering solutions, remaining calm, showing empathy, clear communication, or any other commendable behaviour. Be specific and generous with recognition. Even in difficult calls, staff almost always demonstrate positive qualities worth highlighting.
+## 2. Key Points Discussed
+List the main topics, requests, or issues raised during the call as factual bullet points. State what was said, not how it was said.
 
-## 3. Tone Assessment
+## 3. Actions or Outcomes
+List any commitments made, next steps agreed, referrals mentioned, appointments booked, or resolutions reached during the call. If none were identified, state "No specific actions or outcomes were identified in the transcript."
 
-**Caller/Patient Tone:** Describe the caller's tone factually (e.g. calm, distressed, frustrated, anxious). If the caller was challenging, acknowledge this with empathy — patients may be anxious, unwell, frightened, or distressed.
+## 4. Call Statistics
+- **Word count**: ${transcript.split(/\\s+/).length} words transcribed
+${audioDuration ? `- **Call duration**: approximately ${Math.floor(audioDuration / 60)} minutes ${audioDuration % 60} seconds` : '- **Call duration**: not available'}
+- **Number of speakers**: estimate based on the transcript content
 
-**Staff Tone:** Lead with positives. Highlight professionalism, patience, and composure. If the call was emotionally demanding, recognise the difficulty of maintaining composure under pressure. Avoid negative characterisations of staff tone entirely — instead, note the challenging circumstances they navigated.
-
-## 4. How the Interaction Was Managed
-Highlight good practice first — any attempts to help, follow procedure, offer alternatives, or resolve the situation. If there are areas where the approach could be enhanced for future interactions, frame these purely as optional suggestions the practice may wish to explore. Never frame this as criticism.
-
-## 5. Patient Behaviour
-Note the patient's behaviour factually and with empathy. If behaviour was challenging, acknowledge the context — patients often act out of fear, frustration, or distress. If behaviour was reasonable, state that warmly.
-
-## 6. Staff Wellbeing Considerations
-This section is essential. Acknowledge the emotional demands placed on staff during this interaction. Recognise any signs of pressure, difficult circumstances, or challenging behaviour they managed with professionalism. Commend resilience. Consider recommending wellbeing support if the interaction was particularly demanding.
-
-## 7. Constructive Suggestions for Future Practice
-Offer gentle, forward-looking suggestions framed as optional opportunities. Use phrases like "the practice may wish to consider", "some practices find it helpful to", "it could be beneficial to explore". These must feel supportive and empowering, not punitive or directive. Limit to 2-3 suggestions maximum.
-
-## 8. Learning & Development Opportunities
-Frame these positively as professional growth opportunities, not remediation. For example, "the team may enjoy exploring refresher training on X" rather than "staff need training". If no gaps are apparent, warmly commend existing skills and suggest the team continue their excellent approach.
-
-Keep each section to 2-4 sentences. Do not fabricate details. Always lead with positives. The overall tone of this review should leave a reader feeling that staff are valued, supported, and appreciated.`;
+Keep each section concise. Do not fabricate details not present in the transcript.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -126,7 +120,7 @@ Keep each section to 2-4 sentences. Do not fabricate details. Always lead with p
       aiData.choices?.[0]?.message?.content?.trim() ||
       `Audio transcribed successfully (${transcript.split(/\s+/).length} words). AI analysis could not be generated.`;
 
-    console.log(`✅ AI review generated for ${fileName}`);
+    console.log(`✅ AI call summary generated for ${fileName}`);
 
     return new Response(
       JSON.stringify({ review }),

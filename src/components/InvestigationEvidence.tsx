@@ -665,12 +665,12 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         audioDuration: audioDurationSeconds
       });
 
-      // Auto-generate AI review from transcript
-      toast.info('Generating AI review…');
+      // Auto-generate AI call summary from transcript
+      toast.info('Generating AI summary…');
       try {
         const { data: reviewData, error: reviewError } = await supabase.functions
           .invoke('generate-audio-review', {
-            body: { transcript: transcriptionData.text, fileName: audioFile.file_name }
+            body: { transcript: transcriptionData.text, fileName: audioFile.file_name, audioDuration: audioDurationSeconds }
           });
 
         if (!reviewError && reviewData?.review) {
@@ -684,12 +684,12 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
           setEvidenceFiles(prev => prev.map(f =>
             f.id === audioFile.id ? { ...f, ai_summary: reviewData.review } : f
           ));
-          toast.success('AI review generated successfully');
+          toast.success('AI summary generated successfully');
         } else {
-          console.error('AI review generation failed:', reviewError);
+          console.error('AI summary generation failed:', reviewError);
         }
       } catch (reviewErr) {
-        console.error('Failed to generate AI review:', reviewErr);
+        console.error('Failed to generate AI summary:', reviewErr);
       }
     } catch (error) {
       console.error('Error transcribing audio:', error);
@@ -712,7 +712,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     try {
       const { data: reviewData, error: reviewError } = await supabase.functions
         .invoke('generate-audio-review', {
-          body: { transcript: transcript.transcript_text, fileName: file.file_name }
+          body: { transcript: transcript.transcript_text, fileName: file.file_name, audioDuration: transcript.audio_duration_seconds }
         });
 
       if (reviewError) throw reviewError;
@@ -729,10 +729,10 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         f.id === file.id ? { ...f, ai_summary: reviewData.review } : f
       ));
 
-      toast.success('AI review generated successfully');
+      toast.success('AI summary generated successfully');
     } catch (error) {
-      console.error('Error generating AI review:', error);
-      toast.error('Failed to generate AI review');
+      console.error('Error generating AI summary:', error);
+      toast.error('Failed to generate AI summary');
     } finally {
       setGeneratingReview(null);
     }
@@ -944,10 +944,10 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
           }
           const { data: reviewData, error: reviewError } = await supabase.functions
             .invoke('generate-audio-review', {
-              body: { transcript: transcript.transcript_text, fileName: file.file_name }
+              body: { transcript: transcript.transcript_text, fileName: file.file_name, audioDuration: transcript.audio_duration_seconds }
             });
           if (reviewError) throw reviewError;
-          if (!reviewData?.review) throw new Error('No review returned');
+          if (!reviewData?.review) throw new Error('No summary returned');
           await supabase
             .from('complaint_investigation_evidence')
             .update({ ai_summary: reviewData.review } as any)
@@ -956,7 +956,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
             f.id === fileId ? { ...f, ai_summary: reviewData.review } : f
           ));
           setAiReviewModal(prev => ({ ...prev, review: reviewData.review }));
-          toast.success('AI review re-generated with updated analysis');
+          toast.success('AI summary re-generated successfully');
         } : undefined}
       />
 
