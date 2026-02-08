@@ -115,7 +115,7 @@ serve(async (req) => {
 Guidelines:
 - Start with "Complaint number [number] received on the [date in format: 7th November] concerns [brief issue]" - extract ONLY the sequential complaint number by removing ALL prefix letters/digits and leading zeros (e.g., "COMP260007" → "7", "COMP250046" → "46", "COMP260001" → "1"). Never read the full reference code or year digits.
 - Use the complaint submitted date for "received on" date
-- Format date as: the 7th November, the 12th January, the 23rd December (ordinal day + full month name with "the")
+- Format date as: the 7th of November, the 12th of January, the 23rd of December (ordinal day + "of" + full month name, always preceded by "the")
 - DO NOT say "Good morning", "Notewell AI Summary", or any preambles
 - DO NOT read out the full reference code
 - Keep the opening concern description to maximum 5-7 words
