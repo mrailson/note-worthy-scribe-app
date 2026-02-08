@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { BrandingPreference } from '@/components/settings/PresentationBrandingSettings';
@@ -224,13 +223,13 @@ const persistPowerPoint = async (
 
 export const useComplaintPowerPoint = (complaintId?: string) => {
   const { user } = useAuth();
-  const { practiceContext } = usePracticeContext();
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<GenerationPhase>('preparing');
   const [error, setError] = useState<string | null>(null);
   const [persistedData, setPersistedData] = useState<PersistedPowerPoint | null>(null);
   const [templatePreference, setTemplatePreference] = useState<UserTemplatePreference | null>(null);
   const [brandingPreference, setBrandingPreference] = useState<BrandingPreference | null>(null);
+  const [complaintPracticeName, setComplaintPracticeName] = useState<string>('');
   const loadedRef = useRef(false);
   const prefsLoadedRef = useRef(false);
 
@@ -240,19 +239,30 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
     loadedRef.current = true;
 
     const load = async () => {
-      const { data } = await supabase
-        .from('complaint_audio_overviews')
-        .select('powerpoint_download_url, powerpoint_gamma_url, powerpoint_thumbnail_url, powerpoint_slide_count')
-        .eq('complaint_id', complaintId)
-        .maybeSingle();
+      const [overviewResult, complaintResult] = await Promise.all([
+        supabase
+          .from('complaint_audio_overviews')
+          .select('powerpoint_download_url, powerpoint_gamma_url, powerpoint_thumbnail_url, powerpoint_slide_count')
+          .eq('complaint_id', complaintId!)
+          .maybeSingle(),
+        supabase
+          .from('complaints')
+          .select('practice_id, gp_practices(name)')
+          .eq('id', complaintId!)
+          .maybeSingle(),
+      ]);
 
-      if (data?.powerpoint_download_url) {
+      if (overviewResult.data?.powerpoint_download_url) {
         setPersistedData({
-          downloadUrl: data.powerpoint_download_url,
-          gammaUrl: data.powerpoint_gamma_url || undefined,
-          thumbnailUrl: data.powerpoint_thumbnail_url || undefined,
-          slideCount: data.powerpoint_slide_count || undefined,
+          downloadUrl: overviewResult.data.powerpoint_download_url,
+          gammaUrl: overviewResult.data.powerpoint_gamma_url || undefined,
+          thumbnailUrl: overviewResult.data.powerpoint_thumbnail_url || undefined,
+          slideCount: overviewResult.data.powerpoint_slide_count || undefined,
         });
+      }
+
+      if (complaintResult.data?.gp_practices && typeof complaintResult.data.gp_practices === 'object' && 'name' in complaintResult.data.gp_practices) {
+        setComplaintPracticeName((complaintResult.data.gp_practices as any).name || '');
       }
     };
 
@@ -297,7 +307,7 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
 
   const formatComplaintContent = useCallback((data: ComplaintPowerPointData): string => {
     const sections: string[] = [];
-    const practiceName = practiceContext?.practiceName || '';
+    const practiceName = complaintPracticeName || '';
 
     // Structured slide-by-slide content guide for Gamma
     sections.push('# Learning Together: Complaint Review');
@@ -383,7 +393,7 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
     sections.push('Powered by NoteWell AI');
 
     return sections.join('\n');
-  }, [practiceContext]);
+  }, [complaintPracticeName]);
 
   const generatePowerPoint = useCallback(async (
     data: ComplaintPowerPointData,
@@ -396,7 +406,7 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
     try {
       const supportingContent = formatComplaintContent(data);
 
-      const practiceName = practiceContext?.practiceName || '';
+      const practiceName = complaintPracticeName || '';
 
       setCurrentPhase('generating');
 
