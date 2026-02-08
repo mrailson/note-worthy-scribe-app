@@ -664,6 +664,33 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         confidence: transcriptionData.confidence || null,
         audioDuration: audioDurationSeconds
       });
+
+      // Auto-generate AI review from transcript
+      toast.info('Generating AI review…');
+      try {
+        const { data: reviewData, error: reviewError } = await supabase.functions
+          .invoke('generate-audio-review', {
+            body: { transcript: transcriptionData.text, fileName: audioFile.file_name }
+          });
+
+        if (!reviewError && reviewData?.review) {
+          // Update evidence record with AI review
+          await supabase
+            .from('complaint_investigation_evidence')
+            .update({ ai_summary: reviewData.review } as any)
+            .eq('id', audioFile.id);
+
+          // Update local state so the review is immediately visible
+          setEvidenceFiles(prev => prev.map(f =>
+            f.id === audioFile.id ? { ...f, ai_summary: reviewData.review } : f
+          ));
+          toast.success('AI review generated successfully');
+        } else {
+          console.error('AI review generation failed:', reviewError);
+        }
+      } catch (reviewErr) {
+        console.error('Failed to generate AI review:', reviewErr);
+      }
     } catch (error) {
       console.error('Error transcribing audio:', error);
       const message = error instanceof Error ? error.message : JSON.stringify(error);
