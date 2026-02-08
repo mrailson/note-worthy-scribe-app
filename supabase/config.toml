@@ -108,9 +108,6 @@ verify_jwt = true
 [functions.improve-text-layout]
 verify_jwt = true
 
-[functions.medical-ocr-verification]
-verify_jwt = true
-
 [functions.ai-medical-translation-review]
 verify_jwt = true
 
@@ -282,12 +279,6 @@ verify_jwt = true
 [functions.send-email-resend]
 verify_jwt = false
 
-[functions.import-snomed-codes]
-verify_jwt = false
-
-[functions.import-snomed-bulk]
-verify_jwt = false
-
 [functions.lg-snomed-quality-gate]
 verify_jwt = true
 
@@ -322,9 +313,6 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.bulk-create-nres-users]
-verify_jwt = true
-
-[functions.smart-web-search]
 verify_jwt = true
 
 [functions.auto-cleanup-empty-meetings]
