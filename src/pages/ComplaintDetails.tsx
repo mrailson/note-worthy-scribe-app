@@ -2515,10 +2515,12 @@ const ComplaintDetails = () => {
                   )}
 
                   {/* Indemnity Consideration — internal only */}
-                  <IndemnityConsiderationField
-                    complaintId={complaint.id}
-                    isOutcomeFinalised={!!complaint.closed_at}
-                  />
+                  <div className="max-w-md">
+                    <IndemnityConsiderationField
+                      complaintId={complaint.id}
+                      isOutcomeFinalised={!!complaint.closed_at}
+                    />
+                  </div>
                 </CardContent>
               </Card>
 
