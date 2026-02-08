@@ -3027,20 +3027,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
               <TooltipContent>Manage Attendees</TooltipContent>
             </Tooltip>
 
-            {/* Find & Replace */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={showNotesFindReplace ? 'secondary' : 'ghost'}
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setShowNotesFindReplace(!showNotesFindReplace)}
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Find & Replace</TooltipContent>
-            </Tooltip>
 
             {/* Email button */}
             <Tooltip>
@@ -3513,24 +3499,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
             <TabsContent value="notes" className="h-full m-0">
               <ScrollArea className="h-full rounded-lg border bg-card" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <div className="p-6 space-y-6">
-                  {/* Find & Replace Panel */}
-                  {showNotesFindReplace && notesContent && (
-                    <EnhancedFindReplacePanel
-                      getCurrentText={() => notesContent}
-                      onApply={(updatedText) => {
-                        setNotesContent(updatedText);
-                        persistNotesContent(updatedText);
-                      }}
-                      meetingId={meeting?.id}
-                      onTranscriptSync={async (finds, replaceWith) => {
-                        if (meeting?.id) {
-                          await syncTranscriptCorrections(meeting.id, finds, replaceWith);
-                        }
-                      }}
-                      meetingTitle={meeting?.title}
-                      onTitleUpdate={updateMeetingTitle}
-                    />
-                  )}
 
                   {isLoading ? (
                     <div className="flex items-center justify-center py-12">
@@ -3777,23 +3745,6 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                           />
                         )}
 
-                        {/* Selection-based Find & Replace Popup for Notes */}
-                        {notesSelection.isValid && notesSelection.rect && (
-                          <SelectionFindReplacePopup
-                            selectedText={notesSelection.text}
-                            position={notesSelection.rect}
-                            getCurrentText={() => notesContent}
-                            onApply={(updatedText) => {
-                              setNotesContent(updatedText);
-                              persistNotesContent(updatedText);
-                              clearNotesSelection();
-                            }}
-                            onClose={clearNotesSelection}
-                            meetingId={meeting?.id}
-                            meetingTitle={meeting?.title}
-                            onTitleUpdate={updateMeetingTitle}
-                          />
-                        )}
                       </div>
 
                       {/* Action Items Table - Database-backed with inline editing */}
@@ -3977,46 +3928,11 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
                             <Download className="h-4 w-4 text-emerald-600" />
                             <span className="hidden sm:inline">Quality Summary</span>
                           </Button>
-                          <Button
-                            variant={showTranscriptFindReplace ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setShowTranscriptFindReplace(!showTranscriptFindReplace)}
-                            className="gap-2"
-                          >
-                            <Search className="h-4 w-4" />
-                            <span className="hidden sm:inline">Find & Replace</span>
-                          </Button>
                         </>
                       ) : null}
                     </div>
                   </div>
 
-                  {/* Find & Replace Panel - disabled for read-only Best of All tab */}
-                  {showTranscriptFindReplace && (batchTranscript || liveTranscript) && transcriptSubTab !== 'best_of_all' && (
-                    <EnhancedFindReplacePanel
-                      getCurrentText={() => {
-                        if (transcriptSubTab === 'batch') return batchTranscript;
-                        if (transcriptSubTab === 'deepgram') return deepgramTranscript;
-                        return liveTranscript;
-                      }}
-                      onApply={(updatedText) => {
-                        if (transcriptSubTab === 'batch') setBatchTranscript(updatedText);
-                        else if (transcriptSubTab === 'deepgram') setDeepgramTranscript(updatedText);
-                        else setLiveTranscript(updatedText);
-                      }}
-                      meetingId={meeting?.id}
-                      onTranscriptSync={async (finds, replaceWith) => {
-                        if (meeting?.id) {
-                          await syncTranscriptCorrections(meeting.id, finds, replaceWith);
-                        }
-                      }}
-                    />
-                  )}
-                  {showTranscriptFindReplace && transcriptSubTab === 'best_of_all' && (
-                    <div className="px-3 py-2 bg-muted/50 rounded-md border border-border text-xs text-muted-foreground">
-                      Find & Replace is not available for the Best of All transcript (read-only canonical source).
-                    </div>
-                  )}
 
                   {/* Regeneration Animation Overlay */}
                   {isRegeneratingFromTranscript && (
