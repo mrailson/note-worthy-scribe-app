@@ -1,79 +1,70 @@
 
-# Plan: Prevent "Start Recording" Button During Post-Meeting Processing
+# Plan: Update Complaint Email Domain, Email Template, and Response Page Mic Input
 
-## Problem
-When a meeting ends, there is a brief window (2-3 seconds) where the "Start Recording" button becomes clickable behind the "Meeting Saved Successfully" modal. This happens because `isStoppingRecording` is set to `false` and `isRecording` is set to `false` after `resetMeeting()` completes, but before the user has acknowledged the post-meeting modal. This is confusing — users may think the system is ready for a new meeting when note generation is still in progress.
+## Summary
+Three changes are required:
+1. Replace all `notewell.dialai.co.uk` domain references with `gnotewell.co.uk`
+2. Update the complaint notification email subject and content to match the revised format
+3. Replace the mic engine dropdown and AudioWorklet/Legacy mic components on the Complaint Response page with the simple Web Speech API mic used in Ask AI
 
-## Root Cause
-The recording stop flow works like this:
+---
 
-1. `stopRecording()` sets `isStoppingRecording = true` (button hidden)
-2. Meeting data is saved to the database
-3. The post-meeting modal opens (`setShowPostMeetingActions(true)`)
-4. Background processing calls `resetMeeting()` and `setIsStoppingRecording(false)`
-5. At this point, `!isRecording` is `true` and `isStoppingRecording` is `false` -- the "Start Recording" button becomes fully enabled
-6. Meanwhile, notes are still being generated in the background
+## Change 1: Domain Update (`notewell.dialai.co.uk` to `gnotewell.co.uk`)
 
-The "Start Recording" button (line 6314) only checks `!isRecording` and has no awareness of whether the post-meeting modal is still open or notes are still generating.
+Three edge functions reference the old domain:
 
-## Solution
-Disable the "Start Recording" button whenever the post-meeting actions modal is open (`showPostMeetingActions === true`). This is the simplest, most reliable guard because:
+- **`supabase/functions/send-complaint-notifications/index.ts`** (line 141): `baseUrl` used for complaint response links
+- **`supabase/functions/send-magic-link/index.ts`** (lines 83-84): `Origin` and `Referer` headers
+- **`supabase/functions/send-email-via-emailjs/index.ts`** (line 126): `login_url` in email data
 
-- It covers the entire period from meeting end through note generation
-- It naturally clears when the user explicitly dismisses the modal or clicks "Start New Meeting"
-- It follows the existing `useRef` pattern recommended for preventing stale closures
+All instances of `https://notewell.dialai.co.uk` will be replaced with `https://gnotewell.co.uk`.
 
-## Technical Details
+---
 
-### File: `src/components/MeetingRecorder.tsx`
+## Change 2: Email Template Update
 
-**Change 1 — Disable the "Start Recording" button when the post-meeting modal is showing**
+**File:** `supabase/functions/send-complaint-notifications/index.ts`
 
-At the "Start Recording" button (around line 6318), add a `disabled` prop:
-
-```tsx
-<Button
-  onClick={startRecording}
-  size="lg"
-  disabled={showPostMeetingActions}
-  className="bg-gradient-to-r from-primary to-primary/90 ..."
->
-  <Mic className="h-5 w-5 mr-2" />
-  Start Recording
-</Button>
+Update the email subject line (line 256) from:
+```
+Complaint Input Request - {reference}
+```
+to:
+```
+Complaint Input Request - {reference} ({practice_name})
 ```
 
-**Change 2 — Guard the `startRecording` function itself**
+Update the email HTML body to match the revised wording. Key changes:
+- Opening paragraph: "You are requested to provide input as part of a formal complaint investigation and learning review..." (replacing "You have been requested to provide input for the following complaint investigation")
+- Add reassurance line: "Your contribution will help us understand the events from different perspectives and support service improvement. This request is not a disciplinary process."
+- Update the "Important Information" section bullets to match the revised wording (e.g., "Your response will form part of the complaint investigation and outcome" instead of "used as part of the investigation process", and add "in line with NHS complaints guidance")
+- Update closing: "Kind regards" instead of "Best regards", and "Complaint Management System" instead of "Complaints Team"
 
-As an additional safety measure, add an early return at the top of the `startRecording` function to prevent recording from starting if the post-meeting modal is still open. This uses a `useRef` to avoid stale closure issues (following the project's established pattern):
+---
 
-```tsx
-// New ref to track post-meeting modal state
-const showPostMeetingActionsRef = useRef(false);
+## Change 3: Replace Mic Input on Complaint Response Page
 
-// Keep ref in sync with state
-useEffect(() => {
-  showPostMeetingActionsRef.current = showPostMeetingActions;
-}, [showPostMeetingActions]);
+**File:** `src/pages/ComplaintResponse.tsx`
 
-// Inside startRecording function, add at the top:
-if (showPostMeetingActionsRef.current) {
-  console.log('Cannot start recording while post-meeting modal is active');
-  return;
-}
-```
+Currently the page has:
+- A dropdown to select between "New mic (AudioWorklet)" and "Legacy mic"
+- Two mic components: `ComplaintMicRecorderV2` (AudioWorklet) and `ComplaintMicRecorder` (Legacy AssemblyAI)
+- Both use external transcription services (AssemblyAI)
 
-**Change 3 — Also guard the compact mic button (around line 6696)**
+This will be replaced with a single `SimpleBrowserMic` component (the same one used in Ask AI), which uses the browser's built-in Web Speech API -- no external service needed and works well for simple voice input.
 
-The compact microphone button also needs the same `disabled` guard:
+### Technical Details
+- Remove the `micEngine` state and the `<select>` dropdown
+- Remove imports for `ComplaintMicRecorder` and `ComplaintMicRecorderV2`
+- Add import for `SimpleBrowserMic` from `@/components/ai4gp/SimpleBrowserMic`
+- The `SimpleBrowserMic` sends the full accumulated transcript on each update (not deltas), so the `onTranscriptUpdate` handler will be simplified to set the response directly rather than appending
+- The mic button styling in `SimpleBrowserMic` is currently 96x96px (designed for Ask AI modal) -- this is fine for the complaint response page as it gives a clear, prominent voice input target
+- Remove the "Mic" label and engine selector UI, leaving just the mic button and the "Load Demo" button
 
-```tsx
-<button
-  type="button"
-  onClick={onMicButtonClick}
-  disabled={isStoppingRecording || showPostMeetingActions}
-  ...
->
-```
-
-These three changes together ensure the button is both visually disabled and functionally blocked during the entire post-meeting processing window.
+### Files Modified
+| File | Change |
+|------|--------|
+| `supabase/functions/send-complaint-notifications/index.ts` | Domain update + email template revision |
+| `supabase/functions/send-magic-link/index.ts` | Domain update |
+| `supabase/functions/send-email-via-emailjs/index.ts` | Domain update |
+| `src/pages/ComplaintResponse.tsx` | Replace mic dropdown with SimpleBrowserMic |
