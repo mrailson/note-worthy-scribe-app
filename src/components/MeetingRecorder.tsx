@@ -208,8 +208,15 @@ export const MeetingRecorder = ({
   // Auto-start recording ref (effect added after user declaration)
   const autoStartTriggeredRef = useRef(false);
   
-  // Lock to prevent double-starts from rapid clicks
+   // Lock to prevent double-starts from rapid clicks
   const isStartingRecordingRef = useRef(false);
+
+  // Ref to track post-meeting modal state (prevents stale closures)
+  const showPostMeetingActionsRef = useRef(false);
+
+  useEffect(() => {
+    showPostMeetingActionsRef.current = showPostMeetingActions;
+  }, [showPostMeetingActions]);
 
   // Word count calculation moved after assemblyPreview declaration (line ~533)
 
@@ -4098,6 +4105,12 @@ export const MeetingRecorder = ({
   };
 
   const startRecording = async () => {
+    // Prevent starting while post-meeting modal is active
+    if (showPostMeetingActionsRef.current) {
+      console.log('⚠️ Cannot start recording while post-meeting modal is active');
+      return;
+    }
+
     // Prevent double-starts from rapid clicks
     if (isStartingRecordingRef.current || isRecording) {
       console.log('⚠️ Recording already starting or active, ignoring duplicate start request');
@@ -6318,6 +6331,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                             <Button
                              onClick={startRecording}
                              size="lg"
+                             disabled={showPostMeetingActions}
                              className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
                            >
                              <Mic className="h-5 w-5 mr-2" />
@@ -6695,7 +6709,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                      <button
                        type="button"
                        onClick={onMicButtonClick}
-                       disabled={isStoppingRecording}
+                       disabled={isStoppingRecording || showPostMeetingActions}
                        className={`p-2 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-all duration-200 ${
                          isStoppingRecording
                            ? 'bg-muted cursor-not-allowed opacity-50'
