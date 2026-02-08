@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { complaintId, voiceProvider = 'elevenlabs', voiceId = 'Xb7hH8MSUJpSbSDYk0k2', overrideText } = await req.json();
+    const { complaintId, voiceProvider = 'elevenlabs', voiceId = 'G17SuINrv2H9FC6nvetn', overrideText } = await req.json();
     
     if (!complaintId) {
       throw new Error('complaintId is required');
