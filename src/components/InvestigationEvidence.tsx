@@ -48,6 +48,7 @@ interface ComplaintDetails {
   category: string;
   status: string;
   practice_name: string | null;
+  practice_id: string | null;
 }
 
 interface UploadingFile {
@@ -169,6 +170,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
           complaint_title, 
           category, 
           status,
+          practice_id,
           gp_practices (name)
         `)
         .eq('id', complaintId)
@@ -177,7 +179,8 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       if (error) throw error;
       setComplaintDetails({
         ...data,
-        practice_name: data.gp_practices?.name || null
+        practice_name: data.gp_practices?.name || null,
+        practice_id: data.practice_id || null,
       });
     } catch (error) {
       console.error('Error fetching complaint details:', error);
@@ -926,6 +929,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         onOpenChange={(open) => setAiReviewModal(prev => ({ ...prev, isOpen: open }))}
         fileName={aiReviewModal.fileName}
         review={aiReviewModal.review}
+        practiceId={complaintDetails?.practice_id}
       />
 
       {/* Transcription modal */}
