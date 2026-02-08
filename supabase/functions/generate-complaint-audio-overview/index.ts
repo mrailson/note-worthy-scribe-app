@@ -113,7 +113,7 @@ serve(async (req) => {
       const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a concise, focused spoken summary under 1 minute for practice management.
 
 Guidelines:
-- Start with "Complaint number [number in words] received on the [date in format: 7th November] concerns [brief issue]" - extract ONLY the numeric portion from the reference (e.g., "thirty-five" not "COMP two five zero zero three five")
+- Start with "Complaint number [number] received on the [date in format: 7th November] concerns [brief issue]" - extract ONLY the sequential complaint number by removing ALL prefix letters/digits and leading zeros (e.g., "COMP260007" → "7", "COMP250046" → "46", "COMP260001" → "1"). Never read the full reference code or year digits.
 - Use the complaint submitted date for "received on" date
 - Format date as: the 7th November, the 12th January, the 23rd December (ordinal day + full month name with "the")
 - DO NOT say "Good morning", "Notewell AI Summary", or any preambles
