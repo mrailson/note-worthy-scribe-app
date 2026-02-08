@@ -343,6 +343,10 @@ Please provide a structured analysis covering the following areas. Be factual, b
 
 6. **Key Lessons & Recommendations**: What lessons can the practice learn from this interaction? Any recommendations for improvement?
 
+7. **Training Requirements**: Based on this interaction, identify any specific training needs for staff — communication skills, de-escalation, complaint handling, clinical knowledge, etc. If no training gaps are apparent, state that.
+
+8. **Patient Education**: Are there any areas where the patient may benefit from better information or education about practice processes, NHS procedures, or managing expectations? If not applicable, state that.
+
 Keep each section brief (2-4 sentences). Do not fabricate details not present in the transcript.`;
 
                 try {
