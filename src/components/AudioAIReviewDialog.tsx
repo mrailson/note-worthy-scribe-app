@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Volume2, Copy, Eye, EyeOff } from 'lucide-react';
+import { Volume2, Copy, Eye, EyeOff, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
@@ -14,12 +14,11 @@ interface AudioAIReviewDialogProps {
   fileName: string;
   review: string;
   practiceId?: string | null;
+  onReAnalyse?: () => Promise<void>;
 }
 
 /** Redact names from review text */
 function redactNames(text: string): string {
-  // Match patterns like "patient, Name" or "staff member, Name" or "Christopher Young" etc.
-  // Replace proper names (capitalised words that aren't section headers or common terms)
   const commonWords = new Set([
     'the', 'call', 'summary', 'tone', 'assessment', 'patient', 'staff',
     'complaint', 'handling', 'behaviour', 'behavior', 'key', 'lessons',
@@ -35,10 +34,8 @@ function redactNames(text: string): string {
     'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
   ]);
 
-  // Replace names that appear after identifying phrases
   let redacted = text;
 
-  // Pattern: "patient, Name" or "staff member, Name" or "a staff member named Name"
   redacted = redacted.replace(
     /(?:patient|caller|complainant|staff member|receptionist|nurse|doctor|gp|clinician)[,\s]+(?:named?\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/gi,
     (match, name) => {
@@ -51,7 +48,6 @@ function redactNames(text: string): string {
     }
   );
 
-  // Pattern: standalone proper names (two capitalised words together that aren't headers)
   redacted = redacted.replace(
     /(?<![#*\d.]\s*)(?:^|\s)([A-Z][a-z]{2,}\s+[A-Z][a-z]{2,})(?=[\s,.:;!?]|$)/gm,
     (match, name) => {
@@ -65,10 +61,11 @@ function redactNames(text: string): string {
   return redacted;
 }
 
-export function AudioAIReviewDialog({ isOpen, onOpenChange, fileName, review, practiceId }: AudioAIReviewDialogProps) {
+export function AudioAIReviewDialog({ isOpen, onOpenChange, fileName, review, practiceId, onReAnalyse }: AudioAIReviewDialogProps) {
   const [showNames, setShowNames] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [practiceName, setPracticeName] = useState<string | null>(null);
+  const [isReAnalysing, setIsReAnalysing] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -111,6 +108,16 @@ export function AudioAIReviewDialog({ isOpen, onOpenChange, fileName, review, pr
     return redactNames(review);
   }, [review, showNames]);
 
+  const handleReAnalyse = async () => {
+    if (!onReAnalyse) return;
+    setIsReAnalysing(true);
+    try {
+      await onReAnalyse();
+    } finally {
+      setIsReAnalysing(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col bg-white dark:bg-card border shadow-lg rounded-xl">
@@ -140,21 +147,39 @@ export function AudioAIReviewDialog({ isOpen, onOpenChange, fileName, review, pr
             )}
           </div>
 
-          {/* Name redaction toggle */}
-          <div className="flex items-center gap-2 pt-1">
-            <Switch
-              id="show-names"
-              checked={showNames}
-              onCheckedChange={setShowNames}
-              className="data-[state=checked]:bg-primary"
-            />
-            <Label htmlFor="show-names" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1.5">
-              {showNames ? (
-                <><Eye className="h-3.5 w-3.5" /> Names visible</>
-              ) : (
-                <><EyeOff className="h-3.5 w-3.5" /> Names redacted</>
-              )}
-            </Label>
+          {/* Controls row */}
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-names"
+                checked={showNames}
+                onCheckedChange={setShowNames}
+                className="data-[state=checked]:bg-primary"
+              />
+              <Label htmlFor="show-names" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1.5">
+                {showNames ? (
+                  <><Eye className="h-3.5 w-3.5" /> Names visible</>
+                ) : (
+                  <><EyeOff className="h-3.5 w-3.5" /> Names redacted</>
+                )}
+              </Label>
+            </div>
+            {onReAnalyse && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReAnalyse}
+                disabled={isReAnalysing}
+                className="text-xs h-7"
+              >
+                {isReAnalysing ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                {isReAnalysing ? 'Re-analysing…' : 'Re-analyse'}
+              </Button>
+            )}
           </div>
         </DialogHeader>
 

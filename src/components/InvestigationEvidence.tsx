@@ -147,10 +147,12 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     isOpen: boolean;
     fileName: string;
     review: string;
+    evidenceFileId: string | null;
   }>({
     isOpen: false,
     fileName: '',
-    review: ''
+    review: '',
+    evidenceFileId: null
   });
 
   useEffect(() => {
@@ -930,6 +932,32 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         fileName={aiReviewModal.fileName}
         review={aiReviewModal.review}
         practiceId={complaintDetails?.practice_id}
+        onReAnalyse={aiReviewModal.evidenceFileId ? async () => {
+          const fileId = aiReviewModal.evidenceFileId;
+          if (!fileId) return;
+          const file = evidenceFiles.find(f => f.id === fileId);
+          if (!file) return;
+          const transcript = audioTranscripts.find(t => t.audio_file_id === fileId);
+          if (!transcript) {
+            toast.error('No transcript found. Please transcribe the audio first.');
+            return;
+          }
+          const { data: reviewData, error: reviewError } = await supabase.functions
+            .invoke('generate-audio-review', {
+              body: { transcript: transcript.transcript_text, fileName: file.file_name }
+            });
+          if (reviewError) throw reviewError;
+          if (!reviewData?.review) throw new Error('No review returned');
+          await supabase
+            .from('complaint_investigation_evidence')
+            .update({ ai_summary: reviewData.review } as any)
+            .eq('id', fileId);
+          setEvidenceFiles(prev => prev.map(f =>
+            f.id === fileId ? { ...f, ai_summary: reviewData.review } : f
+          ));
+          setAiReviewModal(prev => ({ ...prev, review: reviewData.review }));
+          toast.success('AI review re-generated with updated analysis');
+        } : undefined}
       />
 
       {/* Transcription modal */}
@@ -1150,7 +1178,8 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                                 onClick={() => setAiReviewModal({
                                   isOpen: true,
                                   fileName: file.file_name,
-                                  review: file.ai_summary!
+                                  review: file.ai_summary!,
+                                  evidenceFileId: file.id
                                 })}
                               >
                                 <Eye className="h-3 w-3 mr-1" />
