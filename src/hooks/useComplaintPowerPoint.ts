@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { BrandingPreference } from '@/components/settings/PresentationBrandingSettings';
@@ -223,6 +224,8 @@ const persistPowerPoint = async (
 
 export const useComplaintPowerPoint = (complaintId?: string) => {
   const { user } = useAuth();
+  // Keep hook call to preserve hook order — value intentionally unused
+  usePracticeContext();
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<GenerationPhase>('preparing');
   const [error, setError] = useState<string | null>(null);
