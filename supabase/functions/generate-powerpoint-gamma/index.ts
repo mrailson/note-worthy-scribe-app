@@ -267,7 +267,11 @@ serve(async (req) => {
       },
       imageOptions: {
         source: 'aiGenerated',
+        model: 'imagen-4-pro',
         style: 'photorealistic',
+      },
+      cardOptions: {
+        dimensions: '16x9',
       },
     };
 
