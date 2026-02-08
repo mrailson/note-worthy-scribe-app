@@ -441,6 +441,19 @@ const ComplaintsSystem = () => {
     consent_details: "",
     complaint_on_behalf: false,
   });
+  const [formTouched, setFormTouched] = useState(false);
+
+  // Required field validation
+  const requiredFields = {
+    patient_name: !!formData.patient_name.trim(),
+    incident_date: !!formData.incident_date,
+    category: !!formData.category,
+    complaint_title: !!formData.complaint_title.trim(),
+    complaint_description: !!formData.complaint_description.trim(),
+  };
+  const completedCount = Object.values(requiredFields).filter(Boolean).length;
+  const totalRequired = Object.keys(requiredFields).length;
+  const allRequiredComplete = completedCount === totalRequired;
 
   const categoryOptions = [
     { value: "Administration", label: "Administration" },
@@ -800,6 +813,7 @@ const ComplaintsSystem = () => {
   };
 
   const handleInputChange = (field: keyof ComplaintFormData, value: string | boolean) => {
+    if (!formTouched) setFormTouched(true);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -2533,8 +2547,23 @@ const ComplaintsSystem = () => {
             <Card>
               <CardHeader>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl">Submit New Complaint</CardTitle>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CardTitle className="text-lg sm:text-xl">Submit New Complaint</CardTitle>
+                      {formTouched && (
+                        allRequiredComplete ? (
+                          <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            All required fields complete
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-destructive text-destructive gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {completedCount}/{totalRequired} required fields
+                          </Badge>
+                        )
+                      )}
+                    </div>
                     <CardDescription className="text-sm">
                       <span className="hidden sm:inline">Record a new patient complaint following NHS procedures</span>
                       <span className="sm:hidden">Record new patient complaint</span>
@@ -2571,7 +2600,7 @@ const ComplaintsSystem = () => {
                           value={formData.patient_name}
                           onChange={(e) => handleInputChange('patient_name', e.target.value)}
                           placeholder="Enter patient's full name"
-                          className="min-h-[44px] touch-manipulation"
+                          className={cn("min-h-[44px] touch-manipulation", formTouched && !requiredFields.patient_name && "border-destructive ring-destructive/30 ring-1")}
                           required 
                         />
                       </div>
@@ -2638,6 +2667,7 @@ const ComplaintsSystem = () => {
                           type="date"
                           value={formData.incident_date}
                           onChange={(e) => handleInputChange('incident_date', e.target.value)}
+                          className={cn(formTouched && !requiredFields.incident_date && "border-destructive ring-destructive/30 ring-1")}
                           required 
                         />
                       </div>
@@ -2648,7 +2678,7 @@ const ComplaintsSystem = () => {
                           onValueChange={(value) => handleInputChange('category', value)}
                           required
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className={cn(formTouched && !requiredFields.category && "border-destructive ring-destructive/30 ring-1")}>
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
@@ -2687,6 +2717,7 @@ const ComplaintsSystem = () => {
                         value={formData.complaint_title}
                         onChange={(e) => handleInputChange('complaint_title', e.target.value)}
                         placeholder="Brief summary of the complaint" 
+                        className={cn(formTouched && !requiredFields.complaint_title && "border-destructive ring-destructive/30 ring-1")}
                         required 
                       />
                     </div>
@@ -2699,6 +2730,7 @@ const ComplaintsSystem = () => {
                         onChange={(e) => handleInputChange('complaint_description', e.target.value)}
                         placeholder="Provide detailed information about the complaint including what happened, when, where, and how it affected the patient..."
                         rows={6}
+                        className={cn(formTouched && !requiredFields.complaint_description && "border-destructive ring-destructive/30 ring-1")}
                         required
                       />
                     </div>
@@ -2825,23 +2857,26 @@ const ComplaintsSystem = () => {
                       className={cn(
                         deviceInfo.isIPhone && "w-full min-h-[48px]"
                       )}
-                      onClick={() => setFormData({
-                        patient_name: "",
-                        patient_dob: "",
-                        patient_contact_phone: "",
-                        patient_contact_email: "",
-                        patient_address: "",
-                        incident_date: "",
-                        complaint_title: "",
-                        complaint_description: "",
-                        category: "",
-                        location_service: "",
-                        staff_mentioned: "",
-                        priority: "medium",
-                        consent_given: false,
-                        consent_details: "",
-                        complaint_on_behalf: false,
-                      })}
+                      onClick={() => {
+                        setFormTouched(false);
+                        setFormData({
+                          patient_name: "",
+                          patient_dob: "",
+                          patient_contact_phone: "",
+                          patient_contact_email: "",
+                          patient_address: "",
+                          incident_date: "",
+                          complaint_title: "",
+                          complaint_description: "",
+                          category: "",
+                          location_service: "",
+                          staff_mentioned: "",
+                          priority: "medium",
+                          consent_given: false,
+                          consent_details: "",
+                          complaint_on_behalf: false,
+                        });
+                      }}
                     >
                       Clear Form
                     </Button>
