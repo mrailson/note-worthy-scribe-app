@@ -304,14 +304,34 @@ DESIGN REQUIREMENTS:
     }
   }, [complaintId]);
 
-  const downloadInfographic = useCallback((referenceNumber: string) => {
+  const downloadInfographic = useCallback(async (referenceNumber: string) => {
     if (!generatedBlobUrl) return;
-    const link = document.createElement('a');
-    link.href = generatedBlobUrl;
-    link.download = `Complaint_Learning_${referenceNumber}_Infographic.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    
+    try {
+      let downloadUrl = generatedBlobUrl;
+      
+      // If it's a remote URL (not a blob URL), fetch it and create a blob URL for download
+      if (!generatedBlobUrl.startsWith('blob:')) {
+        const response = await fetch(generatedBlobUrl);
+        if (!response.ok) throw new Error('Failed to fetch infographic');
+        const blob = await response.blob();
+        downloadUrl = URL.createObjectURL(blob);
+      }
+      
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `Complaint_Learning_${referenceNumber}_Infographic.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up temporary blob URL if we created one
+      if (downloadUrl !== generatedBlobUrl) {
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      }
+    } catch (err) {
+      console.error('[Infographic] Download error:', err);
+    }
   }, [generatedBlobUrl]);
 
   return {
