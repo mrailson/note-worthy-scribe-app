@@ -1,65 +1,115 @@
 
 
-## Auto-Transcribe and AI Review for Audio Evidence
+# Admin Audit Dashboard — Edge Functions & Pages Overview
 
-### Overview
-When audio files (MP3, WAV, etc.) are uploaded as evidence, the system will automatically transcribe the audio, run an AI review, and store both the transcript and the structured AI analysis. The AI review will also appear in the Word download report. The file size limit for audio files will increase from 10MB to 20MB.
+## Summary
 
-### What Changes
+Add a new **"Platform Audit"** tab to the System Admin dashboard with two sub-tabs:
 
-**1. Increase audio file size limit to 20MB**
-- Update the `MAX_FILE_SIZE` constant in `InvestigationEvidence.tsx` for audio files
-- Keep the 10MB limit for non-audio files to avoid storage bloat
-- Update the upload hint text to reflect the new limit
+1. **Edge Functions** — Lists every deployed function with last-used dates, log activity, and purpose descriptions
+2. **Pages & Routes** — Lists every registered route with its component, whether it has a menu link, and a description of what it does
 
-**2. Auto-transcription is already working**
-- The `analyse-evidence-file` edge function already calls `speech-to-text` for audio files and returns a transcript
-- The `InvestigationEvidence.tsx` component already auto-saves the transcript to `complaint_investigation_transcripts`
-- No changes needed for transcription itself
+This gives you a single view to identify dead/unused functions and pages for safe cleanup.
 
-**3. Store AI audio review alongside transcript**
-- The `analyse-evidence-file` edge function already generates an AI analysis of audio content (tone, staff/patient behaviour, complaint handling, lessons). This analysis is currently stored in the `ai_summary` field of the evidence record.
-- However, it's only shown as a truncated 2-line preview in the Evidence Files tab. The full review needs to be viewable.
+---
 
-**4. Add "View AI Review" to evidence file list**
-- Add an expandable section or modal to view the full `ai_summary` (which contains the structured AI review) for audio files in the Evidence Files tab
-- This makes the full Call Summary, Tone Assessment, Patient Behaviour, Staff Behaviour, Complaint Handling, and Lessons sections visible without leaving the page
+## What You Will See
 
-**5. Include Audio Evidence AI Review in Word Report**
-- Update `exportComplaintReportToWord` in `src/utils/exportComplaintReport.ts` to accept audio evidence data (transcripts and AI reviews)
-- Add a new "Audio Evidence Analysis" section to the Word report, placed between Evidence and Investigation Findings
-- For each audio file with a transcript and AI review, include:
-  - File name, upload date, duration
-  - Full transcript text
-  - AI Review sections: Call Summary, Tone Assessment (staff and patient), Complaint Handling Assessment, Patient Behaviour, Staff Behaviour, Key Lessons and Recommendations, Training Requirements
-- Update the `ReportData` interface to include audio evidence data
-- Update all call sites in `ComplaintDetails.tsx` to fetch and pass audio evidence data
+### Tab 1: Edge Functions
 
-### Technical Details
+A searchable, sortable table showing:
 
-**File changes:**
+| Column | Description |
+|--------|-------------|
+| Function Name | The edge function directory name |
+| Status | Active / Archived badge |
+| Last 5 Log Dates | Fetched from Supabase analytics on demand |
+| Referenced In Client | Whether `src/` code calls this function |
+| Referenced In Other Functions | Whether another edge function calls it |
+| Purpose | Auto-generated short description based on the function name |
+| Config Entry | Whether it has a `config.toml` block |
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/components/InvestigationEvidence.tsx` | Edit | Allow 20MB for audio files; add expandable AI review view for audio evidence |
-| `src/utils/exportComplaintReport.ts` | Edit | Add `audioEvidenceReviews` to `ReportData` interface; add "Audio Evidence Analysis" section to Word report |
-| `src/pages/ComplaintDetails.tsx` | Edit | Fetch audio transcripts and AI reviews, pass to `exportComplaintReportToWord` |
+- A **"Check Logs"** button fetches the last 5 invocation timestamps from Supabase edge function logs for each function
+- Functions with zero references and zero recent logs are highlighted in amber as cleanup candidates
+- Archived functions (from `functions__archive/`) are shown in a separate collapsed section
 
-**No new edge functions or database changes required.** The existing `analyse-evidence-file` already generates the structured AI review and returns a transcript. The data is already being stored in the `complaint_investigation_evidence.ai_summary` and `complaint_investigation_transcripts` tables.
+### Tab 2: Pages & Routes
 
-**Audio file size handling:**
-- The `onDrop` callback will check if a file is audio and apply a 20MB limit, while keeping 10MB for other file types
-- The dropzone hint text will be updated to mention "Audio up to 20MB, other files up to 10MB"
+A searchable table showing every route defined in `App.tsx`:
 
-**Word report "Audio Evidence Analysis" section structure:**
-For each audio evidence file:
-- Heading with file name
-- Metadata table (file size, upload date, duration if available)
-- Full AI review (parsed from markdown in `ai_summary`)
-- Full transcript text (from `complaint_investigation_transcripts`)
+| Column | Description |
+|--------|-------------|
+| Route Path | e.g. `/turkey2025`, `/feedback` |
+| Component | e.g. `Turkey2025`, `PracticeManagerFeedback` |
+| Has Menu Link | Yes/No — whether the Header.tsx menu navigates to this route |
+| Protection | e.g. "Public", "ProtectedRoute", "requiredModule: enhanced_access" |
+| Description | Short auto-generated description of the page purpose |
+| Category | Core Service / Admin / CSO Governance / Public / Utility / Unknown |
 
-**Evidence Files tab "View AI Review" expansion:**
-- When an audio file has an `ai_summary` longer than the 2-line preview, show a "View AI Review" button
-- Clicking it opens a dialog/modal displaying the full AI review in formatted markdown
-- The review is already generated on upload, so this is a display-only change
+- Pages with **no menu link** are highlighted as potential cleanup candidates
+- A summary card at the top shows: total pages, pages with menu links, orphaned pages, protected vs public
+
+---
+
+## Technical Approach
+
+### New Files
+
+1. **`src/components/admin/EdgeFunctionAudit.tsx`**
+   - Hardcoded registry of all ~240 active functions and ~19 archived functions with:
+     - `name`, `purpose` (short description), `referencedInClient` (boolean), `referencedInOtherFunctions` (boolean), `hasConfigEntry` (boolean)
+   - References are pre-computed from the codebase search results (static data — no runtime file scanning needed)
+   - "Check Logs" button calls `supabase.functions.invoke('system-monitoring')` or uses the Supabase analytics API to fetch recent log timestamps
+   - Since fetching logs for 240 functions at once would be slow, logs are fetched on-demand per function or in small batches
+   - Search/filter bar to find functions by name
+   - Colour-coded rows: green (referenced + recent logs), amber (no references), red (no references + no logs)
+
+2. **`src/components/admin/PageRouteAudit.tsx`**
+   - Hardcoded registry of all ~120 routes from `App.tsx` with:
+     - `path`, `component`, `hasMenuLink` (boolean — cross-referenced against Header.tsx navigation), `protection` (string), `description`, `category`
+   - Menu link data is pre-computed by checking which routes appear in Header.tsx `navigate()` calls
+   - Summary cards at top with counts
+   - Search/filter by category, menu link status, protection type
+
+### Modified Files
+
+3. **`src/pages/SystemAdmin.tsx`**
+   - Add a new tab trigger "Platform Audit" with a `Database` icon to the existing TabsList (changing grid from 7 to 8 columns on large screens)
+   - Add a new `TabsContent` that renders sub-tabs for "Edge Functions" and "Pages & Routes"
+   - Import the two new components
+
+### Data Strategy
+
+- **Edge function list**: Hardcoded from the current `supabase/functions/` directory listing (240+ entries) plus archived entries. This avoids needing a runtime filesystem scan.
+- **Page/route list**: Hardcoded from the current `App.tsx` route definitions (~120 entries). Each entry includes whether Header.tsx has a `navigate()` call to that path.
+- **Log data**: Fetched on-demand via an edge function call or direct Supabase analytics query. The component will call the existing `system-monitoring` function or a lightweight new endpoint.
+- **No database tables needed** — this is purely a read-only diagnostic view using static metadata + live log queries.
+
+### Log Fetching Approach
+
+Rather than fetching logs for all 240 functions at page load (which would be very slow), the UI will:
+1. Show the static metadata immediately (references, purpose, config status)
+2. Provide a "Scan Logs" button that fetches the last 5 log entries for a selected function
+3. Optionally, a "Batch Scan" button that checks logs for all functions marked as "no references" (the most likely cleanup candidates) — limited to ~20 at a time
+
+---
+
+## Route and Menu Link Mapping
+
+Based on the codebase analysis, here is the pre-computed mapping of which routes have menu links. This data will be embedded in the component:
+
+**Routes WITH menu links** (from Header.tsx):
+`/`, `/ai4gp`, `/scribe`, `/complaints`, `/enhanced-access`, `/cqc-compliance`, `/surveys`, `/shared-drive`, `/NRESDashboard`, `/nres`, `/nres/complex-care`, `/nres/comms-strategy`, `/gp-genie`, `/gp-translation`, `/mobile-translate`, `/practice-admin/fridges`, `/bp-calculator`, `/mock-cqc-inspection`, `/policy-service`, `/settings`, `/cso-report`, `/practice-admin`, `/admin`, `/notebook-studio`, `/lg-capture`, `/compliance/security`
+
+**Routes WITHOUT menu links** (orphaned — cleanup candidates):
+`/quick-record`, `/executive-overview`, `/demos`, `/training`, `/ai-showcase`, `/nres-presentation`, `/meetings`, `/meeting-history`, `/meeting-summary`, `/consultation-summary`, `/admin/demo-video`, `/admin/chunk-repair`, `/attendees`, `/complaints-guide`, `/federation-presentation`, `/load-demo-team`, `/staff-feedback`, `/patient-language`, `/new-recorder`, `/ai4pm`, `/compliance/documentation`, `/data-flow-architecture`, `/dpia`, `/dtac`, `/privacy-policy`, `/hazard-log`, `/safety-case`, `/dcb0129`, `/cso-training-*` (6 routes), `/usingai_nhs`, `/security-posture`, `/incident-response`, `/feedback`, `/feedback/results`, `/network-diagnostics`, `/admin/consolidate`, `/turkey2025`, `/voice-test`, `/security-report`, `/compliance/security-audit-2025-11-19`, `/nhs-quest`, `/lg-capture/*` (sub-routes), `/ai4gp-prompts`, `/reception-translate`, `/doc-capture/:sessionToken`, `/ai-capture/:sessionToken`, `/complaint-capture/:shortCode`, `/inspection-capture/:shortCode`, `/public/bp-calculator`
+
+---
+
+## No Breaking Changes
+
+- No existing functionality is modified
+- No database changes required
+- No new edge functions needed (uses existing log access)
+- The new tab is only visible to system admins (same protection as the rest of the admin page)
 
