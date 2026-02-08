@@ -1,67 +1,79 @@
 
-# Use Complaint's Own Practice Name in PowerPoint
+# Plan: Prevent "Start Recording" Button During Post-Meeting Processing
 
 ## Problem
+When a meeting ends, there is a brief window (2-3 seconds) where the "Start Recording" button becomes clickable behind the "Meeting Saved Successfully" modal. This happens because `isStoppingRecording` is set to `false` and `isRecording` is set to `false` after `resetMeeting()` completes, but before the user has acknowledged the post-meeting modal. This is confusing — users may think the system is ready for a new meeting when note generation is still in progress.
 
-The complaint Training PowerPoint currently uses `practiceContext.practiceName` — which is the logged-in user's assigned practice from their profile (e.g., "Oak Lane Medical Practice"). It should instead use the practice name recorded against the complaint itself (e.g., "The Brooke Health Centre" or "Bugbrooke Medical Practice").
+## Root Cause
+The recording stop flow works like this:
+
+1. `stopRecording()` sets `isStoppingRecording = true` (button hidden)
+2. Meeting data is saved to the database
+3. The post-meeting modal opens (`setShowPostMeetingActions(true)`)
+4. Background processing calls `resetMeeting()` and `setIsStoppingRecording(false)`
+5. At this point, `!isRecording` is `true` and `isStoppingRecording` is `false` -- the "Start Recording" button becomes fully enabled
+6. Meanwhile, notes are still being generated in the background
+
+The "Start Recording" button (line 6314) only checks `!isRecording` and has no awareness of whether the post-meeting modal is still open or notes are still generating.
 
 ## Solution
+Disable the "Start Recording" button whenever the post-meeting actions modal is open (`showPostMeetingActions === true`). This is the simplest, most reliable guard because:
 
-Modify `useComplaintPowerPoint.ts` to look up the complaint's own practice name from the database, rather than relying on the user's profile context.
+- It covers the entire period from meeting end through note generation
+- It naturally clears when the user explicitly dismisses the modal or clicks "Start New Meeting"
+- It follows the existing `useRef` pattern recommended for preventing stale closures
 
 ## Technical Details
 
-### File: `src/hooks/useComplaintPowerPoint.ts`
+### File: `src/components/MeetingRecorder.tsx`
 
-**1. Add a complaint practice name lookup**
+**Change 1 — Disable the "Start Recording" button when the post-meeting modal is showing**
 
-Inside the existing `useEffect` that loads persisted data (which already queries by `complaintId`), add a second query to fetch the complaint's `practice_id` and join to `gp_practices` to get the practice name. Store it in a new state variable `complaintPracticeName`.
+At the "Start Recording" button (around line 6318), add a `disabled` prop:
 
-```typescript
-const [complaintPracticeName, setComplaintPracticeName] = useState<string>('');
+```tsx
+<Button
+  onClick={startRecording}
+  size="lg"
+  disabled={showPostMeetingActions}
+  className="bg-gradient-to-r from-primary to-primary/90 ..."
+>
+  <Mic className="h-5 w-5 mr-2" />
+  Start Recording
+</Button>
+```
 
-// Inside the existing load effect:
-const { data: complaintRow } = await supabase
-  .from('complaints')
-  .select('practice_id, gp_practices(name)')
-  .eq('id', complaintId)
-  .maybeSingle();
+**Change 2 — Guard the `startRecording` function itself**
 
-if (complaintRow?.gp_practices?.name) {
-  setComplaintPracticeName(complaintRow.gp_practices.name);
+As an additional safety measure, add an early return at the top of the `startRecording` function to prevent recording from starting if the post-meeting modal is still open. This uses a `useRef` to avoid stale closure issues (following the project's established pattern):
+
+```tsx
+// New ref to track post-meeting modal state
+const showPostMeetingActionsRef = useRef(false);
+
+// Keep ref in sync with state
+useEffect(() => {
+  showPostMeetingActionsRef.current = showPostMeetingActions;
+}, [showPostMeetingActions]);
+
+// Inside startRecording function, add at the top:
+if (showPostMeetingActionsRef.current) {
+  console.log('Cannot start recording while post-meeting modal is active');
+  return;
 }
 ```
 
-**2. Replace all `practiceContext.practiceName` references**
+**Change 3 — Also guard the compact mic button (around line 6696)**
 
-In both `formatComplaintContent` and `generatePowerPoint`, replace:
-```typescript
-const practiceName = practiceContext?.practiceName || '';
+The compact microphone button also needs the same `disabled` guard:
+
+```tsx
+<button
+  type="button"
+  onClick={onMicButtonClick}
+  disabled={isStoppingRecording || showPostMeetingActions}
+  ...
+>
 ```
-with:
-```typescript
-const practiceName = complaintPracticeName || '';
-```
 
-This ensures the title slide, final slide, and all branding instructions reference the complaint's own practice (e.g., "The Brooke Health Centre") rather than the user's profile practice.
-
-**3. Update dependency arrays**
-
-Update the `useCallback` dependency arrays for `formatComplaintContent` and `generatePowerPoint` to reference `complaintPracticeName` instead of `practiceContext`.
-
-The `usePracticeContext` import can optionally be removed if no other code in the hook references it.
-
-## Impact
-
-| Area | Before | After |
-|------|--------|-------|
-| Title slide | User's profile practice name | Complaint's assigned practice name |
-| Final slide | User's profile practice name | Complaint's assigned practice name |
-| Branding instructions | User's profile practice name | Complaint's assigned practice name |
-| Data source | `practice_details` table (user profile) | `gp_practices` table (complaint record) |
-
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `src/hooks/useComplaintPowerPoint.ts` | Fetch complaint's practice name from DB; replace `practiceContext` usage |
+These three changes together ensure the button is both visually disabled and functionally blocked during the entire post-meeting processing window.
