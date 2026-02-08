@@ -352,15 +352,17 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         `PRIVACY (CRITICAL): Fully anonymised — no patient/staff names, NHS numbers, emails, phone numbers. Use "the patient" or "a team member".`,
         // Practice branding
         practiceNameInstruction,
+        // TITLE SLIDE — must have a compelling AI-generated image
+        `TITLE SLIDE (CRITICAL): The FIRST slide MUST feature a striking, full-bleed photorealistic background image — NOT a plain coloured background. Use an inspiring image of a modern UK GP practice exterior, a welcoming reception area, or a team collaboration scene. The title text should overlay this image with a semi-transparent dark gradient for readability. This is the first thing viewers see — it must look polished and visually impressive.`,
         // Visual quality — GP practice themed with variety
-        `DESIGN: Executive-quality presentation with bold, modern visuals. Use full-bleed photorealistic hero images on every slide. Images should be rooted in UK General Practice / primary care settings. Use a MIX of: GP consultation rooms, practice reception areas, waiting rooms, practice team meetings around a table, GPs at desks with computers, community health settings, patient-facing signage, appointment booking screens, practice buildings exterior, and warm doctor-patient interactions (no identifiable faces). Avoid repetitive "doctor in scrubs" hospital imagery — this is about General Practice, not acute care. Supplement with 1-2 conceptual/metaphorical images (growth, teamwork, improvement paths) for variety.`,
-        `LAYOUT: Mix layouts — full-image backgrounds with text overlay, split-screen image+content, icon grids for key points. Avoid plain text-only slides. Every slide should be visually engaging.`,
+        `DESIGN: Executive-quality presentation with bold, modern visuals. Use full-bleed photorealistic hero images on every slide including the title slide. Images should be rooted in UK General Practice / primary care settings. Use a MIX of: GP consultation rooms, practice reception areas, waiting rooms, practice team meetings around a table, GPs at desks with computers, community health settings, patient-facing signage, appointment booking screens, practice buildings exterior, and warm doctor-patient interactions (no identifiable faces). Avoid repetitive "doctor in scrubs" hospital imagery — this is about General Practice, not acute care. Supplement with 1-2 conceptual/metaphorical images (growth, teamwork, improvement paths) for variety.`,
+        `LAYOUT: Mix layouts — full-image backgrounds with text overlay, split-screen image+content, icon grids for key points. Avoid plain text-only slides. Every single slide must have a photorealistic image — no exceptions.`,
         `COLOUR SCHEME: Professional NHS-inspired palette — deep navy (#003087), NHS blue (#005EB8), teal accents, warm greens for positives, amber for action items. White/light backgrounds for readability.`,
         `TYPOGRAPHY: Clean sans-serif headings (bold, large). Concise bullet points — max 4-5 per slide. Let the imagery do the heavy lifting.`,
         // Structure
         `Exactly ${slideCount} slides. British English throughout.`,
         `Speaker notes in the hidden notes pane only — never visible on slides. Notes should contain full presenter talking points.`,
-        `Final slide: "Thank You & Discussion" with${practiceName ? ` "${practiceName}" and` : ''} "Powered by NoteWell AI" attribution.`,
+        `Final slide: "Thank You & Discussion" with${practiceName ? ` "${practiceName}" and` : ''} "Powered by NoteWell AI" attribution. The final slide should also have a full-bleed background image.`,
       ].join(' ');
 
       const { data: startResponse, error: startError } = await supabase.functions.invoke(

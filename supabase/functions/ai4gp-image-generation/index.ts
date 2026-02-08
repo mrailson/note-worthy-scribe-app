@@ -693,19 +693,14 @@ Content guidelines:
 - No explicit, offensive, or inappropriate imagery`;
     } else if (effectiveRequestType === 'infographic' && documentContent) {
       // Infographic with document content - generate visual FROM the document
-      // IMPORTANT: Also include the user's prompt as it may contain custom styling instructions
-      // Extract keywords for accurate spelling reference
+      // ALWAYS include the user's prompt as it contains critical instructions (landscape, tone, privacy, etc.)
       const extractedKeywords = extractCleanKeywords(documentContent);
       const keywordReference = extractedKeywords.length > 0 
         ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
         : '';
       const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding, editedDetails, customPracticeName);
       
-      // Check if the prompt contains custom style instructions (from useMeetingInfographic)
-      const hasCustomStyleInPrompt = prompt.includes('CUSTOM STYLE REQUEST:') || prompt.includes('Custom visual style requested:');
-      
-      imagePrompt = hasCustomStyleInPrompt 
-        ? `${prompt}
+      imagePrompt = `${prompt}
 
 SOURCE CONTENT TO VISUALISE:
 ${documentContent.substring(0, 5000)}
@@ -721,29 +716,7 @@ ${keywordReference}
 
 ADDITIONAL REQUIREMENTS:
 - Create an ACTUAL visual infographic image, NOT a text description
-- High contrast for accessibility and readability
-- DO NOT display colour swatches, hex codes, or colour palette legends anywhere in the image
-
-Content guidelines:
-- Keep all content professional and workplace-appropriate
-- No explicit, offensive, or inappropriate imagery`
-        : `Create a professional single-page infographic that visualises the following content.
-
-SOURCE CONTENT TO VISUALISE:
-${documentContent.substring(0, 5000)}
-${brandingSection}
-
-TEXT GUIDELINES:
-- Text should be clear and readable with professional typography
-- Use proper spelling - refer to the spelling reference below
-- Good visual hierarchy with headings, subheadings and body text
-
-${SPELLING_REFERENCE}
-${keywordReference}
-
-INFOGRAPHIC DESIGN REQUIREMENTS:
-- Create an ACTUAL visual infographic image, NOT a text description
-- Use a professional colour scheme (blues, teals, clean modern palette)
+- MUST be landscape orientation (16:9 aspect ratio) unless the user explicitly requests portrait
 - High contrast for accessibility and readability
 - DO NOT display colour swatches, hex codes, or colour palette legends anywhere in the image
 
