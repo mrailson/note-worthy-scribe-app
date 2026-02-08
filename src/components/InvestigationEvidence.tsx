@@ -5,8 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { FileText, Upload, Download, Trash2, Mic, Volume2, Loader2, CheckCircle2, XCircle, FileIcon, Clock, Eye } from 'lucide-react';
+import { FileText, Upload, Download, Trash2, Mic, Volume2, Loader2, CheckCircle2, XCircle, FileIcon, Clock, Eye, User, Stethoscope } from 'lucide-react';
 import { AudioAIReviewDialog } from '@/components/AudioAIReviewDialog';
+import { parseAudioReviewBadges, getBadgeSentimentClasses } from '@/utils/audioReviewBadges';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
@@ -1119,19 +1120,39 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                             </p>
                           )}
                           {file.ai_summary && (file.evidence_type === 'audio' || file.file_type?.startsWith('audio/')) && (
-                            <Button
-                              size="sm"
-                              variant="link"
-                              className="h-auto p-0 text-xs text-primary mt-1"
-                              onClick={() => setAiReviewModal({
-                                isOpen: true,
-                                fileName: file.file_name,
-                                review: file.ai_summary!
-                              })}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              View Full AI Review
-                            </Button>
+                            <>
+                              {(() => {
+                                const badges = parseAudioReviewBadges(file.ai_summary!);
+                                if (badges.length === 0) return null;
+                                return (
+                                  <div className="flex flex-wrap gap-1.5 mt-2">
+                                    {badges.map((badge, idx) => (
+                                      <span
+                                        key={idx}
+                                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${getBadgeSentimentClasses(badge.sentiment)}`}
+                                      >
+                                        {badge.label.startsWith('Patient') && <User className="h-3 w-3" />}
+                                        {badge.label.startsWith('Staff') && <Stethoscope className="h-3 w-3" />}
+                                        {badge.label}
+                                      </span>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+                              <Button
+                                size="sm"
+                                variant="link"
+                                className="h-auto p-0 text-xs text-primary mt-1"
+                                onClick={() => setAiReviewModal({
+                                  isOpen: true,
+                                  fileName: file.file_name,
+                                  review: file.ai_summary!
+                                })}
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                View Full AI Review
+                              </Button>
+                            </>
                           )}
                           {!file.ai_summary && (file.evidence_type === 'audio' || file.file_type?.startsWith('audio/')) && audioTranscripts.some(t => t.audio_file_id === file.id) && (
                             <Button
