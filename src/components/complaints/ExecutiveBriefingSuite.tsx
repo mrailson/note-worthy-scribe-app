@@ -239,14 +239,28 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                     </div>
                   )}
                   {audioOverview?.audio_overview_url && !isGeneratingAudio && (
-                    <div className="w-full text-left">
-                      <ComplaintAudioOverviewPlayer
-                        complaintId={complaint.id}
-                        audioOverviewUrl={audioOverview.audio_overview_url}
-                        audioOverviewText={audioOverview.audio_overview_text}
-                        audioOverviewDuration={audioOverview.audio_overview_duration}
-                        onRegenerateAudio={onRegenerateAudio}
-                      />
+                    <div className="w-full space-y-2">
+                      <div className="w-full text-left">
+                        <ComplaintAudioOverviewPlayer
+                          complaintId={complaint.id}
+                          audioOverviewUrl={audioOverview.audio_overview_url}
+                          audioOverviewText={audioOverview.audio_overview_text}
+                          audioOverviewDuration={audioOverview.audio_overview_duration}
+                          onRegenerateAudio={onRegenerateAudio}
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRegenerateAudio();
+                        }}
+                        className="w-full text-xs text-muted-foreground hover:text-indigo-700"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Regenerate
+                      </Button>
                     </div>
                   )}
                 </div>
