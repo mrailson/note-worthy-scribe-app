@@ -138,7 +138,7 @@ serve(async (req) => {
       throw new Error('EmailJS configuration not complete - missing required secrets');
     }
 
-    const baseUrl = 'https://notewell.dialai.co.uk';
+    const baseUrl = 'https://gnotewell.co.uk';
     
     const emailResults = [];
 
@@ -158,8 +158,12 @@ serve(async (req) => {
 
   <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">Dear <strong>${party.staffName}</strong>,</p>
   
+  <p style="font-size: 16px; color: #374151; line-height: 1.5; margin-bottom: 15px;">
+    You are requested to provide input as part of a formal complaint investigation and learning review being undertaken by ${practiceDetails?.practice_name || 'Medical Practice'}.
+  </p>
+
   <p style="font-size: 16px; color: #374151; line-height: 1.5; margin-bottom: 25px;">
-    You have been requested to provide input for the following complaint investigation:
+    Your contribution will help us understand the events from different perspectives and support service improvement. This request is not a disciplinary process.
   </p>
 
   <div style="background-color: #f8fafc; border-left: 4px solid #2563eb; padding: 20px; margin: 25px 0;">
@@ -211,17 +215,19 @@ serve(async (req) => {
   ` : ''}
 
   <div style="text-align: center; margin: 30px 0;">
+    <p style="color: #374151; font-size: 15px; font-weight: bold; margin-bottom: 15px;">🔗 Provide Your Response</p>
+    <p style="color: #374151; font-size: 14px; margin-bottom: 15px;">Please use the secure link below to submit your response:</p>
     <a href="${responseUrl}" 
        style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);">
-      🔗 Provide Your Response
+      👉 Submit your response
     </a>
     <p style="color: #6b7280; font-size: 13px; margin-top: 15px; word-break: break-all;">
       Or copy this link: ${responseUrl}
     </p>
     <div style="background-color: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; margin-top: 15px; text-align: center;">
-      <p style="color: #374151; font-size: 13px; margin: 0 0 5px 0;">Your one-time access code:</p>
+      <p style="color: #374151; font-size: 13px; margin: 0 0 5px 0;">One-time access code:</p>
       <p style="color: #1f2937; font-size: 16px; font-family: monospace; font-weight: bold; margin: 0; background-color: #fef3c7; padding: 8px; border-radius: 3px; display: inline-block;">${party.accessToken}</p>
-      <p style="color: #6b7280; font-size: 12px; margin: 8px 0 0 0; font-style: italic;">Use this code if the link doesn't work</p>
+      <p style="color: #6b7280; font-size: 12px; margin: 8px 0 0 0; font-style: italic;">Use this code if the link does not work</p>
     </div>
   </div>
 
@@ -229,19 +235,21 @@ serve(async (req) => {
     <h3 style="color: #dc2626; font-size: 16px; margin: 0 0 10px 0; font-weight: bold;">⚠️ Important Information</h3>
     <ul style="color: #374151; line-height: 1.5; margin: 0; padding-left: 20px;">
       <li>Please review the complaint details carefully</li>
-      <li><strong>Response deadline: 5 working days</strong></li>
-      <li>Your response will be used as part of the investigation process</li>
-      <li>All information will be handled confidentially</li>
+      <li><strong>Response deadline: within 5 working days</strong></li>
+      <li>Your response will form part of the complaint investigation and outcome</li>
+      <li>All information will be handled confidentially in line with NHS complaints guidance</li>
     </ul>
   </div>
 
+  <p style="font-size: 14px; color: #374151; margin: 25px 0 5px 0;">
+    If you have any concerns or require support in responding, please contact the Practice Manager.
+  </p>
+
   <div style="border-top: 2px solid #e5e7eb; padding-top: 20px; margin-top: 40px; text-align: center;">
-    <p style="color: #6b7280; font-size: 14px; margin: 0;">
-      This email was sent from <strong>${practiceDetails?.practice_name || 'Medical Practice'}</strong> complaint management system.
-    </p>
     <p style="color: #6b7280; font-size: 14px; margin: 10px 0 0 0;">
-      <strong>Best regards,</strong><br>
-      ${practiceDetails?.practice_name || 'Medical Practice'} Complaints Team
+      <strong>Kind regards,</strong><br>
+      ${practiceDetails?.practice_name || 'Medical Practice'}<br>
+      Complaint Management System
     </p>
   </div>
 </div>`;
@@ -253,7 +261,7 @@ serve(async (req) => {
         accessToken: emailJsPrivateKey,
         template_params: {
           to_email: party.staffEmail,
-          subject: `Complaint Input Request - ${complaint.reference_number}`,
+          subject: `Complaint Input Request – ${complaint.reference_number} (${practiceDetails?.practice_name || 'Medical Practice'})`,
           message: messageContent,
           // Explicit params for templates – use any of these in EmailJS
           response_url: responseUrl,
