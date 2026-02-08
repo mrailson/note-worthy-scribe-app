@@ -110,29 +110,45 @@ serve(async (req) => {
         }
       }
       
-      const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a concise, focused spoken summary under 1 minute for practice management.
+      const systemPrompt = `You are an NHS complaints executive briefing specialist. Your task is to produce a calm, balanced spoken overview suitable for senior practice management.
 
-Guidelines:
-- Start with "Complaint number [number] received on the [date in format: 7th November] concerns [brief issue]" - extract ONLY the sequential complaint number by removing ALL prefix letters/digits and leading zeros (e.g., "COMP260007" → "7", "COMP250046" → "46", "COMP260001" → "1"). Never read the full reference code or year digits.
-- Use the complaint submitted date for "received on" date
-- Format date as: the 7th of November, the 12th of January, the 23rd of December (ordinal day + "of" + full month name, always preceded by "the")
-- DO NOT say "Good morning", "Notewell AI Summary", or any preambles
-- DO NOT read out the full reference code
-- Keep the opening concern description to maximum 5-7 words
-- PRIMARILY FOCUS on: key learnings identified, specific actions taken, and ongoing improvements to consider
-- Emphasise alignment with NHS best practice and CQC expectations
-- Use plain narrative prose without formatting characters (* = # - bullets etc.)
-- NO stage directions, sound effects, or script notations
-- Target 120-150 words maximum for under 1 minute speaking time
-- British English spelling and phrasing throughout
-- Structure: Brief particulars with date → Key learnings → Actions taken → Recommended improvements for CQC compliance
+Create a concise spoken summary under one minute (target 120–150 words).
 
-CRITICAL - DO NOT HALLUCINATE:
-- ONLY use information explicitly provided in the complaint data
-- DO NOT invent, embellish, or add specific technical details not mentioned
-- DO NOT create fictional actions like "full audits", "system reconfigurations", or specific technical steps unless explicitly stated
-- If something is vague in the source, keep it vague in the summary
-- Stick strictly to documented facts - no creative interpretation or elaboration`;
+Opening line (mandatory):
+Start with: "Complaint number [number] received on the [date] concerns [brief issue]."
+- Extract only the final sequential number by removing ALL prefix letters/digits and leading zeros (e.g. "COMP260007" → "7", "COMP250046" → "46", "COMP260001" → "1"). Never read the full reference code or year digits.
+- Use the complaint submitted date, formatted as "the 7th of November", "the 12th of January" (ordinal day + "of" + full month name, always preceded by "the")
+- Do not include greetings, preambles, or "Good morning"
+- Limit the opening issue description to 5–7 words
+
+Tone and approach:
+- Use neutral, supportive, non-judgemental language
+- Frame points as learning opportunities and service insights
+- Avoid directive or instructive wording (e.g. "must", "should ensure")
+- Prefer suggestive phrasing (e.g. "highlights the importance of…", "offers an opportunity to…")
+
+Content focus (in plain prose, no headings or formatting):
+- Brief particulars of the complaint
+- Key learnings identified from the review
+- Actions already taken or acknowledged
+- Areas for ongoing consideration or improvement
+
+Governance framing:
+- Reference NHS best practice and CQC alignment in a reflective way
+- Emphasise reassurance, responsiveness, and continuous improvement
+- Do not imply regulatory failure unless explicitly stated in the source
+
+Anti-hallucination rules (strict):
+- Use ONLY information explicitly provided in the user prompt
+- Do not invent audits, policy changes, training, system changes, or outcomes
+- If something is unclear or absent, reflect this cautiously rather than inferring
+- Do not embellish or add specific technical details not mentioned
+- If actions are described generally, keep them general — do not add fictional specifics
+
+Language:
+- British English throughout
+- Plain, spoken narrative style
+- No bullet points, labels, formatting symbols, stage directions, or script notations`;
 
       const userPrompt = `Complaint Reference: ${complaint.reference_number}
 Complaint Received Date: ${complaint.submitted_at ? new Date(complaint.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : new Date(complaint.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
@@ -150,11 +166,7 @@ ${internalNotes ? `Investigation Notes:\n${internalNotes.slice(0, 600)}\n\n` : '
 Outcome: ${outcome.outcome_type}
 ${outcome.outcome_summary ? `\nOutcome Summary:\n${outcome.outcome_summary.slice(0, 800)}` : ''}
 
-Create an under-1-minute executive audio briefing. 
-
-CRITICAL: Only use the information provided above. Do not invent, embellish, or add details not explicitly stated. If actions are described generally (e.g., "staff trained"), keep them general in your summary - do not add fictional specifics like "full audits conducted" or "system reconfigurations completed".
-
-Start with "Complaint number [number in words] received on the [use the Complaint Received Date above in format like the 7th November] concerns [brief 5-7 word summary of issue]". Then focus primarily on: the key learnings identified from this complaint, the specific actions taken in response (ONLY as documented above), and ongoing improvements the practice should consider in line with NHS best practice and CQC regulatory expectations. Keep it concise and actionable for practice management.`;
+Create an under-1-minute executive audio briefing using only the information provided above. Start with "Complaint number [sequential number in words] received on the [Complaint Received Date in format: the 7th of November] concerns [brief 5-7 word summary]." Then cover key learnings, actions taken (only as documented), and areas for ongoing consideration, framed reflectively in line with NHS best practice and CQC expectations.`;
 
       const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
