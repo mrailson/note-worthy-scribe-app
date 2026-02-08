@@ -484,13 +484,20 @@ export function usePresentationStudio() {
       const maxPollDuration = settings.slideCount > 10
         ? 60_000 + settings.slideCount * 10_000  // e.g. 30 slides ≈ 360s
         : 180_000;                                 // ≤10 slides → 3 min
-      const pollInterval = 5_000; // 5 seconds between polls
+      const basePollInterval = 10_000;
+      let currentInterval = basePollInterval;
+      const maxPendingInterval = 30_000;
+      const maxThrottleInterval = 120_000;
+      let consecutivePending = 0;
       const pollStart = Date.now();
+
+      const sleepWithJitter = (ms: number) =>
+        new Promise(r => setTimeout(r, ms * (0.9 + Math.random() * 0.2)));
 
       let data: any = null;
 
       while (Date.now() - pollStart < maxPollDuration) {
-        await new Promise(r => setTimeout(r, pollInterval));
+        await sleepWithJitter(currentInterval);
 
         // Update progress based on elapsed time
         const elapsed = Date.now() - pollStart;
@@ -502,8 +509,21 @@ export function usePresentationStudio() {
         });
 
         if (pollError) {
-          console.warn('Poll request failed, retrying...', pollError);
-          continue; // Retry on transient errors
+          const errMsg = pollError.message || '';
+
+          if (errMsg.includes('401') || errMsg.includes('403') ||
+              errMsg.includes('Unauthorized') || errMsg.includes('Forbidden')) {
+            throw new Error('Session expired or not authorised. Please sign in again.');
+          }
+
+          if (errMsg.includes('ThrottlerException') || errMsg.includes('Too Many Requests') || errMsg.includes('429')) {
+            console.warn('[PresentationStudio] Rate limited — backing off');
+            currentInterval = Math.min(currentInterval * 2, maxThrottleInterval);
+            continue;
+          }
+
+          console.warn('[PresentationStudio] Poll request failed, retrying...', pollError);
+          continue;
         }
 
         if (pollData?.status === 'completed') {
@@ -515,7 +535,17 @@ export function usePresentationStudio() {
           throw new Error(pollData.error || 'Gamma generation failed');
         }
 
-        console.log(`⏳ Still generating... (${Math.round(elapsed / 1000)}s elapsed)`);
+        if (pollData?.status === 'pending') {
+          consecutivePending++;
+          if (consecutivePending > 3) {
+            currentInterval = Math.min(currentInterval + 2_000, maxPendingInterval);
+          }
+        } else {
+          consecutivePending = 0;
+          currentInterval = basePollInterval;
+        }
+
+        console.log(`⏳ Still generating... (${Math.round(elapsed / 1000)}s elapsed, interval ${Math.round(currentInterval / 1000)}s)`);
       }
 
       if (!data) {
