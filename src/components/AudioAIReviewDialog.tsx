@@ -130,7 +130,7 @@ export function AudioAIReviewDialog({ isOpen, onOpenChange, fileName, review, pr
               </div>
               <div className="min-w-0">
                 <DialogTitle className="text-lg font-semibold">
-                  AI Audio Evidence Review
+                  AI Call Summary
                 </DialogTitle>
                 <DialogDescription className="text-sm mt-0.5 truncate">
                   {fileName}
@@ -204,7 +204,7 @@ export function AudioAIReviewDialog({ isOpen, onOpenChange, fileName, review, pr
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 pt-4 border-t border-border/40">
           <p className="text-[11px] text-muted-foreground italic">
-            AI-generated analysis — always verify against original recording
+            AI-generated summary — always verify against original recording
           </p>
           <div className="flex gap-2">
             <Button
