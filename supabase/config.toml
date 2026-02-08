@@ -192,8 +192,6 @@ verify_jwt = true
 [functions.generate-referral-letter]
 verify_jwt = true
 
-[functions.generate-ppt-from-content]
-verify_jwt = true
 
 [functions.send-staff-response-request]
 verify_jwt = true
