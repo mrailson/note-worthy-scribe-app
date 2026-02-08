@@ -2418,9 +2418,13 @@ const ComplaintDetails = () => {
                               <>
                                 <Badge
                                   variant="default"
-                                  className="bg-green-600 cursor-pointer select-none"
-                                  onDoubleClick={() => handleMarkAcknowledgementSent(false)}
-                                  title="Double-click to undo"
+                                  className={`bg-green-600 select-none ${!existingOutcome ? 'cursor-pointer' : ''}`}
+                                  onDoubleClick={() => {
+                                    if (!existingOutcome) {
+                                      handleMarkAcknowledgementSent(false);
+                                    }
+                                  }}
+                                  title={!existingOutcome ? "Double-click to undo" : undefined}
                                 >
                                   <CheckCircle className="h-3 w-3 mr-1" />
                                   Sent to {getAcknowledgementRecipientLabel(complaint?.complaint_source)}
