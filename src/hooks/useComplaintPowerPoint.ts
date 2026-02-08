@@ -416,22 +416,34 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         : `BRANDING: No practice name available — keep branding generic.`;
 
       const customInstructions = [
-        // Tone & privacy
-        `TONE: Warm, supportive PLT staff training — "learning together as a team". Never blame individuals. Celebrate what went well alongside improvements.`,
-        `PRIVACY (CRITICAL): Fully anonymised — no patient/staff names, NHS numbers, emails, phone numbers. Use "the patient" or "a team member".`,
+        // Purpose
+        `PURPOSE (CRITICAL): This presentation is for shared learning and system improvement, not to attribute fault, determine liability, or assess individual performance.`,
+        // Tone
+        `TONE: Warm, supportive PLT training tone focused on learning together as a team. Frame issues as system learning and service resilience, not individual error. Avoid judgemental or directive language. Use reflective phrasing such as "this highlighted…", "this reinforced the importance of…", "this offers an opportunity to…". Celebrate what went well alongside areas for improvement, with equal weight.`,
+        // Privacy
+        `PRIVACY (CRITICAL): Fully anonymised throughout. No patient or staff names, initials, DOBs, NHS numbers, addresses, phone numbers, or emails. Use only generic terms such as "the patient", "the practice", "the team". Assume slides may be viewed by a wider audience.`,
         // Practice branding
         practiceNameInstruction,
-        // TITLE SLIDE — must have a compelling AI-generated image
-        `TITLE SLIDE (CRITICAL): The FIRST slide MUST feature a striking, full-bleed photorealistic background image — NOT a plain coloured background. Use an inspiring image of a modern UK GP practice exterior, a welcoming reception area, or a team collaboration scene. The title text should overlay this image with a semi-transparent dark gradient for readability. This is the first thing viewers see — it must look polished and visually impressive.`,
-        // Visual quality — GP practice themed with variety
-        `DESIGN: Executive-quality presentation with bold, modern visuals. Use full-bleed photorealistic hero images on every slide including the title slide. Images should be rooted in UK General Practice / primary care settings. Use a MIX of: GP consultation rooms, practice reception areas, waiting rooms, practice team meetings around a table, GPs at desks with computers, community health settings, patient-facing signage, appointment booking screens, practice buildings exterior, and warm doctor-patient interactions (no identifiable faces). Avoid repetitive "doctor in scrubs" hospital imagery — this is about General Practice, not acute care. Supplement with 1-2 conceptual/metaphorical images (growth, teamwork, improvement paths) for variety.`,
-        `LAYOUT: Mix layouts — full-image backgrounds with text overlay, split-screen image+content, icon grids for key points. Avoid plain text-only slides. Every single slide must have a photorealistic image — no exceptions.`,
-        `COLOUR SCHEME: Professional NHS-inspired palette — deep navy (#003087), NHS blue (#005EB8), teal accents, warm greens for positives, amber for action items. White/light backgrounds for readability.`,
-        `TYPOGRAPHY: Clean sans-serif headings (bold, large). Concise bullet points — max 4-5 per slide. Let the imagery do the heavy lifting.`,
+        // Title slide
+        `TITLE SLIDE (CRITICAL): The first slide must use a full-bleed photorealistic background image — never a flat colour. Image theme: modern UK GP practice exterior, welcoming reception area, or collaborative team setting. Overlay title text using a subtle dark gradient for readability. Tone should feel reassuring, professional, and people-centred.`,
+        // Design & imagery
+        `DESIGN: Executive-quality, modern visuals suitable for NHS settings. Every slide must include a full-bleed photorealistic image rooted in UK General Practice / primary care. Permitted imagery: GP consultation rooms, practice reception and waiting areas, team meetings or collaborative discussions, GPs or staff at desks, community health or primary care environments, practice buildings exterior, warm doctor-patient interactions without identifiable faces. Avoid: hospital ward imagery, doctors in theatre scrubs, emergency or acute-care visuals. Optional: 1–2 conceptual or metaphorical images to reinforce learning or improvement themes.`,
+        // Layout
+        `LAYOUT: Use a mix of: full-image background slides with text overlay, split image + content layouts, icon-supported grids. All slides must remain clear, readable, and noticeboard-safe.`,
+        // Colour scheme
+        `COLOUR SCHEME: NHS-inspired palette — deep navy (#003087), NHS blue (#005EB8), teal accents, warm greens for learning and improvement, amber for priority or focus areas.`,
+        // Typography
+        `TYPOGRAPHY: Clean sans-serif fonts. Bold, high-contrast headings. Maximum 4–5 bullets per slide. Plain British English suitable for all staff groups.`,
+        // Content safety
+        `CONTENT SAFETY RULES (IMPORTANT): Describe events neutrally, without assigning intent or blame. Avoid definitive clinical or financial harm conclusions. Avoid legalistic or regulatory language (e.g. "failure", "non-compliance", "root cause"). Use system-level language such as "contributing factors", "process variation", "communication gaps". Do not single out specific staff groups (e.g. reception); refer to "teams" or "processes".`,
         // Structure
-        `Exactly ${slideCount} slides. British English throughout.`,
+        `STRUCTURE: Exactly ${slideCount} slides. Recommended flow: Title/context → What Happened (neutral, factual, anonymised) → Key Learnings (system-level, reflective — most prominent) → What We Did Well (strengths and professionalism) → How We're Improving (exploratory, growth-focused, prioritised) → Thank You & Discussion.`,
+        // Final slide
+        `FINAL SLIDE (CRITICAL): Title: "Thank You & Discussion". Include: practice name (or generic), invitation for reflection and shared ideas, footer "Powered by NoteWell AI", full-bleed photorealistic background image.`,
+        // Speaker notes
         `Speaker notes in the hidden notes pane only — never visible on slides. Notes should contain full presenter talking points.`,
-        `Final slide: "Thank You & Discussion" with${practiceName ? ` "${practiceName}" and` : ''} "Powered by NoteWell AI" attribution. The final slide should also have a full-bleed background image.`,
+        // Input context
+        `INPUT CONTEXT: Use only the information provided via supportingContent. Do not infer, embellish, or invent outcomes, actions, or impacts.`,
       ].join(' ');
 
       // Build request body — match Ask AI PowerPoint settings
