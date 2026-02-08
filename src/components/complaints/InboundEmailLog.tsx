@@ -8,10 +8,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Mail, Search, RefreshCw, Eye, ExternalLink, AlertCircle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Mail, Search, RefreshCw, Eye, ExternalLink, AlertCircle, CheckCircle2, Clock, XCircle, Download, Paperclip } from "lucide-react";
 import { format } from "date-fns";
 import { showToast } from "@/utils/toastWrapper";
 import { useNavigate } from "react-router-dom";
+
+interface AttachmentMeta {
+  name: string;
+  path: string;
+  size: number;
+  content_type: string;
+}
 
 interface InboundEmail {
   id: string;
@@ -24,6 +31,7 @@ interface InboundEmail {
   html_body: string | null;
   has_attachments: boolean;
   attachment_count: number;
+  attachments: AttachmentMeta[] | null;
   classification: string | null;
   record_id: string | null;
   record_type: string | null;
@@ -70,7 +78,7 @@ export const InboundEmailLog = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setEmails((data || []) as InboundEmail[]);
+      setEmails((data || []) as unknown as InboundEmail[]);
     } catch (error) {
       console.error("Error fetching inbound emails:", error);
       showToast.error("Failed to load inbound emails", { section: "complaints" });
@@ -352,14 +360,73 @@ export const InboundEmailLog = () => {
                 </div>
               )}
 
+              {/* Attachments list with download */}
+              {selectedEmail.has_attachments && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Attachments</p>
+                  <div className="space-y-1.5">
+                    {Array.isArray(selectedEmail.attachments) && selectedEmail.attachments.length > 0 ? (
+                      selectedEmail.attachments.map((att, idx) => (
+                        <div key={idx} className="flex items-center justify-between gap-2 p-2 rounded border bg-muted/30">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-sm truncate">{att.name}</span>
+                            {att.size > 0 && (
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                ({(att.size / 1024).toFixed(0)} KB)
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 shrink-0"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                const { data, error } = await supabase.storage
+                                  .from("inbound-email-attachments")
+                                  .createSignedUrl(att.path, 3600);
+                                if (error) throw error;
+                                window.open(data.signedUrl, "_blank");
+                              } catch (err) {
+                                console.error("Download error:", err);
+                                showToast.error("Failed to download attachment", { section: "complaints" });
+                              }
+                            }}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        {selectedEmail.attachment_count} attachment(s) received — files were not stored (received before storage was enabled)
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Email Body */}
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-1">Email Content</p>
-                <div className="bg-muted/30 rounded-lg p-3 max-h-[300px] overflow-y-auto">
-                  <pre className="text-sm whitespace-pre-wrap font-sans">
-                    {selectedEmail.text_body || "(No text content)"}
-                  </pre>
-                </div>
+                {selectedEmail.text_body ? (
+                  <div className="bg-muted/30 rounded-lg p-3 max-h-[300px] overflow-y-auto">
+                    <pre className="text-sm whitespace-pre-wrap font-sans">
+                      {selectedEmail.text_body}
+                    </pre>
+                  </div>
+                ) : selectedEmail.html_body ? (
+                  <div
+                    className="bg-muted/30 rounded-lg p-3 max-h-[300px] overflow-y-auto prose prose-sm max-w-none dark:prose-invert"
+                    dangerouslySetInnerHTML={{ __html: selectedEmail.html_body }}
+                  />
+                ) : (
+                  <div className="bg-muted/30 rounded-lg p-3">
+                    <p className="text-sm text-muted-foreground italic">(No text content)</p>
+                  </div>
+                )}
               </div>
 
               {/* Link to record */}

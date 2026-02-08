@@ -4218,6 +4218,7 @@ export type Database = {
       inbound_emails: {
         Row: {
           attachment_count: number | null
+          attachments: Json | null
           classification: string | null
           created_at: string
           email_id: string | null
@@ -4237,6 +4238,7 @@ export type Database = {
         }
         Insert: {
           attachment_count?: number | null
+          attachments?: Json | null
           classification?: string | null
           created_at?: string
           email_id?: string | null
@@ -4256,6 +4258,7 @@ export type Database = {
         }
         Update: {
           attachment_count?: number | null
+          attachments?: Json | null
           classification?: string | null
           created_at?: string
           email_id?: string | null

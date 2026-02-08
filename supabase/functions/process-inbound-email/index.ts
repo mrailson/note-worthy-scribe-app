@@ -106,7 +106,54 @@ serve(async (req) => {
     const hasAttachments = attachments.length > 0;
     const attachmentCount = attachments.length;
 
-    console.log(`Processing email from: ${fromEmail} (${fromName}), subject: ${subject}`);
+    console.log(`Processing email from: ${fromEmail} (${fromName}), subject: ${subject}, attachments: ${attachmentCount}`);
+
+    // Save attachments to storage
+    const savedAttachments: { name: string; path: string; size: number; content_type: string }[] = [];
+    
+    if (hasAttachments) {
+      for (const attachment of attachments) {
+        try {
+          const fileName = attachment.filename || attachment.name || `attachment_${Date.now()}`;
+          const contentType = attachment.content_type || attachment.type || "application/octet-stream";
+          const content = attachment.content || attachment.data;
+          
+          if (!content) {
+            console.log(`Skipping attachment ${fileName}: no content`);
+            continue;
+          }
+
+          // Decode base64 content
+          const binaryStr = atob(content);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+
+          const storagePath = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("inbound-email-attachments")
+            .upload(storagePath, bytes, { contentType, upsert: false });
+
+          if (uploadError) {
+            console.error(`Failed to upload attachment ${fileName}:`, uploadError);
+            continue;
+          }
+
+          savedAttachments.push({
+            name: fileName,
+            path: storagePath,
+            size: bytes.length,
+            content_type: contentType,
+          });
+
+          console.log(`Saved attachment: ${fileName} (${bytes.length} bytes)`);
+        } catch (attErr) {
+          console.error("Error saving attachment:", attErr);
+        }
+      }
+    }
 
     // Create initial log entry
     const { data: logEntry, error: logError } = await supabase
@@ -121,6 +168,7 @@ serve(async (req) => {
         html_body: htmlBody,
         has_attachments: hasAttachments,
         attachment_count: attachmentCount,
+        attachments: savedAttachments,
         processing_status: "pending",
       })
       .select("id")
@@ -128,7 +176,6 @@ serve(async (req) => {
 
     if (logError) {
       console.error("Error creating inbound email log:", logError);
-      // Continue processing even if logging fails
     }
 
     const logId = logEntry?.id;
