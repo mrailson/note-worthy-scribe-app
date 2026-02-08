@@ -818,6 +818,7 @@ const ComplaintsSystem = () => {
   };
 
   const handleImportedData = (importedData: any) => {
+    setFormTouched(true);
     setFormData(prev => ({
       ...prev,
       patient_name: importedData.patient_name || prev.patient_name,
