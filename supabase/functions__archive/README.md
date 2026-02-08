@@ -34,6 +34,12 @@ All functions in this folder met **every** condition below:
 | 12 | `gpt5-clinical-reviewer` | Superseded by `gpt5-fast-clinical` |
 | 13 | `update-meeting-context` | Meeting context updater — no code refs |
 
+## Additional Archives — 2026-02-08
+
+| # | Function Name | Reason |
+|---|---|---|
+| 20 | `import-icb-formulary-seed` | One-time ICB formulary seed script — no config entry, no client refs |
+
 ## Tier 3 (GREEN batch 1) — Archived 2026-02-08
 
 | # | Function Name | Reason |
