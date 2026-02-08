@@ -1304,7 +1304,7 @@ const ComplaintDetails = () => {
         body: {
           complaintId: complaint.id,
           voiceProvider: voiceProvider || 'elevenlabs',
-          voiceId: voiceId || 'G17SuINrv2H9FC6nvetn',
+          voiceId: voiceId || 'Xb7hH8MSUJpSbSDYk0k2',
           overrideText: updatedText
         }
       });
