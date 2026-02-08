@@ -1,7 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import type { BrandingPreference } from '@/components/settings/PresentationBrandingSettings';
+
+interface UserTemplatePreference {
+  themeId: string;
+  themeName: string;
+  source: 'gamma' | 'local';
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+}
+
+const NHS_THEME_COLORS: Record<string, { primaryColor: string; secondaryColor: string; accentColor: string }> = {
+  'nhs-professional': { primaryColor: '#005EB8', secondaryColor: '#003087', accentColor: '#41B6E6' },
+  'nhs-modern': { primaryColor: '#003087', secondaryColor: '#005EB8', accentColor: '#00A499' },
+  'clinical-clean': { primaryColor: '#2D3748', secondaryColor: '#4A5568', accentColor: '#38A169' },
+  'educational-bright': { primaryColor: '#2B6CB0', secondaryColor: '#3182CE', accentColor: '#ED8936' },
+  'executive-dark': { primaryColor: '#1A202C', secondaryColor: '#2D3748', accentColor: '#805AD5' },
+};
 
 interface ComplaintPowerPointData {
   referenceNumber: string;
@@ -204,12 +223,16 @@ const persistPowerPoint = async (
 };
 
 export const useComplaintPowerPoint = (complaintId?: string) => {
+  const { user } = useAuth();
   const { practiceContext } = usePracticeContext();
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentPhase, setCurrentPhase] = useState<GenerationPhase>('preparing');
   const [error, setError] = useState<string | null>(null);
   const [persistedData, setPersistedData] = useState<PersistedPowerPoint | null>(null);
+  const [templatePreference, setTemplatePreference] = useState<UserTemplatePreference | null>(null);
+  const [brandingPreference, setBrandingPreference] = useState<BrandingPreference | null>(null);
   const loadedRef = useRef(false);
+  const prefsLoadedRef = useRef(false);
 
   // Load persisted PowerPoint on mount
   useEffect(() => {
@@ -235,6 +258,42 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
 
     load();
   }, [complaintId]);
+
+  // Fetch user's template and branding preferences (same as Ask AI PowerPoint)
+  useEffect(() => {
+    if (!user || prefsLoadedRef.current) return;
+    prefsLoadedRef.current = true;
+
+    const fetchPreferences = async () => {
+      try {
+        const [templateResult, brandingResult] = await Promise.all([
+          supabase
+            .from('user_settings')
+            .select('setting_value')
+            .eq('user_id', user.id)
+            .eq('setting_key', 'presentation_template')
+            .single(),
+          supabase
+            .from('user_settings')
+            .select('setting_value')
+            .eq('user_id', user.id)
+            .eq('setting_key', 'presentation_branding')
+            .single()
+        ]);
+
+        if (templateResult.data?.setting_value) {
+          setTemplatePreference(templateResult.data.setting_value as unknown as UserTemplatePreference);
+        }
+        if (brandingResult.data?.setting_value) {
+          setBrandingPreference(brandingResult.data.setting_value as unknown as BrandingPreference);
+        }
+      } catch (error) {
+        console.error('[ComplaintPowerPoint] Error fetching preferences:', error);
+      }
+    };
+
+    fetchPreferences();
+  }, [user]);
 
   const formatComplaintContent = useCallback((data: ComplaintPowerPointData): string => {
     const sections: string[] = [];
@@ -328,7 +387,7 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
 
   const generatePowerPoint = useCallback(async (
     data: ComplaintPowerPointData,
-    slideCount: number = 7
+    slideCount: number = 6
   ): Promise<GenerationResult> => {
     setIsGenerating(true);
     setError(null);
@@ -365,19 +424,50 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         `Final slide: "Thank You & Discussion" with${practiceName ? ` "${practiceName}" and` : ''} "Powered by NoteWell AI" attribution. The final slide should also have a full-bleed background image.`,
       ].join(' ');
 
+      // Build request body — match Ask AI PowerPoint settings
+      const requestBody: Record<string, unknown> = {
+        topic: `Learning Together: Complaint Review — ${data.referenceNumber} (${data.category})`,
+        presentationType: 'NHS Staff Training Session',
+        slideCount,
+        supportingContent,
+        customInstructions,
+        audience: 'NHS GP practice staff during Protected Learning Time (PLT) sessions',
+        fontStyle: 'modern',
+        includeSpeakerNotes: true,
+      };
+
+      // Include user's template theme preference (same as Ask AI)
+      if (templatePreference) {
+        requestBody.themeSource = templatePreference.source;
+        if (templatePreference.source === 'gamma') {
+          requestBody.themeId = templatePreference.themeId;
+        } else if (templatePreference.source === 'local') {
+          const colors = NHS_THEME_COLORS[templatePreference.themeId];
+          if (colors) {
+            requestBody.localThemeStyle = {
+              primaryColor: colors.primaryColor,
+              secondaryColor: colors.secondaryColor,
+              accentColor: colors.accentColor,
+              themeName: templatePreference.themeName,
+            };
+          }
+        }
+      }
+
+      // Include user's branding preference (same as Ask AI)
+      if (brandingPreference) {
+        requestBody.branding = {
+          logoUrl: brandingPreference.logoUrl,
+          logoPosition: brandingPreference.logoPosition,
+          showCardNumbers: brandingPreference.showCardNumbers,
+          cardNumberPosition: brandingPreference.cardNumberPosition,
+          dimensions: brandingPreference.dimensions,
+        };
+      }
+
       const { data: startResponse, error: startError } = await supabase.functions.invoke(
         'generate-powerpoint-gamma',
-        {
-          body: {
-            topic: `Learning Together: Complaint Review — ${data.referenceNumber} (${data.category})`,
-            presentationType: 'NHS Staff Training Session',
-            slideCount,
-            supportingContent,
-            customInstructions,
-            audience: 'NHS GP practice staff during Protected Learning Time (PLT) sessions',
-            fontStyle: 'modern',
-          },
-        }
+        { body: requestBody }
       );
 
       if (startError) {
@@ -520,7 +610,7 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
     } finally {
       setIsGenerating(false);
     }
-  }, [complaintId, formatComplaintContent]);
+  }, [complaintId, formatComplaintContent, templatePreference, brandingPreference]);
 
   const downloadPersistedPowerPoint = useCallback((referenceNumber: string) => {
     if (!persistedData?.downloadUrl) return;
