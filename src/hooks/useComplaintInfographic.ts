@@ -216,6 +216,26 @@ PRIVACY RULES (CRITICAL — ABSOLUTE REQUIREMENT):
 - Assume the infographic may be displayed publicly on staff notice boards
 - Zero PII tolerance
 
+JUST CULTURE SAFETY RULES (CRITICAL):
+- Apply NHS Just Culture principles throughout
+- Do not name or single out specific staff groups (e.g. reception, clinicians, admin) — use collective terms such as "teams", "processes", or "appointment management workflows"
+- Frame issues as system design, process resilience, or communication flow — never individual performance
+- Avoid language that implies fault, blame, or disciplinary judgement
+
+LIABILITY-SAFE LANGUAGE RULES (CRITICAL):
+- Do not state or imply confirmed financial loss, compensation, or harm
+- Avoid phrases such as: "financial loss", "financial detriment", "delayed treatment", "caused harm"
+- Prefer experience-focused phrasing: "avoidable disruption", "challenges for patients", "impact on continuity of care", "practical consequences for patients"
+
+SYSTEM DESIGN FRAMING:
+- Do not describe systems as having "failed"
+- Do not use "critical failure" or "root cause" language
+- Frame instead as: "limitations in system design", "single-channel reliance", "areas where resilience can be strengthened", "opportunities to improve reliability"
+
+MANDATED PHRASE PREFERENCES:
+- Prefer: "This highlighted…", "This reinforced the importance of…", "This offered an opportunity to…", "We're exploring ways to…", "We're strengthening…"
+- Avoid directive language: "must", "should", "required to"
+
 COMPLAINT REFERENCE: ${data.referenceNumber}
 CATEGORY: ${data.category}
 
@@ -240,6 +260,9 @@ Use plain, friendly British English, written for staff rather than regulators.
    - Emphasise ongoing learning, not completed corrective actions
    - Avoid absolute or compliance-heavy language
 
+NOTICEBOARD READABILITY CHECK:
+Before finalising content, internally check: "Would this feel fair, non-threatening, and constructive if read by any staff member on a noticeboard?" If not, soften wording until it clearly reflects shared learning rather than judgement.
+
 DESIGN REQUIREMENTS:
 - Landscape 16:9
 - NHS-aligned colour palette (blues, teals, greens)
@@ -248,6 +271,7 @@ DESIGN REQUIREMENTS:
 - British English throughout
 - CQC-inspection-ready tone aligned with Just Culture
 - Footer attribution: "Powered by NoteWell AI"
+- If space allows, include a discreet footer line: "Shared to support learning and service improvement — not to attribute fault."
 
 Only use the information supplied via documentContent. Do not infer or invent detail.`;
 
