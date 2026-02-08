@@ -17,11 +17,12 @@ const NEGATIVE_TERMS = [
   'unprofessional', 'defensive', 'confrontational', 'inappropriate',
   'angry', 'vulgar', 'offensive', 'intimidating', 'shouting', 'swearing',
   'belligerent', 'combative', 'uncooperative', 'disrespectful',
+  'frustrated', 'distressed', 'upset',
 ];
 
 const WARNING_TERMS = [
-  'frustrated', 'distressed', 'upset', 'anxious', 'concerned',
-  'disappointed', 'emotional', 'tearful', 'impatient', 'dissatisfied',
+  'anxious', 'concerned', 'disappointed', 'emotional', 'tearful',
+  'impatient', 'dissatisfied',
 ];
 
 function classifySentiment(text: string): 'positive' | 'neutral' | 'negative' | 'warning' {
