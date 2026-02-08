@@ -1543,8 +1543,8 @@ const ComplaintsSystem = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-xl sm:text-3xl font-bold text-foreground mb-2">
-                <span className="hidden sm:inline">🏥 GP Practice Complaints & Compliments</span>
-                <span className="sm:hidden">🏥 Complaints & Compliments</span>
+                <span className="hidden sm:inline">🏥 Complaints & Patient Feedback</span>
+                <span className="sm:hidden">🏥 Complaints & Feedback</span>
               </h1>
               <p className="text-sm sm:text-base text-muted-foreground">
                 <span className="hidden sm:inline">Secure, NHS-compliant complaint and compliment management with full evidence management and audit trail</span>
