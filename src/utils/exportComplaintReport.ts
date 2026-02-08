@@ -67,6 +67,15 @@ interface AIReviewData {
   created_by: string;
 }
 
+interface AudioEvidenceReview {
+  fileName: string;
+  fileSize: number;
+  uploadedAt: string;
+  aiReview: string;
+  transcript?: string;
+  audioDuration?: number | null;
+}
+
 interface ReportData {
   complaint: ComplaintData;
   audioOverview?: string;
@@ -80,6 +89,7 @@ interface ReportData {
   evidenceFiles?: Array<{ name: string; type: string }>;
   workingDaysToAcknowledge?: number;
   aiReview?: AIReviewData;
+  audioEvidenceReviews?: AudioEvidenceReview[];
 }
 
 // Helper function to format outcome type
@@ -952,6 +962,57 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
       sections.push(createBulletPoint(`${file.name} (${file.type})`));
     });
     sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
+  }
+
+  // ========== AUDIO EVIDENCE ANALYSIS ==========
+  if (data.audioEvidenceReviews && data.audioEvidenceReviews.length > 0) {
+    sections.push(createHeading("Audio Evidence Analysis", HeadingLevel.HEADING_1));
+    sections.push(createNormalText(
+      `${data.audioEvidenceReviews.length} audio file(s) were recorded and analysed as part of this investigation.`
+    ));
+    sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+
+    data.audioEvidenceReviews.forEach((audioEvidence, index) => {
+      // File heading
+      sections.push(createHeading(`${index + 1}. ${audioEvidence.fileName}`, HeadingLevel.HEADING_2));
+
+      // Metadata table
+      const metadataRows: Array<{ label: string; value: string }> = [
+        { label: "File Name", value: audioEvidence.fileName },
+        { label: "File Size", value: `${(audioEvidence.fileSize / (1024 * 1024)).toFixed(2)} MB` },
+        { label: "Upload Date", value: format(new Date(audioEvidence.uploadedAt), "dd/MM/yyyy HH:mm") },
+      ];
+      if (audioEvidence.audioDuration) {
+        const mins = Math.floor(audioEvidence.audioDuration / 60);
+        const secs = audioEvidence.audioDuration % 60;
+        metadataRows.push({ label: "Duration", value: mins > 0 ? `${mins} min ${secs} sec` : `${secs} sec` });
+      }
+      sections.push(createMetadataTable(metadataRows));
+      sections.push(new Paragraph({ text: "", spacing: { after: 160 } }));
+
+      // AI Review
+      if (audioEvidence.aiReview) {
+        sections.push(createHeading("AI Review", HeadingLevel.HEADING_3));
+        const reviewParagraphs = parseMarkdownContent(audioEvidence.aiReview);
+        sections.push(...reviewParagraphs);
+        sections.push(new Paragraph({ text: "", spacing: { after: 160 } }));
+      }
+
+      // Transcript
+      if (audioEvidence.transcript) {
+        sections.push(createHeading("Full Transcript", HeadingLevel.HEADING_3));
+        // Split transcript into paragraphs for readability
+        const transcriptParagraphs = audioEvidence.transcript
+          .split(/\n\n+/)
+          .filter(p => p.trim().length > 0);
+        transcriptParagraphs.forEach(para => {
+          sections.push(createNormalText(para.trim()));
+        });
+        sections.push(new Paragraph({ text: "", spacing: { after: 160 } }));
+      }
+
+      sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
+    });
   }
 
   // ========== INVESTIGATION FINDINGS ==========

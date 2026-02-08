@@ -194,6 +194,14 @@ const ComplaintDetails = () => {
   const [showReviewNotesSection, setShowReviewNotesSection] = useState(false);
   const [isReSummarising, setIsReSummarising] = useState(false);
   const [showAddDocumentDialog, setShowAddDocumentDialog] = useState(false);
+  const [audioEvidenceReviews, setAudioEvidenceReviews] = useState<Array<{
+    fileName: string;
+    fileSize: number;
+    uploadedAt: string;
+    aiReview: string;
+    transcript?: string;
+    audioDuration?: number | null;
+  }>>([]);
 
 
   // Define all functions before useEffect
@@ -465,6 +473,57 @@ const ComplaintDetails = () => {
     }
   };
 
+  const fetchAudioEvidenceReviews = async () => {
+    if (!user || !complaintId) return;
+    try {
+      const { data: evidenceData, error: evidenceError } = await supabase
+        .from('complaint_investigation_evidence')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .eq('evidence_type', 'audio');
+
+      if (evidenceError) throw evidenceError;
+
+      const audioFiles = (evidenceData || []).filter(
+        (f: any) => f.ai_summary && f.ai_summary.length > 0
+      );
+
+      if (audioFiles.length === 0) {
+        setAudioEvidenceReviews([]);
+        return;
+      }
+
+      const audioFileIds = audioFiles.map((f: any) => f.id);
+      const { data: transcriptData, error: transcriptError } = await supabase
+        .from('complaint_investigation_transcripts')
+        .select('*')
+        .in('audio_file_id', audioFileIds);
+
+      if (transcriptError) throw transcriptError;
+
+      const transcriptMap = new Map<string, any>();
+      (transcriptData || []).forEach((t: any) => {
+        transcriptMap.set(t.audio_file_id, t);
+      });
+
+      const reviews = audioFiles.map((f: any) => {
+        const transcript = transcriptMap.get(f.id);
+        return {
+          fileName: f.file_name,
+          fileSize: f.file_size || 0,
+          uploadedAt: f.uploaded_at,
+          aiReview: f.ai_summary,
+          transcript: transcript?.transcript_text,
+          audioDuration: transcript?.audio_duration_seconds || null,
+        };
+      });
+
+      setAudioEvidenceReviews(reviews);
+    } catch (error) {
+      console.error('Error fetching audio evidence reviews:', error);
+    }
+  };
+
   const fetchAuditLogs = async () => {
     if (!user || !complaintId) return;
     try {
@@ -522,6 +581,7 @@ const ComplaintDetails = () => {
       fetchComplianceData();
       fetchAuditLogs();
       fetchComplaintDocuments();
+      fetchAudioEvidenceReviews();
       logComplaintView(); // Log the view
     }
   }, [user, complaintId]);
@@ -1630,6 +1690,7 @@ const ComplaintDetails = () => {
                             evidenceFiles,
                             workingDaysToAcknowledge,
                             aiReview,
+                            audioEvidenceReviews,
                           });
 
                           showToast.success('Complaint report downloaded', { section: 'complaints' });
@@ -2104,6 +2165,7 @@ const ComplaintDetails = () => {
                                   evidenceFiles,
                                   workingDaysToAcknowledge,
                                   aiReview,
+                                  audioEvidenceReviews,
                                 });
 
                                 showToast.success('Complaint report downloaded', { section: 'complaints' });
@@ -2591,7 +2653,8 @@ const ComplaintDetails = () => {
                                 } : undefined,
                                 acknowledgementLetter,
                                 outcomeLetter: existingOutcome?.outcome_letter,
-                                aiReview
+                                aiReview,
+                                audioEvidenceReviews,
                               });
                             }}
                             className="border-blue-500 text-blue-600 hover:bg-blue-50"
@@ -3060,7 +3123,8 @@ const ComplaintDetails = () => {
                             } : undefined,
                             acknowledgementLetter,
                             outcomeLetter: existingOutcome?.outcome_letter,
-                            aiReview
+                            aiReview,
+                            audioEvidenceReviews,
                           });
                         }}
                         className="flex items-center gap-2"

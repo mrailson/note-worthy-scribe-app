@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { FileText, Upload, Download, Trash2, Mic, Volume2, Loader2, CheckCircle2, XCircle, FileIcon, Clock } from 'lucide-react';
+import { FileText, Upload, Download, Trash2, Mic, Volume2, Loader2, CheckCircle2, XCircle, FileIcon, Clock, Eye } from 'lucide-react';
+import { AudioAIReviewDialog } from '@/components/AudioAIReviewDialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
@@ -87,7 +88,8 @@ const ACCEPTED_FILE_TYPES = {
   'application/zip': ['.zip'],
 };
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB for non-audio files
+const MAX_AUDIO_FILE_SIZE = 20 * 1024 * 1024; // 20MB for audio files
 const MAX_FILES = 20;
 const MAX_CONCURRENT = 5;
 
@@ -137,6 +139,15 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
   }>({
     isOpen: false,
     transcript: null
+  });
+  const [aiReviewModal, setAiReviewModal] = useState<{
+    isOpen: boolean;
+    fileName: string;
+    review: string;
+  }>({
+    isOpen: false,
+    fileName: '',
+    review: ''
   });
 
   useEffect(() => {
@@ -349,7 +360,8 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     if (rejectedFiles.length > 0) {
       rejectedFiles.forEach(({ file, errors }) => {
         if (errors.some((e: any) => e.code === 'file-too-large')) {
-          toast.error(`${file.name} is too large. Maximum size is 10MB.`);
+          const isAudio = file.type?.startsWith('audio/');
+          toast.error(`${file.name} is too large. Maximum size is ${isAudio ? '20MB' : '10MB'}.`);
         } else if (errors.some((e: any) => e.code === 'file-invalid-type')) {
           toast.error(`${file.name} has an unsupported file type.`);
         } else if (errors.some((e: any) => e.code === 'too-many-files')) {
@@ -360,7 +372,21 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
 
     if (acceptedFiles.length === 0) return;
 
-    const newUploading: UploadingFile[] = acceptedFiles.map(file => ({
+    // Validate per-type size limits (dropzone allows up to 20MB; enforce 10MB for non-audio)
+    const validFiles: File[] = [];
+    acceptedFiles.forEach(file => {
+      const isAudio = file.type?.startsWith('audio/');
+      const limit = isAudio ? MAX_AUDIO_FILE_SIZE : MAX_FILE_SIZE;
+      if (file.size > limit) {
+        toast.error(`${file.name} is too large. Maximum size for ${isAudio ? 'audio files' : 'other files'} is ${isAudio ? '20MB' : '10MB'}.`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (validFiles.length === 0) return;
+
+    const newUploading: UploadingFile[] = validFiles.map(file => ({
       id: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
       file,
       status: 'queued' as const,
@@ -373,7 +399,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: ACCEPTED_FILE_TYPES,
-    maxSize: MAX_FILE_SIZE,
+    maxSize: MAX_AUDIO_FILE_SIZE,
     maxFiles: MAX_FILES,
     multiple: true,
     noClick: true,
@@ -392,7 +418,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         const item = items[i];
         if (item.kind === 'file') {
           const file = item.getAsFile();
-          if (file && file.size <= MAX_FILE_SIZE) {
+          if (file && file.size <= MAX_AUDIO_FILE_SIZE) {
             files.push(file);
           }
         }
@@ -834,6 +860,14 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* AI Review modal */}
+      <AudioAIReviewDialog
+        isOpen={aiReviewModal.isOpen}
+        onOpenChange={(open) => setAiReviewModal(prev => ({ ...prev, isOpen: open }))}
+        fileName={aiReviewModal.fileName}
+        review={aiReviewModal.review}
+      />
+
       {/* Transcription modal */}
       <Dialog open={transcriptionModal.isOpen} onOpenChange={(open) => setTranscriptionModal(prev => ({ ...prev, isOpen: open }))}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
@@ -936,7 +970,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                       }
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      PDF, Word, Excel, PowerPoint, Images, Audio, Emails, ZIP (max 10MB per file, up to 20 files)
+                      PDF, Word, Excel, PowerPoint, Images, Audio, Emails, ZIP (audio up to 20MB, other files up to 10MB, up to 20 files)
                     </p>
                   </div>
                   <Button
@@ -1023,6 +1057,21 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                               {file.ai_summary || file.description}
                             </p>
+                          )}
+                          {file.ai_summary && (file.evidence_type === 'audio' || file.file_type?.startsWith('audio/')) && (
+                            <Button
+                              size="sm"
+                              variant="link"
+                              className="h-auto p-0 text-xs text-primary mt-1"
+                              onClick={() => setAiReviewModal({
+                                isOpen: true,
+                                fileName: file.file_name,
+                                review: file.ai_summary!
+                              })}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              View Full AI Review
+                            </Button>
                           )}
                           <div className="text-xs text-muted-foreground mt-1.5">
                             {formatFileSize(file.file_size)} • Uploaded {new Date(file.uploaded_at).toLocaleDateString('en-GB')} at {new Date(file.uploaded_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
