@@ -59,7 +59,7 @@ const PolicyService = () => {
           <div className="flex items-center justify-center gap-3 mb-4">
             <FileText className="h-10 w-10 text-primary" />
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
-              Notewell Policies
+              Practice Policies
             </h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -78,7 +78,7 @@ const PolicyService = () => {
         </div>
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {actionCards.map((card, index) => (
             <Card 
               key={index} 

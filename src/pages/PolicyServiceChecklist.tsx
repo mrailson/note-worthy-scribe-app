@@ -282,13 +282,27 @@ const PolicyServiceChecklist = () => {
               </SelectContent>
             </Select>
             
-            {(kloeFilter !== 'All' || priorityFilter !== 'All') && (
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="bg-background">
+                {statusOptions.map(option => (
+                  <SelectItem key={option} value={option}>
+                    {option === 'All' ? 'All Statuses' : option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {(kloeFilter !== 'All' || priorityFilter !== 'All' || statusFilter !== 'All') && (
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={() => {
                   setKloeFilter('All');
                   setPriorityFilter('All');
+                  setStatusFilter('All');
                 }}
                 className="text-muted-foreground hover:text-foreground"
               >
