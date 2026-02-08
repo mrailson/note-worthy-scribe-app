@@ -35,7 +35,7 @@ interface ComplaintPowerPointModalProps {
   complaintData: ComplaintPowerPointData;
 }
 
-const DEFAULT_SLIDE_COUNT = 5;
+const DEFAULT_SLIDE_COUNT = 6;
 
 const GENERATION_TIPS = [
   "Preparing anonymised complaint summary...",
