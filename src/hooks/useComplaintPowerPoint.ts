@@ -422,6 +422,14 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         `TONE: Warm, supportive PLT training tone focused on learning together as a team. Frame issues as system learning and service resilience, not individual error. Avoid judgemental or directive language. Use reflective phrasing such as "this highlighted…", "this reinforced the importance of…", "this offers an opportunity to…". Celebrate what went well alongside areas for improvement, with equal weight.`,
         // Privacy
         `PRIVACY (CRITICAL): Fully anonymised throughout. No patient or staff names, initials, DOBs, NHS numbers, addresses, phone numbers, or emails. Use only generic terms such as "the patient", "the practice", "the team". Assume slides may be viewed by a wider audience.`,
+        // Just Culture safety
+        `JUST CULTURE SAFETY RULES (CRITICAL): Apply NHS Just Culture principles throughout. Do not name or single out specific staff groups (e.g. reception, clinicians, admin) — use collective terms such as "teams", "processes", or "appointment management workflows". Frame issues as system design, process resilience, or communication flow — never individual performance. Avoid language that implies fault, blame, or disciplinary judgement.`,
+        // Liability-safe language
+        `LIABILITY-SAFE LANGUAGE RULES (CRITICAL): Do not state or imply confirmed financial loss, compensation, or harm. Avoid phrases such as: "financial loss", "financial detriment", "delayed treatment", "caused harm". Prefer experience-focused phrasing: "avoidable disruption", "challenges for patients", "impact on continuity of care", "practical consequences for patients".`,
+        // System design framing
+        `SYSTEM DESIGN FRAMING: Do not describe systems as having "failed". Do not use "critical failure" or "root cause" language. Frame instead as: "limitations in system design", "single-channel reliance", "areas where resilience can be strengthened", "opportunities to improve reliability".`,
+        // Mandated phrase preferences
+        `MANDATED PHRASE PREFERENCES: Prefer: "This highlighted…", "This reinforced the importance of…", "This offered an opportunity to…", "We're exploring ways to…", "We're strengthening…". Avoid directive language: "must", "should", "required to".`,
         // Practice branding
         practiceNameInstruction,
         // Title slide
@@ -436,10 +444,12 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         `TYPOGRAPHY: Clean sans-serif fonts. Bold, high-contrast headings. Maximum 4–5 bullets per slide. Plain British English suitable for all staff groups.`,
         // Content safety
         `CONTENT SAFETY RULES (IMPORTANT): Describe events neutrally, without assigning intent or blame. Avoid definitive clinical or financial harm conclusions. Avoid legalistic or regulatory language (e.g. "failure", "non-compliance", "root cause"). Use system-level language such as "contributing factors", "process variation", "communication gaps". Do not single out specific staff groups (e.g. reception); refer to "teams" or "processes".`,
+        // Noticeboard readability check
+        `NOTICEBOARD READABILITY CHECK: Before finalising content, internally check: "Would this feel fair, non-threatening, and constructive if read by any staff member on a noticeboard?" If not, soften wording until it clearly reflects shared learning rather than judgement.`,
         // Structure
         `STRUCTURE: Exactly ${slideCount} slides. Recommended flow: Title/context → What Happened (neutral, factual, anonymised) → Key Learnings (system-level, reflective — most prominent) → What We Did Well (strengths and professionalism) → How We're Improving (exploratory, growth-focused, prioritised) → Thank You & Discussion.`,
         // Final slide
-        `FINAL SLIDE (CRITICAL): Title: "Thank You & Discussion". Include: practice name (or generic), invitation for reflection and shared ideas, footer "Powered by NoteWell AI", full-bleed photorealistic background image.`,
+        `FINAL SLIDE (CRITICAL): Title: "Thank You & Discussion". Include: practice name (or generic), invitation for reflection and shared ideas, discreet line "Shared to support learning and service improvement — not to attribute fault.", footer "Powered by NoteWell AI", full-bleed photorealistic background image.`,
         // Speaker notes
         `Speaker notes in the hidden notes pane only — never visible on slides. Notes should contain full presenter talking points.`,
         // Input context
