@@ -110,9 +110,9 @@ export const useContentInfographic = () => {
       const detailPrompt = DETAIL_PROMPTS[detailLevel] || DETAIL_PROMPTS['standard'];
       const documentContent = formatContentForInfographic(content, title);
       
-      const orientationPrompt = orientation === 'landscape' 
-        ? 'Landscape orientation (16:9 aspect ratio) suitable for presentations and widescreen displays'
-        : 'Portrait orientation (9:16 aspect ratio) suitable for A4 printing';
+      const orientationPrompt = orientation === 'portrait'
+        ? 'Portrait orientation (9:16 aspect ratio) suitable for A4 printing'
+        : 'Landscape orientation (16:9 aspect ratio) suitable for presentations and widescreen displays';
 
       const imagePrompt = `Create a professional, visually compelling infographic that summarises the following content.
 
