@@ -2458,7 +2458,7 @@ const ComplaintDetails = () => {
                           {acknowledgementDate && (complaint?.submitted_at || complaint?.created_at) && (
                             <div className="text-sm text-muted-foreground">
                               Generated: {format(new Date(acknowledgementDate), 'dd/MM/yyyy HH:mm')}
-                              <br />
+                              {' — '}
                               <span className={`font-medium ${
                                 calculateWorkingDays(complaint.submitted_at || complaint.created_at, acknowledgementDate) <= 3 
                                   ? 'text-green-600' 
