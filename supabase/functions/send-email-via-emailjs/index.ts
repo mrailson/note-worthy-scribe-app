@@ -123,7 +123,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       enhancedEmailData = {
         ...emailData,
-        login_url: `https://gnotewell.co.uk/`,
+        login_url: `https://gpnotewell.co.uk/`,
         support_email: "support@gp-tools.nhs.uk",
         app_name: "GP Tools Suite",
         features_list,
