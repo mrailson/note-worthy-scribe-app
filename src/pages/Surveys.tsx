@@ -112,46 +112,75 @@ const Surveys = () => {
   };
 
   const handleDeleteSurvey = async (surveyId: string) => {
-    // Delete questions first (foreign key constraint)
-    await supabase.from('survey_answers').delete().eq('question_id', surveyId);
-    
-    const { error: questionsError } = await supabase
-      .from('survey_questions')
-      .delete()
-      .eq('survey_id', surveyId);
+    try {
+      // 1. Get all question IDs for this survey (needed to delete answers)
+      const { data: questionRows } = await supabase
+        .from('survey_questions')
+        .select('id')
+        .eq('survey_id', surveyId);
 
-    if (questionsError) {
-      console.error('Error deleting questions:', questionsError);
-    }
+      const questionIds = (questionRows || []).map((q) => q.id);
 
-    // Delete responses
-    const { error: responsesError } = await supabase
-      .from('survey_responses')
-      .delete()
-      .eq('survey_id', surveyId);
+      // 2. Delete answers referencing those questions
+      if (questionIds.length > 0) {
+        const { error: answersError } = await supabase
+          .from('survey_answers')
+          .delete()
+          .in('question_id', questionIds);
 
-    if (responsesError) {
-      console.error('Error deleting responses:', responsesError);
-    }
+        if (answersError) {
+          console.error('Error deleting answers:', answersError);
+        }
+      }
 
-    // Delete the survey
-    const { error } = await supabase
-      .from('surveys')
-      .delete()
-      .eq('id', surveyId);
+      // 3. Delete responses
+      const { error: responsesError } = await supabase
+        .from('survey_responses')
+        .delete()
+        .eq('survey_id', surveyId);
 
-    if (error) {
+      if (responsesError) {
+        console.error('Error deleting responses:', responsesError);
+      }
+
+      // 4. Delete questions
+      if (questionIds.length > 0) {
+        const { error: questionsError } = await supabase
+          .from('survey_questions')
+          .delete()
+          .eq('survey_id', surveyId);
+
+        if (questionsError) {
+          console.error('Error deleting questions:', questionsError);
+        }
+      }
+
+      // 5. Delete the survey itself
+      const { error } = await supabase
+        .from('surveys')
+        .delete()
+        .eq('id', surveyId);
+
+      if (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to delete survey',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Survey deleted',
+          description: 'The survey has been permanently removed',
+        });
+        refetch();
+      }
+    } catch (err) {
+      console.error('Error during survey deletion:', err);
       toast({
         title: 'Error',
-        description: 'Failed to delete survey',
+        description: 'An unexpected error occurred while deleting the survey',
         variant: 'destructive',
       });
-    } else {
-      toast({
-        title: 'Survey deleted',
-        description: 'The survey has been permanently removed',
-      });
-      refetch();
     }
   };
 
