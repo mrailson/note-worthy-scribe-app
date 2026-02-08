@@ -245,9 +245,9 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
           .select('powerpoint_download_url, powerpoint_gamma_url, powerpoint_thumbnail_url, powerpoint_slide_count')
           .eq('complaint_id', complaintId!)
           .maybeSingle(),
-        supabase
+      supabase
           .from('complaints')
-          .select('practice_id, gp_practices(name)')
+          .select('practice_id')
           .eq('id', complaintId!)
           .maybeSingle(),
       ]);
@@ -261,8 +261,16 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         });
       }
 
-      if (complaintResult.data?.gp_practices && typeof complaintResult.data.gp_practices === 'object' && 'name' in complaintResult.data.gp_practices) {
-        setComplaintPracticeName((complaintResult.data.gp_practices as any).name || '');
+      // Look up practice name from practice_details using the complaint's practice_id
+      if (complaintResult.data?.practice_id) {
+        const { data: practiceDetails } = await supabase
+          .from('practice_details')
+          .select('practice_name')
+          .eq('id', complaintResult.data.practice_id)
+          .maybeSingle();
+        if (practiceDetails?.practice_name) {
+          setComplaintPracticeName(practiceDetails.practice_name);
+        }
       }
     };
 
@@ -642,7 +650,7 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
     } finally {
       setIsGenerating(false);
     }
-  }, [complaintId, formatComplaintContent, templatePreference, brandingPreference]);
+  }, [complaintId, complaintPracticeName, formatComplaintContent, templatePreference, brandingPreference]);
 
   const downloadPersistedPowerPoint = useCallback((referenceNumber: string) => {
     if (!persistedData?.downloadUrl) return;
