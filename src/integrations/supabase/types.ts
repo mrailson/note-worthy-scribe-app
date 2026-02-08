@@ -1290,6 +1290,50 @@ export type Database = {
           },
         ]
       }
+      complaint_indemnity_considerations: {
+        Row: {
+          complaint_id: string
+          consideration_status: string
+          id: string
+          is_locked: boolean
+          notes: string | null
+          provider_name: string | null
+          selected_at: string
+          selected_by: string
+          updated_at: string
+        }
+        Insert: {
+          complaint_id: string
+          consideration_status: string
+          id?: string
+          is_locked?: boolean
+          notes?: string | null
+          provider_name?: string | null
+          selected_at?: string
+          selected_by: string
+          updated_at?: string
+        }
+        Update: {
+          complaint_id?: string
+          consideration_status?: string
+          id?: string
+          is_locked?: boolean
+          notes?: string | null
+          provider_name?: string | null
+          selected_at?: string
+          selected_by?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_indemnity_considerations_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: true
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_investigation_decisions: {
         Row: {
           complaint_id: string
