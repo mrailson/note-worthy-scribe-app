@@ -95,6 +95,15 @@ export class SimpleIOSTranscriber {
   // Visibility handler for tab switching
   private visibilityHandler: (() => void) | null = null;
 
+  // iOS keep-alive: silent oscillator to prevent audio session suspension
+  private keepaliveContext: AudioContext | null = null;
+  
+  // Wake lock to prevent screen auto-lock during recording
+  private wakeLockSentinel: WakeLockSentinel | null = null;
+  
+  // Track recovery: prevent concurrent recovery attempts
+  private recoveryInProgress = false;
+
   constructor(
     private callbacks: IOSTranscriberCallbacks,
     meetingId?: string,
@@ -136,6 +145,9 @@ export class SimpleIOSTranscriber {
 
       this.stream = await navigator.mediaDevices.getUserMedia(constraints);
       console.log('📱 iOS-Rotate: Got microphone stream');
+      
+      // Monitor track health for iOS silent termination
+      this.setupTrackMonitoring();
 
       // Determine MIME type (iOS prefers audio/mp4)
       this.mimeType = MediaRecorder.isTypeSupported('audio/mp4') 
@@ -162,6 +174,7 @@ export class SimpleIOSTranscriber {
       this.lastOndataavailableTime = Date.now();
       this.rotationInProgress = false;
       this.stopRequested = false;
+      this.recoveryInProgress = false;
 
       // Create and start recorder (NO timeslice - we rotate instead)
       this.createAndStartRecorder();
@@ -172,10 +185,14 @@ export class SimpleIOSTranscriber {
       
       // Add visibility handler for tab switching recovery
       this.setupVisibilityHandler();
+      
+      // iOS-specific: start silent audio keepalive and wake lock
+      this.startKeepAlive();
+      this.requestWakeLock();
 
       this.callbacks.onStatusChange('Recording...');
       this.emitStats();
-      console.log('📱 iOS-Rotate: Recording started - rotating every 20s for valid MP4 files');
+      console.log('📱 iOS-Rotate: Recording started - rotating every 90s for valid MP4 files');
 
     } catch (error: any) {
       console.error('📱 iOS-Rotate: Failed to start:', error);
@@ -190,6 +207,14 @@ export class SimpleIOSTranscriber {
   private createAndStartRecorder(): void {
     if (!this.stream) {
       console.error('📱 iOS-Rotate: No stream available for recorder');
+      return;
+    }
+
+    // Check track health before creating recorder
+    const track = this.stream.getAudioTracks()[0];
+    if (!track || track.readyState !== 'live') {
+      console.warn('📱 iOS-Rotate: Audio track not live, triggering recovery');
+      this.recoverStream();
       return;
     }
 
@@ -276,6 +301,8 @@ export class SimpleIOSTranscriber {
     this.isRecording = false;
     this.stopHeartbeat();
     this.removeVisibilityHandler();
+    this.stopKeepAlive();
+    this.releaseWakeLock();
 
     // Stop MediaRecorder (triggers final ondataavailable with complete file)
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
@@ -676,6 +703,14 @@ export class SimpleIOSTranscriber {
   private handleHeartbeatTick(): void {
     if (!this.isRecording || !this.mediaRecorder) return;
 
+    // Check stream health on every heartbeat
+    const track = this.stream?.getAudioTracks()[0];
+    if (track && track.readyState !== 'live') {
+      console.warn(`📱 iOS-Rotate: Track died (heartbeat detected, readyState=${track.readyState})`);
+      this.recoverStream();
+      return;
+    }
+
     const timeSinceSegmentStart = Date.now() - this.segmentStartMs;
     
     // Check if it's time to rotate the recorder
@@ -708,7 +743,18 @@ export class SimpleIOSTranscriber {
   private setupVisibilityHandler(): void {
     this.visibilityHandler = () => {
       if (document.visibilityState === 'visible' && this.isRecording) {
-        console.log('📱 iOS-Rotate: Tab visible - checking if rotation needed');
+        console.log('📱 iOS-Rotate: Tab visible - checking stream and rotation');
+        
+        // Check track health on visibility restore
+        const track = this.stream?.getAudioTracks()[0];
+        if (track && track.readyState !== 'live') {
+          console.warn('📱 iOS-Rotate: Track died while backgrounded, recovering');
+          this.recoverStream();
+          return;
+        }
+        
+        // Re-acquire wake lock (released by system on tab switch)
+        this.requestWakeLock();
         
         // Force rotation if segment has been running too long
         const timeSinceSegmentStart = Date.now() - this.segmentStartMs;
@@ -729,6 +775,145 @@ export class SimpleIOSTranscriber {
     if (this.visibilityHandler) {
       document.removeEventListener('visibilitychange', this.visibilityHandler);
       this.visibilityHandler = null;
+    }
+  }
+
+  // ========== TRACK HEALTH MONITORING & RECOVERY ==========
+
+  /**
+   * Monitor audio tracks for iOS silent termination
+   */
+  private setupTrackMonitoring(): void {
+    if (!this.stream) return;
+    
+    this.stream.getAudioTracks().forEach(track => {
+      track.addEventListener('ended', () => {
+        console.warn(`📱 iOS-Rotate: Audio track ended event fired (readyState=${track.readyState})`);
+        if (this.isRecording && !this.stopRequested) {
+          this.recoverStream();
+        }
+      });
+    });
+    
+    console.log('📱 iOS-Rotate: Track monitoring attached');
+  }
+
+  /**
+   * Recover a dead microphone stream by re-acquiring getUserMedia
+   */
+  private async recoverStream(): Promise<boolean> {
+    if (this.recoveryInProgress) {
+      console.log('📱 iOS-Rotate: Recovery already in progress, skipping');
+      return false;
+    }
+    
+    this.recoveryInProgress = true;
+    console.warn('📱 iOS-Rotate: Attempting stream recovery...');
+    this.callbacks.onStatusChange('Recovering microphone...');
+    
+    try {
+      // Stop the current recorder first
+      if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+        try {
+          this.mediaRecorder.stop();
+        } catch (e) {
+          // May already be stopped
+        }
+      }
+      this.mediaRecorder = null;
+      
+      // Stop old stream tracks
+      if (this.stream) {
+        this.stream.getTracks().forEach(t => t.stop());
+      }
+      
+      // Re-acquire microphone
+      const constraints: MediaStreamConstraints = {
+        audio: this.selectedDeviceId 
+          ? { deviceId: { exact: this.selectedDeviceId } }
+          : { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      };
+      
+      this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+      this.setupTrackMonitoring();
+      
+      // Restart recorder with new stream
+      if (this.isRecording && !this.stopRequested) {
+        this.createAndStartRecorder();
+      }
+      
+      this.callbacks.onStatusChange('Recording...');
+      this.recoveryInProgress = false;
+      console.log('📱 iOS-Rotate: Stream recovery successful');
+      return true;
+    } catch (error) {
+      console.error('📱 iOS-Rotate: Stream recovery failed:', error);
+      this.callbacks.onError('Microphone lost. Please restart recording.');
+      this.recoveryInProgress = false;
+      return false;
+    }
+  }
+
+  // ========== iOS AUDIO KEEPALIVE ==========
+
+  /**
+   * Start a silent oscillator to prevent iOS from suspending the audio session
+   */
+  private startKeepAlive(): void {
+    try {
+      this.keepaliveContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = this.keepaliveContext.createOscillator();
+      const gain = this.keepaliveContext.createGain();
+      gain.gain.value = 0; // Completely silent
+      oscillator.connect(gain);
+      gain.connect(this.keepaliveContext.destination);
+      oscillator.start();
+      console.log('📱 iOS-Rotate: Audio keepalive started');
+    } catch (e) {
+      console.warn('📱 iOS-Rotate: Keepalive failed:', e);
+    }
+  }
+
+  private stopKeepAlive(): void {
+    if (this.keepaliveContext) {
+      this.keepaliveContext.close().catch(() => {});
+      this.keepaliveContext = null;
+      console.log('📱 iOS-Rotate: Audio keepalive stopped');
+    }
+  }
+
+  // ========== WAKE LOCK ==========
+
+  /**
+   * Request a screen wake lock to prevent auto-lock during recording
+   */
+  private async requestWakeLock(): Promise<void> {
+    if (!('wakeLock' in navigator)) {
+      console.log('📱 iOS-Rotate: Wake Lock API not supported');
+      return;
+    }
+    
+    // Don't re-request if already held
+    if (this.wakeLockSentinel) return;
+    
+    try {
+      this.wakeLockSentinel = await navigator.wakeLock.request('screen');
+      console.log('📱 iOS-Rotate: Wake lock acquired');
+      
+      this.wakeLockSentinel.addEventListener('release', () => {
+        console.log('📱 iOS-Rotate: Wake lock released by system');
+        this.wakeLockSentinel = null;
+      });
+    } catch (err) {
+      console.warn('📱 iOS-Rotate: Wake lock request failed:', err);
+    }
+  }
+
+  private releaseWakeLock(): void {
+    if (this.wakeLockSentinel) {
+      this.wakeLockSentinel.release().catch(() => {});
+      this.wakeLockSentinel = null;
+      console.log('📱 iOS-Rotate: Wake lock released');
     }
   }
 
