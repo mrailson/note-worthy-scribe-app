@@ -113,9 +113,9 @@ export function AudioAIReviewDialog({ isOpen, onOpenChange, fileName, review, pr
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col bg-white dark:bg-card border shadow-lg">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col bg-white dark:bg-card border shadow-lg rounded-xl">
         {/* Header with logo */}
-        <DialogHeader className="pb-4 border-b space-y-3">
+        <DialogHeader className="pb-4 border-b border-border/40 space-y-3">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 shrink-0">
@@ -158,21 +158,26 @@ export function AudioAIReviewDialog({ isOpen, onOpenChange, fileName, review, pr
           </div>
         </DialogHeader>
 
-        {/* Review content */}
-        <div className="flex-1 overflow-y-auto py-4">
-          <div className="bg-white dark:bg-muted/30 px-6 py-5 rounded-lg border">
-            <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert
-              prose-headings:text-foreground prose-headings:font-semibold prose-headings:mt-5 prose-headings:mb-2
-              prose-p:text-foreground/90 prose-p:leading-relaxed
+        {/* Review content - clean white background with generous spacing */}
+        <div className="flex-1 overflow-y-auto py-6 px-1">
+          <div className="bg-white dark:bg-background px-8 py-6 rounded-lg">
+            <div className="prose prose-base md:prose-lg max-w-none dark:prose-invert
+              prose-headings:text-primary prose-headings:font-semibold
+              prose-h2:text-base prose-h2:md:text-lg prose-h2:mt-8 prose-h2:mb-3 prose-h2:pb-2 prose-h2:border-b prose-h2:border-border/30
+              prose-h3:text-sm prose-h3:md:text-base prose-h3:mt-4 prose-h3:mb-2
+              prose-p:text-foreground/85 prose-p:leading-[1.8] prose-p:mb-4
               prose-strong:text-foreground prose-strong:font-semibold
-              prose-li:text-foreground/90">
+              prose-li:text-foreground/85 prose-li:leading-[1.8] prose-li:mb-1
+              prose-ul:my-3 prose-ol:my-3
+              [&_h2+p]:mt-3
+              [&_strong+br]:hidden">
               <ReactMarkdown>{displayReview}</ReactMarkdown>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-3 pt-4 border-t">
+        <div className="flex items-center justify-between gap-3 pt-4 border-t border-border/40">
           <p className="text-[11px] text-muted-foreground italic">
             AI-generated analysis — always verify against original recording
           </p>
