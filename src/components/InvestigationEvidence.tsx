@@ -1326,20 +1326,27 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                                   </div>
                                 );
                               })()}
-                              <Button
-                                size="sm"
-                                variant="link"
-                                className="h-auto p-0 text-xs text-primary mt-1"
-                                onClick={() => setAiReviewModal({
-                                  isOpen: true,
-                                  fileName: file.file_name,
-                                  review: file.ai_summary!,
-                                  evidenceFileId: file.id
-                                })}
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                View Full AI Review
-                              </Button>
+                              {(() => {
+                                const transcript = audioTranscripts.find(t => t.audio_file_id === file.id);
+                                if (transcript) {
+                                  return (
+                                    <button
+                                      className="text-xs text-primary hover:text-primary/80 mt-1 flex items-center gap-1 transition-colors"
+                                      onClick={() => downloadTranscriptAsWord(
+                                        transcript.transcript_text,
+                                        file.file_name,
+                                        transcript.transcription_confidence,
+                                        transcript.audio_duration_seconds,
+                                        file.ai_summary || null
+                                      )}
+                                    >
+                                      <FileText className="h-3 w-3" />
+                                      Download Full Transcript and call overview
+                                    </button>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </>
                           )}
                           {!file.ai_summary && (file.evidence_type === 'audio' || file.file_type?.startsWith('audio/')) && audioTranscripts.some(t => t.audio_file_id === file.id) && (
