@@ -92,7 +92,7 @@ serve(async (req) => {
       });
     }
 
-    // Extract email fields
+    // Extract email fields from webhook payload
     const emailId = emailData.id || emailData.email_id || null;
     const fromEmail = typeof emailData.from === "string" ? emailData.from : emailData.from?.email || emailData.from_email || "";
     const fromName = typeof emailData.from === "object" ? emailData.from?.name : emailData.from_name || "";
@@ -100,35 +100,85 @@ serve(async (req) => {
       Array.isArray(emailData.to) ? (typeof emailData.to[0] === "string" ? emailData.to[0] : emailData.to[0]?.email) :
       emailData.to?.email || emailData.to_email || "";
     const subject = emailData.subject || "(No subject)";
-    const textBody = emailData.text || emailData.text_body || "";
-    const htmlBody = emailData.html || emailData.html_body || "";
-    const attachments = emailData.attachments || [];
-    const hasAttachments = attachments.length > 0;
-    const attachmentCount = attachments.length;
+
+    // Resend webhooks do NOT include email body — we must fetch it via the Receiving API
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    let textBody = emailData.text || emailData.text_body || "";
+    let htmlBody = emailData.html || emailData.html_body || "";
+    let attachmentMetaFromApi: any[] = [];
+
+    if (emailId && RESEND_API_KEY) {
+      // Fetch email content from Resend Receiving API
+      try {
+        console.log(`Fetching email content from Resend API for email_id: ${emailId}`);
+        const emailContentRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+          headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+        });
+
+        if (emailContentRes.ok) {
+          const emailContent = await emailContentRes.json();
+          textBody = emailContent.text || textBody;
+          htmlBody = emailContent.html || htmlBody;
+          console.log(`Fetched email content: text=${textBody.length} chars, html=${htmlBody.length} chars`);
+        } else {
+          console.error(`Resend email content API returned ${emailContentRes.status}: ${await emailContentRes.text()}`);
+        }
+      } catch (fetchErr) {
+        console.error("Error fetching email content from Resend:", fetchErr);
+      }
+
+      // Fetch attachment list from Resend Attachments API
+      try {
+        const attachRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}/attachments`, {
+          headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+        });
+
+        if (attachRes.ok) {
+          const attachData = await attachRes.json();
+          attachmentMetaFromApi = attachData.data || [];
+          console.log(`Resend returned ${attachmentMetaFromApi.length} attachment(s)`);
+        } else {
+          console.error(`Resend attachments API returned ${attachRes.status}`);
+        }
+      } catch (attachErr) {
+        console.error("Error fetching attachments from Resend:", attachErr);
+      }
+    } else if (!RESEND_API_KEY) {
+      console.warn("RESEND_API_KEY not configured — cannot fetch email content or attachments");
+    }
+
+    // Merge attachment info from webhook payload and API
+    const webhookAttachments = emailData.attachments || [];
+    const hasAttachments = webhookAttachments.length > 0 || attachmentMetaFromApi.length > 0;
+    const attachmentCount = Math.max(webhookAttachments.length, attachmentMetaFromApi.length);
 
     console.log(`Processing email from: ${fromEmail} (${fromName}), subject: ${subject}, attachments: ${attachmentCount}`);
 
-    // Save attachments to storage
+    // Save attachments to storage (download from Resend download_url)
     const savedAttachments: { name: string; path: string; size: number; content_type: string }[] = [];
-    
-    if (hasAttachments) {
-      for (const attachment of attachments) {
+
+    // Download attachments via Resend API download_url
+    if (attachmentMetaFromApi.length > 0) {
+      for (const att of attachmentMetaFromApi) {
         try {
-          const fileName = attachment.filename || attachment.name || `attachment_${Date.now()}`;
-          const contentType = attachment.content_type || attachment.type || "application/octet-stream";
-          const content = attachment.content || attachment.data;
-          
-          if (!content) {
-            console.log(`Skipping attachment ${fileName}: no content`);
+          const fileName = att.filename || att.name || `attachment_${Date.now()}`;
+          const contentType = att.content_type || "application/octet-stream";
+          const downloadUrl = att.download_url;
+
+          if (!downloadUrl) {
+            console.log(`Skipping attachment ${fileName}: no download_url`);
             continue;
           }
 
-          // Decode base64 content
-          const binaryStr = atob(content);
-          const bytes = new Uint8Array(binaryStr.length);
-          for (let i = 0; i < binaryStr.length; i++) {
-            bytes[i] = binaryStr.charCodeAt(i);
+          console.log(`Downloading attachment: ${fileName} from ${downloadUrl}`);
+          const dlRes = await fetch(downloadUrl);
+          if (!dlRes.ok) {
+            console.error(`Failed to download attachment ${fileName}: ${dlRes.status}`);
+            continue;
           }
+
+          const arrayBuffer = await dlRes.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
 
           const storagePath = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}/${fileName}`;
 
@@ -151,6 +201,42 @@ serve(async (req) => {
           console.log(`Saved attachment: ${fileName} (${bytes.length} bytes)`);
         } catch (attErr) {
           console.error("Error saving attachment:", attErr);
+        }
+      }
+    }
+
+    // Fallback: try webhook-embedded attachments (base64)
+    if (savedAttachments.length === 0 && webhookAttachments.length > 0) {
+      for (const attachment of webhookAttachments) {
+        try {
+          const fileName = attachment.filename || attachment.name || `attachment_${Date.now()}`;
+          const contentType = attachment.content_type || attachment.type || "application/octet-stream";
+          const content = attachment.content || attachment.data;
+
+          if (!content) continue;
+
+          const binaryStr = atob(content);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+
+          const storagePath = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("inbound-email-attachments")
+            .upload(storagePath, bytes, { contentType, upsert: false });
+
+          if (uploadError) continue;
+
+          savedAttachments.push({
+            name: fileName,
+            path: storagePath,
+            size: bytes.length,
+            content_type: contentType,
+          });
+        } catch (attErr) {
+          console.error("Error saving webhook attachment:", attErr);
         }
       }
     }
