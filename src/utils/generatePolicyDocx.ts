@@ -26,7 +26,7 @@ export interface PolicyDocxOptions {
   logoUrl?: string;
 }
 
-// Professional colour scheme matching NHS/Notewell branding
+// Professional colour scheme matching NHS branding
 const COLORS = {
   nhsBlue: "005EB8",
   headingBlue: "1E3A8A",
