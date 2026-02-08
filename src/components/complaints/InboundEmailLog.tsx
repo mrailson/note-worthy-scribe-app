@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Mail, Search, RefreshCw, Eye, ExternalLink, AlertCircle, CheckCircle2, Clock, XCircle, Download, Paperclip } from "lucide-react";
+import { Mail, Search, RefreshCw, Eye, ExternalLink, AlertCircle, CheckCircle2, Clock, XCircle, Download, Paperclip, FileText, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { showToast } from "@/utils/toastWrapper";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +18,7 @@ interface AttachmentMeta {
   path: string;
   size: number;
   content_type: string;
+  ai_summary?: string;
 }
 
 interface InboundEmail {
@@ -63,6 +64,7 @@ export const InboundEmailLog = () => {
   const [classificationFilter, setClassificationFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEmail, setSelectedEmail] = useState<InboundEmail | null>(null);
+  const [reprocessing, setReprocessing] = useState(false);
   const itemsPerPage = 15;
 
   useEffect(() => {
@@ -84,6 +86,29 @@ export const InboundEmailLog = () => {
       showToast.error("Failed to load inbound emails", { section: "complaints" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleReprocess = async (email: InboundEmail) => {
+    try {
+      setReprocessing(true);
+      const { data, error } = await supabase.functions.invoke("process-inbound-email", {
+        body: { reprocess: true, inbound_email_id: email.id },
+      });
+
+      if (error) throw error;
+
+      showToast.success("Email re-processed successfully", { section: "complaints" });
+      await fetchEmails();
+      // Update the selected email with fresh data
+      const updated = emails.find((e) => e.id === email.id);
+      if (updated) setSelectedEmail(updated);
+      else setSelectedEmail(null);
+    } catch (err) {
+      console.error("Reprocess error:", err);
+      showToast.error("Failed to re-process email", { section: "complaints" });
+    } finally {
+      setReprocessing(false);
     }
   };
 
@@ -352,65 +377,12 @@ export const InboundEmailLog = () => {
                 )}
               </div>
 
-              {/* Processing Notes */}
-              {selectedEmail.processing_notes && (
-                <div className="bg-muted/50 rounded-lg p-3">
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Processing Notes</p>
-                  <p className="text-sm">{selectedEmail.processing_notes}</p>
-                </div>
-              )}
-
-              {/* Attachments list with download */}
-              {selectedEmail.has_attachments && (
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1.5">Attachments</p>
-                  <div className="space-y-1.5">
-                    {Array.isArray(selectedEmail.attachments) && selectedEmail.attachments.length > 0 ? (
-                      selectedEmail.attachments.map((att, idx) => (
-                        <div key={idx} className="flex items-center justify-between gap-2 p-2 rounded border bg-muted/30">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                            <span className="text-sm truncate">{att.name}</span>
-                            {att.size > 0 && (
-                              <span className="text-xs text-muted-foreground shrink-0">
-                                ({(att.size / 1024).toFixed(0)} KB)
-                              </span>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 shrink-0"
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              try {
-                                const { data, error } = await supabase.storage
-                                  .from("inbound-email-attachments")
-                                  .createSignedUrl(att.path, 3600);
-                                if (error) throw error;
-                                window.open(data.signedUrl, "_blank");
-                              } catch (err) {
-                                console.error("Download error:", err);
-                                showToast.error("Failed to download attachment", { section: "complaints" });
-                              }
-                            }}
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">
-                        {selectedEmail.attachment_count} attachment(s) received — files were not stored (received before storage was enabled)
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Email Body */}
+              {/* Email Body — shown prominently */}
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Email Content</p>
+                <p className="text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                  <FileText className="h-3.5 w-3.5" />
+                  Email Content
+                </p>
                 {selectedEmail.text_body ? (
                   <div className="bg-muted/30 rounded-lg p-3 max-h-[300px] overflow-y-auto">
                     <pre className="text-sm whitespace-pre-wrap font-sans">
@@ -424,10 +396,95 @@ export const InboundEmailLog = () => {
                   />
                 ) : (
                   <div className="bg-muted/30 rounded-lg p-3">
-                    <p className="text-sm text-muted-foreground italic">(No text content)</p>
+                    <p className="text-sm text-muted-foreground italic">(No text content available)</p>
                   </div>
                 )}
               </div>
+
+              {/* Processing Notes */}
+              {selectedEmail.processing_notes && (
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Processing Notes</p>
+                  <p className="text-sm">{selectedEmail.processing_notes}</p>
+                </div>
+              )}
+
+              {/* Attachments list with download and AI summary */}
+              {selectedEmail.has_attachments && (
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
+                    <Paperclip className="h-3.5 w-3.5" />
+                    Attachments ({selectedEmail.attachment_count})
+                  </p>
+                  <div className="space-y-2">
+                    {Array.isArray(selectedEmail.attachments) && selectedEmail.attachments.length > 0 ? (
+                      selectedEmail.attachments.map((att, idx) => (
+                        <div key={idx} className="rounded border bg-muted/30">
+                          <div className="flex items-center justify-between gap-2 p-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="text-sm truncate">{att.name}</span>
+                              {att.size > 0 && (
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                  ({(att.size / 1024).toFixed(0)} KB)
+                                </span>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 shrink-0"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                try {
+                                  const { data, error } = await supabase.storage
+                                    .from("inbound-email-attachments")
+                                    .createSignedUrl(att.path, 3600);
+                                  if (error) throw error;
+                                  window.open(data.signedUrl, "_blank");
+                                } catch (err) {
+                                  console.error("Download error:", err);
+                                  showToast.error("Failed to download attachment", { section: "complaints" });
+                                }
+                              }}
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                          {att.ai_summary && (
+                            <div className="px-2 pb-2">
+                              <p className="text-xs text-muted-foreground italic leading-relaxed">
+                                {att.ai_summary}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        {selectedEmail.attachment_count} attachment(s) received — files were not stored (received before storage was enabled)
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Re-process button for stuck emails */}
+              {(selectedEmail.processing_status === "manual_review" || selectedEmail.processing_status === "failed") && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => handleReprocess(selectedEmail)}
+                  disabled={reprocessing}
+                >
+                  {reprocessing ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                  )}
+                  {reprocessing ? "Re-processing..." : "Re-process Email"}
+                </Button>
+              )}
 
               {/* Link to record */}
               {selectedEmail.record_id && selectedEmail.record_type && (

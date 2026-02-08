@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import JSZip from "https://esm.sh/jszip@3.10.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,7 +22,7 @@ const COMPLAINT_CATEGORIES = [
   "other",
 ];
 
-// Compliment categories (text field, same options for consistency)
+// Compliment categories
 const COMPLIMENT_CATEGORIES = [
   "Clinical Care & Treatment",
   "Staff Attitude & Behaviour",
@@ -43,13 +44,220 @@ function generateReferenceNumber(prefix: string): string {
   return `${prefix}${yy}${random}`;
 }
 
+// --- Attachment analysis helpers ---
+
+function detectFileType(contentType: string, fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+  if (contentType.startsWith("image/") || ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "tiff", "tif"].includes(ext)) return "image";
+  if (contentType === "application/pdf" || ext === "pdf") return "pdf";
+  if (["doc", "docx"].includes(ext) || contentType.includes("wordprocessing") || contentType === "application/msword") return "document";
+  if (["xls", "xlsx"].includes(ext) || contentType.includes("spreadsheet")) return "spreadsheet";
+  if (["eml", "msg"].includes(ext) || contentType === "message/rfc822") return "email";
+  if (["txt", "csv", "rtf"].includes(ext) || contentType.startsWith("text/")) return "text";
+  return "other";
+}
+
+async function extractDocxText(data: Uint8Array): Promise<string> {
+  try {
+    const zip = await JSZip.loadAsync(data);
+    const docXml = await zip.file("word/document.xml")?.async("string");
+    if (!docXml) return "[Could not extract document content]";
+    const text = docXml
+      .replace(/<w:p[^>]*>/g, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    return text.substring(0, 8000);
+  } catch (e) {
+    console.error("DOCX extraction error:", e);
+    return "[Failed to extract document text]";
+  }
+}
+
+async function aiSummariseText(text: string, fileName: string, apiKey: string): Promise<string> {
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: "You are summarising an email attachment for an NHS GP practice. Provide a brief 1-2 sentence factual summary of the file's contents. Be concise. Use British English." },
+          { role: "user", content: `File: "${fileName}"\n\nContent:\n${text.substring(0, 6000)}` },
+        ],
+      }),
+    });
+    if (!response.ok) {
+      console.error("AI summarise error:", response.status);
+      return "AI summary could not be generated.";
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || "No summary generated.";
+  } catch (e) {
+    console.error("AI summarise error:", e);
+    return "AI summary could not be generated.";
+  }
+}
+
+async function aiVisionSummarise(base64Data: string, mimeType: string, fileName: string, apiKey: string): Promise<string> {
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: "You are summarising an email attachment for an NHS GP practice complaint/compliment system. Provide a brief 1-2 sentence factual summary. If it contains text, extract the key details. Use British English." },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: `Summarise this file named "${fileName}".` },
+              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Data}` } },
+            ],
+          },
+        ],
+      }),
+    });
+    if (!response.ok) {
+      console.error("AI vision error:", response.status);
+      return "AI summary could not be generated.";
+    }
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content?.trim() || "No summary generated.";
+  } catch (e) {
+    console.error("AI vision error:", e);
+    return "AI summary could not be generated.";
+  }
+}
+
+async function summariseAttachment(
+  bytes: Uint8Array,
+  fileName: string,
+  contentType: string,
+  apiKey: string
+): Promise<string> {
+  const fileType = detectFileType(contentType, fileName);
+  const ext = fileName.split(".").pop()?.toLowerCase() || "";
+
+  try {
+    switch (fileType) {
+      case "image":
+      case "pdf": {
+        // Convert to base64 and use vision API
+        const chunkSize = 8192;
+        let binaryString = "";
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          const chunk = bytes.slice(i, Math.min(i + chunkSize, bytes.length));
+          binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+        }
+        const base64 = btoa(binaryString);
+        return await aiVisionSummarise(base64, contentType || (fileType === "pdf" ? "application/pdf" : "image/jpeg"), fileName, apiKey);
+      }
+
+      case "document": {
+        if (ext === "docx") {
+          const extractedText = await extractDocxText(bytes);
+          return await aiSummariseText(extractedText, fileName, apiKey);
+        }
+        // For .doc, .rtf, try plain text decode
+        const textContent = new TextDecoder().decode(bytes);
+        if (textContent.trim().length > 20) {
+          return await aiSummariseText(textContent.substring(0, 8000), fileName, apiKey);
+        }
+        return "Document uploaded. Content preview not available for this format.";
+      }
+
+      case "text":
+      case "email": {
+        const textContent = new TextDecoder().decode(bytes);
+        return await aiSummariseText(textContent.substring(0, 8000), fileName, apiKey);
+      }
+
+      default:
+        return "File uploaded. Content analysis not available for this format.";
+    }
+  } catch (e) {
+    console.error(`Error summarising attachment ${fileName}:`, e);
+    return "AI summary could not be generated.";
+  }
+}
+
+// --- Resend content fetching ---
+
+async function fetchEmailContentFromResend(emailId: string, apiKey: string): Promise<{ text: string; html: string }> {
+  let textBody = "";
+  let htmlBody = "";
+
+  // Try the receiving endpoint first (for inbound emails)
+  const endpoints = [
+    `https://api.resend.com/emails/receiving/${emailId}`,
+    `https://api.resend.com/emails/${emailId}`,
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`Trying Resend endpoint: ${endpoint}`);
+      const res = await fetch(endpoint, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.log(`Resend endpoint ${endpoint} returned ${res.status}: ${errText.substring(0, 200)}`);
+        continue;
+      }
+
+      const data = await res.json();
+      console.log(`Resend response fields: ${Object.keys(data).join(", ")}`);
+
+      // Try multiple field names for text body
+      textBody = data.text || data.text_body || data.text_content || data.body?.text || "";
+      // Try multiple field names for HTML body
+      htmlBody = data.html || data.html_body || data.html_content || data.body?.html || "";
+
+      if (textBody || htmlBody) {
+        console.log(`Successfully fetched content from ${endpoint}: text=${textBody.length} chars, html=${htmlBody.length} chars`);
+        break;
+      }
+    } catch (err) {
+      console.error(`Error fetching from ${endpoint}:`, err);
+    }
+  }
+
+  // If we only have HTML, strip tags to create text fallback
+  if (!textBody && htmlBody) {
+    textBody = htmlBody
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n\n")
+      .replace(/<\/div>/gi, "\n")
+      .replace(/<\/li>/gi, "\n")
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+    console.log(`Stripped HTML to create text body: ${textBody.length} chars`);
+  }
+
+  return { text: textBody, html: htmlBody };
+}
+
+// --- Main handler ---
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Only accept POST
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
@@ -63,15 +271,122 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-    console.log("Received inbound email webhook:", JSON.stringify(payload).substring(0, 500));
 
-    // Resend sends { type: "email.received", created_at: ..., data: { ... } }
-    // But also accept raw email payloads (for flexibility)
+    // --- REPROCESS MODE ---
+    if (payload.reprocess && payload.inbound_email_id) {
+      console.log(`Reprocessing inbound email: ${payload.inbound_email_id}`);
+
+      const { data: existingEmail, error: fetchErr } = await supabase
+        .from("inbound_emails")
+        .select("*")
+        .eq("id", payload.inbound_email_id)
+        .single();
+
+      if (fetchErr || !existingEmail) {
+        return new Response(JSON.stringify({ error: "Email record not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      let textBody = existingEmail.text_body || "";
+      let htmlBody = existingEmail.html_body || "";
+
+      // Re-fetch content from Resend if body is empty
+      if ((!textBody || textBody.trim().length < 10) && existingEmail.email_id && RESEND_API_KEY) {
+        console.log("Re-fetching email content from Resend...");
+        const fetched = await fetchEmailContentFromResend(existingEmail.email_id, RESEND_API_KEY);
+        textBody = fetched.text || textBody;
+        htmlBody = fetched.html || htmlBody;
+      }
+
+      // Re-summarise attachments if AI key available
+      let updatedAttachments = existingEmail.attachments || [];
+      if (LOVABLE_API_KEY && Array.isArray(updatedAttachments)) {
+        for (let i = 0; i < updatedAttachments.length; i++) {
+          const att = updatedAttachments[i];
+          if (att.ai_summary) continue; // Skip already summarised
+
+          try {
+            console.log(`Summarising attachment: ${att.name}`);
+            const { data: fileData, error: dlErr } = await supabase.storage
+              .from("inbound-email-attachments")
+              .download(att.path);
+
+            if (dlErr || !fileData) {
+              console.error(`Failed to download attachment for summarisation: ${att.name}`, dlErr);
+              continue;
+            }
+
+            const arrayBuf = await fileData.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuf);
+            const summary = await summariseAttachment(bytes, att.name, att.content_type || "", LOVABLE_API_KEY);
+            updatedAttachments[i] = { ...att, ai_summary: summary };
+          } catch (sumErr) {
+            console.error(`Error summarising attachment ${att.name}:`, sumErr);
+          }
+        }
+      }
+
+      // Build email content for classification
+      const emailContent = textBody || htmlBody?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() || "";
+      const attachmentContext = updatedAttachments
+        .filter((a: any) => a.ai_summary)
+        .map((a: any) => `[Attachment: ${a.name}] ${a.ai_summary}`)
+        .join("\n");
+
+      let updateData: any = {
+        text_body: textBody,
+        html_body: htmlBody,
+        attachments: updatedAttachments,
+      };
+
+      if (emailContent.trim().length >= 10 && LOVABLE_API_KEY) {
+        // Re-classify
+        const classResult = await classifyEmail(
+          existingEmail.from_name || "",
+          existingEmail.from_email || "",
+          existingEmail.subject || "",
+          emailContent,
+          attachmentContext,
+          LOVABLE_API_KEY
+        );
+
+        if (classResult) {
+          updateData.classification = classResult.classification;
+          updateData.processing_status = classResult.classification === "unknown" || classResult.confidence < 0.6
+            ? "manual_review"
+            : "processed";
+          updateData.processing_notes = `Reprocessed. Classified as ${classResult.classification} (confidence: ${(classResult.confidence * 100).toFixed(0)}%). ${classResult.reasoning}`;
+        } else {
+          updateData.processing_status = "manual_review";
+          updateData.processing_notes = "Reprocessed. AI classification failed.";
+        }
+      } else if (emailContent.trim().length < 10) {
+        updateData.processing_status = "manual_review";
+        updateData.processing_notes = "Reprocessed. Email still has insufficient text content for AI classification.";
+      }
+
+      await supabase
+        .from("inbound_emails")
+        .update(updateData)
+        .eq("id", payload.inbound_email_id);
+
+      return new Response(JSON.stringify({ status: "reprocessed", ...updateData }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- NORMAL WEBHOOK PROCESSING ---
+    console.log("Received inbound email webhook:", JSON.stringify(payload).substring(0, 1000));
+
     let emailData: any;
     let webhookType: string | undefined;
 
     if (payload.type && payload.data) {
-      // Standard Resend webhook format
       webhookType = payload.type;
       if (webhookType !== "email.received") {
         console.log(`Ignoring webhook type: ${webhookType}`);
@@ -82,17 +397,20 @@ serve(async (req) => {
       }
       emailData = payload.data;
     } else if (payload.from || payload.subject || payload.text || payload.html) {
-      // Direct email payload (fallback)
       emailData = payload;
     } else {
-      console.error("Invalid payload structure:", JSON.stringify(payload).substring(0, 300));
+      console.error("Invalid payload structure:", JSON.stringify(payload).substring(0, 500));
       return new Response(JSON.stringify({ error: "Invalid payload structure" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Extract email fields from webhook payload
+    // Log full payload structure for debugging
+    console.log("Email data fields:", Object.keys(emailData).join(", "));
+    console.log("Email data sample:", JSON.stringify(emailData).substring(0, 1500));
+
+    // Extract email fields
     const emailId = emailData.id || emailData.email_id || null;
     const fromEmail = typeof emailData.from === "string" ? emailData.from : emailData.from?.email || emailData.from_email || "";
     const fromName = typeof emailData.from === "object" ? emailData.from?.name : emailData.from_name || "";
@@ -101,33 +419,39 @@ serve(async (req) => {
       emailData.to?.email || emailData.to_email || "";
     const subject = emailData.subject || "(No subject)";
 
-    // Resend webhooks do NOT include email body — we must fetch it via the Receiving API
+    // Try to get body directly from webhook payload first
+    let textBody = emailData.text || emailData.text_body || emailData.text_content || emailData.body?.text || "";
+    let htmlBody = emailData.html || emailData.html_body || emailData.html_content || emailData.body?.html || "";
+
+    console.log(`Webhook body: text=${textBody.length} chars, html=${htmlBody.length} chars`);
+
+    // If body is empty and we have an email ID, fetch from Resend API
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    let textBody = emailData.text || emailData.text_body || "";
-    let htmlBody = emailData.html || emailData.html_body || "";
     let attachmentMetaFromApi: any[] = [];
 
+    if ((!textBody && !htmlBody) && emailId && RESEND_API_KEY) {
+      console.log("Webhook body empty — fetching from Resend API...");
+      const fetched = await fetchEmailContentFromResend(emailId, RESEND_API_KEY);
+      textBody = fetched.text;
+      htmlBody = fetched.html;
+    } else if (!RESEND_API_KEY) {
+      console.warn("RESEND_API_KEY not configured — cannot fetch email content");
+    }
+
+    // Strip HTML to text as final fallback
+    if (!textBody && htmlBody) {
+      textBody = htmlBody
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/p>/gi, "\n\n")
+        .replace(/<[^>]*>/g, "")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
+    }
+
+    // Fetch attachment list from Resend API
     if (emailId && RESEND_API_KEY) {
-      // Fetch email content from Resend Receiving API
-      try {
-        console.log(`Fetching email content from Resend API for email_id: ${emailId}`);
-        const emailContentRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
-          headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
-        });
-
-        if (emailContentRes.ok) {
-          const emailContent = await emailContentRes.json();
-          textBody = emailContent.text || textBody;
-          htmlBody = emailContent.html || htmlBody;
-          console.log(`Fetched email content: text=${textBody.length} chars, html=${htmlBody.length} chars`);
-        } else {
-          console.error(`Resend email content API returned ${emailContentRes.status}: ${await emailContentRes.text()}`);
-        }
-      } catch (fetchErr) {
-        console.error("Error fetching email content from Resend:", fetchErr);
-      }
-
-      // Fetch attachment list from Resend Attachments API
       try {
         const attachRes = await fetch(`https://api.resend.com/emails/receiving/${emailId}/attachments`, {
           headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
@@ -135,16 +459,15 @@ serve(async (req) => {
 
         if (attachRes.ok) {
           const attachData = await attachRes.json();
-          attachmentMetaFromApi = attachData.data || [];
+          attachmentMetaFromApi = attachData.data || attachData || [];
+          if (!Array.isArray(attachmentMetaFromApi)) attachmentMetaFromApi = [];
           console.log(`Resend returned ${attachmentMetaFromApi.length} attachment(s)`);
         } else {
-          console.error(`Resend attachments API returned ${attachRes.status}`);
+          console.log(`Resend attachments API returned ${attachRes.status}: ${(await attachRes.text()).substring(0, 200)}`);
         }
       } catch (attachErr) {
         console.error("Error fetching attachments from Resend:", attachErr);
       }
-    } else if (!RESEND_API_KEY) {
-      console.warn("RESEND_API_KEY not configured — cannot fetch email content or attachments");
     }
 
     // Merge attachment info from webhook payload and API
@@ -152,12 +475,13 @@ serve(async (req) => {
     const hasAttachments = webhookAttachments.length > 0 || attachmentMetaFromApi.length > 0;
     const attachmentCount = Math.max(webhookAttachments.length, attachmentMetaFromApi.length);
 
-    console.log(`Processing email from: ${fromEmail} (${fromName}), subject: ${subject}, attachments: ${attachmentCount}`);
+    console.log(`Processing email from: ${fromEmail} (${fromName}), subject: ${subject}, body: ${textBody.length} chars, attachments: ${attachmentCount}`);
 
-    // Save attachments to storage (download from Resend download_url)
-    const savedAttachments: { name: string; path: string; size: number; content_type: string }[] = [];
+    // Download and save attachments
+    const savedAttachments: { name: string; path: string; size: number; content_type: string; ai_summary?: string }[] = [];
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    // Download attachments via Resend API download_url
+    // Download from Resend API download URLs
     if (attachmentMetaFromApi.length > 0) {
       for (const att of attachmentMetaFromApi) {
         try {
@@ -179,7 +503,6 @@ serve(async (req) => {
 
           const arrayBuffer = await dlRes.arrayBuffer();
           const bytes = new Uint8Array(arrayBuffer);
-
           const storagePath = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}/${fileName}`;
 
           const { error: uploadError } = await supabase.storage
@@ -191,11 +514,23 @@ serve(async (req) => {
             continue;
           }
 
+          // Generate AI summary
+          let aiSummary: string | undefined;
+          if (LOVABLE_API_KEY) {
+            try {
+              aiSummary = await summariseAttachment(bytes, fileName, contentType, LOVABLE_API_KEY);
+              console.log(`AI summary for ${fileName}: ${aiSummary?.substring(0, 100)}`);
+            } catch (sumErr) {
+              console.error(`Error summarising ${fileName}:`, sumErr);
+            }
+          }
+
           savedAttachments.push({
             name: fileName,
             path: storagePath,
             size: bytes.length,
             content_type: contentType,
+            ai_summary: aiSummary,
           });
 
           console.log(`Saved attachment: ${fileName} (${bytes.length} bytes)`);
@@ -229,11 +564,22 @@ serve(async (req) => {
 
           if (uploadError) continue;
 
+          // Generate AI summary
+          let aiSummary: string | undefined;
+          if (LOVABLE_API_KEY) {
+            try {
+              aiSummary = await summariseAttachment(bytes, fileName, contentType, LOVABLE_API_KEY);
+            } catch (sumErr) {
+              console.error(`Error summarising ${fileName}:`, sumErr);
+            }
+          }
+
           savedAttachments.push({
             name: fileName,
             path: storagePath,
             size: bytes.length,
             content_type: contentType,
+            ai_summary: aiSummary,
           });
         } catch (attErr) {
           console.error("Error saving webhook attachment:", attErr);
@@ -267,10 +613,18 @@ serve(async (req) => {
     const logId = logEntry?.id;
     console.log("Created inbound email log entry:", logId);
 
-    // Get the email content for AI classification
+    // Build classification context including attachment summaries
     const emailContent = textBody || htmlBody?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() || "";
+    const attachmentContext = savedAttachments
+      .filter((a) => a.ai_summary)
+      .map((a) => `[Attachment: ${a.name}] ${a.ai_summary}`)
+      .join("\n");
 
-    if (!emailContent || emailContent.trim().length < 10) {
+    const fullContext = attachmentContext
+      ? `${emailContent}\n\n--- Attachment Summaries ---\n${attachmentContext}`
+      : emailContent;
+
+    if (!fullContext || fullContext.trim().length < 10) {
       console.log("Email has insufficient content for classification");
       if (logId) {
         await supabase
@@ -287,8 +641,7 @@ serve(async (req) => {
       });
     }
 
-    // AI Classification and Data Extraction
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    // AI Classification
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY not configured");
       if (logId) {
@@ -306,144 +659,29 @@ serve(async (req) => {
       });
     }
 
-    const classificationPrompt = `You are a UK NHS GP practice email classifier and data extractor. Analyse the following email and:
+    const classResult = await classifyEmail(fromName, fromEmail, subject, fullContext, "", LOVABLE_API_KEY);
 
-1. CLASSIFY the email as either "complaint", "compliment", or "unknown".
-   - Complaint: Dissatisfaction, issues, concerns, formal complaints, negative experiences, requests for investigation
-   - Compliment: Praise, thanks, positive feedback, appreciation, recognition of good care
-   - Unknown: Cannot determine confidently, spam, unrelated, or ambiguous
-
-2. EXTRACT structured data based on the classification.
-
-For COMPLAINTS extract:
-- patient_name: The patient's full name (or sender name if not explicitly stated)
-- complaint_title: A concise professional title summarising the complaint (max 100 chars)
-- complaint_description: A professional summary of the complaint suitable for NHS records. Rewrite in third person, formal tone. Include key details and concerns raised.
-- category: One of: ${COMPLAINT_CATEGORIES.join(", ")}
-- priority: One of: low, medium, high, urgent (infer from severity)
-- incident_date: The date the incident occurred (YYYY-MM-DD format, or null if not mentioned)
-- complaint_source: One of: ${COMPLAINT_SOURCES.join(", ")} (detect if sender is an organisation)
-- staff_mentioned: Array of staff names mentioned (or empty array)
-
-For COMPLIMENTS extract:
-- patient_name: The patient's full name (or sender name)
-- compliment_title: A concise title summarising the positive feedback (max 100 chars)
-- compliment_description: The compliment rewritten professionally for records
-- category: One of: ${COMPLIMENT_CATEGORIES.join(", ")}
-- staff_mentioned: Array of staff names mentioned (or empty array)
-
-Respond with ONLY valid JSON using this exact structure:
-{
-  "classification": "complaint" | "compliment" | "unknown",
-  "confidence": 0.0-1.0,
-  "data": { ... extracted fields ... },
-  "reasoning": "Brief explanation of classification"
-}`;
-
-    const userPrompt = `Email from: ${fromName} <${fromEmail}>
-Subject: ${subject}
-
-Body:
-${emailContent.substring(0, 4000)}`;
-
-    console.log("Calling AI for classification...");
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: classificationPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 2000,
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI Gateway error:", aiResponse.status, errorText);
-
-      const statusNote = aiResponse.status === 429
-        ? "Rate limit exceeded. Email queued for manual review."
-        : aiResponse.status === 402
-        ? "AI credits exhausted. Email queued for manual review."
-        : `AI classification failed (${aiResponse.status}).`;
-
+    if (!classResult) {
       if (logId) {
         await supabase
           .from("inbound_emails")
           .update({
             processing_status: "manual_review",
-            processing_notes: statusNote,
+            processing_notes: "AI classification failed or returned empty response.",
           })
           .eq("id", logId);
       }
-
-      return new Response(JSON.stringify({ status: "manual_review", reason: statusNote }), {
+      return new Response(JSON.stringify({ status: "manual_review", reason: "AI classification failed" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const aiData = await aiResponse.json();
-    const aiContent = aiData.choices?.[0]?.message?.content;
-    console.log("AI response:", aiContent?.substring(0, 500));
-
-    if (!aiContent) {
-      if (logId) {
-        await supabase
-          .from("inbound_emails")
-          .update({
-            processing_status: "manual_review",
-            processing_notes: "AI returned empty response.",
-          })
-          .eq("id", logId);
-      }
-      return new Response(JSON.stringify({ status: "manual_review", reason: "Empty AI response" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Parse AI response
-    let classificationResult: any;
-    try {
-      const jsonMatch = aiContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || aiContent.match(/(\{[\s\S]*\})/);
-      if (jsonMatch) {
-        classificationResult = JSON.parse(jsonMatch[1]);
-      } else {
-        classificationResult = JSON.parse(aiContent);
-      }
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError);
-      if (logId) {
-        await supabase
-          .from("inbound_emails")
-          .update({
-            processing_status: "manual_review",
-            processing_notes: `AI response could not be parsed: ${aiContent.substring(0, 200)}`,
-          })
-          .eq("id", logId);
-      }
-      return new Response(JSON.stringify({ status: "manual_review", reason: "AI parse error" }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const classification = classificationResult.classification;
-    const confidence = classificationResult.confidence || 0;
-    const extractedData = classificationResult.data || {};
-    const reasoning = classificationResult.reasoning || "";
+    const { classification, confidence, extractedData, reasoning } = classResult;
 
     console.log(`Classification: ${classification} (confidence: ${confidence}), reasoning: ${reasoning}`);
 
-    // If confidence is too low, mark for manual review
+    // If confidence too low, mark for manual review
     if (confidence < 0.6 || classification === "unknown") {
       if (logId) {
         await supabase
@@ -461,10 +699,8 @@ ${emailContent.substring(0, 4000)}`;
       });
     }
 
-    // Find a system user (created_by) — must be a valid auth.users ID
+    // Find a system user for created_by
     let createdByUserId: string | null = null;
-    
-    // First try: find an admin user from user_roles
     const { data: adminUsers } = await supabase
       .from("user_roles")
       .select("user_id")
@@ -474,7 +710,6 @@ ${emailContent.substring(0, 4000)}`;
     if (adminUsers && adminUsers.length > 0) {
       createdByUserId = adminUsers[0].user_id;
     } else {
-      // Fallback: get the first auth.users entry via admin API
       const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
       if (!authError && authUsers?.users && authUsers.users.length > 0) {
         createdByUserId = authUsers.users[0].id;
@@ -503,7 +738,6 @@ ${emailContent.substring(0, 4000)}`;
     let recordType: string | null = null;
 
     if (classification === "complaint") {
-      // Create complaint record
       const referenceNumber = generateReferenceNumber("COMP");
       const today = new Date().toISOString().split("T")[0];
 
@@ -553,7 +787,6 @@ ${emailContent.substring(0, 4000)}`;
       recordType = "complaint";
       console.log(`Created complaint ${referenceNumber} with ID ${recordId}`);
     } else if (classification === "compliment") {
-      // Create compliment record
       const today = new Date().toISOString().split("T")[0];
 
       const complimentData = {
@@ -642,3 +875,104 @@ ${emailContent.substring(0, 4000)}`;
     );
   }
 });
+
+// --- AI Classification helper ---
+
+async function classifyEmail(
+  fromName: string,
+  fromEmail: string,
+  subject: string,
+  emailContent: string,
+  attachmentContext: string,
+  apiKey: string
+): Promise<{ classification: string; confidence: number; extractedData: any; reasoning: string } | null> {
+  const classificationPrompt = `You are a UK NHS GP practice email classifier and data extractor. Analyse the following email and:
+
+1. CLASSIFY the email as either "complaint", "compliment", or "unknown".
+   - Complaint: Dissatisfaction, issues, concerns, formal complaints, negative experiences, requests for investigation
+   - Compliment: Praise, thanks, positive feedback, appreciation, recognition of good care
+   - Unknown: Cannot determine confidently, spam, unrelated, or ambiguous
+
+2. EXTRACT structured data based on the classification.
+
+For COMPLAINTS extract:
+- patient_name: The patient's full name (or sender name if not explicitly stated)
+- complaint_title: A concise professional title summarising the complaint (max 100 chars)
+- complaint_description: A professional summary of the complaint suitable for NHS records. Rewrite in third person, formal tone. Include key details and concerns raised.
+- category: One of: ${COMPLAINT_CATEGORIES.join(", ")}
+- priority: One of: low, medium, high, urgent (infer from severity)
+- incident_date: The date the incident occurred (YYYY-MM-DD format, or null if not mentioned)
+- complaint_source: One of: ${COMPLAINT_SOURCES.join(", ")} (detect if sender is an organisation)
+- staff_mentioned: Array of staff names mentioned (or empty array)
+
+For COMPLIMENTS extract:
+- patient_name: The patient's full name (or sender name)
+- compliment_title: A concise title summarising the positive feedback (max 100 chars)
+- compliment_description: The compliment rewritten professionally for records
+- category: One of: ${COMPLIMENT_CATEGORIES.join(", ")}
+- staff_mentioned: Array of staff names mentioned (or empty array)
+
+Respond with ONLY valid JSON using this exact structure:
+{
+  "classification": "complaint" | "compliment" | "unknown",
+  "confidence": 0.0-1.0,
+  "data": { ... extracted fields ... },
+  "reasoning": "Brief explanation of classification"
+}`;
+
+  const userPrompt = `Email from: ${fromName} <${fromEmail}>
+Subject: ${subject}
+
+Body:
+${emailContent.substring(0, 4000)}${attachmentContext ? `\n\n--- Attachment Summaries ---\n${attachmentContext}` : ""}`;
+
+  console.log("Calling AI for classification...");
+
+  try {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: classificationPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error("AI Gateway error:", aiResponse.status, errorText);
+      return null;
+    }
+
+    const aiData = await aiResponse.json();
+    const aiContent = aiData.choices?.[0]?.message?.content;
+    console.log("AI response:", aiContent?.substring(0, 500));
+
+    if (!aiContent) return null;
+
+    const jsonMatch = aiContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || aiContent.match(/(\{[\s\S]*\})/);
+    let parsed: any;
+    if (jsonMatch) {
+      parsed = JSON.parse(jsonMatch[1]);
+    } else {
+      parsed = JSON.parse(aiContent);
+    }
+
+    return {
+      classification: parsed.classification,
+      confidence: parsed.confidence || 0,
+      extractedData: parsed.data || {},
+      reasoning: parsed.reasoning || "",
+    };
+  } catch (e) {
+    console.error("Classification error:", e);
+    return null;
+  }
+}
