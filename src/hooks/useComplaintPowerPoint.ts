@@ -393,15 +393,22 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
 
       // Poll for completion
       setCurrentPhase('polling');
-      const pollInterval = 5000;
+      const basePollInterval = 10_000;
+      let currentInterval = basePollInterval;
+      const maxPendingInterval = 30_000;
+      const maxThrottleInterval = 120_000;
+      let consecutivePending = 0;
       const maxPollTime = slideCount * 30000;
       const startTime = Date.now();
+
+      const sleepWithJitter = (ms: number) =>
+        new Promise(r => setTimeout(r, ms * (0.9 + Math.random() * 0.2)));
 
       let downloadUrl: string | undefined;
       let gammaUrl: string | undefined;
 
       while (Date.now() - startTime < maxPollTime) {
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        await sleepWithJitter(currentInterval);
 
         const { data: pollResponse, error: pollError } = await supabase.functions.invoke(
           'generate-powerpoint-gamma',
@@ -414,6 +421,19 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
         );
 
         if (pollError) {
+          const errMsg = pollError.message || '';
+
+          if (errMsg.includes('401') || errMsg.includes('403') ||
+              errMsg.includes('Unauthorized') || errMsg.includes('Forbidden')) {
+            throw new Error('Session expired or not authorised. Please sign in again.');
+          }
+
+          if (errMsg.includes('ThrottlerException') || errMsg.includes('Too Many Requests') || errMsg.includes('429')) {
+            console.warn('[ComplaintPowerPoint] Rate limited — backing off');
+            currentInterval = Math.min(currentInterval * 2, maxThrottleInterval);
+            continue;
+          }
+
           console.error('[ComplaintPowerPoint] Poll error:', pollError);
           continue;
         }
@@ -428,6 +448,16 @@ export const useComplaintPowerPoint = (complaintId?: string) => {
 
         if (pollResponse?.status === 'failed') {
           throw new Error(pollResponse?.error || 'Gamma generation failed');
+        }
+
+        if (pollResponse?.status === 'pending') {
+          consecutivePending++;
+          if (consecutivePending > 3) {
+            currentInterval = Math.min(currentInterval + 2_000, maxPendingInterval);
+          }
+        } else {
+          consecutivePending = 0;
+          currentInterval = basePollInterval;
         }
       }
 

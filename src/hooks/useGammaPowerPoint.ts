@@ -255,19 +255,39 @@ export const useGammaPowerPoint = () => {
       const maxPollDuration = validSlideCount > 10
         ? 60_000 + validSlideCount * 10_000
         : 180_000; // 3 minutes for ≤10 slides
-      const pollInterval = 5_000;
+      const basePollInterval = 10_000;
+      let currentInterval = basePollInterval;
+      const maxPendingInterval = 30_000;
+      const maxThrottleInterval = 120_000;
+      let consecutivePending = 0;
       const pollStart = Date.now();
+
+      const sleepWithJitter = (ms: number) =>
+        new Promise(r => setTimeout(r, ms * (0.9 + Math.random() * 0.2)));
 
       let data: any = null;
 
       while (Date.now() - pollStart < maxPollDuration) {
-        await new Promise(r => setTimeout(r, pollInterval));
+        await sleepWithJitter(currentInterval);
 
         const { data: pollData, error: pollError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
           body: { action: 'poll', generationId },
         });
 
         if (pollError) {
+          const errMsg = pollError.message || '';
+
+          if (errMsg.includes('401') || errMsg.includes('403') ||
+              errMsg.includes('Unauthorized') || errMsg.includes('Forbidden')) {
+            throw new Error('Session expired or not authorised. Please sign in again.');
+          }
+
+          if (errMsg.includes('ThrottlerException') || errMsg.includes('Too Many Requests') || errMsg.includes('429')) {
+            console.warn('[Gamma Hook] Rate limited — backing off');
+            currentInterval = Math.min(currentInterval * 2, maxThrottleInterval);
+            continue;
+          }
+
           console.warn('[Gamma Hook] Poll request failed, retrying...', pollError);
           continue;
         }
@@ -281,7 +301,17 @@ export const useGammaPowerPoint = () => {
           throw new Error(pollData.error || 'Gamma generation failed');
         }
 
-        console.log(`[Gamma Hook] Still generating... (${Math.round((Date.now() - pollStart) / 1000)}s elapsed)`);
+        if (pollData?.status === 'pending') {
+          consecutivePending++;
+          if (consecutivePending > 3) {
+            currentInterval = Math.min(currentInterval + 2_000, maxPendingInterval);
+          }
+        } else {
+          consecutivePending = 0;
+          currentInterval = basePollInterval;
+        }
+
+        console.log(`[Gamma Hook] Still generating... (${Math.round((Date.now() - pollStart) / 1000)}s elapsed, interval ${Math.round(currentInterval / 1000)}s)`);
       }
 
       if (!data) {
