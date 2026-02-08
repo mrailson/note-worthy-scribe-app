@@ -196,45 +196,60 @@ export const useComplaintInfographic = (complaintId?: string) => {
         setTimeout(() => reject(new Error('Image generation timed out after 120 seconds. Please try again.')), 120000);
       });
 
-      const customPrompt = `Create a HIGH QUALITY "Learning from Complaints" staff infographic. This is a ONE-PAGE landscape overview designed for staff notice boards or team meetings.
+      const customPrompt = `Create a HIGH-QUALITY "Learning from Complaints" staff infographic.
+This is a ONE-PAGE landscape (16:9) overview designed specifically for staff notice boards and team meetings.
 
-IMPORTANT TONE RULES:
-- This infographic is about LEARNING TOGETHER as a team
-- It must be friendly, supportive, and encouraging
-- It must NEVER blame individuals or make anyone feel small
-- Frame everything as collective learning and growth
-- Use phrases like "What we learned", "How we're growing", "Our improvements"
-- Celebrate what went well alongside areas for improvement
+The purpose is to support shared learning and system improvement, not to attribute fault.
+
+TONE RULES (STRICT):
+- Frame the content as learning together as a team — calm, supportive, and constructive
+- Never criticise or single out individuals; focus on systems, processes, and pressures
+- Treat issues as opportunities for reflection and improvement, not failings
+- Prefer suggestive, reflective phrasing (e.g. "highlights the importance of…", "offers an opportunity to…")
+- Avoid directive or judgemental language (do not use "failed to", "non-compliance", "should have")
+- Celebrate what went well alongside what we're improving, with equal weight
+- Use language that would feel safe and fair if read by any staff group (reception, admin, clinical)
 
 PRIVACY RULES (CRITICAL — ABSOLUTE REQUIREMENT):
-- You MUST NOT include ANY patient names, staff names, clinician names, or any person's name anywhere in the infographic
-- You MUST NOT include dates of birth, NHS numbers, addresses, phone numbers, or email addresses
-- If the source content contains names (e.g. "Mr. James Williams"), you MUST replace them with generic references like "the patient" or "a staff member"
-- If a name appears in the "What Happened" section, rewrite the sentence to remove it entirely
-- Keep everything fully anonymised and focused ONLY on the learning
-- This infographic may be displayed publicly on staff notice boards — zero PII tolerance
+- No patient or staff names, initials, DOBs, NHS numbers, addresses, phone numbers, or emails
+- Replace any identifiers with generic references (e.g. "the patient", "the practice", "the team")
+- Assume the infographic may be displayed publicly on staff notice boards
+- Zero PII tolerance
 
 COMPLAINT REFERENCE: ${data.referenceNumber}
 CATEGORY: ${data.category}
 
-CONTENT HIERARCHY (in order of visual prominence):
-1. "Learning from Complaints" - Friendly header with a growth/learning icon
-2. CATEGORY BADGE - What type of complaint this was
-3. WHAT HAPPENED - Brief anonymised overview (no patient/staff details)
-4. KEY LEARNINGS - The main takeaways for the team (most prominent section)
-5. WHAT WE DID WELL - Celebrate positive aspects (green/positive styling)
-6. HOW WE'RE IMPROVING - Specific actions being taken (growth-focused)
+CONTENT HIERARCHY & LANGUAGE GUIDANCE:
+Use plain, friendly British English, written for staff rather than regulators.
+
+1. HEADER: "Learning from Complaints" — friendly, reassuring title with growth or learning icon
+2. CATEGORY BADGE: Simple, non-judgemental (e.g. "Appointments & Access")
+3. WHAT HAPPENED:
+   - Brief, anonymised overview
+   - Neutral and factual
+   - Describe events without attributing blame or intent
+4. KEY LEARNINGS (Most Prominent Section):
+   - Use phrasing such as "What we learned" or "What this highlighted"
+   - Focus on system behaviours, communication, or process resilience
+   - Avoid language implying error by individuals
+5. WHAT WE DID WELL (Green / Positive):
+   - Acknowledge responsiveness, review, openness, and professionalism
+   - Reinforce good practice and team strengths
+6. HOW WE'RE IMPROVING (Growth-Focused):
+   - Use exploratory, supportive wording (e.g. "We're exploring…", "We're strengthening…", "We're reviewing…")
+   - Emphasise ongoing learning, not completed corrective actions
+   - Avoid absolute or compliance-heavy language
 
 DESIGN REQUIREMENTS:
-- Landscape orientation (16:9 aspect ratio)
-- Professional NHS-aligned colour scheme (calming blues, teals, greens)
-- Warm and approachable feel - not clinical or cold
-- Growth/learning imagery (seedlings, lightbulbs, team icons)
-- Clear sections with visual hierarchy
-- British English spelling throughout
-- No patient or staff identifiers anywhere
-- Professional enough for CQC inspection viewing
-- Include a small "Powered by NoteWell AI" attribution`;
+- Landscape 16:9
+- NHS-aligned colour palette (blues, teals, greens)
+- Warm, approachable visuals (team icons, seedlings, lightbulbs, growth imagery)
+- Clean, readable layout suitable for notice boards
+- British English throughout
+- CQC-inspection-ready tone aligned with Just Culture
+- Footer attribution: "Powered by NoteWell AI"
+
+Only use the information supplied via documentContent. Do not infer or invent detail.`;
 
       const invokePromise = supabase.functions.invoke('ai4gp-image-generation', {
         body: {
