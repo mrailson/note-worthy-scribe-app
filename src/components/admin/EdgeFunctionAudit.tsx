@@ -5,10 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CollapsibleCard } from '@/components/ui/collapsible-card';
-import { Search, Activity, Archive, CheckCircle, AlertTriangle, XCircle, Loader2, Filter } from 'lucide-react';
+import { Search, Activity, Archive, CheckCircle, AlertTriangle, XCircle, Loader2, Filter, Download } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Document, Packer, Paragraph, TextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, WidthType, HeadingLevel, BorderStyle, AlignmentType, ShadingType } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface EdgeFunction {
   name: string;
@@ -397,6 +399,205 @@ export const EdgeFunctionAudit: React.FC = () => {
     return '';
   };
 
+  const downloadWordReport = async () => {
+    try {
+      const now = new Date();
+      const reportDate = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+
+      const cellBorders = {
+        top: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+        bottom: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+        left: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+        right: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+      };
+
+      const headerShading = { type: ShadingType.SOLID, color: '003087', fill: '003087' };
+
+      const makeHeaderCell = (text: string, width: number) =>
+        new DocxTableCell({
+          width: { size: width, type: WidthType.PERCENTAGE },
+          borders: cellBorders,
+          shading: headerShading,
+          children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: 'FFFFFF', size: 18, font: 'Calibri' })] })],
+        });
+
+      const makeCell = (text: string, width: number, opts?: { bold?: boolean; color?: string; shading?: any }) =>
+        new DocxTableCell({
+          width: { size: width, type: WidthType.PERCENTAGE },
+          borders: cellBorders,
+          shading: opts?.shading,
+          children: [new Paragraph({ children: [new TextRun({ text, size: 18, font: 'Calibri', bold: opts?.bold, color: opts?.color })] })],
+        });
+
+      // Group functions by reference status
+      const referenced = functions.filter(f => f.referencedInClient || f.referencedInOtherFunctions);
+      const unreferenced = functions.filter(f => !f.referencedInClient && !f.referencedInOtherFunctions);
+      const unreferencedNoLogs = unreferenced.filter(f => f.logStatus === 'loaded' && (!f.lastLogDates || f.lastLogDates.length === 0));
+
+      const buildFunctionRows = (fns: EdgeFunction[]) =>
+        fns.map((fn, i) => {
+          const rowShading = i % 2 === 0 ? undefined : { type: ShadingType.SOLID, color: 'F5F5F5', fill: 'F5F5F5' };
+          const logText = fn.logStatus === 'loaded'
+            ? (fn.lastLogDates && fn.lastLogDates.length > 0 ? fn.lastLogDates.join(', ') : 'No recent logs')
+            : 'Not checked';
+
+          return new DocxTableRow({
+            children: [
+              makeCell(fn.name, 22, { shading: rowShading }),
+              makeCell(fn.purpose, 30, { shading: rowShading }),
+              makeCell(fn.referencedInClient ? 'Yes' : 'No', 10, {
+                shading: rowShading,
+                color: fn.referencedInClient ? '16A34A' : 'DC2626',
+              }),
+              makeCell(fn.referencedInOtherFunctions ? 'Yes' : 'No', 10, {
+                shading: rowShading,
+                color: fn.referencedInOtherFunctions ? '2563EB' : '999999',
+              }),
+              makeCell(logText, 28, { shading: rowShading }),
+            ],
+          });
+        });
+
+      const buildArchivedRows = () =>
+        ARCHIVED_FUNCTIONS.map((fn, i) => {
+          const rowShading = i % 2 === 0 ? undefined : { type: ShadingType.SOLID, color: 'F5F5F5', fill: 'F5F5F5' };
+          return new DocxTableRow({
+            children: [
+              makeCell(fn.name, 30, { shading: rowShading }),
+              makeCell(fn.purpose, 70, { shading: rowShading }),
+            ],
+          });
+        });
+
+      const headerRow = new DocxTableRow({
+        children: [
+          makeHeaderCell('Function Name', 22),
+          makeHeaderCell('Purpose', 30),
+          makeHeaderCell('Client Ref', 10),
+          makeHeaderCell('Cross-Ref', 10),
+          makeHeaderCell('Last Log Dates', 28),
+        ],
+      });
+
+      const archivedHeaderRow = new DocxTableRow({
+        children: [
+          makeHeaderCell('Function Name', 30),
+          makeHeaderCell('Purpose', 70),
+        ],
+      });
+
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } },
+          },
+          children: [
+            new Paragraph({
+              heading: HeadingLevel.HEADING_1,
+              children: [new TextRun({ text: 'Edge Function Audit Report', bold: true, size: 32, font: 'Calibri', color: '003087' })],
+            }),
+            new Paragraph({
+              spacing: { after: 200 },
+              children: [new TextRun({ text: `Generated: ${reportDate}`, size: 20, font: 'Calibri', color: '666666', italics: true })],
+            }),
+
+            // Summary
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 200 },
+              children: [new TextRun({ text: 'Summary', bold: true, size: 26, font: 'Calibri', color: '003087' })],
+            }),
+            new Paragraph({ children: [new TextRun({ text: `Total Active Functions: ${stats.total}`, size: 20, font: 'Calibri' })] }),
+            new Paragraph({ children: [new TextRun({ text: `Client Referenced: ${stats.clientReferenced}`, size: 20, font: 'Calibri' })] }),
+            new Paragraph({ children: [new TextRun({ text: `Cross-Referenced by Other Functions: ${stats.functionReferenced}`, size: 20, font: 'Calibri' })] }),
+            new Paragraph({ children: [new TextRun({ text: `Unreferenced (Cleanup Candidates): ${stats.unreferenced}`, size: 20, font: 'Calibri', color: 'D97706' })] }),
+            new Paragraph({ children: [new TextRun({ text: `Archived: ${stats.archived}`, size: 20, font: 'Calibri' })] }),
+            new Paragraph({
+              spacing: { after: 100 },
+              children: [new TextRun({ text: `Functions with logs checked and no recent activity: ${unreferencedNoLogs.length}`, size: 20, font: 'Calibri', color: 'DC2626' })],
+            }),
+
+            // Unreferenced section (most useful for planning)
+            ...(unreferenced.length > 0 ? [
+              new Paragraph({
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 400, after: 200 },
+                children: [new TextRun({ text: `Unreferenced Functions (${unreferenced.length}) — Cleanup Candidates`, bold: true, size: 26, font: 'Calibri', color: 'D97706' })],
+              }),
+              new Paragraph({
+                spacing: { after: 200 },
+                children: [new TextRun({ text: 'These functions have no references in client code or other edge functions. They are candidates for archival or removal.', size: 20, font: 'Calibri', italics: true, color: '666666' })],
+              }),
+              new DocxTable({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [headerRow, ...buildFunctionRows(unreferenced)],
+              }),
+            ] : []),
+
+            // All active functions
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 400, after: 200 },
+              children: [new TextRun({ text: `All Active Functions (${functions.length})`, bold: true, size: 26, font: 'Calibri', color: '003087' })],
+            }),
+            new DocxTable({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new DocxTableRow({
+                  children: [
+                    makeHeaderCell('Function Name', 22),
+                    makeHeaderCell('Purpose', 30),
+                    makeHeaderCell('Client Ref', 10),
+                    makeHeaderCell('Cross-Ref', 10),
+                    makeHeaderCell('Last Log Dates', 28),
+                  ],
+                }),
+                ...buildFunctionRows(functions),
+              ],
+            }),
+
+            // Archived functions
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 400, after: 200 },
+              children: [new TextRun({ text: `Archived Functions (${ARCHIVED_FUNCTIONS.length})`, bold: true, size: 26, font: 'Calibri', color: '666666' })],
+            }),
+            new Paragraph({
+              spacing: { after: 200 },
+              children: [new TextRun({ text: 'These functions have been moved to the archive and are no longer deployed.', size: 20, font: 'Calibri', italics: true, color: '666666' })],
+            }),
+            new DocxTable({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [archivedHeaderRow, ...buildArchivedRows()],
+            }),
+
+            // Key
+            new Paragraph({
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 400, after: 200 },
+              children: [new TextRun({ text: 'Key', bold: true, size: 26, font: 'Calibri', color: '003087' })],
+            }),
+            new Paragraph({ children: [new TextRun({ text: 'Client Ref: ', bold: true, size: 20, font: 'Calibri' }), new TextRun({ text: 'Whether the function is called from the web application (src/ code)', size: 20, font: 'Calibri' })] }),
+            new Paragraph({ children: [new TextRun({ text: 'Cross-Ref: ', bold: true, size: 20, font: 'Calibri' }), new TextRun({ text: 'Whether the function is called by another edge function', size: 20, font: 'Calibri' })] }),
+            new Paragraph({ children: [new TextRun({ text: 'Last Log Dates: ', bold: true, size: 20, font: 'Calibri' }), new TextRun({ text: 'Most recent invocation timestamps (fetched on demand via "Check Logs" button)', size: 20, font: 'Calibri' })] }),
+            new Paragraph({
+              spacing: { before: 200 },
+              children: [new TextRun({ text: 'Recommendation: Functions marked as unreferenced with no recent logs are safe candidates for archival.', size: 20, font: 'Calibri', italics: true, color: '666666' })],
+            }),
+          ],
+        }],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const filename = `edge-function-audit-${now.toISOString().split('T')[0]}.docx`;
+      saveAs(blob, filename);
+      toast.success('Report downloaded successfully');
+    } catch (err) {
+      console.error('Error generating report:', err);
+      toast.error('Failed to generate report');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
@@ -465,6 +666,14 @@ export const EdgeFunctionAudit: React.FC = () => {
         >
           {batchScanning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Activity className="h-4 w-4 mr-2" />}
           Batch Scan Unreferenced
+        </Button>
+        <Button
+          variant="outline"
+          onClick={downloadWordReport}
+          className="whitespace-nowrap"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Download Report
         </Button>
       </div>
 
