@@ -110,6 +110,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
   const [evidenceFiles, setEvidenceFiles] = useState<EvidenceFile[]>([]);
   const [audioTranscripts, setAudioTranscripts] = useState<AudioTranscript[]>([]);
   const [transcribing, setTranscribing] = useState<string | null>(null);
+  const [generatingReview, setGeneratingReview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('files');
   const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -285,20 +286,13 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
           file_size: file.size,
           evidence_type: evidenceType,
           description: aiSummary || null,
+          ai_summary: aiSummary || null,
           uploaded_by: userId,
         } as any)
         .select()
         .single();
 
       if (insertError) throw insertError;
-
-      // Also update ai_summary separately since types may not include it yet
-      if (aiSummary) {
-        await supabase
-          .from('complaint_investigation_evidence')
-          .update({ ai_summary: aiSummary } as any)
-          .eq('id', (insertedRow as any).id);
-      }
 
       // Auto-save transcript for audio files (after evidence record exists so we can link audio_file_id)
       if (pendingTranscript && userId) {
@@ -700,6 +694,44 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     }
   };
 
+  // Generate AI review for an audio file that already has a transcript
+  const generateReviewForFile = async (file: EvidenceFile) => {
+    const transcript = audioTranscripts.find(t => t.audio_file_id === file.id);
+    if (!transcript) {
+      toast.error('No transcript found. Please transcribe the audio first.');
+      return;
+    }
+
+    setGeneratingReview(file.id);
+    try {
+      const { data: reviewData, error: reviewError } = await supabase.functions
+        .invoke('generate-audio-review', {
+          body: { transcript: transcript.transcript_text, fileName: file.file_name }
+        });
+
+      if (reviewError) throw reviewError;
+      if (!reviewData?.review) throw new Error('No review returned');
+
+      // Save to database
+      await supabase
+        .from('complaint_investigation_evidence')
+        .update({ ai_summary: reviewData.review } as any)
+        .eq('id', file.id);
+
+      // Update local state
+      setEvidenceFiles(prev => prev.map(f =>
+        f.id === file.id ? { ...f, ai_summary: reviewData.review } : f
+      ));
+
+      toast.success('AI review generated successfully');
+    } catch (error) {
+      console.error('Error generating AI review:', error);
+      toast.error('Failed to generate AI review');
+    } finally {
+      setGeneratingReview(null);
+    }
+  };
+
   const downloadFile = async (file: EvidenceFile) => {
     try {
       const { data, error } = await supabase.storage
@@ -1098,6 +1130,19 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                             >
                               <Eye className="h-3 w-3 mr-1" />
                               View Full AI Review
+                            </Button>
+                          )}
+                          {!file.ai_summary && (file.evidence_type === 'audio' || file.file_type?.startsWith('audio/')) && audioTranscripts.some(t => t.audio_file_id === file.id) && (
+                            <Button
+                              size="sm"
+                              variant="link"
+                              className="h-auto p-0 text-xs text-primary mt-1"
+                              onClick={() => generateReviewForFile(file)}
+                              disabled={generatingReview === file.id}
+                            >
+                              <Loader2 className={`h-3 w-3 mr-1 ${generatingReview === file.id ? 'animate-spin' : 'hidden'}`} />
+                              {generatingReview !== file.id && <Eye className="h-3 w-3 mr-1" />}
+                              {generatingReview === file.id ? 'Generating AI Review…' : 'Generate AI Review'}
                             </Button>
                           )}
                           <div className="text-xs text-muted-foreground mt-1.5">
