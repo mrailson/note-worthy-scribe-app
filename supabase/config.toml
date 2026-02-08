@@ -183,8 +183,7 @@ verify_jwt = true
 [functions.extract-contractor-data]
 verify_jwt = true
 
-[functions.gp-consultation-summary]
-verify_jwt = true
+
 
 [functions.gp-consultation-guidance]
 verify_jwt = true
@@ -193,7 +192,6 @@ verify_jwt = true
 verify_jwt = true
 
 
-[functions.send-staff-response-request]
 verify_jwt = true
 
 [functions.verify-staff-token]
@@ -226,11 +224,8 @@ verify_jwt = true
 [functions.generate-cqc-evidence]
 verify_jwt = true
 
-[functions.nres-patient-identification]
-verify_jwt = true
 
-[functions.test-complex-care]
-verify_jwt = false
+
 
 [functions.generate-cso-certificate]
 verify_jwt = false
