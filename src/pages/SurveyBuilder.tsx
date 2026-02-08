@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, ArrowRight, Plus, Trash2, GripVertical, Save, Eye, Upload, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2, GripVertical, Save, Eye, Upload, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
@@ -21,6 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SurveyImportModal } from '@/components/surveys/SurveyImportModal';
+import { SurveyAIGenerateModal } from '@/components/surveys/SurveyAIGenerateModal';
 import { ImportedQuestion } from '@/hooks/useSurveyImport';
 interface Question {
   id?: string;
@@ -147,6 +148,7 @@ const SurveyBuilder = () => {
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showAIGenerateModal, setShowAIGenerateModal] = useState(false);
 
   // Fetch practice ID
   useEffect(() => {
@@ -543,6 +545,10 @@ const SurveyBuilder = () => {
                       <CardDescription>Add and configure your survey questions</CardDescription>
                     </div>
                     <div className="flex gap-2">
+                      <Button onClick={() => setShowAIGenerateModal(true)} variant="outline" className="gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        Ask AI
+                      </Button>
                       <Button onClick={() => setShowImportModal(true)} variant="outline">
                         <Upload className="h-4 w-4 mr-2" />
                         Import from File
@@ -888,6 +894,28 @@ const SurveyBuilder = () => {
             onOpenChange={setShowImportModal}
             onImport={handleImportQuestions}
             currentTitle={surveyData.title}
+          />
+
+          <SurveyAIGenerateModal
+            open={showAIGenerateModal}
+            onOpenChange={setShowAIGenerateModal}
+            onAddQuestions={(aiQuestions) => {
+              const startOrder = questions.length + 1;
+              const newQuestions = aiQuestions.map((q, idx) => ({
+                question_text: q.question_text,
+                question_type: q.question_type,
+                options: q.options || [],
+                is_required: q.is_required,
+                display_order: startOrder + idx,
+              }));
+              setQuestions(prev => [...prev, ...newQuestions]);
+              toast({
+                title: 'Questions added',
+                description: `Added ${newQuestions.length} AI-generated question${newQuestions.length !== 1 ? 's' : ''} to your survey`,
+              });
+            }}
+            surveyType={surveyData.survey_type}
+            existingQuestionCount={questions.length}
           />
         </main>
       </div>
