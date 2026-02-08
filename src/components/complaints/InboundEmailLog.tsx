@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Mail, Search, RefreshCw, Eye, ExternalLink, AlertCircle, CheckCircle2, Clock, XCircle, Download, Paperclip, FileText, RotateCcw } from "lucide-react";
+import { Mail, Search, RefreshCw, Eye, ExternalLink, AlertCircle, CheckCircle2, Clock, XCircle, Download, Paperclip, FileText, RotateCcw, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { showToast } from "@/utils/toastWrapper";
 import { useNavigate } from "react-router-dom";
@@ -65,6 +66,8 @@ export const InboundEmailLog = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedEmail, setSelectedEmail] = useState<InboundEmail | null>(null);
   const [reprocessing, setReprocessing] = useState(false);
+  const [emailToDelete, setEmailToDelete] = useState<InboundEmail | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const itemsPerPage = 15;
 
   useEffect(() => {
@@ -115,6 +118,37 @@ export const InboundEmailLog = () => {
       showToast.error("Failed to re-process email", { section: "complaints" });
     } finally {
       setReprocessing(false);
+    }
+  };
+
+  const handleDelete = async (email: InboundEmail) => {
+    try {
+      setDeleting(true);
+
+      // Delete any stored attachments first
+      if (email.has_attachments && Array.isArray(email.attachments) && email.attachments.length > 0) {
+        const paths = email.attachments.map(att => att.path).filter(Boolean);
+        if (paths.length > 0) {
+          await supabase.storage.from("inbound-email-attachments").remove(paths);
+        }
+      }
+
+      const { error } = await supabase
+        .from("inbound_emails")
+        .delete()
+        .eq("id", email.id);
+
+      if (error) throw error;
+
+      showToast.success("Email deleted successfully", { section: "complaints" });
+      setEmails(prev => prev.filter(e => e.id !== email.id));
+      if (selectedEmail?.id === email.id) setSelectedEmail(null);
+    } catch (err) {
+      console.error("Delete error:", err);
+      showToast.error("Failed to delete email", { section: "complaints" });
+    } finally {
+      setDeleting(false);
+      setEmailToDelete(null);
     }
   };
 
@@ -285,6 +319,14 @@ export const InboundEmailLog = () => {
                                   <ExternalLink className="h-4 w-4" />
                                 </Button>
                               )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={(e) => { e.stopPropagation(); setEmailToDelete(email); }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -499,10 +541,55 @@ export const InboundEmailLog = () => {
                   View {selectedEmail.record_type === "complaint" ? "Complaint" : "Compliment"} Record
                 </Button>
               )}
+
+              {/* Delete button */}
+              <Button
+                variant="outline"
+                className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                onClick={() => { setEmailToDelete(selectedEmail); setSelectedEmail(null); }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Email
+              </Button>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!emailToDelete} onOpenChange={(open) => !open && setEmailToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete inbound email?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the email from <strong>{emailToDelete?.from_name || emailToDelete?.from_email}</strong>
+              {emailToDelete?.subject && <> with subject "<strong>{emailToDelete.subject}</strong>"</>}.
+              {emailToDelete?.has_attachments && " Any stored attachments will also be removed."}
+              {" "}This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              onClick={() => emailToDelete && handleDelete(emailToDelete)}
+            >
+              {deleting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
