@@ -513,6 +513,27 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     return null;
   };
 
+  const extractAudioTimeFromFilename = (filename: string): string | null => {
+    // Match time after date pattern, e.g. "07-10-2024 10-49GST" or "07-10-2024_14-30" or "2024-10-07 10:49"
+    const timePatterns = [
+      /\d{2}[-\/]\d{2}[-\/]\d{4}\s+(\d{1,2})[-:](\d{2})\s*(?:GST|GMT|BST|UTC)?/i,  // DD-MM-YYYY HH-MM[TZ]
+      /\d{4}[-\/]\d{2}[-\/]\d{2}[\s_T]+(\d{1,2})[-:](\d{2})/i,                       // YYYY-MM-DD HH-MM
+      /\d{2}[-\/]\d{2}[-\/]\d{4}[_\s]+(\d{1,2})[-:](\d{2})/i,                        // DD-MM-YYYY_HH-MM
+    ];
+
+    for (const pattern of timePatterns) {
+      const match = filename.match(pattern);
+      if (match) {
+        const hours = parseInt(match[1]);
+        const minutes = match[2];
+        if (hours >= 0 && hours <= 23 && parseInt(minutes) >= 0 && parseInt(minutes) <= 59) {
+          return `${hours.toString().padStart(2, '0')}:${minutes}`;
+        }
+      }
+    }
+    return null;
+  };
+
   const makeTableCell = (text: string, bold = false, shading?: string): TableCell => {
     return new TableCell({
       children: [
@@ -542,6 +563,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       const paragraphs = formatTranscriptIntoParagraphs(text);
       const wordCount = text.split(/\s+/).filter(w => w.length > 0).length;
       const audioDate = extractAudioDateFromFilename(fileName);
+      const audioTime = extractAudioTimeFromFilename(fileName);
       const todayFormatted = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
       const complaintDate = complaintDetails.created_at 
         ? new Date(complaintDetails.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -552,53 +574,71 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         ? complaintDetails.complaint_description.substring(0, 297) + '…'
         : complaintDetails.complaint_description;
 
+      // Build complaint details table rows
+      const tableRows: TableRow[] = [
+        new TableRow({
+          children: [
+            makeTableCell('Complaint Reference', true, 'F2F2F2'),
+            makeTableCell(complaintDetails.reference_number),
+          ],
+        }),
+        new TableRow({
+          children: [
+            makeTableCell('Practice', true, 'F2F2F2'),
+            makeTableCell(complaintDetails.practice_name || 'Not specified'),
+          ],
+        }),
+        new TableRow({
+          children: [
+            makeTableCell('Report Date', true, 'F2F2F2'),
+            makeTableCell(todayFormatted),
+          ],
+        }),
+        new TableRow({
+          children: [
+            makeTableCell('Date of Audio', true, 'F2F2F2'),
+            makeTableCell(audioDate || 'Not available'),
+          ],
+        }),
+      ];
+
+      // Add time of call row if known
+      if (audioTime) {
+        tableRows.push(
+          new TableRow({
+            children: [
+              makeTableCell('Time of Call', true, 'F2F2F2'),
+              makeTableCell(audioTime),
+            ],
+          })
+        );
+      }
+
+      tableRows.push(
+        new TableRow({
+          children: [
+            makeTableCell('Date of Complaint', true, 'F2F2F2'),
+            makeTableCell(complaintDate),
+          ],
+        }),
+        new TableRow({
+          children: [
+            makeTableCell('Category', true, 'F2F2F2'),
+            makeTableCell(complaintDetails.category),
+          ],
+        }),
+        new TableRow({
+          children: [
+            makeTableCell('Complaint Summary', true, 'F2F2F2'),
+            makeTableCell(summaryText),
+          ],
+        }),
+      );
+
       // Build complaint details table
       const detailsTable = new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: [
-          new TableRow({
-            children: [
-              makeTableCell('Complaint Reference', true, 'F2F2F2'),
-              makeTableCell(complaintDetails.reference_number),
-            ],
-          }),
-          new TableRow({
-            children: [
-              makeTableCell('Practice', true, 'F2F2F2'),
-              makeTableCell(complaintDetails.practice_name || 'Not specified'),
-            ],
-          }),
-          new TableRow({
-            children: [
-              makeTableCell('Report Date', true, 'F2F2F2'),
-              makeTableCell(todayFormatted),
-            ],
-          }),
-          new TableRow({
-            children: [
-              makeTableCell('Date of Audio', true, 'F2F2F2'),
-              makeTableCell(audioDate || 'Not available'),
-            ],
-          }),
-          new TableRow({
-            children: [
-              makeTableCell('Date of Complaint', true, 'F2F2F2'),
-              makeTableCell(complaintDate),
-            ],
-          }),
-          new TableRow({
-            children: [
-              makeTableCell('Category', true, 'F2F2F2'),
-              makeTableCell(complaintDetails.category),
-            ],
-          }),
-          new TableRow({
-            children: [
-              makeTableCell('Complaint Summary', true, 'F2F2F2'),
-              makeTableCell(summaryText),
-            ],
-          }),
-        ],
+        rows: tableRows,
       });
 
       // Build the factual summary section
