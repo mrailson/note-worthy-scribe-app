@@ -3929,6 +3929,11 @@ const ComplaintDetails = () => {
           onSuccess={() => {
             fetchComplaintDetails();
             showToast.success('Outcome letter created successfully!', { section: 'complaints' });
+            setActiveTab("workflow");
+            setTimeout(() => {
+              setShowOutcomeLetter(true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 1500);
           }}
         />
       )}
