@@ -77,6 +77,8 @@ import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAcces
 import { AI4GPServicesOverview } from '@/components/admin/AI4GPServicesOverview';
 import { PolicyEnhancementModelSettings } from '@/components/admin/PolicyEnhancementModelSettings';
 import { ICBTrafficLightManager } from '@/components/admin/ICBTrafficLightManager';
+import { EdgeFunctionAudit } from '@/components/admin/EdgeFunctionAudit';
+import { PageRouteAudit } from '@/components/admin/PageRouteAudit';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
 
 import * as XLSX from 'xlsx-js-style';
@@ -1935,7 +1937,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 h-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 h-auto">
             <TabsTrigger value="overview" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
               <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -1965,6 +1967,11 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <Bot className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Pilot Usage Report</span>
               <span className="sm:hidden">Pilot</span>
+            </TabsTrigger>
+            <TabsTrigger value="platform-audit" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <Database className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Platform Audit</span>
+              <span className="sm:hidden">Audit</span>
             </TabsTrigger>
           </TabsList>
 
@@ -2323,6 +2330,28 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* AI4GP Services Tab */}
           <TabsContent value="ai4gp-services" className="space-y-6">
             <AI4GPServicesOverview />
+          </TabsContent>
+
+          {/* Platform Audit Tab */}
+          <TabsContent value="platform-audit" className="space-y-6">
+            <Tabs defaultValue="edge-functions" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 h-auto mb-4">
+                <TabsTrigger value="edge-functions" className="flex items-center gap-2 text-xs sm:text-sm p-2">
+                  <Database className="h-4 w-4" />
+                  <span>Edge Functions</span>
+                </TabsTrigger>
+                <TabsTrigger value="pages-routes" className="flex items-center gap-2 text-xs sm:text-sm p-2">
+                  <FileText className="h-4 w-4" />
+                  <span>Pages & Routes</span>
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="edge-functions">
+                <EdgeFunctionAudit />
+              </TabsContent>
+              <TabsContent value="pages-routes">
+                <PageRouteAudit />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           {/* User Management Tab */}
