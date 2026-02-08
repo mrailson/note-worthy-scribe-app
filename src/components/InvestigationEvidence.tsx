@@ -1001,10 +1001,11 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="files">Evidence Files</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="files">
+                Evidence Files{evidenceFiles.length > 0 && ` (${evidenceFiles.length})`}
+              </TabsTrigger>
               <TabsTrigger value="upload">Upload Evidence</TabsTrigger>
-              <TabsTrigger value="transcripts">Audio Transcripts</TabsTrigger>
             </TabsList>
 
             {/* Upload Evidence Tab */}
@@ -1114,7 +1115,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                           </div>
                           {(file.ai_summary || file.description) && (
                             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                              {file.ai_summary || file.description}
+                              {(file.ai_summary || file.description || '').replace(/#{1,6}\s*/g, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')}
                             </p>
                           )}
                           {file.ai_summary && (file.evidence_type === 'audio' || file.file_type?.startsWith('audio/')) && (
@@ -1179,83 +1180,6 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
               )}
             </TabsContent>
 
-            {/* Audio Transcripts Tab */}
-            <TabsContent value="transcripts" className="space-y-4">
-              {audioTranscripts.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No audio transcripts available yet
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {audioTranscripts.map((transcript) => {
-                    const audioFile = evidenceFiles.find(f => f.id === transcript.audio_file_id);
-                    return (
-                      <div key={transcript.id} className="p-5 border rounded-lg bg-card">
-                        <div className="flex items-center justify-between mb-4 pb-3 border-b">
-                          <div className="flex items-center gap-2">
-                            <Volume2 className="h-5 w-5 text-primary" />
-                            <span className="font-semibold text-base">{audioFile?.file_name || 'Unknown file'}</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-sm text-muted-foreground">{new Date(transcript.transcribed_at).toLocaleDateString('en-GB')}</span>
-                            {transcript.audio_duration_seconds && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-medium">
-                                {formatDuration(transcript.audio_duration_seconds)}
-                              </span>
-                            )}
-                            {transcript.transcription_confidence && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                                {Math.round(transcript.transcription_confidence * 100)}% confidence
-                              </span>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => downloadTranscriptAsWord(
-                                transcript.transcript_text,
-                                audioFile?.file_name || 'transcript',
-                                transcript.transcription_confidence,
-                                transcript.audio_duration_seconds
-                              )}
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              Word
-                            </Button>
-                            {!disabled && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => confirmDeleteTranscript(transcript)}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="bg-muted/50 p-5 rounded-lg border">
-                          <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert space-y-4">
-                            {transcript.transcript_text.split(/(?<=[.!?])\s+(?=[A-Z])|(?<=\?)\s+|(?<=\.)\s{2,}/).reduce((acc: string[][], sentence) => {
-                              const lastGroup = acc[acc.length - 1];
-                              if (!lastGroup || lastGroup.length >= 4 || (lastGroup.join(' ').length > 400)) {
-                                acc.push([sentence]);
-                              } else {
-                                lastGroup.push(sentence);
-                              }
-                              return acc;
-                            }, [] as string[][]).map((paragraph, idx) => (
-                              <p key={idx} className="text-base leading-relaxed text-foreground">
-                                {paragraph.join(' ')}
-                              </p>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
