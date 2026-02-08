@@ -1,7 +1,7 @@
 # Archived Edge Functions
 
 **Date:** 2026-02-08
-**Classification:** Tier 2 SAFE candidates (no code references, no invocations in 30 days)
+**Classification:** Tier 2 + Tier 3 SAFE candidates (no code references, no invocations in 30 days)
 
 ## Purpose
 
@@ -16,7 +16,7 @@ All functions in this folder met **every** condition below:
 3. **No references in SQL migrations, cron jobs, or triggers** — not used by `pg_cron` or database triggers
 4. **Zero invocations in the last 30 days** — confirmed via Supabase function logs
 
-## Archived Functions
+## Tier 2 — Archived 2026-02-08
 
 | # | Function Name | Reason |
 |---|---|---|
@@ -34,6 +34,35 @@ All functions in this folder met **every** condition below:
 | 12 | `gpt5-clinical-reviewer` | Superseded by `gpt5-fast-clinical` |
 | 13 | `update-meeting-context` | Meeting context updater — no code refs |
 
+## Tier 3 (GREEN batch 1) — Archived 2026-02-08
+
+| # | Function Name | Reason |
+|---|---|---|
+| 14 | `api-key-test` | Debug utility — no code refs, no logs 30d |
+| 15 | `generate-image` | DALL-E image gen — no code refs, no logs 30d |
+| 16 | `drug-vocabulary` | Drug vocabulary builder — no code refs, no logs 30d |
+| 17 | `medical-translation-cross-check` | Multi-service translation — no code refs, no logs 30d |
+| 18 | `generate-dual-consultation-summary` | Dual consultation summary — no code refs, no logs 30d |
+| 19 | `generate-ppt-from-content` | PPT generator — empty directory, config-only entry removed |
+
+### Tier 3 candidates NOT archived (active references found)
+
+The following were initially proposed for archival but **verification search found active code references**. They remain in `supabase/functions/`:
+
+| Function | Referenced In |
+|---|---|
+| `generate-meeting-notes-compare` | `src/components/MeetingNotesGenerator.tsx:198` |
+| `generate-notes-styles` | `src/components/MobileNotesSheet.tsx:569` |
+| `admin-clear-old-chats` | `src/components/admin/StorageManagement.tsx:499` |
+| `email-translation-quality` | `src/components/EmailHandler.tsx:134` |
+| `generate-audio-review` | `src/components/InvestigationEvidence.tsx:670,712` |
+| `notify-login-rate-limit` | `supabase/functions/check-login-rate-limit/index.ts:149` |
+| `smart-source-router` | `supabase/functions/ai-4-pm-chat/index.ts:1972` |
+| `bnf-updates-fetcher` | Called by `smart-source-router` |
+| `nhs-guidance-fetcher` | Called by `smart-source-router` |
+| `nice-guidance-fetcher` | Called by `smart-source-router` |
+| `mhra-alerts-fetcher` | Called by `smart-source-router` |
+
 ## How to Restore
 
 To restore any function:
@@ -43,11 +72,11 @@ To restore any function:
 3. Redeploy (Lovable will auto-deploy on next save)
 
 ```bash
-# Example: restore smart-web-search
-mv supabase/functions__archive/smart-web-search supabase/functions/smart-web-search
+# Example: restore generate-image
+mv supabase/functions__archive/generate-image supabase/functions/generate-image
 ```
 
 ## Related Documentation
 
 - Tier 1 cleanup record: `docs/edge-function-cleanup/2026-02-07-tier1.md`
-- This Tier 2 archive: `supabase/functions__archive/`
+- This archive: `supabase/functions__archive/`
