@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -63,6 +64,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
   const [extractedData, setExtractedData] = useState<ComplaintData | null>(null);
   const [loadedExample, setLoadedExample] = useState<{number: number, name: string} | null>(null);
   const [hiddenTextFile, setHiddenTextFile] = useState<File | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   
   // Patient details import state
@@ -838,7 +840,9 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                             <img 
                               src={imageUrl} 
                               alt={file.name}
-                              className="h-12 w-12 object-cover rounded border flex-shrink-0"
+                              className="h-12 w-12 object-cover rounded border flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary transition-all"
+                              title="Click to view full size"
+                              onClick={() => setPreviewImageUrl(imageUrl)}
                               onError={(e) => {
                                 console.log('Image load error:', e);
                               }}
@@ -1294,6 +1298,19 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
         onOpenChange={setShowQRModal}
         onImagesReceived={handleCapturedImages}
       />
+
+      {/* Fullscreen Image Preview */}
+      <Dialog open={!!previewImageUrl} onOpenChange={() => setPreviewImageUrl(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-2 flex items-center justify-center bg-black/95 border-none [&>button]:text-white [&>button]:hover:bg-white/20">
+          {previewImageUrl && (
+            <img
+              src={previewImageUrl}
+              alt="Full size preview"
+              className="max-w-full max-h-[90vh] object-contain rounded"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
