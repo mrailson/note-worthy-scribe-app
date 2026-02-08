@@ -183,11 +183,37 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         .single();
 
       if (error) throw error;
+
+      // Resolve practice name from practice_details (user profile) first, then gp_practices fallback
+      let practiceName: string | null = null;
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // Try practice_details by user_id first (the user's own profile practice)
+        const { data: profilePractice } = await supabase
+          .from('practice_details')
+          .select('practice_name')
+          .eq('user_id', user.id)
+          .not('practice_name', 'ilike', '%Default Practice%')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (profilePractice?.practice_name) {
+          practiceName = profilePractice.practice_name;
+        }
+      }
+
+      // Fallback to gp_practices if no practice_details match
+      if (!practiceName) {
+        practiceName = data.gp_practices?.name || null;
+      }
+
       setComplaintDetails({
         ...data,
         complaint_description: data.complaint_description || '',
         created_at: data.created_at || null,
-        practice_name: data.gp_practices?.name || null,
+        practice_name: practiceName,
         practice_id: data.practice_id || null,
       });
     } catch (error) {
