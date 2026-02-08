@@ -683,6 +683,8 @@ export const MeetingRecorder = ({
     setRealtimeTranscripts([]);
     setChunkCounter(0);
     chunkCounterRef.current = 0; // CRITICAL: Reset ref alongside state
+    setChunkSaveStatuses([]); // Clear previous meeting's chunk data
+    setRemovedSegments([]); // Clear removed segments from previous meeting
     setConnectionStatus("Disconnected");
     setSpeakerCount(0);
     setWordCount(0);
@@ -6332,7 +6334,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                              onClick={startRecording}
                              size="lg"
                              disabled={showPostMeetingActions}
-                             className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
+                             className={`bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg ${showPostMeetingActions ? 'opacity-50 pointer-events-none cursor-not-allowed' : ''}`}
                            >
                              <Mic className="h-5 w-5 mr-2" />
                              Start Recording
