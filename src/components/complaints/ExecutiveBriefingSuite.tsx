@@ -399,34 +399,18 @@ export const ExecutiveBriefingSuite: React.FC<ExecutiveBriefingSuiteProps> = ({
                           {persistedPowerPoint.slideCount} slides
                         </p>
                       )}
-                      <div className="flex gap-2">
-                        <Button
+                      <Button
                           variant="outline"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             downloadPersistedPowerPoint(complaint.reference_number);
                           }}
-                          className="flex-1 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
+                          className="w-full border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
                         >
                           <Download className="h-3.5 w-3.5 mr-1" />
                           Download
                         </Button>
-                        {persistedPowerPoint.gammaUrl && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.open(persistedPowerPoint.gammaUrl, '_blank', 'noopener,noreferrer');
-                            }}
-                            className="flex-1 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                            View
-                          </Button>
-                        )}
-                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
