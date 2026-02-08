@@ -99,11 +99,17 @@ export const InboundEmailLog = () => {
       if (error) throw error;
 
       showToast.success("Email re-processed successfully", { section: "complaints" });
-      await fetchEmails();
-      // Update the selected email with fresh data
-      const updated = emails.find((e) => e.id === email.id);
-      if (updated) setSelectedEmail(updated);
-      else setSelectedEmail(null);
+      // Fetch fresh data and update selected email
+      const { data: freshData } = await supabase
+        .from("inbound_emails")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (freshData) {
+        setEmails(freshData as unknown as InboundEmail[]);
+        const updated = freshData.find((e: any) => e.id === email.id);
+        if (updated) setSelectedEmail(updated as unknown as InboundEmail);
+        else setSelectedEmail(null);
+      }
     } catch (err) {
       console.error("Reprocess error:", err);
       showToast.error("Failed to re-process email", { section: "complaints" });
