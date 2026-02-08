@@ -138,7 +138,7 @@ serve(async (req) => {
       throw new Error('EmailJS configuration not complete - missing required secrets');
     }
 
-    const baseUrl = 'https://gnotewell.co.uk';
+    const baseUrl = 'https://gpnotewell.co.uk';
     
     const emailResults = [];
 
