@@ -2416,7 +2416,12 @@ const ComplaintDetails = () => {
 
                             {acknowledgementSentToPatient ? (
                               <>
-                                <Badge variant="default" className="bg-green-600">
+                                <Badge
+                                  variant="default"
+                                  className="bg-green-600 cursor-pointer select-none"
+                                  onDoubleClick={() => handleMarkAcknowledgementSent(false)}
+                                  title="Double-click to undo"
+                                >
                                   <CheckCircle className="h-3 w-3 mr-1" />
                                   Sent to {getAcknowledgementRecipientLabel(complaint?.complaint_source)}
                                   {acknowledgementSentAt && (
