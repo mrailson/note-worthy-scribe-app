@@ -1,149 +1,65 @@
 
 
-## Inbound Email Service for Complaints and Compliments
+## Auto-Transcribe and AI Review for Audio Evidence
 
 ### Overview
-Create a new edge function that acts as a webhook endpoint for Resend's inbound email feature. When someone sends an email to a designated address (e.g. `complaints@bluepcn.co.uk`), the system will automatically:
-1. Receive and parse the email via Resend's webhook
-2. Use AI to classify it as a complaint or compliment
-3. Extract structured data (patient name, category, description, etc.)
-4. Create the appropriate record in the `complaints` or `compliments` table
-5. Store the original email for audit purposes
-6. Log the processing result
+When audio files (MP3, WAV, etc.) are uploaded as evidence, the system will automatically transcribe the audio, run an AI review, and store both the transcript and the structured AI analysis. The AI review will also appear in the Word download report. The file size limit for audio files will increase from 10MB to 20MB.
 
-### How It Works
+### What Changes
 
-```text
-Email sent to complaints@bluepcn.co.uk (or .resend.app address)
-    |
-    v
-Resend parses the email and sends JSON webhook to edge function
-    |
-    v
-Edge function: process-inbound-email
-    |
-    v
-AI classification: Is this a complaint or a compliment?
-    |
-    +--- Complaint ---> Extract structured data ---> Insert into complaints table
-    |
-    +--- Compliment --> Extract structured data ---> Insert into compliments table
-    |
-    v
-Store raw email in inbound_emails log table
-    |
-    v
-Return 200 to Resend webhook
-```
+**1. Increase audio file size limit to 20MB**
+- Update the `MAX_FILE_SIZE` constant in `InvestigationEvidence.tsx` for audio files
+- Keep the 10MB limit for non-audio files to avoid storage bloat
+- Update the upload hint text to reflect the new limit
 
-### Pre-requisites (User Setup in Resend Dashboard)
-Before this will work, you will need to:
-1. Go to the Resend dashboard at https://resend.com/receiving
-2. Either use the auto-generated `.resend.app` address or configure a custom domain (e.g. `complaints@bluepcn.co.uk`)
-3. Create a webhook pointing to the edge function URL:
-   `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/process-inbound-email`
-4. Select the `email.received` event type
+**2. Auto-transcription is already working**
+- The `analyse-evidence-file` edge function already calls `speech-to-text` for audio files and returns a transcript
+- The `InvestigationEvidence.tsx` component already auto-saves the transcript to `complaint_investigation_transcripts`
+- No changes needed for transcription itself
 
-No new secrets are required -- the existing `RESEND_API_KEY`, `OPENAI_API_KEY`, and Supabase service role key are already configured.
+**3. Store AI audio review alongside transcript**
+- The `analyse-evidence-file` edge function already generates an AI analysis of audio content (tone, staff/patient behaviour, complaint handling, lessons). This analysis is currently stored in the `ai_summary` field of the evidence record.
+- However, it's only shown as a truncated 2-line preview in the Evidence Files tab. The full review needs to be viewable.
 
-### Changes
+**4. Add "View AI Review" to evidence file list**
+- Add an expandable section or modal to view the full `ai_summary` (which contains the structured AI review) for audio files in the Evidence Files tab
+- This makes the full Call Summary, Tone Assessment, Patient Behaviour, Staff Behaviour, Complaint Handling, and Lessons sections visible without leaving the page
 
-#### 1. New Database Table: `inbound_emails`
-A log table to store every inbound email for audit and debugging.
-
-| Column | Type | Purpose |
-|--------|------|---------|
-| id | uuid (PK) | Auto-generated |
-| email_id | text | Resend's email ID |
-| from_email | text | Sender address |
-| from_name | text | Sender name |
-| to_email | text | Recipient address |
-| subject | text | Email subject line |
-| text_body | text | Plain text content |
-| html_body | text | HTML content |
-| has_attachments | boolean | Whether attachments were included |
-| attachment_count | integer | Number of attachments |
-| classification | text | 'complaint', 'compliment', or 'unknown' |
-| record_id | uuid | ID of the created complaint/compliment record |
-| record_type | text | 'complaint' or 'compliment' |
-| processing_status | text | 'pending', 'processed', 'failed', 'manual_review' |
-| processing_notes | text | AI processing notes or error details |
-| practice_id | uuid | Linked practice (nullable) |
-| created_at | timestamptz | When received |
-
-RLS: Enabled with policy for authenticated users to SELECT only (service role inserts via edge function).
-
-#### 2. New Edge Function: `process-inbound-email`
-A public (no JWT) webhook endpoint that:
-
-- **Validates** the incoming Resend webhook payload (checks for `type: "email.received"`)
-- **Extracts** the email content (from, subject, text body, HTML body, attachments metadata)
-- **Classifies** using OpenAI whether the email is a complaint or compliment based on content, tone, and subject line
-- **Extracts structured data** using the same AI prompt patterns already used in `import-complaint-data` for complaints
-- For compliments, extracts: patient name, email, title, description, category, staff mentioned, source (set to 'email')
-- **Creates the record** in the appropriate table using the Supabase service role client
-- **Logs** the inbound email to the `inbound_emails` table with processing status
-- **Handles attachments**: If attachments are present, notes their count but does not download them at this stage (can be enhanced later via Resend's Attachments API)
-- **Falls back** to 'manual_review' status if the AI cannot confidently classify the email
-
-**Complaint fields populated automatically:**
-- `patient_name` -- extracted from email content or sender name
-- `patient_contact_email` -- from sender address
-- `complaint_title` -- extracted/summarised from subject + body
-- `complaint_description` -- AI-summarised professionally (same rules as import-complaint-data)
-- `category` -- AI-classified using the existing category hierarchy
-- `priority` -- AI-inferred from severity
-- `incident_date` -- extracted or defaults to today
-- `status` -- set to 'submitted'
-- `complaint_source` -- set to 'patient' (or 'other' if from an organisation)
-- `consent_given` -- defaults to false
-- `created_by` -- uses a system/service account approach
-
-**Compliment fields populated automatically:**
-- `patient_name` -- extracted or sender name
-- `patient_contact_email` -- sender address
-- `compliment_title` -- extracted from subject
-- `compliment_description` -- email body summarised
-- `category` -- AI-classified
-- `source` -- set to 'email'
-- `compliment_date` -- today's date
-- `reference_number` -- auto-generated by existing trigger (CMPL prefix)
-
-#### 3. Frontend: Inbound Email Log Viewer
-Add a new sub-tab or section within the Complaints system to view inbound emails and their processing status. This allows practice managers to:
-- See all emails received
-- View classification results
-- Re-process or manually assign emails that failed classification
-- Link to the created complaint/compliment record
-
-This will be a simple table view within the existing Complaints & Compliments page.
-
-### File Changes
-
-| File | Action | Purpose |
-|------|--------|---------|
-| Migration SQL | Create | New `inbound_emails` table with RLS |
-| `supabase/functions/process-inbound-email/index.ts` | Create | Webhook endpoint for Resend inbound emails |
-| `supabase/config.toml` | Edit | Add `process-inbound-email` with `verify_jwt = false` (webhook) |
-| `src/pages/ComplaintsSystem.tsx` | Edit | Add Inbound Emails log viewer tab |
+**5. Include Audio Evidence AI Review in Word Report**
+- Update `exportComplaintReportToWord` in `src/utils/exportComplaintReport.ts` to accept audio evidence data (transcripts and AI reviews)
+- Add a new "Audio Evidence Analysis" section to the Word report, placed between Evidence and Investigation Findings
+- For each audio file with a transcript and AI review, include:
+  - File name, upload date, duration
+  - Full transcript text
+  - AI Review sections: Call Summary, Tone Assessment (staff and patient), Complaint Handling Assessment, Patient Behaviour, Staff Behaviour, Key Lessons and Recommendations, Training Requirements
+- Update the `ReportData` interface to include audio evidence data
+- Update all call sites in `ComplaintDetails.tsx` to fetch and pass audio evidence data
 
 ### Technical Details
 
-**Edge Function Authentication:**
-The webhook endpoint must be public (`verify_jwt = false`) since Resend sends webhooks without auth headers. The function validates the payload structure to ensure it matches Resend's `email.received` format.
+**File changes:**
 
-**AI Classification Prompt:**
-The AI will receive the email subject and body and classify based on:
-- Positive language, praise, thanks = compliment
-- Negative language, dissatisfaction, issues, formal complaints = complaint
-- Ambiguous = marked for manual review
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/components/InvestigationEvidence.tsx` | Edit | Allow 20MB for audio files; add expandable AI review view for audio evidence |
+| `src/utils/exportComplaintReport.ts` | Edit | Add `audioEvidenceReviews` to `ReportData` interface; add "Audio Evidence Analysis" section to Word report |
+| `src/pages/ComplaintDetails.tsx` | Edit | Fetch audio transcripts and AI reviews, pass to `exportComplaintReportToWord` |
 
-**`created_by` for auto-created records:**
-Since complaints require a `created_by` (NOT NULL, uuid), the edge function will look up a system admin user or the first user linked to the practice. If no user can be determined, the email will be logged with `manual_review` status for a human to process.
+**No new edge functions or database changes required.** The existing `analyse-evidence-file` already generates the structured AI review and returns a transcript. The data is already being stored in the `complaint_investigation_evidence.ai_summary` and `complaint_investigation_transcripts` tables.
 
-**Complaint Source:**
-Emails will have `complaint_source` set to `'patient'` by default. The AI will attempt to detect if the sender is an organisation (e.g. NHS Resolution, ICB, solicitor) and set the source accordingly.
+**Audio file size handling:**
+- The `onDrop` callback will check if a file is audio and apply a 20MB limit, while keeping 10MB for other file types
+- The dropzone hint text will be updated to mention "Audio up to 20MB, other files up to 10MB"
 
-**Rate Limiting:**
-Resend webhooks are trusted, but the function includes basic validation to reject malformed payloads.
+**Word report "Audio Evidence Analysis" section structure:**
+For each audio evidence file:
+- Heading with file name
+- Metadata table (file size, upload date, duration if available)
+- Full AI review (parsed from markdown in `ai_summary`)
+- Full transcript text (from `complaint_investigation_transcripts`)
+
+**Evidence Files tab "View AI Review" expansion:**
+- When an audio file has an `ai_summary` longer than the 2-line preview, show a "View AI Review" button
+- Clicking it opens a dialog/modal displaying the full AI review in formatted markdown
+- The review is already generated on upload, so this is a display-only change
 
