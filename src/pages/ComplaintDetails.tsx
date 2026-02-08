@@ -82,6 +82,7 @@ import { ExecutiveBriefingSuite } from "@/components/complaints/ExecutiveBriefin
 import { ComplaintReviewNote } from "@/components/complaints/ComplaintReviewNote";
 import { AddComplaintDocumentDialog } from "@/components/complaints/AddComplaintDocumentDialog";
 import { getComplaintSourceLabel, getAcknowledgementRecipientLabel } from "@/utils/complaintSourceLabels";
+import { IndemnityConsiderationField } from "@/components/complaints/IndemnityConsiderationField";
 
 interface Complaint {
   id: string;
@@ -2512,6 +2513,12 @@ const ComplaintDetails = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Indemnity Consideration — internal only */}
+                  <IndemnityConsiderationField
+                    complaintId={complaint.id}
+                    isOutcomeFinalised={!!complaint.closed_at}
+                  />
                 </CardContent>
               </Card>
 
