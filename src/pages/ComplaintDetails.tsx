@@ -2542,14 +2542,16 @@ const ComplaintDetails = () => {
                                 'Complaint Not Upheld'
                               }
                             </Badge>
-                            <button
-                              onClick={handleRegenerateOutcomeLetter}
-                              disabled={isRegeneratingOutcome}
-                              className="text-green-700 hover:text-green-900 transition-colors disabled:opacity-50"
-                              title="Regenerate outcome letter"
-                            >
-                              <RefreshCw className={`h-3 w-3 ${isRegeneratingOutcome ? 'animate-spin' : ''}`} />
-                            </button>
+                            {!outcomeLetterSent && (
+                              <button
+                                onClick={handleRegenerateOutcomeLetter}
+                                disabled={isRegeneratingOutcome}
+                                className="text-green-700 hover:text-green-900 transition-colors disabled:opacity-50"
+                                title="Regenerate outcome letter"
+                              >
+                                <RefreshCw className={`h-3 w-3 ${isRegeneratingOutcome ? 'animate-spin' : ''}`} />
+                              </button>
+                            )}
                           </div>
                           {existingOutcome.decided_at && (
                             <div className="text-sm text-green-700">
@@ -2890,15 +2892,17 @@ const ComplaintDetails = () => {
                             <Brain className="h-4 w-4 mr-1" />
                             AI Edit
                           </Button>
-                          <Button 
-                            variant="outline"
-                            size="sm"
-                            onClick={handleRegenerateOutcomeLetter}
-                            disabled={isRegeneratingOutcome}
-                          >
-                            <RefreshCw className={`h-4 w-4 mr-1 ${isRegeneratingOutcome ? 'animate-spin' : ''}`} />
-                            {isRegeneratingOutcome ? 'Regenerating...' : 'Regenerate'}
-                          </Button>
+                          {!outcomeLetterSent && (
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={handleRegenerateOutcomeLetter}
+                              disabled={isRegeneratingOutcome}
+                            >
+                              <RefreshCw className={`h-4 w-4 mr-1 ${isRegeneratingOutcome ? 'animate-spin' : ''}`} />
+                              {isRegeneratingOutcome ? 'Regenerating...' : 'Regenerate'}
+                            </Button>
+                          )}
                           <Button 
                             variant="outline"
                             size="sm"
