@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-type SortField = 'user' | 'ai4gp' | 'gp_genie' | 'pm_genie' | 'patient_line' | 'total' | 'messages' | 'last_active';
+type SortField = 'user' | 'ai4gp' | 'presentations' | 'total' | 'messages' | 'last_active';
 type SortDirection = 'asc' | 'desc';
 
 interface UserGenieStats {
@@ -18,9 +18,8 @@ interface UserGenieStats {
   email: string;
   full_name: string | null;
   ai4gp_count: number;
-  gp_genie_count: number;
-  pm_genie_count: number;
-  patient_line_count: number;
+  presentations_count: number;
+  presentations_slides: number;
   scribe_count: number;
   meeting_count: number;
   total_chats: number;
@@ -33,9 +32,8 @@ interface UserGenieStats {
 
 interface SystemStats {
   ai4gp_total: number;
-  gp_genie_total: number;
-  pm_genie_total: number;
-  patient_line_total: number;
+  presentations_total: number;
+  presentations_slides_total: number;
   scribe_total: number;
   meeting_total: number;
   total_chats: number;
@@ -49,6 +47,7 @@ interface CrossServiceStats {
   images_total: number;
   images_total_cost: number;
   presentations_total: number;
+  presentations_total_slides: number;
   presentations_total_cost: number;
   meeting_total_mins: number;
   meeting_total_words: number;
@@ -63,7 +62,6 @@ const WHISPER_COST_PER_HOUR = 0.24;
 const IMAGE_COST_PENCE = 4; // 4p per image
 const PRESENTATION_COST_PENCE = 12; // 12p per presentation
 const ASK_AI_COST_PENCE = 1.5; // 1.5p per Ask AI chat
-const GP_GENIE_COST_PENCE = 6; // 6p per GP Genie Phone call
 
 const formatDuration = (mins: number): string => {
   if (mins < 60) return `${mins}m`;
@@ -96,6 +94,7 @@ export const GenieUsageReport = () => {
     images_total: 0,
     images_total_cost: 0,
     presentations_total: 0,
+    presentations_total_slides: 0,
     presentations_total_cost: 0,
     meeting_total_mins: 0,
     meeting_total_words: 0,
@@ -108,6 +107,7 @@ export const GenieUsageReport = () => {
   const [sortField, setSortField] = useState<SortField>('total');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [isUserTableOpen, setIsUserTableOpen] = useState(false);
+  const presentationMapRef = useRef<Map<string, { count: number; slides: number }>>(new Map());
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -145,9 +145,7 @@ export const GenieUsageReport = () => {
           bVal = b.full_name || b.email; 
           break;
         case 'ai4gp': aVal = a.ai4gp_count; bVal = b.ai4gp_count; break;
-        case 'gp_genie': aVal = a.gp_genie_count; bVal = b.gp_genie_count; break;
-        case 'pm_genie': aVal = a.pm_genie_count; bVal = b.pm_genie_count; break;
-        case 'patient_line': aVal = a.patient_line_count; bVal = b.patient_line_count; break;
+        case 'presentations': aVal = a.presentations_count; bVal = b.presentations_count; break;
         case 'total': aVal = a.total_chats; bVal = b.total_chats; break;
         case 'messages': aVal = a.total_messages; bVal = b.total_messages; break;
         case 'last_active': 
@@ -166,8 +164,7 @@ export const GenieUsageReport = () => {
   }, [userStats, sortField, sortDirection]);
 
   useEffect(() => {
-    fetchGenieUsageStats();
-    fetchCrossServiceStats();
+    fetchCrossServiceStats().then(() => fetchGenieUsageStats());
   }, []);
 
   const fetchCrossServiceStats = async () => {
@@ -180,11 +177,19 @@ export const GenieUsageReport = () => {
         supabase.rpc('get_gp_scribe_stats_by_user')
       ]);
 
+      // Build a map of presentation stats per user
+      const presMap = new Map<string, { count: number; slides: number }>();
+      for (const r of (presentationResult.data || [])) {
+        presMap.set(r.user_id, { count: r.total_presentations || 0, slides: r.total_slides || 0 });
+      }
+      presentationMapRef.current = presMap;
+
       const imagesTotal = (imageResult.data || []).reduce((sum: number, r: any) => sum + (r.total_images || 0), 0);
-      const imagesTotalCost = (imagesTotal * IMAGE_COST_PENCE) / 100; // Convert pence to pounds
+      const imagesTotalCost = (imagesTotal * IMAGE_COST_PENCE) / 100;
       
       const presentationsTotal = (presentationResult.data || []).reduce((sum: number, r: any) => sum + (r.total_presentations || 0), 0);
-      const presentationsTotalCost = (presentationsTotal * PRESENTATION_COST_PENCE) / 100; // Convert pence to pounds
+      const presentationsTotalSlides = (presentationResult.data || []).reduce((sum: number, r: any) => sum + (r.total_slides || 0), 0);
+      const presentationsTotalCost = (presentationsTotal * PRESENTATION_COST_PENCE) / 100;
       
       // Meeting stats
       const meetingTotalMins = (meetingResult.data || []).reduce((sum: number, r: any) => sum + (r.total_duration_mins || 0), 0);
@@ -200,6 +205,7 @@ export const GenieUsageReport = () => {
         images_total: imagesTotal,
         images_total_cost: imagesTotalCost,
         presentations_total: presentationsTotal,
+        presentations_total_slides: presentationsTotalSlides,
         presentations_total_cost: presentationsTotalCost,
         meeting_total_mins: meetingTotalMins,
         meeting_total_words: meetingTotalWords,
@@ -223,31 +229,35 @@ export const GenieUsageReport = () => {
         return;
       }
 
+      const presMap = presentationMapRef.current;
+
       // Map RPC output columns (with out_ prefix) to component interface
-      const results: UserGenieStats[] = (data || []).map((row: any) => ({
-        user_id: row.out_user_id,
-        email: row.out_email,
-        full_name: row.out_full_name,
-        ai4gp_count: row.out_ai4gp_count || 0,
-        gp_genie_count: row.out_gp_genie_count || 0,
-        pm_genie_count: row.out_pm_genie_count || 0,
-        patient_line_count: row.out_patient_line_count || 0,
-        scribe_count: row.out_scribe_count || 0,
-        meeting_count: row.out_meeting_count || 0,
-        total_chats: row.out_total_chats || 0,
-        total_messages: row.out_total_messages || 0,
-        last_24h: row.out_last_24h || 0,
-        last_7d: row.out_last_7d || 0,
-        last_30d: row.out_last_30d || 0,
-        last_active: row.out_last_active,
-      }));
+      const results: UserGenieStats[] = (data || []).map((row: any) => {
+        const userId = row.out_user_id;
+        const presData = presMap.get(userId) || { count: 0, slides: 0 };
+        return {
+          user_id: userId,
+          email: row.out_email,
+          full_name: row.out_full_name,
+          ai4gp_count: row.out_ai4gp_count || 0,
+          presentations_count: presData.count,
+          presentations_slides: presData.slides,
+          scribe_count: row.out_scribe_count || 0,
+          meeting_count: row.out_meeting_count || 0,
+          total_chats: row.out_total_chats || 0,
+          total_messages: row.out_total_messages || 0,
+          last_24h: row.out_last_24h || 0,
+          last_7d: row.out_last_7d || 0,
+          last_30d: row.out_last_30d || 0,
+          last_active: row.out_last_active,
+        };
+      });
 
       // Calculate system-wide totals
       const systemStatsCalc: SystemStats = {
         ai4gp_total: results.reduce((sum, r) => sum + (r.ai4gp_count || 0), 0),
-        gp_genie_total: results.reduce((sum, r) => sum + (r.gp_genie_count || 0), 0),
-        pm_genie_total: results.reduce((sum, r) => sum + (r.pm_genie_count || 0), 0),
-        patient_line_total: results.reduce((sum, r) => sum + (r.patient_line_count || 0), 0),
+        presentations_total: results.reduce((sum, r) => sum + (r.presentations_count || 0), 0),
+        presentations_slides_total: results.reduce((sum, r) => sum + (r.presentations_slides || 0), 0),
         scribe_total: results.reduce((sum, r) => sum + (r.scribe_count || 0), 0),
         meeting_total: results.reduce((sum, r) => sum + (r.meeting_count || 0), 0),
         total_chats: results.reduce((sum, r) => sum + (r.total_chats || 0), 0),
@@ -290,21 +300,13 @@ export const GenieUsageReport = () => {
           <CardDescription>Total usage across all AI-powered services</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className="text-center p-3 border rounded-lg">
               <Bot className="h-5 w-5 mx-auto mb-1 text-amber-600" />
               <div className="text-2xl font-bold text-amber-600">{systemStats?.ai4gp_total || 0}</div>
               <div className="text-xs text-muted-foreground">Overview</div>
               <div className="text-xs mt-1 pt-1 border-t">
                 <div className="font-medium text-blue-800">{formatCost(((systemStats?.ai4gp_total || 0) * ASK_AI_COST_PENCE) / 100)}</div>
-              </div>
-            </div>
-            <div className="text-center p-3 border rounded-lg">
-              <MessageCircle className="h-5 w-5 mx-auto mb-1 text-purple-600" />
-              <div className="text-2xl font-bold text-purple-600">{systemStats?.gp_genie_total || 0}</div>
-              <div className="text-xs text-muted-foreground">GP Genie Phone</div>
-              <div className="text-xs mt-1 pt-1 border-t">
-                <div className="font-medium text-blue-800">{formatCost(((systemStats?.gp_genie_total || 0) * GP_GENIE_COST_PENCE) / 100)}</div>
               </div>
             </div>
             <div className="text-center p-3 border rounded-lg">
@@ -319,7 +321,7 @@ export const GenieUsageReport = () => {
               <Presentation className="h-5 w-5 mx-auto mb-1 text-indigo-600" />
               <div className="text-2xl font-bold text-indigo-600">{crossServiceStats.presentations_total}</div>
               <div className="text-xs text-muted-foreground">Presentations</div>
-              <div className="text-xs text-muted-foreground">~{crossServiceStats.presentations_total * 8} slides</div>
+              <div className="text-xs text-muted-foreground">{crossServiceStats.presentations_total_slides} slides</div>
               <div className="text-xs mt-1 pt-1 border-t">
                 <div className="font-medium text-blue-800">{formatCost(crossServiceStats.presentations_total_cost)}</div>
               </div>
@@ -362,9 +364,7 @@ export const GenieUsageReport = () => {
                 <TableRow>
                   <SortableHeader field="user">User</SortableHeader>
                   <SortableHeader field="ai4gp" className="text-center">AI4GP</SortableHeader>
-                  <SortableHeader field="gp_genie" className="text-center">GP Genie</SortableHeader>
-                  <SortableHeader field="pm_genie" className="text-center">PM Genie</SortableHeader>
-                  <SortableHeader field="patient_line" className="text-center">Patient Line</SortableHeader>
+                  <SortableHeader field="presentations" className="text-center">Presentations</SortableHeader>
                   <SortableHeader field="total" className="text-center">Total</SortableHeader>
                   <SortableHeader field="messages" className="text-center">Messages</SortableHeader>
                   <SortableHeader field="last_active" className="text-right">Last Active</SortableHeader>
@@ -373,8 +373,8 @@ export const GenieUsageReport = () => {
               <TableBody>
                 {sortedUserStats.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      No Genie chats found
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      No usage data found
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -394,22 +394,11 @@ export const GenieUsageReport = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                        {user.gp_genie_count > 0 ? (
-                          <Badge variant="outline" className="text-purple-600">{user.gp_genie_count}</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">0</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {user.pm_genie_count > 0 ? (
-                          <Badge variant="outline" className="text-blue-600">{user.pm_genie_count}</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">0</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {user.patient_line_count > 0 ? (
-                          <Badge variant="outline" className="text-green-600">{user.patient_line_count}</Badge>
+                        {user.presentations_count > 0 ? (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <Badge variant="outline" className="text-indigo-600">{user.presentations_count}</Badge>
+                            <span className="text-xs text-muted-foreground">{user.presentations_slides} slides</span>
+                          </div>
                         ) : (
                           <span className="text-muted-foreground">0</span>
                         )}
