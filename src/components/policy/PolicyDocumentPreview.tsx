@@ -1,6 +1,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { cleanEnhancementArtifacts, contentHasReferencesSection } from "@/utils/cleanPolicyContent";
 
 interface PolicyMetadata {
   title: string;
@@ -391,11 +392,14 @@ export const PolicyDocumentPreview: React.FC<PolicyDocumentPreviewProps> = ({
   }[logoPosition];
 
   // Replace placeholders with actual dates
-  const processedContent = content
+  let processedContent = content
     // Replace exact [PRACTICE TO COMPLETE] with effective date (for VERSION HISTORY table)
     .replace(/\[PRACTICE TO COMPLETE\]/gi, metadata.effective_date)
     // Replace Next Review Date placeholder with the actual review date
     .replace(/\[PRACTICE TO COMPLETE\s*-\s*Max 12 months\]/gi, metadata.review_date);
+
+  // Clean AI enhancement artifacts before parsing
+  processedContent = cleanEnhancementArtifacts(processedContent);
 
   const parsedContent = parseMarkdownContent(processedContent, { titleToSkip: metadata.title });
 
@@ -582,8 +586,8 @@ export const PolicyDocumentPreview: React.FC<PolicyDocumentPreviewProps> = ({
         {parsedContent}
       </div>
 
-      {/* References Section */}
-      {metadata.references && metadata.references.length > 0 && (
+      {/* References Section - only show if content doesn't already include one */}
+      {metadata.references && metadata.references.length > 0 && !contentHasReferencesSection(processedContent) && (
         <div className="mt-8 pt-4 border-t" style={{ borderColor: COLORS.tableBorder }}>
           <h2 
             className="text-lg font-bold mb-3"
