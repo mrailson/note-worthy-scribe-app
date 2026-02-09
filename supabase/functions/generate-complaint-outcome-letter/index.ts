@@ -356,7 +356,7 @@ FINAL QUALITY CHECK:
     // Build investigation data context (fetch related data separately to avoid relationship issues)
     const { data: findings } = await supabase
       .from('complaint_investigation_findings')
-      .select('investigation_summary, findings_text, evidence_notes, created_at')
+      .select('investigation_summary, findings_text, evidence_notes, critical_friend_review, created_at')
       .eq('complaint_id', complaintId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -379,6 +379,24 @@ FINAL QUALITY CHECK:
       .from('complaint_notes')
       .select('note, is_internal')
       .eq('complaint_id', complaintId);
+
+    // Fetch evidence files with descriptions/AI summaries
+    const { data: evidenceFiles } = await supabase
+      .from('complaint_investigation_evidence')
+      .select('file_name, evidence_type, description, ai_summary')
+      .eq('complaint_id', complaintId);
+
+    // Fetch audio transcripts
+    const { data: transcripts } = await supabase
+      .from('complaint_investigation_transcripts')
+      .select('transcript_text, audio_duration_seconds')
+      .eq('complaint_id', complaintId);
+
+    console.log('Evidence data fetched:', {
+      evidenceCount: evidenceFiles?.length || 0,
+      transcriptCount: transcripts?.length || 0,
+      hasCriticalFriendReview: !!findings?.critical_friend_review,
+    });
 
     const investigationFindings = findings || null;
     const investigationDecision = decisionData || null;
@@ -406,6 +424,37 @@ ${questionnaireData.improvements_made ? `Improvements Made: ${questionnaireData.
 ${questionnaireData.additional_context ? `Additional Context: ${questionnaireData.additional_context}` : ''}
 ` : '';
 
+    // Build evidence context with truncation for token management
+    const filteredEvidence = (evidenceFiles || [])
+      .filter((e: any) => e.description || e.ai_summary)
+      .slice(0, 20);
+    const evidenceContext = filteredEvidence.length > 0
+      ? `\nEVIDENCE FILES AND SUMMARIES:\n${filteredEvidence.map((e: any) => {
+          const desc = e.description || 'No description';
+          const summary = e.ai_summary ? e.ai_summary.substring(0, 1000) : '';
+          return `- ${e.file_name} (${e.evidence_type}): ${desc}${summary ? `\n  AI Summary: ${summary}` : ''}`;
+        }).join('\n')}\n`
+      : '';
+
+    // Build transcript context with truncation
+    const filteredTranscripts = (transcripts || [])
+      .filter((t: any) => t.transcript_text)
+      .slice(0, 10);
+    const transcriptContext = filteredTranscripts.length > 0
+      ? `\nAUDIO TRANSCRIPTS FROM INVESTIGATION:\n${filteredTranscripts.map((t: any) => {
+          const duration = t.audio_duration_seconds
+            ? `${Math.floor(t.audio_duration_seconds / 60)}m ${t.audio_duration_seconds % 60}s`
+            : 'unknown duration';
+          const text = t.transcript_text.substring(0, 2000);
+          return `- Recording (${duration}): ${text}${t.transcript_text.length > 2000 ? '... [truncated]' : ''}`;
+        }).join('\n')}\n`
+      : '';
+
+    // Build critical friend review context
+    const criticalFriendContext = investigationFindings?.critical_friend_review
+      ? `\nCRITICAL FRIEND REVIEW:\n${investigationFindings.critical_friend_review}\n`
+      : '';
+
     const investigationContext = `
 ${investigationFindings ? `
 INVESTIGATION FINDINGS:
@@ -430,7 +479,7 @@ ${internalNotes ? `
 INTERNAL INVESTIGATION NOTES:
 ${internalNotes}
 ` : ''}
-`;
+${evidenceContext}${transcriptContext}${criticalFriendContext}`;
 
     const userPrompt = `Generate an outcome letter for this complaint using ONLY the information provided below. Ensure the letter covers all required content areas (opening acknowledgement, investigation summary, outcome, learning and improvements, individual resolution if appropriate, escalation rights, closing) but present them as a single flowing letter without any section headings or titles. Do not use bullet points anywhere in the letter.
 
@@ -485,10 +534,11 @@ Generate a professional outcome letter that:
 1. Uses ONLY the facts provided in the sections above
 2. References the original complaint description verbatim where appropriate
 3. Clearly states the outcome decision following the toggle rules
-4. Explains the reasoning based ONLY on investigation findings and questionnaire data provided
-5. Includes the mandatory PHSO escalation paragraph
-6. Does not use bullet points anywhere in the letter
-7. Does not include any AI disclaimers or internal system references
+4. Explains the reasoning based ONLY on investigation findings, evidence files, audio transcripts, critical friend review, and questionnaire data provided
+5. Incorporates relevant evidence from uploaded files and audio transcripts where they support the investigation findings
+6. Includes the mandatory PHSO escalation paragraph
+7. Does not use bullet points anywhere in the letter
+8. Does not include any AI disclaimers or internal system references
 
 Include the date at the top of the letter as "${currentDate}".
 
@@ -522,7 +572,7 @@ CRITICAL SIGNATURE FORMATTING:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 2000,
+        max_tokens: 3000,
       }),
     });
 
