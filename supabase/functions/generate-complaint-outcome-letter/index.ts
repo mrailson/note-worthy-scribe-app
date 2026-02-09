@@ -282,8 +282,8 @@ If "Use formal outcome labels in patient letters" = NO:
   * Upheld: "Our review identified that aspects of care and/or process did not meet the standard we expect, and we are sorry for this."
 - Even when the toggle is OFF, the substance of the outcome must still match the investigation findings.
 
---- SECTION 3: MANDATORY LETTER STRUCTURE ---
-The letter must follow this order:
+--- SECTION 3: MANDATORY LETTER CONTENT (INTERNAL GUIDANCE ONLY) ---
+The letter must cover this content in order:
 
 1. Header: Date, "PRIVATE & CONFIDENTIAL", Patient name and address, Complaint reference number
 2. Opening Acknowledgement: Thank the complainant, clear apology for their experience (where appropriate), professional and empathetic tone
@@ -293,6 +293,8 @@ The letter must follow this order:
 6. Individual Resolution (If Appropriate): Acknowledge impact on the patient, do not promise preferential or guaranteed clinical access, use safe phrasing such as "We have asked the clinical team to review…" or "Where appropriate, further steps will be considered…"
 7. Escalation Rights (MANDATORY): Always include the PHSO escalation paragraph (see Section 4)
 8. Professional Closing: Offer a point of contact for clarification, signed by the appropriate practice representative
+
+These are internal content sections for your guidance only. Do NOT include section titles, headings, or labels in the letter. The letter must flow naturally as a single continuous professional document, with smooth paragraph transitions. No bold headings, no numbered sections, no titled blocks.
 
 --- SECTION 4: ESCALATION WORDING (USE THIS EXACTLY) ---
 Include the following paragraph verbatim or near-verbatim:
@@ -324,6 +326,7 @@ ${toneInstruction || 'Tone: Professional'}
 - No internal system references
 - No AI disclaimers
 - No decorative formatting or emojis
+- No section headings, titles, or labels — the letter must read as a flowing, natural professional letter
 - Start directly with the date, do NOT include any practice headers or letterhead references
 - Do not include "*Letterhead/Logo Here*" or similar placeholder text
 
@@ -429,7 +432,7 @@ ${internalNotes}
 ` : ''}
 `;
 
-    const userPrompt = `Generate an outcome letter for this complaint using ONLY the information provided below. Follow the mandatory letter structure (Header → Opening Acknowledgement → Summary of Investigation → Outcome Statement → Learning & Improvements → Individual Resolution → Escalation Rights → Professional Closing). Do not use bullet points anywhere in the letter.
+    const userPrompt = `Generate an outcome letter for this complaint using ONLY the information provided below. Ensure the letter covers all required content areas (opening acknowledgement, investigation summary, outcome, learning and improvements, individual resolution if appropriate, escalation rights, closing) but present them as a single flowing letter without any section headings or titles. Do not use bullet points anywhere in the letter.
 
 ========== COMPLAINT INFORMATION ==========
 Reference: ${complaint.reference_number}
