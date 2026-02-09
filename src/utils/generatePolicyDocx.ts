@@ -677,7 +677,7 @@ function parseMarkdownToSections(markdown: string, titleToSkip?: string): (Parag
       .replace(/&#x26;/g, '&');
 
     // Check for markdown table (starts with |)
-    if (cleanedLine.startsWith('|') || (cleanedLine.includes('|') && i + 1 < lines.length && lines[i + 1].includes('---'))) {
+    if (cleanedLine.startsWith('|') && (cleanedLine.includes('|') || (i + 1 < lines.length && lines[i + 1].includes('---')))) {
       const tableLines: string[] = [];
       while (i < lines.length && (lines[i].includes('|') || lines[i].trim().includes('---'))) {
         tableLines.push(lines[i]);
@@ -763,32 +763,90 @@ function parseMarkdownToSections(markdown: string, titleToSkip?: string): (Parag
       continue;
     }
 
-    // Bullet point: - item or * item
-    if (cleanedLine.startsWith('- ') || cleanedLine.startsWith('* ')) {
-      const bulletText = cleanedLine.substring(2);
+    // Heading 4: #### Sub-subheading
+    if (cleanedLine.startsWith('#### ')) {
+      const headingText = stripAllMarkdown(cleanedLine.substring(5));
       elements.push(new Paragraph({
         children: [
-          new TextRun({ text: "• ", font: "Calibri", size: 22 }),
+          new TextRun({
+            text: headingText,
+            bold: true,
+            size: 22,
+            color: COLORS.textGrey,
+            font: "Calibri",
+          }),
+        ],
+        spacing: { before: 120, after: 60 },
+      }));
+      i++;
+      continue;
+    }
+
+    // Sub-numbered headings: 1.1 Purpose, 2.3.1 Definitions
+    const subNumberedMatch = cleanedLine.match(/^(\d+\.\d+[\d.]*)\s+(.+)$/);
+    if (subNumberedMatch) {
+      const prefix = subNumberedMatch[1];
+      const content = subNumberedMatch[2];
+      elements.push(new Paragraph({
+        children: [
+          new TextRun({ text: `${prefix} `, font: "Calibri", size: 22, bold: true, color: COLORS.subHeadingBlue }),
+          new TextRun({ text: stripAllMarkdown(content), font: "Calibri", size: 22, bold: true, color: COLORS.subHeadingBlue }),
+        ],
+        spacing: { before: 160, after: 80 },
+      }));
+      i++;
+      continue;
+    }
+
+    // Bullet point: - item or * item (including indented/nested bullets)
+    const bulletMatch = line.match(/^(\s*)([-*•])\s+(.+)$/);
+    if (bulletMatch) {
+      const indentLevel = Math.floor(bulletMatch[1].length / 2);
+      const bulletText = bulletMatch[3];
+      const bulletChars = ["• ", "○ ", "– "];
+      const bulletChar = bulletChars[Math.min(indentLevel, bulletChars.length - 1)];
+      const indentInches = 0.25 + (indentLevel * 0.25);
+      elements.push(new Paragraph({
+        children: [
+          new TextRun({ text: bulletChar, font: "Calibri", size: 22 }),
           ...parseInlineFormatting(bulletText),
         ],
-        indent: { left: convertInchesToTwip(0.25) },
+        indent: { left: convertInchesToTwip(indentInches) },
         spacing: { after: 60 },
       }));
       i++;
       continue;
     }
 
-    // Numbered list: 1. item
+    // Numbered list: 1. item — but treat ALL-CAPS as section headings
     const numberedMatch = cleanedLine.match(/^(\d+)\.\s+(.+)$/);
     if (numberedMatch) {
-      elements.push(new Paragraph({
-        children: [
-          new TextRun({ text: `${numberedMatch[1]}. `, font: "Calibri", size: 22, bold: true }),
-          ...parseInlineFormatting(numberedMatch[2]),
-        ],
-        indent: { left: convertInchesToTwip(0.25) },
-        spacing: { after: 60 },
-      }));
+      const numContent = numberedMatch[2];
+      const strippedContent = stripAllMarkdown(numContent);
+      // All-caps text after the number = section heading, not a list item
+      if (strippedContent === strippedContent.toUpperCase() && strippedContent.length > 3 && /[A-Z]/.test(strippedContent)) {
+        elements.push(new Paragraph({
+          children: [
+            new TextRun({
+              text: `${numberedMatch[1]}. ${strippedContent}`,
+              bold: true,
+              size: 28,
+              color: COLORS.headingBlue,
+              font: "Calibri",
+            }),
+          ],
+          spacing: { before: 280, after: 120 },
+        }));
+      } else {
+        elements.push(new Paragraph({
+          children: [
+            new TextRun({ text: `${numberedMatch[1]}. `, font: "Calibri", size: 22, bold: true }),
+            ...parseInlineFormatting(numContent),
+          ],
+          indent: { left: convertInchesToTwip(0.25) },
+          spacing: { after: 60 },
+        }));
+      }
       i++;
       continue;
     }
