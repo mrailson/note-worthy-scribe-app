@@ -2893,6 +2893,15 @@ const ComplaintDetails = () => {
                           <Button 
                             variant="outline"
                             size="sm"
+                            onClick={handleRegenerateOutcomeLetter}
+                            disabled={isRegeneratingOutcome}
+                          >
+                            <RefreshCw className={`h-4 w-4 mr-1 ${isRegeneratingOutcome ? 'animate-spin' : ''}`} />
+                            {isRegeneratingOutcome ? 'Regenerating...' : 'Regenerate'}
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            size="sm"
                             onClick={() => {
                               navigator.clipboard.writeText(outcomeLetter);
                               showToast.success('Letter copied to clipboard', { section: 'complaints' });
