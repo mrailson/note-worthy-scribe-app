@@ -1,80 +1,108 @@
 
 
-# Fix: Policy Word Document Alignment Issues
+# Fix: Repeated Sections in Policy Documents
 
-## Problem
-The on-screen policy preview renders correctly, but the downloaded Word document has content "going out of line" because the markdown-to-docx parser handles several patterns differently from (or worse than) the HTML preview parser.
+## Investigation Findings
 
-## Root Causes and Fixes
+I examined the actual saved policy content in the database and traced the full generation-to-export pipeline. I found **two distinct causes** of section repetition.
 
-### 1. Numbered section headings treated as indented list items
-**Issue:** Lines like `1. PURPOSE AND SCOPE` (all-caps numbered headings) are caught by the generic numbered-list regex and rendered as indented body text with a left margin, rather than as bold section headings.
+### Cause 1: References section appears twice
 
-**Fix:** In `parseMarkdownToSections`, add a check before the numbered-list handler: if the text after the number is all uppercase (matching the preview's `numberedHeadingMatch` pattern), render it as a Heading 1 with no indent, matching the preview's treatment.
+This is the primary issue. The AI-generated policy content includes its own detailed "References and Legislation" section (typically section 10 or 17, with 10-14 fully cited items). Then **both** the Word export and the on-screen preview **unconditionally append another** "References and Legislation" section built from `metadata.references` (a shorter list of 4-5 items).
 
-### 2. Sub-numbered headings (e.g. "1.1 Purpose") not recognised
-**Issue:** The preview renders `1.1 Purpose` as a distinct sub-heading (`h3`), but the Word parser has no such pattern. These lines fall through to regular paragraph text, losing visual hierarchy.
+The result is two back-to-back references sections at the end of every policy document.
 
-**Fix:** Add a sub-numbered heading pattern (`/^\d+\.\d+\s+(.+)$/`) in `parseMarkdownToSections`, placed before the numbered-list check. Render these as bold paragraphs with `subHeadingBlue` colour and appropriate spacing, matching the preview's `h3` styling.
+Example from the Confidentiality policy:
+- Section 17 (AI-generated): 14 detailed legislation items with full titles and dates
+- Then immediately after: A second "References and Legislation" heading with 5 brief items from metadata
 
-### 3. Nested/indented bullet points lose alignment
-**Issue:** Sub-bullets (lines starting with two or more spaces before `- ` or `* `) are not recognised as bullets. They render as regular paragraphs at the left margin, breaking the list structure.
+### Cause 2: AI enhancement artifacts appearing as content
 
-**Fix:** Extend the bullet-point detection to handle indented bullets. Calculate the indent level from leading whitespace and apply proportionally larger `indent.left` values (e.g. 0.5 inch for second level, 0.75 inch for third level). Use a different bullet character (e.g. `◦` or `–`) for sub-levels to distinguish from top-level bullets.
+The enhance-policy step sometimes appends meta-commentary that is not actual policy content:
+- `## CRITICAL COMPLIANCE ENHANCEMENTS MADE:` followed by a numbered list of what the AI changed
+- `**PRACTICE ACTIONS REQUIRED:**` followed by action items
+- Trailing italic disclaimers like `*This policy has been enhanced to ensure full CQC regulatory compliance...*`
 
-### 4. Table detection too aggressive
-**Issue:** The Word parser triggers table mode for any line containing `|` if the next line contains `---`, even when the line doesn't start and end with `|`. This can capture non-table content.
+These sections appear after the policy's natural ending (e.g. after "Version History" or "END OF POLICY") and repeat/summarise information already covered in the body. Found in at least the Safeguarding Children and Confidentiality policies.
 
-**Fix:** Tighten the table-start condition to require the line starts with `|`, matching the preview's stricter check.
+## Fixes
 
-### 5. Heading 4+ patterns (####) not handled
-**Issue:** If AI-generated content includes `#### ` headings, these fall through to regular paragraph text in the Word export, but display as plain bold in the preview.
+### Fix 1: Skip the hardcoded References section when content already includes one
 
-**Fix:** Add `#### ` handling in `parseMarkdownToSections` -- render as a bold paragraph with standard text size and grey colour, consistent with the `### ` styling but slightly less prominent.
+Both `generatePolicyDocx.ts` and `PolicyDocumentPreview.tsx` currently append a "References and Legislation" section unconditionally from `metadata.references`. The fix adds a simple check: if the AI-generated content already contains a references heading (matching patterns like `references and legislation`, `references & legislation`, or `## references`), skip the hardcoded section.
 
-## File Changes
+The AI-generated version is kept because it is more comprehensive (10-14 fully cited items vs 4-5 brief metadata items).
 
-### `src/utils/generatePolicyDocx.ts`
+**Files changed:**
 
-All changes are within the `parseMarkdownToSections` function (lines 601-806):
-
-| Line Range | Change |
+| File | Change |
 |---|---|
-| ~765-794 | Add numbered heading detection (all-caps check) before the existing numbered-list handler |
-| ~765 (new) | Add sub-numbered heading pattern (e.g. `1.1`, `2.3.1`) with appropriate styling |
-| ~767-778 | Extend bullet detection to handle indented sub-bullets with deeper indent values |
-| ~680 | Tighten table-start condition to require line starts with `\|` |
-| ~748 (new) | Add `#### ` heading handler |
+| `src/utils/generatePolicyDocx.ts` | Wrap the hardcoded References section (lines 358-380) in a conditional check |
+| `src/components/policy/PolicyDocumentPreview.tsx` | Wrap the hardcoded References section (lines 586-605) in a conditional check |
 
-### No other files are changed
-The on-screen preview already handles all these patterns correctly -- only the Word export needs fixing.
+### Fix 2: Strip enhancement artifacts from content before rendering
+
+Add content-cleaning logic that removes known enhancement meta-commentary patterns from the end of the content. This runs before parsing in both the Word export and the preview.
+
+Patterns to strip:
+- Everything after a line reading `**END OF POLICY**` or `**Document End**`
+- Sections starting with `## CRITICAL COMPLIANCE ENHANCEMENTS MADE` (and everything following)
+- Sections starting with `**PRACTICE ACTIONS REQUIRED:**` (and everything following)
+- Trailing italic lines matching `*This policy has been enhanced...` or `*This policy has been developed...`
+
+**Files changed:**
+
+| File | Change |
+|---|---|
+| `src/utils/generatePolicyDocx.ts` | Add `cleanEnhancementArtifacts()` function; apply it to `processedContent` before parsing |
+| `src/components/policy/PolicyDocumentPreview.tsx` | Import and apply the same cleaning function before parsing |
 
 ## Technical Detail
 
-### Numbered heading vs numbered list distinction
+### References duplication check
 
 ```text
-Current (broken):
-  "1. PURPOSE AND SCOPE" --> numbered list item (indented, small text)
+Before appending the hardcoded References section:
 
-Fixed:
-  if text after "1. " is ALL UPPERCASE --> render as Heading 1 (bold, blue, no indent)
-  else --> render as numbered list item (indented, as before)
+  contentLower = content.toLowerCase()
+  hasReferencesInContent = contentLower includes any of:
+    - "references and legislation"
+    - "references & legislation" 
+    - "## references"
+    - "# references"
+
+  if hasReferencesInContent:
+    skip the hardcoded References section
+  else:
+    render it as before (backwards-compatible)
 ```
 
-### Sub-numbered heading pattern
+### Enhancement artifact cleaning
 
 ```text
-Pattern: /^(\d+\.\d+[\d.]*)\s+(.+)$/
-Example: "1.1 Purpose" or "2.3.1 Definitions"
-Render: Bold, subHeadingBlue, size 22, spacing before 160, after 80
+function cleanEnhancementArtifacts(content):
+  
+  1. Find the earliest occurrence of:
+     - /^\*{0,2}END OF POLICY\*{0,2}$/m
+     - /^## CRITICAL COMPLIANCE ENHANCEMENTS/m
+     - /^\*{0,2}PRACTICE ACTIONS REQUIRED/m
+  
+  2. If found, truncate content at that point
+  
+  3. Remove trailing italic disclaimer lines matching:
+     - /^\*This policy has been (enhanced|developed).*\*$/m
+  
+  4. Trim trailing whitespace and horizontal rules
+  
+  return cleaned content
 ```
 
-### Nested bullet indent calculation
+### Files modified summary
 
-```text
-"- Top level"        --> indent: 0.25 inch, bullet: "bullet"
-"  - Second level"   --> indent: 0.50 inch, bullet: "circle"
-"    - Third level"  --> indent: 0.75 inch, bullet: "dash"
-```
+| File | Changes |
+|---|---|
+| `src/utils/generatePolicyDocx.ts` | Add `cleanEnhancementArtifacts()` function; apply before `parseMarkdownToSections`; conditionally skip hardcoded References section |
+| `src/components/policy/PolicyDocumentPreview.tsx` | Import and apply `cleanEnhancementArtifacts()`; conditionally skip hardcoded References section |
+
+No edge functions or database changes required. Both the on-screen preview and the Word export will be fixed together.
 
