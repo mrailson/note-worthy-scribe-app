@@ -2920,6 +2920,7 @@ const ComplaintDetails = () => {
                           onClick={() => {
                             setEditedOutcomeLetterContent(outcomeLetter);
                             setIsEditingOutcomeLetter(true);
+                            setOutcomeEditorMode('edit');
                             setHasUnsavedOutcomeChanges(false);
                           }}
                         >
@@ -2952,7 +2953,7 @@ const ComplaintDetails = () => {
                     {isEditingOutcomeLetter ? (
                       <div className={`h-full ${outcomeEditorMode === 'split' ? 'grid grid-cols-2 gap-4' : ''}`}>
                         {(outcomeEditorMode === 'edit' || outcomeEditorMode === 'split') && (
-                          <div className="h-full overflow-y-auto">
+                          <div className="h-full overflow-y-auto bg-white rounded-lg">
                             <RichTextEditor
                               content={editedOutcomeLetterContent}
                               onChange={(newContent) => {
