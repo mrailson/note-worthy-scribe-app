@@ -174,7 +174,7 @@ export const InboundEmailLog = () => {
       // Scroll to complaints view tab and highlight
       showToast.success(`Navigate to complaint record`, { section: "complaints" });
     } else if (email.record_type === "compliment") {
-      navigate(`/compliment/${email.record_id}`);
+      navigate(`/compliments/${email.record_id}`);
     }
   };
 
