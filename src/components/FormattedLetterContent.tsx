@@ -163,7 +163,7 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
     .replace(/```plaintext|```/g, ''); // Remove code block markers
   
   // Parse content into sections
-  const lines = cleanContent.split('\n').filter(line => line.trim());
+  const lines = cleanContent.split('\n');
   
   // Extract different sections
   let headerLines: string[] = [];
@@ -178,8 +178,13 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
-    // Skip empty lines
-    if (!line) continue;
+    // Skip empty lines in header, but preserve them in addressee section as spacing
+    if (!line) {
+      if (currentSection === 'addressee' && !bodyStarted) {
+        addresseeSection.push('');
+      }
+      continue;
+    }
     
     // Detect date (starts with day number and contains month/year)
     if (/^\*?\*?\d{1,2}[\s]*([A-Z][a-z]+|\w+)[\s]*\d{4}\*?\*?/.test(line)) {
@@ -277,9 +282,13 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
         {addresseeSection.length > 0 && (
           <div className="space-y-1">
             {addresseeSection.map((line, index) => (
-              <p key={index} className="text-gray-800">
-                {formatTextWithBold(line)}
-              </p>
+              line === '' ? (
+                <div key={index} className="h-4" />
+              ) : (
+                <p key={index} className="text-gray-800">
+                  {formatTextWithBold(line)}
+                </p>
+              )
             ))}
           </div>
         )}
