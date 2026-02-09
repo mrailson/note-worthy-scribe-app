@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { showShadcnToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { SpeechToText } from '@/components/SpeechToText';
-import { CheckCircle2, AlertCircle, Loader2, CheckCircle, ClipboardCheck, Sparkles } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, CheckCircle, ClipboardCheck, Sparkles, Wand2 } from 'lucide-react';
 
 interface QuestionnaireData {
   investigation_complete: boolean;
@@ -91,6 +91,8 @@ export const ComplaintOutcomeQuestionnaire = ({
   const [isDemoLoading, setIsDemoLoading] = useState(false);
   const [demoSource, setDemoSource] = useState<'direct' | 'category-based' | 'ai-generated' | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingFromEvidence, setIsGeneratingFromEvidence] = useState(false);
+  const [generatingEvidenceField, setGeneratingEvidenceField] = useState<string | null>(null);
 
   const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
@@ -339,6 +341,120 @@ export const ComplaintOutcomeQuestionnaire = ({
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const loadFromEvidence = async (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
+    if (isGeneratingFromEvidence) return;
+    
+    setIsGeneratingFromEvidence(true);
+    setGeneratingEvidenceField(field);
+    
+    try {
+      const { data: aiResponse, error } = await supabase.functions.invoke('generate-demo-response', {
+        body: {
+          action: 'evidence',
+          complaintId,
+        }
+      });
+      
+      if (error) {
+        console.error('❌ Error generating from evidence:', error);
+        showShadcnToast({
+          title: 'Generation Failed',
+          description: 'Failed to generate from evidence. Please try again.',
+          variant: 'destructive',
+          section: 'complaints',
+        });
+        return;
+      }
+
+      if (aiResponse?.success && aiResponse.demoResponse) {
+        const generatedContent = aiResponse.demoResponse[field];
+        if (generatedContent) {
+          setData(prevData => ({ ...prevData, [field]: generatedContent }));
+          console.log(`✅ Evidence-based content loaded for ${field}: ${generatedContent.length} chars`);
+        }
+      } else if (aiResponse?.error) {
+        showShadcnToast({
+          title: 'Generation Failed',
+          description: aiResponse.error,
+          variant: 'destructive',
+          section: 'complaints',
+        });
+      }
+    } catch (error) {
+      console.error('❌ Exception generating from evidence:', error);
+      showShadcnToast({
+        title: 'Generation Error',
+        description: error instanceof Error ? error.message : 'Failed to generate from evidence',
+        variant: 'destructive',
+        section: 'complaints',
+      });
+    } finally {
+      setIsGeneratingFromEvidence(false);
+      setGeneratingEvidenceField(null);
+    }
+  };
+
+  const loadAllFromEvidence = async () => {
+    if (isGeneratingFromEvidence) return;
+    
+    setIsGeneratingFromEvidence(true);
+    setGeneratingEvidenceField('all');
+    
+    try {
+      const { data: aiResponse, error } = await supabase.functions.invoke('generate-demo-response', {
+        body: {
+          action: 'evidence',
+          complaintId,
+        }
+      });
+      
+      if (error) {
+        console.error('❌ Error generating all from evidence:', error);
+        showShadcnToast({
+          title: 'Generation Failed',
+          description: 'Failed to generate from evidence. Please try again.',
+          variant: 'destructive',
+          section: 'complaints',
+        });
+        return;
+      }
+
+      if (aiResponse?.success && aiResponse.demoResponse) {
+        setData(prevData => ({
+          ...prevData,
+          key_findings: aiResponse.demoResponse.key_findings || prevData.key_findings,
+          actions_taken: aiResponse.demoResponse.actions_taken || prevData.actions_taken,
+          improvements_made: aiResponse.demoResponse.improvements_made || prevData.improvements_made,
+          additional_context: aiResponse.demoResponse.additional_context || prevData.additional_context,
+        }));
+        console.log('✅ All fields populated from evidence');
+        showShadcnToast({
+          title: 'Evidence Loaded',
+          description: 'All fields have been populated from investigation evidence. You can edit them before proceeding.',
+          section: 'complaints',
+        });
+      } else if (aiResponse?.error) {
+        showShadcnToast({
+          title: 'Generation Failed',
+          description: aiResponse.error,
+          variant: 'destructive',
+          section: 'complaints',
+        });
+      }
+    } catch (error) {
+      console.error('❌ Exception generating all from evidence:', error);
+      showShadcnToast({
+        title: 'Generation Error',
+        description: error instanceof Error ? error.message : 'Failed to generate from evidence',
+        variant: 'destructive',
+        section: 'complaints',
+      });
+    } finally {
+      setIsGeneratingFromEvidence(false);
+      setGeneratingEvidenceField(null);
     }
   };
 
@@ -849,6 +965,26 @@ export const ComplaintOutcomeQuestionnaire = ({
         {/* Step 1: Letter Details */}
         {step === 1 && (
           <div className="space-y-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={loadAllFromEvidence}
+              disabled={isGeneratingFromEvidence}
+              className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+            >
+              {isGeneratingFromEvidence && generatingEvidenceField === 'all' ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating from evidence...
+                </>
+              ) : (
+                <>
+                  <ClipboardCheck className="h-4 w-4 mr-2" />
+                  Auto-fill All from Evidence
+                </>
+              )}
+            </Button>
+
             <div>
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-sm font-semibold mb-2">
@@ -879,6 +1015,17 @@ export const ComplaintOutcomeQuestionnaire = ({
                   disabled={isDemoLoading || isGenerating}
                 >
                   {(isDemoLoading || isGenerating) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => loadFromEvidence('key_findings')}
+                  className="h-8 w-8 shrink-0"
+                  title={isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
+                  disabled={isGeneratingFromEvidence}
+                >
+                  {isGeneratingFromEvidence && (generatingEvidenceField === 'key_findings' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -912,6 +1059,17 @@ export const ComplaintOutcomeQuestionnaire = ({
                 >
                   {(isDemoLoading || isGenerating) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => loadFromEvidence('actions_taken')}
+                  className="h-8 w-8 shrink-0"
+                  title={isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
+                  disabled={isGeneratingFromEvidence}
+                >
+                  {isGeneratingFromEvidence && (generatingEvidenceField === 'actions_taken' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
+                </Button>
               </div>
             </div>
 
@@ -943,6 +1101,17 @@ export const ComplaintOutcomeQuestionnaire = ({
                   disabled={isDemoLoading || isGenerating}
                 >
                   {(isDemoLoading || isGenerating) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => loadFromEvidence('improvements_made')}
+                  className="h-8 w-8 shrink-0"
+                  title={isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
+                  disabled={isGeneratingFromEvidence}
+                >
+                  {isGeneratingFromEvidence && (generatingEvidenceField === 'improvements_made' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -1006,6 +1175,17 @@ export const ComplaintOutcomeQuestionnaire = ({
                   disabled={isDemoLoading || isGenerating}
                 >
                   {(isDemoLoading || isGenerating) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => loadFromEvidence('additional_context')}
+                  className="h-8 w-8 shrink-0"
+                  title={isGeneratingFromEvidence ? "Generating..." : "Generate from evidence"}
+                  disabled={isGeneratingFromEvidence}
+                >
+                  {isGeneratingFromEvidence && (generatingEvidenceField === 'additional_context' || generatingEvidenceField === 'all') ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
