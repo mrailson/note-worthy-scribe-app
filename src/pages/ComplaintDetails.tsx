@@ -2379,8 +2379,8 @@ const ComplaintDetails = () => {
                             <Badge variant="default">Letter Generated</Badge>
                             <button
                               onClick={() => handleGenerateAcknowledgement(complaint.id)}
-                              disabled={submitting}
-                              className="text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                              disabled={submitting || acknowledgementSentToPatient}
+                              className={`transition-colors disabled:opacity-50 ${acknowledgementSentToPatient ? 'hidden' : 'text-muted-foreground hover:text-primary'}`}
                               title="Regenerate acknowledgement letter"
                             >
                               <RefreshCw className={`h-3 w-3 ${submitting ? 'animate-spin' : ''}`} />
@@ -3455,19 +3455,20 @@ const ComplaintDetails = () => {
                     referenceNumber={complaint.reference_number}
                     onEditClick={!isEditingAcknowledgement ? () => setIsEditingAcknowledgement(true) : undefined}
                   />
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      await handleGenerateAcknowledgement(complaint.id);
-                      // Sync edited content after regeneration and clear unsaved flag
-                      setHasUnsavedChanges(false);
-                    }}
-                    disabled={isGeneratingAcknowledgement}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAcknowledgement ? 'animate-spin' : ''}`} />
-                    {isGeneratingAcknowledgement ? 'Regenerating...' : 'Regenerate'}
-                  </Button>
+                  {!acknowledgementSentToPatient && (
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        await handleGenerateAcknowledgement(complaint.id);
+                        setHasUnsavedChanges(false);
+                      }}
+                      disabled={isGeneratingAcknowledgement}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAcknowledgement ? 'animate-spin' : ''}`} />
+                      {isGeneratingAcknowledgement ? 'Regenerating...' : 'Regenerate'}
+                    </Button>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2">
