@@ -1,5 +1,6 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, convertInchesToTwip, Footer, PageNumber, NumberFormat, Header, ImageRun } from 'docx';
 import { saveAs } from 'file-saver';
+import { cleanEnhancementArtifacts, contentHasReferencesSection } from './cleanPolicyContent';
 
 interface PolicyMetadata {
   title: string;
@@ -91,11 +92,14 @@ export const generatePolicyDocx = async (
   } = options;
 
   // Replace placeholders with actual dates
-  const processedContent = content
+  let processedContent = content
     // Replace exact [PRACTICE TO COMPLETE] with effective date (for VERSION HISTORY table)
     .replace(/\[PRACTICE TO COMPLETE\]/gi, metadata.effective_date)
     // Replace Next Review Date placeholder with the actual review date
     .replace(/\[PRACTICE TO COMPLETE\s*-\s*Max 12 months\]/gi, metadata.review_date);
+
+  // Clean AI enhancement artifacts before parsing
+  processedContent = cleanEnhancementArtifacts(processedContent);
 
   // Parse markdown content into sections, passing title to skip duplicate
   const sections = parseMarkdownToSections(processedContent, metadata.title);
@@ -355,29 +359,33 @@ export const generatePolicyDocx = async (
           // Content sections
           ...sections,
 
-          // References section
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "References & Legislation",
-                bold: true,
-                size: 28,
-                color: COLORS.headingBlue,
-                font: "Calibri",
-              }),
-            ],
-            spacing: { before: 280, after: 120 },
-          }),
-          ...metadata.references.map(ref =>
-            new Paragraph({
-              children: [
-                new TextRun({ text: "• ", bold: true, font: "Calibri", size: 22 }),
-                new TextRun({ text: ref, font: "Calibri", size: 22, color: COLORS.textGrey }),
-              ],
-              spacing: { after: 60 },
-              indent: { left: convertInchesToTwip(0.25) },
-            })
-          ),
+          // References section - only append if content doesn't already include one
+          ...(contentHasReferencesSection(processedContent)
+            ? []
+            : [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: "References & Legislation",
+                      bold: true,
+                      size: 28,
+                      color: COLORS.headingBlue,
+                      font: "Calibri",
+                    }),
+                  ],
+                  spacing: { before: 280, after: 120 },
+                }),
+                ...metadata.references.map(ref =>
+                  new Paragraph({
+                    children: [
+                      new TextRun({ text: "• ", bold: true, font: "Calibri", size: 22 }),
+                      new TextRun({ text: ref, font: "Calibri", size: 22, color: COLORS.textGrey }),
+                    ],
+                    spacing: { after: 60 },
+                    indent: { left: convertInchesToTwip(0.25) },
+                  })
+                ),
+              ]),
         ],
       },
     ],
