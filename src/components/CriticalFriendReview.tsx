@@ -55,6 +55,9 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
   const generateReview = async () => {
     setIsGenerating(true);
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+
       const { data, error } = await supabase.functions.invoke('ai-investigation-assistant', {
         body: {
           complaint_id: complaintId,
@@ -69,16 +72,40 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
         const now = new Date().toISOString();
         setGeneratedAt(now);
         
-        const { error: updateError } = await supabase
+        // Check if a findings row exists
+        const { data: existing } = await supabase
           .from('complaint_investigation_findings')
-          .update({
-            critical_friend_review: data.content,
-            critical_friend_review_generated_at: now
-          })
-          .eq('complaint_id', complaintId);
+          .select('id')
+          .eq('complaint_id', complaintId)
+          .limit(1)
+          .maybeSingle();
 
-        if (updateError) {
-          console.error('Error saving critical friend review:', updateError);
+        let saveError;
+        if (existing) {
+          const { error: updateError } = await supabase
+            .from('complaint_investigation_findings')
+            .update({
+              critical_friend_review: data.content,
+              critical_friend_review_generated_at: now
+            })
+            .eq('complaint_id', complaintId);
+          saveError = updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from('complaint_investigation_findings')
+            .insert({
+              complaint_id: complaintId,
+              critical_friend_review: data.content,
+              critical_friend_review_generated_at: now,
+              investigated_by: userId || 'unknown',
+              investigation_summary: 'Auto-created for Critical Friend review',
+              findings_text: 'Pending investigation findings'
+            });
+          saveError = insertError;
+        }
+
+        if (saveError) {
+          console.error('Error saving critical friend review:', saveError);
           toast.error('Review generated but failed to save');
         } else {
           toast.success('Critical Friend review generated successfully');
@@ -99,24 +126,65 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
   const downloadAsWord = () => {
     if (!review) return;
 
-    const htmlContent = renderNHSMarkdown(review, { enableNHSStyling: true });
+    // Convert markdown to clean paragraphs for Word — strip bullets, add spacing
+    const cleanForWord = (markdown: string): string => {
+      const lines = markdown.split('\n');
+      const htmlParts: string[] = [];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          htmlParts.push('<p style="margin:0; line-height:1.6;">&nbsp;</p>');
+          continue;
+        }
+
+        // Headings
+        const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)/);
+        if (headingMatch) {
+          const level = headingMatch[1].length;
+          const text = headingMatch[2].replace(/\*{1,2}([^*]+)\*{1,2}/g, '<strong>$1</strong>');
+          const sizes: Record<number, string> = { 1: '18pt', 2: '15pt', 3: '13pt', 4: '12pt', 5: '11pt', 6: '11pt' };
+          htmlParts.push(`<p style="font-size:${sizes[level] || '12pt'}; font-weight:bold; color:#0072CE; margin-top:18pt; margin-bottom:6pt;">${text}</p>`);
+          continue;
+        }
+
+        // Bullet points — convert to plain paragraphs with bold lead-in
+        const bulletMatch = trimmed.match(/^[-*•]\s+(.*)/);
+        if (bulletMatch) {
+          const content = bulletMatch[1].replace(/\*{1,2}([^*]+)\*{1,2}/g, '<strong>$1</strong>');
+          htmlParts.push(`<p style="margin-top:10pt; margin-bottom:10pt; line-height:1.8;">${content}</p>`);
+          continue;
+        }
+
+        // Numbered list — convert to plain paragraphs
+        const numberedMatch = trimmed.match(/^\d+\.\s+(.*)/);
+        if (numberedMatch) {
+          const content = numberedMatch[1].replace(/\*{1,2}([^*]+)\*{1,2}/g, '<strong>$1</strong>');
+          htmlParts.push(`<p style="margin-top:10pt; margin-bottom:10pt; line-height:1.8;">${content}</p>`);
+          continue;
+        }
+
+        // Regular paragraph
+        const content = trimmed.replace(/\*{1,2}([^*]+)\*{1,2}/g, '<strong>$1</strong>');
+        htmlParts.push(`<p style="margin-top:6pt; margin-bottom:6pt; line-height:1.8;">${content}</p>`);
+      }
+
+      return htmlParts.join('\n');
+    };
+
+    const bodyContent = cleanForWord(review);
     const fullHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
         <head><meta charset="utf-8"><title>Critical Friend Review</title>
           <style>
-            body { font-family: Calibri, Arial, sans-serif; font-size: 12pt; line-height: 1.6; color: #333; padding: 20px; }
-            h1 { font-size: 18pt; color: #0072CE; }
-            h2 { font-size: 15pt; color: #0072CE; }
-            h3 { font-size: 13pt; color: #333; }
-            ul, ol { margin-left: 20px; }
-            li { margin-bottom: 4px; }
+            body { font-family: Calibri, Arial, sans-serif; font-size: 12pt; line-height: 1.8; color: #333; margin: 2cm; }
             strong { font-weight: bold; }
           </style>
         </head>
         <body>
-          <h1>AI Critical Friend Review</h1>
-          ${generatedAt ? `<p style="color:#666; font-size:10pt;">Generated ${new Date(generatedAt).toLocaleDateString('en-GB')} at ${new Date(generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
-          ${htmlContent}
+          <p style="font-size:18pt; font-weight:bold; color:#0072CE; margin-bottom:6pt;">AI Critical Friend Review</p>
+          ${generatedAt ? `<p style="color:#666; font-size:10pt; margin-bottom:18pt;">Generated ${new Date(generatedAt).toLocaleDateString('en-GB')} at ${new Date(generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
+          ${bodyContent}
         </body>
       </html>`;
 
@@ -238,10 +306,10 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
               )}
             </div>
             <CollapsibleContent className="mt-4">
-              <div className="p-4 bg-background border rounded-lg" ref={reviewContentRef}>
+              <div className="p-4 bg-white dark:bg-card border rounded-lg" ref={reviewContentRef}>
                 <div 
-                  className="prose max-w-none dark:prose-invert"
-                  style={{ fontSize: `${fontSize}px` }}
+                  className="max-w-none dark:prose-invert [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h1]:text-sky-700 [&_h2]:text-sky-700 [&_h3]:text-foreground [&_p]:leading-relaxed [&_li]:leading-relaxed [&_ul]:space-y-1 [&_ol]:space-y-1"
+                  style={{ fontSize: `${fontSize}px`, lineHeight: '1.7' }}
                   dangerouslySetInnerHTML={{ 
                     __html: renderNHSMarkdown(review, { enableNHSStyling: true })
                   }} 
