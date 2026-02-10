@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList, BarChart3, FileText, AlertTriangle, Users, Calendar, TrendingUp, Download, PoundSterling } from "lucide-react";
+import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList, BarChart3, FileText, AlertTriangle, Users, Calendar, TrendingUp, Download, PoundSterling, X } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
@@ -23,8 +24,46 @@ const digitalTfActions = [
 ];
 
 export const SDADigitalIntegration = () => {
+  const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; title: string } | null>(null);
+
+  const handleDownloadImage = () => {
+    if (!lightboxImage) return;
+    const a = document.createElement('a');
+    a.href = lightboxImage.src;
+    a.download = `${lightboxImage.title.replace(/\s+/g, '_')}.png`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Fullscreen Lightbox */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-gradient-to-b from-black/60 to-transparent">
+            <p className="text-white font-medium truncate max-w-[500px]">{lightboxImage.title}</p>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" onClick={(e) => { e.stopPropagation(); handleDownloadImage(); }}>
+                <Download className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" onClick={() => setLightboxImage(null)}>
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center justify-center w-full h-full p-4 md:p-16" onClick={(e) => e.stopPropagation()}>
+            <img src={lightboxImage.src} alt={lightboxImage.alt} className="max-w-full max-h-full object-contain select-none" draggable={false} />
+          </div>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-sm">
+            Press <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-xs">Esc</kbd> or click anywhere to close
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Digital Interoperability Proof of Concept</h2>
@@ -45,7 +84,8 @@ export const SDADigitalIntegration = () => {
             <img 
               src={gpConnectSystmoneConfig} 
               alt="SystmOne GP Remote Booking - NRES SDA configuration showing available rotas at Brackley Medical Centre"
-              className="w-full rounded-lg border border-slate-200 shadow-sm"
+              className="w-full rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => setLightboxImage({ src: gpConnectSystmoneConfig, alt: "SystmOne GP Remote Booking", title: "Exhibit 1 - System Configuration (NRES Mapping)" })}
             />
           </div>
 
@@ -55,7 +95,8 @@ export const SDADigitalIntegration = () => {
             <img 
               src={gpConnectEmisBooking} 
               alt="EMIS Web GP Connect Appointments - Cross-provider booking at Brackley Medical Centre showing NRES SDA appointments"
-              className="w-full rounded-lg border border-slate-200 shadow-sm"
+              className="w-full rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => setLightboxImage({ src: gpConnectEmisBooking, alt: "EMIS Web GP Connect Appointments", title: "Exhibit 2 - Confirmed Cross-Provider Booking" })}
             />
           </div>
         </div>
@@ -72,7 +113,8 @@ export const SDADigitalIntegration = () => {
             <img 
               src="/images/nres-risk-stratification.png" 
               alt="NRES SDA Hub Pilot Risk Stratification Overview showing RED, AMBER, GREEN patient categories and practice discretionary exemptions"
-              className="w-full rounded-lg border border-slate-200 shadow-sm"
+              className="w-full rounded-lg border border-slate-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => setLightboxImage({ src: "/images/nres-risk-stratification.png", alt: "Risk Stratification Overview", title: "Exhibit 3 - Risk Stratification Framework" })}
             />
           </div>
           <div className="border border-slate-200 rounded-lg p-4 flex flex-col">
