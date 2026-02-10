@@ -1,6 +1,6 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@2.0.0";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -121,22 +121,12 @@ serve(async (req) => {
 
     console.log('Created', involvedPartiesData.length, 'involved party records');
 
-    // Send emails using EmailJS service
-    const emailJsServiceId = Deno.env.get('EMAILJS_SERVICE_ID');
-    const emailJsTemplateId = Deno.env.get('EMAILJS_TEMPLATE_ID');
-    const emailJsPublicKey = Deno.env.get('EMAILJS_PUBLIC_KEY');
-    const emailJsPrivateKey = Deno.env.get('EMAILJS_PRIVATE_KEY');
-
-    console.log('EmailJS Config:', {
-      serviceId: emailJsServiceId ? 'Set' : 'Missing',
-      templateId: emailJsTemplateId ? 'Set' : 'Missing',
-      publicKey: emailJsPublicKey ? 'Set' : 'Missing',
-      privateKey: emailJsPrivateKey ? 'Set' : 'Missing'
-    });
-
-    if (!emailJsServiceId || !emailJsTemplateId || !emailJsPublicKey || !emailJsPrivateKey) {
-      throw new Error('EmailJS configuration not complete - missing required secrets');
+    // Send emails using Resend
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey) {
+      throw new Error('RESEND_API_KEY not configured');
     }
+    const resend = new Resend(resendApiKey);
 
     const baseUrl = 'https://gpnotewell.co.uk';
     
@@ -254,55 +244,26 @@ serve(async (req) => {
   </div>
 </div>`;
 
-      const emailData = {
-        service_id: emailJsServiceId,
-        template_id: emailJsTemplateId,
-        user_id: emailJsPublicKey,
-        accessToken: emailJsPrivateKey,
-        template_params: {
-          to_email: party.staffEmail,
-          subject: `Complaint Input Request – ${complaint.reference_number} (${practiceDetails?.practice_name || 'Medical Practice'})`,
-          message: messageContent,
-          // Explicit params for templates – use any of these in EmailJS
-          response_url: responseUrl,
-          safe_link: responseUrl,
-          safe_link_plain: responseUrl,
-          safe_link_html: `<a href="${responseUrl}">Provide Your Response</a>`,
-          reference_number: complaint.reference_number,
-          staff_name: party.staffName,
-          practice_name: practiceDetails?.practice_name || 'Medical Practice',
-        },
-      };
+      const emailSubject = `Complaint Input Request – ${complaint.reference_number} (${practiceDetails?.practice_name || 'Medical Practice'})`;
 
-      console.log('Email data being sent to EmailJS:');
-      console.log('- Service ID:', emailJsServiceId);
-      console.log('- Template ID:', emailJsTemplateId);
-      console.log('- To Email:', party.staffEmail);
-      console.log('- Subject:', emailData.template_params.subject);
+      console.log('Sending email via Resend to:', party.staffEmail);
+      console.log('- Subject:', emailSubject);
       console.log('- Response URL:', responseUrl);
-      console.log('- Message Length:', emailData.template_params.message.length);
-      console.log('- Message Preview:', emailData.template_params.message.substring(0, 100) + '...');
 
       try {
-        const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(emailData),
+        const { data: emailData, error: emailError } = await resend.emails.send({
+          from: `Notewell AI <noreply@bluepcn.co.uk>`,
+          to: [party.staffEmail],
+          subject: emailSubject,
+          html: messageContent,
         });
 
-        const responseText = await emailResponse.text();
-        console.log('EmailJS Response Status:', emailResponse.status);
-        console.log('EmailJS Response Body:', responseText);
-        console.log('EmailJS Response Headers:', Object.fromEntries(emailResponse.headers.entries()));
-
-        if (emailResponse.ok) {
-          console.log('✅ Email sent successfully to:', party.staffEmail);
-          emailResults.push({ email: party.staffEmail, status: 'sent', responseUrl });
+        if (emailError) {
+          console.error('❌ Resend error for', party.staffEmail, ':', emailError);
+          emailResults.push({ email: party.staffEmail, status: 'failed', error: emailError.message });
         } else {
-          console.log('❌ Email failed to send to:', party.staffEmail);
-          emailResults.push({ email: party.staffEmail, status: 'failed', error: responseText });
+          console.log('✅ Email sent successfully to:', party.staffEmail, 'ID:', emailData?.id);
+          emailResults.push({ email: party.staffEmail, status: 'sent', responseUrl });
         }
       } catch (emailError) {
         console.error('Email sending error for', party.staffEmail, ':', emailError);
