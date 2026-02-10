@@ -138,6 +138,11 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
           continue;
         }
 
+        // Skip horizontal rules (*** or ---)
+        if (/^(\*{3,}|-{3,}|_{3,})$/.test(trimmed)) {
+          continue;
+        }
+
         // Headings
         const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)/);
         if (headingMatch) {
@@ -312,9 +317,14 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
             </div>
             <CollapsibleContent className="mt-4">
               <div className="p-4 bg-white dark:bg-card border rounded-lg" ref={reviewContentRef}>
+                <style>{`
+                  .cfr-review-content, .cfr-review-content * { font-size: ${fontSize}px !important; line-height: 1.7 !important; }
+                  .cfr-review-content h1 { font-size: ${Math.round(fontSize * 1.4)}px !important; font-weight: bold; color: #0369a1; }
+                  .cfr-review-content h2 { font-size: ${Math.round(fontSize * 1.2)}px !important; font-weight: bold; color: #0369a1; }
+                  .cfr-review-content h3 { font-size: ${Math.round(fontSize * 1.1)}px !important; font-weight: bold; }
+                `}</style>
                 <div 
-                  className="max-w-none [&_*]:!text-inherit [&_h1]:!text-[1.4em] [&_h2]:!text-[1.2em] [&_h3]:!text-[1.1em] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h1]:text-sky-700 [&_h2]:text-sky-700 [&_h3]:text-foreground [&_p]:leading-relaxed [&_li]:leading-relaxed [&_ul]:space-y-1 [&_ol]:space-y-1 dark:text-foreground"
-                  style={{ fontSize: `${fontSize}px`, lineHeight: '1.7' }}
+                  className="cfr-review-content max-w-none [&_p]:leading-relaxed [&_li]:leading-relaxed [&_ul]:space-y-1 [&_ol]:space-y-1 dark:text-foreground"
                   dangerouslySetInnerHTML={{ 
                     __html: renderNHSMarkdown(review, { enableNHSStyling: true })
                   }} 
