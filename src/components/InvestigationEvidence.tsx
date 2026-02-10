@@ -1376,8 +1376,8 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                                   {(file.ai_summary || file.description || '').replace(/#{1,6}\s*/g, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')}
                                 </p>
                               </HoverCardTrigger>
-                              <HoverCardContent side="bottom" align="start" className="w-[420px] max-h-[300px] overflow-y-auto p-4">
-                                <h4 className="font-semibold text-sm mb-2">Full Summary</h4>
+                              <HoverCardContent side="top" align="start" className="w-[420px] max-h-[300px] overflow-y-auto p-4 bg-popover border border-border shadow-xl">
+                                <h4 className="font-semibold text-sm mb-2 text-foreground">Full Summary</h4>
                                 <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
                                   {(file.ai_summary || file.description || '').replace(/#{1,6}\s*/g, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')}
                                 </p>
