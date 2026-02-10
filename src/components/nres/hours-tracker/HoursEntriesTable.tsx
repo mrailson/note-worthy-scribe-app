@@ -34,7 +34,7 @@ type SortDirection = 'asc' | 'desc' | null;
 export function HoursEntriesTable({ entries, hourlyRate, loading, claimants = [], onUpdate }: HoursEntriesTableProps) {
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   
   // Edit state
   const [editingEntry, setEditingEntry] = useState<NRESHoursEntry | null>(null);
