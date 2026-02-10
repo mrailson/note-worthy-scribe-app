@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Header } from "@/components/Header";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
@@ -60,6 +61,7 @@ import {
   Activity,
   RefreshCw,
   ChevronRight,
+  ChevronDown,
   Eye,
   Send,
   UserCheck,
@@ -264,6 +266,8 @@ const ComplaintsSystem = () => {
   
   // Import complaint states
   const [showImportModal, setShowImportModal] = useState(false);
+  const [patientInfoOpen, setPatientInfoOpen] = useState(true);
+  const [complaintDetailsOpen, setComplaintDetailsOpen] = useState(true);
 
   // Fetch audit logs when audit tab is selected
   useEffect(() => {
@@ -2608,13 +2612,16 @@ const ComplaintsSystem = () => {
               </CardHeader>
               <CardContent className="px-3 sm:px-6">
                 <form onSubmit={handleSubmitComplaint} className="space-y-4 sm:space-y-6">
-                  {/* Patient Information Section */}
-                  <div className="space-y-3 sm:space-y-4">
-                    <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
-                      <User className="h-4 w-4 sm:h-5 sm:w-5" />
-                      Patient Information
-                    </h3>
-                    
+                  {/* Patient Information Section - Collapsible */}
+                  <Collapsible open={patientInfoOpen} onOpenChange={setPatientInfoOpen}>
+                    <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+                      <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                        <User className="h-4 w-4 sm:h-5 sm:w-5" />
+                        Patient Information
+                      </h3>
+                      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", !patientInfoOpen && "-rotate-90")} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-3 sm:space-y-4 pt-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="patient_name" className="text-sm">Patient Name *</Label>
@@ -2673,15 +2680,19 @@ const ComplaintsSystem = () => {
                         rows={3}
                       />
                     </div>
-                  </div>
+                    </CollapsibleContent>
+                  </Collapsible>
 
-                  {/* Complaint Details Section */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Complaint Details
-                    </h3>
-
+                  {/* Complaint Details Section - Collapsible */}
+                  <Collapsible open={complaintDetailsOpen} onOpenChange={setComplaintDetailsOpen}>
+                    <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Complaint Details
+                      </h3>
+                      <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", !complaintDetailsOpen && "-rotate-90")} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-4 pt-3">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="incident_date">Date of Incident *</Label>
@@ -2804,8 +2815,8 @@ const ComplaintsSystem = () => {
                           </div>
                         </div>
                     </div>
-                  </div>
-
+                    </CollapsibleContent>
+                  </Collapsible>
                   {/* Consent and Legal Section */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Consent & Legal Requirements</h3>
