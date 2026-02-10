@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { FileText, Upload, Download, Trash2, Mic, Volume2, Loader2, CheckCircle2, XCircle, FileIcon, Clock, Eye, User, Stethoscope } from 'lucide-react';
 import { AudioAIReviewDialog } from '@/components/AudioAIReviewDialog';
@@ -1369,9 +1370,19 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                             </span>
                           </div>
                           {(file.ai_summary || file.description) && (
-                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                              {(file.ai_summary || file.description || '').replace(/#{1,6}\s*/g, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')}
-                            </p>
+                            <HoverCard openDelay={300}>
+                              <HoverCardTrigger asChild>
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2 cursor-default">
+                                  {(file.ai_summary || file.description || '').replace(/#{1,6}\s*/g, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')}
+                                </p>
+                              </HoverCardTrigger>
+                              <HoverCardContent side="bottom" align="start" className="w-[420px] max-h-[300px] overflow-y-auto p-4">
+                                <h4 className="font-semibold text-sm mb-2">Full Summary</h4>
+                                <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                                  {(file.ai_summary || file.description || '').replace(/#{1,6}\s*/g, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')}
+                                </p>
+                              </HoverCardContent>
+                            </HoverCard>
                           )}
                           {file.ai_summary && (file.evidence_type === 'audio' || file.file_type?.startsWith('audio/')) && (
                             <>
