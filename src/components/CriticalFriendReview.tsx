@@ -328,7 +328,8 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
                   className="cfr-review-content max-w-none [&_p]:leading-relaxed [&_li]:leading-relaxed [&_ul]:space-y-1 [&_ol]:space-y-1 dark:text-foreground"
                   dangerouslySetInnerHTML={{ 
                     __html: renderNHSMarkdown(review, { enableNHSStyling: true })
-                  }} 
+                      .replace(/font-size:\s*[^;]+;?/gi, '')
+                  }}
                 />
               </div>
             </CollapsibleContent>
