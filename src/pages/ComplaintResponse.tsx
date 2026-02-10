@@ -325,12 +325,23 @@ export default function ComplaintResponse() {
           </Alert>
 
           {complaint.response_submitted && (
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
-                Your response has been submitted successfully. Thank you for your cooperation.
-              </AlertDescription>
-            </Alert>
+            <div className="space-y-4">
+              <Alert className="border-green-200 bg-green-50">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-800">
+                  Your response has been submitted successfully. Thank you for your cooperation.
+                </AlertDescription>
+              </Alert>
+              <div className="flex justify-center">
+                <Button
+                  onClick={() => window.close()}
+                  className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
+                >
+                  <CheckCircle className="h-5 w-5" />
+                  Done — Close This Window
+                </Button>
+              </div>
+            </div>
           )}
 
           {!complaint.response_submitted && (
