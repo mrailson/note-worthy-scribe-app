@@ -908,6 +908,123 @@ const ComplaintDetails = () => {
     }
   };
 
+  // Silently trigger audio briefing and staff notice board infographic in the background
+  const triggerPostOutcomeSentTasks = (currentComplaint: Complaint) => {
+    // 1. Audio briefing (male voice - George)
+    supabase.functions.invoke('generate-complaint-audio-overview', {
+      body: {
+        complaintId: currentComplaint.id,
+        voiceProvider: 'elevenlabs',
+        voiceId: 'G17SuINrv2H9FC6nvetn', // George - male voice
+      }
+    }).then(({ error }) => {
+      if (error) {
+        console.error('[Background] Audio briefing generation failed:', error);
+      } else {
+        console.log('[Background] Audio briefing generated successfully');
+        // Silently refresh to pick up new audio data
+        fetchComplaintDetails();
+      }
+    });
+
+    // 2. Staff notice board infographic
+    supabase.functions.invoke('generate-complaint-ai-report', {
+      body: { complaintId: currentComplaint.id }
+    }).then(async ({ data: reportData, error: reportError }) => {
+      if (reportError || !reportData) {
+        console.error('[Background] AI report fetch failed:', reportError);
+        return;
+      }
+
+      const receivedDate = currentComplaint.created_at;
+      const formattedDate = receivedDate ? new Date(receivedDate).toLocaleDateString('en-GB') : 'Unknown';
+      const outcomeTypeValue = existingOutcome?.outcome_type || '';
+
+      try {
+        const documentContent = [
+          'LEARNING FROM COMPLAINTS',
+          `Reference: ${currentComplaint.reference_number}`,
+          `Category: ${currentComplaint.category}`,
+          `Received: ${formattedDate}`,
+          outcomeTypeValue ? `Outcome: ${outcomeTypeValue.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}` : '',
+          '',
+          'WHAT HAPPENED:',
+          reportData.complaintOverview?.substring(0, 300) || '',
+          '',
+          'KEY LEARNINGS:',
+          ...(reportData.keyLearnings || []).slice(0, 5).map((l: any, i: number) => `${i + 1}. ${l.learning} (${l.category})`),
+          '',
+          'WHAT WE DID WELL:',
+          ...(reportData.practiceStrengths || []).slice(0, 4).map((s: string) => `• ${s}`),
+          '',
+          'HOW WE ARE IMPROVING:',
+          ...(reportData.improvementSuggestions || []).slice(0, 4).map((s: any, i: number) => `${i + 1}. ${s.suggestion}`),
+        ].join('\n');
+
+        const customPrompt = `Create a HIGH-QUALITY "Learning from Complaints" staff infographic. This is a ONE-PAGE landscape (16:9) overview designed for staff notice boards. Frame content as shared learning — calm, supportive, constructive. No patient or staff names. NHS-aligned colours. British English. Footer: "Powered by NoteWell AI". Reference: ${currentComplaint.reference_number}, Category: ${currentComplaint.category}.`;
+
+        const { data: imgResponse, error: imgError } = await supabase.functions.invoke('ai4gp-image-generation', {
+          body: {
+            prompt: customPrompt,
+            conversationContext: '',
+            documentContent,
+            requestType: 'infographic',
+            imageModel: 'google/gemini-3-pro-image-preview',
+            practiceContext: { brandingLevel: 'none' }
+          },
+        });
+
+        if (imgError) {
+          console.error('[Background] Infographic generation failed:', imgError);
+          return;
+        }
+
+        const imageUrl = imgResponse?.image?.url;
+        if (!imageUrl) {
+          console.error('[Background] No infographic image returned');
+          return;
+        }
+
+        // Download and persist infographic
+        let blob: Blob;
+        if (imageUrl.startsWith('data:')) {
+          const base64Data = imageUrl.split(',')[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          blob = new Blob([new Uint8Array(byteNumbers)], { type: 'image/png' });
+        } else {
+          const imageResponse = await fetch(imageUrl);
+          blob = await imageResponse.blob();
+        }
+
+        // Upload to storage
+        const filePath = `${currentComplaint.id}/infographic_${Date.now()}.png`;
+        const { data: existingFiles } = await supabase.storage.from('complaint-infographics').list(currentComplaint.id);
+        if (existingFiles && existingFiles.length > 0) {
+          await supabase.storage.from('complaint-infographics').remove(existingFiles.map(f => `${currentComplaint.id}/${f.name}`));
+        }
+        await supabase.storage.from('complaint-infographics').upload(filePath, blob, { contentType: 'image/png', upsert: true });
+        const { data: publicUrlData } = supabase.storage.from('complaint-infographics').getPublicUrl(filePath);
+        
+        if (publicUrlData?.publicUrl) {
+          const { data: existing } = await supabase.from('complaint_audio_overviews').select('id').eq('complaint_id', currentComplaint.id).maybeSingle();
+          if (existing) {
+            await supabase.from('complaint_audio_overviews').update({ infographic_url: publicUrlData.publicUrl }).eq('complaint_id', currentComplaint.id);
+          } else {
+            const { data: userData } = await supabase.auth.getUser();
+            await supabase.from('complaint_audio_overviews').insert({ complaint_id: currentComplaint.id, infographic_url: publicUrlData.publicUrl, created_by: userData.user?.id || null } as any);
+          }
+          console.log('[Background] Staff notice board infographic generated and persisted');
+        }
+      } catch (err) {
+        console.error('[Background] Infographic generation error:', err);
+      }
+    });
+  };
+
   const handleToggleOutcomeLetterSent = async (isSent: boolean) => {
     if (!existingOutcome || !complaintId) return;
     
@@ -927,6 +1044,11 @@ const ComplaintDetails = () => {
       setOutcomeLetterSent(isSent);
       setOutcomeLetterSentAt(now);
       showToast.success(isSent ? "Outcome letter marked as sent" : "Outcome letter marked as not sent", { section: 'complaints' });
+
+      // Silently trigger audio briefing and infographic when marking as sent
+      if (isSent && complaint) {
+        triggerPostOutcomeSentTasks(complaint);
+      }
     } catch (error) {
       console.error('Error updating outcome letter sent status:', error);
       showToast.error("Failed to update outcome letter status", { section: 'complaints' });
@@ -1212,6 +1334,10 @@ const ComplaintDetails = () => {
         if (!updateError) {
           setOutcomeLetterSent(true);
           setOutcomeLetterSentAt(now);
+          // Silently trigger audio briefing and infographic
+          if (complaint) {
+            triggerPostOutcomeSentTasks(complaint);
+          }
         }
       } catch (updateError) {
         console.error('Failed to update sent_at timestamp:', updateError);
