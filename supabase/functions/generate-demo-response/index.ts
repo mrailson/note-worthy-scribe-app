@@ -167,7 +167,7 @@ CRITICAL RULES:
 - Generate content based STRICTLY on the provided evidence — never fabricate facts not present in the evidence.
 - If there is insufficient evidence for a field, state what is available and note the gap.
 - Use British English throughout.
-- Keep each field concise (50-150 words).
+- Keep each field concise (30-75 words). Aim for brevity — short, punchy summaries.
 - Write in a professional, factual NHS tone.
 
 FIELD GUIDELINES:
@@ -292,7 +292,7 @@ Generate the four fields based strictly on this evidence.`;
     const systemPrompt = `You are a GP practice complaints officer generating a realistic practice response to a patient complaint for demonstration purposes. 
 
 Generate believable, professional responses that a typical NHS GP practice would provide. Each response should:
-- Be up to 100 words
+- Be 30-75 words — short and punchy
 - Use appropriate NHS tone (professional, empathetic, factual)
 - Reference realistic actions a GP practice would take
 - Be specific to the complaint category and details provided
