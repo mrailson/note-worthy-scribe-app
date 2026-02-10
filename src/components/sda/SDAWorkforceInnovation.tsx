@@ -94,27 +94,6 @@ export const SDAWorkforceInnovation = () => {
 
   return (
     <div className="space-y-6">
-      {/* Update Notice */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <Bell className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-semibold text-amber-800">Update - 27 Jan 2026</p>
-              <Badge className="bg-amber-500 text-white text-xs">Today</Badge>
-            </div>
-            <p className="text-sm text-amber-700 mt-1">
-              <strong>Application deadline:</strong> Close of business today (27th Jan).
-            </p>
-            <p className="text-sm text-amber-700 mt-1">
-              <strong>Expected by Friday:</strong> 5 further applications for GP and 5 for ACP to be loaded <span className="font-semibold">(12 Total for GP, 14 Total for ACP)</span>.
-            </p>
-            <p className="text-sm text-amber-700 mt-1">
-              PB (27/1/26) to confirm interview dates availability and who to attend etc. Amanda Taylor/Malcolm Railson will assist in arranging as defined by PB.
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* PRIORITY SECTION: Candidate Assessments */}
       <div className="space-y-4">
