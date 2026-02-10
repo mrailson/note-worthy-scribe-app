@@ -177,14 +177,19 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
         <head><meta charset="utf-8"><title>Critical Friend Review</title>
           <style>
-            body { font-family: Calibri, Arial, sans-serif; font-size: 12pt; line-height: 1.8; color: #333; margin: 2cm; }
+            @page { size: A4; margin: 2cm 2cm 2cm 2cm; }
+            @page Section1 { mso-page-orientation: portrait; }
+            div.Section1 { page: Section1; }
+            body { font-family: Calibri, Arial, sans-serif; font-size: 12pt; line-height: 1.8; color: #333; width: 100%; }
             strong { font-weight: bold; }
           </style>
         </head>
         <body>
+          <div class="Section1">
           <p style="font-size:18pt; font-weight:bold; color:#0072CE; margin-bottom:6pt;">AI Critical Friend Review</p>
           ${generatedAt ? `<p style="color:#666; font-size:10pt; margin-bottom:18pt;">Generated ${new Date(generatedAt).toLocaleDateString('en-GB')} at ${new Date(generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
           ${bodyContent}
+          </div>
         </body>
       </html>`;
 
@@ -308,7 +313,7 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
             <CollapsibleContent className="mt-4">
               <div className="p-4 bg-white dark:bg-card border rounded-lg" ref={reviewContentRef}>
                 <div 
-                  className="max-w-none dark:prose-invert [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h1]:text-sky-700 [&_h2]:text-sky-700 [&_h3]:text-foreground [&_p]:leading-relaxed [&_li]:leading-relaxed [&_ul]:space-y-1 [&_ol]:space-y-1"
+                  className="max-w-none [&_*]:!text-inherit [&_h1]:!text-[1.4em] [&_h2]:!text-[1.2em] [&_h3]:!text-[1.1em] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h1]:text-sky-700 [&_h2]:text-sky-700 [&_h3]:text-foreground [&_p]:leading-relaxed [&_li]:leading-relaxed [&_ul]:space-y-1 [&_ol]:space-y-1 dark:text-foreground"
                   style={{ fontSize: `${fontSize}px`, lineHeight: '1.7' }}
                   dangerouslySetInnerHTML={{ 
                     __html: renderNHSMarkdown(review, { enableNHSStyling: true })
