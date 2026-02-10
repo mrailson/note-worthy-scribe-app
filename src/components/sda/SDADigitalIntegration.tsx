@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList, BarChart3, FileText, AlertTriangle, Users, Calendar, TrendingUp, Download, PoundSterling } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { Button } from "@/components/ui/button";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
 import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
 
@@ -56,6 +57,49 @@ export const SDADigitalIntegration = () => {
               alt="EMIS Web GP Connect Appointments - Cross-provider booking at Brackley Medical Centre showing NRES SDA appointments"
               className="w-full rounded-lg border border-slate-200 shadow-sm"
             />
+          </div>
+        </div>
+      </CollapsibleCard>
+
+      {/* Risk Stratification Overview */}
+      <CollapsibleCard
+        title="Risk Stratification Overview & Patient Continuity of Care"
+        icon={<FileText className="w-5 h-5" />}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="border border-slate-200 rounded-lg p-4">
+            <h3 className="font-semibold text-slate-900 mb-3">Exhibit 3: Risk Stratification Framework</h3>
+            <img 
+              src="/images/nres-risk-stratification.png" 
+              alt="NRES SDA Hub Pilot Risk Stratification Overview showing RED, AMBER, GREEN patient categories and practice discretionary exemptions"
+              className="w-full rounded-lg border border-slate-200 shadow-sm"
+            />
+          </div>
+          <div className="border border-slate-200 rounded-lg p-4 flex flex-col">
+            <h3 className="font-semibold text-slate-900 mb-3">Risk Stratification Details</h3>
+            <div className="space-y-3 text-sm text-slate-700 flex-1">
+              <p>Strategic approach to protecting vulnerable patients and optimising service utilisation across the NRES SDA Hub Pilot.</p>
+              <div>
+                <h4 className="font-semibold text-slate-900 mb-1">Risk Levels</h4>
+                <ul className="space-y-1 ml-4 list-disc">
+                  <li><span className="font-medium text-red-700">RED (Exempt)</span> — End of Life, Severe Frailty, or 5+ co-morbidities. Completely exempt from Hub redirection.</li>
+                  <li><span className="font-medium text-amber-700">AMBER (Clinical Discretion)</span> — Moderate complexity / 2–4 co-morbidities. Staff assess suitability before booking.</li>
+                  <li><span className="font-medium text-green-700">GREEN (Eligible)</span> — Low complexity / routine need. Fully eligible for Hub booking.</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-slate-900 mb-1">Practice Discretionary Exemption</h4>
+                <p>Additional protection for patients unable to travel, experiencing anxiety/stress in unfamiliar settings, or where local knowledge (safeguarding, complex family dynamics) is essential.</p>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-200">
+              <Button variant="outline" size="sm" asChild>
+                <a href="/documents/NRES_Risk_Stratification_Overview.docx" download>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Full Document (Word)
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
       </CollapsibleCard>
