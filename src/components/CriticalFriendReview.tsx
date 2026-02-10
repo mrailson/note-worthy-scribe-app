@@ -319,9 +319,10 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
               <div className="p-4 bg-white dark:bg-card border rounded-lg" ref={reviewContentRef}>
                 <style>{`
                   .cfr-review-content, .cfr-review-content * { font-size: ${fontSize}px !important; line-height: 1.7 !important; }
-                  .cfr-review-content h1 { font-size: ${Math.round(fontSize * 1.4)}px !important; font-weight: bold; color: #0369a1; }
-                  .cfr-review-content h2 { font-size: ${Math.round(fontSize * 1.2)}px !important; font-weight: bold; color: #0369a1; }
-                  .cfr-review-content h3 { font-size: ${Math.round(fontSize * 1.1)}px !important; font-weight: bold; }
+                  .cfr-review-content [style] { font-size: ${fontSize}px !important; line-height: 1.7 !important; }
+                  .cfr-review-content h1, .cfr-review-content h1 * { font-size: ${Math.round(fontSize * 1.4)}px !important; font-weight: bold !important; color: #0369a1 !important; }
+                  .cfr-review-content h2, .cfr-review-content h2 * { font-size: ${Math.round(fontSize * 1.2)}px !important; font-weight: bold !important; color: #0369a1 !important; }
+                  .cfr-review-content h3, .cfr-review-content h3 * { font-size: ${Math.round(fontSize * 1.1)}px !important; font-weight: bold !important; }
                 `}</style>
                 <div 
                   className="cfr-review-content max-w-none [&_p]:leading-relaxed [&_li]:leading-relaxed [&_ul]:space-y-1 [&_ol]:space-y-1 dark:text-foreground"
