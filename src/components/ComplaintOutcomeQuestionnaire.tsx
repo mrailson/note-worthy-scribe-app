@@ -996,7 +996,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                 onChange={(e) => setData({ ...data, key_findings: e.target.value })}
                 placeholder="Summarise the main findings in 2-3 sentences..."
                 rows={3}
-                className="mb-2"
+                className="mb-2 bg-white dark:bg-background"
               />
               <div className="flex gap-2">
                 <SpeechToText
@@ -1039,7 +1039,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                 onChange={(e) => setData({ ...data, actions_taken: e.target.value })}
                 placeholder="What actions have been or will be taken?"
                 rows={2}
-                className="mb-2"
+                className="mb-2 bg-white dark:bg-background"
               />
               <div className="flex gap-2">
                 <SpeechToText
@@ -1082,7 +1082,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                 onChange={(e) => setData({ ...data, improvements_made: e.target.value })}
                 placeholder="What improvements have been made to prevent recurrence?"
                 rows={2}
-                className="mb-2"
+                className="mb-2 bg-white dark:bg-background"
               />
               <div className="flex gap-2">
                 <SpeechToText
@@ -1156,7 +1156,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                 onChange={(e) => setData({ ...data, additional_context: e.target.value })}
                 placeholder="Any other context or special instructions for the letter..."
                 rows={3}
-                className="mb-2"
+                className="mb-2 bg-white dark:bg-background"
               />
               <div className="flex gap-2">
                 <SpeechToText
