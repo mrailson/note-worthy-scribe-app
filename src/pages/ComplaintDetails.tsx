@@ -594,31 +594,9 @@ const ComplaintDetails = () => {
     }
   }, [activeTab, user, complaintId]);
 
-  // Set up real-time listener for compliance changes to sync between tabs
-  useEffect(() => {
-    if (!user || !complaintId) return;
-
-    const channel = supabase
-      .channel('compliance-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'complaint_compliance_checks',
-          filter: `complaint_id=eq.${complaintId}`
-        },
-        () => {
-          // Refresh compliance data when any check is updated
-          fetchComplianceData();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, complaintId]);
+  // Removed real-time compliance listener — compliance data is fetched
+  // on tab switch and after manual updates, so realtime was causing
+  // unnecessary page refreshes.
 
 
 
