@@ -95,44 +95,6 @@ export const SDAWorkforceInnovation = () => {
   return (
     <div className="space-y-6">
 
-      {/* PRIORITY SECTION: Candidate Assessments */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="h-8 w-1.5 bg-gradient-to-b from-blue-500 to-teal-500 rounded-full" />
-          <h2 className="text-lg font-semibold text-slate-800">Candidate Assessments - Action Required</h2>
-        </div>
-        
-        {/* GP Recruitment - Candidate Assessment */}
-        <CollapsibleCard
-          title="GP Recruitment - Candidate Assessment"
-          icon={<UserCheck className="w-5 h-5" />}
-          badge={<Badge className="bg-blue-500">7 Applicants</Badge>}
-          defaultOpen={false}
-        >
-          <GPRecruitmentPanel />
-        </CollapsibleCard>
-
-        {/* ACP Recruitment - Candidate Assessment */}
-        <CollapsibleCard
-          title="ACP Recruitment - Candidate Assessment"
-          icon={<ClipboardCheck className="w-5 h-5" />}
-          badge={<Badge className="bg-teal-500">9 Applicants</Badge>}
-          defaultOpen={false}
-        >
-          <ACPRecruitmentPanel />
-        </CollapsibleCard>
-      </div>
-
-      {/* Divider */}
-      <div className="relative py-4">
-        <div className="absolute inset-0 flex items-center" aria-hidden="true">
-          <div className="w-full border-t border-slate-200" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-background px-4 text-sm text-muted-foreground">Supporting Resources</span>
-        </div>
-      </div>
-
       {/* Job Description Templates */}
       <CollapsibleCard
         title="Job Description Templates"
