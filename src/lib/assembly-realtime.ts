@@ -527,7 +527,7 @@ export class AssemblyRealtimeClient {
 
       while (accLen >= bytesPerChunk) {
         const payload = this.spliceBytes(buffer16, bytesPerChunk);
-        if (payload) this.ws!.send(payload.buffer);
+        if (payload) this.ws!.send(payload.buffer as ArrayBuffer);
         accLen -= bytesPerChunk;
       }
     };
