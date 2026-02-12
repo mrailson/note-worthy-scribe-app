@@ -28,6 +28,40 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // ── Authenticate the caller FIRST (before any expensive API calls) ──
+    const authHeader = req.headers.get('authorization');
+    let currentUserId: string | null = null;
+    let userToken: string | null = null;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        userToken = authHeader.replace('Bearer ', '');
+        const { data: userData } = await supabase.auth.getUser(userToken);
+        currentUserId = userData.user?.id ?? null;
+      } catch (err) {
+        console.error('Auth token validation failed:', (err as Error).message);
+      }
+    }
+
+    if (!currentUserId) {
+      return new Response(JSON.stringify({
+        error: 'Unauthenticated request',
+        details: 'Your session may have expired. Please refresh the page and try again.'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Create an authed Supabase client so DB triggers see auth.uid()
+    const supabaseAuthed = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { global: { headers: { Authorization: `Bearer ${userToken}` } } }
+    );
+
+    console.log('✅ User authenticated:', currentUserId);
+
     // Fetch complaint details
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
@@ -384,47 +418,13 @@ CRITICAL CONTACT INFORMATION RULES:
       console.log('No logo URLs found in practice details');
     }
     
-    // Get the authenticated user from the request headers
-    const authHeader = req.headers.get('authorization');
-    let currentUser: { id: string } | null = null;
-    let token: string | null = null;
-    
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      try {
-        token = authHeader.replace('Bearer ', '');
-        const { data } = await supabase.auth.getUser(token);
-        currentUser = data.user ? { id: data.user.id } : null;
-      } catch (error) {
-        console.log('Could not get user from token:', (error as Error).message);
-      }
-    }
-
-    // Create a Supabase client that carries the user's JWT so DB triggers see auth.uid()
-    const supabaseAuthed = token
-      ? createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-          { global: { headers: { Authorization: `Bearer ${token}` } } }
-        )
-      : supabase;
-
-    if (!currentUser?.id) {
-      return new Response(JSON.stringify({
-        error: 'Unauthenticated request',
-        details: 'No user token provided in Authorization header'
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     // Store the acknowledgement in the database (use authed client so triggers log with user context)
     const { error: insertError } = await supabaseAuthed
       .from('complaint_acknowledgements')
       .insert({
         complaint_id: complaintId,
         acknowledgement_letter: acknowledgementLetter,
-        sent_by: currentUser.id,
+        sent_by: currentUserId,
         sent_at: null, // Explicitly set to null - should only be set when manually marked as sent
       });
 
