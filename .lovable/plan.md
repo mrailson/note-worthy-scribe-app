@@ -1,24 +1,52 @@
 
 
-# Update COMP260007: Correct Complaint Details
+# Add Deleted Meetings (500+ Words) to Total Meeting Count
 
-## What Happened
+## What Changes
 
-Record COMP260007 for James Robert Williams currently contains incorrect data about "Repeated appointment cancellations" at Oak Lane Practice. Based on your screenshot, it should be about an urgent ultrasound delay at The Brook Health Centre.
+The "All Time" meeting count in the Meeting Usage Report currently only counts active completed meetings. Deleted meetings (stored in `meetings_archive`) that had over 500 words will be added to the All Time total, giving a more accurate picture of total usage.
 
-## Data Update
+## Why 500 Words?
 
-The following fields will be corrected:
+Active meetings use a 100-word threshold to filter out test/abandoned recordings. For deleted meetings, a higher 500-word threshold ensures only genuinely substantive meetings are counted — since users may have deleted short or failed recordings.
 
-| Field | Current (incorrect) | Corrected |
-|---|---|---|
-| Title | Repeated appointment cancellations and poor communication | Urgent ultrasound delay |
-| Description | About cancelled appointments at Oak Lane Practice | About delay in receiving urgent ultrasound at The Brook Health Centre |
-| Location/Service | Oak Lane Practice | The Brook Health Centre |
-| Practice | Oak Lane Practice (c800c954...) | The Brook Health Centre (ebb2bf2c-1d20-42d9-8572-ce07a4dae3de) |
-| Incident Date | 2025-08-01 | 2026-01-31 |
+## Technical Changes
 
-## Technical Detail
+### 1. Update the `get_meeting_usage_report` RPC Function
 
-A single SQL UPDATE statement will be run against the `complaints` table targeting `reference_number = 'COMP260007'` to correct all five fields listed above. No schema or code changes are required.
+Modify the SQL function to:
+- Filter `meetings_archive` to only count records where `word_count >= 500`
+- Add the qualifying deleted count to each user's `all_time` total
 
+The key change in the final SELECT:
+```sql
+-- Before:
+COALESCE(ms.all_time, 0)::BIGINT as all_time,
+
+-- After:
+(COALESCE(ms.all_time, 0) + COALESCE(ds.deleted_count, 0))::BIGINT as all_time,
+```
+
+And in the `deleted_stats` CTE, add the word count filter:
+```sql
+-- Before:
+SELECT ma.user_id, COUNT(*) as deleted_count
+FROM public.meetings_archive ma
+GROUP BY ma.user_id
+
+-- After:
+SELECT ma.user_id, COUNT(*) as deleted_count
+FROM public.meetings_archive ma
+WHERE ma.word_count >= 500
+GROUP BY ma.user_id
+```
+
+### 2. Frontend (No Changes Required)
+
+The `MeetingUsageReport.tsx` component already displays `all_time` and `deleted_meetings_count` from the RPC response. The system-wide totals are calculated by summing user-level values, so they will automatically reflect the updated counts.
+
+### Summary of Impact
+
+- The "All Time" number in each summary card and per-user row will increase by the number of qualifying deleted meetings
+- The "Deleted" column will only show deleted meetings with 500+ words (previously showed all deleted)
+- Duration, words, and cost figures remain unchanged (only from active meetings) since archived meetings don't store full duration/cost data reliably
