@@ -1,0 +1,1 @@
+DELETE FROM compliments WHERE reference_number = 'CMPL260001';
