@@ -1,63 +1,57 @@
 
+# Fix: Presentation Studio Memory Crashes on Quick Pick Switching
 
-# Fix Legacy File Processing and Add Evidence Detail Modal
+## Root Cause Analysis
 
-## Two Changes
+After investigating the code, I've identified several issues that compound to cause memory pressure and eventual browser crashes when rapidly switching between quick picks:
 
-### 1. Fix Legacy .doc/.xls/.ppt File Processing
+### 1. Massive Callback Recreation (Primary Cause)
+The `generatePresentation` function (~350 lines) has `state` as a dependency (line 722 of `usePresentationStudio.ts`). Since `state` is the entire state object (settings, history, results, etc.), every quick pick click recreates this large closure, capturing all data including potentially large document contents and generation history.
 
-Currently, when a `.doc`, `.xls`, or `.ppt` file is uploaded, the edge function returns a static message: "Content preview not available for legacy format." Instead, we'll send these files to the Gemini vision API (same as PDFs and images) since Gemini can read binary Office formats when passed as base64 data.
+### 2. Synchronous localStorage Writes on Every Change
+The `savePersistedSettings` effect (lines 216-238) fires on every settings change with 16+ dependencies. Each quick pick click triggers immediate JSON serialisation and localStorage write of the full settings object.
 
-**File:** `supabase/functions/analyse-evidence-file/index.ts`
+### 3. Unmemoised Quick Picks Array
+In `ContentTab.tsx`, the `quickPicks` array (lines 199-224) is recreated on every render, along with the `handleQuickPick` function, causing unnecessary child re-renders.
 
-- For `.doc` files (line 417-418): Instead of returning the static message, send the file via `aiVisionAnalyse()` with the correct MIME type — the same approach used for PDFs
-- For `.xls` files (line 432-434): Same treatment
-- For `.ppt` files (line 443-445): Same treatment
-- This means all legacy Office formats will get proper AI summaries just like their modern counterparts
+### 4. Toast Spam
+Each quick pick click shows a toast notification (`toast.success`), which mounts new DOM elements and triggers additional re-renders. Rapid clicking queues multiple toasts simultaneously.
 
-### 2. Add Expand/Detail Icon on Each Evidence Item
+## Proposed Fix
 
-Add an "info" or "expand" icon button on each evidence file row that opens a fullscreen dialog showing comprehensive details.
+### File 1: `src/hooks/usePresentationStudio.ts`
 
-**File:** `src/components/InvestigationEvidence.tsx`
+**A. Use a ref for state access in heavy callbacks**
+- Add a `stateRef` that mirrors `state`, allowing `generatePresentation` and `downloadPresentation` to read current state without being in the dependency array
+- Change `generatePresentation` dependencies from `[state, practiceContext]` to `[practiceContext]`
+- Change `downloadPresentation` dependencies from `[state.currentResult]` to `[]`
 
-- Add a new state for the detail modal (selected file)
-- Add an `Expand` icon button (using the lucide `Maximize2` or `Info` icon) in the action buttons row for each evidence item
-- When clicked, open a fullscreen `Dialog` showing:
-  - File name and type badge
-  - Full AI summary (rendered with proper formatting, not truncated)
-  - File metadata: size, upload date/time, evidence type
-  - For audio files: transcript text (if available), duration, confidence score
-  - Audio review badges (if available)
-  - Action buttons at the bottom: Download, Delete, Re-analyse
+**B. Debounce localStorage persistence**
+- Wrap `savePersistedSettings` in a debounced timeout (500ms) so rapid quick pick clicks coalesce into a single write
+- Clean up the timeout on unmount
 
-This replaces the current `HoverCard` approach (which requires hovering and is limited in size) with a proper fullscreen modal for deep inspection.
+### File 2: `src/components/ai4gp/presentation-studio/ContentTab.tsx`
+
+**A. Memoise the quick picks array and handler**
+- Wrap `quickPicks` in `useMemo` so it's only created once
+- Wrap `handleQuickPick` in `useCallback` with stable dependencies
+- Remove the `toast.success` call from quick pick selection (or replace with a lightweight visual indicator) to avoid toast DOM accumulation during rapid switching
 
 ## Technical Details
 
-### Edge Function Changes (analyse-evidence-file)
+```text
+usePresentationStudio.ts changes:
+  - Add: const stateRef = useRef(state); 
+  - Add: useEffect to sync stateRef.current = state
+  - Modify: generatePresentation to read from stateRef.current
+  - Modify: downloadPresentation to read from stateRef.current  
+  - Add: debounce timer ref for localStorage saves
+  - Modify: save effect to use setTimeout with cleanup
 
-Replace the three "legacy format" fallback lines with vision API calls:
-
-```
-// .doc -> send to vision API
-case "doc":
-  summary = await aiVisionAnalyse(base64Data, mimeType || "application/msword", fileName, evidenceType, LOVABLE_API_KEY);
-
-// .xls -> send to vision API  
-case "xls":
-  summary = await aiVisionAnalyse(base64Data, mimeType || "application/vnd.ms-excel", fileName, evidenceType, LOVABLE_API_KEY);
-
-// .ppt -> send to vision API
-case "ppt":
-  summary = await aiVisionAnalyse(base64Data, mimeType || "application/vnd.ms-powerpoint", fileName, evidenceType, LOVABLE_API_KEY);
+ContentTab.tsx changes:
+  - Wrap quickPicks in useMemo(() => [...], [])
+  - Wrap handleQuickPick in useCallback
+  - Remove toast.success from handleQuickPick
 ```
 
-### Detail Modal UI
-
-- Fullscreen dialog (max-w-3xl) with scroll area
-- Header: file icon, file name, evidence type badge
-- Body: full AI summary with whitespace preserved, metadata grid
-- For audio: embedded transcript section with confidence and duration
-- Footer: Download and Delete action buttons
-- The existing HoverCard remains for quick glance; the modal provides the deep view
+These changes preserve all existing functionality (generation, download, history, persistence) whilst eliminating the memory pressure from rapid state-driven callback recreation and synchronous storage writes.
