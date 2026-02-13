@@ -827,6 +827,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               throw chatgptError;
             }
 
+            // Guard against raw error JSON being shown to user
+            if (chatgptData?.success === false) {
+              throw new Error(chatgptData?.error || 'The AI service encountered an error. Please try again.');
+            }
+
             const chatgptResponse = chatgptData?.response || chatgptData?.content || 'No response received from ChatGPT 4o';
             const endTime = Date.now();
             const responseTime = endTime - startTime;
@@ -1099,6 +1104,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         if (error) {
           console.error('AI Service Error:', error);
           throw new Error(`AI service error: ${error.message || 'Unknown error'}`);
+        }
+
+        // Guard against raw error JSON being shown to user
+        if (data?.success === false) {
+          throw new Error(data?.error || 'The AI service encountered an error. Please try again.');
         }
 
         const responseContent = data?.response || data?.content || 'No response received';
@@ -1640,6 +1650,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       if (error) {
         throw error;
+      }
+
+      // Guard against raw error JSON being shown to user
+      if (data?.success === false) {
+        throw new Error(data?.error || 'The AI service encountered an error. Please try again.');
       }
 
       const responseContent = data?.response || data?.content || 'No response received';
