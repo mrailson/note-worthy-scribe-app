@@ -10942,6 +10942,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_public_survey: { Args: { p_token: string }; Returns: Json }
       get_recent_completed_meetings: {
         Args: { since_time: string }
         Returns: {

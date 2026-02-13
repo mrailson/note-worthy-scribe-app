@@ -26,7 +26,6 @@ interface Survey {
   title: string;
   description: string | null;
   is_anonymous: boolean;
-  practice_id: string | null;
   show_practice_logo: boolean;
   branding_level: 'none' | 'name' | 'name_address' | 'full';
 }
@@ -48,68 +47,30 @@ const PublicSurvey = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: survey, isLoading: surveyLoading, error: surveyError } = useQuery({
+  const { data: surveyData, isLoading: surveyLoading, error: surveyError } = useQuery({
     queryKey: ['public-survey', token],
     queryFn: async () => {
-      // Try short_code first, fall back to public_token for backwards compatibility
-      let query = supabase
-        .from('surveys')
-        .select('id, title, description, is_anonymous, practice_id, show_practice_logo, branding_level')
-        .eq('status', 'active');
-      
-      // Check if token looks like a UUID (36 chars with dashes) or a short code (6 chars)
-      if (token && token.length === 36 && token.includes('-')) {
-        query = query.eq('public_token', token);
-      } else {
-        query = query.eq('short_code', token);
-      }
-      
-      const { data, error } = await query.single();
+      const { data, error } = await supabase
+        .rpc('get_public_survey', { p_token: token! });
 
       if (error) {
         console.error('Survey fetch error:', error);
         throw error;
       }
-      return data as Survey;
+      if (!data) throw new Error('Survey not found');
+      return data as unknown as {
+        survey: Survey;
+        practice: PracticeDetails | null;
+        questions: Question[];
+      };
     },
     enabled: !!token,
     retry: 1,
   });
 
-  const { data: practiceDetails } = useQuery({
-    queryKey: ['practice-details', survey?.practice_id],
-    queryFn: async () => {
-      if (!survey?.practice_id) return null;
-      
-      const { data, error } = await supabase
-        .from('practice_details')
-        .select('practice_name, address, email, phone, practice_logo_url, logo_url')
-        .eq('id', survey.practice_id)
-        .single();
-
-      if (error) {
-        console.error('Practice details fetch error:', error);
-        return null;
-      }
-      return data as PracticeDetails;
-    },
-    enabled: !!survey?.practice_id && (survey.show_practice_logo || survey.branding_level !== 'none'),
-  });
-
-  const { data: questions, isLoading: questionsLoading } = useQuery({
-    queryKey: ['public-survey-questions', survey?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('survey_questions')
-        .select('*')
-        .eq('survey_id', survey!.id)
-        .order('display_order');
-
-      if (error) throw error;
-      return data as Question[];
-    },
-    enabled: !!survey?.id,
-  });
+  const survey = surveyData?.survey ?? null;
+  const practiceDetails = surveyData?.practice ?? null;
+  const questions = surveyData?.questions ?? null;
 
   const updateAnswer = (questionId: string, value: any) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -180,7 +141,7 @@ const PublicSurvey = () => {
     }
   };
 
-  const isLoading = surveyLoading || questionsLoading;
+  const isLoading = surveyLoading;
   const answeredCount = Object.keys(answers).filter((k) => answers[k]).length;
   const totalQuestions = questions?.length || 0;
   const progress = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
