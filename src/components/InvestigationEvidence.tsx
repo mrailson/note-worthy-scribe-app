@@ -1682,6 +1682,11 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                             </span>
                           </div>
                           {(file.ai_summary || file.description) && (
+                            file.evidence_type === 'audio' || file.file_type?.startsWith('audio/') ? (
+                              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                {(file.ai_summary || file.description || '').replace(/#{1,6}\s*/g, '').replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')}
+                              </p>
+                            ) : (
                             <HoverCard openDelay={300}>
                               <HoverCardTrigger asChild>
                                 <p className="text-sm text-muted-foreground mt-1 line-clamp-2 cursor-default">
@@ -1695,6 +1700,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                                 </p>
                               </HoverCardContent>
                             </HoverCard>
+                            )
                           )}
                           {file.ai_summary && (file.evidence_type === 'audio' || file.file_type?.startsWith('audio/')) && (
                             <>
