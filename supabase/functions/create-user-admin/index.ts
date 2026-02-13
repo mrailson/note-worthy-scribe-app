@@ -37,6 +37,15 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authenticate the caller first
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header', success: false }),
+        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
     const userData: CreateUserRequest = await req.json();
 
     // Create admin client with service role key
@@ -51,7 +60,32 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
 
-    console.log("Creating user with admin privileges:", userData.email);
+    // Verify the caller's JWT and get their user ID
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: caller }, error: callerError } = await supabaseAdmin.auth.getUser(token);
+
+    if (callerError || !caller) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token', success: false }),
+        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    // Check the caller has system_admin role
+    const { data: isAdmin, error: adminCheckError } = await supabaseAdmin.rpc('has_role', {
+      _user_id: caller.id,
+      _role: 'system_admin'
+    });
+
+    if (adminCheckError || !isAdmin) {
+      console.error('Unauthorized user creation attempt by:', caller.id);
+      return new Response(
+        JSON.stringify({ error: 'Only system admins can create users', success: false }),
+        { status: 403, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      );
+    }
+
+    console.log("Creating user with admin privileges:", userData.email, "by admin:", caller.id);
 
     // Create the user with admin privileges
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
