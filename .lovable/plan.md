@@ -1,59 +1,55 @@
 
 
-# Add Value Judgements Toggle to AI Critical Friend Review
+# Add Value Judgements Toggle to AI Call Summary
 
 ## What This Does
 
-Adds a slider/toggle to the Critical Friend Review section that controls whether the AI includes **value judgements and opinions** in its output. When switched **off**, the review will only describe factual observations — no tone assessments, no opinions on quality, no subjective commentary. When switched **on** (default, current behaviour), it includes the full supportive commentary with opinions on strengths, tone analysis of call transcripts, etc.
+Adds an "Include Value Judgements" toggle to the **AI Call Summary** dialog (AudioAIReviewDialog), matching the one already added to Critical Friend Review. When switched **on**, the AI will include tone assessments (e.g., "Patient: Dismissive", "Staff: Good"), opinions on call handling quality, and subjective commentary. When **off** (default, current behaviour), it stays factual-only.
 
 ## User-Facing Change
 
-- A new toggle switch appears in the Critical Friend Review header area, next to the "Regenerate Review" button
-- Label: **"Include Value Judgements"** with a short description beneath
-- When **on**: Current behaviour — warm, opinionated review with tone analysis and subjective assessments
-- When **off**: Factual-only mode — describes what was found, what was documented, what evidence exists, without expressing views on quality or tone
-- The toggle state is passed to the edge function when generating/regenerating a review
-- Existing saved reviews are not affected; the toggle only applies when generating a new review
+- A new toggle switch appears in the AI Call Summary dialog header, alongside the existing "Names redacted/visible" toggle
+- Label: **"Include Value Judgements"** with contextual description
+- When **off** (default): Current factual-only behaviour — no tone, no opinions
+- When **on**: Adds tone assessment, handling quality ratings, and key lessons/recommendations sections
+- When toggled on, the user can click "Re-analyse" to regenerate with value judgements included
+- The toggle state is passed to the edge function on re-analysis
 
 ## Technical Changes
 
-### 1. Frontend: `src/components/CriticalFriendReview.tsx`
+### 1. Frontend: `src/components/AudioAIReviewDialog.tsx`
 
-- Add a `Switch` component (from `@/components/ui/switch`) with state `includeValueJudgements` (default: `true`)
-- Place it in the header area between the title and the generate button
-- Pass the boolean to the edge function call in `generateReview()`
-- Persist the preference in the component state (no need for localStorage — it resets per session, which is appropriate as users may want different settings per complaint)
+- Add `includeValueJudgements` state (default: `false`)
+- Add a `Switch` component in the controls row next to the names toggle
+- Pass the boolean through the `onReAnalyse` callback
 
-### 2. Backend: `supabase/functions/ai-investigation-assistant/index.ts`
+### 2. Frontend: `src/components/InvestigationEvidence.tsx`
 
-- Accept `include_value_judgements` (boolean, default `true`) from the request body
-- When `false`, modify the `critical_friend_review` system prompt and user prompt to:
-  - Remove instructions about being "warm", "supportive", "celebratory"
-  - Remove "Strengths Identified" section (that's an opinion)
-  - Replace with a factual structure: "Evidence Summary", "Documentation Review", "Process Observations", "Gaps Identified"
-  - Explicitly instruct: "Do NOT provide opinions, tone assessments, value judgements, or subjective commentary. Only describe what is documented, what evidence exists, and what factual gaps are present."
-  - Remove tone analysis instructions for phone call transcripts
-- When `true` (default), keep the existing prompt unchanged
+- Update the `onReAnalyse` callback (lines 1153-1178) to accept and pass `includeValueJudgements` to the edge function
+- Update the auto-generate call (lines 889-891) — keeps default factual-only behaviour
 
-### 3. Prompt for Factual-Only Mode
+### 3. Backend: `supabase/functions/generate-audio-review/index.ts`
+
+- Accept `includeValueJudgements` (boolean, default `false`) from the request body
+- When `true`, use an expanded prompt that includes:
+  - **Tone Assessment** section — Patient tone, Staff tone, with descriptive labels
+  - **Handling Quality** — Assessment of how the call was managed
+  - **Key Lessons and Recommendations** — Suggestions for improvement
+- When `false` (default), keep the current factual-only prompt unchanged
+
+### 4. Prompt Addition for Value Judgements Mode
+
+When enabled, the following sections are appended to the output structure:
 
 ```
-You are an NHS complaint investigation document reviewer. Your role is to
-provide a factual summary of the investigation documentation — what evidence
-has been gathered, what has been documented, and what factual gaps exist.
+## 5. Tone Assessment
+Assess the tone and demeanour of each party:
+- **Patient/Caller tone**: (e.g., Calm, Frustrated, Dismissive, Anxious, Assertive)
+- **Staff tone**: (e.g., Professional, Dismissive, Empathetic, Defensive)
+- **Overall handling**: (e.g., Good, Needs Improvement, Poor)
 
-CRITICAL RULES:
-- Do NOT express opinions or value judgements
-- Do NOT assess tone, attitude, or communication quality
-- Do NOT use words like "excellent", "good", "concerning", "impressive", "thorough"
-- Do NOT comment on the emotional or interpersonal aspects of phone calls or consultations
-- ONLY describe what is factually documented and what is not
-- Use neutral, descriptive language throughout
-
-Structure:
-**Evidence Summary** — List what documentation and evidence has been collected
-**Process Observations** — Factual description of the investigation steps taken
-**Documentation Gaps** — Any factual gaps where evidence or documentation appears absent
-**Regulatory Checklist** — Whether key NHS complaint-handling process steps are documented
+## 6. Key Lessons and Recommendations
+Based on the call, identify learning points and suggestions for practice improvement.
 ```
 
+The "ABSOLUTE RULES" section is also adjusted to permit subjective commentary when value judgements are enabled.
