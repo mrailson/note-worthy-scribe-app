@@ -22,7 +22,7 @@ serve(async (req) => {
       throw new Error('Lovable API key not configured');
     }
 
-    const { complaint_id, request_type } = await req.json();
+    const { complaint_id, request_type, include_value_judgements = true } = await req.json();
 
     if (!complaint_id || !request_type) {
       throw new Error('Missing complaint_id or request_type');
@@ -172,7 +172,8 @@ Provide:
         break;
 
       case 'critical_friend_review':
-        systemPrompt = `You are a warm, supportive NHS improvement advisor acting as a "Critical Friend" for GP practices handling complaints. Your role is to help practices feel confident and well-prepared, while gently highlighting areas that might benefit from additional consideration.
+        if (include_value_judgements) {
+          systemPrompt = `You are a warm, supportive NHS improvement advisor acting as a "Critical Friend" for GP practices handling complaints. Your role is to help practices feel confident and well-prepared, while gently highlighting areas that might benefit from additional consideration.
 
 IMPORTANT GUIDELINES:
 - Be genuinely warm, encouraging, and supportive throughout — your tone should feel like a trusted colleague offering helpful advice over a cup of tea
@@ -185,7 +186,7 @@ IMPORTANT GUIDELINES:
 - Remember the practice retains full authority over all decisions
 - This is advisory guidance only, not a formal review or determination`;
 
-        userPrompt = `Please review the following complaint investigation as a supportive "Critical Friend" and provide warm, constructive feedback:
+          userPrompt = `Please review the following complaint investigation as a supportive "Critical Friend" and provide warm, constructive feedback:
 
 ${complaintContext}
 ${staffResponsesContext}
@@ -206,6 +207,41 @@ Provide 2-3 gentle, forward-looking suggestions that could further strengthen th
 A brief, warm summary that acknowledges the practice's hard work and dedication. Recognise the emotional demands of complaint handling on staff and encourage the team to continue their good practice. End on a positive, supportive note.
 
 REMINDER: This is AI-generated advisory feedback designed to help the practice feel prepared and supported. The practice retains full responsibility for all complaint decisions and outcomes.`;
+        } else {
+          systemPrompt = `You are an NHS complaint investigation document reviewer. Your role is to provide a factual summary of the investigation documentation — what evidence has been gathered, what has been documented, and what factual gaps exist.
+
+CRITICAL RULES:
+- Do NOT express opinions or value judgements
+- Do NOT assess tone, attitude, or communication quality
+- Do NOT use words like "excellent", "good", "concerning", "impressive", "thorough", "strong", "weak", "poor"
+- Do NOT comment on the emotional or interpersonal aspects of phone calls or consultations
+- Do NOT assess whether communication was warm, professional, empathetic, or compassionate
+- ONLY describe what is factually documented and what is not
+- Use neutral, descriptive language throughout
+- When referencing phone call transcripts or consultations, describe ONLY what was discussed and what information was exchanged — not how it was said`;
+
+          userPrompt = `Review the following complaint investigation documentation and provide a factual-only summary of what has been documented and what gaps exist. Do NOT include any opinions, assessments of quality, or value judgements:
+
+${complaintContext}
+${staffResponsesContext}
+${evidenceContext}
+
+Provide your review using this structure:
+
+**Evidence Summary**
+List what documentation and evidence has been collected for this investigation. State what each document or response contains factually.
+
+**Process Observations**
+Factual description of the investigation steps that have been taken. What was done, by whom, and when — without assessing quality.
+
+**Documentation Gaps**
+Identify any factual gaps where evidence or documentation appears to be absent. State what is missing without commenting on whether this is good or bad.
+
+**Regulatory Checklist**
+State whether key NHS complaint-handling process steps are documented as having occurred (acknowledgement, consent, timeframes, staff involvement, etc.). Simply note present or absent — do not assess adequacy.
+
+REMINDER: This is a factual document review only. No opinions, no value judgements, no assessments of tone or quality. The practice retains full responsibility for all complaint decisions.`;
+        }
         break;
 
       default:

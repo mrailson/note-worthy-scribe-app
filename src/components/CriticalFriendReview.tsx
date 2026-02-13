@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface CriticalFriendReviewProps {
   complaintId: string;
@@ -21,6 +23,7 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
   const [isGenerating, setIsGenerating] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [fontSize, setFontSize] = useState(16);
+  const [includeValueJudgements, setIncludeValueJudgements] = useState(true);
   const reviewContentRef = useRef<HTMLDivElement>(null);
 
   const MIN_FONT_SIZE = 12;
@@ -61,7 +64,8 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
       const { data, error } = await supabase.functions.invoke('ai-investigation-assistant', {
         body: {
           complaint_id: complaintId,
-          request_type: 'critical_friend_review'
+          request_type: 'critical_friend_review',
+          include_value_judgements: includeValueJudgements
         }
       });
 
@@ -237,6 +241,23 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
             </Button>
           )}
         </div>
+        {!disabled && (
+          <div className="flex items-center gap-3 mt-2">
+            <Switch
+              id="value-judgements"
+              checked={includeValueJudgements}
+              onCheckedChange={setIncludeValueJudgements}
+            />
+            <Label htmlFor="value-judgements" className="text-sm cursor-pointer">
+              <span className="font-medium">Include Value Judgements</span>
+              <span className="block text-xs text-muted-foreground">
+                {includeValueJudgements
+                  ? 'Review includes opinions, tone analysis & supportive commentary'
+                  : 'Factual only — no opinions, tone assessments or subjective views'}
+              </span>
+            </Label>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert className="border-sky-300 bg-sky-100/50 dark:border-sky-700 dark:bg-sky-900/30">
