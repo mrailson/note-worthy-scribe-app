@@ -1150,7 +1150,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         fileName={aiReviewModal.fileName}
         review={aiReviewModal.review}
         practiceId={complaintDetails?.practice_id}
-        onReAnalyse={aiReviewModal.evidenceFileId ? async () => {
+        onReAnalyse={aiReviewModal.evidenceFileId ? async (includeValueJudgements: boolean) => {
           const fileId = aiReviewModal.evidenceFileId;
           if (!fileId) return;
           const file = evidenceFiles.find(f => f.id === fileId);
@@ -1162,7 +1162,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
           }
           const { data: reviewData, error: reviewError } = await supabase.functions
             .invoke('generate-audio-review', {
-              body: { transcript: transcript.transcript_text, fileName: file.file_name, audioDuration: transcript.audio_duration_seconds }
+              body: { transcript: transcript.transcript_text, fileName: file.file_name, audioDuration: transcript.audio_duration_seconds, includeValueJudgements }
             });
           if (reviewError) throw reviewError;
           if (!reviewData?.review) throw new Error('No summary returned');
