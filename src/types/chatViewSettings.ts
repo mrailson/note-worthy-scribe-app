@@ -17,7 +17,7 @@ export const DEFAULT_CHAT_VIEW_SETTINGS: ChatViewSettings = {
   autoScrollNewMessages: true,
   scrollDuringStreaming: true,
   bubbleStyle: 'cards',
-  containerSize: 'normal',
+  containerSize: 'full',
 };
 
 export const FONT_SIZE_SCALE: Record<ChatViewSettings['fontSize'], string> = {
