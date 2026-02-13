@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { safeSetItem } from "@/utils/localStorageManager";
 import { useNavigate, useLocation } from "react-router-dom";
 import { format, startOfDay, addMinutes } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -2090,7 +2091,7 @@ export const MeetingRecorder = ({
         startedBy: user?.email || 'Unknown User',
         timestamp: Date.now()
       };
-      localStorage.setItem('unsaved_meeting', JSON.stringify(meetingData));
+      safeSetItem('unsaved_meeting', JSON.stringify(meetingData));
       console.log('Auto-saved meeting data to localStorage');
     }
   };
@@ -2181,8 +2182,8 @@ export const MeetingRecorder = ({
         try {
           const draft = transcript;
           if (draft?.length > 50) {
-            localStorage.setItem('meetingTranscriptDraft', draft);
-            localStorage.setItem('meetingDraftTimestamp', Date.now().toString());
+            safeSetItem('meetingTranscriptDraft', draft);
+            safeSetItem('meetingDraftTimestamp', Date.now().toString());
           }
         } catch (error) {
           console.warn('Draft save failed:', error);

@@ -1,3 +1,5 @@
+import { safeSetItem } from '@/utils/localStorageManager';
+
 interface AuditEntry {
   id: string;
   timestamp: Date;
@@ -45,7 +47,7 @@ export class MedicalTranslationAuditTrail {
     }
     
     // Save to localStorage
-    localStorage.setItem(this.storageKey, JSON.stringify(existingLog));
+    safeSetItem(this.storageKey, JSON.stringify(existingLog));
     
     console.log('Medical translation audit entry logged:', auditEntry.id);
     
@@ -84,7 +86,7 @@ export class MedicalTranslationAuditTrail {
         timestamp: new Date()
       };
 
-      localStorage.setItem(this.storageKey, JSON.stringify(log));
+      safeSetItem(this.storageKey, JSON.stringify(log));
       console.log('User override added to audit entry:', entryId);
       
       return true;
@@ -183,7 +185,7 @@ export class MedicalTranslationAuditTrail {
           status: 'pending'
         };
 
-      localStorage.setItem(this.storageKey, JSON.stringify(log));
+      safeSetItem(this.storageKey, JSON.stringify(log));
       return true;
     } catch (error) {
       console.error('Error flagging for manual review:', error);
