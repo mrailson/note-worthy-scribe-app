@@ -1,52 +1,75 @@
 
 
-# Add Deleted Meetings (500+ Words) to Total Meeting Count
+# localStorage Quota Management
 
-## What Changes
+## Problem
 
-The "All Time" meeting count in the Meeting Usage Report currently only counts active completed meetings. Deleted meetings (stored in `meetings_archive`) that had over 500 words will be added to the All Time total, giving a more accurate picture of total usage.
+The app stores data across 70+ localStorage keys. When storage fills up (~5MB limit), the Supabase auth token can't be saved, which logs the user out or prevents login entirely.
 
-## Why 500 Words?
+## Solution
 
-Active meetings use a 100-word threshold to filter out test/abandoned recordings. For deleted meetings, a higher 500-word threshold ensures only genuinely substantive meetings are counted — since users may have deleted short or failed recordings.
+Create a storage management utility that:
+1. Monitors localStorage usage
+2. Automatically clears non-essential cached data when space is low
+3. Ensures critical keys (auth tokens) always have room to be saved
+4. Wraps `localStorage.setItem` calls in a safe helper that triggers cleanup on quota errors
 
-## Technical Changes
+## Key Design Decisions
 
-### 1. Update the `get_meeting_usage_report` RPC Function
+- **Priority tiers**: Keys are classified as critical (auth tokens, never cleared), important (user settings, cleared last), or disposable (caches, drafts, history — cleared first)
+- **Reactive cleanup**: Triggered when a `setItem` fails with a QuotaExceededError, rather than running on a timer
+- **Proactive check**: A lightweight check runs once on app startup to clear stale data
 
-Modify the SQL function to:
-- Filter `meetings_archive` to only count records where `word_count >= 500`
-- Add the qualifying deleted count to each user's `all_time` total
+## Technical Detail
 
-The key change in the final SELECT:
-```sql
--- Before:
-COALESCE(ms.all_time, 0)::BIGINT as all_time,
+### New file: `src/utils/localStorageManager.ts`
 
--- After:
-(COALESCE(ms.all_time, 0) + COALESCE(ds.deleted_count, 0))::BIGINT as all_time,
+A utility with:
+
+1. **`safeSetItem(key, value)`** — wraps `localStorage.setItem`. On QuotaExceededError, runs cleanup then retries once.
+
+2. **`cleanupStorage()`** — frees space by deleting disposable keys in order:
+   - Stale drafts older than 7 days (`liveTranscriptDraft`, `gpscribeTranscriptDraft`, `unsaved_meeting`, `ack_draft_*`)
+   - Cached data (`medical_translation_audit`, `turkeyFavorites`, `image-studio-history`, `lg_watch_processed_files`)
+   - Large history stores (`gp_history` — can be up to 200 consultation records)
+   - Expired rate limit keys (`loginRateLimitUntil`)
+
+3. **`getStorageUsage()`** — returns current usage in bytes and percentage for diagnostics.
+
+4. **Priority classification**:
+   - **Critical (never auto-cleared)**: `sb-*-auth-token`, `cso_access_token`
+   - **Important (cleared only as last resort)**: User settings keys (`scribeSettings`, `notesViewSettings`, `ai4gp-chat-view-settings`, etc.)
+   - **Disposable (cleared first)**: Drafts, caches, audit logs, translation history
+
+### Integration points
+
+- **`src/App.tsx`**: Call `cleanupStaleStorage()` once on mount to proactively remove expired drafts
+- **High-volume setItem callers**: Update the following files to use `safeSetItem` instead of raw `localStorage.setItem`:
+  - `src/components/LiveTranscript.tsx` (transcript drafts)
+  - `src/components/MeetingRecorder.tsx` (unsaved meeting data)
+  - `src/components/GPSoapUI.tsx` (GP history — up to 200 records)
+  - `src/hooks/useImageStudio.ts` (image generation history)
+  - `src/utils/medicalTranslationAudit.ts` (audit log — up to 100 entries)
+  - `src/hooks/useWatchFolder.ts` (processed files list)
+
+Other low-volume callers (small boolean/string preferences) don't need updating as they're unlikely to trigger quota issues individually.
+
+### Cleanup order (disposable tier)
+
+```text
+1. Expired rate limit keys
+2. Transcript drafts older than 7 days
+3. Medical translation audit log
+4. Turkey translation favourites
+5. Image studio history
+6. Watch folder processed files list
+7. GP consultation history (largest — up to 200 records)
+8. Unsaved meeting data older than 24 hours
 ```
 
-And in the `deleted_stats` CTE, add the word count filter:
-```sql
--- Before:
-SELECT ma.user_id, COUNT(*) as deleted_count
-FROM public.meetings_archive ma
-GROUP BY ma.user_id
+Each step checks if sufficient space has been freed (~500KB headroom) before continuing.
 
--- After:
-SELECT ma.user_id, COUNT(*) as deleted_count
-FROM public.meetings_archive ma
-WHERE ma.word_count >= 500
-GROUP BY ma.user_id
-```
+### No UI changes
 
-### 2. Frontend (No Changes Required)
+This is entirely behind-the-scenes. Users won't see any new UI — the cleanup happens silently. A console log will note when cleanup runs and how much space was freed.
 
-The `MeetingUsageReport.tsx` component already displays `all_time` and `deleted_meetings_count` from the RPC response. The system-wide totals are calculated by summing user-level values, so they will automatically reflect the updated counts.
-
-### Summary of Impact
-
-- The "All Time" number in each summary card and per-user row will increase by the number of qualifying deleted meetings
-- The "Deleted" column will only show deleted meetings with 500+ words (previously showed all deleted)
-- Duration, words, and cost figures remain unchanged (only from active meetings) since archived meetings don't store full duration/cost data reliably
