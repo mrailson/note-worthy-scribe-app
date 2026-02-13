@@ -1133,10 +1133,16 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
   };
 
   const openDetailModal = (file: EvidenceFile) => {
-    setSummaryStyle('original');
+    const isAudio = file.evidence_type === 'audio' || file.file_type?.startsWith('audio/');
     setRewrittenSummary(null);
     setIsRewritingSummary(false);
     setDetailModal({ isOpen: true, file });
+    if (isAudio && file.ai_summary) {
+      setSummaryStyle('factual');
+      handleSummaryStyleChange('factual', file.ai_summary);
+    } else {
+      setSummaryStyle('original');
+    }
   };
 
   return (
