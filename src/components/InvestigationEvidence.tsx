@@ -1171,7 +1171,14 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                     {/* AI Summary — shown first and prominently */}
                     {file.ai_summary && (() => {
                       // Strip markdown formatting: ###, **, *
-                      const displaySummary = (rewrittenSummary || file.ai_summary)
+                      let rawSummary = rewrittenSummary || file.ai_summary;
+                      // For Original mode, remove tone/behaviour sections
+                      if (summaryStyle === 'original') {
+                        rawSummary = rawSummary
+                          .replace(/\d+\.\s*(?:Tone Assessment|Patient Tone|Staff Tone|Patient Behaviour|Staff Behaviour)[^\n]*(?:\n(?!\d+\.).*?)*/gi, '')
+                          .replace(/\n{3,}/g, '\n\n');
+                      }
+                      const displaySummary = rawSummary
                         .replace(/#{1,6}\s*/g, '')
                         .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')
                         .replace(/^[-*]\s+/gm, '• ');
