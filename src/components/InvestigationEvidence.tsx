@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { FileText, Upload, Download, Trash2, Mic, Volume2, Loader2, CheckCircle2, XCircle, FileIcon, Clock, Eye, User, Stethoscope } from 'lucide-react';
+import { FileText, Upload, Download, Trash2, Mic, Volume2, Loader2, CheckCircle2, XCircle, FileIcon, Clock, Eye, User, Stethoscope, Maximize2 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { AudioAIReviewDialog } from '@/components/AudioAIReviewDialog';
 import { parseAudioReviewBadges, getBadgeSentimentClasses } from '@/utils/audioReviewBadges';
 import { toast } from 'sonner';
@@ -157,6 +158,13 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     fileName: '',
     review: '',
     evidenceFileId: null
+  });
+  const [detailModal, setDetailModal] = useState<{
+    isOpen: boolean;
+    file: EvidenceFile | null;
+  }>({
+    isOpen: false,
+    file: null
   });
 
   useEffect(() => {
@@ -1098,6 +1106,136 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
 
   return (
     <>
+      {/* Evidence Detail Modal */}
+      <Dialog open={detailModal.isOpen} onOpenChange={(open) => !open && setDetailModal({ isOpen: false, file: null })}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+          {detailModal.file && (() => {
+            const file = detailModal.file!;
+            const transcript = audioTranscripts.find(t => t.audio_file_id === file.id);
+            const isAudio = file.evidence_type === 'audio' || file.file_type?.startsWith('audio/');
+            const badges = isAudio && file.ai_summary ? parseAudioReviewBadges(file.ai_summary) : [];
+            return (
+              <>
+                <DialogHeader className="pb-4 border-b">
+                  <DialogTitle className="flex items-center gap-2 text-lg">
+                    <FileIcon className="h-5 w-5 text-primary" />
+                    {file.file_name}
+                  </DialogTitle>
+                  <DialogDescription className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${EVIDENCE_TYPE_COLOURS[file.evidence_type] || EVIDENCE_TYPE_COLOURS.other}`}>
+                      {getEvidenceTypeLabel(file.evidence_type)}
+                    </span>
+                    <span className="text-muted-foreground">{formatFileSize(file.file_size)}</span>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="text-muted-foreground">
+                      Uploaded {new Date(file.uploaded_at).toLocaleDateString('en-GB')} at {new Date(file.uploaded_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </DialogDescription>
+                </DialogHeader>
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="space-y-4 py-4 pr-4">
+                    {/* AI Summary */}
+                    {file.ai_summary && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">AI Summary</h4>
+                        <div className="bg-muted/50 p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed">
+                          {file.ai_summary}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Audio badges */}
+                    {badges.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Audio Analysis</h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {badges.map((badge, idx) => (
+                            <span
+                              key={idx}
+                              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${getBadgeSentimentClasses(badge.sentiment)}`}
+                            >
+                              {badge.label.startsWith('Patient') && <User className="h-3 w-3" />}
+                              {badge.label.startsWith('Staff') && <Stethoscope className="h-3 w-3" />}
+                              {badge.label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Transcript */}
+                    {isAudio && transcript && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Transcript</h4>
+                        <div className="flex flex-wrap gap-3 mb-2 text-xs text-muted-foreground">
+                          {transcript.transcription_confidence != null && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                              {Math.round(transcript.transcription_confidence * 100)}% confidence
+                            </span>
+                          )}
+                          {transcript.audio_duration_seconds != null && (
+                            <span>Duration: {Math.floor(transcript.audio_duration_seconds / 60)}m {transcript.audio_duration_seconds % 60}s</span>
+                          )}
+                        </div>
+                        <div className="bg-muted/50 p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed max-h-[300px] overflow-y-auto">
+                          {transcript.transcript_text}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    {file.description && !file.ai_summary && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2">Description</h4>
+                        <p className="text-sm text-muted-foreground">{file.description}</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  {isAudio && file.ai_summary && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDetailModal({ isOpen: false, file: null });
+                        setAiReviewModal({
+                          isOpen: true,
+                          fileName: file.file_name,
+                          review: file.ai_summary || '',
+                          evidenceFileId: file.id
+                        });
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      AI Call Summary
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => downloadFile(file)}>
+                    <Download className="h-4 w-4 mr-1" />
+                    Download
+                  </Button>
+                  {!disabled && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDetailModal({ isOpen: false, file: null });
+                        confirmDeleteFile(file);
+                      }}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* Delete evidence file dialog */}
       <AlertDialog open={deleteConfirmation.isOpen} onOpenChange={(open) => !open && setDeleteConfirmation({ isOpen: false, file: null })}>
         <AlertDialogContent>
@@ -1491,6 +1629,9 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           )}
+                          <Button size="sm" variant="outline" onClick={() => setDetailModal({ isOpen: true, file })} title="View full details">
+                            <Maximize2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>

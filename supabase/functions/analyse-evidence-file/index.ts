@@ -415,7 +415,7 @@ Keep each section brief (2-4 sentences). Do not fabricate details not present in
           const extractedText = await extractDocxText(bytes);
           summary = await aiSummarise(extractedText, fileName, evidenceType, LOVABLE_API_KEY);
         } else if (ext === "doc") {
-          summary = "Microsoft Word (.doc) document uploaded. Content preview not available for legacy format.";
+          summary = await aiVisionAnalyse(base64Data, mimeType || "application/msword", fileName, evidenceType, LOVABLE_API_KEY);
         } else {
           // Plain text, CSV, RTF
           const textContent = new TextDecoder().decode(bytes);
@@ -429,8 +429,10 @@ Keep each section brief (2-4 sentences). Do not fabricate details not present in
         if (ext === "xlsx") {
           const extractedText = await extractXlsxText(bytes);
           summary = await aiSummarise(extractedText, fileName, evidenceType, LOVABLE_API_KEY);
+        } else if (ext === "xls") {
+          summary = await aiVisionAnalyse(base64Data, mimeType || "application/vnd.ms-excel", fileName, evidenceType, LOVABLE_API_KEY);
         } else {
-          summary = "Spreadsheet uploaded. Content preview not available for legacy format.";
+          summary = "Spreadsheet uploaded. Content preview not available for this format.";
         }
         break;
       }
@@ -440,8 +442,10 @@ Keep each section brief (2-4 sentences). Do not fabricate details not present in
         if (ext === "pptx") {
           const extractedText = await extractPptxText(bytes);
           summary = await aiSummarise(extractedText, fileName, evidenceType, LOVABLE_API_KEY);
+        } else if (ext === "ppt") {
+          summary = await aiVisionAnalyse(base64Data, mimeType || "application/vnd.ms-powerpoint", fileName, evidenceType, LOVABLE_API_KEY);
         } else {
-          summary = "Presentation uploaded. Content preview not available for legacy format.";
+          summary = "Presentation uploaded. Content preview not available for this format.";
         }
         break;
       }
