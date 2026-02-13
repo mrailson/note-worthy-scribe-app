@@ -1242,24 +1242,8 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                       );
                     })()}
 
-                    {/* Audio badges */}
-                    {badges.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-semibold mb-2">Audio Analysis</h4>
-                        <div className="flex flex-wrap gap-1.5">
-                          {badges.map((badge, idx) => (
-                            <span
-                              key={idx}
-                              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${getBadgeSentimentClasses(badge.sentiment)}`}
-                            >
-                              {badge.label.startsWith('Patient') && <User className="h-3 w-3" />}
-                              {badge.label.startsWith('Staff') && <Stethoscope className="h-3 w-3" />}
-                              {badge.label}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+
+
 
                     {/* Transcript */}
                     {isAudio && transcript && (
