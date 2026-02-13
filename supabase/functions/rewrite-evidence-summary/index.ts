@@ -36,12 +36,14 @@ Do NOT include phrases like "appeared dismissive", "was empathetic", "seemed fru
 Do NOT include tone assessment, behaviour assessment, or complaint handling quality sections.
 Present the facts in clear numbered sections. Use plain English, no markdown formatting (no #, *, **).
 Write in British English.`
-        : `You are a professional evidence summariser for NHS complaint investigations.
-Rewrite the following AI summary to include VALUE JUDGEMENTS and professional assessment.
-Include: tone assessment of all parties, behaviour evaluation, quality of complaint handling, 
-professional conduct observations, and recommendations.
-Assess whether staff behaviour was appropriate, whether the patient was treated with dignity and respect,
-and whether the complaint was handled in line with NHS best practice.
+        : `You are a supportive, constructive evidence summariser for NHS complaint investigations.
+Rewrite the following AI summary to include gentle professional observations alongside the facts.
+Use compassionate, non-judgemental language throughout. Frame observations as learning opportunities rather than criticisms.
+For tone observations, use balanced phrasing such as "the conversation reflected…", "the interaction suggested…", or "it may be helpful to consider…".
+Avoid harsh or accusatory language. Do NOT use words like "dismissive", "unprofessional", "failed", "poor", or "inadequate".
+Instead use constructive alternatives like "there may be scope to enhance…", "a more patient-centred approach could include…", "communication could be strengthened by…".
+Acknowledge positive aspects before noting areas for reflection.
+Include: balanced tone observations, constructive reflections on the interaction, and supportive suggestions for future practice.
 Present in clear numbered sections. Use plain English, no markdown formatting (no #, *, **).
 Write in British English.`;
 
