@@ -14,7 +14,7 @@ interface AudioAIReviewDialogProps {
   fileName: string;
   review: string;
   practiceId?: string | null;
-  onReAnalyse?: () => Promise<void>;
+  onReAnalyse?: (includeValueJudgements: boolean) => Promise<void>;
 }
 
 /** Redact names from review text */
@@ -63,6 +63,7 @@ function redactNames(text: string): string {
 
 export function AudioAIReviewDialog({ isOpen, onOpenChange, fileName, review, practiceId, onReAnalyse }: AudioAIReviewDialogProps) {
   const [showNames, setShowNames] = useState(false);
+  const [includeValueJudgements, setIncludeValueJudgements] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [practiceName, setPracticeName] = useState<string | null>(null);
   const [isReAnalysing, setIsReAnalysing] = useState(false);
@@ -112,7 +113,7 @@ export function AudioAIReviewDialog({ isOpen, onOpenChange, fileName, review, pr
     if (!onReAnalyse) return;
     setIsReAnalysing(true);
     try {
-      await onReAnalyse();
+      await onReAnalyse(includeValueJudgements);
     } finally {
       setIsReAnalysing(false);
     }
@@ -149,20 +150,33 @@ export function AudioAIReviewDialog({ isOpen, onOpenChange, fileName, review, pr
 
           {/* Controls row */}
           <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-2">
-              <Switch
-                id="show-names"
-                checked={showNames}
-                onCheckedChange={setShowNames}
-                className="data-[state=checked]:bg-primary"
-              />
-              <Label htmlFor="show-names" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1.5">
-                {showNames ? (
-                  <><Eye className="h-3.5 w-3.5" /> Names visible</>
-                ) : (
-                  <><EyeOff className="h-3.5 w-3.5" /> Names redacted</>
-                )}
-              </Label>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="show-names"
+                  checked={showNames}
+                  onCheckedChange={setShowNames}
+                  className="data-[state=checked]:bg-primary"
+                />
+                <Label htmlFor="show-names" className="text-xs text-muted-foreground cursor-pointer flex items-center gap-1.5">
+                  {showNames ? (
+                    <><Eye className="h-3.5 w-3.5" /> Names visible</>
+                  ) : (
+                    <><EyeOff className="h-3.5 w-3.5" /> Names redacted</>
+                  )}
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="value-judgements"
+                  checked={includeValueJudgements}
+                  onCheckedChange={setIncludeValueJudgements}
+                  className="data-[state=checked]:bg-primary"
+                />
+                <Label htmlFor="value-judgements" className="text-xs text-muted-foreground cursor-pointer">
+                  {includeValueJudgements ? 'Value judgements included' : 'Factual only'}
+                </Label>
+              </div>
             </div>
             {onReAnalyse && (
               <Button

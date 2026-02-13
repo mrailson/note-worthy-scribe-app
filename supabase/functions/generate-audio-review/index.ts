@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, fileName, audioDuration } = await req.json();
+    const { transcript, fileName, audioDuration, includeValueJudgements = false } = await req.json();
 
     if (!transcript || transcript.trim().length === 0) {
       return new Response(
@@ -35,11 +35,27 @@ serve(async (req) => {
       ? `The audio recording is approximately ${Math.floor(audioDuration / 60)} minutes and ${audioDuration % 60} seconds long.`
       : '';
 
-    const analysisPrompt = `You are a factual summariser analysing a transcribed phone call or audio recording uploaded as evidence in an NHS GP practice complaint investigation.
+    const valueJudgementsSection = includeValueJudgements ? `
 
-YOUR PURPOSE is to produce a clear, factual, third-person summary of the call. Do NOT offer opinions, commentary on tone, praise, criticism, suggestions, or recommendations. Simply state what happened.
+## 5. Tone Assessment
+Assess the tone and demeanour of each party:
+- **Patient/Caller tone**: (e.g., Calm, Frustrated, Dismissive, Anxious, Assertive)
+- **Staff tone**: (e.g., Professional, Dismissive, Empathetic, Defensive)
+- **Overall handling**: (e.g., Good, Needs Improvement, Poor)
 
-ABSOLUTE RULES:
+## 6. Key Lessons and Recommendations
+Based on the call, identify learning points and suggestions for practice improvement.` : '';
+
+    const absoluteRules = includeValueJudgements
+      ? `RULES:
+- Use British English throughout
+- Write in the third person
+- You MAY comment on tone, attitude, demeanour, and emotions of any party
+- You MAY offer opinions on call handling quality
+- You MAY offer suggestions, recommendations, and lessons learned
+- Keep assessments fair, balanced, and evidence-based
+- Do NOT speculate beyond what is supported by the transcript`
+      : `ABSOLUTE RULES:
 - Report ONLY what was said and done — no interpretation, no judgement
 - Do NOT comment on tone, attitude, demeanour, or emotions of any party
 - Do NOT praise or criticise any party
@@ -47,14 +63,20 @@ ABSOLUTE RULES:
 - Do NOT speculate about intent or motivation
 - Use British English throughout
 - Write in the third person
-- Keep the summary concise and factual
+- Keep the summary concise and factual`;
+
+    const analysisPrompt = `You are a ${includeValueJudgements ? 'detailed analyst' : 'factual summariser'} analysing a transcribed phone call or audio recording uploaded as evidence in an NHS GP practice complaint investigation.
+
+YOUR PURPOSE is to produce a clear, ${includeValueJudgements ? 'comprehensive' : 'factual'}, third-person summary of the call.${includeValueJudgements ? '' : ' Do NOT offer opinions, commentary on tone, praise, criticism, suggestions, or recommendations. Simply state what happened.'}
+
+${absoluteRules}
 
 ${durationLine}
 
 TRANSCRIPT:
 ${transcript.substring(0, 12000)}
 
-Provide a structured factual summary covering the following sections. Separate each section clearly with blank lines between paragraphs for readability.
+Provide a structured summary covering the following sections. Separate each section clearly with blank lines between paragraphs for readability.
 
 ## 1. Call Overview
 2-3 sentences: State who appears to be involved in the call (e.g. patient, receptionist, GP), the apparent purpose of the call, and if identifiable, when it took place.${audioDuration ? ` The call duration was approximately ${Math.floor(audioDuration / 60)} minutes and ${audioDuration % 60} seconds.` : ''}
@@ -69,6 +91,7 @@ List any commitments made, next steps agreed, referrals mentioned, appointments 
 - **Word count**: ${transcript.split(/\\s+/).length} words transcribed
 ${audioDuration ? `- **Call duration**: approximately ${Math.floor(audioDuration / 60)} minutes ${audioDuration % 60} seconds` : '- **Call duration**: not available'}
 - **Number of speakers**: estimate based on the transcript content
+${valueJudgementsSection}
 
 Keep each section concise. Do not fabricate details not present in the transcript.`;
 
