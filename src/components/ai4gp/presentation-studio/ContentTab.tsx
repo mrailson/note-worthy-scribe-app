@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -196,7 +196,7 @@ export const ContentTab: React.FC<ContentTabProps> = ({
   const selectedType = PRESENTATION_TYPES.find(t => t.id === settings.presentationType);
   const selectedAudience = TARGET_AUDIENCES.find(a => a.id === settings.targetAudience);
 
-  const quickPicks = [
+  const quickPicks = useMemo(() => [
     {
       id: 'attachments',
       label: 'Summarise Attachments',
@@ -221,15 +221,14 @@ export const ContentTab: React.FC<ContentTabProps> = ({
       type: 'board-meeting' as const,
       description: 'Executive summary for leadership',
     },
-  ];
+  ], []);
 
-  const handleQuickPick = (pick: typeof quickPicks[0]) => {
+  const handleQuickPick = useCallback((pick: typeof quickPicks[0]) => {
     onUpdate({ 
       topic: pick.topic,
       presentationType: pick.type,
     });
-    toast.success(`Quick pick applied: ${pick.label}`);
-  };
+  }, [onUpdate, quickPicks]);
 
   return (
     <div className="space-y-6">

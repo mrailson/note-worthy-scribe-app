@@ -192,6 +192,20 @@ export function usePresentationStudio() {
   
   const abortControllerRef = useRef<AbortController | null>(null);
   const hasLoadedRef = useRef(false);
+  const stateRef = useRef(state);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Keep stateRef in sync so callbacks can read current state without deps
+  useEffect(() => {
+    stateRef.current = state;
+  });
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, []);
 
   // Load persisted settings + history on mount (once per user)
   useEffect(() => {
@@ -212,10 +226,13 @@ export function usePresentationStudio() {
     }
   }, [user?.id]);
 
-  // Save settings whenever Branding or Slides settings change
+  // Save settings whenever Branding or Slides settings change (debounced)
   useEffect(() => {
     if (user?.id && hasLoadedRef.current) {
-      savePersistedSettings(user.id, state.settings);
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => {
+        savePersistedSettings(user.id!, stateRef.current.settings);
+      }, 500);
     }
   }, [
     user?.id,
@@ -364,7 +381,7 @@ export function usePresentationStudio() {
 
   // Generate presentation
   const generatePresentation = useCallback(async () => {
-    const { settings } = state;
+    const { settings } = stateRef.current;
     
     if (!settings.topic.trim() && settings.supportingDocuments.length === 0) {
       toast.error('Please provide a topic or upload supporting documents');
@@ -719,11 +736,11 @@ export function usePresentationStudio() {
       toast.error(errorMessage);
       return null;
     }
-  }, [state, practiceContext]);
+  }, [practiceContext]);
 
   // Download presentation — withVoiceover selects the audio-embedded local PPTX
   const downloadPresentation = useCallback(async (withVoiceover: boolean = false, customResult?: GeneratedPresentation) => {
-    const result = customResult || state.currentResult;
+    const result = customResult || stateRef.current.currentResult;
     if (!result) {
       toast.error('No presentation to download');
       return;
@@ -794,7 +811,7 @@ export function usePresentationStudio() {
       console.error('Download error:', error);
       toast.error('Failed to download presentation');
     }
-  }, [state.currentResult]);
+  }, []);
 
   // Cancel generation
   const cancelGeneration = useCallback(() => {
