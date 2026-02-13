@@ -195,8 +195,7 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
   const quickPicks = [
     { 
       label: 'Summarise Attachments', 
-      prompt: 'Create an infographic that summarises the key information from the uploaded attachments',
-      requiresFiles: true
+      prompt: 'Create an infographic that summarises the key information from the uploaded attachments'
     },
     { 
       label: 'Staff Poster', 
@@ -223,7 +222,7 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
           </Label>
           <div className="flex gap-1.5 flex-wrap">
             {quickPicks.map((pick) => {
-              const isDisabled = pick.requiresFiles && uploadedFiles.length === 0;
+              const isDisabled = false;
               return (
                 <Button
                   key={pick.label}
