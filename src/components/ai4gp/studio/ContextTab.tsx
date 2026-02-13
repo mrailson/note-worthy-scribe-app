@@ -269,7 +269,7 @@ export const ContextTab: React.FC<ContextTabProps> = ({ settings, onUpdate, onFi
           >
             <div className="flex items-center gap-2">
               <Target className="h-4 w-4" />
-              <span className="font-medium">Key Messages & Supporting Info</span>
+              <span className="font-medium">Key Messages & Supporting Documents (Upload here)</span>
               {(settings.keyMessages.length > 0 || uploadedFiles.length > 0) && (
                 <Badge variant="secondary" className="ml-2">
                   {settings.keyMessages.length > 0 && `${settings.keyMessages.length} message${settings.keyMessages.length > 1 ? 's' : ''}`}
