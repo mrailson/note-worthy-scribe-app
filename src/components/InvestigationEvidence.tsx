@@ -1133,7 +1133,38 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                   </DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="flex-1 min-h-0">
-                  <div className="space-y-4 py-4 pr-4">
+                  <div className="space-y-5 py-4 pr-4">
+                    {/* File Metadata Grid */}
+                    <div>
+                      <h4 className="text-sm font-semibold mb-2">File Details</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="bg-muted/50 rounded-lg p-3 border">
+                          <p className="text-xs text-muted-foreground mb-0.5">File Size</p>
+                          <p className="text-sm font-medium">{formatFileSize(file.file_size)}</p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-3 border">
+                          <p className="text-xs text-muted-foreground mb-0.5">File Type</p>
+                          <p className="text-sm font-medium">{file.file_type || 'Unknown'}</p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-3 border">
+                          <p className="text-xs text-muted-foreground mb-0.5">Evidence Category</p>
+                          <p className="text-sm font-medium">{getEvidenceTypeLabel(file.evidence_type)}</p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-3 border">
+                          <p className="text-xs text-muted-foreground mb-0.5">Uploaded</p>
+                          <p className="text-sm font-medium">{new Date(file.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-3 border">
+                          <p className="text-xs text-muted-foreground mb-0.5">Time</p>
+                          <p className="text-sm font-medium">{new Date(file.uploaded_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                        <div className="bg-muted/50 rounded-lg p-3 border">
+                          <p className="text-xs text-muted-foreground mb-0.5">File Extension</p>
+                          <p className="text-sm font-medium">.{file.file_name.split('.').pop()?.toLowerCase() || '?'}</p>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* AI Summary */}
                     {file.ai_summary && (
                       <div>
@@ -1174,7 +1205,10 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                             </span>
                           )}
                           {transcript.audio_duration_seconds != null && (
-                            <span>Duration: {Math.floor(transcript.audio_duration_seconds / 60)}m {transcript.audio_duration_seconds % 60}s</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {Math.floor(transcript.audio_duration_seconds / 60)}m {transcript.audio_duration_seconds % 60}s
+                            </span>
                           )}
                         </div>
                         <div className="bg-muted/50 p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed max-h-[300px] overflow-y-auto">
@@ -1183,11 +1217,18 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                       </div>
                     )}
 
-                    {/* Description */}
+                    {/* Description (when no AI summary) */}
                     {file.description && !file.ai_summary && (
                       <div>
                         <h4 className="text-sm font-semibold mb-2">Description</h4>
-                        <p className="text-sm text-muted-foreground">{file.description}</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{file.description}</p>
+                      </div>
+                    )}
+
+                    {/* No AI summary notice */}
+                    {!file.ai_summary && !file.description && (
+                      <div className="bg-muted/30 rounded-lg p-4 border border-dashed text-center">
+                        <p className="text-sm text-muted-foreground">No AI summary available for this file.</p>
                       </div>
                     )}
                   </div>
