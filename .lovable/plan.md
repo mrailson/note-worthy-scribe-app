@@ -1,55 +1,63 @@
 
 
-# Add Value Judgements Toggle to AI Call Summary
+# Fix Legacy File Processing and Add Evidence Detail Modal
 
-## What This Does
+## Two Changes
 
-Adds an "Include Value Judgements" toggle to the **AI Call Summary** dialog (AudioAIReviewDialog), matching the one already added to Critical Friend Review. When switched **on**, the AI will include tone assessments (e.g., "Patient: Dismissive", "Staff: Good"), opinions on call handling quality, and subjective commentary. When **off** (default, current behaviour), it stays factual-only.
+### 1. Fix Legacy .doc/.xls/.ppt File Processing
 
-## User-Facing Change
+Currently, when a `.doc`, `.xls`, or `.ppt` file is uploaded, the edge function returns a static message: "Content preview not available for legacy format." Instead, we'll send these files to the Gemini vision API (same as PDFs and images) since Gemini can read binary Office formats when passed as base64 data.
 
-- A new toggle switch appears in the AI Call Summary dialog header, alongside the existing "Names redacted/visible" toggle
-- Label: **"Include Value Judgements"** with contextual description
-- When **off** (default): Current factual-only behaviour — no tone, no opinions
-- When **on**: Adds tone assessment, handling quality ratings, and key lessons/recommendations sections
-- When toggled on, the user can click "Re-analyse" to regenerate with value judgements included
-- The toggle state is passed to the edge function on re-analysis
+**File:** `supabase/functions/analyse-evidence-file/index.ts`
 
-## Technical Changes
+- For `.doc` files (line 417-418): Instead of returning the static message, send the file via `aiVisionAnalyse()` with the correct MIME type — the same approach used for PDFs
+- For `.xls` files (line 432-434): Same treatment
+- For `.ppt` files (line 443-445): Same treatment
+- This means all legacy Office formats will get proper AI summaries just like their modern counterparts
 
-### 1. Frontend: `src/components/AudioAIReviewDialog.tsx`
+### 2. Add Expand/Detail Icon on Each Evidence Item
 
-- Add `includeValueJudgements` state (default: `false`)
-- Add a `Switch` component in the controls row next to the names toggle
-- Pass the boolean through the `onReAnalyse` callback
+Add an "info" or "expand" icon button on each evidence file row that opens a fullscreen dialog showing comprehensive details.
 
-### 2. Frontend: `src/components/InvestigationEvidence.tsx`
+**File:** `src/components/InvestigationEvidence.tsx`
 
-- Update the `onReAnalyse` callback (lines 1153-1178) to accept and pass `includeValueJudgements` to the edge function
-- Update the auto-generate call (lines 889-891) — keeps default factual-only behaviour
+- Add a new state for the detail modal (selected file)
+- Add an `Expand` icon button (using the lucide `Maximize2` or `Info` icon) in the action buttons row for each evidence item
+- When clicked, open a fullscreen `Dialog` showing:
+  - File name and type badge
+  - Full AI summary (rendered with proper formatting, not truncated)
+  - File metadata: size, upload date/time, evidence type
+  - For audio files: transcript text (if available), duration, confidence score
+  - Audio review badges (if available)
+  - Action buttons at the bottom: Download, Delete, Re-analyse
 
-### 3. Backend: `supabase/functions/generate-audio-review/index.ts`
+This replaces the current `HoverCard` approach (which requires hovering and is limited in size) with a proper fullscreen modal for deep inspection.
 
-- Accept `includeValueJudgements` (boolean, default `false`) from the request body
-- When `true`, use an expanded prompt that includes:
-  - **Tone Assessment** section — Patient tone, Staff tone, with descriptive labels
-  - **Handling Quality** — Assessment of how the call was managed
-  - **Key Lessons and Recommendations** — Suggestions for improvement
-- When `false` (default), keep the current factual-only prompt unchanged
+## Technical Details
 
-### 4. Prompt Addition for Value Judgements Mode
+### Edge Function Changes (analyse-evidence-file)
 
-When enabled, the following sections are appended to the output structure:
+Replace the three "legacy format" fallback lines with vision API calls:
 
 ```
-## 5. Tone Assessment
-Assess the tone and demeanour of each party:
-- **Patient/Caller tone**: (e.g., Calm, Frustrated, Dismissive, Anxious, Assertive)
-- **Staff tone**: (e.g., Professional, Dismissive, Empathetic, Defensive)
-- **Overall handling**: (e.g., Good, Needs Improvement, Poor)
+// .doc -> send to vision API
+case "doc":
+  summary = await aiVisionAnalyse(base64Data, mimeType || "application/msword", fileName, evidenceType, LOVABLE_API_KEY);
 
-## 6. Key Lessons and Recommendations
-Based on the call, identify learning points and suggestions for practice improvement.
+// .xls -> send to vision API  
+case "xls":
+  summary = await aiVisionAnalyse(base64Data, mimeType || "application/vnd.ms-excel", fileName, evidenceType, LOVABLE_API_KEY);
+
+// .ppt -> send to vision API
+case "ppt":
+  summary = await aiVisionAnalyse(base64Data, mimeType || "application/vnd.ms-powerpoint", fileName, evidenceType, LOVABLE_API_KEY);
 ```
 
-The "ABSOLUTE RULES" section is also adjusted to permit subjective commentary when value judgements are enabled.
+### Detail Modal UI
+
+- Fullscreen dialog (max-w-3xl) with scroll area
+- Header: file icon, file name, evidence type badge
+- Body: full AI summary with whitespace preserved, metadata grid
+- For audio: embedded transcript section with confidence and duration
+- Footer: Download and Delete action buttons
+- The existing HoverCard remains for quick glance; the modal provides the deep view
