@@ -1711,24 +1711,6 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                           {file.ai_summary && (file.evidence_type === 'audio' || file.file_type?.startsWith('audio/')) && (
                             <>
                               {(() => {
-                                const badges = parseAudioReviewBadges(file.ai_summary!);
-                                if (badges.length === 0) return null;
-                                return (
-                                  <div className="flex flex-wrap gap-1.5 mt-2">
-                                    {badges.map((badge, idx) => (
-                                      <span
-                                        key={idx}
-                                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${getBadgeSentimentClasses(badge.sentiment)}`}
-                                      >
-                                        {badge.label.startsWith('Patient') && <User className="h-3 w-3" />}
-                                        {badge.label.startsWith('Staff') && <Stethoscope className="h-3 w-3" />}
-                                        {badge.label}
-                                      </span>
-                                    ))}
-                                  </div>
-                                );
-                              })()}
-                              {(() => {
                                 const transcript = audioTranscripts.find(t => t.audio_file_id === file.id);
                                 if (transcript) {
                                   return (
