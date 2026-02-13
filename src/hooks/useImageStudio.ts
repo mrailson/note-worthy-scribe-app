@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { safeSetItem } from '@/utils/localStorageManager';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
@@ -75,7 +76,7 @@ const saveHistoryToStorage = (history: GenerationHistoryItem[]) => {
   try {
     // Only store the last MAX_HISTORY_ITEMS
     const toStore = history.slice(0, MAX_HISTORY_ITEMS);
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(toStore));
+    safeSetItem(HISTORY_STORAGE_KEY, JSON.stringify(toStore));
   } catch (error) {
     console.warn('Failed to save image studio history:', error);
   }

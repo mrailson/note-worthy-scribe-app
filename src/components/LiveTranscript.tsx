@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from "react";
+import { safeSetItem } from "@/utils/localStorageManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -280,8 +281,8 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
       try {
         const draft = cleanedTranscript || liveTranscriptText;
         if (draft?.length > 20) {
-          localStorage.setItem('liveTranscriptDraft', draft);
-          localStorage.setItem('liveTranscriptDraftTimestamp', Date.now().toString());
+          safeSetItem('liveTranscriptDraft', draft);
+          safeSetItem('liveTranscriptDraftTimestamp', Date.now().toString());
         }
       } catch (error) {
         console.warn('Draft auto-save failed:', error);

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { safeSetItem } from '@/utils/localStorageManager';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
@@ -132,7 +133,7 @@ export function useWatchFolder(
   // Save processed files to localStorage
   const saveProcessedFiles = useCallback(() => {
     const files = Array.from(processedFilesRef.current);
-    localStorage.setItem('lg_watch_processed_files', JSON.stringify(files));
+    safeSetItem('lg_watch_processed_files', JSON.stringify(files));
     setState(prev => ({ ...prev, processedFiles: files }));
   }, []);
 

@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { safeSetItem } from "@/utils/localStorageManager";
 import { Clock, Calendar, FileText, Play, Square, Timer, Download } from "lucide-react";
 import { format } from "date-fns";
 
@@ -567,7 +568,7 @@ export default function GPScribeSoapMock() {
     setHistory(prev => {
       const others = prev.filter(r => r.id !== consultId);
       const updated = [rec, ...others].slice(0, 200);
-      try { localStorage.setItem("gp_history", JSON.stringify(updated)); } catch {}
+      safeSetItem("gp_history", JSON.stringify(updated));
       return updated;
     });
   }, [transcript, selectedId, tab, consultId, startedAt, activeTemplate.summaryLine, activeTemplate.name]);

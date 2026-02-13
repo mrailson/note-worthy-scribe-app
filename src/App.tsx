@@ -5,6 +5,7 @@ import { SecurityWrapper } from '@/components/SecurityWrapper';
 import { SessionActivityTracker } from '@/components/SessionActivityTracker';
 import { Suspense, lazy, useEffect } from 'react';
 import { getSafeDOMObserver, installHasAttributeSafeguard } from '@/utils/domSafetyPolyfill';
+import { cleanupStaleStorage } from '@/utils/localStorageManager';
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MockInspectionProtectedRoute } from "./components/MockInspectionProtectedRoute";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
@@ -132,6 +133,7 @@ const PageLoader = () => (
 const App = () => {
   useEffect(() => {
     installHasAttributeSafeguard();
+    cleanupStaleStorage();
     const observer = getSafeDOMObserver();
     observer.start();
     return () => observer.destroy();
