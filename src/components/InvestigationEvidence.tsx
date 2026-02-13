@@ -1109,7 +1109,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     <>
       {/* Evidence Detail Modal */}
       <Dialog open={detailModal.isOpen} onOpenChange={(open) => !open && setDetailModal({ isOpen: false, file: null })}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col overflow-y-auto">
           {detailModal.file && (() => {
             const file = detailModal.file!;
             const transcript = audioTranscripts.find(t => t.audio_file_id === file.id);
@@ -1133,17 +1133,23 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                     </span>
                   </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="flex-1 min-h-0">
-                  <div className="space-y-5 py-4 pr-4">
+                <div className="space-y-5 py-4">
                     {/* AI Summary — shown first and prominently */}
-                    {file.ai_summary && (
+                    {file.ai_summary && (() => {
+                      // Strip markdown formatting: ###, **, *
+                      const cleanSummary = file.ai_summary
+                        .replace(/#{1,6}\s*/g, '')
+                        .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')
+                        .replace(/^[-*]\s+/gm, '• ');
+                      return (
                       <div>
                         <h4 className="text-sm font-semibold mb-2">AI Summary</h4>
-                        <div className="bg-muted/50 p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed">
-                          {file.ai_summary}
+                        <div className="bg-background p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed">
+                          {cleanSummary}
                         </div>
                       </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Audio badges */}
                     {badges.length > 0 && (
@@ -1275,7 +1281,6 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                       </CollapsibleContent>
                     </Collapsible>
                   </div>
-                </ScrollArea>
                 <div className="flex justify-end gap-2 pt-4 border-t">
                   {isAudio && file.ai_summary && (
                     <Button
