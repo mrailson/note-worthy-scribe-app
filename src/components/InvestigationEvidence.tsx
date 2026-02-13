@@ -167,6 +167,9 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     isOpen: false,
     file: null
   });
+  const [summaryStyle, setSummaryStyle] = useState<'original' | 'factual' | 'judgement'>('original');
+  const [rewrittenSummary, setRewrittenSummary] = useState<string | null>(null);
+  const [isRewritingSummary, setIsRewritingSummary] = useState(false);
 
   useEffect(() => {
     fetchComplaintDetails();
@@ -1105,6 +1108,37 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     }
   });
 
+  const handleSummaryStyleChange = async (style: 'original' | 'factual' | 'judgement', originalSummary: string) => {
+    setSummaryStyle(style);
+    if (style === 'original') {
+      setRewrittenSummary(null);
+      return;
+    }
+    setIsRewritingSummary(true);
+    setRewrittenSummary(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('rewrite-evidence-summary', {
+        body: { summary: originalSummary, style }
+      });
+      if (error) throw error;
+      if (data?.summary) {
+        setRewrittenSummary(data.summary);
+      }
+    } catch (err) {
+      console.error('Failed to rewrite summary:', err);
+      toast.error('Failed to rewrite summary');
+    } finally {
+      setIsRewritingSummary(false);
+    }
+  };
+
+  const openDetailModal = (file: EvidenceFile) => {
+    setSummaryStyle('original');
+    setRewrittenSummary(null);
+    setIsRewritingSummary(false);
+    setDetailModal({ isOpen: true, file });
+  };
+
   return (
     <>
       {/* Evidence Detail Modal */}
@@ -1137,15 +1171,59 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                     {/* AI Summary — shown first and prominently */}
                     {file.ai_summary && (() => {
                       // Strip markdown formatting: ###, **, *
-                      const cleanSummary = file.ai_summary
+                      const displaySummary = (rewrittenSummary || file.ai_summary)
                         .replace(/#{1,6}\s*/g, '')
                         .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')
                         .replace(/^[-*]\s+/gm, '• ');
                       return (
                       <div>
-                        <h4 className="text-sm font-semibold mb-2">AI Summary</h4>
-                        <div className="bg-background p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed">
-                          {cleanSummary}
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-semibold">AI Summary</h4>
+                          <div className="flex items-center gap-1 bg-muted rounded-full p-0.5 text-xs">
+                            <button
+                              onClick={() => handleSummaryStyleChange('factual', file.ai_summary!)}
+                              className={`px-3 py-1 rounded-full transition-colors ${
+                                summaryStyle === 'factual'
+                                  ? 'bg-primary text-primary-foreground shadow-sm'
+                                  : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                              disabled={isRewritingSummary}
+                            >
+                              Factual Only
+                            </button>
+                            <button
+                              onClick={() => handleSummaryStyleChange('original', file.ai_summary!)}
+                              className={`px-3 py-1 rounded-full transition-colors ${
+                                summaryStyle === 'original'
+                                  ? 'bg-primary text-primary-foreground shadow-sm'
+                                  : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                              disabled={isRewritingSummary}
+                            >
+                              Original
+                            </button>
+                            <button
+                              onClick={() => handleSummaryStyleChange('judgement', file.ai_summary!)}
+                              className={`px-3 py-1 rounded-full transition-colors ${
+                                summaryStyle === 'judgement'
+                                  ? 'bg-primary text-primary-foreground shadow-sm'
+                                  : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                              disabled={isRewritingSummary}
+                            >
+                              Value Judgement
+                            </button>
+                          </div>
+                        </div>
+                        <div className="bg-background p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed relative">
+                          {isRewritingSummary ? (
+                            <div className="flex items-center gap-2 text-muted-foreground py-4 justify-center">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Rewriting summary…
+                            </div>
+                          ) : (
+                            displaySummary
+                          )}
                         </div>
                       </div>
                       );
@@ -1718,7 +1796,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           )}
-                          <Button size="sm" variant="outline" onClick={() => setDetailModal({ isOpen: true, file })} title="View full details">
+                          <Button size="sm" variant="outline" onClick={() => openDetailModal(file)} title="View full details">
                             <Maximize2 className="h-4 w-4" />
                           </Button>
                         </div>
