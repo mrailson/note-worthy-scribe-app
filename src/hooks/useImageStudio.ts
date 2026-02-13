@@ -204,9 +204,15 @@ export function useImageStudio() {
   const generateImage = useCallback(async (imageModel?: string) => {
     const { settings } = state;
     
+    // Auto-default to summarise if documents/content attached but no description
+    const hasAttachments = settings.referenceImages.length > 0 || (settings.supportingContent && settings.supportingContent.trim().length > 0);
     if (!settings.description.trim()) {
-      toast.error('Please provide a description of the image you want to create');
-      return null;
+      if (hasAttachments) {
+        settings.description = 'Summarise the attached documents into a clear, professional infographic';
+      } else {
+        toast.error('Please provide a description of the image you want to create');
+        return null;
+      }
     }
 
     setState(prev => ({ 
