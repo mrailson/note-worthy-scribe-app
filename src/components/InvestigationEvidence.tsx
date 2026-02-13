@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { FileText, Upload, Download, Trash2, Mic, Volume2, Loader2, CheckCircle2, XCircle, FileIcon, Clock, Eye, User, Stethoscope, Maximize2 } from 'lucide-react';
+import { FileText, Upload, Download, Trash2, Mic, Volume2, Loader2, CheckCircle2, XCircle, FileIcon, Clock, Eye, User, Stethoscope, Maximize2, ChevronDown } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AudioAIReviewDialog } from '@/components/AudioAIReviewDialog';
 import { parseAudioReviewBadges, getBadgeSentimentClasses } from '@/utils/audioReviewBadges';
 import { toast } from 'sonner';
@@ -1134,38 +1135,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                 </DialogHeader>
                 <ScrollArea className="flex-1 min-h-0">
                   <div className="space-y-5 py-4 pr-4">
-                    {/* File Metadata Grid */}
-                    <div>
-                      <h4 className="text-sm font-semibold mb-2">File Details</h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <div className="bg-muted/50 rounded-lg p-3 border">
-                          <p className="text-xs text-muted-foreground mb-0.5">File Size</p>
-                          <p className="text-sm font-medium">{formatFileSize(file.file_size)}</p>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-3 border">
-                          <p className="text-xs text-muted-foreground mb-0.5">File Type</p>
-                          <p className="text-sm font-medium">{file.file_type || 'Unknown'}</p>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-3 border">
-                          <p className="text-xs text-muted-foreground mb-0.5">Evidence Category</p>
-                          <p className="text-sm font-medium">{getEvidenceTypeLabel(file.evidence_type)}</p>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-3 border">
-                          <p className="text-xs text-muted-foreground mb-0.5">Uploaded</p>
-                          <p className="text-sm font-medium">{new Date(file.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-3 border">
-                          <p className="text-xs text-muted-foreground mb-0.5">Time</p>
-                          <p className="text-sm font-medium">{new Date(file.uploaded_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
-                        </div>
-                        <div className="bg-muted/50 rounded-lg p-3 border">
-                          <p className="text-xs text-muted-foreground mb-0.5">File Extension</p>
-                          <p className="text-sm font-medium">.{file.file_name.split('.').pop()?.toLowerCase() || '?'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* AI Summary */}
+                    {/* AI Summary — shown first and prominently */}
                     {file.ai_summary && (
                       <div>
                         <h4 className="text-sm font-semibold mb-2">AI Summary</h4>
@@ -1231,6 +1201,79 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                         <p className="text-sm text-muted-foreground">No AI summary available for this file.</p>
                       </div>
                     )}
+
+                    {/* Document dates extracted from AI summary */}
+                    {(() => {
+                      const dates: { label: string; value: string }[] = [];
+                      const summary = file.ai_summary || file.description || '';
+                      // Try to extract date patterns from AI summary
+                      const datePatterns = summary.match(/(?:dated?|from|on|recorded|created|sent|received|written)\s*[:.]?\s*(\d{1,2}[\s/.-]\w{3,9}[\s/.-]\d{2,4}(?:\s+(?:at\s+)?\d{1,2}[:.]\d{2})?)/gi);
+                      if (datePatterns) {
+                        datePatterns.slice(0, 3).forEach((match) => {
+                          const parts = match.split(/[:.]?\s+/);
+                          const label = parts[0].replace(/[:.]/g, '');
+                          const dateStr = match.replace(/^[^:]*[:.]\s*/, '').replace(new RegExp(`^${label}\\s*`, 'i'), '').trim();
+                          if (dateStr.length > 4) {
+                            dates.push({ label: label.charAt(0).toUpperCase() + label.slice(1).toLowerCase(), value: dateStr });
+                          }
+                        });
+                      }
+                      // For audio, show recording date if transcript has it
+                      if (isAudio && transcript) {
+                        dates.push({
+                          label: 'Transcribed',
+                          value: `${new Date(transcript.transcribed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at ${new Date(transcript.transcribed_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
+                        });
+                        if (transcript.audio_duration_seconds != null) {
+                          const mins = Math.floor(transcript.audio_duration_seconds / 60);
+                          const secs = transcript.audio_duration_seconds % 60;
+                          dates.push({ label: 'Recording duration', value: mins > 0 ? `${mins}m ${secs}s` : `${secs}s` });
+                        }
+                      }
+                      if (dates.length === 0) return null;
+                      return (
+                        <div>
+                          <h4 className="text-sm font-semibold mb-2">Document Dates</h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {dates.map((d, i) => (
+                              <div key={i} className="flex items-center gap-2 text-sm">
+                                <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                                <span className="text-muted-foreground">{d.label}:</span>
+                                <span className="font-medium">{d.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* File Details — collapsible, closed by default */}
+                    <Collapsible>
+                      <CollapsibleTrigger className="flex items-center gap-2 text-sm font-semibold hover:text-primary transition-colors group w-full">
+                        <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
+                        File Details
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
+                          <div className="bg-muted/50 rounded-lg p-3 border">
+                            <p className="text-xs text-muted-foreground mb-0.5">File Size</p>
+                            <p className="text-sm font-medium">{formatFileSize(file.file_size)}</p>
+                          </div>
+                          <div className="bg-muted/50 rounded-lg p-3 border">
+                            <p className="text-xs text-muted-foreground mb-0.5">Evidence Category</p>
+                            <p className="text-sm font-medium">{getEvidenceTypeLabel(file.evidence_type)}</p>
+                          </div>
+                          <div className="bg-muted/50 rounded-lg p-3 border">
+                            <p className="text-xs text-muted-foreground mb-0.5">Uploaded</p>
+                            <p className="text-sm font-medium">{new Date(file.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at {new Date(file.uploaded_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
+                          </div>
+                          <div className="bg-muted/50 rounded-lg p-3 border">
+                            <p className="text-xs text-muted-foreground mb-0.5">File Extension</p>
+                            <p className="text-sm font-medium">.{file.file_name.split('.').pop()?.toLowerCase() || '?'}</p>
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </div>
                 </ScrollArea>
                 <div className="flex justify-end gap-2 pt-4 border-t">
