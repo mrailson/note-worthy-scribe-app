@@ -1,8 +1,8 @@
 import React from 'react';
-import { MobileTranslationInterface } from '@/components/MobileTranslationInterface';
+import { MobileReceptionTranslation } from '@/components/MobileReceptionTranslation';
 
 const MobileTranslation = () => {
-  return <MobileTranslationInterface />;
+  return <MobileReceptionTranslation />;
 };
 
 export default MobileTranslation;
