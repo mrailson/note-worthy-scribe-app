@@ -1409,8 +1409,14 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       isStartingRef.current = true;
       
       try {
-        recognitionRef.current.start();
+      recognitionRef.current.start();
         setIsListening(true);
+        // Auto-send intro message on first mic activation
+        if (!introSent) {
+          const introText = `Welcome to ${practiceName}. We would like to use our translation service to help us communicate with you today. A staff member will control the session. When you see the large green microphone, you can speak naturally in your own language. When you have finished speaking, please indicate to the staff member and they will activate the translation. Are you happy for us to use this service?`;
+          sendMessage(introText, 'staff');
+          setIntroSent(true);
+        }
       } catch (e: any) {
         isStartingRef.current = false;
         if (e?.name === 'InvalidStateError' || `${e}`.includes('already started')) {
@@ -1427,7 +1433,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     } finally {
       setIsConnecting(false);
     }
-  }, [isListening, isConnecting]);
+  }, [isListening, isConnecting, introSent, practiceName, sendMessage]);
 
   // Mic pause/unpause toggle
   const toggleMicPause = useCallback(() => {
@@ -1674,7 +1680,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     const introText = `Welcome to ${practiceName}. We would like to use our translation service to help us communicate with you today. A staff member will control the session. When you see the large green microphone, you can speak naturally in your own language. When you have finished speaking, please indicate to the staff member and they will activate the translation. Are you happy for us to use this service?`;
     await sendMessage(introText, 'staff');
     setIntroSent(true);
-    showToast.success('Intro message sent');
   }, [practiceName, sendMessage]);
 
   // Confirmation handlers
@@ -2572,19 +2577,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             >
               <QrCode className="h-4 w-4 mr-2" />
               QR Code
-            </Button>
-          )}
-          {/* Send Intro Button */}
-          {translationMode === 'live-chat' && (
-            <Button
-              variant={introSent ? 'ghost' : 'outline'}
-              size="sm"
-              onClick={handleSendIntro}
-              disabled={introSent}
-              title={introSent ? 'Intro already sent' : 'Send intro & consent message to patient'}
-            >
-              {introSent ? <Check className="h-4 w-4 mr-2" /> : <MessageSquareText className="h-4 w-4 mr-2" />}
-              {introSent ? 'Intro Sent' : 'Send Intro'}
             </Button>
           )}
           {/* History Button - only in live chat mode */}
