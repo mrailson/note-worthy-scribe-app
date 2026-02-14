@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -85,7 +85,8 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const inputRef = useRef<InputAreaRef | FloatingMobileInputRef>(null);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const { search } = window.location;
+  const location = useLocation();
+  const search = location.search;
   const { profile } = useUserProfile();
   const isMobile = useIsMobile();
   const deviceInfo = useDeviceInfo();
@@ -251,7 +252,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
       // Clean up the URL
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleShowEmbeddedPMGenie = () => {
     const wasOpen = showEmbeddedPMGenie;
