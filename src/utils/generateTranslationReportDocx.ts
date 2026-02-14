@@ -140,10 +140,117 @@ const PATIENT_DISCLAIMERS: Record<string, {
   am: {
     title: 'ለእርስዎ አስፈላጊ መረጃ',
     body: 'ይህ ሰነድ ዛሬ የትርጉም አገልግሎታችንን በመጠቀም የተደረገውን ውይይት ቅጂ ነው። እባክዎ በጥንቃቄ ይመልከቱ። አንድ ነገር ትክክል የማይመስል፣ ግራ የሚያጋባ፣ ወይም አንድ ነገር በስህተት ተተርጉሟል ብለው ካመኑ፣ እባክዎ በተቻለ ፍጥነት ያሳውቁን ማንኛውንም አለመግባባት ለማብራራት እና ለማስተካከል። የእርስዎ ግንዛቤ ለእኛ በጣም አስፈላጊ ነው።'
-  }
+  },
+  bg: {
+    title: 'Важна информация за Вас',
+    body: 'Този документ е копие на разговора, проведен днес с помощта на нашата преводаческа услуга. Моля, прегледайте го внимателно. Ако нещо не изглежда правилно, е объркващо или смятате, че нещо е преведено погрешно, моля, уведомете ни възможно най-скоро, за да можем да изясним и коригираме евентуални недоразумения. Вашето разбиране е много важно за нас.'
+  },
+  hr: {
+    title: 'Važne informacije za Vas',
+    body: 'Ovaj dokument je kopija razgovora koji je danas održan korištenjem naše usluge prevođenja. Molimo vas da ga pažljivo pregledate. Ako nešto ne izgleda točno, zbunjujuće je ili smatrate da je nešto pogrešno prevedeno, molimo vas da nas obavijestite što prije kako bismo mogli razjasniti i ispraviti eventualne nesporazume. Vaše razumijevanje nam je vrlo važno.'
+  },
+  cs: {
+    title: 'Důležité informace pro Vás',
+    body: 'Tento dokument je kopií rozhovoru, který se dnes uskutečnil pomocí naší překladatelské služby. Prosím, pečlivě si jej přečtěte. Pokud se vám něco nezdá správné, je to matoucí nebo se domníváte, že něco bylo špatně přeloženo, dejte nám prosím co nejdříve vědět, abychom mohli objasnit a opravit případná nedorozumění. Vaše porozumění je pro nás velmi důležité.'
+  },
+  da: {
+    title: 'Vigtig information til dig',
+    body: 'Dette dokument er en kopi af samtalen, der fandt sted i dag ved hjælp af vores oversættelsestjeneste. Gennemgå det venligst omhyggeligt. Hvis noget ikke ser korrekt ud, er forvirrende, eller hvis du mener, at noget er blevet forkert oversat, så lad os venligst vide hurtigst muligt, så vi kan afklare og rette eventuelle misforståelser. Din forståelse er meget vigtig for os.'
+  },
+  nl: {
+    title: 'Belangrijke informatie voor u',
+    body: 'Dit document is een kopie van het gesprek dat vandaag heeft plaatsgevonden met behulp van onze vertaaldienst. Lees het alstublieft zorgvuldig door. Als iets niet correct lijkt, verwarrend is, of als u denkt dat iets verkeerd is vertaald, laat het ons dan zo snel mogelijk weten zodat we misverstanden kunnen ophelderen en corrigeren. Uw begrip is voor ons zeer belangrijk.'
+  },
+  el: {
+    title: 'Σημαντικές πληροφορίες για εσάς',
+    body: 'Αυτό το έγγραφο είναι ένα αντίγραφο της συνομιλίας που πραγματοποιήθηκε σήμερα χρησιμοποιώντας την υπηρεσία μετάφρασής μας. Παρακαλούμε ελέγξτε το προσεκτικά. Εάν κάτι δεν φαίνεται σωστό, είναι μπερδεμένο ή πιστεύετε ότι κάτι έχει μεταφραστεί λάθος, παρακαλούμε ενημερώστε μας το συντομότερο δυνατό ώστε να μπορέσουμε να διευκρινίσουμε και να διορθώσουμε τυχόν παρεξηγήσεις. Η κατανόησή σας είναι πολύ σημαντική για εμάς.'
+  },
+  hu: {
+    title: 'Fontos információk az Ön számára',
+    body: 'Ez a dokumentum a mai napon a fordítási szolgáltatásunk segítségével lezajlott beszélgetés másolata. Kérjük, gondosan olvassa át. Ha valami nem tűnik helyesnek, zavaró, vagy úgy véli, hogy valamit rosszul fordítottak, kérjük, mielőbb jelezze nekünk, hogy tisztázhassuk és kijavíthassuk az esetleges félreértéseket. Az Ön megértése nagyon fontos számunkra.'
+  },
+  id: {
+    title: 'Informasi Penting untuk Anda',
+    body: 'Dokumen ini adalah salinan percakapan yang berlangsung hari ini menggunakan layanan terjemahan kami. Harap tinjau dengan cermat. Jika ada yang tidak terlihat benar, membingungkan, atau jika Anda yakin ada yang salah diterjemahkan, harap beri tahu kami sesegera mungkin agar kami dapat mengklarifikasi dan memperbaiki kesalahpahaman. Pemahaman Anda sangat penting bagi kami.'
+  },
+  ms: {
+    title: 'Maklumat Penting untuk Anda',
+    body: 'Dokumen ini adalah salinan perbualan yang berlaku hari ini menggunakan perkhidmatan terjemahan kami. Sila semak dengan teliti. Jika sesuatu tidak kelihatan betul, mengelirukan, atau jika anda percaya sesuatu telah salah diterjemahkan, sila maklumkan kepada kami secepat mungkin supaya kami boleh menjelaskan dan membetulkan sebarang salah faham. Pemahaman anda amat penting bagi kami.'
+  },
+  ja: {
+    title: 'あなたへの重要なお知らせ',
+    body: 'この文書は、本日の翻訳サービスを使用して行われた会話の写しです。注意深くご確認ください。何か正しくない点、混乱を招く点、または誤訳があると思われる場合は、できるだけ早くお知らせください。誤解を明確にし、修正いたします。あなたのご理解は私たちにとって非常に重要です。'
+  },
+  ko: {
+    title: '귀하를 위한 중요한 정보',
+    body: '이 문서는 오늘 저희 통역 서비스를 이용하여 이루어진 대화의 사본입니다. 주의 깊게 검토해 주십시오. 무언가 올바르지 않거나, 혼란스럽거나, 오역되었다고 생각되시면 가능한 한 빨리 알려주시기 바랍니다. 오해를 명확히 하고 수정하겠습니다. 귀하의 이해는 저희에게 매우 중요합니다.'
+  },
+  fi: {
+    title: 'Tärkeää tietoa sinulle',
+    body: 'Tämä asiakirja on kopio tänään käännöspalvelumme avulla käydystä keskustelusta. Ole hyvä ja tarkista se huolellisesti. Jos jokin ei vaikuta oikealta, on hämmentävää tai uskot, että jokin on käännetty väärin, ilmoita meille mahdollisimman pian, jotta voimme selvittää ja korjata mahdolliset väärinkäsitykset. Ymmärryksesi on meille erittäin tärkeää.'
+  },
+  sv: {
+    title: 'Viktig information för dig',
+    body: 'Detta dokument är en kopia av samtalet som ägde rum idag med hjälp av vår översättningstjänst. Vänligen granska det noggrant. Om något inte verkar korrekt, är förvirrande, eller om du tror att något har översatts fel, vänligen meddela oss så snart som möjligt så att vi kan förtydliga och rätta till eventuella missförstånd. Din förståelse är mycket viktig för oss.'
+  },
+  no: {
+    title: 'Viktig informasjon til deg',
+    body: 'Dette dokumentet er en kopi av samtalen som fant sted i dag ved hjelp av vår oversettelsestjeneste. Vennligst gjennomgå det nøye. Hvis noe ikke ser riktig ut, er forvirrende, eller hvis du mener at noe er feil oversatt, vennligst gi oss beskjed så snart som mulig slik at vi kan klargjøre og rette opp eventuelle misforståelser. Din forståelse er svært viktig for oss.'
+  },
+  he: {
+    title: 'מידע חשוב עבורך',
+    body: 'מסמך זה הוא עותק של השיחה שהתקיימה היום באמצעות שירות התרגום שלנו. אנא עיין בו בקפידה. אם משהו לא נראה נכון, מבלבל, או אם אתה מאמין שמשהו תורגם בטעות, אנא הודע לנו בהקדם האפשרי כדי שנוכל להבהיר ולתקן כל אי הבנה. ההבנה שלך חשובה לנו מאוד.'
+  },
+  sk: {
+    title: 'Dôležité informácie pre Vás',
+    body: 'Tento dokument je kópiou rozhovoru, ktorý sa dnes uskutočnil pomocou našej prekladateľskej služby. Prosím, pozorne si ho prečítajte. Ak sa vám niečo nezdá správne, je to mätúce alebo sa domnievate, že niečo bolo nesprávne preložené, dajte nám prosím čo najskôr vedieť, aby sme mohli objasniť a opraviť prípadné nedorozumenia. Vaše porozumenie je pre nás veľmi dôležité.'
+  },
+  uk: {
+    title: 'Важлива інформація для Вас',
+    body: 'Цей документ є копією розмови, яка відбулася сьогодні за допомогою нашої служби перекладу. Будь ласка, уважно перегляньте його. Якщо щось виглядає неправильно, заплутано, або якщо ви вважаєте, що щось було неправильно перекладено, будь ласка, повідомте нас якомога швидше, щоб ми могли уточнити та виправити будь-які непорозуміння. Ваше розуміння дуже важливе для нас.'
+  },
+  ta: {
+    title: 'உங்களுக்கான முக்கியமான தகவல்',
+    body: 'இந்த ஆவணம் எங்கள் மொழிபெயர்ப்பு சேவையைப் பயன்படுத்தி இன்று நடந்த உரையாடலின் நகல் ஆகும். தயவுசெய்து கவனமாகப் பரிசீலிக்கவும். ஏதாவது சரியாகத் தெரியவில்லை என்றால், குழப்பமாக இருந்தால், அல்லது ஏதாவது தவறாக மொழிபெயர்க்கப்பட்டுள்ளது என்று நீங்கள் நம்பினால், எந்த தவறான புரிதலையும் தெளிவுபடுத்தவும் சரிசெய்யவும் எங்களுக்கு விரைவில் தெரிவிக்கவும். உங்கள் புரிதல் எங்களுக்கு மிகவும் முக்கியம்.'
+  },
+  te: {
+    title: 'మీ కోసం ముఖ్యమైన సమాచారం',
+    body: 'ఈ పత్రం మా అనువాద సేవను ఉపయోగించి ఈ రోజు జరిగిన సంభాషణ యొక్క కాపీ. దయచేసి దీనిని జాగ్రత్తగా సమీక్షించండి. ఏదైనా సరిగ్గా కనిపించకపోతే, గందరగోళంగా ఉంటే, లేదా ఏదైనా తప్పుగా అనువదించబడిందని మీరు నమ్మితే, దయచేసి ఏదైనా అపార్థాన్ని స్పష్టం చేయడానికి మరియు సరిదిద్దడానికి వీలైనంత త్వరగా మాకు తెలియజేయండి. మీ అవగాహన మాకు చాలా ముఖ్యం.'
+  },
+  kn: {
+    title: 'ನಿಮಗಾಗಿ ಮುಖ್ಯ ಮಾಹಿತಿ',
+    body: 'ಈ ದಾಖಲೆಯು ನಮ್ಮ ಅನುವಾದ ಸೇವೆಯನ್ನು ಬಳಸಿ ಇಂದು ನಡೆದ ಸಂಭಾಷಣೆಯ ಪ್ರತಿ. ದಯವಿಟ್ಟು ಇದನ್ನು ಎಚ್ಚರಿಕೆಯಿಂದ ಪರಿಶೀಲಿಸಿ. ಏನಾದರೂ ಸರಿಯಾಗಿ ಕಾಣಿಸದಿದ್ದರೆ, ಗೊಂದಲಮಯವಾಗಿದ್ದರೆ, ಅಥವಾ ಏನಾದರೂ ತಪ್ಪಾಗಿ ಅನುವಾದಿಸಲಾಗಿದೆ ಎಂದು ನೀವು ನಂಬಿದರೆ, ಯಾವುದೇ ತಪ್ಪು ತಿಳುವಳಿಕೆಯನ್ನು ಸ್ಪಷ್ಟಪಡಿಸಲು ಮತ್ತು ಸರಿಪಡಿಸಲು ಸಾಧ್ಯವಾದಷ್ಟು ಬೇಗ ನಮಗೆ ತಿಳಿಸಿ. ನಿಮ್ಮ ತಿಳುವಳಿಕೆ ನಮಗೆ ಬಹಳ ಮುಖ್ಯ.'
+  },
+  ml: {
+    title: 'നിങ്ങൾക്കുള്ള പ്രധാന വിവരങ്ങൾ',
+    body: 'ഈ രേഖ ഞങ്ങളുടെ വിവർത്തന സേവനം ഉപയോഗിച്ച് ഇന്ന് നടന്ന സംഭാഷണത്തിന്റെ പകർപ്പാണ്. ദയവായി ശ്രദ്ധാപൂർവ്വം പരിശോധിക്കുക. എന്തെങ്കിലും ശരിയല്ലെന്ന് തോന്നുന്നുവെങ്കിൽ, ആശയക്കുഴപ്പമുണ്ടാക്കുന്നുവെങ്കിൽ, അല്ലെങ്കിൽ എന്തെങ്കിലും തെറ്റായി വിവർത്തനം ചെയ്തിട്ടുണ്ടെന്ന് നിങ്ങൾ വിശ്വസിക്കുന്നുവെങ്കിൽ, ഏതെങ്കിലും തെറ്റിദ്ധാരണ വ്യക്തമാക്കാനും തിരുത്താനും കഴിയുന്നത്ര വേഗം ഞങ്ങളെ അറിയിക്കുക. നിങ്ങളുടെ ധാരണ ഞങ്ങൾക്ക് വളരെ പ്രധാനമാണ്.'
+  },
+  mr: {
+    title: 'तुमच्यासाठी महत्त्वाची माहिती',
+    body: 'हा दस्तऐवज आमच्या भाषांतर सेवेचा वापर करून आज झालेल्या संभाषणाची प्रत हे. कृपया काळजीपूर्वक पुनरावलोकन करा. काही बरोबर दिसत नसल्यास, गोंधळात टाकणारे असल्यास किंवा काही चुकीचे भाषांतर केले गेले आहे असे तुम्हाला वाटत असल्यास, कृपया कोणताही गैरसमज स्पष्ट करण्यासाठी आणि दुरुस्त करण्यासाठी शक्य तितक्या लवकर आम्हाला कळवा. तुमची समज आमच्यासाठी खूप महत्त्वाची आहे.'
+  },
+  ps: {
+    title: 'ستاسو لپاره مهم معلومات',
+    body: 'دا سند زموږ د ژباړې خدمت په کارولو سره نن ورځ ترسره شوي خبرو اترو کاپي ده. مهرباني وکړئ په دقت سره یې وګورئ. که څه سم نه ښکاري، ګډوډي لري، یا تاسو باور لرئ چې څه غلط ژباړل شوي، مهرباني وکړئ ژر تر ژره موږ ته خبر راکړئ ترڅو موږ هر ډول غلط پوهه روښانه او سمه کړو. ستاسو پوهه زموږ لپاره ډیره مهمه ده.'
+  },
+  yo: {
+    title: 'Àlàyé Pàtàkì fún Ẹ',
+    body: 'Ìwé yìí jẹ́ àdàkọ ìjíròrò tí ó wáyé lónìí nípasẹ̀ iṣẹ́ ìtúmọ̀ wa. Ẹ jọ̀wọ́ ṣàyẹ̀wò rẹ̀ dáadáa. Tí ohunkóhun kò bá rí dáadáa, tí ó bá dà ní rúdurùdu, tàbí tí ẹ bá gbàgbọ́ pé ohun kan ti jẹ́ àṣìṣe ìtúmọ̀, ẹ jọ̀wọ́ ẹ jẹ́ kí a mọ̀ ní kíákíá kí a lè ṣàlàyé àti ṣàtúnṣe èyíkéyìí àìyedè. Ìmòye yín ṣe pàtàkì púpọ̀ fún wa.'
+  },
+  ig: {
+    title: 'Ozi Dị Mkpa maka Gị',
+    body: 'Akwụkwọ a bụ otu nke mkparịta ụka mere taa site na iji ọrụ ntụgharị asụsụ anyị. Biko nyochaa ya nke ọma. Ọ bụrụ na ihe ọ bụla adịghị mma, na-eweta mgbagwoju anya, ma ọ bụ ọ bụrụ na ị kwenyere na a tụgharịrị ihe ọ bụla n\'ụzọ na-ezighi ezi, biko gwa anyị ngwa ngwa ka anyị nwee ike ịkọwa ma dozie nghọtahie ọ bụla. Nghọta gị dị anyị mkpa nke ukwuu.'
+  },
+  ha: {
+    title: 'Bayanan da suka dace da ku',
+    body: 'Wannan takarda kwafin tattaunawar da aka yi a yau ne ta amfani da sabis ɗin fassararmu. Da fatan za a sake duba shi a hankali. Idan wani abu bai yi daidai ba, yana da rudani, ko kuma kun yi imani an yi kuskuren fassara, da fatan za a sanar da mu da wuri-wuri don mu iya bayyana da gyara duk wata rashin fahimta. Fahimtar ku tana da muhimmanci a gare mu.'
+  },
+  om: {
+    title: 'Odeeffannoo Barbaachisaa Siif',
+    body: 'Barreeffamni kun kooppii haasawa har\'a tajaajila hiikkaa keenya fayyadamuun taasifame. Maaloo of eeggadhaa ilaalaa. Wanti tokko sirrii hin fakkaanne, nama wallaalchisu, yookiin wanti tokko dogoggoraan hiikame jettee yoo amantee, maaloo akka danda\'ameen dafqaan nuuf himaa akka waliigaltee dogoggoraa kamiyyuu ifaa baafnee sirreessinu. Hubannoon kee nuuf baay\'ee barbaachisaadha.'
+  },
 };
 
-// Calculate clinical confidence score based on message characteristics
 function calculateClinicalConfidence(message: TranslationMessage): number {
   let score = 85; // Base confidence score
   
