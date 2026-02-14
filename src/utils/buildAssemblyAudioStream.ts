@@ -222,20 +222,40 @@ export async function buildAssemblyAudioStream(
       }
     };
 
+    let muteGraceTimeout: ReturnType<typeof setTimeout> | null = null;
+
     const handleMute = () => {
-      console.warn('🔇 buildAssemblyAudioStream: System audio track MUTED');
-      if (!systemAudioLostNotified && onSystemAudioLost) {
-        systemAudioLostNotified = true;
-        onSystemAudioLost();
+      console.warn('🔇 buildAssemblyAudioStream: System audio track MUTED - starting 3s grace period');
+      if (!systemAudioLostNotified) {
+        muteGraceTimeout = setTimeout(() => {
+          console.warn('🔇 buildAssemblyAudioStream: Mute grace period expired - treating as lost');
+          if (!systemAudioLostNotified && onSystemAudioLost) {
+            systemAudioLostNotified = true;
+            onSystemAudioLost();
+          }
+        }, 3000);
+      }
+    };
+
+    const handleUnmute = () => {
+      console.log('🔊 buildAssemblyAudioStream: System audio track UNMUTED - cancelling grace period');
+      if (muteGraceTimeout) {
+        clearTimeout(muteGraceTimeout);
+        muteGraceTimeout = null;
       }
     };
 
     track.addEventListener('ended', handleEnded);
     track.addEventListener('mute', handleMute);
+    track.addEventListener('unmute', handleUnmute);
     
     cleanupListeners.push(() => {
       track.removeEventListener('ended', handleEnded);
       track.removeEventListener('mute', handleMute);
+      track.removeEventListener('unmute', handleUnmute);
+      if (muteGraceTimeout) {
+        clearTimeout(muteGraceTimeout);
+      }
     });
   }
   

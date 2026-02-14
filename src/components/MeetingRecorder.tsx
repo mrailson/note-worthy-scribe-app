@@ -6306,6 +6306,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   <MeetingMicrophoneSettings 
                     onDeviceChange={setSelectedMicrophoneId}
                     onAudioSourceChange={setAudioSourceMode}
+                    currentAudioSource={audioSourceMode}
                   />
                   <QuickRecordQRLink />
                   <Tooltip>

@@ -26,11 +26,11 @@ const STORAGE_KEY = 'meeting_recorder_microphone_id';
 const AUDIO_SOURCE_STORAGE_KEY = 'meeting_recorder_audio_source';
 const WAVEFORM_BARS = 32;
 
-export const useMeetingMicrophoneSettings = () => {
+export const useMeetingMicrophoneSettings = (initialAudioSource?: AudioSourceMode) => {
   const [state, setState] = useState<MeetingMicrophoneSettingsState>({
     availableDevices: [],
     selectedDeviceId: null,
-    audioSourceMode: 'microphone',
+    audioSourceMode: initialAudioSource || 'microphone',
     isTestingMic: false,
     testVolume: 0,
     waveformData: new Array(WAVEFORM_BARS).fill(0),
