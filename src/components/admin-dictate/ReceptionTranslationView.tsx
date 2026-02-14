@@ -35,11 +35,13 @@ import {
   MonitorOff,
   History,
   Plus,
-    Minus,
-    Clock
+  Minus,
+  Clock,
+  MoreVertical
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AssemblyRealtimeClient } from '@/lib/assembly-realtime';
 import { useReceptionTranslation, TranslationMessage, ContentWarning } from '@/hooks/useReceptionTranslation';
 import {
@@ -2740,64 +2742,40 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               </PopoverContent>
             </Popover>
           )}
-          {/* Auto-Play Patient Voice Toggle */}
+          {/* Options Menu */}
           {translationMode === 'live-chat' && (
-            <Button
-              variant={autoPlayAudio ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                const newVal = !autoPlayAudio;
-                setAutoPlayAudio(newVal);
-                localStorage.setItem('translation-auto-play-audio', String(newVal));
-              }}
-              title={autoPlayAudio ? 'Auto-play patient language voice: ON' : 'Auto-play patient language voice: OFF'}
-            >
-              <Volume2 className="h-4 w-4 mr-2" />
-              {autoPlayAudio ? 'Voice On' : 'Voice Off'}
-            </Button>
-          )}
-          {/* QR Code Button */}
-          {translationMode === 'live-chat' && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowExpandedQR(true)}
-              title="Show patient QR code"
-            >
-              <QrCode className="h-4 w-4 mr-2" />
-              QR Code
-            </Button>
-          )}
-          {/* History Button - only in live chat mode */}
-          {translationMode === 'live-chat' && (
-            <Button
-              variant={showHistory ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setShowHistory(!showHistory)}
-            >
-              <History className="h-4 w-4 mr-2" />
-              History
-            </Button>
-          )}
-          {translationMode === 'live-chat' && (
-            <Button
-              variant="outline" 
-              size="sm" 
-              onClick={handleDownloadReport}
-              disabled={isGeneratingReport || messages.length === 0}
-            >
-              {isGeneratingReport ? (
-                <>
-                  <span className="animate-spin mr-2">⏳</span>
-                  Generating...
-                </>
-              ) : (
-                <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 px-2">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => {
+                  const newVal = !autoPlayAudio;
+                  setAutoPlayAudio(newVal);
+                  localStorage.setItem('translation-auto-play-audio', String(newVal));
+                }}>
+                  <Volume2 className="h-4 w-4 mr-2" />
+                  {autoPlayAudio ? 'Voice Off' : 'Voice On'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowExpandedQR(true)}>
+                  <QrCode className="h-4 w-4 mr-2" />
+                  QR Code
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowHistory(!showHistory)}>
+                  <History className="h-4 w-4 mr-2" />
+                  {showHistory ? 'Hide History' : 'History'}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={handleDownloadReport}
+                  disabled={isGeneratingReport || messages.length === 0}
+                >
                   <FileText className="h-4 w-4 mr-2" />
-                  Download Report
-                </>
-              )}
-            </Button>
+                  {isGeneratingReport ? 'Generating...' : 'Download Report'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <Button variant="destructive" size="sm" onClick={handleEndSession}>
             <X className="h-4 w-4 mr-2" />
