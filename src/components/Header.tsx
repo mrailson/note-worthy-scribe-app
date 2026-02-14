@@ -210,7 +210,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               Ask AI
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => navigate('/ai4gp?panel=translation')}
+                              onClick={() => {
+                                if (location.pathname === '/ai4gp') {
+                                  window.dispatchEvent(new CustomEvent('open-translation-panel'));
+                                } else {
+                                  navigate('/ai4gp?panel=translation');
+                                }
+                              }}
                               className="cursor-pointer py-3"
                             >
                               <Languages className="h-4 w-4 mr-2" />
@@ -585,7 +591,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 </Button>
                               </DrawerClose>
                               <DrawerClose asChild>
-                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ai4gp?panel=translation')}>
+                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => {
+                                  if (location.pathname === '/ai4gp') {
+                                    window.dispatchEvent(new CustomEvent('open-translation-panel'));
+                                  } else {
+                                    navigate('/ai4gp?panel=translation');
+                                  }
+                                }}>
                                   <Languages className="h-4 w-4 mr-2" />
                                   Translation Service
                                 </Button>
