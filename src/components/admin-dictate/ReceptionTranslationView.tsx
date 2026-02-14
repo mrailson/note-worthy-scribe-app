@@ -861,6 +861,7 @@ interface ReceptionTranslationViewProps {
   onClose: () => void;
   isTrainingMode?: boolean;
   trainingScenario?: string;
+  embedded?: boolean;
 }
 
 export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> = ({
@@ -869,7 +870,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   patientLanguage,
   onClose,
   isTrainingMode = false,
-  trainingScenario = 'general_enquiry'
+  trainingScenario = 'general_enquiry',
+  embedded = false
 }) => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [largeQrCodeUrl, setLargeQrCodeUrl] = useState<string>('');
@@ -2451,7 +2453,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+    <div className={embedded ? "flex flex-col h-full w-full overflow-hidden bg-background" : "fixed inset-0 z-50 bg-background flex flex-col"}>
       {/* Training Mode Banner */}
       {isTrainingMode && (
         <div className="bg-amber-500 text-white text-center py-2 px-4 text-sm font-bold tracking-wider flex items-center justify-center gap-2">
