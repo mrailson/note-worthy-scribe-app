@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp, Play, RotateCcw, Languages } from 'lucide-react';
+import { ThumbsUp, Play, RotateCcw, Languages, Lightbulb, Mic, MessageSquare, Clock, Send } from 'lucide-react';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 import { LanguageSelector } from './LanguageSelector';
 import { cn } from '@/lib/utils';
@@ -101,6 +101,32 @@ export const ConsentScreen: React.FC<ConsentScreenProps> = ({
           Please confirm consent to start the session
         </p>
       )}
+
+      {/* Tips for best results */}
+      <div className="mt-10 w-full max-w-md">
+        <div className="flex items-center gap-2 mb-3">
+          <Lightbulb className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium text-foreground">Tips for Best Results</span>
+        </div>
+        <div className="grid gap-2 text-sm text-muted-foreground">
+          <div className="flex items-start gap-2">
+            <Mic className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>Hold the device close to the speaker or use a headset</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <MessageSquare className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>Speak clearly at a steady pace</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <Clock className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>Pause briefly between sentences — use the Wait Time slider to allow longer pauses</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <Send className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>Tap 'Send Now' if the system hasn't picked up your speech</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

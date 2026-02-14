@@ -27,7 +27,7 @@ const GPTranslationService: React.FC = () => {
   const [autoDetect, setAutoDetect] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.8);
-  const [silenceThreshold, setSilenceThreshold] = useState(2000);
+  const [silenceThreshold, setSilenceThreshold] = useState(3000);
   const [viewMode, setViewMode] = useState<ViewMode>('standard');
   const [consentConfirmed, setConsentConfirmed] = useState(false);
   

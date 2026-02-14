@@ -9,6 +9,7 @@ type WebSpeechRecognition = any;
 
 const SPEECH_RECOGNITION_LOCALES: Record<string, string> = {
   en: 'en-GB',
+  gu: 'gu-IN',
   fr: 'fr-FR',
   es: 'es-ES',
   pt: 'pt-PT',
@@ -62,7 +63,7 @@ interface UseGPTranslationOptions {
   autoDetect: boolean;
   volume: number;
   isMuted: boolean;
-  silenceThreshold?: number; // milliseconds before processing speech (default: 2000)
+  silenceThreshold?: number; // milliseconds before processing speech (default: 3000)
   onSpeakerDetected?: (speaker: 'gp' | 'patient') => void;
   onError?: (error: string) => void;
 }
@@ -74,7 +75,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     autoDetect,
     volume,
     isMuted,
-    silenceThreshold = 2000,
+    silenceThreshold = 3000,
     onSpeakerDetected,
     onError
   } = options;
@@ -357,7 +358,13 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const startListening = useCallback(async () => {
     try {
       // Request microphone permission
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      await navigator.mediaDevices.getUserMedia({
+        audio: {
+          autoGainControl: true,
+          noiseSuppression: true,
+          echoCancellation: true,
+        },
+      });
 
       const recognition = initSpeechRecognition();
       if (!recognition) return;
