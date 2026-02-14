@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
+import { MobileTranslationLayout } from './MobileTranslationLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -873,6 +875,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   trainingScenario = 'general_enquiry',
   embedded = false
 }) => {
+  const isMobile = useIsMobile();
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [largeQrCodeUrl, setLargeQrCodeUrl] = useState<string>('');
   const [copied, setCopied] = useState(false);
@@ -2451,6 +2454,133 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       </div>
     );
   };
+
+  // Mobile layout — purpose-built for smartphones
+  if (isMobile && embedded) {
+    return (
+      <>
+        <MobileTranslationLayout
+          patientLanguage={patientLanguage}
+          languageInfo={languageInfo}
+          isTrainingMode={isTrainingMode}
+          messages={messages}
+          transcript={transcript}
+          isTranslating={isTranslating}
+          isListening={isListening}
+          isConnecting={isConnecting}
+          isMicPaused={isMicPaused}
+          speakerMode={speakerMode}
+          showConfirmation={showConfirmation}
+          pendingTranscript={pendingTranscript}
+          pendingSpeaker={pendingSpeaker}
+          isTrainingReplyLoading={isTrainingReplyLoading}
+          playingAudioId={playingAudioId}
+          loadingAudio={loadingAudio}
+          onSpeakerModeChange={handleSpeakerModeChange}
+          onToggleListening={toggleListening}
+          onToggleMicPause={toggleMicPause}
+          onConfirmSend={handleConfirmSend}
+          onCancelSend={handleCancelSend}
+          onAddMore={handleAddMore}
+          onPendingTranscriptChange={(text) => setPendingTranscript(text)}
+          onDeleteMessage={deleteMessage}
+          onPlayAudio={playAudioForMessage}
+          onStopAudio={stopCurrentAudio}
+          onDownloadReport={handleDownloadReport}
+          onEndSession={handleEndSession}
+          onShowQR={() => setShowExpandedQR(true)}
+          isGeneratingReport={isGeneratingReport}
+          scrollRef={scrollRef}
+          gpPracticeSaid={GP_PRACTICE_SAID[patientLanguage] || GP_PRACTICE_SAID['en']}
+          patientSaid={PATIENT_SAID[patientLanguage] || PATIENT_SAID['en']}
+          playAudioLabel={PLAY_AUDIO[patientLanguage] || PLAY_AUDIO['en']}
+          loadingAudioLabel={LOADING_AUDIO[patientLanguage] || LOADING_AUDIO['en']}
+          stopAudioLabel={STOP_AUDIO[patientLanguage] || STOP_AUDIO['en']}
+          sendLabel={SEND_BUTTON[patientLanguage] || SEND_BUTTON['en']}
+          discardLabel={DISCARD_TRY_AGAIN[patientLanguage] || DISCARD_TRY_AGAIN['en']}
+          queuedLabel={QUEUED_KEEP_SPEAKING[patientLanguage] || QUEUED_KEEP_SPEAKING['en']}
+        />
+
+        {/* QR Modal — reused from desktop */}
+        <Dialog open={showExpandedQR} onOpenChange={setShowExpandedQR}>
+          <DialogContent className="max-w-[95vw]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 justify-center text-base">
+                <QrCode className="h-4 w-4" />
+                {MODAL_TITLES[patientLanguage] || MODAL_TITLES['en']}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center py-4">
+              <p className="text-sm font-semibold text-primary mb-3">{practiceName}</p>
+              {largeQrCodeUrl && (
+                <div className="bg-white p-3 rounded-xl shadow-lg mb-3">
+                  <img src={largeQrCodeUrl} alt="Patient QR Code" className="w-56 h-56" />
+                </div>
+              )}
+              <div className="text-center">
+                <span className="text-xl">{languageInfo?.flag}</span>
+                <p className="text-sm font-medium mt-1">{languageInfo?.name}</p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Blocked / Warning dialogs — reused */}
+        <AlertDialog open={showBlockedDialog} onOpenChange={(open) => {
+          setShowBlockedDialog(open);
+          if (!open) clearBlockedContent();
+        }}>
+          <AlertDialogContent className="border-destructive mx-4">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-destructive text-sm">
+                <ShieldX className="h-4 w-4" />
+                Translation Blocked
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <p className="text-sm">{blockedContent?.reason || 'This message contains inappropriate language.'}</p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => { setShowBlockedDialog(false); clearBlockedContent(); }}>
+                OK
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
+          <AlertDialogContent className="border-amber-500 mx-4">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-amber-600 text-sm">
+                <AlertTriangle className="h-4 w-4" />
+                Content Warning
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This message may contain inappropriate language.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => { setShowWarningDialog(false); clearContentWarning(); }}>
+                Edit
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={async () => {
+                if (pendingWarningTranscript) {
+                  await sendMessage(pendingWarningTranscript, speakerModeRef.current);
+                  setPendingWarningTranscript(null);
+                  setPendingTranscript(null);
+                  setShowConfirmation(false);
+                }
+                setShowWarningDialog(false);
+                clearContentWarning();
+              }}>
+                Send Anyway
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    );
+  }
 
   return (
     <div className={embedded ? "flex flex-col h-full w-full overflow-hidden bg-background" : "fixed inset-0 z-50 bg-background flex flex-col"}>
