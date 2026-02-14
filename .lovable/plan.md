@@ -1,68 +1,70 @@
 
 
-## Fix: "Mic + System Audio" Reverting to "Mic" Immediately
+## Fix: AssemblyAI and Deepgram Not Transcribing in "Mic + System Audio" Mode
 
-### Root Cause
+### Root Causes Found
 
-There are **two issues** causing the mode to revert:
+**1. Deepgram completely ignores the external stream (primary cause)**
 
-**1. Competing state ownership (primary cause)**
+In `src/hooks/useDeepgramRealtimePreview.ts` (line 335), the external stream parameter is named `_externalStream` with an underscore prefix -- meaning it is deliberately unused. When the session starts (line 401), it always calls `createPcmStream()` which internally calls `navigator.mediaDevices.getUserMedia()` to create a **brand new mic-only stream**. This new stream is separate from the mixed stream and only captures the physical microphone, not system audio.
 
-`MeetingMicrophoneSettings` component has its **own independent** `audioSourceMode` state inside `useMeetingMicrophoneSettings()` hook, which always initialises to `'microphone'`. A `useEffect` syncs this to the parent MeetingRecorder via `onAudioSourceChange`. 
+**2. `createPcmStream` has no support for external streams**
 
-When `switchAudioSourceLive` updates `audioSourceMode` to `'microphone_and_system'` in MeetingRecorder, any re-render that touches `MeetingMicrophoneSettings` causes its `useEffect` to fire and push its own `'microphone'` value back into the parent -- immediately overwriting the switch.
+In `src/lib/audio/pcm16.ts`, `createPcmStream()` always calls `getUserMedia()`. There is no option to pass in an existing MediaStream.
 
-**2. Aggressive `mute` event handling (secondary cause)**
+**3. AssemblyAI receives the mixed stream but timing may be wrong**
 
-In `buildAssemblyAudioStream.ts`, the `handleMute` listener on system audio tracks treats **any** `mute` event as permanent audio loss and immediately calls `onSystemAudioLost()`. Screen share audio tracks can fire transient `mute` events during setup or when the shared tab has no audio playing momentarily. This causes a premature fallback.
+`AssemblyRealtimeClient.start()` correctly accepts the external stream (line 59) and uses it (line 453-456). However, when the user switches to "Mic + System Audio" *during* a recording, the `assemblyAudioMixerRef.current` might not be populated yet when AssemblyAI starts, or the stream may have ended/been replaced by the mode switch.
 
 ### Solution
 
-**File 1: `src/components/MeetingRecorder.tsx`**
-- Pass the current `audioSourceMode` value **down** to `MeetingMicrophoneSettings` so it stays in sync with the parent
-- Or: remove the `onAudioSourceChange` sync effect from `MeetingMicrophoneSettings` and instead have it call the parent's setter directly only on user-initiated changes (not on mount/re-render)
+**File 1: `src/lib/audio/pcm16.ts`**
+- Add an optional `externalStream` parameter to `createPcmStream()`
+- When provided, use it directly instead of calling `getUserMedia()`
+- When not provided, fall back to the existing `getUserMedia()` behaviour
 
-The cleanest approach: add a `currentAudioSource` prop to `MeetingMicrophoneSettings` and use it to initialise/sync the hook's internal state, preventing the mount-time overwrite.
+**File 2: `src/hooks/useDeepgramRealtimePreview.ts`**
+- Rename `_externalStream` to `externalStream` and store it in a ref
+- Pass the external stream to `createPcmStream()` when available
+- Also pass it during reconnection attempts so the correct stream is used after a reconnect
 
-**File 2: `src/components/meeting/MeetingMicrophoneSettings.tsx`**
-- Accept a `currentAudioSource` prop
-- Sync internal state from parent when the prop changes (rather than pushing internal state to parent on every render)
-
-**File 3: `src/hooks/useMeetingMicrophoneSettings.ts`**
-- Accept an optional `initialAudioSource` parameter so the hook can initialise with the correct value instead of always defaulting to `'microphone'`
-
-**File 4: `src/utils/buildAssemblyAudioStream.ts`**
-- Replace the immediate `handleMute` -> `onSystemAudioLost` trigger with a **grace period** (e.g. 3 seconds)
-- If `unmute` fires within the grace period, cancel the fallback
-- This prevents transient silence from killing the system audio session
+**File 3: `src/components/MeetingRecorder.tsx`**
+- No changes needed -- it already passes `assemblyAudioMixerRef.current?.mixedStream` to both `assemblyPreview.startPreview()` and `deepgramPreview.startPreview()`. Once Deepgram stops ignoring the stream, it will work.
 
 ### Technical Details
 
-**State sync fix (Files 1-3):**
+**`createPcmStream` change:**
 
-```text
-MeetingRecorder (audioSourceMode) 
-    |
-    v (pass down as prop)
-MeetingMicrophoneSettings (currentAudioSource prop)
-    |
-    v (initialise hook with it)
-useMeetingMicrophoneSettings(initialAudioSource)
-    |
-    v (only call onAudioSourceChange on USER clicks, not on mount)
+```
+// Before
+export async function createPcmStream(onPcmChunk: (buf: ArrayBuffer) => void)
+
+// After  
+export async function createPcmStream(
+  onPcmChunk: (buf: ArrayBuffer) => void,
+  externalStream?: MediaStream
+)
 ```
 
-- The `useEffect` that currently syncs `audioSourceMode` on every render will be changed to only fire when the user explicitly selects a different source via `selectAudioSource()`
-- The hook will accept the parent's current value as the initial state
+When `externalStream` is provided, skip `getUserMedia()` and use the external stream directly. The AudioContext and ScriptProcessor logic remains identical.
 
-**Mute grace period fix (File 4):**
+**`useDeepgramRealtimePreview` change:**
 
-- Add a `muteGraceTimeout` that waits 3 seconds after `mute` before calling `onSystemAudioLost`
-- Listen for `unmute` events to cancel the timeout if audio resumes
-- Keep the `ended` event as an immediate trigger (since `ended` means the track is truly gone)
+Store the external stream in a ref (`lastExternalStreamRef`), then pass it to `createPcmStream()`:
+
+```
+// Before (line 401)
+pcmStreamRef.current = await createPcmStream((pcmBuffer) => { ... });
+
+// After
+pcmStreamRef.current = await createPcmStream((pcmBuffer) => { ... }, externalStream);
+```
+
+Also apply the same change in the reconnection path (~line 264) so that reconnections also use the mixed stream.
 
 ### Risk Assessment
 
-- **Low risk**: Both changes are isolated to the audio source state management
-- **No API changes**: All existing functionality preserved
-- **Backwards compatible**: Default behaviour remains mic-only on fresh start
+- **Low risk**: The change is additive -- when no external stream is passed, behaviour is identical to before
+- **No API changes**: The MeetingRecorder already passes the mixed stream; Deepgram just needs to use it
+- **Consistent with AssemblyAI**: Both engines will now receive the same mixed stream when system audio is active
+
