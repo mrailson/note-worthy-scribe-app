@@ -48,7 +48,7 @@ export const trainingVideos: TrainingVideo[] = [
     id: 'tr-1',
     title: 'How to Use the Translation Service',
     description: 'Step-by-step guide to translating patient conversations in real time.',
-    loomUrl: 'https://www.loom.com/share/example-translation',
+    loomUrl: 'https://www.loom.com/share/58536667bf1a4abf837f94e507f24c76',
     category: 'Translation',
     duration: '3 min',
   },
