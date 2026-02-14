@@ -16,6 +16,8 @@ interface TranslationSettingsModalProps {
   onToggleSystemAudio: () => void;
   autoPlayAudio: boolean;
   onAutoPlayChange: (enabled: boolean) => void;
+  autoPlayPatientAudio: boolean;
+  onAutoPlayPatientChange: (enabled: boolean) => void;
   showDocumentTranslate: boolean;
   onShowDocumentTranslateChange: (enabled: boolean) => void;
 }
@@ -27,6 +29,8 @@ export const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> =
   onToggleSystemAudio,
   autoPlayAudio,
   onAutoPlayChange,
+  autoPlayPatientAudio,
+  onAutoPlayPatientChange,
   showDocumentTranslate,
   onShowDocumentTranslateChange,
 }) => {
@@ -82,6 +86,23 @@ export const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> =
             <Switch
               checked={autoPlayAudio}
               onCheckedChange={onAutoPlayChange}
+            />
+          </div>
+
+          {/* Auto-Play Patient Audio Toggle */}
+          <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+            <div className="flex items-center gap-3">
+              <Volume2 className={`h-5 w-5 ${autoPlayPatientAudio ? 'text-primary' : 'text-muted-foreground'}`} />
+              <div>
+                <Label className="text-base font-medium">Auto-Play Patient Voice</Label>
+                <p className="text-sm text-muted-foreground">
+                  Automatically play patient's English translation aloud
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={autoPlayPatientAudio}
+              onCheckedChange={onAutoPlayPatientChange}
             />
           </div>
 
