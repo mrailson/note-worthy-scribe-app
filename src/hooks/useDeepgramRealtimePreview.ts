@@ -35,6 +35,7 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
   const pcmStreamRef = useRef<{ stop: () => void } | null>(null);
   const meetingIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const lastExternalStreamRef = useRef<MediaStream | undefined>(undefined);
   const chunkCounterRef = useRef<number>(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intentionalStopRef = useRef<boolean>(false);
@@ -259,14 +260,14 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
               setStatus('recording');
               setIsActive(true);
 
-              // Start PCM audio capture
+              // Start PCM audio capture (use external stream if available)
               try {
                 pcmStreamRef.current = await createPcmStream((pcmBuffer) => {
                   if (wsRef.current?.readyState === WebSocket.OPEN) {
                     wsRef.current.send(pcmBuffer);
                   }
-                });
-                console.log('✅ Deepgram: PCM audio capture resumed');
+                }, lastExternalStreamRef.current);
+                console.log('✅ Deepgram: PCM audio capture resumed', lastExternalStreamRef.current ? '(external stream)' : '(mic)');
               } catch (audioError) {
                 console.error('❌ Deepgram: Audio capture failed on reconnect:', audioError);
                 setError('Failed to capture audio: ' + (audioError instanceof Error ? audioError.message : 'Unknown error'));
@@ -332,9 +333,11 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
 
   const startPreview = useCallback(async (
     meetingId: string,
-    _externalStream?: MediaStream,
+    externalStream?: MediaStream,
     options?: { preserveTranscript?: boolean }
   ) => {
+    // Store the external stream for reconnection
+    lastExternalStreamRef.current = externalStream;
     const { preserveTranscript = false } = options || {};
 
     if (wsRef.current || isActive) {
@@ -396,14 +399,14 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
             setStatus('recording');
             setIsActive(true);
 
-            // Start PCM audio capture using existing utility
+            // Start PCM audio capture using existing utility (use external stream if available)
             try {
               pcmStreamRef.current = await createPcmStream((pcmBuffer) => {
                 if (wsRef.current?.readyState === WebSocket.OPEN) {
                   wsRef.current.send(pcmBuffer);
                 }
-              });
-              console.log('✅ Deepgram: PCM audio capture started');
+              }, externalStream);
+              console.log('✅ Deepgram: PCM audio capture started', externalStream ? '(external stream)' : '(mic)');
             } catch (audioError) {
               console.error('❌ Deepgram: Audio capture failed:', audioError);
               setError('Failed to capture audio: ' + (audioError instanceof Error ? audioError.message : 'Unknown error'));

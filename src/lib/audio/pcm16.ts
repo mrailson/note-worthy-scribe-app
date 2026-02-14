@@ -1,8 +1,11 @@
 // PCM16 Audio Processing for Amazon Transcribe
-export async function createPcmStream(onPcmChunk: (buf: ArrayBuffer) => void) {
-  console.log('🎙️ Starting PCM16 audio stream...');
+export async function createPcmStream(
+  onPcmChunk: (buf: ArrayBuffer) => void,
+  externalStream?: MediaStream
+) {
+  console.log('🎙️ Starting PCM16 audio stream...', externalStream ? '(using external stream)' : '(using getUserMedia)');
   
-  const stream = await navigator.mediaDevices.getUserMedia({ 
+  const stream = externalStream || await navigator.mediaDevices.getUserMedia({ 
     audio: {
       sampleRate: 16000,
       channelCount: 1,
