@@ -15,15 +15,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Languages, QrCode, Loader2, Check, MessageSquareText } from 'lucide-react';
+import { Languages, QrCode, Loader2, Check, MessageSquareText, GraduationCap } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
+import { Switch } from '@/components/ui/switch';
+
+const TRAINING_SCENARIOS = [
+  { value: 'new_patient_registration', label: 'New patient registration' },
+  { value: 'prescription_collection', label: 'Prescription collection' },
+  { value: 'appointment_booking', label: 'Appointment booking' },
+  { value: 'general_enquiry', label: 'General enquiry' },
+];
 
 interface LiveTranslationSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSessionCreated: (sessionId: string, sessionToken: string, patientLanguage: string) => void;
+  onSessionCreated: (sessionId: string, sessionToken: string, patientLanguage: string, isTrainingMode?: boolean, trainingScenario?: string) => void;
 }
 
 export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps> = ({
@@ -33,6 +41,8 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
 }) => {
   const [selectedLanguage, setSelectedLanguage] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
+  const [isTrainingMode, setIsTrainingMode] = useState(false);
+  const [trainingScenario, setTrainingScenario] = useState<string>('appointment_booking');
 
   // Filter out 'none' and English, sort alphabetically
   const availableLanguages = HEALTHCARE_LANGUAGES
@@ -51,6 +61,14 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         showToast.error('You must be logged in');
+        return;
+      }
+
+      // For training mode, create a fake session (no DB record needed)
+      if (isTrainingMode) {
+        const fakeSessionId = `training-${crypto.randomUUID()}`;
+        const fakeToken = crypto.randomUUID();
+        onSessionCreated(fakeSessionId, fakeToken, selectedLanguage, true, trainingScenario);
         return;
       }
 
@@ -150,13 +168,45 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
             </div>
           )}
 
-          <div className="flex items-center gap-3 rounded-lg border border-dashed p-4">
-            <QrCode className="h-10 w-10 text-muted-foreground" />
-            <div className="text-sm text-muted-foreground">
-              A QR code will be generated for the patient to scan with their phone.
-              No app or login required.
+          {/* Training Mode Toggle */}
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="flex items-center gap-3">
+              <GraduationCap className="h-5 w-5 text-amber-500" />
+              <div>
+                <p className="text-sm font-medium">Training Mode</p>
+                <p className="text-xs text-muted-foreground">AI plays the patient role for practice</p>
+              </div>
             </div>
+            <Switch checked={isTrainingMode} onCheckedChange={setIsTrainingMode} />
           </div>
+
+          {isTrainingMode && (
+            <div className="space-y-2">
+              <Label>Training Scenario</Label>
+              <Select value={trainingScenario} onValueChange={setTrainingScenario}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select scenario..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRAINING_SCENARIOS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {!isTrainingMode && (
+            <div className="flex items-center gap-3 rounded-lg border border-dashed p-4">
+              <QrCode className="h-10 w-10 text-muted-foreground" />
+              <div className="text-sm text-muted-foreground">
+                A QR code will be generated for the patient to scan with their phone.
+                No app or login required.
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-3">
@@ -168,6 +218,11 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Creating...
+              </>
+            ) : isTrainingMode ? (
+              <>
+                <GraduationCap className="mr-2 h-4 w-4" />
+                Start Training
               </>
             ) : (
               <>
