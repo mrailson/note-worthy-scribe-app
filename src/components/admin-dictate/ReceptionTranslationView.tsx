@@ -59,7 +59,9 @@ import { PatientSpeakingPrompt } from './PatientSpeakingPrompt';
 import { getWebSpeechLanguageCode, isWebSpeechSupported } from '@/utils/webSpeechLanguages';
 import { TranslationSettingsModal } from './TranslationSettingsModal';
 import { DocumentTranslationPanel } from './DocumentTranslationPanel';
-import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, GraduationCap } from 'lucide-react';
+import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, GraduationCap, Columns2, ListFilter, PanelRightOpen, PanelLeftOpen, Eye } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { TranslationHistoryInline } from './TranslationHistoryInline';
 import {
   Collapsible,
@@ -927,6 +929,13 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     return saved !== 'false'; // Default to true
   });
   const [showPatientSidebar, setShowPatientSidebar] = useState(true);
+  
+  // Chat view mode
+  type ChatViewMode = 'standard' | 'recent' | 'patient-focus' | 'gp-focus' | 'patient-only';
+  const [chatViewMode, setChatViewMode] = useState<ChatViewMode>(() => {
+    const saved = localStorage.getItem('translation-chat-view-mode');
+    return (saved as ChatViewMode) || 'standard';
+  });
   
   // Patient text size scaling (1 = normal, steps of 0.25)
   const [patientTextScale, setPatientTextScale] = useState<number>(() => {
@@ -2277,8 +2286,13 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             : ''
         }`}
       >
-        {/* English column - ALWAYS LEFT */}
-        <div className="flex-1">
+        {/* English column - ALWAYS LEFT (hidden in patient-only mode) */}
+        {chatViewMode !== 'patient-only' && (
+        <div className={
+          chatViewMode === 'patient-focus' ? 'w-1/4 min-w-0' 
+          : chatViewMode === 'gp-focus' ? 'w-3/4 min-w-0' 
+          : 'flex-1'
+        }>
           <div className={`inline-block max-w-full rounded-lg p-3 ${
             isStaffMessage 
               ? 'bg-primary text-primary-foreground' 
@@ -2336,9 +2350,15 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             )}
           </div>
         </div>
+        )}
 
         {/* Patient language column - ALWAYS RIGHT */}
-        <div className={`${patientColumnFlex} text-right`}>
+        <div className={`${
+          chatViewMode === 'patient-only' ? 'flex-1' 
+          : chatViewMode === 'patient-focus' ? 'w-3/4 min-w-0' 
+          : chatViewMode === 'gp-focus' ? 'w-1/4 min-w-0' 
+          : patientColumnFlex
+        } text-right`}>
           <div 
             className={`inline-block max-w-full rounded-lg p-3 text-left ${
               isStaffMessage 
@@ -2460,6 +2480,42 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             <Badge variant="outline">
               {languageInfo.flag} {languageInfo.name}
             </Badge>
+          )}
+          
+          {/* Chat View Mode Selector */}
+          {translationMode === 'live-chat' && (
+            <TooltipProvider delayDuration={200}>
+              <div className="flex items-center gap-0.5 p-0.5 rounded-lg border bg-muted/50">
+                {([
+                  { mode: 'standard' as ChatViewMode, icon: Columns2, label: 'Standard — 50/50 split' },
+                  { mode: 'recent' as ChatViewMode, icon: ListFilter, label: 'Recent — last 2 messages' },
+                  { mode: 'patient-focus' as ChatViewMode, icon: PanelRightOpen, label: 'Patient Focus — 75% patient language' },
+                  { mode: 'gp-focus' as ChatViewMode, icon: PanelLeftOpen, label: 'GP Focus — 75% English' },
+                  { mode: 'patient-only' as ChatViewMode, icon: Eye, label: 'Patient Only — full width patient language' },
+                ]).map(({ mode, icon: Icon, label }) => (
+                  <Tooltip key={mode}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => {
+                          setChatViewMode(mode);
+                          localStorage.setItem('translation-chat-view-mode', mode);
+                        }}
+                        className={`p-1.5 rounded-md transition-colors ${
+                          chatViewMode === mode
+                            ? 'bg-background shadow-sm text-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p className="text-xs">{label}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </TooltipProvider>
           )}
           {/* Patient Connection Status - only show in live chat mode and not training */}
           {translationMode === 'live-chat' && !isTrainingMode && (
@@ -2606,7 +2662,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   <p className="text-sm mt-2">Click the microphone button to speak</p>
                 </div>
               ) : (
-                messages.map(renderMessage)
+                (chatViewMode === 'recent' ? messages.slice(-2) : messages).map((msg, idx) => {
+                  const actualIndex = chatViewMode === 'recent' ? messages.length - 2 + idx : idx;
+                  return renderMessage(msg, Math.max(0, actualIndex));
+                })
               )}
 
               {/* Live transcript (partial - still speaking) - only show for staff mode */}
