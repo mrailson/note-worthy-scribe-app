@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,8 +14,8 @@ import { cn } from '@/lib/utils';
 const getEmbedUrl = (url: string) =>
   url.replace('/share/', '/embed/');
 
-const isValidLoomUrl = (url: string) =>
-  /loom\.com\/(share|embed)\/[a-zA-Z0-9]+/.test(url) && !url.includes('example');
+const isValidVideoUrl = (url: string) =>
+  (/loom\.com\/(share|embed)\/[a-zA-Z0-9]+/.test(url) && !url.includes('example')) || url.startsWith('/');
 
 const TrainingVideosHub = () => {
   const [search, setSearch] = useState('');
@@ -143,16 +144,26 @@ const TrainingVideosHub = () => {
                   {groupedByCategory.get(cat)!.map((video) => (
                     <Card key={video.id} className="overflow-hidden">
                       <AspectRatio ratio={16 / 9}>
-                        {isValidLoomUrl(video.loomUrl) ? (
-                          <a
-                            href={video.loomUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full h-full bg-muted flex flex-col items-center justify-center text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
-                          >
-                            <Play className="h-10 w-10 mb-2 opacity-60" />
-                            <p className="text-xs font-medium">Click to watch</p>
-                          </a>
+                        {isValidVideoUrl(video.loomUrl) ? (
+                          video.loomUrl.startsWith('/') ? (
+                            <Link
+                              to={video.loomUrl}
+                              className="w-full h-full bg-muted flex flex-col items-center justify-center text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
+                            >
+                              <Play className="h-10 w-10 mb-2 opacity-60" />
+                              <p className="text-xs font-medium">Click to watch</p>
+                            </Link>
+                          ) : (
+                            <a
+                              href={video.loomUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full h-full bg-muted flex flex-col items-center justify-center text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
+                            >
+                              <Play className="h-10 w-10 mb-2 opacity-60" />
+                              <p className="text-xs font-medium">Click to watch</p>
+                            </a>
+                          )
                         ) : (
                           <div className="w-full h-full bg-muted flex flex-col items-center justify-center text-muted-foreground">
                             <Play className="h-10 w-10 mb-2 opacity-40" />
