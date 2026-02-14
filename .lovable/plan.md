@@ -1,53 +1,31 @@
 
 
-## Quick-Pick Intro Statement Button
+# Add Searchable Language Selector to Translation Setup Modal
 
-### Overview
+## Overview
+Replace the current static `Select` dropdown in the "Start Live Translation" modal with a searchable, filterable language selector. This will let reception staff quickly find a language by typing part of the name or language code, rather than scrolling through the full alphabetical list.
 
-Add a one-tap "Send Intro" button that instantly sends a pre-written introductory and consent message to the patient in their language. This saves staff from having to speak the entire consent explanation and ensures consistent, professional wording every time.
+## Approach
+Modify `src/components/admin-dictate/LiveTranslationSetupModal.tsx` to replace the Radix `Select` component with a `Popover` + search `Input` + `ScrollArea` pattern (similar to what already exists in `src/components/translation/LanguageSelector.tsx`).
 
-### What the Intro Message Covers
+## What Changes
 
-The message (translated into the patient's language) will say:
+**File: `src/components/admin-dictate/LiveTranslationSetupModal.tsx`**
 
-> "Welcome to {Practice Name}. We would like to use our translation service to help us communicate with you today. A staff member will control the session. When you see the large green microphone, you can speak naturally in your own language. When you have finished speaking, please indicate to the staff member and they will activate the translation. Are you happy for us to use this service?"
+1. Replace the `Select`/`SelectContent`/`SelectItem` imports with `Popover`, `PopoverTrigger`, `PopoverContent`, `Input`, `ScrollArea`, and `ChevronsUpDown` from lucide.
+2. Add a `search` state variable for the filter text.
+3. Compute `filteredLanguages` from `availableLanguages` by matching the search term against `lang.name` and `lang.code` (case-insensitive).
+4. Render a `Popover` with:
+   - A trigger button showing the selected language (flag + name) or placeholder text.
+   - A content panel containing a search `Input` at the top and a `ScrollArea` listing the filtered languages below.
+   - Each language item remains a clickable row showing flag, name, and voice quality indicator (green/amber tick).
+   - Clicking a language sets the value, closes the popover, and clears the search.
+5. Keep all existing functionality (voice quality legend, training mode, session creation) unchanged.
 
-### How It Works
+## Technical Details
 
-1. A small button with a speech/hand-wave icon labelled "Send Intro" appears in the toolbar (near the QR Code button)
-2. Clicking it immediately sends the intro message as a "staff" message, which gets translated into the patient's language and appears on both the GP and patient screens
-3. The button becomes disabled/changes to "Intro Sent" after use (to avoid duplicate sends), resettable per session
-4. The practice name is pulled from the existing `practiceContext` (already available in the component)
-
-### Technical Details
-
-**New constant object: `INTRO_STATEMENTS`** (in `ReceptionTranslationView.tsx` or a new constants file)
-- A `Record<string, string>` mapping language codes to the pre-translated intro message
-- English version used as the `originalText` when sending
-- Covers all 30+ languages already supported in the component
-- Uses `{practice}` placeholder replaced with the actual practice name at runtime
-
-**Modified: `src/components/admin-dictate/ReceptionTranslationView.tsx`**
-- Add `introSent` boolean state (defaults to `false`)
-- Add `handleSendIntro` function that:
-  - Calls `sendMessage(englishIntroText, 'staff')` with the English version
-  - Sets `introSent = true`
-  - Shows a success toast
-- Add a toolbar button next to the QR Code button (visible in `live-chat` mode)
-- Button shows `MessageSquareText` icon + "Send Intro" label
-- After sending: icon changes to a check mark, label changes to "Intro Sent", button is disabled
-- Works in both real and training modes
-
-**Why send as English rather than pre-translated?**
-The existing `sendMessage('staff')` pipeline already handles translation to the patient's language via the edge function. Sending the English text ensures the translated version appears naturally in the chat alongside the English original, consistent with all other messages.
-
-### UI Placement
-
-The button sits in the top toolbar row alongside "Voice", "QR Code", and "History" buttons -- making it easy to find and tap at the start of any session.
-
-### Files to Change
-
-| File | Change |
-|------|--------|
-| `src/components/admin-dictate/ReceptionTranslationView.tsx` | Add `introSent` state, `handleSendIntro` handler, toolbar button, English intro text constant |
+- The search input filters on both `lang.name` (e.g. "Bulgarian") and `lang.code` (e.g. "bg"), matching anywhere in the string.
+- The popover content uses `max-h-64` with `ScrollArea` to keep the dropdown a manageable height.
+- The search field auto-focuses when the popover opens for quick typing.
+- Background and z-index classes ensure the dropdown is opaque and visible above the dialog.
 
