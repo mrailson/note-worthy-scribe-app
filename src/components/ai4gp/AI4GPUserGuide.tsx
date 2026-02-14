@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -19,8 +20,11 @@ import {
   Camera,
   Upload,
   FileText,
-  Keyboard
+  Keyboard,
+  Video,
+  ExternalLink
 } from 'lucide-react';
+import { trainingVideos, CATEGORIES } from '@/data/trainingVideos';
 
 interface AI4GPUserGuideProps {
   isOpen: boolean;
@@ -265,6 +269,50 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
               </CardContent>
             </Card>
           </div>
+        </div>
+      )
+    },
+    {
+      id: 'training-videos',
+      title: 'Training Videos',
+      icon: <Video className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground">
+            Short video tutorials to help you get the most out of Notewell AI.
+          </p>
+          {CATEGORIES.map((category) => {
+            const categoryVideos = trainingVideos.filter(v => v.category === category);
+            if (categoryVideos.length === 0) return null;
+            return (
+              <div key={category} className="space-y-3">
+                <h4 className="font-semibold text-sm">{category}</h4>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {categoryVideos.map((video) => (
+                    <a
+                      key={video.id}
+                      href={video.loomUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border hover:bg-muted transition-colors group"
+                    >
+                      <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Video className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <strong className="text-sm group-hover:text-primary transition-colors">{video.title}</strong>
+                          <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{video.description}</p>
+                        <Badge variant="secondary" className="mt-1.5 text-[10px] h-5">{video.duration}</Badge>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )
     }
