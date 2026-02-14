@@ -55,7 +55,9 @@ serve(async (req) => {
     }
 
     // Get IP address from request if not provided
-    const clientIP = ipAddress || req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+    const rawIP = ipAddress || req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown'
+    // x-forwarded-for can contain multiple comma-separated IPs; use only the first one
+    const clientIP = rawIP.split(',')[0].trim()
     
     // Get user agent if not provided
     const clientUserAgent = userAgent || req.headers.get('user-agent') || 'unknown'
