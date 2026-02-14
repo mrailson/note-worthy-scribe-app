@@ -1,63 +1,40 @@
 
 
-## Translation Service Improvements Based on User Feedback
+## Replace Inline Wait Time Slider with a Compact Popover Icon
 
-The feedback confirms the translation and transcription quality is excellent -- the two practical issues are:
+Currently the silence threshold (wait time) slider sits inline in the control bar and is hidden on smaller screens (`hidden md:flex`). This change replaces it with a small Clock icon button that opens a popover containing the slider -- saving space and making it accessible on all screen sizes.
 
-1. **Speakers need to talk slowly** -- the silence threshold (wait time before processing) may be too short for natural pauses in non-English speech, causing mid-sentence cuts.
-2. **Speaker needs to be close to the microphone** -- we can enable browser audio enhancements (auto gain control, noise suppression) and surface clear guidance to users.
+### Changes
 
----
+#### File: `src/components/translation/UnifiedControlBar.tsx`
 
-### Proposed Changes
+1. **Add imports** for `Popover`, `PopoverTrigger`, `PopoverContent` from `@/components/ui/popover`.
 
-#### 1. Enable Auto Gain Control and Noise Suppression on Microphone
+2. **Replace the inline slider block** (lines 198-210, the `hidden md:flex` div with Clock + Slider + label) with a Popover:
+   - **Trigger**: A small icon button showing the Clock icon with the current value as a tiny badge/label (e.g. "3s").
+   - **Content**: A popover panel containing:
+     - A label: "Wait Time"
+     - The existing Slider (min 1000, max 5000, step 500) -- note: the current slider uses 0.5-5 range but the state is in milliseconds, so this needs aligning.
+     - A description: "Pause before processing speech"
+     - The current value displayed as "{X}s"
 
-Currently, `useGPTranslation` requests microphone access with bare `{ audio: true }`. Enabling `autoGainControl`, `noiseSuppression`, and `echoCancellation` will let the browser amplify quieter speech and reduce background noise -- meaning users won't need to be as close to the microphone.
+3. **Fix the slider range mismatch**: The slider currently has `min={0.5} max={5} step={0.5}` but `silenceThreshold` is in milliseconds (e.g. 3000). This needs correcting to `min={1000} max={5000} step={500}` with the display showing `{(silenceThreshold / 1000).toFixed(1)}s`.
 
-**File:** `src/hooks/useGPTranslation.tsx`
-- Change `getUserMedia({ audio: true })` to include enhanced constraints:
-  ```
-  { audio: { autoGainControl: true, noiseSuppression: true, echoCancellation: true } }
-  ```
+4. **Remove the `hidden md:` class** so the popover icon is visible on all screen sizes.
 
-#### 2. Increase Default Silence Threshold
+### Technical Detail
 
-The current default is 2000ms (2 seconds). For speakers who need to pause mid-sentence (common in non-English speech or when thinking), this is too aggressive. Increase the default to 3000ms (3 seconds) to give more breathing room.
+The popover approach:
+```text
+[Clock icon + "3s" label]  <-- compact button, always visible
+       |
+       v (on click)
+  +---------------------------+
+  | Wait Time          3.0s   |
+  | [========o-----------]    |
+  | Pause before processing   |
+  +---------------------------+
+```
 
-**File:** `src/hooks/useGPTranslation.tsx`
-- Change default `silenceThreshold` from `2000` to `3000`.
-
-**File:** `src/pages/GPTranslationService.tsx`
-- Change initial `silenceThreshold` state from `2000` to `3000`.
-
-#### 3. Add "Tips for Best Results" to the Consent/Setup Screen
-
-Add a small, friendly tips section on the consent screen so users know what to expect before starting.
-
-**File:** `src/components/translation/ConsentScreen.tsx`
-- Add a tips card with guidance such as:
-  - "Hold the device close to the speaker or use a headset"
-  - "Speak clearly at a steady pace"
-  - "Pause briefly between sentences"
-  - "Use the Wait Time slider to allow longer pauses"
-  - "Tap 'Send Now' if the system hasn't picked up your speech"
-
-#### 4. Add Gujarati to the Speech Recognition Locale Map (if missing)
-
-Gujarati (`gu`) is not currently in the `SPEECH_RECOGNITION_LOCALES` map. Adding `gu: 'gu-IN'` will ensure Chrome uses the correct speech model for Gujarati speakers.
-
-**File:** `src/hooks/useGPTranslation.tsx`
-- Add `gu: 'gu-IN'` to the `SPEECH_RECOGNITION_LOCALES` record.
-
----
-
-### Technical Summary
-
-| Change | File | Detail |
-|--------|------|--------|
-| Enhanced mic constraints | `useGPTranslation.tsx` | Add `autoGainControl`, `noiseSuppression`, `echoCancellation` |
-| Increase default wait time | `useGPTranslation.tsx`, `GPTranslationService.tsx` | 2s to 3s |
-| Add Gujarati locale | `useGPTranslation.tsx` | `gu: 'gu-IN'` |
-| Add usage tips | `ConsentScreen.tsx` | Friendly guidance card on setup screen |
+No new files needed. Single file edit to `UnifiedControlBar.tsx`.
 
