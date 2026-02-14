@@ -51,6 +51,7 @@ export function DictationTranslationWrapper({ onBack }: DictationTranslationWrap
             onClose={handleCloseTranslation}
             isTrainingMode={translationSession.isTrainingMode}
             trainingScenario={translationSession.trainingScenario}
+            embedded={true}
           />
         </div>
       </div>
