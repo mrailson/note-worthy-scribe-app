@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Languages, QrCode, Loader2, Check, MessageSquareText, GraduationCap } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Languages, QrCode, Loader2, Check, MessageSquareText, GraduationCap, ChevronsUpDown, Search } from 'lucide-react';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
@@ -43,11 +46,21 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
   const [isCreating, setIsCreating] = useState(false);
   const [isTrainingMode, setIsTrainingMode] = useState(false);
   const [trainingScenario, setTrainingScenario] = useState<string>('appointment_booking');
+  const [langSearch, setLangSearch] = useState('');
+  const [langOpen, setLangOpen] = useState(false);
 
   // Filter out 'none' and English, sort alphabetically
-  const availableLanguages = HEALTHCARE_LANGUAGES
+  const availableLanguages = useMemo(() => HEALTHCARE_LANGUAGES
     .filter(lang => lang.code !== 'none' && lang.code !== 'en')
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => a.name.localeCompare(b.name)), []);
+
+  const filteredLanguages = useMemo(() => {
+    if (!langSearch) return availableLanguages;
+    const s = langSearch.toLowerCase();
+    return availableLanguages.filter(lang =>
+      lang.name.toLowerCase().includes(s) || lang.code.toLowerCase().includes(s)
+    );
+  }, [langSearch, availableLanguages]);
 
   const handleStartSession = async () => {
     if (!selectedLanguage) {
@@ -135,27 +148,72 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
               </div>
             </div>
             
-            <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-              <SelectTrigger id="language" className="w-full">
-                <SelectValue placeholder="Select language..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-64">
-                {availableLanguages.map((lang) => (
-                  <SelectItem key={lang.code} value={lang.code}>
+            <Popover open={langOpen} onOpenChange={setLangOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={langOpen}
+                  className="w-full justify-between"
+                >
+                  {selectedLang ? (
                     <span className="flex items-center gap-2">
-                      <span>{lang.flag}</span>
-                      <span>{lang.name}</span>
-                      {lang.hasElevenLabsVoice && (
-                        <Check className="h-4 w-4 text-green-500 ml-1" />
-                      )}
-                      {lang.hasGoogleTTSVoice && !lang.hasElevenLabsVoice && (
-                        <Check className="h-4 w-4 text-amber-500 ml-1" />
-                      )}
+                      <span>{selectedLang.flag}</span>
+                      <span>{selectedLang.name}</span>
                     </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  ) : (
+                    <span className="text-muted-foreground">Search or select language...</span>
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0 z-[200] bg-popover" align="start">
+                <div className="p-2 border-b">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search language or code..."
+                      value={langSearch}
+                      onChange={(e) => setLangSearch(e.target.value)}
+                      className="pl-8 h-9"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <ScrollArea className="h-64">
+                  <div className="p-1">
+                    {filteredLanguages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          setSelectedLanguage(lang.code);
+                          setLangOpen(false);
+                          setLangSearch('');
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <span>{lang.flag}</span>
+                        <span className="flex-1">{lang.name}</span>
+                        {lang.hasElevenLabsVoice && (
+                          <Check className="h-4 w-4 text-green-500" />
+                        )}
+                        {lang.hasGoogleTTSVoice && !lang.hasElevenLabsVoice && (
+                          <Check className="h-4 w-4 text-amber-500" />
+                        )}
+                        {selectedLanguage === lang.code && (
+                          <Check className="h-4 w-4 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                    {filteredLanguages.length === 0 && (
+                      <div className="py-4 text-center text-sm text-muted-foreground">
+                        No languages found
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {selectedLang && (
