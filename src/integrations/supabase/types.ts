@@ -8230,11 +8230,13 @@ export type Database = {
           expires_at: string
           id: string
           is_active: boolean
+          is_training: boolean
           notes: string | null
           patient_language: string
           session_title: string | null
           session_token: string
           total_messages: number | null
+          training_scenario: string | null
           user_id: string
         }
         Insert: {
@@ -8242,11 +8244,13 @@ export type Database = {
           expires_at?: string
           id?: string
           is_active?: boolean
+          is_training?: boolean
           notes?: string | null
           patient_language: string
           session_title?: string | null
           session_token: string
           total_messages?: number | null
+          training_scenario?: string | null
           user_id: string
         }
         Update: {
@@ -8254,11 +8258,13 @@ export type Database = {
           expires_at?: string
           id?: string
           is_active?: boolean
+          is_training?: boolean
           notes?: string | null
           patient_language?: string
           session_title?: string | null
           session_token?: string
           total_messages?: number | null
+          training_scenario?: string | null
           user_id?: string
         }
         Relationships: []
