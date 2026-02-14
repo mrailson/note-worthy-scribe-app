@@ -200,7 +200,7 @@ export const SpeakerModeSelector: React.FC<SpeakerModeSelectorProps> = ({
       <p className="text-center text-xs text-muted-foreground">
         {isListening 
           ? `Listening for ${isStaff ? 'English' : nativeLanguageName}...` 
-          : 'Press Tab to switch speaker · Click the mic to start'
+          : 'Press Tab to switch speaker · Click the Mic in the grey circle above to start'
         }
       </p>
     </div>
