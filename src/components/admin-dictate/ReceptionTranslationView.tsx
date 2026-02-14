@@ -2527,7 +2527,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             </Button>
           )}
           {/* QR Code Button */}
-          {translationMode === 'live-chat' && !isTrainingMode && (
+          {translationMode === 'live-chat' && (
             <Button
               variant="outline"
               size="sm"
