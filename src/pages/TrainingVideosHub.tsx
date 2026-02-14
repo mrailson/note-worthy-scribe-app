@@ -144,14 +144,15 @@ const TrainingVideosHub = () => {
                     <Card key={video.id} className="overflow-hidden">
                       <AspectRatio ratio={16 / 9}>
                         {isValidLoomUrl(video.loomUrl) ? (
-                          <iframe
-                            src={getEmbedUrl(video.loomUrl)}
-                            title={video.title}
-                            allowFullScreen
-                            className="w-full h-full border-0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            loading="lazy"
-                          />
+                          <a
+                            href={video.loomUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full h-full bg-muted flex flex-col items-center justify-center text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
+                          >
+                            <Play className="h-10 w-10 mb-2 opacity-60" />
+                            <p className="text-xs font-medium">Click to watch</p>
+                          </a>
                         ) : (
                           <div className="w-full h-full bg-muted flex flex-col items-center justify-center text-muted-foreground">
                             <Play className="h-10 w-10 mb-2 opacity-40" />
