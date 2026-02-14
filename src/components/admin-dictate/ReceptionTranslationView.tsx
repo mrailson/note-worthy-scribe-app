@@ -2269,7 +2269,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           isLatestMessage 
             ? isStaffMessage
               ? 'ring-2 ring-blue-500 ring-offset-2 rounded-xl p-2 bg-blue-50/50 dark:bg-blue-950/20'
-              : 'ring-2 ring-emerald-500 ring-offset-2 rounded-xl p-2 bg-emerald-50/50 dark:bg-emerald-950/20'
+              : 'ring-2 ring-slate-400 ring-offset-2 rounded-xl p-2 bg-slate-50/50 dark:bg-slate-950/20'
             : ''
         }`}
       >
@@ -2278,11 +2278,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           <div className={`inline-block max-w-full rounded-lg p-3 ${
             isStaffMessage 
               ? 'bg-primary text-primary-foreground' 
-              : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
+              : 'bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600'
           }`}>
             <div className="flex items-center justify-between gap-2 mb-1">
               <p className="text-sm font-medium">
-                🇬🇧 {isStaffMessage ? 'You said:' : 'Patient said:'}
+                🇬🇧 {isStaffMessage ? 'You said:' : '🗣️ Patient said:'}
               </p>
               {isStaffMessage && !isEditing && (
                 <Button
@@ -2339,7 +2339,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             className={`inline-block max-w-full rounded-lg p-3 text-left ${
               isStaffMessage 
                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800' 
-                : 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800'
+                : 'bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600'
             }`}
             style={{ 
               fontSize: patientFontSize,
@@ -2464,8 +2464,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 w-7 p-0"
-                onClick={decreasePatientText}
+                className="h-7 w-7 p-0 z-10"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); decreasePatientText(); }}
                 disabled={patientTextScale <= 0.75}
                 title="Decrease patient text size"
               >
@@ -2477,8 +2477,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 w-7 p-0"
-                onClick={increasePatientText}
+                className="h-7 w-7 p-0 z-10"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); increasePatientText(); }}
                 disabled={patientTextScale >= 2.5}
                 title="Increase patient text size"
               >
