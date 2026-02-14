@@ -2889,15 +2889,17 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 <div className="relative group">
                   <Button
                     size="lg"
-                    variant={isListening ? 'destructive' : isConnecting ? 'secondary' : 'default'}
-                    className={`h-16 w-16 rounded-full ${isListening ? 'animate-mic-glow' : ''}`}
+                    variant={isListening ? 'destructive' : isConnecting ? 'secondary' : 'outline'}
+                    className={`h-16 w-16 rounded-full ${isListening ? 'animate-mic-glow' : !isConnecting ? 'text-muted-foreground border-muted-foreground/40' : ''}`}
                     onClick={toggleListening}
                     disabled={isConnecting}
                   >
                     {isConnecting ? (
                       <Loader2 className="h-8 w-8 animate-spin" />
-                    ) : (
+                    ) : isListening ? (
                       <Mic className="h-8 w-8" />
+                    ) : (
+                      <MicOff className="h-8 w-8" />
                     )}
                   </Button>
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-popover text-popover-foreground border shadow-md">
