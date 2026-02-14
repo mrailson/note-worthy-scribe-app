@@ -85,6 +85,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const inputRef = useRef<InputAreaRef | FloatingMobileInputRef>(null);
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { search } = window.location;
   const { profile } = useUserProfile();
   const isMobile = useIsMobile();
   const deviceInfo = useDeviceInfo();
@@ -241,6 +242,16 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
     closeAllPanels();
     if (!wasOpen) setShowTranslationService(true);
   };
+
+  // Auto-open translation service panel from URL query param
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    if (params.get('panel') === 'translation') {
+      handleShowTranslationService();
+      // Clean up the URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleShowEmbeddedPMGenie = () => {
     const wasOpen = showEmbeddedPMGenie;

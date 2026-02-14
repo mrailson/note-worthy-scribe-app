@@ -196,13 +196,28 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     className="bg-background border border-border shadow-lg w-48 z-50"
                   >
                       {isServiceVisible('ai4pm_service') && (
-                        <DropdownMenuItem 
-                          onClick={() => navigate('/ai4gp')}
-                          className="cursor-pointer py-3"
-                        >
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Ask AI
-                        </DropdownMenuItem>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Ask AI
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent className="bg-background border border-border shadow-lg w-48 z-50">
+                            <DropdownMenuItem 
+                              onClick={() => navigate('/ai4gp')}
+                              className="cursor-pointer py-3"
+                            >
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              Ask AI
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => navigate('/ai4gp?panel=translation')}
+                              className="cursor-pointer py-3"
+                            >
+                              <Languages className="h-4 w-4 mr-2" />
+                              Translation Service
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
                       )}
                      {hasModuleAccess('meeting_recorder') && isServiceVisible('meeting_notes') && (
                        <DropdownMenuItem 
@@ -560,6 +575,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ai4gp')}>
                                   <Sparkles className="h-4 w-4 mr-2" />
                                   Ask AI
+                                </Button>
+                              </DrawerClose>
+                              <DrawerClose asChild>
+                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ai4gp?panel=translation')}>
+                                  <Languages className="h-4 w-4 mr-2" />
+                                  Translation Service
                                 </Button>
                               </DrawerClose>
                               {hasModuleAccess('meeting_recorder') && (
