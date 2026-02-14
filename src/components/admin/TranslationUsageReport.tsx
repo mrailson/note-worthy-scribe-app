@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Languages, MessageSquare, Users, Globe } from 'lucide-react';
+import { Loader2, Languages, MessageSquare, Users, Globe, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
@@ -20,9 +20,14 @@ interface TranslationUserStats {
   avg_messages_per_session: number;
 }
 
+type SortKey = 'name' | 'total_sessions' | 'total_messages' | 'avg_messages_per_session' | 'last_24h' | 'last_7d' | 'last_30d' | 'languages' | 'last_session_at';
+type SortDir = 'asc' | 'desc';
+
 export const TranslationUsageReport = () => {
   const [loading, setLoading] = useState(true);
   const [userStats, setUserStats] = useState<TranslationUserStats[]>([]);
+  const [sortKey, setSortKey] = useState<SortKey>('total_sessions');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   useEffect(() => {
     fetchTranslationStats();
@@ -41,6 +46,59 @@ export const TranslationUsageReport = () => {
       setLoading(false);
     }
   };
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'name' ? 'asc' : 'desc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: SortKey }) => {
+    if (sortKey !== column) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDir === 'asc' 
+      ? <ArrowUp className="h-3 w-3 ml-1" /> 
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
+  const sortedStats = useMemo(() => {
+    const sorted = [...userStats].sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case 'name':
+          cmp = (a.full_name || 'Unknown').localeCompare(b.full_name || 'Unknown');
+          break;
+        case 'total_sessions':
+          cmp = a.total_sessions - b.total_sessions;
+          break;
+        case 'total_messages':
+          cmp = a.total_messages - b.total_messages;
+          break;
+        case 'avg_messages_per_session':
+          cmp = a.avg_messages_per_session - b.avg_messages_per_session;
+          break;
+        case 'last_24h':
+          cmp = a.last_24h - b.last_24h;
+          break;
+        case 'last_7d':
+          cmp = a.last_7d - b.last_7d;
+          break;
+        case 'last_30d':
+          cmp = a.last_30d - b.last_30d;
+          break;
+        case 'languages':
+          cmp = (a.languages_used?.length || 0) - (b.languages_used?.length || 0);
+          break;
+        case 'last_session_at':
+          cmp = (a.last_session_at || '').localeCompare(b.last_session_at || '');
+          break;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return sorted;
+  }, [userStats, sortKey, sortDir]);
 
   // Calculate totals
   const totals = userStats.reduce((acc, user) => ({
@@ -61,6 +119,8 @@ export const TranslationUsageReport = () => {
       </div>
     );
   }
+
+  const thClass = "cursor-pointer select-none hover:bg-muted/50 transition-colors";
 
   return (
     <div className="space-y-6">
@@ -134,7 +194,7 @@ export const TranslationUsageReport = () => {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Usage by User</CardTitle>
-          <CardDescription>Translation sessions and phrases per user</CardDescription>
+          <CardDescription>Translation sessions and phrases per user — click column headers to sort</CardDescription>
         </CardHeader>
         <CardContent>
           {userStats.length === 0 ? (
@@ -146,19 +206,37 @@ export const TranslationUsageReport = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead className="text-center">Sessions</TableHead>
-                    <TableHead className="text-center">Phrases</TableHead>
-                    <TableHead className="text-center">Avg/Session</TableHead>
-                    <TableHead className="text-center">24h</TableHead>
-                    <TableHead className="text-center">7d</TableHead>
-                    <TableHead className="text-center">30d</TableHead>
-                    <TableHead>Languages</TableHead>
-                    <TableHead>Last Active</TableHead>
+                    <TableHead className={thClass} onClick={() => handleSort('name')}>
+                      <div className="flex items-center">User<SortIcon column="name" /></div>
+                    </TableHead>
+                    <TableHead className={`text-center ${thClass}`} onClick={() => handleSort('total_sessions')}>
+                      <div className="flex items-center justify-center">Sessions<SortIcon column="total_sessions" /></div>
+                    </TableHead>
+                    <TableHead className={`text-center ${thClass}`} onClick={() => handleSort('total_messages')}>
+                      <div className="flex items-center justify-center">Phrases<SortIcon column="total_messages" /></div>
+                    </TableHead>
+                    <TableHead className={`text-center ${thClass}`} onClick={() => handleSort('avg_messages_per_session')}>
+                      <div className="flex items-center justify-center">Avg/Session<SortIcon column="avg_messages_per_session" /></div>
+                    </TableHead>
+                    <TableHead className={`text-center ${thClass}`} onClick={() => handleSort('last_24h')}>
+                      <div className="flex items-center justify-center">24h<SortIcon column="last_24h" /></div>
+                    </TableHead>
+                    <TableHead className={`text-center ${thClass}`} onClick={() => handleSort('last_7d')}>
+                      <div className="flex items-center justify-center">7d<SortIcon column="last_7d" /></div>
+                    </TableHead>
+                    <TableHead className={`text-center ${thClass}`} onClick={() => handleSort('last_30d')}>
+                      <div className="flex items-center justify-center">30d<SortIcon column="last_30d" /></div>
+                    </TableHead>
+                    <TableHead className={thClass} onClick={() => handleSort('languages')}>
+                      <div className="flex items-center">Languages<SortIcon column="languages" /></div>
+                    </TableHead>
+                    <TableHead className={thClass} onClick={() => handleSort('last_session_at')}>
+                      <div className="flex items-center">Last Active<SortIcon column="last_session_at" /></div>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {userStats.map((user) => (
+                  {sortedStats.map((user) => (
                     <TableRow key={user.user_id}>
                       <TableCell>
                         <div>
