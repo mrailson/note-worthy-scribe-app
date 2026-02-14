@@ -13,7 +13,6 @@ export const CATEGORIES = [
   'Translation',
   'Meetings',
   'Complaints',
-  'Admin Tools',
 ] as const;
 
 export const trainingVideos: TrainingVideo[] = [
@@ -69,14 +68,5 @@ export const trainingVideos: TrainingVideo[] = [
     loomUrl: 'https://www.loom.com/share/example-complaint',
     category: 'Complaints',
     duration: '5 min',
-  },
-  // Admin Tools
-  {
-    id: 'ad-1',
-    title: 'Managing Your Team',
-    description: 'How to add users, assign roles, and manage practice settings.',
-    loomUrl: 'https://www.loom.com/share/example-admin-team',
-    category: 'Admin Tools',
-    duration: '4 min',
   },
 ];
