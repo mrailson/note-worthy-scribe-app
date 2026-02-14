@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { 
   Pause, 
   Play, 
@@ -195,19 +196,31 @@ export const UnifiedControlBar: React.FC<UnifiedControlBarProps> = ({
           )}
         </Button>
 
-        {/* Silence Threshold */}
-        <div className="hidden md:flex items-center gap-2 min-w-[140px]">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <Slider
-            value={[silenceThreshold]}
-            onValueChange={(value) => onSilenceThresholdChange(value[0])}
-            min={0.5}
-            max={5}
-            step={0.5}
-            className="w-20"
-          />
-          <span className="text-xs text-muted-foreground w-8">{silenceThreshold}s</span>
-        </div>
+        {/* Silence Threshold Popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 px-2 gap-1" title="Adjust wait time">
+              <Clock className="h-4 w-4" />
+              <span className="text-xs text-muted-foreground">{(silenceThreshold / 1000).toFixed(1)}s</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-3" side="top">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Wait Time</span>
+                <span className="text-sm text-muted-foreground">{(silenceThreshold / 1000).toFixed(1)}s</span>
+              </div>
+              <Slider
+                value={[silenceThreshold]}
+                onValueChange={(value) => onSilenceThresholdChange(value[0])}
+                min={1000}
+                max={5000}
+                step={500}
+              />
+              <p className="text-xs text-muted-foreground">Pause before processing speech</p>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* Manual Send */}
         <Button
