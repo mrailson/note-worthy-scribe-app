@@ -124,69 +124,6 @@ export const TranslationSettingsModal: React.FC<TranslationSettingsModalProps> =
             />
           </div>
 
-          {/* System Audio Transcription Service */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Label className="text-base font-medium">Transcription Service</Label>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Choose the transcription service for system audio.
-            </p>
-            
-            <RadioGroup
-              value={systemAudioService}
-              onValueChange={(value) => onServiceChange(value as SystemAudioService)}
-              disabled={isCapturingSystemAudio}
-              className="space-y-2"
-            >
-              <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                <RadioGroupItem value="whisper" id="whisper" />
-                <Label htmlFor="whisper" className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Whisper (Batch)</p>
-                      <p className="text-sm text-muted-foreground">
-                        Processes audio in 10-second chunks. Higher accuracy.
-                      </p>
-                    </div>
-                    {systemAudioService === 'whisper' && (
-                      <Badge variant="default" className="ml-2">
-                        <Check className="h-3 w-3 mr-1" />
-                        Active
-                      </Badge>
-                    )}
-                  </div>
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                <RadioGroupItem value="assemblyai" id="assemblyai" />
-                <Label htmlFor="assemblyai" className="flex-1 cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">AssemblyAI (Real-time)</p>
-                      <p className="text-sm text-muted-foreground">
-                        Streams transcription in real-time. Lower latency.
-                      </p>
-                    </div>
-                    {systemAudioService === 'assemblyai' && (
-                      <Badge variant="default" className="ml-2">
-                        <Check className="h-3 w-3 mr-1" />
-                        Active
-                      </Badge>
-                    )}
-                  </div>
-                </Label>
-              </div>
-            </RadioGroup>
-
-            {isCapturingSystemAudio && (
-              <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                <Monitor className="h-4 w-4 animate-pulse" />
-                Stop system audio capture to change service.
-              </p>
-            )}
-          </div>
         </div>
       </DialogContent>
     </Dialog>
