@@ -918,6 +918,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     const saved = localStorage.getItem('translation-auto-play-audio');
     return saved === 'true';
   });
+  const [autoPlayPatientAudio, setAutoPlayPatientAudio] = useState<boolean>(() => {
+    const saved = localStorage.getItem('translation-auto-play-patient-audio');
+    return saved === 'true';
+  });
   const [showDocumentTranslate, setShowDocumentTranslate] = useState<boolean>(() => {
     const saved = localStorage.getItem('translation-show-document-translate');
     return saved !== 'false'; // Default to true
@@ -1073,30 +1077,40 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   // Track the last message count to detect new messages for auto-play
   const lastMessageCountRef = useRef(0);
   const autoPlayAudioRef = useRef(autoPlayAudio);
+  const autoPlayPatientAudioRef = useRef(autoPlayPatientAudio);
   
-  // Keep auto-play ref in sync
+  // Keep auto-play refs in sync
   useEffect(() => {
     autoPlayAudioRef.current = autoPlayAudio;
   }, [autoPlayAudio]);
-  
-  // Auto-play audio for new staff messages when enabled
   useEffect(() => {
-    if (!autoPlayAudioRef.current) {
-      lastMessageCountRef.current = messages.length;
-      return;
-    }
-    
+    autoPlayPatientAudioRef.current = autoPlayPatientAudio;
+  }, [autoPlayPatientAudio]);
+  
+  // Auto-play audio for new messages when enabled
+  useEffect(() => {
     // Check if we have new messages
     if (messages.length > lastMessageCountRef.current) {
-      // Find the newest staff message that has a translation
       const newMessages = messages.slice(lastMessageCountRef.current);
-      const newStaffMessage = newMessages.find(m => m.speaker === 'staff' && m.translatedText);
       
-      if (newStaffMessage) {
-        // Auto-play the translated audio after a short delay to let the UI update
-        setTimeout(() => {
-          playAudioForMessage(newStaffMessage.id, newStaffMessage.translatedText!, patientLanguage);
-        }, 500);
+      // Auto-play staff translations (in patient language)
+      if (autoPlayAudioRef.current) {
+        const newStaffMessage = newMessages.find(m => m.speaker === 'staff' && m.translatedText);
+        if (newStaffMessage) {
+          setTimeout(() => {
+            playAudioForMessage(newStaffMessage.id, newStaffMessage.translatedText!, patientLanguage);
+          }, 500);
+        }
+      }
+      
+      // Auto-play patient message English translation
+      if (autoPlayPatientAudioRef.current) {
+        const newPatientMessage = newMessages.find(m => m.speaker === 'patient' && m.translatedText);
+        if (newPatientMessage) {
+          setTimeout(() => {
+            playAudioForMessage(newPatientMessage.id, newPatientMessage.translatedText, 'en');
+          }, 500);
+        }
       }
     }
     
@@ -2922,6 +2936,11 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 onAutoPlayChange={(enabled) => {
                   setAutoPlayAudio(enabled);
                   localStorage.setItem('translation-auto-play-audio', String(enabled));
+                }}
+                autoPlayPatientAudio={autoPlayPatientAudio}
+                onAutoPlayPatientChange={(enabled) => {
+                  setAutoPlayPatientAudio(enabled);
+                  localStorage.setItem('translation-auto-play-patient-audio', String(enabled));
                 }}
                 showDocumentTranslate={showDocumentTranslate}
                 onShowDocumentTranslateChange={(enabled) => {
