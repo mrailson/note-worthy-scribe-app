@@ -134,6 +134,7 @@ const ROUTES: PageRoute[] = [
   { path: '/executive-overview', component: 'ExecutiveOverview', hasMenuLink: false, protection: 'Public', description: 'Executive overview presentation', category: 'Utility' },
   { path: '/demos', component: 'DemoVideosPage', hasMenuLink: false, protection: 'Public', description: 'Demo videos showcase page', category: 'Utility' },
   { path: '/training', component: 'TrainingVideoPage', hasMenuLink: false, protection: 'Public', description: 'Training video page', category: 'Utility' },
+  { path: '/training-videos', component: 'TrainingVideosHub', hasMenuLink: true, protection: 'ProtectedRoute', description: 'Training videos hub with Loom tutorials', category: 'Training' },
   { path: '/ai-showcase', component: 'AIShowcasePage', hasMenuLink: false, protection: 'Public', description: 'AI capabilities showcase', category: 'Utility' },
   { path: '/federation-presentation', component: 'FederationPresentationMode', hasMenuLink: false, protection: 'Public', description: 'Federation presentation mode', category: 'Utility' },
   { path: '/load-demo-team', component: 'LoadDemoTeamData', hasMenuLink: false, protection: 'Public', description: 'Loads demo team data for testing', category: 'Utility' },

@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart, LayoutDashboard, ClipboardList, TrendingUp, ClipboardCheck } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart, LayoutDashboard, ClipboardList, TrendingUp, ClipboardCheck, Video } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useServiceVisibility } from "@/hooks/useServiceVisibility";
@@ -450,6 +450,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         User Settings
                       </DropdownMenuItem>
                     )}
+                     <DropdownMenuItem 
+                       onClick={() => navigate('/training-videos')}
+                       className="cursor-pointer py-3"
+                     >
+                       <Video className="h-4 w-4 mr-2" />
+                       Training Videos
+                     </DropdownMenuItem>
                      {/* CSO Report - Only show if user has CSO governance access */}
                      {hasModuleAccess('cso_governance_access') && (
                        <DropdownMenuItem 
@@ -743,6 +750,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 </Button>
                               </DrawerClose>
                             )}
+
+                            <DrawerClose asChild>
+                              <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/training-videos')}>
+                                <Video className="h-4 w-4 mr-2" />
+                                Training Videos
+                              </Button>
+                            </DrawerClose>
 
                             {/* CSO Report - Only show if user has CSO governance access */}
                             {hasModuleAccess('cso_governance_access') && (

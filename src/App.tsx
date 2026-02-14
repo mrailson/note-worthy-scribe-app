@@ -72,6 +72,7 @@ const ExecutiveOverview = lazy(() => import("./pages/ExecutiveOverview"));
 const LoadDemoTeamData = lazy(() => import("./pages/LoadDemoTeamData"));
 const DemoVideosPage = lazy(() => import("./pages/DemoVideosPage"));
 const TrainingVideoPage = lazy(() => import("./pages/TrainingVideoPage"));
+const TrainingVideosHub = lazy(() => import("./pages/TrainingVideosHub"));
 const NRESDashboard = lazy(() => import("./pages/NRESDashboard"));
 const SDADashboard = lazy(() => import("./pages/SDADashboard"));
 const ProactiveComplexCareDashboard = lazy(() => import("./pages/ProactiveComplexCareDashboard"));
@@ -155,6 +156,11 @@ const App = () => {
                 <Route path="/executive-overview" element={<ExecutiveOverview />} />
                 <Route path="/demos" element={<DemoVideosPage />} />
                 <Route path="/training" element={<TrainingVideoPage />} />
+                <Route path="/training-videos" element={
+                  <ProtectedRoute>
+                    <TrainingVideosHub />
+                  </ProtectedRoute>
+                } />
                 <Route path="/ai-showcase" element={<AIShowcasePage />} />
                 <Route path="/nres" element={
                   <ProtectedRoute requiredService="nres">
