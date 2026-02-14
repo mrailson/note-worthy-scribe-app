@@ -1102,16 +1102,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           }, 500);
         }
       }
-      
-      // Auto-play patient message English translation
-      if (autoPlayPatientAudioRef.current) {
-        const newPatientMessage = newMessages.find(m => m.speaker === 'patient' && m.translatedText);
-        if (newPatientMessage) {
-          setTimeout(() => {
-            playAudioForMessage(newPatientMessage.id, newPatientMessage.translatedText, 'en');
-          }, 500);
-        }
-      }
     }
     
     lastMessageCountRef.current = messages.length;
@@ -2523,17 +2513,17 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           {/* Auto-Play Patient Voice Toggle */}
           {translationMode === 'live-chat' && (
             <Button
-              variant={autoPlayPatientAudio ? 'default' : 'outline'}
+              variant={autoPlayAudio ? 'default' : 'outline'}
               size="sm"
               onClick={() => {
-                const newVal = !autoPlayPatientAudio;
-                setAutoPlayPatientAudio(newVal);
-                localStorage.setItem('translation-auto-play-patient-audio', String(newVal));
+                const newVal = !autoPlayAudio;
+                setAutoPlayAudio(newVal);
+                localStorage.setItem('translation-auto-play-audio', String(newVal));
               }}
-              title={autoPlayPatientAudio ? 'Auto-play patient voice: ON' : 'Auto-play patient voice: OFF'}
+              title={autoPlayAudio ? 'Auto-play patient language voice: ON' : 'Auto-play patient language voice: OFF'}
             >
               <Volume2 className="h-4 w-4 mr-2" />
-              {autoPlayPatientAudio ? 'Voice On' : 'Voice Off'}
+              {autoPlayAudio ? 'Voice On' : 'Voice Off'}
             </Button>
           )}
           {/* History Button - only in live chat mode */}
