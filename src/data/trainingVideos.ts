@@ -38,7 +38,7 @@ export const trainingVideos: TrainingVideo[] = [
     id: 'ai-1',
     title: 'Using Ask AI',
     description: 'Learn how to ask clinical and practice management questions using the AI assistant.',
-    loomUrl: 'https://www.loom.com/share/example-ask-ai',
+    loomUrl: 'https://www.loom.com/share/6116d985133e4341a7361045f6917586',
     category: 'Ask AI',
     duration: '4 min',
   },
