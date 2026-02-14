@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label";
 interface MeetingMicrophoneSettingsProps {
   onDeviceChange?: (deviceId: string | null) => void;
   onAudioSourceChange?: (mode: AudioSourceMode) => void;
+  currentAudioSource?: AudioSourceMode;
 }
 
-export const MeetingMicrophoneSettings = ({ onDeviceChange, onAudioSourceChange }: MeetingMicrophoneSettingsProps) => {
+export const MeetingMicrophoneSettings = ({ onDeviceChange, onAudioSourceChange, currentAudioSource }: MeetingMicrophoneSettingsProps) => {
   const {
     availableDevices,
     selectedDeviceId,
@@ -33,17 +34,19 @@ export const MeetingMicrophoneSettings = ({ onDeviceChange, onAudioSourceChange 
     stopMicTest,
     playRecordedAudio,
     stopPlayback,
-  } = useMeetingMicrophoneSettings();
+  } = useMeetingMicrophoneSettings(currentAudioSource);
+
+  // Sync internal state from parent when currentAudioSource prop changes
+  useEffect(() => {
+    if (currentAudioSource && currentAudioSource !== audioSourceMode) {
+      selectAudioSource(currentAudioSource);
+    }
+  }, [currentAudioSource]);
 
   // Notify parent of device changes
   useEffect(() => {
     onDeviceChange?.(selectedDeviceId);
   }, [selectedDeviceId, onDeviceChange]);
-
-  // Notify parent of audio source changes
-  useEffect(() => {
-    onAudioSourceChange?.(audioSourceMode);
-  }, [audioSourceMode, onAudioSourceChange]);
 
   const handleDeviceChange = (deviceId: string) => {
     selectDevice(deviceId);
@@ -51,6 +54,7 @@ export const MeetingMicrophoneSettings = ({ onDeviceChange, onAudioSourceChange 
 
   const handleAudioSourceChange = (mode: string) => {
     selectAudioSource(mode as AudioSourceMode);
+    onAudioSourceChange?.(mode as AudioSourceMode);
   };
 
   const getStatusIcon = () => {
