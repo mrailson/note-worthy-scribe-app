@@ -2461,35 +2461,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               {languageInfo.flag} {languageInfo.name}
             </Badge>
           )}
-          {/* Patient text size controls */}
-          {translationMode === 'live-chat' && (
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground mr-1">Patient text</span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 w-7 p-0 z-10"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); decreasePatientText(); }}
-                disabled={patientTextScale <= 0.75}
-                title="Decrease patient text size"
-              >
-                <Minus className="h-3.5 w-3.5" />
-              </Button>
-              <span className="text-xs font-medium w-8 text-center tabular-nums">
-                {Math.round(patientTextScale * 100)}%
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 w-7 p-0 z-10"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); increasePatientText(); }}
-                disabled={patientTextScale >= 2.5}
-                title="Increase patient text size"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
           {/* Patient Connection Status - only show in live chat mode and not training */}
           {translationMode === 'live-chat' && !isTrainingMode && (
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
