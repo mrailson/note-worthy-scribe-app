@@ -2710,8 +2710,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
               {/* Confirmation UI when paused - use pendingSpeaker for positioning */}
               {showConfirmation && pendingTranscript && (
-                <div className="w-full">
-                  <div className={`w-full rounded-lg p-4 border-2 ${
+                <div className="flex gap-4">
+                  <div className={`flex-1 rounded-lg p-4 border-2 ${
                     pendingSpeaker === 'patient'
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-700'
                       : 'bg-primary text-primary-foreground border-primary'
@@ -2772,6 +2772,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                       </Button>
                     </div>
                   </div>
+                  <div className="flex-1" />
                 </div>
               )}
 
