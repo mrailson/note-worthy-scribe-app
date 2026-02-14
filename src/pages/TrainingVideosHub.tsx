@@ -5,13 +5,16 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Video, Clock } from 'lucide-react';
+import { Search, Video, Clock, Play } from 'lucide-react';
 import { trainingVideos, CATEGORIES } from '@/data/trainingVideos';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 const getEmbedUrl = (url: string) =>
   url.replace('/share/', '/embed/');
+
+const isValidLoomUrl = (url: string) =>
+  /loom\.com\/(share|embed)\/[a-zA-Z0-9]+/.test(url) && !url.includes('example');
 
 const TrainingVideosHub = () => {
   const [search, setSearch] = useState('');
@@ -140,14 +143,21 @@ const TrainingVideosHub = () => {
                   {groupedByCategory.get(cat)!.map((video) => (
                     <Card key={video.id} className="overflow-hidden">
                       <AspectRatio ratio={16 / 9}>
-                        <iframe
-                          src={getEmbedUrl(video.loomUrl)}
-                          title={video.title}
-                          allowFullScreen
-                          className="w-full h-full border-0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          loading="lazy"
-                        />
+                        {isValidLoomUrl(video.loomUrl) ? (
+                          <iframe
+                            src={getEmbedUrl(video.loomUrl)}
+                            title={video.title}
+                            allowFullScreen
+                            className="w-full h-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex flex-col items-center justify-center text-muted-foreground">
+                            <Play className="h-10 w-10 mb-2 opacity-40" />
+                            <p className="text-xs">Video coming soon</p>
+                          </div>
+                        )}
                       </AspectRatio>
                       <CardContent className="pt-3">
                         <h3 className="font-medium text-foreground text-sm mb-1">
