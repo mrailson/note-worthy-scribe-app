@@ -10998,8 +10998,10 @@ export type Database = {
           last_30d: number
           last_7d: number
           last_session_at: string
+          live_sessions: number
           total_messages: number
           total_sessions: number
+          training_sessions: number
           user_id: string
         }[]
       }

@@ -77,11 +77,30 @@ export const LiveTranslationSetupModal: React.FC<LiveTranslationSetupModalProps>
         return;
       }
 
-      // For training mode, create a fake session (no DB record needed)
+      // For training mode, save to DB with is_training flag then use fake token
       if (isTrainingMode) {
-        const fakeSessionId = `training-${crypto.randomUUID()}`;
         const fakeToken = crypto.randomUUID();
-        onSessionCreated(fakeSessionId, fakeToken, selectedLanguage, true, trainingScenario);
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+        
+        const { data: trainingData, error: trainingError } = await supabase
+          .from('reception_translation_sessions')
+          .insert({
+            user_id: user.id,
+            patient_language: selectedLanguage,
+            session_token: fakeToken,
+            expires_at: expiresAt,
+            is_training: true,
+            training_scenario: trainingScenario || null
+          })
+          .select()
+          .single();
+
+        if (trainingError) {
+          console.error('Error saving training session:', trainingError);
+        }
+
+        const sessionId = trainingData?.id || `training-${crypto.randomUUID()}`;
+        onSessionCreated(sessionId, fakeToken, selectedLanguage, true, trainingScenario);
         return;
       }
 
