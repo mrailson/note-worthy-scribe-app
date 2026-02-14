@@ -28,7 +28,7 @@ export const trainingVideos: TrainingVideo[] = [
   },
   {
     id: 'gs-2',
-    title: 'Setting Up Your Profile',
+    title: 'Setting Up Your Profile and Managing Your Team',
     description: 'How to configure your user profile and preferences for the best experience.',
     loomUrl: 'https://www.loom.com/share/6fc9dc243f4e4046934900202f2a66e9',
     category: 'Getting Started',
