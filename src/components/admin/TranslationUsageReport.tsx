@@ -18,9 +18,11 @@ interface TranslationUserStats {
   last_30d: number;
   last_session_at: string | null;
   avg_messages_per_session: number;
+  training_sessions: number;
+  live_sessions: number;
 }
 
-type SortKey = 'name' | 'total_sessions' | 'total_messages' | 'avg_messages_per_session' | 'last_24h' | 'last_7d' | 'last_30d' | 'languages' | 'last_session_at';
+type SortKey = 'name' | 'total_sessions' | 'total_messages' | 'avg_messages_per_session' | 'last_24h' | 'last_7d' | 'last_30d' | 'languages' | 'last_session_at' | 'training_sessions' | 'live_sessions';
 type SortDir = 'asc' | 'desc';
 
 export const TranslationUsageReport = () => {
@@ -94,6 +96,12 @@ export const TranslationUsageReport = () => {
         case 'last_session_at':
           cmp = (a.last_session_at || '').localeCompare(b.last_session_at || '');
           break;
+        case 'training_sessions':
+          cmp = a.training_sessions - b.training_sessions;
+          break;
+        case 'live_sessions':
+          cmp = a.live_sessions - b.live_sessions;
+          break;
       }
       return sortDir === 'asc' ? cmp : -cmp;
     });
@@ -107,7 +115,9 @@ export const TranslationUsageReport = () => {
     last_24h: acc.last_24h + user.last_24h,
     last_7d: acc.last_7d + user.last_7d,
     last_30d: acc.last_30d + user.last_30d,
-  }), { total_sessions: 0, total_messages: 0, last_24h: 0, last_7d: 0, last_30d: 0 });
+    training_sessions: acc.training_sessions + user.training_sessions,
+    live_sessions: acc.live_sessions + user.live_sessions,
+  }), { total_sessions: 0, total_messages: 0, last_24h: 0, last_7d: 0, last_30d: 0, training_sessions: 0, live_sessions: 0 });
 
   // Get all unique languages
   const allLanguages = [...new Set(userStats.flatMap(u => u.languages_used || []))];
@@ -209,8 +219,14 @@ export const TranslationUsageReport = () => {
                     <TableHead className={thClass} onClick={() => handleSort('name')}>
                       <div className="flex items-center">User<SortIcon column="name" /></div>
                     </TableHead>
+                    <TableHead className={`text-center ${thClass}`} onClick={() => handleSort('training_sessions')}>
+                      <div className="flex items-center justify-center">Training<SortIcon column="training_sessions" /></div>
+                    </TableHead>
+                    <TableHead className={`text-center ${thClass}`} onClick={() => handleSort('live_sessions')}>
+                      <div className="flex items-center justify-center">Live<SortIcon column="live_sessions" /></div>
+                    </TableHead>
                     <TableHead className={`text-center ${thClass}`} onClick={() => handleSort('total_sessions')}>
-                      <div className="flex items-center justify-center">Sessions<SortIcon column="total_sessions" /></div>
+                      <div className="flex items-center justify-center">Total<SortIcon column="total_sessions" /></div>
                     </TableHead>
                     <TableHead className={`text-center ${thClass}`} onClick={() => handleSort('total_messages')}>
                       <div className="flex items-center justify-center">Phrases<SortIcon column="total_messages" /></div>
@@ -244,6 +260,8 @@ export const TranslationUsageReport = () => {
                           <div className="text-xs text-muted-foreground">{user.email}</div>
                         </div>
                       </TableCell>
+                      <TableCell className="text-center">{user.training_sessions}</TableCell>
+                      <TableCell className="text-center">{user.live_sessions}</TableCell>
                       <TableCell className="text-center font-medium">{user.total_sessions}</TableCell>
                       <TableCell className="text-center">{user.total_messages}</TableCell>
                       <TableCell className="text-center text-muted-foreground">{user.avg_messages_per_session}</TableCell>
@@ -274,6 +292,8 @@ export const TranslationUsageReport = () => {
                   {/* Totals Row */}
                   <TableRow className="bg-muted/50 font-medium">
                     <TableCell>Total ({userStats.length} users)</TableCell>
+                    <TableCell className="text-center">{totals.training_sessions}</TableCell>
+                    <TableCell className="text-center">{totals.live_sessions}</TableCell>
                     <TableCell className="text-center">{totals.total_sessions}</TableCell>
                     <TableCell className="text-center">{totals.total_messages}</TableCell>
                     <TableCell className="text-center text-muted-foreground">
