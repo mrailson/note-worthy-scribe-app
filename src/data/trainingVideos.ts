@@ -22,7 +22,7 @@ export const trainingVideos: TrainingVideo[] = [
     id: 'gs-1',
     title: 'Welcome to Notewell AI',
     description: 'A quick overview of the platform and how to navigate the main features.',
-    loomUrl: 'https://www.loom.com/share/example-welcome',
+    loomUrl: '/training',
     category: 'Getting Started',
     duration: '3 min',
   },
