@@ -59,7 +59,7 @@ export const TranslationServicePanel: React.FC<TranslationServicePanelProps> = (
         onClose={handleCloseTranslation}
         isTrainingMode={translationSession.isTrainingMode}
         trainingScenario={translationSession.trainingScenario}
-        embedded={true}
+        embedded={false}
       />
     );
   }
