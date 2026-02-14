@@ -1,66 +1,87 @@
 
 
-## Simplify Translation Speaker Switching and Fix Audio Playback Interference
+## AI-Driven Training Mode for Translation Service
 
-### Problem 1: Confusing Speaker Switching
+### Overview
 
-Currently, users must manually click between "Receptionist" and "Patient" buttons to switch who is speaking. This requires understanding the concept of "modes" and remembering to toggle before each person speaks. The current layout (two buttons flanking a mic button with badges) is cluttered and non-obvious.
+Add a "Training Mode" option to the translation setup flow. When enabled, the patient side is played automatically by AI, generating realistic patient replies in the selected language. This lets staff practise the full translation workflow -- speaking, confirming, switching speakers -- without needing a real patient present.
 
-**Solution: Auto-pause mic during speaker switch + single "walkie-talkie" style interaction**
+### How It Works
 
-Replace the two-button toggle with a clearer "turn-based" approach:
-- Redesign `SpeakerModeSelector` to use a single, prominent **segmented toggle** (like a pill switch) instead of two separate buttons
-- Add a clear visual indicator showing "Your turn" / "Patient's turn" with large, obvious colour coding
-- When the user finishes speaking (confirmation shown), auto-suggest switching to patient mode with a single "Now let patient speak" button
-- When patient speech is confirmed and sent, auto-switch back to staff mode
-- Add a brief animated transition between modes so the switch is visually clear
+1. **Setup Modal** -- Add a "Training Mode" toggle to `LiveTranslationSetupModal`. When checked, a training scenario selector appears (e.g. "New patient registration", "Prescription collection", "Appointment booking").
 
-### Problem 2: Audio Playback Feeds Back into Speech Recognition
+2. **Training Session Flow**:
+   - Staff speaks in English as normal, confirms and sends
+   - Instead of waiting for a real patient response, the system auto-generates a realistic patient reply using Lovable AI (via a new edge function)
+   - The AI reply arrives in the patient's language, gets translated to English, and appears in the chat -- exactly as it would in a real session
+   - The speaker auto-switches back to staff, ready for the next turn
+   - A visible "TRAINING MODE" badge is shown so users never confuse it with a real session
 
-When playing translated audio (TTS), the microphone picks up the speaker output and transcribes it into the English side, creating false entries.
-
-**Solution: Pause speech recognition during audio playback**
-
-- In `ReceptionTranslationView.tsx`, modify `playAudioForMessage` to **pause the mic** before playing audio and **resume it** when playback ends
-- Use the existing `isMicPaused` mechanism (already implemented via `toggleMicPause`) to suppress recognition results during playback
-- Set `isMicPausedRef.current = true` before `audio.play()` and restore it on `audio.onended` / `audio.onerror`
-- This ensures no speech recognition results are processed while TTS audio is playing through the speakers
+3. **AI Patient Persona** -- The edge function receives the conversation history, selected language, and scenario context. It responds as a realistic patient would -- sometimes confused, sometimes asking clarifying questions, using natural speech patterns.
 
 ### Technical Changes
 
-**File 1: `src/components/admin-dictate/SpeakerModeSelector.tsx`**
-- Redesign to use a pill-style segmented control instead of two separate buttons
-- Make the active mode much more visually prominent (larger text, bolder colour)
-- Simplify the layout: remove the flanking badge slots, integrate the translation direction into the toggle itself
-- Show a clear arrow/flow indicator: "English --> [Language]" or "[Language] --> English"
+**New File: `supabase/functions/translation-training-reply/index.ts`**
+- Edge function that calls Lovable AI Gateway (`google/gemini-3-flash-preview`)
+- System prompt instructs the model to role-play as a patient in a GP reception scenario
+- Receives: conversation history, patient language code, scenario type
+- Returns: a realistic patient reply in the target language
+- Handles 429/402 rate limit errors gracefully
 
-**File 2: `src/components/admin-dictate/ReceptionTranslationView.tsx`**
+**Modified File: `src/components/admin-dictate/LiveTranslationSetupModal.tsx`**
+- Add a "Training Mode" toggle (Switch component) below the language selector
+- When enabled, show a scenario dropdown (New patient registration, Prescription collection, Appointment booking, General enquiry)
+- Pass `isTrainingMode` and `trainingScenario` to `onSessionCreated` callback (extend its signature)
 
-Audio playback fix:
-- Add an `isPlayingAudioRef` ref to track playback state
-- In `playAudioForMessage`, set `isMicPausedRef.current = true` before playing
-- On `audio.onended` and `audio.onerror`, restore `isMicPausedRef.current = false`
-- Also guard `onresult` handler: if `isPlayingAudioRef.current`, discard results
+**Modified File: `src/components/admin-dictate/ReceptionTranslationView.tsx`**
+- Accept new props: `isTrainingMode` and `trainingScenario`
+- Show a prominent "TRAINING MODE" banner at the top when active
+- After `handleConfirmSend` processes a staff message, if training mode is on:
+  - Wait 1-2 seconds (simulating patient thinking)
+  - Call the `translation-training-reply` edge function with conversation context
+  - Insert the AI-generated patient reply via `sendMessage(reply, 'patient')`
+  - Auto-switch back to staff mode
+- Hide the QR code sidebar in training mode (no real patient needed)
 
-Auto-switch after send:
-- In `handleConfirmSend`, after sending a staff message, auto-switch to patient mode
-- After sending a patient message, auto-switch back to staff mode
-- Add a brief delay (300ms) before the auto-switch so the user sees the sent message first
+**Modified Files: Wrapper components**
+- `TranslationServicePanel.tsx` -- pass through `isTrainingMode` and `trainingScenario`
+- `DictationTranslationWrapper.tsx` -- pass through `isTrainingMode` and `trainingScenario`
 
-### UX Flow After Changes
+### Edge Function: `translation-training-reply`
 
 ```text
-1. Staff clicks mic (starts listening in English)
-2. Staff speaks -> confirmation appears
-3. Staff clicks "Send" -> message sent, auto-switches to Patient mode
-4. Patient speaks -> confirmation appears  
-5. Staff clicks "Send" on patient's behalf -> auto-switches back to Staff mode
-6. When audio plays, mic is temporarily muted (no feedback)
+POST /translation-training-reply
+Body: {
+  conversationHistory: [{ speaker, englishText, translatedText }],
+  patientLanguage: "es",
+  scenario: "appointment_booking"
+}
+Response: {
+  patientReply: "Necesito una cita para el lunes por favor"
+}
 ```
 
-### Risk Assessment
+The system prompt will instruct the model to:
+- Respond in the patient's language only
+- Stay in character as a patient at a GP reception
+- Keep replies short and natural (1-2 sentences)
+- Occasionally ask clarifying questions
+- Match the scenario context (registration details, medication names, etc.)
 
-- **Low risk**: The auto-switch is a UX convenience; manual switching still works
-- **Audio pause is safe**: Uses the existing `isMicPaused` mechanism already proven stable
-- **No backend changes**: All changes are frontend-only
+### UX Details
+
+- Training mode badge: amber/yellow colour with "TRAINING MODE" text, visible at all times
+- AI "typing" indicator shown while generating the reply (pulsing dots)
+- Conversation is not saved to the database (no session record created for training)
+- The QR sidebar is replaced with a "Training Tips" panel showing helpful hints about the workflow
+
+### Files Summary
+
+| File | Action |
+|------|--------|
+| `supabase/functions/translation-training-reply/index.ts` | New |
+| `src/components/admin-dictate/LiveTranslationSetupModal.tsx` | Modified |
+| `src/components/admin-dictate/ReceptionTranslationView.tsx` | Modified |
+| `src/components/ai4gp/TranslationServicePanel.tsx` | Modified |
+| `src/components/scribe/DictationTranslationWrapper.tsx` | Modified |
 
