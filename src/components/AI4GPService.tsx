@@ -252,7 +252,14 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
       // Clean up the URL
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [search, location.key]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for custom event to open translation panel (when already on /ai4gp)
+  useEffect(() => {
+    const handler = () => handleShowTranslationService();
+    window.addEventListener('open-translation-panel', handler);
+    return () => window.removeEventListener('open-translation-panel', handler);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleShowEmbeddedPMGenie = () => {
     const wasOpen = showEmbeddedPMGenie;
@@ -580,7 +587,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
             >
             <Card className={cn(
               "flex-1 flex flex-col min-h-0 sm:border border-0 sm:rounded-lg rounded-none shadow-none sm:shadow-sm",
-              isMobile && "pb-32" // Reserve space for fixed mobile input bar
+              isMobile && !showTranslationService && "pb-32" // Reserve space for fixed mobile input bar (not needed during translation)
             )}>
               <CardHeader className={cn(
                 "border-b flex-shrink-0",
