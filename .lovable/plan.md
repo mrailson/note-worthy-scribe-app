@@ -1,85 +1,74 @@
 
+# Mobile Translation Service Redesign
 
-# Mobile Translation Service Upgrade
+## Problem
+The `ReceptionTranslationView` (3,284 lines) was built for desktop with wide toolbars, sidebars, multiple button rows, and two-column chat layouts. Adding `embedded={true}` only changed CSS positioning — it didn't adapt any of the layout for small screens. On a phone, everything overflows, buttons wrap badly, and controls are unreachable.
 
-## Overview
-Replace the old `MobileTranslationInterface` (which uses a basic manual translation system) with the modern Reception Translation service that is currently only available on desktop. This will give mobile users access to the full-featured live chat translation, document translation, training mode, QR codes, audio playback, and content moderation — all wrapped in a touch-friendly smartphone interface.
+## Solution
+Rather than trying to make the massive desktop component responsive (which would be fragile and bloat it further), we will detect mobile viewports inside `ReceptionTranslationView` and conditionally render a simplified mobile layout. This means:
 
-## Current State
-- **Old mobile** (`/mobile-translate`): Uses `MobileTranslationInterface.tsx` with `useManualTranslation` hook — a simpler, separate translation system with basic speech-to-text and no real-time patient connection, no QR codes, no training mode
-- **New desktop** (`ReceptionTranslationView.tsx`): Full-featured service with live chat, document translate, speaker modes, patient QR connection, audio playback, content moderation, training mode, report generation — but it renders as a fixed full-screen desktop layout with a two-column chat and sidebar
+- Same component, same hooks, same state — just different JSX for the render
+- No code duplication of business logic
+- Mobile users get a clean, purpose-built interface
 
-## Plan
+## Mobile Layout Design
 
-### 1. Create a new Mobile Reception Translation wrapper
-Create `src/components/MobileReceptionTranslation.tsx` — a mobile-optimised wrapper that uses the same setup flow (`LiveTranslationSetupModal`) and the same backend hooks (`useReceptionTranslation`) as the desktop version, but with a completely mobile-first UI:
+### Header (compact, single row)
+- Language badge (flag + name) on the left
+- Three icon-only buttons on the right: QR, Report download, End Session
+- No "Live Chat / Document Translate" tabs (live chat only on mobile — document translate accessible via a small toggle if enabled)
+- No chat view mode selector (always single-column)
+- No history button in header (accessible from overflow menu)
 
-- **Language selection**: Full-screen setup modal (reuse `LiveTranslationSetupModal`)
-- **Single-column chat**: Messages stacked vertically (no side-by-side columns) with clear visual distinction between GP and patient messages
-- **Sticky bottom toolbar**: Large touch-friendly mic button (centre), speaker mode toggle, and minimal action buttons
-- **Swipeable modes**: Toggle between Live Chat and Document Translate via pill tabs at the top
-- **Collapsible header**: Shows language badge and session status; collapses when scrolling to maximise chat space
-- **Touch-optimised controls**: 44px minimum tap targets, large mic button (64px), bottom-safe-area padding for notched iPhones
-- **Audio playback**: Inline play buttons on patient-language messages (same TTS integration)
-- **Confirmation flow**: After speech capture, show editable text with Send/Discard/Add More buttons — same as desktop but stacked vertically
-- **QR Code**: Accessible via a small button in the header (opens modal)
-- **End session**: Confirmation dialog before ending
-- **Report download**: Available via a menu (three-dot) button
+### Chat Area (single column, full width)
+- Messages stacked vertically — each bubble shows both the original text and translation stacked
+- GP messages aligned left (blue), patient messages aligned right (green/slate)
+- No side-by-side columns
+- Smooth scroll with `WebkitOverflowScrolling: 'touch'`
+- Confirmation UI (edit/send/discard) renders inline as a card, not a two-column split
 
-### 2. Update the MobileTranslation page
-Modify `src/pages/MobileTranslation.tsx` to render the new `MobileReceptionTranslation` component instead of the old `MobileTranslationInterface`.
+### Bottom Toolbar (sticky, safe-area-aware)
+- Speaker mode toggle: two pill buttons — "You" / "Patient" — with active state highlighting
+- Large central mic button (64px round)
+- Pause/Resume button beside mic when listening
+- `pb-safe` padding for notched iPhones
 
-### 3. Keep the old component as fallback
-The old `MobileTranslationInterface.tsx` will not be deleted immediately, just unused, so it can serve as a rollback if needed.
+### Hidden on Mobile
+- QR sidebar (use modal via header icon instead)
+- Chat view mode icons (always single-column)
+- "Voice On/Off" button (auto-play controlled via settings)
+- Patient connection status badge (shown as a subtle dot on the header instead)
+- System audio capture controls
 
-### 4. Routing remains unchanged
-- `/mobile-translate` route stays the same
-- Desktop `/gp-translation` continues to redirect mobile users to `/mobile-translate`
-- Header navigation logic stays the same
+## Technical Approach
 
----
+### Step 1: Add mobile detection to ReceptionTranslationView
+Use `window.innerWidth < 768` (consistent with existing mobile checks in the codebase) to set an `isMobile` flag at the top of the component.
 
-## Technical Details
+### Step 2: Create a mobile render branch
+Add a `renderMobileLayout()` function inside the component that returns the mobile-optimised JSX. The main return will check `if (isMobile && embedded) return renderMobileLayout()`.
 
-### New component structure
-```
-MobileReceptionTranslation.tsx
-  -- State: setup phase vs active session
-  -- Setup phase: renders LiveTranslationSetupModal (full screen)
-  -- Active session phase:
-       -- Header bar (language, status, menu)
-       -- Chat area (single column, ScrollArea)
-       -- Bottom bar (speaker toggle, mic button, send controls)
-```
+### Step 3: Mobile-specific JSX
+The mobile layout will reuse all existing state, handlers, and refs — it just arranges the UI differently:
 
-### Key mobile adaptations from the desktop ReceptionTranslationView
-| Desktop Feature | Mobile Adaptation |
-|---|---|
-| Two-column chat (English + Patient language) | Single column: show both texts stacked within each message bubble |
-| 5 chat view modes (standard, recent, patient-focus, etc.) | Simplified to 2: "Full" (all messages) and "Latest" (last message only) |
-| Fixed full-screen with sidebar | Full viewport with bottom toolbar, no sidebar |
-| Toolbar with many buttons | Condensed into header with overflow menu |
-| Patient sidebar with QR | QR in a modal, accessible from header button |
-| Speaker mode selector component | Pill toggle above the mic button: "You" / "Patient" |
-| Document translate tab | Swipeable tab at top |
-| Settings modal | Accessible from menu |
-| Training mode banner | Slim banner below header |
+- **Header**: Single row with `flex items-center justify-between px-3 py-2`
+- **Chat**: `ScrollArea` with `flex-1 min-h-0` taking remaining space
+- **Message bubbles**: Full-width cards with original + translated text stacked
+- **Bottom bar**: `fixed bottom-0` or `sticky` with speaker pills + mic button
+- **Confirmation flow**: Stacked vertically (textarea, then row of buttons)
+- **QR modal**: Reuse existing `Dialog` for expanded QR
 
-### Hooks and services reused (no duplication)
-- `useReceptionTranslation` — real-time translation via Supabase channels
-- `LiveTranslationSetupModal` — session creation
-- `SpeakerModeSelector` or simplified inline version
-- `PatientSpeakingPrompt` — visual cue when patient is speaking
-- TTS audio playback logic (same edge functions)
-- Content moderation (same blocked/warning dialogs)
-- Report generation (`generateTranslationReportDocx`)
-- `usePracticeContext` for practice name
+### Step 4: Update AI4GPService wrapper
+Ensure the translation panel container in `AI4GPService.tsx` passes height correctly on mobile with `h-full` and proper flex containment.
 
-### Mobile-specific considerations
-- Debounced viewport resize handling (already in memory)
-- iOS Safari keyboard workarounds for the text editing area
-- `pb-safe` padding for notched devices
-- `WebkitOverflowScrolling: 'touch'` for smooth scrolling
-- Lazy-load document translation panel to reduce initial bundle
-- Web Speech API language code mapping (reuse `getWebSpeechLanguageCode`)
+## Files to Modify
 
+1. **`src/components/admin-dictate/ReceptionTranslationView.tsx`** — Add `isMobile` detection and a `renderMobileLayout()` function that returns mobile-optimised JSX using the same state/handlers
+2. **`src/components/AI4GPService.tsx`** — Minor tweak to ensure the translation container fills the viewport on mobile
+
+## What Stays the Same
+- All backend logic (Supabase channels, TTS, translation, moderation)
+- Session setup flow (`LiveTranslationSetupModal`)
+- Report generation
+- Training mode support
+- All existing desktop layout (unchanged for non-mobile)
