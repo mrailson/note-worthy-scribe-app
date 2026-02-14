@@ -3016,10 +3016,10 @@ export const MeetingRecorder = ({
         audio: true
       } as DisplayMediaStreamOptions);
       
-      // Stop video tracks — we only need audio
+      // Disable video tracks instead of stopping them — stopping kills Chrome's capture session
+      // They will be properly stopped during recording cleanup via screenStreamRef
       stream.getVideoTracks().forEach(track => {
-        track.stop();
-        stream.removeTrack(track);
+        track.enabled = false;
       });
       
       const audioTracks = stream.getAudioTracks();
@@ -3084,13 +3084,12 @@ export const MeetingRecorder = ({
           }))
         });
         
-        // Stop video tracks immediately - we only need audio
-        // This saves resources and avoids visual clutter
+        // Disable video tracks instead of stopping them — stopping kills Chrome's capture session
+        // They will be properly stopped during recording cleanup via screenStreamRef
         videoTracks.forEach(track => {
-          track.stop();
-          stream.removeTrack(track);
+          track.enabled = false;
         });
-        console.log('🎬 Video tracks stopped and removed (audio-only mode)');
+        console.log('🎬 Video tracks disabled (keeping capture session alive, audio-only mode)');
         
         addDebugLog('✅ Screen audio access granted');
         screenStreamRef.current = stream;
