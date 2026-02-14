@@ -16,14 +16,18 @@ export function DictationTranslationWrapper({ onBack }: DictationTranslationWrap
     id: string;
     token: string;
     language: string;
+    isTrainingMode?: boolean;
+    trainingScenario?: string;
   } | null>(null);
 
-  const handleSessionCreated = (sessionId: string, sessionToken: string, patientLanguage: string) => {
+  const handleSessionCreated = (sessionId: string, sessionToken: string, patientLanguage: string, isTrainingMode?: boolean, trainingScenario?: string) => {
     setShowSetupModal(false);
     setTranslationSession({
       id: sessionId,
       token: sessionToken,
-      language: patientLanguage
+      language: patientLanguage,
+      isTrainingMode,
+      trainingScenario
     });
   };
 
@@ -45,6 +49,8 @@ export function DictationTranslationWrapper({ onBack }: DictationTranslationWrap
             sessionToken={translationSession.token}
             patientLanguage={translationSession.language}
             onClose={handleCloseTranslation}
+            isTrainingMode={translationSession.isTrainingMode}
+            trainingScenario={translationSession.trainingScenario}
           />
         </div>
       </div>

@@ -59,7 +59,7 @@ import { PatientSpeakingPrompt } from './PatientSpeakingPrompt';
 import { getWebSpeechLanguageCode, isWebSpeechSupported } from '@/utils/webSpeechLanguages';
 import { TranslationSettingsModal } from './TranslationSettingsModal';
 import { DocumentTranslationPanel } from './DocumentTranslationPanel';
-import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, GraduationCap } from 'lucide-react';
 import { TranslationHistoryInline } from './TranslationHistoryInline';
 import {
   Collapsible,
@@ -857,13 +857,17 @@ interface ReceptionTranslationViewProps {
   sessionToken: string;
   patientLanguage: string;
   onClose: () => void;
+  isTrainingMode?: boolean;
+  trainingScenario?: string;
 }
 
 export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> = ({
   sessionId,
   sessionToken,
   patientLanguage,
-  onClose
+  onClose,
+  isTrainingMode = false,
+  trainingScenario = 'general_enquiry'
 }) => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [largeQrCodeUrl, setLargeQrCodeUrl] = useState<string>('');
@@ -1001,6 +1005,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   
   // State for history panel
   const [showHistory, setShowHistory] = useState(false);
+  
+  // Training mode: AI generating reply state
+  const [isTrainingReplyLoading, setIsTrainingReplyLoading] = useState(false);
 
   // Track previous patient connection state for toast notification
   const prevPatientConnectedRef = useRef(false);
@@ -1671,13 +1678,62 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       setPendingTranscript(null);
       setShowConfirmation(false);
 
+      // Training mode: if staff just sent, generate AI patient reply
+      if (isTrainingMode && senderMode === 'staff') {
+        // Build conversation history from messages
+        const conversationHistory = messages.map(m => ({
+          speaker: m.speaker,
+          englishText: m.speaker === 'staff' ? m.originalText : (m.translatedText || m.originalText),
+          translatedText: m.translatedText || ''
+        }));
+        // Add the message just sent
+        conversationHistory.push({
+          speaker: 'staff',
+          englishText: pendingTranscript || '',
+          translatedText: ''
+        });
+
+        setIsTrainingReplyLoading(true);
+
+        // Brief delay to simulate patient thinking
+        setTimeout(async () => {
+          try {
+            const { data, error } = await supabase.functions.invoke('translation-training-reply', {
+              body: {
+                conversationHistory,
+                patientLanguage,
+                scenario: trainingScenario
+              }
+            });
+
+            if (error) throw error;
+
+            if (data?.patientReply) {
+              // Send as patient message
+              await sendMessage(data.patientReply, 'patient');
+              // Auto-switch back to staff
+              setTimeout(() => {
+                handleSpeakerModeChange('staff');
+              }, 300);
+            }
+          } catch (err) {
+            console.error('Training reply error:', err);
+            showToast.error('Failed to generate training reply');
+          } finally {
+            setIsTrainingReplyLoading(false);
+          }
+        }, 1000 + Math.random() * 1000); // 1-2s delay
+        
+        return; // Don't auto-switch yet, the AI reply handler will do it
+      }
+
       // Auto-switch speaker mode after a brief delay
       setTimeout(() => {
         const nextMode = senderMode === 'staff' ? 'patient' : 'staff';
         handleSpeakerModeChange(nextMode);
       }, 300);
     }
-  }, [pendingTranscript, pendingSpeaker, sendMessage, handleSpeakerModeChange]);
+  }, [pendingTranscript, pendingSpeaker, sendMessage, handleSpeakerModeChange, isTrainingMode, trainingScenario, messages, patientLanguage]);
 
   const handleCancelSend = useCallback(() => {
     setPendingTranscript(null);
@@ -2358,6 +2414,13 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      {/* Training Mode Banner */}
+      {isTrainingMode && (
+        <div className="bg-amber-500 text-white text-center py-2 px-4 text-sm font-bold tracking-wider flex items-center justify-center gap-2">
+          <GraduationCap className="h-4 w-4" />
+          TRAINING MODE — AI is playing the patient role
+        </div>
+      )}
       {/* Header */}
       <div className="border-b p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -2423,8 +2486,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               </Button>
             </div>
           )}
-          {/* Patient Connection Status - only show in live chat mode */}
-          {translationMode === 'live-chat' && (
+          {/* Patient Connection Status - only show in live chat mode and not training */}
+          {translationMode === 'live-chat' && !isTrainingMode && (
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
               patientConnected 
                 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
@@ -2693,6 +2756,19 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             </div>
           </ScrollArea>
 
+          {/* Training mode: AI typing indicator */}
+          {isTrainingMode && isTrainingReplyLoading && (
+            <div className="px-4 py-3 border-t bg-amber-50 dark:bg-amber-950/20">
+              <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <span>Patient is typing...</span>
+              </div>
+            </div>
+          )}
           {/* Speaker Mode Selector with Mic Controls */}
           <div className="pt-4">
             <SpeakerModeSelector
@@ -2748,8 +2824,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         </div>
         )}
 
-        {/* QR Code panel - collapsible sidebar */}
-        {showPatientSidebar ? (
+        {/* QR Code panel - collapsible sidebar (hidden in training mode) */}
+        {!isTrainingMode && showPatientSidebar ? (
           <div className="w-72 border-l p-4 flex flex-col items-center bg-muted/30 overflow-y-auto min-h-0 relative">
             {/* Collapse button */}
             <Button
@@ -2859,7 +2935,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               />
             </div>
           </div>
-        ) : (
+        ) : !isTrainingMode ? (
           // Collapsed sidebar - just a toggle button
           <div className="border-l bg-muted/30 flex flex-col items-center py-4 px-1">
             <Button
@@ -2878,7 +2954,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               </span>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Expanded QR Code Modal */}

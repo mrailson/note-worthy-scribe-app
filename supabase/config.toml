@@ -475,3 +475,6 @@ verify_jwt = false
 
 [functions.rewrite-evidence-summary]
 verify_jwt = false
+
+[functions.translation-training-reply]
+verify_jwt = false
