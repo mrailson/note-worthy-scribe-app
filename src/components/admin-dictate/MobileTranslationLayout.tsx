@@ -126,6 +126,12 @@ export const MobileTranslationLayout: React.FC<MobileTranslationLayoutProps> = (
   queuedLabel,
 }) => {
   const isStaffMode = speakerMode === 'staff';
+  const bottomRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages, transcript, or confirmation state changes
+  React.useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, transcript, pendingTranscript, showConfirmation, isTranslating, isTrainingReplyLoading]);
 
   const renderMobileMessage = (msg: TranslationMessage, index: number) => {
     const isStaffMessage = msg.speaker === 'staff';
@@ -353,6 +359,8 @@ export const MobileTranslationLayout: React.FC<MobileTranslationLayoutProps> = (
               Patient typing…
             </div>
           )}
+
+          <div ref={bottomRef} />
         </div>
       </ScrollArea>
 
