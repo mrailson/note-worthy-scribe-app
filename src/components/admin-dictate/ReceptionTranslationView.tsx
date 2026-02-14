@@ -59,7 +59,7 @@ import { PatientSpeakingPrompt } from './PatientSpeakingPrompt';
 import { getWebSpeechLanguageCode, isWebSpeechSupported } from '@/utils/webSpeechLanguages';
 import { TranslationSettingsModal } from './TranslationSettingsModal';
 import { DocumentTranslationPanel } from './DocumentTranslationPanel';
-import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, GraduationCap, Columns2, ListFilter, PanelRightOpen, PanelLeftOpen, Eye } from 'lucide-react';
+import { MessageCircle, FileStack, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, GraduationCap, Columns2, ListFilter, PanelRightOpen, PanelLeftOpen, Eye, MessageSquareText } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TranslationHistoryInline } from './TranslationHistoryInline';
@@ -990,6 +990,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   
   const { practiceContext } = usePracticeContext();
   const practiceName = practiceContext?.practiceName || 'Our Practice';
+  const [introSent, setIntroSent] = useState(false);
 
   const {
     messages,
@@ -1667,6 +1668,14 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       stopSystemAudioCapture();
     };
   }, [stopSystemAudioCapture]);
+
+  // Handle sending intro/consent message
+  const handleSendIntro = useCallback(async () => {
+    const introText = `Welcome to ${practiceName}. We would like to use our translation service to help us communicate with you today. A staff member will control the session. When you see the large green microphone, you can speak naturally in your own language. When you have finished speaking, please indicate to the staff member and they will activate the translation. Are you happy for us to use this service?`;
+    await sendMessage(introText, 'staff');
+    setIntroSent(true);
+    showToast.success('Intro message sent');
+  }, [practiceName, sendMessage]);
 
   // Confirmation handlers
   const handleConfirmSend = useCallback(async () => {
@@ -2563,6 +2572,19 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             >
               <QrCode className="h-4 w-4 mr-2" />
               QR Code
+            </Button>
+          )}
+          {/* Send Intro Button */}
+          {translationMode === 'live-chat' && (
+            <Button
+              variant={introSent ? 'ghost' : 'outline'}
+              size="sm"
+              onClick={handleSendIntro}
+              disabled={introSent}
+              title={introSent ? 'Intro already sent' : 'Send intro & consent message to patient'}
+            >
+              {introSent ? <Check className="h-4 w-4 mr-2" /> : <MessageSquareText className="h-4 w-4 mr-2" />}
+              {introSent ? 'Intro Sent' : 'Send Intro'}
             </Button>
           )}
           {/* History Button - only in live chat mode */}
