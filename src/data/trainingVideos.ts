@@ -65,7 +65,7 @@ export const trainingVideos: TrainingVideo[] = [
     id: 'cp-1',
     title: 'Logging a New Complaint',
     description: 'Walk through the process of creating and categorising a new complaint.',
-    loomUrl: 'https://www.loom.com/share/example-complaint',
+    loomUrl: 'https://www.loom.com/share/0f52261bf8904d119780150c9454f6ed',
     category: 'Complaints',
     duration: '5 min',
   },
