@@ -2710,72 +2710,68 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
 
               {/* Confirmation UI when paused - use pendingSpeaker for positioning */}
               {showConfirmation && pendingTranscript && (
-                <div className="flex gap-4">
-                  {pendingSpeaker === 'patient' && <div className="flex-1" />}
-                  <div className="flex-1">
-                    <div className={`inline-block max-w-full rounded-lg p-3 border-2 ${
-                      pendingSpeaker === 'patient'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-700'
-                        : 'bg-primary text-primary-foreground border-primary'
-                    }`}>
-                      <p className="text-sm font-medium mb-2">
-                        📝 Confirm your message: 
-                        <span className="text-xs opacity-70 ml-2">(click to edit)</span>
-                      </p>
-                      <textarea
-                        data-confirmation-textarea
-                        value={pendingTranscript}
-                        onChange={(e) => setPendingTranscript(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleConfirmSend();
-                          }
-                        }}
-                        className={`w-full text-lg mb-3 bg-transparent border-b outline-none resize-none min-h-[1.5em] cursor-text rounded px-1 -mx-1 transition-colors ${
-                          pendingSpeaker === 'patient'
-                            ? 'border-emerald-300 focus:border-emerald-500 hover:bg-emerald-100/50 dark:border-emerald-700 dark:focus:border-emerald-500 dark:hover:bg-emerald-800/30'
-                            : 'border-primary-foreground/30 focus:border-primary-foreground hover:bg-primary-foreground/10'
-                        }`}
-                        rows={Math.max(1, Math.ceil(pendingTranscript.length / 50))}
-                      />
-                      <div className="flex gap-2 justify-end">
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          onClick={handleCancelSend}
-                          className={pendingSpeaker === 'patient' 
-                            ? "text-emerald-700 hover:bg-emerald-200/50 dark:text-emerald-300 dark:hover:bg-emerald-800/50 gap-1"
-                            : "text-primary-foreground hover:bg-primary-foreground/20 gap-1"
-                          }
-                        >
-                          <XCircle className="h-4 w-4" />
-                          Discard
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={handleAddMore}
-                          className={pendingSpeaker === 'patient' 
-                            ? "text-emerald-700 hover:bg-emerald-200/50 dark:text-emerald-300 dark:hover:bg-emerald-800/50 gap-1"
-                            : "text-primary-foreground hover:bg-primary-foreground/20 gap-1"
-                          }
-                        >
-                          <Mic className="h-4 w-4" />
-                          Add More
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          onClick={handleConfirmSend}
-                          className="gap-1"
-                        >
-                          <Send className="h-4 w-4" />
-                          Send
-                        </Button>
-                      </div>
+                <div className="w-full">
+                  <div className={`w-full rounded-lg p-4 border-2 ${
+                    pendingSpeaker === 'patient'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-700'
+                      : 'bg-primary text-primary-foreground border-primary'
+                  }`}>
+                    <p className="text-sm font-medium mb-2">
+                      📝 Confirm your message: 
+                      <span className="text-xs opacity-70 ml-2">(click to edit)</span>
+                    </p>
+                    <textarea
+                      data-confirmation-textarea
+                      value={pendingTranscript}
+                      onChange={(e) => setPendingTranscript(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleConfirmSend();
+                        }
+                      }}
+                      className={`w-full text-lg mb-3 bg-transparent border-b outline-none resize-none min-h-[3em] cursor-text rounded px-1 -mx-1 transition-colors ${
+                        pendingSpeaker === 'patient'
+                          ? 'border-emerald-300 focus:border-emerald-500 hover:bg-emerald-100/50 dark:border-emerald-700 dark:focus:border-emerald-500 dark:hover:bg-emerald-800/30'
+                          : 'border-primary-foreground/30 focus:border-primary-foreground hover:bg-primary-foreground/10'
+                      }`}
+                      rows={Math.max(2, Math.ceil(pendingTranscript.length / 80))}
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={handleCancelSend}
+                        className={pendingSpeaker === 'patient' 
+                          ? "text-emerald-700 hover:bg-emerald-200/50 dark:text-emerald-300 dark:hover:bg-emerald-800/50 gap-1"
+                          : "text-primary-foreground hover:bg-primary-foreground/20 gap-1"
+                        }
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Discard
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={handleAddMore}
+                        className={pendingSpeaker === 'patient' 
+                          ? "text-emerald-700 hover:bg-emerald-200/50 dark:text-emerald-300 dark:hover:bg-emerald-800/50 gap-1"
+                          : "text-primary-foreground hover:bg-primary-foreground/20 gap-1"
+                        }
+                      >
+                        <Mic className="h-4 w-4" />
+                        Add More
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={handleConfirmSend}
+                        className="gap-1"
+                      >
+                        <Send className="h-4 w-4" />
+                        Send
+                      </Button>
                     </div>
                   </div>
-                  {pendingSpeaker === 'staff' && <div className="flex-1" />}
                 </div>
               )}
 
