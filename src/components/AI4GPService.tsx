@@ -930,7 +930,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
       </div>
 
       {/* Mobile Floating Input - Outside main container to avoid overflow clipping */}
-      {isMobile && !showSettings && !showImageService && (
+      {isMobile && !showSettings && !showImageService && !showTranslationService && (
         <FloatingMobileInput
           ref={inputRef}
           input={input}
