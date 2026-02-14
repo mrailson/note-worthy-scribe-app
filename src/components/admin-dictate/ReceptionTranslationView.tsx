@@ -939,7 +939,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   type ChatViewMode = 'standard' | 'recent' | 'patient-focus' | 'gp-focus' | 'patient-only';
   const [chatViewMode, setChatViewMode] = useState<ChatViewMode>(() => {
     const saved = localStorage.getItem('translation-chat-view-mode');
-    return (saved as ChatViewMode) || 'standard';
+    return (saved as ChatViewMode) || 'recent';
   });
   
   // Patient text size scaling (1 = normal, steps of 0.25)
