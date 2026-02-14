@@ -1653,7 +1653,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     if (pendingTranscript) {
       // Use the tracked pendingSpeaker, not the current speakerMode
       // This ensures patient messages are translated correctly even after mode toggle
-      const result = await sendMessage(pendingTranscript, pendingSpeaker);
+      const senderMode = pendingSpeaker;
+      const result = await sendMessage(pendingTranscript, senderMode);
       
       // Handle blocked content
       if (result.blocked) {
@@ -1669,8 +1670,14 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       
       setPendingTranscript(null);
       setShowConfirmation(false);
+
+      // Auto-switch speaker mode after a brief delay
+      setTimeout(() => {
+        const nextMode = senderMode === 'staff' ? 'patient' : 'staff';
+        handleSpeakerModeChange(nextMode);
+      }, 300);
     }
-  }, [pendingTranscript, pendingSpeaker, sendMessage]);
+  }, [pendingTranscript, pendingSpeaker, sendMessage, handleSpeakerModeChange]);
 
   const handleCancelSend = useCallback(() => {
     setPendingTranscript(null);
@@ -1837,7 +1844,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     }
   }, [audioUnlocked]);
 
-  // Stop any currently playing audio
+  // Stop any currently playing audio and restore mic
   const stopCurrentAudio = useCallback(() => {
     if (currentAudioRef.current) {
       currentAudioRef.current.pause();
@@ -1845,6 +1852,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       currentAudioRef.current = null;
       setPlayingAudioId(null);
     }
+    // Restore mic when audio is stopped manually
+    isMicPausedRef.current = false;
+    setIsMicPaused(false);
   }, []);
 
   // Load and play audio for a specific message
@@ -1854,6 +1864,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     
     // Stop any currently playing audio
     stopCurrentAudio();
+
+    // Pause mic during audio playback to prevent feedback
+    isMicPausedRef.current = true;
+    setIsMicPaused(true);
     
     // If already loaded, play it directly
     if (audioUrls[messageId]) {
@@ -1868,12 +1882,16 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         audio.onended = () => {
           setPlayingAudioId(null);
           currentAudioRef.current = null;
+          isMicPausedRef.current = false;
+          setIsMicPaused(false);
         };
         
         audio.onerror = () => {
           console.error('Audio playback error');
           setPlayingAudioId(null);
           currentAudioRef.current = null;
+          isMicPausedRef.current = false;
+          setIsMicPaused(false);
           showToast.error('Failed to play audio');
         };
         
@@ -1930,6 +1948,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
         audio.onended = () => {
           setPlayingAudioId(null);
           currentAudioRef.current = null;
+          isMicPausedRef.current = false;
+          setIsMicPaused(false);
         };
         
         audio.onerror = (e) => {
@@ -1937,6 +1957,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           setPlayingAudioId(null);
           setLoadingAudio(prev => ({ ...prev, [messageId]: false }));
           currentAudioRef.current = null;
+          isMicPausedRef.current = false;
+          setIsMicPaused(false);
           showToast.error('Failed to play audio');
         };
         
@@ -1976,6 +1998,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           settle();
           setPlayingAudioId(null);
           currentAudioRef.current = null;
+          isMicPausedRef.current = false;
+          setIsMicPaused(false);
           showToast.error('Failed to play audio');
         };
 
@@ -1984,6 +2008,8 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           settle();
           setPlayingAudioId(null);
           currentAudioRef.current = null;
+          isMicPausedRef.current = false;
+          setIsMicPaused(false);
         };
 
         // Fallback: if canplaythrough doesn't fire quickly, try once audio has enough data
