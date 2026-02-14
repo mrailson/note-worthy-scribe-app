@@ -2520,6 +2520,22 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* Auto-Play Patient Voice Toggle */}
+          {translationMode === 'live-chat' && (
+            <Button
+              variant={autoPlayPatientAudio ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                const newVal = !autoPlayPatientAudio;
+                setAutoPlayPatientAudio(newVal);
+                localStorage.setItem('translation-auto-play-patient-audio', String(newVal));
+              }}
+              title={autoPlayPatientAudio ? 'Auto-play patient voice: ON' : 'Auto-play patient voice: OFF'}
+            >
+              <Volume2 className="h-4 w-4 mr-2" />
+              {autoPlayPatientAudio ? 'Voice On' : 'Voice Off'}
+            </Button>
+          )}
           {/* History Button - only in live chat mode */}
           {translationMode === 'live-chat' && (
             <Button
