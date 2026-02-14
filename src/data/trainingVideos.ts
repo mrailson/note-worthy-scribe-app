@@ -30,7 +30,7 @@ export const trainingVideos: TrainingVideo[] = [
     id: 'gs-2',
     title: 'Setting Up Your Profile',
     description: 'How to configure your user profile and preferences for the best experience.',
-    loomUrl: 'https://www.loom.com/share/example-profile-setup',
+    loomUrl: 'https://www.loom.com/share/6fc9dc243f4e4046934900202f2a66e9',
     category: 'Getting Started',
     duration: '2 min',
   },
