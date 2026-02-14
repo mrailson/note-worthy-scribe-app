@@ -2636,19 +2636,6 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               <MessageCircle className="h-4 w-4" />
               Live Chat
             </button>
-            {showDocumentTranslate && (
-              <button
-                onClick={() => setTranslationMode('document-translate')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  translationMode === 'document-translate'
-                    ? 'bg-background shadow text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <FileStack className="h-4 w-4" />
-                Document Translate
-              </button>
-            )}
           </div>
           
           {languageInfo && (
@@ -2742,15 +2729,14 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               </PopoverContent>
             </Popover>
           )}
-          {/* Options Menu */}
-          {translationMode === 'live-chat' && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 px-2">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 px-2">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {translationMode === 'live-chat' && (
                 <DropdownMenuItem onClick={() => {
                   const newVal = !autoPlayAudio;
                   setAutoPlayAudio(newVal);
@@ -2759,14 +2745,20 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   <Volume2 className="h-4 w-4 mr-2" />
                   {autoPlayAudio ? 'Voice Off' : 'Voice On'}
                 </DropdownMenuItem>
+              )}
+              {translationMode === 'live-chat' && (
                 <DropdownMenuItem onClick={() => setShowExpandedQR(true)}>
                   <QrCode className="h-4 w-4 mr-2" />
                   QR Code
                 </DropdownMenuItem>
+              )}
+              {translationMode === 'live-chat' && (
                 <DropdownMenuItem onClick={() => setShowHistory(!showHistory)}>
                   <History className="h-4 w-4 mr-2" />
                   {showHistory ? 'Hide History' : 'History'}
                 </DropdownMenuItem>
+              )}
+              {translationMode === 'live-chat' && (
                 <DropdownMenuItem 
                   onClick={handleDownloadReport}
                   disabled={isGeneratingReport || messages.length === 0}
@@ -2774,9 +2766,17 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   <FileText className="h-4 w-4 mr-2" />
                   {isGeneratingReport ? 'Generating...' : 'Download Report'}
                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+              )}
+              {showDocumentTranslate && (
+                <DropdownMenuItem onClick={() => setTranslationMode(
+                  translationMode === 'document-translate' ? 'live-chat' : 'document-translate'
+                )}>
+                  <FileStack className="h-4 w-4 mr-2" />
+                  {translationMode === 'document-translate' ? 'Back to Live Chat' : 'Document Translate'}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="destructive" size="sm" onClick={handleEndSession}>
             <X className="h-4 w-4 mr-2" />
             End Session
