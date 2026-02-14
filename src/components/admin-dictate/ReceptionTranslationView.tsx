@@ -2634,7 +2634,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               }`}
             >
               <MessageCircle className="h-4 w-4" />
-              Live Chat
+              Live Translate
             </button>
           </div>
           
@@ -2772,7 +2772,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                   translationMode === 'document-translate' ? 'live-chat' : 'document-translate'
                 )}>
                   <FileStack className="h-4 w-4 mr-2" />
-                  {translationMode === 'document-translate' ? 'Back to Live Chat' : 'Document Translate'}
+                  {translationMode === 'document-translate' ? 'Back to Live Translate' : 'Document Translate'}
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -3181,7 +3181,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 onShowDocumentTranslateChange={(enabled) => {
                   setShowDocumentTranslate(enabled);
                   localStorage.setItem('translation-show-document-translate', String(enabled));
-                  // If turning off and currently on document mode, switch back to live chat
+                  // If turning off and currently on document mode, switch back to live translate
                   if (!enabled && translationMode === 'document-translate') {
                     setTranslationMode('live-chat');
                   }
