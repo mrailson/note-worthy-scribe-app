@@ -2825,19 +2825,26 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
                 )}
                 
                 {/* Main mic button */}
-                <Button
-                  size="lg"
-                  variant={isListening ? 'destructive' : isConnecting ? 'secondary' : 'default'}
-                  className={`h-16 w-16 rounded-full ${isListening ? 'animate-mic-glow' : ''}`}
-                  onClick={toggleListening}
-                  disabled={isConnecting}
-                >
-                  {isConnecting ? (
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  ) : (
-                    <Mic className="h-8 w-8" />
-                  )}
-                </Button>
+                <div className="relative group">
+                  <Button
+                    size="lg"
+                    variant={isListening ? 'destructive' : isConnecting ? 'secondary' : 'default'}
+                    className={`h-16 w-16 rounded-full ${isListening ? 'animate-mic-glow' : ''}`}
+                    onClick={toggleListening}
+                    disabled={isConnecting}
+                  >
+                    {isConnecting ? (
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    ) : (
+                      <Mic className="h-8 w-8" />
+                    )}
+                  </Button>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-popover text-popover-foreground border shadow-md">
+                    {isListening 
+                      ? 'Click to stop recording & translation' 
+                      : 'Click the mic to start the translation service'}
+                  </div>
+                </div>
               </div>
             </SpeakerModeSelector>
           </div>
