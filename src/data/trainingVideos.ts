@@ -56,7 +56,7 @@ export const trainingVideos: TrainingVideo[] = [
     id: 'mt-1',
     title: 'Recording a Meeting',
     description: 'How to start, pause, and finish recording a meeting with automatic transcription.',
-    loomUrl: 'https://www.loom.com/share/example-meeting-record',
+    loomUrl: 'https://www.loom.com/share/7ec10c79d10f4b738aa990806c4413e7',
     category: 'Meetings',
     duration: '4 min',
   },
