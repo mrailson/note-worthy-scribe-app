@@ -456,16 +456,17 @@ export const generateTranslationReportDocx = async (options: GenerateTranslation
     })
   );
   
-  // Patient Section in their language
-  const disclaimer = PATIENT_DISCLAIMERS[patientLanguage] || PATIENT_DISCLAIMERS['en'];
+  // Patient Section - English version first
+  const englishDisclaimer = PATIENT_DISCLAIMERS['en'];
+  const patientDisclaimer = PATIENT_DISCLAIMERS[patientLanguage] || PATIENT_DISCLAIMERS['en'];
   
   children.push(
     new Paragraph({
       children: [new TextRun({
-        text: disclaimer.title,
+        text: englishDisclaimer.title,
         bold: true,
         size: FONTS.size.heading2,
-        color: '7C3AED', // Purple for patient section
+        color: '7C3AED',
         font: FONTS.default,
       })],
       spacing: { before: 480, after: 120 },
@@ -478,15 +479,44 @@ export const generateTranslationReportDocx = async (options: GenerateTranslation
   children.push(
     new Paragraph({
       children: [new TextRun({
-        text: disclaimer.body,
+        text: englishDisclaimer.body,
         size: FONTS.size.body,
         color: NHS_COLORS.textGrey,
         font: FONTS.default,
       })],
       spacing: { after: 240 },
-      shading: { fill: 'F5F3FF' }, // Light purple background
+      shading: { fill: 'F5F3FF' },
     })
   );
+
+  // Patient Section - in patient's language (if different from English)
+  if (patientLanguage !== 'en') {
+    children.push(
+      new Paragraph({
+        children: [new TextRun({
+          text: patientDisclaimer.title,
+          bold: true,
+          size: FONTS.size.heading2,
+          color: '7C3AED',
+          font: FONTS.default,
+        })],
+        spacing: { before: 300, after: 120 },
+      })
+    );
+    
+    children.push(
+      new Paragraph({
+        children: [new TextRun({
+          text: patientDisclaimer.body,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+          font: FONTS.default,
+        })],
+        spacing: { after: 240 },
+        shading: { fill: 'F5F3FF' },
+      })
+    );
+  }
   
   // Footer
   const now = new Date();
