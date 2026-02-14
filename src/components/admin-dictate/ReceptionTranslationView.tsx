@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Slider } from '@/components/ui/slider';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { MobileTranslationLayout } from './MobileTranslationLayout';
@@ -33,7 +35,8 @@ import {
   MonitorOff,
   History,
   Plus,
-  Minus
+    Minus,
+    Clock
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -935,6 +938,14 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   });
   const [showPatientSidebar, setShowPatientSidebar] = useState(true);
   
+  // Configurable silence wait time (ms) - how long to wait after last speech before processing
+  const [silenceWaitTime, setSilenceWaitTime] = useState<number>(() => {
+    const saved = localStorage.getItem('translation-silence-wait-time');
+    return saved ? parseInt(saved, 10) : 3000;
+  });
+  const silenceWaitTimeRef = useRef(silenceWaitTime);
+  const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Chat view mode
   type ChatViewMode = 'standard' | 'recent' | 'patient-focus' | 'gp-focus' | 'patient-only';
   const [chatViewMode, setChatViewMode] = useState<ChatViewMode>(() => {
@@ -1132,6 +1143,10 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   }, [isMicPaused]);
 
   useEffect(() => {
+    silenceWaitTimeRef.current = silenceWaitTime;
+  }, [silenceWaitTime]);
+
+  useEffect(() => {
     speakerModeRef.current = speakerMode;
   }, [speakerMode]);
 
@@ -1242,31 +1257,40 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       // Track last result time to detect gaps
       lastResultTimeRef.current = Date.now();
 
-      if (finalTranscript) {
-        // Clear interim ref since we got a final result
+      // Clear any existing silence timer when new results arrive
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+
+      const processFinal = (text: string) => {
         lastInterimRef.current = '';
-        
-        // For patient mode, accumulate without showing confirmation until they toggle back
         const isPatientMode = speakerModeRef.current === 'patient';
-        
-        // CRITICAL: Set pendingSpeaker based on current mode so it's correct when sending
         setPendingSpeaker(isPatientMode ? 'patient' : 'staff');
-        
-        // Queue for confirmation (accumulate)
         setPendingTranscript(prev => {
-          const newText = prev ? `${prev} ${finalTranscript}` : finalTranscript;
+          const newText = prev ? `${prev} ${text}` : text;
           console.log('📝 Accumulated transcript:', newText.substring(0, 50) + '...');
           return newText;
         });
-        
-        // Only show confirmation immediately for staff mode
-        // Patient mode confirmation is shown when they toggle back to staff
         if (!isPatientMode) {
           setShowConfirmation(true);
         }
         setTranscript('');
+      };
+
+      if (finalTranscript) {
+        processFinal(finalTranscript);
       } else if (interimTranscript) {
         setTranscript(interimTranscript);
+        
+        // Start silence timer — if no new results within wait time, treat interim as final
+        silenceTimerRef.current = setTimeout(() => {
+          const currentInterim = lastInterimRef.current;
+          if (currentInterim) {
+            console.log(`⏱️ Silence threshold (${silenceWaitTimeRef.current}ms) reached, processing interim as final`);
+            processFinal(currentInterim);
+          }
+        }, silenceWaitTimeRef.current);
       }
     };
 
@@ -1369,6 +1393,9 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
     return () => {
       stoppedByUserRef.current = true;
       recognitionRef.current?.stop();
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
     };
   }, []);
 
@@ -2683,6 +2710,36 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* Silence Wait Time Popover */}
+          {translationMode === 'live-chat' && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 px-2 gap-1" title="Adjust wait time before processing speech">
+                  <Clock className="h-4 w-4" />
+                  <span className="text-xs text-muted-foreground">{(silenceWaitTime / 1000).toFixed(1)}s</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-3" side="bottom">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Wait Time</span>
+                    <span className="text-sm text-muted-foreground">{(silenceWaitTime / 1000).toFixed(1)}s</span>
+                  </div>
+                  <Slider
+                    value={[silenceWaitTime]}
+                    onValueChange={([val]) => {
+                      setSilenceWaitTime(val);
+                      localStorage.setItem('translation-silence-wait-time', String(val));
+                    }}
+                    min={1000}
+                    max={5000}
+                    step={500}
+                  />
+                  <p className="text-xs text-muted-foreground">Pause before processing speech</p>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
           {/* Auto-Play Patient Voice Toggle */}
           {translationMode === 'live-chat' && (
             <Button
