@@ -2526,6 +2526,18 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
               {autoPlayAudio ? 'Voice On' : 'Voice Off'}
             </Button>
           )}
+          {/* QR Code Button */}
+          {translationMode === 'live-chat' && !isTrainingMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowExpandedQR(true)}
+              title="Show patient QR code"
+            >
+              <QrCode className="h-4 w-4 mr-2" />
+              QR Code
+            </Button>
+          )}
           {/* History Button - only in live chat mode */}
           {translationMode === 'live-chat' && (
             <Button
