@@ -2620,7 +2620,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Document Translation Mode */}
         {translationMode === 'document-translate' ? (
           <div className="flex-1 p-4">
@@ -2636,7 +2636,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
           </div>
         ) : (
           /* Conversation panel */
-          <div className="flex-1 flex flex-col p-4">
+          <div className="flex-1 flex flex-col p-4 min-h-0 overflow-hidden">
           {/* System Audio Indicator - shown when capturing system audio */}
           {isCapturingSystemAudio && (
             <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg border border-amber-300 dark:border-amber-700">
@@ -2845,7 +2845,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
             </div>
           )}
           {/* Speaker Mode Selector with Mic Controls */}
-          <div className="pt-4">
+          <div className="pt-4 flex-shrink-0">
             <SpeakerModeSelector
               mode={speakerMode}
               onModeChange={handleSpeakerModeChange}
