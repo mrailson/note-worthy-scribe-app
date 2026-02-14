@@ -1,74 +1,63 @@
 
-# Mobile Translation Service Redesign
 
-## Problem
-The `ReceptionTranslationView` (3,284 lines) was built for desktop with wide toolbars, sidebars, multiple button rows, and two-column chat layouts. Adding `embedded={true}` only changed CSS positioning — it didn't adapt any of the layout for small screens. On a phone, everything overflows, buttons wrap badly, and controls are unreachable.
+## Translation Service Improvements Based on User Feedback
 
-## Solution
-Rather than trying to make the massive desktop component responsive (which would be fragile and bloat it further), we will detect mobile viewports inside `ReceptionTranslationView` and conditionally render a simplified mobile layout. This means:
+The feedback confirms the translation and transcription quality is excellent -- the two practical issues are:
 
-- Same component, same hooks, same state — just different JSX for the render
-- No code duplication of business logic
-- Mobile users get a clean, purpose-built interface
+1. **Speakers need to talk slowly** -- the silence threshold (wait time before processing) may be too short for natural pauses in non-English speech, causing mid-sentence cuts.
+2. **Speaker needs to be close to the microphone** -- we can enable browser audio enhancements (auto gain control, noise suppression) and surface clear guidance to users.
 
-## Mobile Layout Design
+---
 
-### Header (compact, single row)
-- Language badge (flag + name) on the left
-- Three icon-only buttons on the right: QR, Report download, End Session
-- No "Live Chat / Document Translate" tabs (live chat only on mobile — document translate accessible via a small toggle if enabled)
-- No chat view mode selector (always single-column)
-- No history button in header (accessible from overflow menu)
+### Proposed Changes
 
-### Chat Area (single column, full width)
-- Messages stacked vertically — each bubble shows both the original text and translation stacked
-- GP messages aligned left (blue), patient messages aligned right (green/slate)
-- No side-by-side columns
-- Smooth scroll with `WebkitOverflowScrolling: 'touch'`
-- Confirmation UI (edit/send/discard) renders inline as a card, not a two-column split
+#### 1. Enable Auto Gain Control and Noise Suppression on Microphone
 
-### Bottom Toolbar (sticky, safe-area-aware)
-- Speaker mode toggle: two pill buttons — "You" / "Patient" — with active state highlighting
-- Large central mic button (64px round)
-- Pause/Resume button beside mic when listening
-- `pb-safe` padding for notched iPhones
+Currently, `useGPTranslation` requests microphone access with bare `{ audio: true }`. Enabling `autoGainControl`, `noiseSuppression`, and `echoCancellation` will let the browser amplify quieter speech and reduce background noise -- meaning users won't need to be as close to the microphone.
 
-### Hidden on Mobile
-- QR sidebar (use modal via header icon instead)
-- Chat view mode icons (always single-column)
-- "Voice On/Off" button (auto-play controlled via settings)
-- Patient connection status badge (shown as a subtle dot on the header instead)
-- System audio capture controls
+**File:** `src/hooks/useGPTranslation.tsx`
+- Change `getUserMedia({ audio: true })` to include enhanced constraints:
+  ```
+  { audio: { autoGainControl: true, noiseSuppression: true, echoCancellation: true } }
+  ```
 
-## Technical Approach
+#### 2. Increase Default Silence Threshold
 
-### Step 1: Add mobile detection to ReceptionTranslationView
-Use `window.innerWidth < 768` (consistent with existing mobile checks in the codebase) to set an `isMobile` flag at the top of the component.
+The current default is 2000ms (2 seconds). For speakers who need to pause mid-sentence (common in non-English speech or when thinking), this is too aggressive. Increase the default to 3000ms (3 seconds) to give more breathing room.
 
-### Step 2: Create a mobile render branch
-Add a `renderMobileLayout()` function inside the component that returns the mobile-optimised JSX. The main return will check `if (isMobile && embedded) return renderMobileLayout()`.
+**File:** `src/hooks/useGPTranslation.tsx`
+- Change default `silenceThreshold` from `2000` to `3000`.
 
-### Step 3: Mobile-specific JSX
-The mobile layout will reuse all existing state, handlers, and refs — it just arranges the UI differently:
+**File:** `src/pages/GPTranslationService.tsx`
+- Change initial `silenceThreshold` state from `2000` to `3000`.
 
-- **Header**: Single row with `flex items-center justify-between px-3 py-2`
-- **Chat**: `ScrollArea` with `flex-1 min-h-0` taking remaining space
-- **Message bubbles**: Full-width cards with original + translated text stacked
-- **Bottom bar**: `fixed bottom-0` or `sticky` with speaker pills + mic button
-- **Confirmation flow**: Stacked vertically (textarea, then row of buttons)
-- **QR modal**: Reuse existing `Dialog` for expanded QR
+#### 3. Add "Tips for Best Results" to the Consent/Setup Screen
 
-### Step 4: Update AI4GPService wrapper
-Ensure the translation panel container in `AI4GPService.tsx` passes height correctly on mobile with `h-full` and proper flex containment.
+Add a small, friendly tips section on the consent screen so users know what to expect before starting.
 
-## Files to Modify
+**File:** `src/components/translation/ConsentScreen.tsx`
+- Add a tips card with guidance such as:
+  - "Hold the device close to the speaker or use a headset"
+  - "Speak clearly at a steady pace"
+  - "Pause briefly between sentences"
+  - "Use the Wait Time slider to allow longer pauses"
+  - "Tap 'Send Now' if the system hasn't picked up your speech"
 
-1. **`src/components/admin-dictate/ReceptionTranslationView.tsx`** — Add `isMobile` detection and a `renderMobileLayout()` function that returns mobile-optimised JSX using the same state/handlers
-2. **`src/components/AI4GPService.tsx`** — Minor tweak to ensure the translation container fills the viewport on mobile
+#### 4. Add Gujarati to the Speech Recognition Locale Map (if missing)
 
-## What Stays the Same
-- All backend logic (Supabase channels, TTS, translation, moderation)
-- Session setup flow (`LiveTranslationSetupModal`)
-- Report generation
-- Training mode support
-- All existing desktop layout (unchanged for non-mobile)
+Gujarati (`gu`) is not currently in the `SPEECH_RECOGNITION_LOCALES` map. Adding `gu: 'gu-IN'` will ensure Chrome uses the correct speech model for Gujarati speakers.
+
+**File:** `src/hooks/useGPTranslation.tsx`
+- Add `gu: 'gu-IN'` to the `SPEECH_RECOGNITION_LOCALES` record.
+
+---
+
+### Technical Summary
+
+| Change | File | Detail |
+|--------|------|--------|
+| Enhanced mic constraints | `useGPTranslation.tsx` | Add `autoGainControl`, `noiseSuppression`, `echoCancellation` |
+| Increase default wait time | `useGPTranslation.tsx`, `GPTranslationService.tsx` | 2s to 3s |
+| Add Gujarati locale | `useGPTranslation.tsx` | `gu: 'gu-IN'` |
+| Add usage tips | `ConsentScreen.tsx` | Friendly guidance card on setup screen |
+
