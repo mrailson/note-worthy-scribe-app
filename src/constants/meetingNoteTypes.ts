@@ -2,7 +2,7 @@ export interface MeetingNoteType {
   id: string;
   label: string;
   description: string;
-  iconName: 'FileText' | 'Award' | 'Stethoscope' | 'Target' | 'GraduationCap';
+  iconName: 'FileText' | 'Award' | 'Stethoscope' | 'Target' | 'GraduationCap' | 'Heart';
 }
 
 export const MEETING_NOTE_TYPES: MeetingNoteType[] = [
@@ -35,5 +35,11 @@ export const MEETING_NOTE_TYPES: MeetingNoteType[] = [
     label: 'Educational/CPD', 
     description: 'Learning objectives and key takeaways',
     iconName: 'GraduationCap'
+  },
+  { 
+    id: 'ageing-well', 
+    label: 'Ageing Well', 
+    description: 'CGA/Frailty review – History & Plan format',
+    iconName: 'Heart'
   }
 ];
