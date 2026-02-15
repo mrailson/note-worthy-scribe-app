@@ -74,7 +74,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[350px] p-0" align="start">
+      <PopoverContent className="w-[calc(100vw-2rem)] max-w-[350px] p-0" align="start" sideOffset={4} collisionPadding={16}>
         <div className="p-3 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -86,7 +86,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
             />
           </div>
         </div>
-        <ScrollArea className="h-[400px]">
+        <ScrollArea className="max-h-[40vh]">
           <div className="p-2">
             {priorityGroups.map((group, groupIndex) => (
               <div key={group.label}>
