@@ -1,23 +1,20 @@
 
-# Fix Translation Layout on Smartphone
+
+# Fix Language Selector Overflow on Mobile
 
 ## Problem
-The mobile-optimised translation layout (`MobileTranslationLayout`) is not rendering on smartphones. This is because the condition on line 2488 requires **both** `isMobile` and `embedded` to be true:
-
-```
-if (isMobile && embedded) { ... }
-```
-
-However, `embedded` was recently set to `false` to restore standalone (full-screen) behaviour. As a result, smartphones now get the **desktop layout** — with wide toolbars, view-mode icon selectors, side panels, and a QR sidebar — which is completely unusable on a small screen, as shown in the screenshots.
+The language selector popover uses a fixed width of `350px` and a fixed scroll height of `400px`. On smartphones, especially when the on-screen keyboard is open, this causes the dropdown to bleed off-screen — the list and search input are clipped or hidden behind the keyboard.
 
 ## Solution
-Change the mobile layout condition from `if (isMobile && embedded)` to `if (isMobile)` so that the purpose-built mobile layout always renders on smartphones, regardless of whether the view is embedded or standalone.
+Make the popover responsive to the available viewport:
 
-## Technical Details
+### File: `src/components/translation/LanguageSelector.tsx`
 
-**File: `src/components/admin-dictate/ReceptionTranslationView.tsx`**
-- **Line 2488**: Change `if (isMobile && embedded)` to `if (isMobile)`
-- The mobile layout already uses `fixed inset-0`-style full-screen rendering via its own `flex flex-col h-full w-full` container, so removing the `embedded` guard will not break layout
-- The standalone wrapper (`fixed inset-0 z-50`) from the desktop branch (line 2615) is not needed because the `MobileTranslationLayout` component handles its own viewport lock
+1. **Responsive width**: Change the `PopoverContent` class from `w-[350px]` to `w-[calc(100vw-2rem)] max-w-[350px]` so it fits within the screen on mobile whilst retaining its current size on desktop.
 
-This is a single-line change that restores the dedicated smartphone interface for non-training mode sessions.
+2. **Responsive scroll height**: Change the `ScrollArea` class from `h-[400px]` to `max-h-[40vh]` (or similar) so the list shrinks when the keyboard is visible, rather than extending off-screen.
+
+3. **Popover alignment**: Add `sideOffset={4}` and `collisionPadding={16}` props to `PopoverContent` to ensure Radix's collision detection keeps the popover within the viewport bounds.
+
+These are small class/prop changes to a single file — no logic or behaviour changes.
+
