@@ -1,32 +1,23 @@
 
+# Fix Translation Layout on Smartphone
 
-# Add "Ageing Well" Output Type to Meeting Notes
+## Problem
+The mobile-optimised translation layout (`MobileTranslationLayout`) is not rendering on smartphones. This is because the condition on line 2488 requires **both** `isMobile` and `embedded` to be true:
 
-## Overview
-Add a new "Ageing Well" note type to the meeting notes output dropdown. This type generates a comprehensive clinical record following Tom's master prompt for Complex Ageing Well / Frailty Reviews, structured with only two sections: **History** and **Plan**.
+```
+if (isMobile && embedded) { ... }
+```
 
-## Changes
+However, `embedded` was recently set to `false` to restore standalone (full-screen) behaviour. As a result, smartphones now get the **desktop layout** — with wide toolbars, view-mode icon selectors, side panels, and a QR sidebar — which is completely unusable on a small screen, as shown in the screenshots.
 
-### 1. Constants: Add new note type definition
-**File: `src/constants/meetingNoteTypes.ts`**
-- Add `'Heart'` to the `iconName` union type
-- Add a new entry for `ageing-well` with label "Ageing Well", description referencing CGA/frailty reviews, and the `Heart` icon
-
-### 2. UI: Register the Heart icon
-**File: `src/components/SafeModeNotesModal.tsx`**
-- Add `Heart` to the lucide-react import
-- Add a `'Heart'` case in the `getNoteTypeIcon` switch statement so the dropdown renders the correct icon
-
-### 3. Backend: Add the Ageing Well prompt
-**File: `supabase/functions/auto-generate-meeting-notes/index.ts`**
-- Add an `'ageing-well'` entry to the `noteTypeInstructions` record containing the full master prompt provided by Tom, covering:
-  - **Role and tone**: UK GP with specialist interest in Older Adults / Frailty, defensive CQC-ready notes, British English, NHS terminology
-  - **Context assumptions**: Elderly, frail, multi-morbid patient; extended holistic review
-  - **Structure**: Only two sections -- History (Medical History Review, Medication Review, Cognitive & Mental Health Assessment) and Plan (Management Plan, Patient & Carer Understanding, Time & Complexity Statement)
-  - **Style rules**: Full clinical sentences, include negative findings, include clinical reasoning, no bullet-point minimalism
-  - **Output format**: Two sections separated by blank lines only, no tables, no emojis, no markdown beyond headings, no summarisation, length uncapped
+## Solution
+Change the mobile layout condition from `if (isMobile && embedded)` to `if (isMobile)` so that the purpose-built mobile layout always renders on smartphones, regardless of whether the view is embedded or standalone.
 
 ## Technical Details
-- The `noteType` value `'ageing-well'` flows from the frontend Select dropdown through the Supabase edge function invocation body, where it is matched in the `noteTypeInstructions` record
-- No database schema changes required -- `note_type` is stored as a string
-- The edge function already falls back to `'standard'` for unrecognised types, so deployment order is flexible
+
+**File: `src/components/admin-dictate/ReceptionTranslationView.tsx`**
+- **Line 2488**: Change `if (isMobile && embedded)` to `if (isMobile)`
+- The mobile layout already uses `fixed inset-0`-style full-screen rendering via its own `flex flex-col h-full w-full` container, so removing the `embedded` guard will not break layout
+- The standalone wrapper (`fixed inset-0 z-50`) from the desktop branch (line 2615) is not needed because the `MobileTranslationLayout` component handles its own viewport lock
+
+This is a single-line change that restores the dedicated smartphone interface for non-training mode sessions.
