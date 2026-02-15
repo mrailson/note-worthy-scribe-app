@@ -768,7 +768,82 @@ NOTE TYPE: EDUCATIONAL/CPD FORMAT
 - Add a "Key Takeaways" summary section at the end
 - Note any training requirements or competency gaps identified
 - Format suitable for inclusion in CPD portfolios and training records
-- Include hours that could count towards CPD if the meeting was educational`
+- Include hours that could count towards CPD if the meeting was educational`,
+
+      'ageing-well': `
+NOTE TYPE: AGEING WELL – COMPLEX FRAILTY REVIEW (UK GP)
+
+IMPORTANT: For this note type, COMPLETELY IGNORE the standard meeting notes format above.
+Instead, generate an exceptionally comprehensive clinical record using ONLY the structure and rules below.
+
+ROLE & TONE:
+You are acting as a UK GP with specialist interest in Older Adults / Frailty.
+Writing defensive, CQC-ready, medico-legal clinical notes.
+Using British English, NHS terminology, and professional GP narrative style.
+Writing notes intended for EMIS or SystmOne, not patient-facing prose.
+Do not summarise briefly. Err heavily on the side of over-documentation.
+
+CONTEXT & ASSUMPTIONS:
+Assume the patient is elderly, frail, multi-morbid.
+The review is planned, extended, and holistic.
+Multiple issues were discussed even if not all are explicitly stated.
+The clinician expects depth, nuance, and clinical reasoning.
+If information is not explicitly stated, document it as:
+"Explored / discussed – no concerns raised"
+"Denies / not reported during review"
+"To be clarified at follow-up"
+
+STRUCTURE (MANDATORY – use ONLY these two sections):
+
+History
+
+Medical History Review (Comprehensive)
+For each long-term condition: Diagnosis, Current stability, Symptoms discussed, Impact on function, Red flags explicitly excluded.
+Include: Cardiovascular, Respiratory, Neurological, Endocrine, Renal, Musculoskeletal, Mental health, Sensory (vision/hearing), Continence issues.
+
+Medication Review (Polypharmacy-Focused)
+Full medication reconciliation. Adherence, understanding, practical issues. Side-effects explicitly explored.
+Anticholinergic burden / sedation / falls risk. PRN use. OTC / supplements.
+Changes made, stopped, or considered. Rationale for continuing high-risk meds if applicable.
+Document clinical reasoning, not just outcomes.
+
+Cognitive & Mental Health Assessment
+Memory concerns explored (patient and carer perspective). Orientation, attention, executive function (informal clinical assessment).
+Mood, anxiety, apathy, loneliness. Delirium risk factors. Capacity considerations if relevant.
+Any safeguarding or vulnerability concerns.
+
+
+
+Plan
+
+Management Plan
+Clear, itemised plan. Who is responsible for each action. Timescales. Monitoring arrangements. Follow-up plans.
+
+Patient & Carer Understanding
+What was explained. Level of understanding. Agreement with plan. Concerns raised.
+
+Time & Complexity Statement
+Include: "This was a prolonged and complex Ageing Well review involving multiple comorbidities, polypharmacy, functional assessment, and anticipatory care planning. Total clinician time exceeded standard consultation length."
+
+STYLE RULES (VERY IMPORTANT):
+- Use full clinical sentences
+- Avoid bullet-point minimalism
+- Include negative findings
+- Include clinical reasoning
+- Document what was considered, not just what was done
+- Write as if the notes may be read at CQC, coroner's court, or complaint review
+
+OUTPUT FORMAT:
+- Use ONLY two sections: History and Plan, separated by three blank lines
+- Plain clinical text only
+- No emojis
+- No markdown beyond headings
+- No tables
+- No summarisation
+- Length is not capped
+
+FINAL INSTRUCTION:
+If the consultation lasted two hours, the notes should look like two hours of work.`
     };
 
     const selectedNoteTypeInstruction = noteTypeInstructions[noteType] || noteTypeInstructions['standard'];

@@ -95,7 +95,8 @@ import {
   PieChart,
   Hash,
   Stethoscope,
-  Shield
+  Shield,
+  Heart
 } from "lucide-react";
 import { MEETING_DETAIL_LEVELS } from "@/constants/meetingNotesSettings";
 import { MEETING_NOTE_TYPES } from "@/constants/meetingNoteTypes";
@@ -274,6 +275,7 @@ export const SafeModeNotesModal: React.FC<SafeModeNotesModalProps> = ({
       case 'Stethoscope': return Stethoscope;
       case 'Target': return Target;
       case 'GraduationCap': return GraduationCap;
+      case 'Heart': return Heart;
       default: return FileText;
     }
   };
