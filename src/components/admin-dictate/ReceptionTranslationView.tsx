@@ -2485,7 +2485,7 @@ export const ReceptionTranslationView: React.FC<ReceptionTranslationViewProps> =
   };
 
   // Mobile layout — purpose-built for smartphones
-  if (isMobile && embedded) {
+  if (isMobile) {
     return (
       <>
         <MobileTranslationLayout
