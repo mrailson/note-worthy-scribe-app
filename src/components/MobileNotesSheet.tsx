@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { mergeLive } from "@/utils/TranscriptMerge";
 import { detectDevice } from "@/utils/DeviceDetection";
+import { BackupBadge } from "@/components/offline/BackupBadge";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { 
   Copy, 
@@ -689,7 +690,10 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 
                   <TabsContent value="transcript" className="mt-0">
                     <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-sm font-semibold text-foreground">Meeting Transcript</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-foreground">Meeting Transcript</h3>
+                        {meeting?.id && <BackupBadge meetingId={meeting.id} />}
+                      </div>
                       <div className="flex gap-1">
                         <Button
                           variant="ghost"
