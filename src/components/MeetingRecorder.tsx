@@ -6268,7 +6268,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       )}
       
       {/* Tabbed Interface */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={(tab) => {
+        setActiveTab(tab);
+        if (tab !== 'recorder' && isRecording) {
+          showToast.info('Recording continues in the background', { duration: 3000 });
+        }
+      }} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic className="h-5 w-5" />
