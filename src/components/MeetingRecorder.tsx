@@ -76,7 +76,10 @@ import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
 import { useRecordingHealthMonitor } from "@/hooks/useRecordingHealthMonitor";
-
+import { useBackupRecorder } from "@/hooks/useBackupRecorder";
+import { BackupIndicator } from "@/components/offline/BackupIndicator";
+import { BackupRecoveryPrompt } from "@/components/offline/BackupRecoveryPrompt";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -173,6 +176,19 @@ export const MeetingRecorder = ({
   const [isRecording, setIsRecording] = useState(false);
   const { isResourceOperationSafe } = useRecording();
   const isIOS = detectDevice().isIOS;
+  const isMobile = useIsMobile();
+  
+  // Backup recorder integration
+  const { isBackupActive, segmentCount, startBackup, stopBackup, pauseBackup, resumeBackup } = useBackupRecorder();
+  const [backupEnabled, setBackupEnabled] = useState(() => {
+    // Default to true on mobile, false on desktop
+    try {
+      return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
+    } catch {
+      return false;
+    }
+  });
+  const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [stopRecordingStep, setStopRecordingStep] = useState<string>('');
   const [duration, setDuration] = useState(0);
@@ -4320,6 +4336,19 @@ export const MeetingRecorder = ({
       setIsRecording(true);
       isRecordingRef.current = true;
       // Recording start time already set earlier - don't reset it here
+      
+      // Start backup recorder if enabled
+      if (backupEnabled) {
+        try {
+          const backupStream = assemblyAudioMixerRef.current?.mixedStream || micAudioStreamRef.current;
+          if (backupStream) {
+            await startBackup(backupStream);
+            console.log('[MeetingRecorder] Backup recorder started');
+          }
+        } catch (backupErr) {
+          console.warn('[MeetingRecorder] Backup recorder failed to start:', backupErr);
+        }
+      }
       setRealtimeTranscripts([]);
       setChunkSaveStatuses([]);
       setSpeakerCount(1);
@@ -4661,6 +4690,13 @@ export const MeetingRecorder = ({
         stopStereoRecording().catch(e => console.error('stopStereoRecording error', e));
       }, 0);
       
+      // Stop backup recorder (short meeting = no successful transcript)
+      if (isBackupActive) {
+        stopBackup(false, user?.id, sessionStorage.getItem('currentMeetingId') || undefined).catch(err =>
+          console.warn('[MeetingRecorder] Backup stop error:', err)
+        );
+      }
+      
       setIsRecording(false);
       isRecordingRef.current = false;
       recordingStartTimeRef.current = null; // Reset recording start time
@@ -4862,6 +4898,14 @@ export const MeetingRecorder = ({
       setRecordingBlob(null);
     }
     
+      // Stop backup recorder — transcript is considered successful if we got past the short-meeting gate
+      if (isBackupActive) {
+        const currentMeetingIdForBackup = sessionStorage.getItem('currentMeetingId') || undefined;
+        stopBackup(true, user?.id, currentMeetingIdForBackup).catch(err =>
+          console.warn('[MeetingRecorder] Backup stop error:', err)
+        );
+      }
+      
       setIsRecording(false);
       isRecordingRef.current = false;
       recordingStartTimeRef.current = null; // Reset recording start time
@@ -6114,6 +6158,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         });
       }
       
+      // Pause backup recorder
+      pauseBackup();
+      
       addDebugLog('⏸️ Recording paused - audio muted and all transcription stopped');
       showToast.success("Recording paused", { section: 'meeting_manager' });
     } catch (error) {
@@ -6126,6 +6173,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     try {
       console.log('Unpausing recording...');
       setIsPaused(false);
+      
+      // Resume backup recorder
+      resumeBackup();
       
       // Unmute audio streams
       if (micAudioStreamRef.current) {
@@ -6341,6 +6391,29 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                              Start Recording
                             </Button>
                           </div>
+                          
+                          {/* Backup toggle */}
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="backup-enabled"
+                              checked={backupEnabled}
+                              onCheckedChange={(checked) => setBackupEnabled(!!checked)}
+                            />
+                            <Label htmlFor="backup-enabled" className="text-xs text-muted-foreground cursor-pointer">
+                              Save local backup
+                            </Label>
+                          </div>
+                          
+                          {/* Recovery prompt */}
+                          {showRecoveryPrompt && (
+                            <BackupRecoveryPrompt
+                              onProcessNow={() => {
+                                setShowRecoveryPrompt(false);
+                                showToast.info('Backup processing started', { section: 'meeting_manager' });
+                              }}
+                              onKeepForLater={() => setShowRecoveryPrompt(false)}
+                            />
+                          )}
                         </div>
                      </div>
                    ) : (
@@ -6356,6 +6429,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                            <span className="text-base font-semibold">
                              {isPaused ? "Recording paused..." : "Recording in progress..."}
                            </span>
+                           
+                           {/* Backup Indicator */}
+                           <BackupIndicator isActive={isBackupActive} segmentCount={segmentCount} />
                            
                             {/* Audio Activity Indicator - Hidden on iOS */}
                             {!isPaused && audioActivity && !isIOS && (
