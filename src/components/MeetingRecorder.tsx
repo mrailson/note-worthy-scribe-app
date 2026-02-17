@@ -991,7 +991,6 @@ export const MeetingRecorder = ({
   const [micAudioUrl, setMicAudioUrl] = useState<string | null>(null);
   const [systemAudioUrl, setSystemAudioUrl] = useState<string | null>(null);
   const [showRecordingPlayer, setShowRecordingPlayer] = useState(false); // Only show player on request for iPhone
-  const [showCompactMic, setShowCompactMic] = useState(false); // Hidden by default, toggled with eye icon
   
   // Store actual blobs for saving to database
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
@@ -6783,49 +6782,25 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                       )}
                  </div>
 
-                {/* Compact Mic Control - Hidden by default, toggle with eye icon */}
-                {!showCompactMic ? (
-                  <div className="flex justify-center mt-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowCompactMic(true)}
-                      className="h-6 w-6 p-0 text-muted-foreground/40 hover:text-muted-foreground"
-                      aria-label="Show mic control"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-center py-4 mt-4 border-t border-border/50">
-                    <div className="flex justify-end mb-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowCompactMic(false)}
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                        aria-label="Hide mic control"
-                      >
-                        <EyeOff className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                    <div className="max-w-sm mx-auto">
-                      <button
-                        type="button"
-                        onClick={onMicButtonClick}
-                        disabled={isStoppingRecording || showPostMeetingActions}
-                        className={`p-2 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-all duration-200 ${
-                          isStoppingRecording
-                            ? 'bg-muted cursor-not-allowed opacity-50'
-                            : doubleClickProtection 
-                              ? 'bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 animate-pulse hover:bg-amber-200 dark:hover:bg-amber-900/50 cursor-pointer' 
-                              : isRecording 
-                                ? 'bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50 cursor-pointer' 
-                                : 'bg-primary/5 hover:bg-primary/10 cursor-pointer'
-                        }`}
-                        aria-label={isStoppingRecording ? 'Stopping recording...' : isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
-                        title={isStoppingRecording ? 'Stopping recording...' : isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
-                      >
+                {/* Compact Mic Control */}
+                <div className="text-center py-4 mt-4 border-t border-border/50">
+                  <div className="max-w-sm mx-auto">
+                     <button
+                       type="button"
+                       onClick={onMicButtonClick}
+                       disabled={isStoppingRecording || showPostMeetingActions}
+                       className={`p-2 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-all duration-200 ${
+                         isStoppingRecording
+                           ? 'bg-muted cursor-not-allowed opacity-50'
+                           : doubleClickProtection 
+                             ? 'bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 animate-pulse hover:bg-amber-200 dark:hover:bg-amber-900/50 cursor-pointer' 
+                             : isRecording 
+                               ? 'bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50 cursor-pointer' 
+                               : 'bg-primary/5 hover:bg-primary/10 cursor-pointer'
+                       }`}
+                       aria-label={isStoppingRecording ? 'Stopping recording...' : isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
+                       title={isStoppingRecording ? 'Stopping recording...' : isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
+                     >
                         {isStoppingRecording ? (
                           <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
                         ) : (
@@ -6837,28 +6812,28 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                                 : 'text-primary/60'
                           }`} />
                         )}
-                      </button>
-                      {isStoppingRecording ? (
-                        <>
-                          <h4 className="text-base font-medium mb-1 text-muted-foreground">Stopping...</h4>
-                          <p className="text-xs text-muted-foreground">
-                            Please wait while the recording is saved
-                          </p>
-                          {stopRecordingStep && (
-                            <div className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 animate-pulse">
-                              {stopRecordingStep}
-                            </div>
-                          )}
-                        </>
-                      ) : !isRecording ? (
-                        <>
-                          <h4 className="text-base font-medium mb-1">Ready to Record</h4>
-                          <p className="text-xs text-muted-foreground">
-                            Allow Microphone Access if Requested
-                          </p>
-                        </>
-                      ) : (
-                        <>
+                     </button>
+                     {isStoppingRecording ? (
+                       <>
+                         <h4 className="text-base font-medium mb-1 text-muted-foreground">Stopping...</h4>
+                         <p className="text-xs text-muted-foreground">
+                           Please wait while the recording is saved
+                         </p>
+                         {stopRecordingStep && (
+                           <div className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 animate-pulse">
+                             {stopRecordingStep}
+                           </div>
+                         )}
+                       </>
+                     ) : !isRecording ? (
+                       <>
+                         <h4 className="text-base font-medium mb-1">Ready to Record</h4>
+                         <p className="text-xs text-muted-foreground">
+                           Allow Microphone Access if Requested
+                         </p>
+                       </>
+                     ) : (
+                       <>
                           <h4 className={`text-base font-medium mb-1 ${
                             doubleClickProtection 
                               ? 'text-amber-600 dark:text-amber-400' 
@@ -6869,37 +6844,36 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                           <p className="text-xs text-muted-foreground">
                             Your meeting audio is being captured
                           </p>
-                          {stopUIStatus && (
-                            <div className="mt-2 text-xs font-medium text-purple-600 dark:text-purple-400">
-                              {stopUIStatus}
-                            </div>
-                          )}
-                          {stopRecordingStep && (
-                            <div className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 animate-pulse">
-                              {stopRecordingStep}
-                            </div>
-                          )}
-                        </>
-                      )}
-                      {/* Live Summary Display */}
-                      {liveSummary && (
-                        <Card className="mt-4 bg-gradient-to-br from-accent/20 to-accent/10 border-accent/30">
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium flex items-center gap-2">
-                              <Waves className="h-4 w-4" />
-                              Live Summary
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="pt-0">
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                              {liveSummary}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </div>
+                         {stopUIStatus && (
+                           <div className="mt-2 text-xs font-medium text-purple-600 dark:text-purple-400">
+                             {stopUIStatus}
+                           </div>
+                         )}
+                         {stopRecordingStep && (
+                           <div className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 animate-pulse">
+                             {stopRecordingStep}
+                           </div>
+                         )}
+                       </>
+                     )}
+                    {/* Live Summary Display */}
+                    {liveSummary && (
+                      <Card className="mt-4 bg-gradient-to-br from-accent/20 to-accent/10 border-accent/30">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            <Waves className="h-4 w-4" />
+                            Live Summary
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {liveSummary}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
-                )}
+                </div>
 
 
               </CardContent>
@@ -6922,6 +6896,850 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             </div>
           )}
         </TabsContent>
+
+
+        <TabsContent value="transcript" className="space-y-2 mt-6">
+          {/* Transcript Source Switcher */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-sm text-muted-foreground">View:</span>
+            <div className="flex rounded-lg border bg-muted p-1">
+              <Button
+                variant={transcriptViewMode === 'batch' ? 'default' : 'ghost'}
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => setTranscriptViewMode('batch')}
+              >
+                Batch (Whisper)
+              </Button>
+              <Button
+                variant={transcriptViewMode === 'live' ? 'default' : 'ghost'}
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => setTranscriptViewMode('live')}
+              >
+                Live (Assembly AI)
+                {assemblyPreview.isActive && (
+                  <span className="ml-1.5 relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                )}
+              </Button>
+              <Button
+                variant={transcriptViewMode === 'deepgram' ? 'default' : 'ghost'}
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => setTranscriptViewMode('deepgram')}
+              >
+                Deepgram
+                {deepgramPreview.isActive && (
+                  <span className="ml-1.5 relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Batch (Whisper) Transcript View */}
+          {transcriptViewMode === 'batch' && (
+            <RealtimeTranscriptCard
+              transcriptText={transcript || (isRecording ? "Listening for speech..." : "")}
+              isRecording={isRecording}
+              wordCount={wordCount}
+              confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
+              className="border-accent/30"
+            />
+          )}
+
+          {/* Live (Assembly AI) Transcript View */}
+          {transcriptViewMode === 'live' && (
+            <Card className="border-accent/30">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Waves className="h-4 w-4" />
+                    Live Transcript (Assembly AI)
+                    {assemblyPreview.isActive && (
+                      <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700 text-xs">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                        </span>
+                        Live
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <span className="text-xs text-muted-foreground">
+                    {assemblyPreview.fullTranscript.split(/\s+/).filter(w => w.length > 0).length} words
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea 
+                  className="h-[300px]"
+                  ref={(ref) => {
+                    // Auto-scroll to bottom when new content arrives
+                    if (ref && assemblyPreview.isActive) {
+                      const scrollContainer = ref.querySelector('[data-radix-scroll-area-viewport]');
+                      if (scrollContainer) {
+                        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                      }
+                    }
+                  }}
+                >
+                  {assemblyPreview.error ? (
+                    <p className="text-sm text-destructive p-4">{assemblyPreview.error}</p>
+                  ) : assemblyPreview.fullTranscript ? (
+                    <TranscriptDisplay 
+                      transcript={assemblyPreview.fullTranscript}
+                      isLoading={false}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic p-6 text-center">
+                      {isRecording ? "Listening for speech..." : "No live transcript available"}
+                    </p>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Deepgram Transcript View */}
+          {transcriptViewMode === 'deepgram' && (
+            <Card className="border-blue-500/30">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Waves className="h-4 w-4 text-blue-500" />
+                    Live Transcript (Deepgram Nova-3)
+                    {deepgramPreview.isActive && (
+                      <Badge variant="default" className="gap-1 bg-blue-600 hover:bg-blue-700 text-xs">
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                        </span>
+                        Live
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {deepgramPreview.fullTranscript.split(/\s+/).filter(w => w.length > 0).length} words
+                    </span>
+                    <span className="text-xs text-blue-500">
+                      {deepgramPreview.chunkCount} chunks saved
+                    </span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea 
+                  className="h-[300px]"
+                  ref={(ref) => {
+                    // Auto-scroll to bottom when new content arrives
+                    if (ref && deepgramPreview.isActive) {
+                      const scrollContainer = ref.querySelector('[data-radix-scroll-area-viewport]');
+                      if (scrollContainer) {
+                        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                      }
+                    }
+                  }}
+                >
+                  {deepgramPreview.error ? (
+                    <p className="text-sm text-destructive p-4">{deepgramPreview.error}</p>
+                  ) : deepgramPreview.fullTranscript ? (
+                    <TranscriptDisplay 
+                      transcript={deepgramPreview.fullTranscript}
+                      isLoading={false}
+                    />
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic p-6 text-center">
+                      {isRecording ? "Listening for speech..." : "No Deepgram transcript available"}
+                    </p>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Live Transcript with Enhanced Two-Section Layout */}
+          <LiveTranscript
+            ref={liveTranscriptRef}
+            transcript={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.text || "" : ""}
+            confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
+            showTimestamps={showTimestamps}
+            onTimestampsToggle={handleTimestampsToggle}
+            attendees={""}
+            meetingSettings={{
+              practiceId: (meetingSettings as any)?.practiceId || "",
+              meetingFormat: (meetingSettings as any)?.meetingFormat || "teams",
+              transcriberService: (meetingSettings as any)?.transcriberService || "whisper",
+              transcriberThresholds: (meetingSettings as any)?.transcriberThresholds || { whisper: 0.30, deepgram: 0.30 }
+            }}
+            onMeetingSettingsChange={(settings) => {
+              updateMeetingSettings(prev => ({
+                ...prev,
+                practiceId: settings.practiceId,
+                meetingFormat: settings.meetingFormat,
+                transcriberService: settings.transcriberService || prev.transcriberService,
+                transcriberThresholds: settings.transcriberThresholds || prev.transcriberThresholds
+              }));
+            }}
+            onChunkRejected={(chunkText, reason, chunkNumber) => {
+              // Update chunk save status with rejection reason
+              if (chunkNumber !== undefined) {
+                setChunkSaveStatuses(prevStatuses => 
+                  prevStatuses.map(status => 
+                    status.chunkNumber === chunkNumber
+                      ? { ...status, mergeRejectionReason: reason }
+                      : status
+                  )
+                );
+                console.warn(`⚠️ Chunk #${chunkNumber} rejected during merge: ${reason}`);
+              }
+            }}
+          />
+
+          {/* Audio Chunking Live Overview - Show real-time chunk confirmations */}
+          <ChunkSaveStatus
+            chunks={chunkSaveStatuses} 
+            isRecording={isRecording}
+            mainTranscript={transcript}
+            onMergeUnmergedChunks={handleMergeUnmergedChunks}
+          />
+        </TabsContent>
+
+
+        {/* Temporarily hidden - Meeting Settings Tab */}
+        {/* <TabsContent value="settings" className="space-y-4 mt-6">
+          <MeetingSettings
+            onSettingsChange={handleSettingsChange}
+            onTranscriptImported={(importedTranscript) => {
+              // Handle imported transcript by setting it as the current transcript
+              setTranscript(importedTranscript.content);
+              setWordCount(importedTranscript.wordCount);
+              
+              // Update meeting data with imported content
+              const currentMeetingData = {
+                transcript: importedTranscript.content,
+                title: meetingSettings.title || "General Meeting"
+              };
+              
+              // Update the transcript in the UI
+              onTranscriptUpdate(importedTranscript.content);
+              
+              // Enable generate button by setting duration to 1 second
+              setDuration(1);
+              onDurationUpdate("00:01");
+              
+              console.log('📄 Transcript imported successfully:', importedTranscript.wordCount, 'words');
+            }}
+            initialSettings={meetingSettings}
+          />
+        </TabsContent> */}
+
+        {/* Meeting History Tab */}
+        <TabsContent value="history" className="space-y-4 mt-6">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground">My Meeting History</h2>
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  View, edit, and manage your saved meetings
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+            </div>
+          </div>
+
+          {/* Compact Stats Pills */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-sm transition-all hover:shadow-sm hover:border-primary/30">
+              <FileText className="h-3.5 w-3.5 text-primary" />
+              <span className="font-semibold text-primary">{meetings.length}</span>
+              <span className="text-muted-foreground">meetings</span>
+            </div>
+            
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-500/10 to-blue-500/5 border border-blue-500/20 text-sm transition-all hover:shadow-sm hover:border-blue-500/30">
+              <Clock className="h-3.5 w-3.5 text-blue-500" />
+              <span className="font-semibold text-blue-500">
+                {meetings.filter(m => 
+                  new Date(m.created_at || m.start_time).getMonth() === new Date().getMonth()
+                ).length}
+              </span>
+              <span className="text-muted-foreground">this month</span>
+            </div>
+            
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-500/10 to-purple-500/5 border border-purple-500/20 text-sm transition-all hover:shadow-sm hover:border-purple-500/30">
+              <Timer className="h-3.5 w-3.5 text-purple-500" />
+              <span className="font-semibold text-purple-500">
+                {(() => {
+                  const totalMinutes = meetings.reduce((acc, m) => {
+                    // Use duration_minutes if available, otherwise calculate from start/end
+                    if (m.duration_minutes && m.duration_minutes > 0) {
+                      return acc + m.duration_minutes;
+                    }
+                    if (m.start_time && m.end_time) {
+                      const start = new Date(m.start_time);
+                      const end = new Date(m.end_time);
+                      const diff = (end.getTime() - start.getTime()) / (1000 * 60);
+                      return acc + (diff > 0 ? diff : 0);
+                    }
+                    return acc;
+                  }, 0);
+                  const hours = Math.floor(totalMinutes / 60);
+                  const mins = Math.round(totalMinutes % 60);
+                  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                })()}
+              </span>
+              <span className="text-muted-foreground">total time</span>
+            </div>
+            
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-orange-500/10 to-orange-500/5 border border-orange-500/20 text-sm transition-all hover:shadow-sm hover:border-orange-500/30">
+              <Type className="h-3.5 w-3.5 text-orange-500" />
+              <span className="font-semibold text-orange-500">
+                {(() => {
+                  if (totalTranscriptWords >= 1000000) return `${(totalTranscriptWords / 1000000).toFixed(1)}M`;
+                  if (totalTranscriptWords >= 1000) return `${(totalTranscriptWords / 1000).toFixed(1)}k`;
+                  return totalTranscriptWords.toString();
+                })()}
+              </span>
+              <span className="text-muted-foreground">words</span>
+            </div>
+          </div>
+
+          {/* Search and Filter Controls */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search meetings by title, description, or type..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              {folders.length > 0 && (
+                <Select
+                  value={selectedFolderId || "all"}
+                  onValueChange={(value) => setSelectedFolderId(value === "all" ? null : value)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="All folders" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All folders</SelectItem>
+                    {folders.map((folder) => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        <div className="flex items-center gap-2">
+                          <Folder className="h-3 w-3" style={{ color: folder.colour }} />
+                          {folder.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {selectedFolderId && filteredMeetings.length > 0 && (
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {filteredMeetings.length} meeting{filteredMeetings.length > 1 ? 's' : ''}
+                </span>
+              )}
+              <MeetingHistoryViewSelector
+                viewMode={layoutViewMode}
+                onViewModeChange={setLayoutViewMode}
+              />
+            </div>
+
+            {/* Multi-select and Delete Controls */}
+            {meetings.length > 0 && (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsSelectMode(!isSelectMode);
+                      setSelectedMeetings([]);
+                    }}
+                    className="touch-manipulation min-h-[44px]"
+                  >
+                    {isSelectMode ? (
+                      <>
+                        <SquareIcon className="h-4 w-4 mr-2" />
+                        Cancel Selection
+                      </>
+                    ) : (
+                      <>
+                        <CheckSquare className="h-4 w-4 mr-2" />
+                        Select Multiple
+                      </>
+                    )}
+                  </Button>
+                  
+                  {isSelectMode && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectAll}
+                        className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                      >
+                        {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
+                      </Button>
+                      
+                      {selectedMeetings.length > 0 && (
+                        <span className="text-sm text-muted-foreground">
+                          {selectedMeetings.length} selected
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  
+                  {isSelectMode && selectedMeetings.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Selected ({selectedMeetings.length})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="mx-4 max-w-md">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Selected Meetings</AlertDialogTitle>
+                          <AlertDialogDescription className="text-sm">
+                            This action will permanently delete {selectedMeetings.length} meeting{selectedMeetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                          <AlertDialogCancel className="touch-manipulation min-h-[44px]">
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={handleDeleteSelected}
+                            className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                          >
+                            Delete Selected
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+
+                  {meetings.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" disabled={isDeletingEmpty} className="touch-manipulation min-h-[44px] text-xs sm:text-sm">
+                          {isDeletingEmpty ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <MoreVertical className="h-4 w-4 mr-2" />}
+                          Quick Actions
+                          <ChevronDown className="h-4 w-4 ml-2" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={loadMeetingHistory} disabled={loadingHistory}>
+                          <RefreshCw className={`h-4 w-4 mr-2 ${loadingHistory ? 'animate-spin' : ''}`} />Refresh Page
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setFoldersDialogOpen(true)}>
+                          <Folder className="h-4 w-4 mr-2" />Manage Folders
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTeamsImportOpen(true)}>
+                          <Video className="h-4 w-4 mr-2" />Load Teams Transcript
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setAudioImportOpen(true)}>
+                          <Upload className="h-4 w-4 mr-2" />Import Audio Recording(s)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                          <Sparkles className="h-4 w-4 mr-2" />Demonstration Meeting
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowDeleteEmptyDialog(true)} disabled={isDeletingEmpty}>
+                          <Trash2 className="h-4 w-4 mr-2" />Delete Empty (&lt;100 words)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowDeleteAllDialog(true)} className="text-destructive focus:text-destructive">
+                          <Trash2 className="h-4 w-4 mr-2" />Delete All My Meetings
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                  <AlertDialog open={showDeleteEmptyDialog} onOpenChange={setShowDeleteEmptyDialog}>
+                    <AlertDialogContent className="mx-4 max-w-md">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Empty Meetings</AlertDialogTitle>
+                        <AlertDialogDescription>This will permanently delete all meetings with less than 100 words.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                        <AlertDialogCancel className="touch-manipulation min-h-[44px]">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteEmptyMeetings} className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]">Delete Empty</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  <AlertDialog open={showDeleteAllDialog} onOpenChange={(open) => {
+                    setShowDeleteAllDialog(open);
+                    if (!open) {
+                      setDeleteAllConfirmChecked(false);
+                      setDeleteAllHoldProgress(0);
+                    }
+                  }}>
+                    <AlertDialogContent className="mx-4 max-w-md">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                          <Trash2 className="h-5 w-5" />
+                          Delete All My Meetings
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm space-y-3">
+                          <p>This will <strong>permanently delete all {meetings.length} meeting{meetings.length > 1 ? 's' : ''}</strong>, including their transcripts, notes, and summaries.</p>
+                          <p className="text-destructive font-medium">⚠️ This action cannot be undone. Deleted meetings are not retrievable.</p>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="flex items-start space-x-3 py-4 border-t border-b">
+                        <Checkbox 
+                          id="delete-all-confirm" 
+                          checked={deleteAllConfirmChecked}
+                          onCheckedChange={(checked) => setDeleteAllConfirmChecked(checked === true)}
+                          className="mt-0.5"
+                        />
+                        <label 
+                          htmlFor="delete-all-confirm" 
+                          className="text-sm cursor-pointer select-none leading-relaxed"
+                        >
+                          I understand that all {meetings.length} meetings will be permanently deleted and cannot be recovered.
+                        </label>
+                      </div>
+                      <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                        <AlertDialogCancel className="touch-manipulation min-h-[44px]">Cancel</AlertDialogCancel>
+                        <Button
+                          variant="destructive"
+                          disabled={!deleteAllConfirmChecked}
+                          className="touch-manipulation min-h-[44px] relative overflow-hidden"
+                          onMouseDown={() => {
+                            if (!deleteAllConfirmChecked) return;
+                            let progress = 0;
+                            const interval = setInterval(() => {
+                              progress += 2;
+                              setDeleteAllHoldProgress(progress);
+                              if (progress >= 100) {
+                                clearInterval(interval);
+                                deleteAllHoldRef.current = null;
+                                handleDeleteAll();
+                                setShowDeleteAllDialog(false);
+                                setDeleteAllConfirmChecked(false);
+                                setDeleteAllHoldProgress(0);
+                              }
+                            }, 20);
+                            deleteAllHoldRef.current = interval;
+                          }}
+                          onMouseUp={() => {
+                            if (deleteAllHoldRef.current) {
+                              clearInterval(deleteAllHoldRef.current);
+                              deleteAllHoldRef.current = null;
+                              setDeleteAllHoldProgress(0);
+                            }
+                          }}
+                          onMouseLeave={() => {
+                            if (deleteAllHoldRef.current) {
+                              clearInterval(deleteAllHoldRef.current);
+                              deleteAllHoldRef.current = null;
+                              setDeleteAllHoldProgress(0);
+                            }
+                          }}
+                          onTouchStart={() => {
+                            if (!deleteAllConfirmChecked) return;
+                            let progress = 0;
+                            const interval = setInterval(() => {
+                              progress += 2;
+                              setDeleteAllHoldProgress(progress);
+                              if (progress >= 100) {
+                                clearInterval(interval);
+                                deleteAllHoldRef.current = null;
+                                handleDeleteAll();
+                                setShowDeleteAllDialog(false);
+                                setDeleteAllConfirmChecked(false);
+                                setDeleteAllHoldProgress(0);
+                              }
+                            }, 20);
+                            deleteAllHoldRef.current = interval;
+                          }}
+                          onTouchEnd={() => {
+                            if (deleteAllHoldRef.current) {
+                              clearInterval(deleteAllHoldRef.current);
+                              deleteAllHoldRef.current = null;
+                              setDeleteAllHoldProgress(0);
+                            }
+                          }}
+                        >
+                          <div 
+                            className="absolute inset-0 bg-red-900/50 transition-all duration-75 ease-linear"
+                            style={{ width: `${deleteAllHoldProgress}%` }}
+                          />
+                          <span className="relative z-10">
+                            {deleteAllHoldProgress > 0 ? `Hold... ${Math.round(deleteAllHoldProgress)}%` : 'Hold to Delete All My Meetings'}
+                          </span>
+                        </Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Meetings List - Conditional rendering based on view mode */}
+          {(() => {
+            // Calculate paginated meetings
+            const totalPages = Math.ceil(filteredMeetings.length / meetingsPerPage);
+            const startIndex = (currentPage - 1) * meetingsPerPage;
+            const paginatedMeetings = filteredMeetings.slice(startIndex, startIndex + meetingsPerPage);
+            
+            return (
+              <>
+                {layoutViewMode === 'compact' ? (
+                  <CompactMeetingList
+                    meetings={paginatedMeetings}
+                    isSelectMode={isSelectMode}
+                    selectedMeetings={selectedMeetings}
+                    onSelectMeeting={(meetingId, isSelected) => {
+                      if (isSelected) {
+                        setSelectedMeetings(prev => [...prev, meetingId]);
+                      } else {
+                        setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                      }
+                    }}
+                    onViewNotes={handleSafeModeNotesClick}
+                    onDelete={handleDeleteMeeting}
+                    loading={loadingHistory}
+                  />
+                ) : layoutViewMode === 'grid' ? (
+                  <MeetingGridView
+                    meetings={paginatedMeetings}
+                    isSelectMode={isSelectMode}
+                    selectedMeetings={selectedMeetings}
+                    onSelectMeeting={(meetingId, isSelected) => {
+                      if (isSelected) {
+                        setSelectedMeetings(prev => [...prev, meetingId]);
+                      } else {
+                        setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                      }
+                    }}
+                    onViewNotes={handleSafeModeNotesClick}
+                    onDelete={handleDeleteMeeting}
+                    loading={loadingHistory}
+                  />
+                ) : layoutViewMode === 'table' ? (
+                  <MeetingTableView
+                    meetings={paginatedMeetings}
+                    isSelectMode={isSelectMode}
+                    selectedMeetings={selectedMeetings}
+                    onSelectMeeting={(meetingId, isSelected) => {
+                      if (isSelected) {
+                        setSelectedMeetings(prev => [...prev, meetingId]);
+                      } else {
+                        setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                      }
+                    }}
+                    onSelectAll={() => {
+                      if (selectedMeetings.length === filteredMeetings.length) {
+                        setSelectedMeetings([]);
+                      } else {
+                        setSelectedMeetings(filteredMeetings.map(m => m.id));
+                      }
+                    }}
+                    onViewNotes={handleSafeModeNotesClick}
+                    onDelete={handleDeleteMeeting}
+                    loading={loadingHistory}
+                  />
+                ) : layoutViewMode === 'timeline' ? (
+                  <MeetingTimelineView
+                    meetings={paginatedMeetings}
+                    isSelectMode={isSelectMode}
+                    selectedMeetings={selectedMeetings}
+                    onSelectMeeting={(meetingId, isSelected) => {
+                      if (isSelected) {
+                        setSelectedMeetings(prev => [...prev, meetingId]);
+                      } else {
+                        setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                      }
+                    }}
+                    onViewNotes={handleSafeModeNotesClick}
+                    onDelete={handleDeleteMeeting}
+                    loading={loadingHistory}
+                  />
+                ) : (
+                  <MeetingHistoryList 
+                    meetings={paginatedMeetings}
+                    onEdit={(meetingId) => navigate(`/meeting-summary`, { state: { id: meetingId } })}
+                    onViewSummary={handleViewSummary}
+                    onViewTranscript={handleViewTranscript}
+                    onDelete={handleDeleteMeeting}
+                    onRefresh={loadMeetingHistory}
+                    loading={loadingHistory}
+                    isSelectMode={isSelectMode}
+                    selectedMeetings={selectedMeetings}
+                    onSelectMeeting={(meetingId, isSelected) => {
+                      if (isSelected) {
+                        setSelectedMeetings(prev => [...prev, meetingId]);
+                      } else {
+                        setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+                      }
+                    }}
+                    onMeetingUpdate={(meetingId, updatedTitle) => {
+                      setMeetings(prev => prev.map(meeting =>
+                        meeting.id === meetingId 
+                          ? { ...meeting, title: updatedTitle }
+                          : meeting
+                      ));
+                    }}
+                    showRecordingPlayback={false}
+                    autoOpenSafeModeForMeetingId={autoOpenSafeModeForMeetingId}
+                    onAutoOpenSafeModeProcessed={() => setAutoOpenSafeModeForMeetingId(null)}
+                  />
+                )}
+                
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <Button
+                          key={page}
+                          variant={page === currentPage ? "default" : "outline"}
+                          size="sm"
+                          className="w-8 h-8 p-0"
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      {startIndex + 1}-{Math.min(startIndex + meetingsPerPage, filteredMeetings.length)} of {filteredMeetings.length}
+                    </span>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </TabsContent>
+
+      </Tabs>
+      
+      
+      {/* Stop Recording Confirmation Dialog */}
+      <StopRecordingConfirmDialog
+        isOpen={showConfirmDialog}
+        onOpenChange={handleConfirmDialogOpenChangeWrapped}
+        onConfirm={confirmStopRecordingWrapped}
+        recordingDuration={duration}
+        wordCount={wordCount}
+      />
+
+
+          {/* Full Page Notes Modal - now available on all devices including iPhone */}
+          {fullPageModalOpen && modalMeeting && (
+            modalMeeting._isLoading ? (
+              <Dialog
+                open={fullPageModalOpen}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setFullPageModalOpen(false);
+                    setModalMeeting(null);
+                    setModalNotes('');
+                  }
+                }}
+              >
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Loading meeting notes</DialogTitle>
+                    <DialogDescription>Fetching your latest notes…</DialogDescription>
+                  </DialogHeader>
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            ) : (
+              <FullPageNotesModal
+                isOpen={fullPageModalOpen}
+                onClose={() => {
+                  setFullPageModalOpen(false);
+                  setModalMeeting(null);
+                  setModalNotes('');
+                }}
+                meeting={modalMeeting}
+                notes={modalNotes}
+                onNotesChange={setModalNotes}
+              />
+            )
+          )}
+      
+      {/* SafeModeNotesModal for new view components */}
+      <SafeModeNotesModal
+        isOpen={safeModeModalOpen}
+        onClose={() => {
+          safeModeModalOpenRef.current = false;
+          setSafeModeModalOpen(false);
+          setSafeModeSelectedMeeting(null);
+          setSafeModeNotes('');
+        }}
+        meeting={safeModeSelectedMeeting}
+        notes={safeModeNotes}
+      />
+
+      {/* Transcript Modal */}
+      {transcriptModalOpen && currentMeetingForTranscript && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-hidden border border-border">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">{currentMeetingForTranscript.title}</h2>
+                <p className="text-sm text-muted-foreground">Meeting Transcript</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setTranscriptModalOpen(false);
+                  setCurrentMeetingForTranscript(null);
+                }}
+                className="h-8 w-8 p-0"
+              >
+                ✕
+              </Button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <p className="text-sm text-muted-foreground mb-4">
+                Transcript functionality is not fully implemented in this tab. Please use the standalone Meeting History page for full transcript features.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Real-time Meeting Dashboard */}
       <RealtimeMeetingDashboard
