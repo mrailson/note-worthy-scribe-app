@@ -59,7 +59,7 @@ export const BackupBadge: React.FC<BackupBadgeProps> = ({ meetingId }) => {
       <TooltipTrigger asChild>
         <Badge variant="secondary" className="gap-1 cursor-default text-xs">
           <Shield className="h-3 w-3" />
-          Backup
+          Backup · {formatBytes(backup.fileSize)} · {durationStr}
         </Badge>
       </TooltipTrigger>
       <TooltipContent side="bottom" className="text-xs space-y-1">
