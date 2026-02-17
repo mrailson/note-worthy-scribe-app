@@ -1,69 +1,55 @@
 
 
-# Upload Backup Audio to Supabase Storage (24-Hour Retention)
+# Integrate Backup Recorder into Main Meeting Recorder
 
-## Overview
-When a backup recording stops, upload the audio segments to the existing `meeting-audio-backups` Supabase Storage bucket and create a record in the `meeting_audio_backups` table. This ensures the audio is available server-side for at least 24 hours, even if the user clears their browser or switches devices. The existing `delete-old-audio-backups` edge function already handles cleanup of files older than 24 hours.
+## Problem
+The offline backup recorder was only added to the **standalone recorder** (`/new-recorder` page). The main meeting recorder -- which is what users actually see on iPhone (shown in the screenshot) -- has no backup integration. No checkbox, no indicator, no backup audio capture.
 
-## How It Works
+## Solution
+Wire the existing `useBackupRecorder` hook into `MeetingRecorder.tsx` so the backup runs alongside live recording on any device, with the checkbox defaulting to **on** for mobile.
 
-1. When the backup recorder stops, each segment blob is uploaded from IndexedDB to Supabase Storage under the path `{user_id}/{meeting_id}/backup-segment-{index}.webm`
-2. A record is inserted into the `meeting_audio_backups` table linking the file to the meeting
-3. If the user is offline when recording stops, the upload is deferred and retried when connectivity returns
-4. The existing `delete-old-audio-backups` edge function (already deployed) cleans up files older than 24 hours -- no changes needed there
+## Changes Required
 
-## Technical Changes
+### `src/components/MeetingRecorder.tsx`
 
-### `src/hooks/useBackupRecorder.ts`
-- Add a new `uploadToStorage` function that:
-  - Retrieves all segments from IndexedDB for the session
-  - Concatenates them into a single blob (or uploads individually with an index suffix)
-  - Uploads to `meeting-audio-backups` bucket at `{userId}/{sessionId}/backup-segment-{index}.ext`
-  - Inserts a row into `meeting_audio_backups` with `meeting_id`, `user_id`, `file_path`, `file_size`, `duration_seconds`, and `backup_reason`
-- Modify `stopBackup` to accept `meetingId` and `userId` parameters
-- After saving the final segment to IndexedDB, attempt the upload immediately if online
-- If offline, mark the session as `pending_upload` so it can be retried later
+**1. Add imports and hook**
+- Import `useBackupRecorder`, `BackupIndicator`, `BackupRecoveryPrompt`, and `useIsMobile`
+- Add `backupEnabled` state (default `true` on mobile, `false` on desktop)
+- Initialise `useBackupRecorder()` hook
+- Add `showRecoveryPrompt` state
 
-### `src/hooks/useBackupSync.ts`
-- Add an `uploadPendingBackups` function that checks for sessions with `pending_upload` status and attempts to upload them to Supabase Storage
-- Call this on mount and whenever the app comes back online (`navigator.onLine` event)
-- After successful upload, update the IndexedDB session with the remote file path for reference
+**2. Start backup in `startRecording()`**
+- After the mic stream is acquired and recording begins (~line 4320), if `backupEnabled` is true, obtain the mic stream from `micAudioStreamRef.current` (or `assemblyAudioMixerRef.current?.mixedStream`) and call `startBackup(stream)`
+- This reuses the same microphone stream -- no extra permission prompt
 
-### `src/components/standalone/RecorderInterface.tsx`
-- Pass the current user ID and meeting ID (if available) through to `stopBackup`
-- The meeting ID may not be available for standalone recordings -- in that case, use the backup session ID as a fallback identifier
+**3. Stop backup in `stopRecording()`**
+- After stopping all transcribers, call `stopBackup(transcriptSuccessful, userId, meetingId)`
+- Use the `effectiveWords` count already calculated in `stopRecording` to determine success (threshold: words > 5 or whatever the quality check dictates)
+- If the transcript quality is poor, set `showRecoveryPrompt = true`
 
-### `src/components/offline/PendingBackupsList.tsx`
-- Show upload status alongside processing status (e.g. "Uploaded" badge or "Upload pending" badge)
-- Add a manual "Upload" button for sessions that failed to upload automatically
+**4. Pause/resume backup**
+- In the existing pause handler (~line 6104), add `pauseBackup()` call
+- In the existing resume handler (~line 6129), add `resumeBackup()` call
 
-### `src/utils/offlineAudioStore.ts`
-- Add a `pending_upload` status option to the `BackupSession` type
-- Add an optional `remoteFilePath` field to track whether the session has been uploaded
+**5. Add backup checkbox to recorder UI (before recording starts)**
+- Add a "Save local backup" checkbox with the same styling as the standalone version
+- Only visible when not recording
+- Default checked on mobile
 
-## Storage Path Convention
+**6. Add BackupIndicator to recording UI**
+- Show the shield badge alongside the existing recording status indicators (Duration, Word Count area) during active recording
 
-```
-meeting-audio-backups/{user_id}/{meeting_or_session_id}/backup-segment-0.webm
-meeting-audio-backups/{user_id}/{meeting_or_session_id}/backup-segment-1.webm
-```
+**7. Add BackupRecoveryPrompt**
+- Render `BackupRecoveryPrompt` when `showRecoveryPrompt` is true, after recording stops with poor transcript quality
 
-## Cleanup
+### No other file changes needed
+- `useBackupRecorder.ts`, `BackupIndicator.tsx`, `BackupRecoveryPrompt.tsx`, `offlineAudioStore.ts`, and `backupUploader.ts` are all reused as-is
+- The `PendingBackupsList` already appears on `/new-recorder`; optionally it could also be shown on the main recorder's History tab, but that can be a follow-up
 
-The existing `delete-old-audio-backups` edge function already:
-- Deletes records from `meeting_audio_backups` older than 24 hours (configurable via `cutoffHours`)
-- Removes the corresponding files from the `meeting-audio-backups` storage bucket
-- Logs the action to `system_audit_log`
+## Technical Notes
 
-No changes are needed to the cleanup logic.
-
-## RLS Policies
-
-The `meeting-audio-backups` bucket already has RLS policies allowing authenticated users to upload, read, and delete files within their own user ID folder. No policy changes needed.
-
-## Offline Resilience
-
-- If the device is offline when recording stops, segments stay in IndexedDB and are marked for upload
-- When connectivity returns (detected via `online` event listener), the upload is retried automatically
-- Once uploaded, the local IndexedDB copy is retained until the session is explicitly deleted or processed -- this avoids data loss if the upload succeeds but the user wants to process locally
+- The mic stream ref (`micAudioStreamRef.current`) is populated during `startMicrophoneTranscription()` before the backup start point, so it will be available
+- For the mixed stream path (Chromium mic+system), `assemblyAudioMixerRef.current?.mixedStream` captures both sources -- the backup will use whichever is available
+- The 500ms delay used in the standalone version is not needed here because `micAudioStreamRef` is set synchronously during `startRecording`
+- Backup auto-deletes on success and uploads to Supabase Storage for 24-hour retention -- all existing behaviour carries over
 
