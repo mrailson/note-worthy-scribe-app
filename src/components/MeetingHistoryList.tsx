@@ -45,6 +45,7 @@ import { formatTranscriptContext, extractCleanContent } from '@/utils/meeting/fo
 import { parseAttendeesFromText } from '@/utils/meeting/parseAttendeesFromText';
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
+import { BackupBadge } from "@/components/offline/BackupBadge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
@@ -3089,6 +3090,8 @@ export const MeetingHistoryList = ({
                       <span>Summary available</span>
                     </div>
                   )}
+                  
+                  <BackupBadge meetingId={meeting.id} />
                 </div>
                 
                 <div className="text-xs text-muted-foreground whitespace-nowrap">
