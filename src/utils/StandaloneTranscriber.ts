@@ -266,4 +266,8 @@ export class StandaloneTranscriber {
       this.options.onTranscribing(false);
     }
   }
+
+  getStream(): MediaStream | null {
+    return this.stream;
+  }
 }
