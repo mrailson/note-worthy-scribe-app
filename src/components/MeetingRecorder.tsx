@@ -991,6 +991,7 @@ export const MeetingRecorder = ({
   const [micAudioUrl, setMicAudioUrl] = useState<string | null>(null);
   const [systemAudioUrl, setSystemAudioUrl] = useState<string | null>(null);
   const [showRecordingPlayer, setShowRecordingPlayer] = useState(false); // Only show player on request for iPhone
+  const [showCompactMic, setShowCompactMic] = useState(false); // Hidden by default, toggled with eye icon
   
   // Store actual blobs for saving to database
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
@@ -6782,8 +6783,19 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                       )}
                  </div>
 
-                {/* Compact Mic Control */}
-                <div className="text-center py-4 mt-4 border-t border-border/50">
+                {/* Compact Mic Control - Toggle */}
+                <div className="flex justify-center mt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowCompactMic(prev => !prev)}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                    aria-label={showCompactMic ? "Hide mic control" : "Show mic control"}
+                  >
+                    {showCompactMic ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <div className={`text-center py-4 mt-2 border-t border-border/50 transition-all duration-300 ${showCompactMic ? 'opacity-100' : 'hidden'}`}>
                   <div className="max-w-sm mx-auto">
                      <button
                        type="button"

@@ -9,7 +9,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, PlayCircle, Loader2, CheckCircle, AlertCircle, Mail } from 'lucide-react';
+import { FileText, PlayCircle, Loader2, CheckCircle, AlertCircle, Mail, Shield } from 'lucide-react';
+import { BackupBadge } from '@/components/offline/BackupBadge';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from "@/utils/toastWrapper";
 import { useAuth } from '@/contexts/AuthContext';
@@ -700,6 +701,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                       Emailed
                     </Badge>
                   )}
+                  {meetingId && <BackupBadge meetingId={meetingId} />}
                 </div>
               </div>
             </DialogDescription>
