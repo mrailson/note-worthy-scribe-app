@@ -1,55 +1,54 @@
 
 
-# Integrate Backup Recorder into Main Meeting Recorder
+## Fix Backup Audio Upload and Investigate Early Meeting End
 
-## Problem
-The offline backup recorder was only added to the **standalone recorder** (`/new-recorder` page). The main meeting recorder -- which is what users actually see on iPhone (shown in the screenshot) -- has no backup integration. No checkbox, no indicator, no backup audio capture.
+### Problem Summary
+Two issues have been identified:
 
-## Solution
-Wire the existing `useBackupRecorder` hook into `MeetingRecorder.tsx` so the backup runs alongside live recording on any device, with the checkbox defaulting to **on** for mobile.
+### Issue 1: Backup Audio Never Uploads (Root Cause Found)
+The `meeting-audio-backups` storage bucket is **missing an INSERT (upload) policy**. The bucket has SELECT and DELETE policies, but no policy allowing users to upload files. This means every backup upload attempt is silently rejected by Supabase RLS, which is why the `meeting_audio_backups` table is always empty and the BackupBadge never appears.
 
-## Changes Required
+### Issue 2: Meeting Ending Early When Switching to History Tab
+Investigation shows that switching between tabs (Recorder/Transcript/History) within `MeetingRecorder` is a simple React state change -- no component unmounting or navigation occurs. The recording should continue unaffected. On iPhone, the `SimpleIOSTranscriber` already monitors for track endings and has stream recovery. The 2-minute test meeting completed successfully with notes generated, so this may have been a coincidental manual stop rather than a code bug. However, we should add a safety warning when switching tabs during recording.
 
-### `src/components/MeetingRecorder.tsx`
+---
 
-**1. Add imports and hook**
-- Import `useBackupRecorder`, `BackupIndicator`, `BackupRecoveryPrompt`, and `useIsMobile`
-- Add `backupEnabled` state (default `true` on mobile, `false` on desktop)
-- Initialise `useBackupRecorder()` hook
-- Add `showRecoveryPrompt` state
+### Plan
 
-**2. Start backup in `startRecording()`**
-- After the mic stream is acquired and recording begins (~line 4320), if `backupEnabled` is true, obtain the mic stream from `micAudioStreamRef.current` (or `assemblyAudioMixerRef.current?.mixedStream`) and call `startBackup(stream)`
-- This reuses the same microphone stream -- no extra permission prompt
+#### Step 1: Add Storage INSERT Policy (Critical Fix)
+Create a SQL migration to add an INSERT policy on `storage.objects` for the `meeting-audio-backups` bucket, allowing authenticated users to upload to their own folder (matching the existing SELECT/DELETE pattern).
 
-**3. Stop backup in `stopRecording()`**
-- After stopping all transcribers, call `stopBackup(transcriptSuccessful, userId, meetingId)`
-- Use the `effectiveWords` count already calculated in `stopRecording` to determine success (threshold: words > 5 or whatever the quality check dictates)
-- If the transcript quality is poor, set `showRecoveryPrompt = true`
+```sql
+CREATE POLICY "Users can upload their meeting audio backups"
+ON storage.objects FOR INSERT
+WITH CHECK (
+  bucket_id = 'meeting-audio-backups'
+  AND (auth.uid())::text = (storage.foldername(name))[1]
+);
+```
 
-**4. Pause/resume backup**
-- In the existing pause handler (~line 6104), add `pauseBackup()` call
-- In the existing resume handler (~line 6129), add `resumeBackup()` call
+Also add an UPDATE policy (needed for `upsert: true` in the upload code):
 
-**5. Add backup checkbox to recorder UI (before recording starts)**
-- Add a "Save local backup" checkbox with the same styling as the standalone version
-- Only visible when not recording
-- Default checked on mobile
+```sql
+CREATE POLICY "Users can update their meeting audio backups"
+ON storage.objects FOR UPDATE
+USING (
+  bucket_id = 'meeting-audio-backups'
+  AND (auth.uid())::text = (storage.foldername(name))[1]
+);
+```
 
-**6. Add BackupIndicator to recording UI**
-- Show the shield badge alongside the existing recording status indicators (Duration, Word Count area) during active recording
+#### Step 2: Add Better Upload Error Logging
+Update `backupUploader.ts` to log the specific error when upload fails, so we can diagnose issues more easily in future.
 
-**7. Add BackupRecoveryPrompt**
-- Render `BackupRecoveryPrompt` when `showRecoveryPrompt` is true, after recording stops with poor transcript quality
+#### Step 3: Add Tab-Switch Warning During Recording (Optional Safety)
+When the user switches to the History tab whilst recording is active, show a brief informational toast reminding them that recording continues in the background. This provides reassurance without blocking the action.
 
-### No other file changes needed
-- `useBackupRecorder.ts`, `BackupIndicator.tsx`, `BackupRecoveryPrompt.tsx`, `offlineAudioStore.ts`, and `backupUploader.ts` are all reused as-is
-- The `PendingBackupsList` already appears on `/new-recorder`; optionally it could also be shown on the main recorder's History tab, but that can be a follow-up
+---
 
-## Technical Notes
-
-- The mic stream ref (`micAudioStreamRef.current`) is populated during `startMicrophoneTranscription()` before the backup start point, so it will be available
-- For the mixed stream path (Chromium mic+system), `assemblyAudioMixerRef.current?.mixedStream` captures both sources -- the backup will use whichever is available
-- The 500ms delay used in the standalone version is not needed here because `micAudioStreamRef` is set synchronously during `startRecording`
-- Backup auto-deletes on success and uploads to Supabase Storage for 24-hour retention -- all existing behaviour carries over
+### Expected Outcome
+- After Step 1, backup audio will successfully upload to Supabase Storage
+- The `meeting_audio_backups` table will receive metadata records
+- The BackupBadge will appear in the transcript tab showing file size and duration
+- Users get reassurance when switching tabs during recording
 
