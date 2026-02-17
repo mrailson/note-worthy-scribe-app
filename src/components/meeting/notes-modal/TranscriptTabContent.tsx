@@ -1,6 +1,7 @@
 import React from 'react';
 import { EnhancedTranscriptionPanel } from "@/components/meeting/EnhancedTranscriptionPanel";
 import { PaginatedTranscriptViewer } from "@/components/standalone/PaginatedTranscriptViewer";
+import { BackupBadge } from "@/components/offline/BackupBadge";
 
 interface Meeting {
   id: string;
@@ -29,10 +30,13 @@ export const TranscriptTabContent: React.FC<TranscriptTabContentProps> = ({
   onTranscriptChange,
   onShowContextDialog,
 }) => {
-  // Removed console.log to reduce render overhead
-  
   return (
     <div className="flex-1 overflow-hidden mt-0 bg-white h-full">
+      {meetingId && (
+        <div className="px-6 pt-4 pb-0">
+          <BackupBadge meetingId={meetingId} />
+        </div>
+      )}
       {isLargeTranscript ? (
         <div className="flex flex-col h-full p-6">
           <PaginatedTranscriptViewer
