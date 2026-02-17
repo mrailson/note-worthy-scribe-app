@@ -1,6 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { SEO } from '@/components/SEO';
+import { PendingBackupsList } from '@/components/offline/PendingBackupsList';
 import { RecorderInterface } from '@/components/standalone/RecorderInterface';
 
 const NewRecorder = () => {
@@ -30,6 +31,11 @@ const NewRecorder = () => {
             </div>
             
             <RecorderInterface />
+            
+            {/* Saved Backups (only visible when pending backups exist) */}
+            <div className="mt-6">
+              <PendingBackupsList />
+            </div>
           </div>
         </div>
       </div>
