@@ -43,7 +43,15 @@ export async function uploadBackupSegments(
       });
 
     if (uploadError) {
-      console.error(`[BackupUploader] Failed to upload segment ${i}:`, uploadError);
+      console.error(`[BackupUploader] Failed to upload segment ${i}:`, {
+        message: uploadError.message,
+        statusCode: (uploadError as any).statusCode,
+        error: uploadError,
+        storagePath,
+        bucketId: 'meeting-audio-backups',
+        contentType: session.format || 'audio/webm',
+        blobSize: segments[i].blob.size,
+      });
       throw uploadError;
     }
 
