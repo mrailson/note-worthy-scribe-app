@@ -6,6 +6,7 @@ import {
   deleteSession,
   type BackupSession,
 } from '@/utils/offlineAudioStore';
+import { uploadBackupSegments } from '@/utils/backupUploader';
 
 const MAX_SEGMENT_MS = 60 * 60 * 1000; // 60 minutes
 const OVERLAP_MS = 10_000; // 10 seconds
@@ -156,7 +157,11 @@ export function useBackupRecorder() {
     return sessionId;
   }, [startNewSegmentRecorder, scheduleRotation]);
 
-  const stopBackup = useCallback(async (transcriptSuccessful: boolean = false) => {
+  const stopBackup = useCallback(async (
+    transcriptSuccessful: boolean = false,
+    userId?: string,
+    meetingId?: string,
+  ) => {
     if (rotationTimerRef.current) {
       clearTimeout(rotationTimerRef.current);
       rotationTimerRef.current = null;
@@ -168,14 +173,40 @@ export function useBackupRecorder() {
     recorderRef.current = null;
     setIsBackupActive(false);
 
-    if (sessionIdRef.current) {
+    const sid = sessionIdRef.current;
+
+    if (sid) {
       if (transcriptSuccessful) {
-        // Auto-delete backup if live transcript succeeded
-        await deleteSession(sessionIdRef.current);
-        console.log('[BackupRecorder] Live transcript succeeded — backup deleted');
+        // Try to upload even on success — 24h retention safety net
+        if (navigator.onLine && userId) {
+          try {
+            await uploadBackupSegments(sid, userId, meetingId || sid, 'success_backup');
+          } catch (err) {
+            console.warn('[BackupRecorder] Upload on success failed:', err);
+          }
+        }
+        await deleteSession(sid);
+        console.log('[BackupRecorder] Live transcript succeeded — backup uploaded & local deleted');
       } else {
-        await updateSession(sessionIdRef.current, { status: 'pending' });
-        console.log('[BackupRecorder] Session saved as pending for recovery');
+        // Update with user/meeting info for deferred upload
+        await updateSession(sid, {
+          userId,
+          meetingId: meetingId || sid,
+        });
+
+        if (navigator.onLine && userId) {
+          try {
+            await uploadBackupSegments(sid, userId, meetingId || sid, 'transcript_failure');
+            await updateSession(sid, { status: 'pending' });
+            console.log('[BackupRecorder] Backup uploaded, session pending for processing');
+          } catch (err) {
+            console.warn('[BackupRecorder] Upload failed, marking pending_upload:', err);
+            await updateSession(sid, { status: 'pending_upload' });
+          }
+        } else {
+          await updateSession(sid, { status: 'pending_upload' });
+          console.log('[BackupRecorder] Offline — marked pending_upload for later');
+        }
       }
     }
 

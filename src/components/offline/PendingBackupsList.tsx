@@ -3,9 +3,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Play, Trash2, Download, Wifi, WifiOff } from 'lucide-react';
+import { Play, Trash2, Download, Wifi, WifiOff, Upload, CloudOff, CheckCircle2 } from 'lucide-react';
 import { useBackupSync } from '@/hooks/useBackupSync';
 import { showShadcnToast } from '@/utils/toastWrapper';
+import { uploadBackupSegments } from '@/utils/backupUploader';
+import { updateSession } from '@/utils/offlineAudioStore';
 
 export const PendingBackupsList: React.FC = () => {
   const {
@@ -63,6 +65,40 @@ export const PendingBackupsList: React.FC = () => {
     });
   };
 
+  const handleManualUpload = async (session: { id: string; userId?: string; meetingId?: string }) => {
+    if (!session.userId) {
+      showShadcnToast({
+        title: 'Upload Failed',
+        description: 'No user ID associated with this backup',
+        variant: 'destructive',
+        section: 'meeting_manager',
+      });
+      return;
+    }
+    try {
+      await uploadBackupSegments(
+        session.id,
+        session.userId,
+        session.meetingId || session.id,
+        'manual_upload',
+      );
+      await updateSession(session.id, { status: 'pending' });
+      await refreshPendingSessions();
+      showShadcnToast({
+        title: 'Backup Uploaded',
+        description: 'Audio backup has been uploaded to the server',
+        section: 'meeting_manager',
+      });
+    } catch (err) {
+      showShadcnToast({
+        title: 'Upload Failed',
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: 'destructive',
+        section: 'meeting_manager',
+      });
+    }
+  };
+
   const handleExportTranscript = (transcript: string) => {
     const blob = new Blob([transcript], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -113,9 +149,17 @@ export const PendingBackupsList: React.FC = () => {
                   {formatDuration(session.duration)} · {session.segmentCount} segment{session.segmentCount !== 1 ? 's' : ''}
                 </p>
               </div>
-              <Badge variant={session.status === 'error' ? 'destructive' : 'outline'}>
-                {session.status}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant={session.status === 'error' ? 'destructive' : 'outline'}>
+                  {session.status === 'pending_upload' ? 'upload pending' : session.status}
+                </Badge>
+                {session.remoteFilePaths && session.remoteFilePaths.length > 0 && (
+                  <Badge variant="secondary" className="gap-1">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Uploaded
+                  </Badge>
+                )}
+              </div>
             </div>
 
             {session.errorMessage && (
@@ -146,7 +190,18 @@ export const PendingBackupsList: React.FC = () => {
             )}
 
             <div className="flex gap-2">
-              {session.status !== 'processing' && !session.transcript && (
+              {session.status === 'pending_upload' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleManualUpload(session)}
+                  disabled={!isOnline || isProcessing}
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  Upload
+                </Button>
+              )}
+              {session.status !== 'processing' && session.status !== 'pending_upload' && !session.transcript && (
                 <Button
                   size="sm"
                   onClick={() => handleProcess(session.id)}

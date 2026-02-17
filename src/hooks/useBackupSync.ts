@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   getSession,
   getSegments,
@@ -9,6 +9,7 @@ import {
 } from '@/utils/offlineAudioStore';
 import { supabase } from '@/integrations/supabase/client';
 import { WHISPER_CHUNKING } from '@/config/whisperChunking';
+import { uploadPendingBackups } from '@/utils/backupUploader';
 
 export function useBackupSync() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -21,6 +22,20 @@ export function useBackupSync() {
     const sessions = await listPendingSessions();
     setPendingSessions(sessions);
   }, []);
+
+  // Auto-upload pending backups when online
+  useEffect(() => {
+    const tryUpload = async () => {
+      await uploadPendingBackups();
+      await refreshPendingSessions();
+    };
+
+    tryUpload();
+
+    const onOnline = () => tryUpload();
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, [refreshPendingSessions]);
 
   const transcribeSegment = async (blob: Blob, mimeType: string): Promise<string> => {
     // Convert blob to base64

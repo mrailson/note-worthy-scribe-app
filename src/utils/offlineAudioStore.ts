@@ -11,9 +11,11 @@ export interface BackupSession {
   duration: number; // seconds
   segmentCount: number;
   format: string;
-  status: 'recording' | 'pending' | 'processing' | 'completed' | 'error';
+  status: 'recording' | 'pending' | 'pending_upload' | 'processing' | 'completed' | 'error';
   transcript?: string;
   errorMessage?: string;
+  remoteFilePaths?: string[];
+  userId?: string;
 }
 
 export interface BackupSegment {
@@ -89,7 +91,7 @@ export async function listPendingSessions(): Promise<BackupSession[]> {
   const db = await openDB();
   const all = await req<BackupSession[]>(tx(db, SESSIONS_STORE, 'readonly').getAll());
   db.close();
-  return all.filter(s => s.status === 'pending' || s.status === 'error');
+  return all.filter(s => s.status === 'pending' || s.status === 'pending_upload' || s.status === 'error');
 }
 
 export async function listAllSessions(): Promise<BackupSession[]> {

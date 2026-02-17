@@ -11,6 +11,7 @@ import { RecordingTimer } from './RecordingTimer';
 import { VolumeIndicator } from './VolumeIndicator';
 import { BackupIndicator } from '@/components/offline/BackupIndicator';
 import { BackupRecoveryPrompt } from '@/components/offline/BackupRecoveryPrompt';
+import { supabase } from '@/integrations/supabase/client';
 
 export const RecorderInterface = () => {
   const isMobile = useIsMobile();
@@ -85,7 +86,12 @@ export const RecorderInterface = () => {
     if (isBackupActive) {
       const wordCount = transcript.trim().split(/\s+/).filter(w => w.length > 0).length;
       const transcriptSuccessful = wordCount > 5;
-      await stopBackup(transcriptSuccessful);
+
+      // Get current user for upload
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
+      await stopBackup(transcriptSuccessful, userId, undefined);
 
       if (!transcriptSuccessful) {
         setShowRecoveryPrompt(true);
