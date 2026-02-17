@@ -178,15 +178,23 @@ export function useBackupRecorder() {
     if (sid) {
       if (transcriptSuccessful) {
         // Try to upload even on success — 24h retention safety net
+        let uploadSucceeded = false;
         if (navigator.onLine && userId) {
           try {
             await uploadBackupSegments(sid, userId, meetingId || sid, 'success_backup');
+            uploadSucceeded = true;
           } catch (err) {
             console.warn('[BackupRecorder] Upload on success failed:', err);
           }
         }
-        await deleteSession(sid);
-        console.log('[BackupRecorder] Live transcript succeeded — backup uploaded & local deleted');
+        if (uploadSucceeded) {
+          await deleteSession(sid);
+          console.log('[BackupRecorder] Live transcript succeeded — backup uploaded & local deleted');
+        } else {
+          // Keep local copy and mark for deferred upload
+          await updateSession(sid, { status: 'pending_upload', userId, meetingId: meetingId || sid });
+          console.log('[BackupRecorder] Upload failed on success path — kept local, marked pending_upload');
+        }
       } else {
         // Update with user/meeting info for deferred upload
         await updateSession(sid, {
