@@ -259,11 +259,11 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
   const handleMeetingClick = (meeting: any, event: React.MouseEvent) => {
     event.preventDefault();
     setDropdownOpen(false);
-    navigate('/?tab=history', { 
+    navigate('/', { 
       state: { 
-        scrollToMeetingId: meeting.id,
-        viewNotes: meeting.id,
-        openModal: true
+        openSafeModeModal: true,
+        safeModeModalMeetingId: meeting.id,
+        switchToHistoryTab: true
       } 
     });
   };
