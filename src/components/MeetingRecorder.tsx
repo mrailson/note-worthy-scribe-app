@@ -1079,7 +1079,8 @@ export const MeetingRecorder = ({
 
       audioBackupChunks.current = [];
       audioBackupRecorder.current = new MediaRecorder(audioBackupStream.current, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 16000 // 16kbps mono - ~7MB/hour, stays under Whisper 25MB limit
       });
 
       audioBackupRecorder.current.ondataavailable = (event) => {

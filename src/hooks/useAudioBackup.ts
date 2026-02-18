@@ -188,7 +188,7 @@ export function useAudioBackup(config: AudioBackupConfig) {
       
       const recorder = new MediaRecorder(stream, {
         mimeType,
-        audioBitsPerSecond: 64000 // Lower bitrate for backup
+        audioBitsPerSecond: 16000 // 16kbps mono - ~7MB/hour, stays under Whisper 25MB limit
       });
 
       recorder.ondataavailable = (event) => {
