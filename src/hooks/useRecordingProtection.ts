@@ -103,7 +103,7 @@ export const useRecordingProtection = ({
 
   const handleStopWithConfirmation = () => {
     setIsPreparingToStop(true);
-    const shouldShowConfirmation = recordingDuration >= 300 || wordCount >= 100; // 5+ minutes or 100+ words
+    const shouldShowConfirmation = recordingDuration >= 15; // 15+ seconds always confirms
     
     if (shouldShowConfirmation) {
       setShowConfirmDialog(true);
