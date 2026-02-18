@@ -6422,17 +6422,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                             </Button>
                           </div>
                           
-                          {/* Backup toggle */}
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="backup-enabled"
-                              checked={backupEnabled}
-                              onCheckedChange={(checked) => setBackupEnabled(!!checked)}
-                            />
-                            <Label htmlFor="backup-enabled" className="text-xs text-muted-foreground cursor-pointer">
-                              Save local backup
-                            </Label>
-                          </div>
                           
                           {/* Recovery prompt */}
                           {showRecoveryPrompt && (
