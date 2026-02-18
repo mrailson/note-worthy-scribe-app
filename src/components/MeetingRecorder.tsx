@@ -6331,7 +6331,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         {/* Meeting Recorder Tab - ONLY recording controls */}
         <TabsContent value="recorder" className="space-y-6 mt-6">
           <div className="space-y-4">
-            {/* Compact Stats Dashboard - Hidden on mobile */}
+            {/* Compact Stats Dashboard */}
             <Card className="bg-gradient-to-br from-background to-muted/30">
               <CardContent className="pt-4 pb-4">
                 <div className="grid grid-cols-2 gap-3">
