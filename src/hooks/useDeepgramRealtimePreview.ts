@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createPcmStream } from "@/lib/audio/pcm16";
+import { detectDevice } from "@/utils/DeviceDetection";
 
 export type DeepgramPreviewStatus = 'idle' | 'connecting' | 'connected' | 'recording' | 'reconnecting' | 'error' | 'stopped';
 
@@ -18,9 +19,11 @@ interface UseDeepgramRealtimePreviewReturn {
 }
 
 const MAX_WORDS = 100; // Keep last 100 words for live preview
-const MAX_RECONNECT_ATTEMPTS = 5;
+const MAX_RECONNECT_ATTEMPTS = 8; // Increased for iOS resilience
 const INITIAL_RECONNECT_DELAY = 1000; // 1 second
 const MAX_RECONNECT_DELAY = 30000; // 30 seconds
+const KEEPALIVE_INTERVAL_MS = 15000; // 15s keepalive ping
+const isIOSDevice = detectDevice().isIOS;
 
 export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn => {
   const [liveTranscript, setLiveTranscript] = useState<string>("");
@@ -38,6 +41,7 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
   const lastExternalStreamRef = useRef<MediaStream | undefined>(undefined);
   const chunkCounterRef = useRef<number>(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const keepaliveIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const intentionalStopRef = useRef<boolean>(false);
   const reconnectAttemptsRef = useRef<number>(0);
 
@@ -179,6 +183,11 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
+
+    if (keepaliveIntervalRef.current) {
+      clearInterval(keepaliveIntervalRef.current);
+      keepaliveIntervalRef.current = null;
+    }
   }, []);
 
   // Internal reconnect function
@@ -259,6 +268,21 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
               console.log('✅ Deepgram: Session resumed after reconnect');
               setStatus('recording');
               setIsActive(true);
+
+              // Restart keepalive ping
+              if (keepaliveIntervalRef.current) clearInterval(keepaliveIntervalRef.current);
+              keepaliveIntervalRef.current = setInterval(() => {
+                if (wsRef.current?.readyState === WebSocket.OPEN) {
+                  try {
+                    wsRef.current.send(JSON.stringify({ type: 'keepalive' }));
+                  } catch {
+                    console.warn('🔌 Deepgram: Keepalive send failed after reconnect');
+                    attemptReconnect();
+                  }
+                } else if (wsRef.current?.readyState !== WebSocket.CONNECTING) {
+                  attemptReconnect();
+                }
+              }, KEEPALIVE_INTERVAL_MS);
 
               // Start PCM audio capture (use external stream if available)
               try {
@@ -399,6 +423,22 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
             setStatus('recording');
             setIsActive(true);
 
+            // Start keepalive ping to detect dead connections early (critical for iOS)
+            if (keepaliveIntervalRef.current) clearInterval(keepaliveIntervalRef.current);
+            keepaliveIntervalRef.current = setInterval(() => {
+              if (wsRef.current?.readyState === WebSocket.OPEN) {
+                try {
+                  wsRef.current.send(JSON.stringify({ type: 'keepalive' }));
+                } catch {
+                  console.warn('🔌 Deepgram: Keepalive send failed, connection may be dead');
+                  attemptReconnect();
+                }
+              } else if (wsRef.current?.readyState !== WebSocket.CONNECTING) {
+                console.warn('🔌 Deepgram: WebSocket not open during keepalive check, reconnecting...');
+                attemptReconnect();
+              }
+            }, KEEPALIVE_INTERVAL_MS);
+
             // Start PCM audio capture using existing utility (use external stream if available)
             try {
               pcmStreamRef.current = await createPcmStream((pcmBuffer) => {
@@ -451,11 +491,17 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
       wsRef.current.onerror = (err) => {
         console.error('❌ Deepgram: WebSocket error:', err);
         setError('WebSocket connection error');
-        setStatus('error');
+        // Don't set status to error immediately — let onclose handle reconnection
       };
 
       wsRef.current.onclose = (event) => {
         console.log('🔌 Deepgram: WebSocket closed', event.code, event.reason);
+
+        // Clear keepalive
+        if (keepaliveIntervalRef.current) {
+          clearInterval(keepaliveIntervalRef.current);
+          keepaliveIntervalRef.current = null;
+        }
 
         // Don't trigger reconnect if this was an intentional stop
         if (intentionalStopRef.current) {
@@ -465,9 +511,14 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
           return;
         }
 
-        // Attempt reconnection for unexpected closures
-        if (event.code !== 1000) {
-          console.log('🔄 Deepgram: Unexpected disconnection, attempting reconnect...');
+        // On iOS, Safari sends code 1000 when backgrounding/locking the screen.
+        // We must still reconnect in that case. On desktop, code 1000 is a genuine
+        // clean close so we only reconnect if we still have a meetingId (i.e. recording
+        // is supposed to be active).
+        const shouldReconnect = event.code !== 1000 || (isIOSDevice && meetingIdRef.current);
+
+        if (shouldReconnect) {
+          console.log(`🔄 Deepgram: ${event.code === 1000 ? 'iOS background' : 'Unexpected'} disconnection, attempting reconnect...`);
           attemptReconnect();
         } else {
           setStatus('stopped');
@@ -523,6 +574,33 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
     reconnectAttemptsRef.current = 0;
     setReconnectAttempts(0);
   }, []);
+
+  // iOS visibility change listener — reconnect Deepgram when page resumes from background
+  useEffect(() => {
+    if (!isIOSDevice) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (intentionalStopRef.current || !meetingIdRef.current) return;
+
+      // Page just came back to foreground — check if WebSocket is dead
+      const ws = wsRef.current;
+      const isDead = !ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING;
+
+      if (isDead) {
+        console.log('📱 Deepgram iOS: Page resumed from background, WebSocket dead — reconnecting...');
+        // Reset reconnect counter so we get fresh attempts after resume
+        reconnectAttemptsRef.current = 0;
+        setReconnectAttempts(0);
+        attemptReconnect();
+      } else {
+        console.log('📱 Deepgram iOS: Page resumed, WebSocket still alive ✅');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [attemptReconnect]);
 
   // Cleanup on unmount
   useEffect(() => {
