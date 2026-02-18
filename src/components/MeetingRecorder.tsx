@@ -281,6 +281,28 @@ export const MeetingRecorder = ({
   const [earlyWordCountValue, setEarlyWordCountValue] = useState(0);
   const earlyWordCountTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Sync duration to parent via effect (avoids setState-during-render warning)
+  useEffect(() => {
+    if (duration === 0) return;
+    const minutes = Math.floor(duration / 60);
+    const seconds = duration % 60;
+    const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    onDurationUpdate(timeString);
+
+    // Display word count at 5, 10, 15, 20 seconds
+    if (duration <= 20 && [5, 10, 15, 20].includes(duration)) {
+      setEarlyWordCountValue(wordCount);
+      setShowEarlyWordCount(true);
+
+      if (earlyWordCountTimeoutRef.current) {
+        clearTimeout(earlyWordCountTimeoutRef.current);
+      }
+      earlyWordCountTimeoutRef.current = setTimeout(() => {
+        setShowEarlyWordCount(false);
+      }, 2000);
+    }
+  }, [duration, onDurationUpdate, wordCount]);
+
   // Recording protection hook - after variable declarations
   const {
     showConfirmDialog,
@@ -3848,14 +3870,7 @@ export const MeetingRecorder = ({
       
       // Start duration timer
       intervalRef.current = setInterval(() => {
-        setDuration(prev => {
-          const newDuration = prev + 1;
-          const minutes = Math.floor(newDuration / 60);
-          const seconds = newDuration % 60;
-          const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-          onDurationUpdate(timeString);
-          return newDuration;
-        });
+        setDuration(prev => prev + 1);
       }, 1000);
 
       const successMessage = 'Test recording started with microphone!';
@@ -4460,29 +4475,7 @@ export const MeetingRecorder = ({
 
       // Start duration timer
       intervalRef.current = setInterval(() => {
-        setDuration(prev => {
-          const newDuration = prev + 1;
-          const minutes = Math.floor(newDuration / 60);
-          const seconds = newDuration % 60;
-          const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-          onDurationUpdate(timeString);
-          
-          // Display word count at 5, 10, 15, 20 seconds
-          if (newDuration <= 20 && [5, 10, 15, 20].includes(newDuration)) {
-            setEarlyWordCountValue(wordCount);
-            setShowEarlyWordCount(true);
-            
-            // Hide after 2 seconds
-            if (earlyWordCountTimeoutRef.current) {
-              clearTimeout(earlyWordCountTimeoutRef.current);
-            }
-            earlyWordCountTimeoutRef.current = setTimeout(() => {
-              setShowEarlyWordCount(false);
-            }, 2000);
-          }
-          
-          return newDuration;
-        });
+        setDuration(prev => prev + 1);
       }, 1000);
 
       // Start transcript snippet monitoring
