@@ -6332,7 +6332,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         <TabsContent value="recorder" className="space-y-6 mt-6">
           <div className="space-y-4">
             {/* Compact Stats Dashboard - Hidden on mobile */}
-            <Card className="bg-gradient-to-br from-background to-muted/30 hidden sm:block">
+            <Card className="bg-gradient-to-br from-background to-muted/30">
               <CardContent className="pt-4 pb-4">
                 <div className="grid grid-cols-2 gap-3">
                   {/* Duration */}
@@ -6442,7 +6442,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                           <MeetingPausedBanner onResume={unpauseRecording} />
                         )}
                         
-                       <div className={`flex items-center justify-between gap-3 text-primary ${isPaused ? '' : 'animate-pulse'} bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20 ${isMobile ? 'hidden' : ''}`}>
+                       <div className={`flex items-center justify-between gap-3 text-primary ${isPaused ? '' : 'animate-pulse'} bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20`}>
                          <div className="flex items-center gap-3">
                            <div className={`w-3 h-3 ${isPaused ? 'bg-amber-500' : 'bg-red-500'} rounded-full ${isPaused ? '' : 'animate-pulse'}`}></div>
                            <span className="text-base font-semibold">
@@ -6450,11 +6450,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                            </span>
                             
                             {/* Backup Indicator */}
-                            <BackupIndicator isActive={isBackupActive} segmentCount={segmentCount} />
+                            {!isMobile && <BackupIndicator isActive={isBackupActive} segmentCount={segmentCount} />}
                             
                              {/* Audio Activity Indicator - Hidden on iOS */}
-                             {!isPaused && audioActivity && !isIOS && (
-                               <div className="flex items-center gap-1">
+                              {!isPaused && audioActivity && !isIOS && (
+                                <div className="hidden sm:flex items-center gap-1">
                                  <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
                                  <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
                                  <div className="w-1 h-5 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
