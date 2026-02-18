@@ -24,13 +24,11 @@ import { extractAttendees } from '@/utils/extractAttendees';
 interface MeetingsDropdownProps {
   meetings: any[];
   isLoading: boolean;
-  onOpenMeetingPreview?: (meetingId: string) => void;
 }
 
 export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
   meetings,
   isLoading,
-  onOpenMeetingPreview,
 }) => {
   const navigate = useNavigate();
   const [processingActions, setProcessingActions] = useState<Record<string, boolean>>({});
@@ -260,12 +258,14 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
 
   const handleMeetingClick = (meeting: any, event: React.MouseEvent) => {
     event.preventDefault();
-    if (onOpenMeetingPreview) {
-      setDropdownOpen(false);
-      onOpenMeetingPreview(meeting.id);
-    } else {
-      navigate('/?tab=history', { state: { scrollToMeetingId: meeting.id } });
-    }
+    setDropdownOpen(false);
+    navigate('/?tab=history', { 
+      state: { 
+        scrollToMeetingId: meeting.id,
+        viewNotes: meeting.id,
+        openModal: true
+      } 
+    });
   };
 
   const handleEditMeeting = (meeting: any, event: React.MouseEvent) => {

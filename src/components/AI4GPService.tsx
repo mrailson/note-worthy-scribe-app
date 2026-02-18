@@ -557,8 +557,13 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
           meetings={meetings as any}
           meetingsLoading={meetingsLoading}
           onSelectMeeting={(meetingId) => {
-            setPreviewMeetingId(meetingId);
-            setShowMeetingPreview(true);
+            navigate('/?tab=history', { 
+              state: { 
+                scrollToMeetingId: meetingId,
+                viewNotes: meetingId,
+                openModal: true
+              } 
+            });
           }}
         />
 
@@ -651,10 +656,6 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         <MeetingsDropdown
                           meetings={meetings}
                           isLoading={meetingsLoading}
-                          onOpenMeetingPreview={(meetingId) => {
-                            setPreviewMeetingId(meetingId);
-                            setShowMeetingPreview(true);
-                          }}
                         />
                       )}
                     </CardTitle>
