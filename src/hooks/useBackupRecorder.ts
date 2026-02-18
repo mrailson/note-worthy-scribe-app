@@ -162,6 +162,8 @@ export function useBackupRecorder() {
     userId?: string,
     meetingId?: string,
   ) => {
+    console.log('[BackupRecorder] stopBackup called:', { transcriptSuccessful, userId, meetingId, sessionId: sessionIdRef.current });
+
     if (rotationTimerRef.current) {
       clearTimeout(rotationTimerRef.current);
       rotationTimerRef.current = null;
@@ -181,15 +183,20 @@ export function useBackupRecorder() {
         let uploadSucceeded = false;
         if (navigator.onLine && userId) {
           try {
+            console.log('[BackupRecorder] Attempting upload on success path...');
             await uploadBackupSegments(sid, userId, meetingId || sid, 'success_backup');
             uploadSucceeded = true;
+            console.log('[BackupRecorder] Upload succeeded on success path');
           } catch (err) {
             console.warn('[BackupRecorder] Upload on success failed:', err);
           }
+        } else {
+          console.log('[BackupRecorder] Skipping upload:', { online: navigator.onLine, hasUserId: !!userId });
         }
         if (uploadSucceeded) {
-          await deleteSession(sid);
-          console.log('[BackupRecorder] Live transcript succeeded — backup uploaded & local deleted');
+          // Don't delete session — keep it so badge can show from DB
+          await updateSession(sid, { status: 'completed', userId, meetingId: meetingId || sid });
+          console.log('[BackupRecorder] Live transcript succeeded — backup uploaded & marked completed');
         } else {
           // Keep local copy and mark for deferred upload
           await updateSession(sid, { status: 'pending_upload', userId, meetingId: meetingId || sid });
