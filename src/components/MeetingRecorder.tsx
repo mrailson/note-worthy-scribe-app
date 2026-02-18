@@ -4530,6 +4530,13 @@ export const MeetingRecorder = ({
     // CRITICAL: Capture duration at the START before any async operations or state resets
     // This prevents race conditions where duration is reset to 0 before validation
     let capturedDuration = duration;
+    
+    // Diagnostic: capture call stack so we can trace what triggered the stop
+    console.log('STOP_RECORDING_CALLED', {
+      source: new Error().stack?.split('\n')[2]?.trim(),
+      duration: capturedDuration,
+      isServerTriggered
+    });
     console.log('📊 Captured duration at stop start:', capturedDuration, 'isServerTriggered:', isServerTriggered);
     
     // Guard: prevent multiple simultaneous stop operations (state can lag)
