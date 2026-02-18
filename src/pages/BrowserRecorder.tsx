@@ -147,6 +147,11 @@ const BrowserRecorder = () => {
       
       if (error) throw error;
       
+      // Attach device info in background
+      import('@/utils/meetingDeviceCapture').then(({ attachDeviceInfoToMeeting }) => {
+        attachDeviceInfoToMeeting(data.id);
+      });
+      
       return data.id;
     } catch (error) {
       console.error('Error creating meeting:', error);

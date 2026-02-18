@@ -193,6 +193,10 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
         }
 
         setCurrentMeetingId(meeting.id);
+        // Attach device info in background
+        import('@/utils/meetingDeviceCapture').then(({ attachDeviceInfoToMeeting }) => {
+          attachDeviceInfoToMeeting(meeting.id);
+        });
       }
 
       // Get microphone access

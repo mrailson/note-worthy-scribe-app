@@ -4,6 +4,7 @@ import { MeetingData, MeetingSettingsState, SummaryContent } from "@/types/meeti
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { attachDeviceInfoToMeeting } from "@/utils/meetingDeviceCapture";
 
 export const useMeetingData = () => {
   const location = useLocation();
@@ -82,6 +83,11 @@ export const useMeetingData = () => {
       setMeetingData(prev => prev ? { ...prev, id: savedMeeting.id } : null);
       setIsSaved(true);
       toast.success('Meeting saved successfully with enhanced context');
+      
+      // Attach device info in background (non-blocking)
+      if (savedMeeting.id) {
+        attachDeviceInfoToMeeting(savedMeeting.id);
+      }
     } catch (error) {
       console.error('Error saving meeting:', error);
       toast.error('Failed to save meeting');

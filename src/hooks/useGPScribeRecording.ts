@@ -291,6 +291,10 @@ export const useGPScribeRecording = (selectedMicrophoneId?: string | null, audio
           if (!meetingError && meetingData) {
             meetingIdRef.current = meetingData.id;
             console.log('✅ Created meeting record:', meetingData.id);
+            // Attach device info in background
+            import('@/utils/meetingDeviceCapture').then(({ attachDeviceInfoToMeeting }) => {
+              attachDeviceInfoToMeeting(meetingData.id);
+            });
           } else {
             console.error('Failed to create meeting record:', meetingError);
           }

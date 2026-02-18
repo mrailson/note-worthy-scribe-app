@@ -5979,6 +5979,12 @@ export type Database = {
           created_at: string
           data_retention_date: string | null
           description: string | null
+          device_browser: string | null
+          device_ip_address: string | null
+          device_os: string | null
+          device_screen_resolution: string | null
+          device_type: string | null
+          device_user_agent: string | null
           duration_minutes: number | null
           end_time: string | null
           folder_id: string | null
@@ -6037,6 +6043,12 @@ export type Database = {
           created_at?: string
           data_retention_date?: string | null
           description?: string | null
+          device_browser?: string | null
+          device_ip_address?: string | null
+          device_os?: string | null
+          device_screen_resolution?: string | null
+          device_type?: string | null
+          device_user_agent?: string | null
           duration_minutes?: number | null
           end_time?: string | null
           folder_id?: string | null
@@ -6095,6 +6107,12 @@ export type Database = {
           created_at?: string
           data_retention_date?: string | null
           description?: string | null
+          device_browser?: string | null
+          device_ip_address?: string | null
+          device_os?: string | null
+          device_screen_resolution?: string | null
+          device_type?: string | null
+          device_user_agent?: string | null
           duration_minutes?: number | null
           end_time?: string | null
           folder_id?: string | null
