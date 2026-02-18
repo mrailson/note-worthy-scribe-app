@@ -761,7 +761,7 @@ export const SDADigitalIntegration = () => {
         </div>
         <div className="mt-4 pt-3 border-t border-slate-100 space-y-1">
           <p className="text-sm text-slate-700">
-            <span className="font-medium">Next Meeting:</span> 22nd January 2026
+            <span className="font-medium">Next Meeting:</span> 26th February 2026
           </p>
           <p className="text-sm text-slate-600">
             Updates will be available on the Notewell NRES portal and at the next Programme Board meeting.
