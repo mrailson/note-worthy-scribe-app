@@ -4354,23 +4354,7 @@ export const MeetingRecorder = ({
       isRecordingRef.current = true;
       // Recording start time already set earlier - don't reset it here
       
-      // Start backup recorder if enabled
-      if (backupEnabled) {
-        try {
-          const backupStream = assemblyAudioMixerRef.current?.mixedStream 
-            || micAudioStreamRef.current
-            || desktopTranscriberRef.current?.getStream()
-            || simpleIOSTranscriberRef.current?.getStream();
-          if (backupStream) {
-            await startBackup(backupStream);
-            console.log('[MeetingRecorder] Backup recorder started');
-          } else {
-            console.warn('[MeetingRecorder] No audio stream available for backup recorder');
-          }
-        } catch (backupErr) {
-          console.warn('[MeetingRecorder] Backup recorder failed to start:', backupErr);
-        }
-      }
+      // Backup recorder is started later, after audio streams are fully initialised
       setRealtimeTranscripts([]);
       setChunkSaveStatuses([]);
       setSpeakerCount(1);
@@ -4455,6 +4439,24 @@ export const MeetingRecorder = ({
         // Don't fail the recording - Whisper and AssemblyAI can continue
       }
       
+      // Start backup recorder NOW — all audio streams are initialised
+      if (backupEnabled && !isBackupActive) {
+        try {
+          const backupStream = assemblyAudioMixerRef.current?.mixedStream 
+            || micAudioStreamRef.current
+            || desktopTranscriberRef.current?.getStream()
+            || simpleIOSTranscriberRef.current?.getStream();
+          if (backupStream) {
+            await startBackup(backupStream);
+            console.log('[MeetingRecorder] ✅ Backup recorder started (post-mixer)');
+          } else {
+            console.warn('[MeetingRecorder] ⚠️ No audio stream available for backup recorder');
+          }
+        } catch (backupErr) {
+          console.warn('[MeetingRecorder] Backup recorder failed to start:', backupErr);
+        }
+      }
+
       // Start duration timer
       intervalRef.current = setInterval(() => {
         setDuration(prev => {
