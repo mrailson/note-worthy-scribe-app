@@ -28,6 +28,11 @@ export interface ChunkMetadata {
 export class DesktopWhisperTranscriber {
   private mediaRecorder: MediaRecorder | null = null;
   private stream: MediaStream | null = null;
+
+  /** Expose the active audio stream for backup recording */
+  getStream(): MediaStream | null {
+    return this.stream;
+  }
   private isRecording = false;
   private audioChunks: Blob[] = [];
   private transcriptionTimeout: NodeJS.Timeout | null = null;

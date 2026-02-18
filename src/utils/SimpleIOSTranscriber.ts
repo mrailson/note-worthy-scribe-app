@@ -50,6 +50,11 @@ interface QueuedChunk {
 export class SimpleIOSTranscriber {
   private mediaRecorder: MediaRecorder | null = null;
   private stream: MediaStream | null = null;
+
+  /** Expose the active audio stream for backup recording */
+  getStream(): MediaStream | null {
+    return this.stream;
+  }
   private isRecording = false;
   
   // Upload queue for individual blobs
