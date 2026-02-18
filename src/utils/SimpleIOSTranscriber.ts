@@ -108,6 +108,9 @@ export class SimpleIOSTranscriber {
   
   // Track recovery: prevent concurrent recovery attempts
   private recoveryInProgress = false;
+  
+  // Interruption tracking for call detection
+  private interruptedByCall = false;
 
   constructor(
     private callbacks: IOSTranscriberCallbacks,
@@ -180,6 +183,7 @@ export class SimpleIOSTranscriber {
       this.rotationInProgress = false;
       this.stopRequested = false;
       this.recoveryInProgress = false;
+      this.interruptedByCall = false;
 
       // Create and start recorder (NO timeslice - we rotate instead)
       this.createAndStartRecorder();
@@ -748,9 +752,12 @@ export class SimpleIOSTranscriber {
   private setupVisibilityHandler(): void {
     this.visibilityHandler = () => {
       if (document.visibilityState === 'visible' && this.isRecording) {
-        console.log('📱 iOS-Rotate: Tab visible - checking stream and rotation');
+        console.log('📱 iOS-Rotate: Tab visible - checking stream, keepalive, and rotation');
         
-        // Check track health on visibility restore
+        // 1. Resume keep-alive AudioContext if suspended
+        this.resumeOrRestartKeepAlive();
+        
+        // 2. Check track health on visibility restore
         const track = this.stream?.getAudioTracks()[0];
         if (track && track.readyState !== 'live') {
           console.warn('📱 iOS-Rotate: Track died while backgrounded, recovering');
@@ -758,15 +765,16 @@ export class SimpleIOSTranscriber {
           return;
         }
         
-        // Re-acquire wake lock (released by system on tab switch)
+        // 3. Re-acquire wake lock (released by system on tab switch)
         this.requestWakeLock();
         
-        // Force rotation if segment has been running too long
+        // 4. Force rotation if segment has been running too long
         const timeSinceSegmentStart = Date.now() - this.segmentStartMs;
         if (timeSinceSegmentStart >= this.SEGMENT_DURATION_MS && !this.rotationInProgress) {
           this.rotateRecorder('visibility recovery');
         }
         
+        // 5. Drain upload queue
         if (this.queue.length > 0 && !this.uploadInFlight) {
           this.drainQueue();
         }
@@ -795,25 +803,37 @@ export class SimpleIOSTranscriber {
       track.addEventListener('ended', () => {
         console.warn(`📱 iOS-Rotate: Audio track ended event fired (readyState=${track.readyState})`);
         if (this.isRecording && !this.stopRequested) {
+          this.interruptedByCall = true;
+          this.callbacks.onStatusChange('Recording paused - call detected');
           this.recoverStream();
         }
       });
     });
     
-    console.log('📱 iOS-Rotate: Track monitoring attached');
+    // Stream-level inactive listener for immediate call detection
+    this.stream.addEventListener('inactive', () => {
+      if (this.isRecording && !this.stopRequested) {
+        console.warn('📱 iOS-Rotate: Stream inactive — likely phone call');
+        this.interruptedByCall = true;
+        this.callbacks.onStatusChange('Recording paused - call detected');
+        this.recoverStream();
+      }
+    });
+    
+    console.log('📱 iOS-Rotate: Track monitoring attached (with stream.oninactive)');
   }
 
   /**
    * Recover a dead microphone stream by re-acquiring getUserMedia
    */
-  private async recoverStream(): Promise<boolean> {
-    if (this.recoveryInProgress) {
+  private async recoverStream(attempt: number = 0): Promise<boolean> {
+    if (this.recoveryInProgress && attempt === 0) {
       console.log('📱 iOS-Rotate: Recovery already in progress, skipping');
       return false;
     }
     
     this.recoveryInProgress = true;
-    console.warn('📱 iOS-Rotate: Attempting stream recovery...');
+    console.warn(`📱 iOS-Rotate: Attempting stream recovery (attempt ${attempt + 1}/3)...`);
     this.callbacks.onStatusChange('Recovering microphone...');
     
     try {
@@ -847,15 +867,27 @@ export class SimpleIOSTranscriber {
         this.createAndStartRecorder();
       }
       
-      this.callbacks.onStatusChange('Recording...');
+      // Resume or restart keep-alive AudioContext
+      await this.resumeOrRestartKeepAlive();
+      
+      this.callbacks.onStatusChange('Recording resumed - microphone recovered');
+      this.interruptedByCall = false;
       this.recoveryInProgress = false;
       console.log('📱 iOS-Rotate: Stream recovery successful');
       return true;
     } catch (error) {
-      console.error('📱 iOS-Rotate: Stream recovery failed:', error);
-      this.callbacks.onError('Microphone lost. Please restart recording.');
+      console.error(`📱 iOS-Rotate: Stream recovery failed (attempt ${attempt + 1}):`, error);
       this.recoveryInProgress = false;
-      return false;
+      
+      if (attempt < 2) {
+        console.log(`📱 iOS-Rotate: Scheduling retry in 2s (attempt ${attempt + 2}/3)`);
+        return new Promise((resolve) => {
+          setTimeout(() => resolve(this.recoverStream(attempt + 1)), 2000);
+        });
+      } else {
+        this.callbacks.onError('Microphone lost - tap to retry');
+        return false;
+      }
     }
   }
 
@@ -884,6 +916,29 @@ export class SimpleIOSTranscriber {
       this.keepaliveContext.close().catch(() => {});
       this.keepaliveContext = null;
       console.log('📱 iOS-Rotate: Audio keepalive stopped');
+    }
+  }
+
+  /**
+   * Resume or restart the keep-alive AudioContext after an interruption
+   */
+  private async resumeOrRestartKeepAlive(): Promise<void> {
+    try {
+      if (this.keepaliveContext) {
+        if (this.keepaliveContext.state === 'suspended') {
+          await this.keepaliveContext.resume();
+          console.log('📱 iOS-Rotate: Keepalive AudioContext resumed');
+        } else if (this.keepaliveContext.state === 'closed') {
+          console.log('📱 iOS-Rotate: Keepalive AudioContext was closed, restarting');
+          this.keepaliveContext = null;
+          this.startKeepAlive();
+        }
+      } else if (this.isRecording) {
+        console.log('📱 iOS-Rotate: No keepalive context, starting fresh');
+        this.startKeepAlive();
+      }
+    } catch (e) {
+      console.warn('📱 iOS-Rotate: Failed to resume/restart keepalive:', e);
     }
   }
 
