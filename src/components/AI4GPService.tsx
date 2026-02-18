@@ -557,11 +557,11 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
           meetings={meetings as any}
           meetingsLoading={meetingsLoading}
           onSelectMeeting={(meetingId) => {
-            navigate('/?tab=history', { 
+            navigate('/', { 
               state: { 
-                scrollToMeetingId: meetingId,
-                viewNotes: meetingId,
-                openModal: true
+                openSafeModeModal: true,
+                safeModeModalMeetingId: meetingId,
+                switchToHistoryTab: true
               } 
             });
           }}
