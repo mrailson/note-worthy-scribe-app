@@ -1,151 +1,79 @@
 
+# Fix Three Recording Issues: Misrouted Transcriber Type, Missing Device Info, and AssemblyAI Investigation
 
-# Desktop Browser (Chrome/Edge) Recording Protection Improvements
+## Issue 1: Chrome Desktop Chunks Mislabelled as `ios-simple`
 
-## Problem
+### Root Cause
+The `handleBrowserTranscript` function in `MeetingRecorder.tsx` saves every chunk to the `meeting_transcription_chunks` table with a hardcoded `transcriber_type: 'ios-simple'` (line 2633). This function is the single entry point for both iOS and Desktop transcribers:
 
-The two desktop transcribers (`DesktopWhisperTranscriber` and `ChromiumMicTranscriber`) lack the interruption recovery protections now present in the Android and iOS pipelines. Desktop users can lose recordings when:
-- A laptop sleeps or the lid is closed
-- A Bluetooth headset disconnects mid-session
-- The browser tab is backgrounded and throttled
-- The system audio device changes (e.g. plugging in headphones)
+- The **SimpleIOSTranscriber** calls `handleBrowserTranscript` with `source: 'ios-simple'` -- correct
+- The **DesktopWhisperTranscriber** also calls `handleBrowserTranscript` as its `onTranscription` callback -- incorrect label
 
-## Current Gaps
+The DesktopWhisperTranscriber additionally saves its own chunks internally with `transcriber_type: 'whisper'`, which explains why the Chrome desktop recording (`56af2380`) had 32 `ios-simple` + 32 `whisper` chunks -- they are duplicates with different labels.
 
-### DesktopWhisperTranscriber
-- Has a visibility handler but it only flushes buffered audio -- it does not check track health or resume the AudioContext
-- Has an AudioContext for VAD but no resume logic if it gets suspended
-- No `stream.oninactive` listener
-- No `track.onended` listener
-- No `recoverMicrophone()` method
-- No Wake Lock
+### Fix
+Change the `persistIOSChunk` function to use the `source` property from the transcript data when available, falling back to detecting the device type. The data object already carries a `source` field (`'ios-simple'` for iOS, undefined for desktop).
 
-### ChromiumMicTranscriber
-- Has `track.onended` that calls `restartRecording()` -- but no retry counter or delay
-- `restartRecording()` makes a single attempt and gives up on failure
-- No `stream.oninactive` listener
-- No track health polling
-- No visibility handler at all
-- No Wake Lock
+**File: `src/components/MeetingRecorder.tsx` (line ~2633)**
+- Change `transcriber_type: 'ios-simple'` to `transcriber_type: (data as any).source || 'whisper'`
+- This means iOS chunks keep their `ios-simple` label, and desktop chunks get `whisper`
 
-## Planned Changes
+Additionally, since the DesktopWhisperTranscriber already saves its own chunks to the database, the `persistIOSChunk` call from `handleBrowserTranscript` creates **duplicate rows** for desktop recordings. The fix should skip the `persistIOSChunk` DB save entirely when the source is not `ios-simple` (desktop transcriber handles its own persistence).
 
-### File: `src/utils/DesktopWhisperTranscriber.ts`
-
-1. **Track health monitor** -- Add a 3-second polling interval checking `track.readyState` and `track.enabled`. If unhealthy, trigger `recoverMicrophone()`.
-
-2. **`stream.oninactive` and `track.onended` listeners** -- Set up during `startTranscription()` for immediate detection of Bluetooth disconnects or system audio seizures.
-
-3. **`recoverMicrophone(attempt)` method** -- Re-acquires `getUserMedia` (respecting `selectedDeviceId`), closes and recreates the `AudioContext` + analyser, creates a new `MediaRecorder`, restarts chunked recording (preserving `chunkCount`, `finalTranscript`, and all state), and re-sets up track monitoring. Up to 3 retries with 2-second delays. Surfaces "Recording paused -- audio device lost" and "Recording resumed -- microphone recovered" via `onStatusChange`.
-
-4. **Enhanced visibility handler** -- On tab restore, force-resume `AudioContext` if suspended, check track health and trigger recovery if needed, then flush buffered audio (existing behaviour).
-
-5. **Wake Lock** -- Acquire `navigator.wakeLock.request('screen')` in `startTranscription()`, re-acquire on visibility restore, release in `stopTranscription()`.
-
-6. **`interruptedByDevice` flag** -- Track whether an interruption occurred so the visibility handler can log recovery context.
-
-### File: `src/utils/ChromiumMicTranscriber.ts`
-
-1. **Track health polling** -- Add a 2-second interval checking `track.readyState`. If ended, trigger recovery.
-
-2. **`stream.oninactive` listener** -- Immediate detection alongside the existing `track.onended`.
-
-3. **Retry logic on `restartRecording(attempt)`** -- Add an attempt counter (max 3) with 2-second delays between retries. On final failure, call `onError('Recording could not recover')` and stop.
-
-4. **Visibility handler** -- Add a `visibilitychange` listener that checks track health, flushes queued chunks, and triggers recovery if the stream has ended while backgrounded.
-
-5. **Wake Lock** -- Acquire on `startTranscription()`, re-acquire on visibility restore, release on `stopTranscription()`.
-
-### File: `src/components/MeetingRecorder.tsx`
-
-No changes expected -- the toast handling already covers the status messages used here ("Recording paused", "Recording resumed", "audio device lost"). Will verify during implementation and add any new messages if needed.
-
-## Technical Detail
-
-### recoverMicrophone() for DesktopWhisperTranscriber
+### Change Detail
+In `handleBrowserTranscript`, wrap the `persistIOSChunk()` call so it only runs for iOS-originated chunks:
 
 ```text
-recoverMicrophone(attempt = 0):
-  if recoveryInProgress: return
-  recoveryInProgress = true
-  onStatusChange('Recording paused - audio device lost')
-
-  try:
-    stop old MediaRecorder if active
-    stop old stream tracks
-    re-acquire getUserMedia with same constraints (including selectedDeviceId)
-    close old AudioContext
-    create new AudioContext + analyser + source from new stream
-    restart activity monitoring
-    create new MediaRecorder with new stream
-    restart chunked recording (preserving chunkCount and finalTranscript)
-    setup track monitoring on new stream
-    re-acquire Wake Lock
-    interruptedByDevice = false
-    recoveryInProgress = false
-    onStatusChange('Recording resumed - microphone recovered')
-  catch:
-    recoveryInProgress = false
-    if attempt < 3:
-      schedule recoverMicrophone(attempt + 1) in 2 seconds
-    else:
-      onError('Microphone lost - please check your audio device')
+// Only persist via this path for iOS chunks
+// Desktop chunks are persisted by DesktopWhisperTranscriber internally
+if ((data as any).source === 'ios-simple') {
+  persistIOSChunk();
+}
 ```
 
-### restartRecording() for ChromiumMicTranscriber (updated)
+---
 
+## Issue 2: Device Info Not Captured for Main Recorder
+
+### Root Cause
+After creating the meeting record at line 4282-4293 in `MeetingRecorder.tsx`, there is no call to `attachDeviceInfoToMeeting`. Every other recording interface (GP Scribe, Dual Transcription, Meeting Importer, Browser Recorder) calls it, but the main recorder was missed.
+
+### Fix
+Add `attachDeviceInfoToMeeting(realMeetingId)` after the meeting is created, matching the pattern used in all other recording interfaces.
+
+**File: `src/components/MeetingRecorder.tsx` (after line ~4294)**
 ```text
-restartRecording(attempt = 0):
-  try:
-    stop current recorder and tracks
-    wait 500ms
-    re-acquire getUserMedia with same constraints
-    create new MediaRecorder
-    setup event handlers and track monitoring
-    start recording
-    re-acquire Wake Lock
-    onStatusChange('Recording resumed')
-  catch:
-    if attempt < 3:
-      schedule restartRecording(attempt + 1) in 2 seconds
-    else:
-      onError('Recording could not recover - please restart')
-      stopTranscription()
+// Attach device info in background (non-blocking)
+import('@/utils/meetingDeviceCapture').then(({ attachDeviceInfoToMeeting }) => {
+  attachDeviceInfoToMeeting(realMeetingId);
+});
 ```
 
-### Wake Lock Pattern (both transcribers)
+---
 
-```text
-acquireWakeLock():
-  if 'wakeLock' in navigator:
-    try:
-      wakeLockSentinel = await navigator.wakeLock.request('screen')
-      wakeLockSentinel.addEventListener('release', () => log 'Wake Lock released')
-    catch: log warning (non-fatal)
+## Issue 3: Missing AssemblyAI Transcript
 
-releaseWakeLock():
-  if wakeLockSentinel:
-    await wakeLockSentinel.release()
-    wakeLockSentinel = null
-```
+### Finding
+Neither recording has any AssemblyAI data (no rows in `assembly_transcripts`, no `assembly_transcript_text` on the meetings). This is **expected behaviour** for these recording modes:
 
-### Enhanced Visibility Handler for DesktopWhisperTranscriber
+- The **iPhone recording** uses SimpleIOSTranscriber which does not include an AssemblyAI real-time stream
+- The **Chrome desktop mic-only recording** uses DesktopWhisperTranscriber which also does not include AssemblyAI
 
-```text
-on visibilitychange to 'visible':
-  if isRecording:
-    1. Force-resume AudioContext if suspended
-    2. Check track health -> recoverMicrophone() if ended
-    3. Re-acquire Wake Lock
-    4. Flush buffered audio chunks (existing behaviour)
-```
+AssemblyAI real-time streaming is only active when recording in **Mic + System Audio** mode (Teams/screen capture), where an `AssemblyAITranscriber` is started alongside the audio mixer. For mic-only recordings, only Whisper batch processing runs.
+
+Both recordings did produce Whisper batch transcripts (via the consolidation edge function), so the transcription pipeline worked correctly -- it just did not include AssemblyAI because that service is reserved for system audio capture scenarios.
+
+No code change needed for this issue.
+
+---
+
+## Summary of Changes
+
+| File | Change |
+|------|--------|
+| `src/components/MeetingRecorder.tsx` | 1. Skip `persistIOSChunk()` for desktop-originated chunks (prevent duplicate rows with wrong label) |
+| `src/components/MeetingRecorder.tsx` | 2. Add `attachDeviceInfoToMeeting` call after meeting creation |
 
 ## Risk Assessment
-
-All changes are additive:
-- Track health polling runs on a separate interval and only triggers recovery when a track has genuinely ended
-- Wake Lock is acquired inside a try/catch and is non-fatal if unsupported
-- Recovery creates entirely new stream/recorder/context instances rather than mutating existing ones
-- Existing state (`chunkCount`, `finalTranscript`, `allTranscriptions`) is preserved across recovery
-- The `recoveryInProgress` flag prevents concurrent recovery attempts
-
+- **Duplicate chunk fix**: Reduces the number of saved chunks for desktop recordings (removes the incorrectly-labelled duplicates). Existing consolidation logic already handles both `whisper` and `ios-simple` types, so no downstream impact.
+- **Device info**: Additive change, fire-and-forget background call matching the pattern used in 5 other recording interfaces.
