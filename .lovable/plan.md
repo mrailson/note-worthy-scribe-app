@@ -1,122 +1,107 @@
 
 
-# Android Recording Protection Improvements
+# iOS Recording Protection Improvements
 
 ## Problem
 
-Android users are reporting recording failures, likely caused by:
-- Incoming phone calls seizing the microphone from the browser
-- Text/notification interruptions causing the OS to throttle the browser
-- Screen lock suspending the `AudioContext` and `MediaRecorder`
-- No detection or recovery when the mic track is killed by the OS
+The iOS transcriber (`SimpleIOSTranscriber.ts`) already has basic protections but lacks parity with the recently improved Android pipeline. Specific gaps could cause recording failures when users receive phone calls, lock their screen, or switch apps on iPhone/iPad.
 
-## Current State
+## Current iOS Protections (Already Working)
 
-The existing Android protections include:
-- **Audio keep-alive oscillator** (silent tone to prevent `AudioContext` suspension)
-- **Web Worker timer** (avoids throttled `setInterval` in background)
-- **Visibility change handler** (processes pending audio when app returns to foreground)
-- **Health monitoring** (detects transcription stalls after 75 seconds)
-- **Wake Lock** (prevents screen dimming, managed in `MeetingRecorder.tsx`)
+- Track `ended` event listener triggers `recoverStream()`
+- Heartbeat checks `track.readyState` every 5 seconds
+- Visibility handler checks track health and re-acquires Wake Lock
+- Silent audio keep-alive oscillator
+- Wake Lock API integration
+- Web Worker-based heartbeat (resistant to background throttling)
 
-**Critical gaps:**
-1. No monitoring of `MediaStream` track health (`track.readyState === 'ended'`)
-2. No detection of `MediaRecorder` being stopped by the OS
-3. No automatic mic re-acquisition after a phone call ends
-4. No user-facing notification when recording was interrupted and recovered
-5. Wake Lock is not re-acquired inside the Android transcriber itself after visibility restore
+## Gaps to Close (Matching Android)
 
-## Planned Improvements
+### 1. No `stream.oninactive` Listener
+The `MediaStream.oninactive` event fires immediately when all tracks end (e.g. phone call seizes the mic). Currently iOS only relies on individual `track.onended` and the 5-second heartbeat poll -- adding the stream-level listener provides instant detection.
 
-### 1. Media Stream Track Health Monitor
-Add a polling check (every 2 seconds) inside `AndroidWhisperTranscriber` that inspects `track.readyState` and `track.enabled`. If a track has ended (e.g. killed by a phone call), the system will:
-- Log the interruption
-- Attempt to re-acquire the microphone via `getUserMedia`
-- Reconnect the new stream to the `MediaRecorder` and `AudioContext`
-- Notify the user via a status callback
+### 2. No Retry Counter on Recovery
+The current `recoverStream()` method makes a single attempt. If it fails, it shows an error and stops. The Android version retries up to 3 times with a 2-second delay between attempts.
 
-### 2. MediaRecorder State Recovery
-Monitor `mediaRecorder.state` alongside the track check. If the recorder has been paused or stopped by the OS:
-- Restart it with a fresh `MediaRecorder` instance using the (possibly new) stream
-- Preserve the existing chunk manager state so no buffered audio is lost
-- Log the recovery attempt
+### 3. No AudioContext Force-Resume on Visibility Restore
+When iOS Safari backgrounds the app, the `AudioContext` (including the keep-alive oscillator) can be suspended. The visibility handler does not currently attempt to resume it.
 
-### 3. Phone Call / Audio Interruption Detection
-Add an `oninactive` listener on the `MediaStream` itself, which fires when all tracks end (typical when a phone call takes priority). This provides immediate detection rather than waiting for the 2-second poll. On trigger:
-- Flag the session as "interrupted"
-- When visibility restores, attempt full mic + recorder recovery
+### 4. No User-Facing Interruption/Recovery Toasts
+The iOS transcriber calls `onStatusChange('Recovering microphone...')` but does not surface specific messages like "Recording paused -- call detected" or "Recording resumed -- microphone recovered" that the Android version now provides.
 
-### 4. Foreground Recovery Sequence
-Enhance the existing `visibilitychange` handler to run a full recovery checklist when the app returns to foreground:
-1. Force-resume `AudioContext`
-2. Check `MediaStream` track health; re-acquire mic if needed
-3. Re-create `MediaRecorder` if stopped
-4. Re-acquire Wake Lock
-5. Process any buffered audio chunks
-6. Show a toast notification: "Recording recovered after interruption"
+### 5. Keep-Alive Not Restarted After Recovery
+If the keep-alive `AudioContext` is suspended or closed during an interruption, it is never restarted. The recovery flow should check and restart it.
 
-### 5. User Notification on Interruption and Recovery
-Surface interruption events to the UI layer via the existing `onStatusChange` and `onError` callbacks:
-- "Recording paused - phone call detected" (when track ends)
-- "Recording resumed - microphone recovered" (on successful recovery)
-- "Recording interrupted - tap to retry" (if recovery fails after 3 attempts)
+## Planned Changes
 
-### 6. Wake Lock Integration in Transcriber
-Move Wake Lock acquisition into `AndroidWhisperTranscriber.startTranscription()` and re-acquisition into the visibility handler, so it is self-contained and does not rely on the parent component.
+### File: `src/utils/SimpleIOSTranscriber.ts`
 
-## Files to Change
+1. **Add `stream.oninactive` listener** in `setupTrackMonitoring()` -- flag `interruptedByCall = true` and call `onStatusChange('Recording paused -- call detected')`.
 
-| File | Change |
-|------|--------|
-| `src/utils/AndroidWhisperTranscriber.ts` | Add track health monitor, `MediaRecorder` state recovery, `stream.oninactive` listener, enhanced visibility handler with full recovery checklist, Wake Lock self-management |
-| `src/utils/androidAudioKeepAlive.ts` | Add `isHealthy()` method for quick status check during recovery |
-| `src/components/MeetingRecorder.tsx` | Surface new interruption/recovery status messages as toast notifications to the user |
+2. **Add retry logic to `recoverStream()`** -- up to 3 attempts with a 2-second delay between each. On final failure, call `onError('Microphone lost -- tap to retry')`.
+
+3. **Resume keep-alive AudioContext on visibility restore** -- in the visibility handler, check `this.keepaliveContext?.state === 'suspended'` and call `.resume()`. If closed, restart the keep-alive.
+
+4. **Surface specific interruption/recovery status messages** -- use `onStatusChange` with distinct messages:
+   - "Recording paused -- call detected" (on stream inactive)
+   - "Recording resumed -- microphone recovered" (on successful recovery)
+   - "Recording interrupted -- tap to retry" (on final recovery failure)
+
+5. **Add `interruptedByCall` flag** -- track whether the interruption was from a call so the visibility handler can show a recovery toast when the user returns.
+
+### File: `src/components/MeetingRecorder.tsx`
+
+No additional changes needed -- the toast handling added for Android already picks up the same `onStatusChange` messages from iOS.
 
 ## Technical Detail
 
-### Track Health Monitor (new private method in AndroidWhisperTranscriber)
+### Updated `setupTrackMonitoring()`
 
 ```text
-startTrackHealthMonitor():
-  every 2 seconds:
-    for each track in stream.getAudioTracks():
-      if track.readyState === 'ended' or !track.enabled:
-        log warning
-        attempt recoverMicrophone()
+setupTrackMonitoring():
+  // existing track.onended listeners...
+  
+  stream.addEventListener('inactive', () => {
+    if isRecording and not stopRequested:
+      log 'Stream inactive -- likely phone call'
+      interruptedByCall = true
+      onStatusChange('Recording paused -- call detected')
+  })
+```
 
-recoverMicrophone():
-  try getUserMedia with same constraints
-  replace stream reference
-  reconnect AudioContext source and analyser
-  create new MediaRecorder with new stream
-  restart chunked recording (preserving chunk manager state)
-  call onStatusChange('Recording resumed')
-  return true
+### Updated `recoverStream()` with Retry
+
+```text
+recoverStream(attempt = 0):
+  if recoveryInProgress: return
+  recoveryInProgress = true
+  
+  try:
+    stop current recorder and old tracks
+    re-acquire getUserMedia
+    setup track monitoring on new stream
+    restart recorder
+    resume or restart keepalive context
+    onStatusChange('Recording resumed -- microphone recovered')
+    interruptedByCall = false
+    recoveryInProgress = false
   catch:
-    increment recovery counter
-    if < 3 attempts: schedule retry in 2s
-    else: call onError('Microphone lost - tap to retry')
+    recoveryInProgress = false
+    if attempt < 3:
+      schedule recoverStream(attempt + 1) in 2 seconds
+    else:
+      onError('Microphone lost -- tap to retry')
 ```
 
-### Stream Inactive Listener
-
-```text
-stream.addEventListener('inactive', () => {
-  log 'Stream inactive - likely phone call'
-  flag interruptedByCall = true
-  onStatusChange('Recording paused - call detected')
-})
-```
-
-### Enhanced Visibility Handler
+### Updated Visibility Handler
 
 ```text
 on visibilitychange to 'visible':
-  1. audioKeepAlive.forceResume()
-  2. check track health -> recoverMicrophone() if needed
-  3. check mediaRecorder.state -> restart if stopped
-  4. re-acquire Wake Lock
-  5. process buffered chunks
-  6. if was interrupted: show recovery toast
+  1. Resume keepalive AudioContext if suspended
+  2. Check track health -> recoverStream() if needed
+  3. Re-acquire Wake Lock (existing)
+  4. Force rotation if segment overdue (existing)
+  5. Drain upload queue (existing)
+  6. If interruptedByCall was set: recovery toast shown via recoverStream
 ```
 
