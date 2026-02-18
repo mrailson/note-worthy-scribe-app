@@ -42,32 +42,34 @@ export const StopRecordingConfirmDialog: React.FC<StopRecordingConfirmDialogProp
             <AlertTriangle className="h-5 w-5 text-amber-500" />
             <AlertDialogTitle>Stop Recording?</AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="space-y-3">
-            <p>
-              Are you sure you want to stop this recording? This action cannot be undone.
-            </p>
-            
-            <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Duration:
-                </span>
-                <span className="text-sm font-medium">{formatDuration(recordingDuration)}</span>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <span className="block">
+                Are you sure you want to stop this recording? This action cannot be undone.
+              </span>
+              
+              <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Duration:
+                  </span>
+                  <span className="text-sm font-medium">{formatDuration(recordingDuration)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Words captured:</span>
+                  <span className="text-sm font-medium">{wordCount.toLocaleString()}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Words captured:</span>
-                <span className="text-sm font-medium">{wordCount.toLocaleString()}</span>
-              </div>
-            </div>
 
-            {isLongRecording && (
-              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                <p className="text-sm text-amber-700 dark:text-amber-300">
-                  ⚠️ This is a longer recording. Make sure you're finished before stopping.
-                </p>
-              </div>
-            )}
+              {isLongRecording && (
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <span className="text-sm text-amber-700 dark:text-amber-300">
+                    ⚠️ This is a longer recording. Make sure you're finished before stopping.
+                  </span>
+                </div>
+              )}
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
