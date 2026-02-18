@@ -9,6 +9,7 @@ interface BackupInfo {
   durationSeconds: number;
   createdAt: string;
   backupReason: string;
+  fileType: string;
 }
 
 interface BackupBadgeProps {
@@ -30,17 +31,20 @@ export const BackupBadge: React.FC<BackupBadgeProps> = ({ meetingId }) => {
     const fetchBackup = async () => {
       const { data, error } = await supabase
         .from('meeting_audio_backups')
-        .select('file_size, duration_seconds, created_at, backup_reason')
+        .select('file_size, duration_seconds, created_at, backup_reason, file_path')
         .eq('meeting_id', meetingId)
         .order('created_at', { ascending: false })
         .limit(1);
 
       if (!error && data && data.length > 0) {
+        const filePath = data[0].file_path || '';
+        const ext = filePath.split('.').pop()?.toLowerCase() || 'webm';
         setBackup({
           fileSize: data[0].file_size || 0,
           durationSeconds: data[0].duration_seconds || 0,
           createdAt: data[0].created_at,
           backupReason: data[0].backup_reason || 'backup',
+          fileType: ext.toUpperCase(),
         });
       }
     };
@@ -66,6 +70,7 @@ export const BackupBadge: React.FC<BackupBadgeProps> = ({ meetingId }) => {
         <p className="font-medium">Audio backup available</p>
         <p>Size: {formatBytes(backup.fileSize)}</p>
         <p>Duration: {durationStr}</p>
+        <p>Format: {backup.fileType}</p>
       </TooltipContent>
     </Tooltip>
   );
