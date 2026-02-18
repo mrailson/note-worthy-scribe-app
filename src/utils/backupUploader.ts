@@ -32,8 +32,14 @@ export async function uploadBackupSegments(
   const ext = getExtension(session.format);
   const uploadedPaths: string[] = [];
 
+  console.log(`[BackupUploader] Starting upload of ${segments.length} segments for session ${sessionId}`, {
+    userId, meetingId, ext, format: session.format, segmentSizes: segments.map(s => s.blob.size),
+  });
+
   for (let i = 0; i < segments.length; i++) {
     const storagePath = `${userId}/${meetingId}/backup-segment-${i}.${ext}`;
+
+    console.log(`[BackupUploader] Uploading segment ${i}:`, { storagePath, blobSize: segments[i].blob.size });
 
     const { error: uploadError } = await supabase.storage
       .from('meeting-audio-backups')
@@ -76,8 +82,16 @@ export async function uploadBackupSegments(
     });
 
   if (metaError) {
-    console.error('[BackupUploader] Failed to insert metadata:', metaError);
+    console.error('[BackupUploader] Failed to insert metadata:', {
+      message: metaError.message,
+      code: metaError.code,
+      details: metaError.details,
+      hint: metaError.hint,
+      meetingId, userId, filePath: uploadedPaths[0], totalSize, totalDurationSeconds,
+    });
     // Don't throw — files are uploaded, metadata is secondary
+  } else {
+    console.log('[BackupUploader] Metadata inserted successfully for meeting:', meetingId);
   }
 
   // Update IndexedDB session with remote paths
