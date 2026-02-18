@@ -842,18 +842,15 @@ export const SDAEstatesCapacity = () => {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge className="bg-amber-100 text-amber-800 border-amber-300 cursor-help">In Progress - Awaiting NHFT/Funding Arrangements to be in place</Badge>
+                  <Badge className="bg-slate-100 text-slate-600 border-slate-300 cursor-help">Removed from Hub Status</Badge>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-md p-3 text-left">
-                  <p className="text-sm"><strong>NHFT remains the tenant</strong> of the physio suite under its existing premises lease.</p>
-                  <p className="text-sm mt-2">The landlord, Dr Supple, is <strong>content for NHFT to sublet or permit use of the room</strong> for the purposes of the Neighbourhood Access Service, via a sub-letting or permitted-use arrangement.</p>
-                  <p className="text-sm mt-2">This confirms <strong>no change to the underlying tenancy or landlord arrangements</strong>, with NAS utilising the space under NHFT's occupancy.</p>
-                  <p className="text-xs text-muted-foreground mt-2 italic">Source: Anita Carter (on behalf of Dr Supple), 23 Jan 2026</p>
+                  <p className="text-sm">May be revisited in future depending on NHFT communications.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
             <span className="font-medium text-slate-900">Brook Health Centre</span>
-            <span className="text-slate-600 text-sm">- Hub Location</span>
+            <span className="text-slate-600 text-sm line-through">- Hub Location</span>
           </div>
           <div className="flex items-center gap-3">
             <Badge className="bg-green-100 text-green-800 border-green-300">Confirmed</Badge>
@@ -872,7 +869,7 @@ export const SDAEstatesCapacity = () => {
           <ul className="space-y-2">
             <li className="flex items-start gap-2 text-sm text-slate-600">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0"></span>
-              <span><strong>Brackley Medical Centre & Brook Health Centre:</strong> Non-GMS space requires rent. Awaiting confirmation on the rent request for the duration of the New Models pilot (as at 22 Jan 2026).</span>
+              <span><strong>Brackley Medical Centre:</strong> Non-GMS space requires rent. Awaiting confirmation on the rent request for the duration of the New Models pilot (as at 22 Jan 2026). <strong>Brook Health Centre</strong> has been removed from Hub Status — may be revisited depending on NHFT communications.</span>
             </li>
             <li className="flex items-start gap-2 text-sm text-slate-600">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></span>
