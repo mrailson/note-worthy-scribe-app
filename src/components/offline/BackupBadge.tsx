@@ -59,19 +59,9 @@ export const BackupBadge: React.FC<BackupBadgeProps> = ({ meetingId }) => {
   const durationStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge variant="secondary" className="gap-1 cursor-default text-xs">
-          <Shield className="h-3 w-3" />
-          Backup · {formatBytes(backup.fileSize)} · {durationStr}
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="text-xs space-y-1">
-        <p className="font-medium">Audio backup available</p>
-        <p>Size: {formatBytes(backup.fileSize)}</p>
-        <p>Duration: {durationStr}</p>
-        <p>Format: {backup.fileType}</p>
-      </TooltipContent>
-    </Tooltip>
+    <Badge variant="secondary" className="gap-1 cursor-default text-xs">
+      <Shield className="h-3 w-3" />
+      Transcript 24Hr Regenerate Service Available
+    </Badge>
   );
 };
