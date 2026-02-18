@@ -1,24 +1,57 @@
 
 
-## Disable Tabs During Active Recording
+## Fix: setState-during-render warning and recording stability
 
-### Problem
-Switching between the "Meeting Transcript" and "My Meeting History" tabs whilst a recording is in progress can cause issues — potentially disrupting the active recording session or causing unexpected behaviour.
+### Problem 1: setState called during render (causes unpredictable behaviour)
 
-### Solution
-Disable the "Meeting Transcript" and "My Meeting History" tab triggers when `isRecording` is true. The user will remain locked to the "Meeting Recorder" tab until the recording is stopped. A subtle visual indicator (reduced opacity) will make it clear the tabs are unavailable.
+The `onDurationUpdate(timeString)` call (which sets parent `Index` state) is being called **inside** `setDuration`'s updater function in two places (lines ~3856 and ~4468). When React batches state updates, this can trigger a parent re-render during the child's render cycle, producing the "Cannot update a component while rendering a different component" warning. This can cause unpredictable state resets during recording.
 
-### Changes
+### Problem 2: Random recording stop
 
-**File:** `src/components/MeetingRecorder.tsx`
+The console logs show repeated `GET / 404`, `GET / 412 (Precondition Failed)`, and `WebSocket connection failed` errors. This happens when **Lovable pushes a code change while you are recording** -- Vite's hot module replacement reloads the page/component, destroying all recording state. This is an editor-related issue rather than a code bug. However, we can add resilience against it.
 
-1. Add `disabled={isRecording}` to the "Meeting Transcript" TabsTrigger (line ~6290)
-2. Add `disabled={isRecording}` to the "My Meeting History" TabsTrigger (line ~6301)
-3. Add a tooltip or title attribute so hovering explains why they're disabled (e.g. "Stop recording to access this tab")
-4. Auto-switch back to the "recorder" tab if recording starts whilst on another tab
+### Fix Plan
 
-### What stays the same
-- The "Meeting Recorder" tab remains fully active
-- The existing toast notification logic is kept as a fallback
-- No changes to recording logic itself
+**Step 1: Fix setState-during-render in duration timer (2 locations)**
+
+In both `setInterval` callbacks (lines ~3850-3858 and ~4462-4485), move `onDurationUpdate()` outside the `setDuration` updater:
+
+```typescript
+// BEFORE (broken):
+setDuration(prev => {
+  const newDuration = prev + 1;
+  const timeString = `${mins}:${secs}`;
+  onDurationUpdate(timeString);  // <-- triggers parent setState during child setState
+  return newDuration;
+});
+
+// AFTER (fixed):
+setDuration(prev => prev + 1);
+// Duration effect will handle the parent update
+```
+
+Then add a `useEffect` that syncs duration to the parent:
+
+```typescript
+useEffect(() => {
+  const minutes = Math.floor(duration / 60);
+  const seconds = duration % 60;
+  const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  onDurationUpdate(timeString);
+}, [duration, onDurationUpdate]);
+```
+
+This ensures the parent's `setDuration` is called in an effect (after render), not during render.
+
+**Step 2: Move early word count display logic out of the updater**
+
+The early word count display at lines ~4471-4481 also calls `setEarlyWordCountValue` and `setShowEarlyWordCount` inside `setDuration`'s updater. Move this to the same `useEffect`.
+
+**Step 3: Fix `<p>` nesting warning in StopRecordingConfirmDialog**
+
+Change the `AlertDialogDescription` content to use `<div>` or `<span>` instead of block-level elements nested inside the `<p>` tag that `AlertDialogDescription` renders.
+
+### What this does NOT fix
+
+The random stop caused by Lovable's editor rebuilding/reloading during recording is an infrastructure limitation -- when code changes are deployed, the preview page reloads. **This only happens when editing code in Lovable while recording.** On the published site (`meetingmagic.lovable.app`), this cannot occur. To avoid it during testing, use the published URL rather than the preview.
 
