@@ -830,7 +830,7 @@ export const SDAEstatesCapacity = () => {
       <CollapsibleCard
         title="Hub Location Status"
         icon={<Building2 className="w-5 h-5" />}
-        badge={<span className="text-xs text-slate-500 font-normal">Updated: 27 Jan 2026</span>}
+        badge={<span className="text-xs text-slate-500 font-normal">Updated: 18 Feb 2026</span>}
       >
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -888,7 +888,7 @@ export const SDAEstatesCapacity = () => {
                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                 Travel Times Analysis
               </h4>
-              <span className="text-xs text-muted-foreground">Updated: 27 Jan 2026</span>
+              <span className="text-xs text-muted-foreground">Updated: 18 Feb 2026</span>
             </div>
             <p className="text-sm text-slate-600 mb-3">
               Comprehensive drive time mapping supporting strategic planning for the SDA Pilot Programme.
