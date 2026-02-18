@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const RecorderInterface = () => {
   const isMobile = useIsMobile();
-  const [backupEnabled, setBackupEnabled] = useState(true);
+  const backupEnabled = true;
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
 
   const {
@@ -140,27 +140,6 @@ export const RecorderInterface = () => {
         </div>
       </Card>
 
-      {/* Backup Checkbox (only before recording) */}
-      {!isRecording && (
-        <div className="flex items-start gap-2 px-1">
-          <Checkbox
-            id="backup-enabled"
-            checked={backupEnabled}
-            onCheckedChange={(checked) => setBackupEnabled(checked === true)}
-          />
-          <div className="grid gap-0.5 leading-none">
-            <label
-              htmlFor="backup-enabled"
-              className="text-sm font-medium cursor-pointer"
-            >
-              Save local backup {isMobile ? '(recommended)' : ''}
-            </label>
-            <p className="text-xs text-muted-foreground">
-              Keeps a copy of the audio on your device in case of connection issues
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Recording Controls */}
       <Card className="p-6">
