@@ -651,6 +651,10 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
                         <MeetingsDropdown
                           meetings={meetings}
                           isLoading={meetingsLoading}
+                          onOpenMeetingPreview={(meetingId) => {
+                            setPreviewMeetingId(meetingId);
+                            setShowMeetingPreview(true);
+                          }}
                         />
                       )}
                     </CardTitle>
