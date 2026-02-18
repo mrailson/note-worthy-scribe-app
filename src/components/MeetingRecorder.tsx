@@ -524,7 +524,14 @@ export const MeetingRecorder = ({
   
   // Controlled tabs state for programmatic switching
   const [activeTab, setActiveTab] = useState<string>("recorder");
-  
+
+  // Auto-switch to recorder tab when recording starts
+  useEffect(() => {
+    if (isRecording && activeTab !== 'recorder') {
+      setActiveTab('recorder');
+    }
+  }, [isRecording]);
+
   // Continuation state
   const [isContinuationMode, setIsContinuationMode] = useState(false);
   const [continuationMeetingTitle, setContinuationMeetingTitle] = useState<string>('');
@@ -6276,10 +6283,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       
       {/* Tabbed Interface */}
       <Tabs value={activeTab} onValueChange={(tab) => {
-        setActiveTab(tab);
-        if (tab !== 'recorder' && isRecording) {
-          showToast.info('Recording continues in the background', { duration: 3000 });
+        if (isRecording && tab !== 'recorder') {
+          return; // Prevent tab switching during recording
         }
+        setActiveTab(tab);
       }} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
@@ -6287,7 +6294,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <span className="hidden sm:inline">Meeting Recorder</span>
             <span className="sm:hidden">Record</span>
           </TabsTrigger>
-          <TabsTrigger value="transcript" className="flex items-center gap-2">
+          <TabsTrigger value="transcript" className="flex items-center gap-2" disabled={isRecording} title={isRecording ? "Stop recording to access this tab" : undefined}>
             <FileText className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Transcript</span>
             <span className="sm:hidden">Transcript</span>
@@ -6298,7 +6305,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <span className="hidden sm:inline">Meeting Settings</span>
             <span className="sm:hidden">Settings</span>
           </TabsTrigger> */}
-          <TabsTrigger value="history" className="flex items-center gap-2">
+          <TabsTrigger value="history" className="flex items-center gap-2" disabled={isRecording} title={isRecording ? "Stop recording to access this tab" : undefined}>
             <History className="h-5 w-5" />
             <span className="hidden sm:inline">My Meeting History</span>
             <span className="sm:hidden">History</span>
