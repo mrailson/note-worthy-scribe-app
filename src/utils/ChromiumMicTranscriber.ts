@@ -52,6 +52,16 @@ export class ChromiumMicTranscriber {
   private readonly UPLOAD_TIMEOUT_MS = 5000; // 5 second upload timeout
   private readonly ERROR_COOLDOWN_MS = 60000; // 1 minute between auto-restarts
   private readonly MAX_RETRIES = 3;
+  
+  // Track health monitoring and recovery
+  private trackHealthInterval: NodeJS.Timeout | null = null;
+  private recoveryInProgress = false;
+  
+  // Wake Lock
+  private wakeLockSentinel: WakeLockSentinel | null = null;
+  
+  // Visibility handler
+  private visibilityHandler: (() => void) | null = null;
 
   constructor(
     private onTranscription: (data: ChromiumTranscriptData) => void,
@@ -118,6 +128,15 @@ export class ChromiumMicTranscriber {
       this.chunkCounter = 0;
       this.uploadQueue = [];
 
+      // Setup track health monitoring
+      this.setupTrackMonitoring();
+      
+      // Setup visibility handler
+      this.setupVisibilityHandler();
+      
+      // Acquire Wake Lock
+      await this.acquireWakeLock();
+
       this.onStatusChange('Recording active');
       this.logEvent('chromium_mic.start', { 
         mimeType, 
@@ -137,6 +156,15 @@ export class ChromiumMicTranscriber {
     try {
       this.logEvent('chromium_mic.stop_attempt');
       this.isActive = false;
+
+      // Stop track health monitoring
+      this.stopTrackMonitoring();
+      
+      // Remove visibility handler
+      this.removeVisibilityHandler();
+      
+      // Release Wake Lock
+      this.releaseWakeLock();
 
       if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
         this.mediaRecorder.stop();
@@ -365,20 +393,23 @@ export class ChromiumMicTranscriber {
 
   private handleStreamEnded(): void {
     this.logEvent('chromium_mic.stream_ended');
-    this.onError('Audio stream ended unexpectedly');
+    this.onStatusChange('Recording paused - audio device lost');
     
-    if (this.isActive) {
-      this.restartRecording();
+    if (this.isActive && !this.recoveryInProgress) {
+      this.restartRecording(0);
     }
   }
 
-  private async restartRecording(): Promise<void> {
+  private async restartRecording(attempt = 0): Promise<void> {
+    if (this.recoveryInProgress && attempt === 0) return;
+    this.recoveryInProgress = true;
+    
     try {
-      this.logEvent('chromium_mic.restart_attempt');
+      this.logEvent('chromium_mic.restart_attempt', { attempt: attempt + 1 });
       
       // Clean up current state
-      if (this.mediaRecorder) {
-        this.mediaRecorder.stop();
+      if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+        try { this.mediaRecorder.stop(); } catch {}
       }
       
       if (this.audioStream) {
@@ -389,16 +420,157 @@ export class ChromiumMicTranscriber {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       if (this.isActive) {
-        await this.startTranscription();
+        // Re-acquire stream
+        const audioConstraints: MediaTrackConstraints = {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 44100
+        };
+        if (this.selectedDeviceId) {
+          audioConstraints.deviceId = { exact: this.selectedDeviceId };
+        }
+        
+        this.audioStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+        
+        // Select MIME type
+        let mimeType = '';
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        }
+        
+        this.mediaRecorder = new MediaRecorder(
+          this.audioStream,
+          mimeType ? { mimeType } : undefined
+        );
+        
+        this.setupRecorderEventHandlers();
+        this.mediaRecorder.start(this.CHUNK_MS);
+        
+        // Re-setup monitoring
+        this.stopTrackMonitoring();
+        this.setupTrackMonitoring();
+        
+        // Re-acquire Wake Lock
+        await this.acquireWakeLock();
+        
+        this.recoveryInProgress = false;
+        this.onStatusChange('Recording resumed');
         this.logEvent('chromium_mic.restart_success');
+      } else {
+        this.recoveryInProgress = false;
       }
 
     } catch (error) {
+      this.recoveryInProgress = false;
       this.logEvent('chromium_mic.restart_failed', { 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        attempt: attempt + 1
       });
-      this.onError('Failed to restart recording');
-      this.stopTranscription();
+      
+      if (attempt < 2) {
+        setTimeout(() => this.restartRecording(attempt + 1), 2000);
+      } else {
+        this.onError('Recording could not recover - please restart');
+        this.stopTranscription();
+      }
+    }
+  }
+  
+  /**
+   * Track health monitoring - polls track state to detect device disconnects
+   */
+  private setupTrackMonitoring(): void {
+    if (!this.audioStream) return;
+    
+    // stream.oninactive for immediate detection
+    (this.audioStream as any).oninactive = () => {
+      this.logEvent('chromium_mic.stream_inactive');
+      if (this.isActive && !this.recoveryInProgress) {
+        this.handleStreamEnded();
+      }
+    };
+    
+    // Poll every 2 seconds
+    this.trackHealthInterval = setInterval(() => {
+      if (!this.isActive || this.recoveryInProgress) return;
+      
+      const tracks = this.audioStream?.getAudioTracks() || [];
+      const unhealthy = tracks.some(t => t.readyState === 'ended' || !t.enabled) || tracks.length === 0;
+      
+      if (unhealthy) {
+        this.logEvent('chromium_mic.track_health_failed');
+        this.handleStreamEnded();
+      }
+    }, 2000);
+  }
+  
+  private stopTrackMonitoring(): void {
+    if (this.trackHealthInterval) {
+      clearInterval(this.trackHealthInterval);
+      this.trackHealthInterval = null;
+    }
+  }
+  
+  /**
+   * Wake Lock management
+   */
+  private async acquireWakeLock(): Promise<void> {
+    if (!('wakeLock' in navigator)) return;
+    
+    try {
+      this.wakeLockSentinel = await navigator.wakeLock.request('screen');
+      this.wakeLockSentinel.addEventListener('release', () => {
+        this.logEvent('chromium_mic.wakelock_released');
+        this.wakeLockSentinel = null;
+      });
+      this.logEvent('chromium_mic.wakelock_acquired');
+    } catch (err) {
+      this.logEvent('chromium_mic.wakelock_failed', { error: String(err) });
+    }
+  }
+  
+  private async releaseWakeLock(): Promise<void> {
+    if (this.wakeLockSentinel) {
+      try { await this.wakeLockSentinel.release(); } catch {}
+      this.wakeLockSentinel = null;
+    }
+  }
+  
+  /**
+   * Visibility handler - checks track health when tab becomes visible
+   */
+  private setupVisibilityHandler(): void {
+    this.visibilityHandler = () => {
+      if (document.visibilityState === 'visible' && this.isActive) {
+        this.logEvent('chromium_mic.tab_visible');
+        
+        // Check track health
+        const tracks = this.audioStream?.getAudioTracks() || [];
+        const unhealthy = tracks.some(t => t.readyState === 'ended' || !t.enabled) || tracks.length === 0;
+        
+        if (unhealthy && !this.recoveryInProgress) {
+          this.logEvent('chromium_mic.tab_visible_recovery');
+          this.restartRecording(0);
+        } else {
+          // Re-acquire Wake Lock
+          this.acquireWakeLock();
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+  }
+  
+  private removeVisibilityHandler(): void {
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
     }
   }
 

@@ -81,6 +81,14 @@ export class DesktopWhisperTranscriber {
   
   // Visibility handler for tab switching
   private visibilityHandler: (() => void) | null = null;
+  
+  // Track health monitoring and recovery
+  private trackHealthInterval: NodeJS.Timeout | null = null;
+  private recoveryInProgress = false;
+  private interruptedByDevice = false;
+  
+  // Wake Lock
+  private wakeLockSentinel: WakeLockSentinel | null = null;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -461,6 +469,12 @@ export class DesktopWhisperTranscriber {
       // Setup visibility handler for tab switching recovery
       this.setupVisibilityHandler();
       
+      // Setup track health monitoring for device disconnect detection
+      this.setupTrackMonitoring();
+      
+      // Acquire Wake Lock to prevent screen dimming during recording
+      await this.acquireWakeLock();
+      
       this.onStatusChange('Recording...');
       console.log('✅ Desktop Whisper transcription started');
 
@@ -592,14 +606,210 @@ export class DesktopWhisperTranscriber {
   }
   
   /**
+   * Setup track health monitoring - polls track state to detect device disconnects
+   */
+  private setupTrackMonitoring(): void {
+    if (!this.stream) return;
+    
+    // Add stream.oninactive for immediate Bluetooth/device disconnect detection
+    (this.stream as any).oninactive = () => {
+      console.log('🔌 Desktop: Stream inactive - device disconnected');
+      this.interruptedByDevice = true;
+      if (this.isRecording && !this.recoveryInProgress) {
+        this.recoverMicrophone();
+      }
+    };
+    
+    // Add track.onended listeners
+    this.stream.getAudioTracks().forEach(track => {
+      track.onended = () => {
+        console.log('🔌 Desktop: Track ended -', track.label);
+        this.interruptedByDevice = true;
+        if (this.isRecording && !this.recoveryInProgress) {
+          this.recoverMicrophone();
+        }
+      };
+    });
+    
+    // Poll track health every 3 seconds
+    this.trackHealthInterval = setInterval(() => {
+      if (!this.isRecording || this.recoveryInProgress) return;
+      
+      const tracks = this.stream?.getAudioTracks() || [];
+      const unhealthy = tracks.some(t => t.readyState === 'ended' || !t.enabled);
+      
+      if (unhealthy || tracks.length === 0) {
+        console.log('⚠️ Desktop: Track health check failed - attempting recovery');
+        this.interruptedByDevice = true;
+        this.recoverMicrophone();
+      }
+    }, 3000);
+  }
+  
+  private stopTrackMonitoring(): void {
+    if (this.trackHealthInterval) {
+      clearInterval(this.trackHealthInterval);
+      this.trackHealthInterval = null;
+    }
+  }
+  
+  /**
+   * Recover microphone after device disconnect or interruption
+   */
+  private async recoverMicrophone(attempt = 0): Promise<void> {
+    if (this.recoveryInProgress && attempt === 0) return;
+    this.recoveryInProgress = true;
+    
+    this.onStatusChange('Recording paused - audio device lost');
+    console.log(`🔄 Desktop: Attempting microphone recovery (attempt ${attempt + 1}/3)`);
+    
+    try {
+      // Stop old MediaRecorder
+      if (this.mediaRecorder?.state === 'recording') {
+        try { this.mediaRecorder.stop(); } catch {}
+      }
+      
+      // Stop old stream tracks
+      this.stream?.getTracks().forEach(t => { try { t.stop(); } catch {} });
+      
+      // Re-acquire getUserMedia with same constraints
+      const audioConstraints: MediaTrackConstraints = {
+        sampleRate: 48000,
+        channelCount: 1,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      };
+      if (this.selectedDeviceId) {
+        audioConstraints.deviceId = { exact: this.selectedDeviceId };
+      }
+      
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+      
+      // Close and recreate AudioContext + analyser
+      this.stopActivityMonitoring();
+      this.audioContext = new AudioContext({ sampleRate: 48000 });
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = 256;
+      const source = this.audioContext.createMediaStreamSource(this.stream);
+      source.connect(this.analyser);
+      this.startActivityMonitoring();
+      
+      // Select MIME type (same logic as startTranscription)
+      let mimeTypes: string[];
+      if (this.audioFormat === 'mp3') {
+        mimeTypes = ['audio/mp3', 'audio/mpeg', 'audio/webm;codecs=opus', 'audio/webm'];
+      } else {
+        mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+      }
+      let selectedMimeType = 'audio/webm';
+      for (const mt of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(mt)) { selectedMimeType = mt; break; }
+      }
+      
+      // Create new MediaRecorder
+      this.mediaRecorder = new MediaRecorder(this.stream, {
+        mimeType: selectedMimeType,
+        audioBitsPerSecond: 128000
+      });
+      
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) this.audioChunks.push(event.data);
+      };
+      this.mediaRecorder.onstop = async () => {
+        if (this.audioChunks.length > 0) {
+          const currentChunk = this.chunkCount++;
+          await this.processAudioChunks(currentChunk);
+        }
+      };
+      this.mediaRecorder.onerror = (event) => {
+        console.error('🖥️ MediaRecorder error:', event);
+        this.onError('Recording error occurred');
+      };
+      
+      // Restart chunked recording (preserves chunkCount, finalTranscript etc.)
+      this.startChunkedRecording();
+      
+      // Re-setup track monitoring on new stream
+      this.stopTrackMonitoring();
+      this.setupTrackMonitoring();
+      
+      // Re-acquire Wake Lock
+      await this.acquireWakeLock();
+      
+      this.interruptedByDevice = false;
+      this.recoveryInProgress = false;
+      this.onStatusChange('Recording resumed - microphone recovered');
+      console.log('✅ Desktop: Microphone recovered successfully');
+      
+    } catch (err) {
+      this.recoveryInProgress = false;
+      console.warn(`⚠️ Desktop: Recovery attempt ${attempt + 1} failed:`, err);
+      
+      if (attempt < 2) {
+        setTimeout(() => this.recoverMicrophone(attempt + 1), 2000);
+      } else {
+        this.onError('Microphone lost - please check your audio device');
+      }
+    }
+  }
+  
+  /**
+   * Wake Lock management - prevents screen dimming during recording
+   */
+  private async acquireWakeLock(): Promise<void> {
+    if (!('wakeLock' in navigator)) return;
+    
+    try {
+      this.wakeLockSentinel = await navigator.wakeLock.request('screen');
+      this.wakeLockSentinel.addEventListener('release', () => {
+        console.log('🔓 Desktop: Wake Lock released');
+        this.wakeLockSentinel = null;
+      });
+      console.log('🔒 Desktop: Wake Lock acquired');
+    } catch (err) {
+      console.warn('⚠️ Desktop: Wake Lock request failed (non-fatal):', err);
+    }
+  }
+  
+  private async releaseWakeLock(): Promise<void> {
+    if (this.wakeLockSentinel) {
+      try {
+        await this.wakeLockSentinel.release();
+        console.log('🔓 Desktop: Wake Lock manually released');
+      } catch {}
+      this.wakeLockSentinel = null;
+    }
+  }
+  
+  /**
    * Setup visibility handler to recover when tab becomes visible
    */
   private setupVisibilityHandler(): void {
     this.visibilityHandler = () => {
       if (document.visibilityState === 'visible' && this.isRecording) {
-        console.log('🖥️ Desktop: Tab visible - checking for pending audio');
+        console.log('🖥️ Desktop: Tab visible - checking recording health');
         
-        // Force process any buffered audio when returning to tab
+        // 1. Force-resume AudioContext if suspended
+        if (this.audioContext?.state === 'suspended') {
+          console.log('🖥️ Desktop: Resuming suspended AudioContext');
+          this.audioContext.resume().catch(err => console.warn('AudioContext resume failed:', err));
+        }
+        
+        // 2. Check track health and trigger recovery if needed
+        const tracks = this.stream?.getAudioTracks() || [];
+        const unhealthy = tracks.some(t => t.readyState === 'ended' || !t.enabled) || tracks.length === 0;
+        
+        if (unhealthy && !this.recoveryInProgress) {
+          console.log('🖥️ Desktop: Track unhealthy after tab restore - recovering');
+          this.recoverMicrophone();
+          return; // Recovery will handle everything
+        }
+        
+        // 3. Re-acquire Wake Lock
+        this.acquireWakeLock();
+        
+        // 4. Flush buffered audio (existing behaviour)
         if (this.audioChunks.length > 0 && this.mediaRecorder?.state === 'recording') {
           console.log('🖥️ Desktop: Flushing buffered audio after tab switch');
           this.flushCurrentChunk();
@@ -962,6 +1172,12 @@ export class DesktopWhisperTranscriber {
     
     // Stop audio activity monitoring
     this.stopActivityMonitoring();
+    
+    // Stop track health monitoring
+    this.stopTrackMonitoring();
+    
+    // Release Wake Lock
+    await this.releaseWakeLock();
     
     // Cleanup Web Worker and visibility handler
     this.cleanupChunkTimerWorker();
