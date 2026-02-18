@@ -139,6 +139,14 @@ class AndroidAudioKeepAlive {
   }
 
   /**
+   * Quick health check - returns true if the keep-alive is active and the
+   * AudioContext is running (not suspended or closed).
+   */
+  isHealthy(): boolean {
+    return this.isActive && this.audioContext?.state === 'running';
+  }
+
+  /**
    * Force resume the AudioContext
    * Call this on user interaction (e.g., button tap) to ensure context is active
    */
