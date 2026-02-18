@@ -180,14 +180,7 @@ export const MeetingRecorder = ({
   
   // Backup recorder integration
   const { isBackupActive, segmentCount, startBackup, stopBackup, pauseBackup, resumeBackup } = useBackupRecorder();
-  const [backupEnabled, setBackupEnabled] = useState(() => {
-    // Default to true on mobile, false on desktop
-    try {
-      return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent);
-    } catch {
-      return false;
-    }
-  });
+  const [backupEnabled, setBackupEnabled] = useState(true);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [stopRecordingStep, setStopRecordingStep] = useState<string>('');
@@ -221,6 +214,20 @@ export const MeetingRecorder = ({
 
     return () => clearInterval(interval);
   }, []);
+
+  // Start/stop backup when toggle changes mid-recording
+  useEffect(() => {
+    if (isRecording && backupEnabled && !isBackupActive) {
+      const backupStream = assemblyAudioMixerRef.current?.mixedStream || micAudioStreamRef.current;
+      if (backupStream) {
+        startBackup(backupStream).then(() => {
+          console.log('[MeetingRecorder] Backup recorder started mid-recording');
+        }).catch(err => {
+          console.warn('[MeetingRecorder] Failed to start backup mid-recording:', err);
+        });
+      }
+    }
+  }, [backupEnabled, isRecording, isBackupActive, startBackup]);
 
   // Auto-start recording ref (effect added after user declaration)
   const autoStartTriggeredRef = useRef(false);

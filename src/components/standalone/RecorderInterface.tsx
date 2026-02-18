@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const RecorderInterface = () => {
   const isMobile = useIsMobile();
-  const [backupEnabled, setBackupEnabled] = useState(isMobile);
+  const [backupEnabled, setBackupEnabled] = useState(true);
   const [showRecoveryPrompt, setShowRecoveryPrompt] = useState(false);
 
   const {
