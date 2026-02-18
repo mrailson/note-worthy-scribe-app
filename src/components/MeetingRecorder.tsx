@@ -6450,7 +6450,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                            </span>
                             
                             {/* Backup Indicator */}
-                            {!isMobile && <BackupIndicator isActive={isBackupActive} segmentCount={segmentCount} />}
+                            <span className="hidden sm:inline"><BackupIndicator isActive={isBackupActive} segmentCount={segmentCount} /></span>
                             
                              {/* Audio Activity Indicator - Hidden on iOS */}
                               {!isPaused && audioActivity && !isIOS && (
@@ -6554,8 +6554,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                         </div>
                       
                        {/* Audio Capture Status Indicator + Quick Source Switcher - Hidden on mobile */}
-                       {!isMobile && (
-                       <div className="flex items-center gap-3 flex-wrap">
+                       <div className="hidden sm:flex items-center gap-3 flex-wrap">
                          <AudioCaptureStatusIndicator
                            micCaptured={micCaptured}
                            systemAudioCaptured={systemAudioCaptured}
@@ -6579,7 +6578,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                            systemAudioCaptured={systemAudioCaptured}
                          />
                        </div>
-                       )}
                        
                        {/* Teams Audio Hint - shows when mic-only might be missing other participants */}
                        <TeamsAudioHint
