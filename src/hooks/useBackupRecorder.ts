@@ -83,7 +83,10 @@ export function useBackupRecorder() {
   }, []);
 
   const startNewSegmentRecorder = useCallback((stream: MediaStream): MediaRecorder => {
-    const recorder = new MediaRecorder(stream, { mimeType: mimeTypeRef.current });
+    const recorder = new MediaRecorder(stream, {
+      mimeType: mimeTypeRef.current,
+      audioBitsPerSecond: 16000, // 16kbps mono -- ~7MB/hour
+    });
     chunksRef.current = [];
     segmentStartRef.current = Date.now();
 
