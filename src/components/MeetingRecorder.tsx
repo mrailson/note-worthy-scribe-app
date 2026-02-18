@@ -6553,7 +6553,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                          </div>
                         </div>
                       
-                       {/* Audio Capture Status Indicator + Quick Source Switcher */}
+                       {/* Audio Capture Status Indicator + Quick Source Switcher - Hidden on mobile */}
+                       {!isMobile && (
                        <div className="flex items-center gap-3 flex-wrap">
                          <AudioCaptureStatusIndicator
                            micCaptured={micCaptured}
@@ -6578,6 +6579,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                            systemAudioCaptured={systemAudioCaptured}
                          />
                        </div>
+                       )}
                        
                        {/* Teams Audio Hint - shows when mic-only might be missing other participants */}
                        <TeamsAudioHint
