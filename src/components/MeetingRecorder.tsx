@@ -2703,6 +2703,16 @@ export const MeetingRecorder = ({
     queueMicrotask(() => {
       setConnectionStatus(status);
       addDebugLog(`🔄 Status: ${status}`);
+      
+      // Surface Android interruption/recovery events as toast notifications
+      const lowerStatus = status.toLowerCase();
+      if (lowerStatus.includes('call detected') || lowerStatus.includes('microphone interrupted')) {
+        showToast.warning(status, { section: 'meeting_manager' });
+      } else if (lowerStatus.includes('microphone recovered') || lowerStatus.includes('recovered after interruption')) {
+        showToast.success(status, { section: 'meeting_manager' });
+      } else if (lowerStatus.includes('microphone lost') || lowerStatus.includes('tap to retry')) {
+        showToast.error(status, { section: 'meeting_manager' });
+      }
     });
   };
 
