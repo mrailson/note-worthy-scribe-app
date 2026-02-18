@@ -2661,8 +2661,11 @@ export const MeetingRecorder = ({
       }
     };
     
-    // Execute the async save
-    persistIOSChunk();
+    // Only persist via this path for iOS chunks
+    // Desktop chunks are persisted by DesktopWhisperTranscriber internally
+    if ((data as any).source === 'ios-simple') {
+      persistIOSChunk();
+    }
     
     // CRITICAL FIX: Force isFinal=true for iOS chunks so they're merged correctly
     // Calculate monotonic timestamps in milliseconds for accurate merge timing
@@ -4292,6 +4295,11 @@ export const MeetingRecorder = ({
 
           realMeetingId = savedMeeting.id;
           console.log(`✅ Created meeting record: ${realMeetingId}`);
+
+          // Attach device info in background (non-blocking)
+          import('@/utils/meetingDeviceCapture').then(({ attachDeviceInfoToMeeting }) => {
+            attachDeviceInfoToMeeting(realMeetingId);
+          });
         }
         
         // CRITICAL: Set recording start time IMMEDIATELY after meeting creation
