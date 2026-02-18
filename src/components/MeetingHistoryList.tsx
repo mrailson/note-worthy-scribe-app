@@ -3091,7 +3091,6 @@ export const MeetingHistoryList = ({
                     </div>
                   )}
                   
-                  <BackupBadge meetingId={meeting.id} />
                 </div>
                 
                 <div className="text-xs text-muted-foreground whitespace-nowrap">
