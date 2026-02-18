@@ -44,6 +44,11 @@ export const useMeetingImporter = () => {
         .single();
 
       if (meetingError) throw meetingError;
+      
+      // Attach device info in background
+      import('@/utils/meetingDeviceCapture').then(({ attachDeviceInfoToMeeting }) => {
+        attachDeviceInfoToMeeting(meeting.id);
+      });
 
       // Automatically add user as attendee
       try {
