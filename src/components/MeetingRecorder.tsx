@@ -218,7 +218,10 @@ export const MeetingRecorder = ({
   // Start/stop backup when toggle changes mid-recording
   useEffect(() => {
     if (isRecording && backupEnabled && !isBackupActive) {
-      const backupStream = assemblyAudioMixerRef.current?.mixedStream || micAudioStreamRef.current;
+      const backupStream = assemblyAudioMixerRef.current?.mixedStream 
+        || micAudioStreamRef.current
+        || desktopTranscriberRef.current?.getStream()
+        || simpleIOSTranscriberRef.current?.getStream();
       if (backupStream) {
         startBackup(backupStream).then(() => {
           console.log('[MeetingRecorder] Backup recorder started mid-recording');
@@ -4354,10 +4357,15 @@ export const MeetingRecorder = ({
       // Start backup recorder if enabled
       if (backupEnabled) {
         try {
-          const backupStream = assemblyAudioMixerRef.current?.mixedStream || micAudioStreamRef.current;
+          const backupStream = assemblyAudioMixerRef.current?.mixedStream 
+            || micAudioStreamRef.current
+            || desktopTranscriberRef.current?.getStream()
+            || simpleIOSTranscriberRef.current?.getStream();
           if (backupStream) {
             await startBackup(backupStream);
             console.log('[MeetingRecorder] Backup recorder started');
+          } else {
+            console.warn('[MeetingRecorder] No audio stream available for backup recorder');
           }
         } catch (backupErr) {
           console.warn('[MeetingRecorder] Backup recorder failed to start:', backupErr);
