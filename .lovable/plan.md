@@ -1,54 +1,90 @@
 
 
-## Fix Backup Audio Upload and Investigate Early Meeting End
+## Investigate and Fix Premature Recording Stop on Desktop Browser
 
-### Problem Summary
-Two issues have been identified:
+### Root Cause Analysis
 
-### Issue 1: Backup Audio Never Uploads (Root Cause Found)
-The `meeting-audio-backups` storage bucket is **missing an INSERT (upload) policy**. The bucket has SELECT and DELETE policies, but no policy allowing users to upload files. This means every backup upload attempt is silently rejected by Supabase RLS, which is why the `meeting_audio_backups` table is always empty and the BackupBadge never appears.
+After thorough investigation of the database, edge function logs, session replay, and client-side code, here is what happened:
 
-### Issue 2: Meeting Ending Early When Switching to History Tab
-Investigation shows that switching between tabs (Recorder/Transcript/History) within `MeetingRecorder` is a simple React state change -- no component unmounting or navigation occurs. The recording should continue unaffected. On iPhone, the `SimpleIOSTranscriber` already monitors for track endings and has stream recovery. The 2-minute test meeting completed successfully with notes generated, so this may have been a coincidental manual stop rather than a code bug. However, we should add a safety warning when switching tabs during recording.
+**Timeline of the meeting (12e5ca30):**
+- 14:30:00 - `start_time` recorded
+- 14:31:25 - Meeting created in database
+- 14:32:01 - `end_time` set (meeting stopped)
+- 14:32:03 - Cleanup triggered (notes generation started)
+- 14:32:06 - Transcription chunks saved (34 words)
+- 14:32:33 - More chunks saved (77 words)
+
+**What was ruled out:**
+- Server-side auto-close: The `auto-close-inactive-meetings` function explicitly kept the meeting active at 14:31:34
+- Kill signal: No kill signal was found in logs
+- Health monitor: The meeting was still in "recording" status when checked
+- MediaRecorder error: No error logs found
+- Silence auto-stop: Only triggers after 20 minutes
+- Tab switching: No navigation or unmount detected in session replay
+
+**Most likely cause: Accidental double-click on the microphone button**
+
+The current stop flow on desktop works like this:
+1. First click on mic button calls `handleDoubleClickProtection()` -- shows a toast "Double-click to stop" and waits up to 3 seconds
+2. Second click within 3 seconds calls `handleStopWithConfirmation()`
+3. `handleStopWithConfirmation` checks if `recordingDuration >= 300` (5 min) OR `wordCount >= 100` -- for short recordings, BOTH are false
+4. Recording stops immediately with **no confirmation dialog**
+
+This means for any recording under 5 minutes with fewer than 100 words, a double-click (two clicks within 3 seconds) will silently end the recording. On a desktop browser with a mouse, this is very easy to do accidentally.
 
 ---
 
 ### Plan
 
-#### Step 1: Add Storage INSERT Policy (Critical Fix)
-Create a SQL migration to add an INSERT policy on `storage.objects` for the `meeting-audio-backups` bucket, allowing authenticated users to upload to their own folder (matching the existing SELECT/DELETE pattern).
+#### Step 1: Always show the stop confirmation dialog (regardless of duration)
 
-```sql
-CREATE POLICY "Users can upload their meeting audio backups"
-ON storage.objects FOR INSERT
-WITH CHECK (
-  bucket_id = 'meeting-audio-backups'
-  AND (auth.uid())::text = (storage.foldername(name))[1]
-);
+Lower the threshold dramatically so the confirmation dialog appears after just **15 seconds** of recording, rather than the current 5 minutes / 100 words gate. This means:
+
+- Recordings under 15 seconds: immediate stop (likely accidental start)
+- Recordings over 15 seconds: confirmation dialog always shown
+
+**File:** `src/hooks/useRecordingProtection.ts`
+
+Change the confirmation logic from:
+```
+const shouldShowConfirmation = recordingDuration >= 300 || wordCount >= 100;
+```
+To:
+```
+const shouldShowConfirmation = recordingDuration >= 15;
 ```
 
-Also add an UPDATE policy (needed for `upsert: true` in the upload code):
+#### Step 2: Add a clear log when recording is stopped
 
-```sql
-CREATE POLICY "Users can update their meeting audio backups"
-ON storage.objects FOR UPDATE
-USING (
-  bucket_id = 'meeting-audio-backups'
-  AND (auth.uid())::text = (storage.foldername(name))[1]
-);
+Add a distinctive console log at the very top of `stopRecording` in `MeetingRecorder.tsx` that captures the call stack, so if this happens again we can identify exactly what triggered the stop.
+
+**File:** `src/components/MeetingRecorder.tsx`
+
+Add at the start of `stopRecording`:
+```typescript
+console.log('STOP_RECORDING_CALLED', {
+  source: new Error().stack?.split('\n')[2]?.trim(),
+  duration: capturedDuration,
+  isServerTriggered
+});
 ```
 
-#### Step 2: Add Better Upload Error Logging
-Update `backupUploader.ts` to log the specific error when upload fails, so we can diagnose issues more easily in future.
+#### Step 3: Improve the stop confirmation dialog copy for short recordings
 
-#### Step 3: Add Tab-Switch Warning During Recording (Optional Safety)
-When the user switches to the History tab whilst recording is active, show a brief informational toast reminding them that recording continues in the background. This provides reassurance without blocking the action.
+Update `StopRecordingConfirmDialog.tsx` to always display the recording stats (duration and words) regardless of recording length, helping the user understand what they're about to lose.
 
 ---
 
+### Technical Details
+
+| File | Change |
+|------|--------|
+| `src/hooks/useRecordingProtection.ts` | Lower confirmation threshold from 5 min/100 words to 15 seconds |
+| `src/components/MeetingRecorder.tsx` | Add stack trace logging to `stopRecording` |
+| `src/components/StopRecordingConfirmDialog.tsx` | No changes needed (already shows duration and words) |
+
 ### Expected Outcome
-- After Step 1, backup audio will successfully upload to Supabase Storage
-- The `meeting_audio_backups` table will receive metadata records
-- The BackupBadge will appear in the transcript tab showing file size and duration
-- Users get reassurance when switching tabs during recording
+- Any recording over 15 seconds will require explicit confirmation before stopping
+- If an accidental stop happens again, the stack trace log will pinpoint exactly what triggered it
+- Users are protected from losing recordings due to accidental double-clicks on desktop
 
