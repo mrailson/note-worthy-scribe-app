@@ -1191,45 +1191,76 @@ Content guidelines:
         const errorText = await response.text();
         console.error('Lovable AI Gateway error:', response.status, errorText);
         
-        // If the primary model fails with 500, retry with fallback model
-        if (response.status === 500 && selectedImageModel !== 'google/gemini-2.5-flash-image-preview') {
-          const fallbackModel = 'google/gemini-2.5-flash-image-preview';
-          console.log(`⚠️ Primary model ${selectedImageModel} failed, retrying with fallback: ${fallbackModel}`);
+        // Build fallback chain - try remaining models in order
+        const fallbackChain = [
+          'google/gemini-2.5-flash-image-preview',
+          'openai/gpt-image-1',
+        ].filter(m => m !== selectedImageModel);
+
+        let fallbackSucceeded = false;
+        for (const fallbackModel of fallbackChain) {
+          console.log(`⚠️ Retrying with fallback model: ${fallbackModel}`);
           
           const fallbackController = new AbortController();
           const fallbackTimeoutId = setTimeout(() => {
-            console.error('Fallback image generation timeout after 90 seconds');
+            console.error(`Fallback ${fallbackModel} timeout after 90 seconds`);
             fallbackController.abort();
           }, 90000);
 
           try {
-            response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${lovableApiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: fallbackModel,
-                messages: [
-                  { role: 'user', content: messageContent.length === 1 ? imagePrompt : messageContent }
-                ],
-                modalities: ['image', 'text']
-              }),
-              signal: fallbackController.signal
-            });
+            // For OpenAI gpt-image-1, use the images/generations endpoint format
+            if (fallbackModel === 'openai/gpt-image-1') {
+              response = await fetch('https://ai.gateway.lovable.dev/v1/images/generations', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${lovableApiKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: fallbackModel,
+                  prompt: typeof messageContent === 'string' ? messageContent : (messageContent.length === 1 ? imagePrompt : imagePrompt),
+                  n: 1,
+                  size: '1024x1024',
+                }),
+                signal: fallbackController.signal
+              });
+            } else {
+              response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${lovableApiKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: fallbackModel,
+                  messages: [
+                    { role: 'user', content: messageContent.length === 1 ? imagePrompt : messageContent }
+                  ],
+                  modalities: ['image', 'text']
+                }),
+                signal: fallbackController.signal
+              });
+            }
+          } catch (fetchErr) {
+            console.error(`Fallback ${fallbackModel} fetch error:`, fetchErr);
+            clearTimeout(fallbackTimeoutId);
+            continue;
           } finally {
             clearTimeout(fallbackTimeoutId);
           }
 
-          if (!response.ok) {
+          if (response.ok) {
+            console.log(`✅ Fallback model ${fallbackModel} succeeded`);
+            fallbackSucceeded = true;
+            break;
+          } else {
             const fallbackError = await response.text();
-            console.error('Fallback model also failed:', response.status, fallbackError);
-            throw new Error(`Image generation failed with both models. Please try again later.`);
+            console.error(`Fallback ${fallbackModel} failed:`, response.status, fallbackError);
           }
-          console.log(`✅ Fallback model ${fallbackModel} succeeded`);
-        } else {
-          throw new Error(`Image generation failed: ${response.status}`);
+        }
+
+        if (!fallbackSucceeded) {
+          throw new Error('Image generation failed with all available models. Please try again later.');
         }
       }
 
@@ -1252,6 +1283,16 @@ Content guidelines:
       const nativeFinishReason = choice?.native_finish_reason;
       textContent = choice?.message?.content || '';
       imageUrl = choice?.message?.images?.[0]?.image_url?.url;
+
+      // Handle OpenAI images/generations response format (gpt-image-1 fallback)
+      if (!imageUrl && data.data?.[0]) {
+        const imgData = data.data[0];
+        if (imgData.b64_json) {
+          imageUrl = `data:image/png;base64,${imgData.b64_json}`;
+        } else if (imgData.url) {
+          imageUrl = imgData.url;
+        }
+      }
 
       // Check for errors in the response
       const choiceError = data.choices?.[0]?.error;
