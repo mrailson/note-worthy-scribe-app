@@ -1190,7 +1190,47 @@ Content guidelines:
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Lovable AI Gateway error:', response.status, errorText);
-        throw new Error(`Image generation failed: ${response.status}`);
+        
+        // If the primary model fails with 500, retry with fallback model
+        if (response.status === 500 && selectedImageModel !== 'google/gemini-2.5-flash-image-preview') {
+          const fallbackModel = 'google/gemini-2.5-flash-image-preview';
+          console.log(`⚠️ Primary model ${selectedImageModel} failed, retrying with fallback: ${fallbackModel}`);
+          
+          const fallbackController = new AbortController();
+          const fallbackTimeoutId = setTimeout(() => {
+            console.error('Fallback image generation timeout after 90 seconds');
+            fallbackController.abort();
+          }, 90000);
+
+          try {
+            response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${lovableApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: fallbackModel,
+                messages: [
+                  { role: 'user', content: messageContent.length === 1 ? imagePrompt : messageContent }
+                ],
+                modalities: ['image', 'text']
+              }),
+              signal: fallbackController.signal
+            });
+          } finally {
+            clearTimeout(fallbackTimeoutId);
+          }
+
+          if (!response.ok) {
+            const fallbackError = await response.text();
+            console.error('Fallback model also failed:', response.status, fallbackError);
+            throw new Error(`Image generation failed with both models. Please try again later.`);
+          }
+          console.log(`✅ Fallback model ${fallbackModel} succeeded`);
+        } else {
+          throw new Error(`Image generation failed: ${response.status}`);
+        }
       }
 
       // Safely parse JSON response - handle empty or malformed responses
