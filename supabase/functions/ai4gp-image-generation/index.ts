@@ -1332,18 +1332,69 @@ Content guidelines:
           return new Response(JSON.stringify({
             success: false,
             code: 'CONTENT_MODERATION',
-            error: 'This image request was blocked by the AI safety system. If you are aiming for a recognisable franchise theme, try describing the visual vibe without naming the franchise, characters, or logos (e.g. “cinematic space‑opera sci‑fi with starfields and glowing accents”).'
+            error: 'This image request was blocked by the AI safety system. If you are aiming for a recognisable franchise theme, try describing the visual vibe without naming the franchise, characters, or logos (e.g. "cinematic space‑opera sci‑fi with starfields and glowing accents").'
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
 
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'No image was generated. Please try rephrasing your request.'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        // Model returned OK but no image — retry with fallback models
+        const noImageFallbackChain = [
+          'google/gemini-2.5-flash-image',
+          'google/gemini-3-pro-image-preview',
+        ].filter(m => m !== selectedImageModel);
+
+        for (const fallbackModel of noImageFallbackChain) {
+          console.log(`⚠️ No image from primary model, retrying with: ${fallbackModel}`);
+          
+          const fbController = new AbortController();
+          const fbTimeout = setTimeout(() => fbController.abort(), 90000);
+
+          try {
+            const fbResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${lovableApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: fallbackModel,
+                messages: [
+                  { role: 'user', content: messageContent.length === 1 ? imagePrompt : messageContent }
+                ],
+                modalities: ['image', 'text']
+              }),
+              signal: fbController.signal
+            });
+            clearTimeout(fbTimeout);
+
+            if (fbResponse.ok) {
+              const fbText = await fbResponse.text();
+              if (fbText && fbText.trim()) {
+                const fbData = JSON.parse(fbText);
+                const fbImageUrl = fbData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+                if (fbImageUrl) {
+                  console.log(`✅ Fallback model ${fallbackModel} produced an image`);
+                  imageUrl = fbImageUrl;
+                  textContent = fbData.choices?.[0]?.message?.content || textContent;
+                  break;
+                }
+              }
+            }
+          } catch (fbErr) {
+            clearTimeout(fbTimeout);
+            console.error(`Fallback ${fallbackModel} error:`, fbErr);
+          }
+        }
+
+        if (!imageUrl) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'No image was generated. Please try rephrasing your request or simplifying the edit instructions.'
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
       }
     }
 
