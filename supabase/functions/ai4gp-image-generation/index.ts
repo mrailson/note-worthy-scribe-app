@@ -394,7 +394,14 @@ serve(async (req) => {
     const editedDetails = practiceContext?.editedDetails as string[] | undefined;
 
     // Use selected model or default to Gemini 2.5 Flash Image (Nano banana - fast + reliable)
-    const selectedImageModel = imageModel || 'google/gemini-2.5-flash-image';
+    // Normalise model names - the gateway uses 'google/gemini-2.5-flash-image' not '-preview'
+    const validImageModels: Record<string, string> = {
+      'google/gemini-3-pro-image-preview': 'google/gemini-3-pro-image-preview',
+      'google/gemini-2.5-flash-image-preview': 'google/gemini-2.5-flash-image',
+      'google/gemini-2.5-flash-image': 'google/gemini-2.5-flash-image',
+      'openai/gpt-image-1': 'google/gemini-2.5-flash-image', // Not supported by gateway, remap
+    };
+    const selectedImageModel = validImageModels[imageModel] || imageModel || 'google/gemini-2.5-flash-image';
 
     // Determine effective request type (studio uses 'purpose', regular uses 'requestType')
     const effectiveRequestType = isStudioRequest ? (purpose || 'general') : (requestType || 'general');
@@ -1192,9 +1199,10 @@ Content guidelines:
         console.error('Lovable AI Gateway error:', response.status, errorText);
         
         // Build fallback chain - try remaining models in order
+        // Valid image models: google/gemini-3-pro-image-preview, google/gemini-2.5-flash-image
         const fallbackChain = [
-          'google/gemini-2.5-flash-image-preview',
-          'openai/gpt-image-1',
+          'google/gemini-2.5-flash-image',
+          'google/gemini-3-pro-image-preview',
         ].filter(m => m !== selectedImageModel);
 
         let fallbackSucceeded = false;
@@ -1208,39 +1216,21 @@ Content guidelines:
           }, 90000);
 
           try {
-            // For OpenAI gpt-image-1, use the images/generations endpoint format
-            if (fallbackModel === 'openai/gpt-image-1') {
-              response = await fetch('https://ai.gateway.lovable.dev/v1/images/generations', {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${lovableApiKey}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  model: fallbackModel,
-                  prompt: typeof messageContent === 'string' ? messageContent : (messageContent.length === 1 ? imagePrompt : imagePrompt),
-                  n: 1,
-                  size: '1024x1024',
-                }),
-                signal: fallbackController.signal
-              });
-            } else {
-              response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${lovableApiKey}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  model: fallbackModel,
-                  messages: [
-                    { role: 'user', content: messageContent.length === 1 ? imagePrompt : messageContent }
-                  ],
-                  modalities: ['image', 'text']
-                }),
-                signal: fallbackController.signal
-              });
-            }
+            response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${lovableApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: fallbackModel,
+                messages: [
+                  { role: 'user', content: messageContent.length === 1 ? imagePrompt : messageContent }
+                ],
+                modalities: ['image', 'text']
+              }),
+              signal: fallbackController.signal
+            });
           } catch (fetchErr) {
             console.error(`Fallback ${fallbackModel} fetch error:`, fetchErr);
             clearTimeout(fallbackTimeoutId);
