@@ -710,14 +710,9 @@ export const MeetingHistoryList = ({
     setMeetingNotes(cachedNotes);
     setSelectedMeetingForNotes(meeting);
     
-    // Open modal immediately - don't wait for DB fetch
-    if (isMobile) {
-      console.log('📱 Opening mobile notes sheet');
-      setMobileNotesOpen(true);
-    } else {
-      console.log('🖥️ Opening desktop notes modal');
-      setDesktopNotesOpen(true);
-    }
+    // Open full-featured modal for all devices (FullPageNotesModal handles mobile responsiveness)
+    console.log('🖥️ Opening notes modal (all devices)');
+    setDesktopNotesOpen(true);
     
     // Fetch fresh notes in background (non-blocking) - only if we need to update
     supabase
@@ -3167,8 +3162,8 @@ export const MeetingHistoryList = ({
         />
       )}
 
-      {/* Desktop Notes Modal (fallback) */}
-      {!isMobile && desktopNotesOpen && (
+      {/* Full-featured Notes Modal (all devices) */}
+      {desktopNotesOpen && (
         <FullPageNotesModal
           isOpen={desktopNotesOpen}
           onClose={() => setDesktopNotesOpen(false)}
