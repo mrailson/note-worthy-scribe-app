@@ -66,7 +66,10 @@ export const SDADigitalIntegration = () => {
       )}
       {/* Rota Documents - Combined Card */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5 space-y-5">
-        <p className="text-xs text-slate-400 text-right">Last updated: 20 February 2026</p>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-[#003087]">SDA Rota/Buy Back Service Management</h2>
+          <p className="text-xs text-slate-400">Last updated: 20 February 2026</p>
+        </div>
         {/* Excel Workbook */}
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
           <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
