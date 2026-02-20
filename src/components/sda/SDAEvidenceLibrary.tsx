@@ -70,6 +70,18 @@ const programmeBoardMeetings: Meeting[] = [
 // Workgroup Meetings with their documents
 const workgroupMeetings: Meeting[] = [
   {
+    id: 3,
+    date: "17 February 2026",
+    location: "Brook Health Centre",
+    documents: [
+      {
+        title: "Finance Workgroup Meeting Minutes",
+        type: "minutes",
+        filePath: "/evidence/meetings/workgroup/Finance_Workgroup_Minutes_17_February_2026_v3.docx"
+      }
+    ]
+  },
+  {
     id: 2,
     date: "22 January 2026",
     location: "IT Task & Finish - Virtual Meeting",
