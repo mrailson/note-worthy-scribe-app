@@ -426,7 +426,7 @@ export const SDAExecutiveSummary = () => {
             <div className="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <button
                 onClick={() => setListSizeOpen(o => !o)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-slate-800 text-white hover:bg-slate-700 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3 bg-[#005EB8] text-white hover:bg-[#004f9f] transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-4 rounded-full bg-[#41B6E6]"></div>
@@ -482,7 +482,7 @@ export const SDAExecutiveSummary = () => {
             <div className="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <button
                 onClick={() => setAppointmentsOpen(o => !o)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-slate-800 text-white hover:bg-slate-700 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3 bg-[#005EB8] text-white hover:bg-[#004f9f] transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <div className="w-1 h-4 rounded-full bg-[#AE2573]"></div>
@@ -494,7 +494,7 @@ export const SDAExecutiveSummary = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm border-collapse">
                     <thead>
-                      <tr className="bg-slate-700 text-white">
+                      <tr className="bg-[#003087] text-white">
                         <th className="px-3 py-2.5 text-left font-semibold" rowSpan={2}>Practice</th>
                         <th className="px-3 py-2.5 text-right font-semibold" rowSpan={2}>Monthly (£)</th>
                         <th className="px-3 py-2.5 text-right font-semibold" rowSpan={2}>Budget 75% (£)</th>
