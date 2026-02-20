@@ -14,13 +14,13 @@ import { ProgrammePlanGantt } from "./programme-plan";
 import { SDAPartnerQuickGuide } from "./SDAPartnerQuickGuide";
 
 const populationData = [
-  { name: "The Parks MC", value: 22689, color: "#005EB8" },
-  { name: "Brackley MC", value: 16128, color: "#41B6E6" },
-  { name: "Springfield", value: 12649, color: "#768692" },
-  { name: "Towcester MC", value: 11439, color: "#003087" },
-  { name: "Bugbrooke", value: 10773, color: "#0072CE" },
-  { name: "Brook Health", value: 8983, color: "#AE2573" },
-  { name: "Denton Village", value: 6277, color: "#00A499" },
+  { name: "The Parks MC", value: 22827, color: "#005EB8" },
+  { name: "Brackley MC", value: 16212, color: "#41B6E6" },
+  { name: "Springfield", value: 12611, color: "#768692" },
+  { name: "Towcester MC", value: 11748, color: "#003087" },
+  { name: "Bugbrooke", value: 10788, color: "#0072CE" },
+  { name: "Brook Health", value: 9069, color: "#AE2573" },
+  { name: "Denton Village", value: 6329, color: "#00A499" },
 ];
 
 const appointmentData = [
@@ -73,7 +73,7 @@ export const SDAExecutiveSummary = () => {
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-slate-500 font-medium">Patient List Size</p>
-                        <p className="text-3xl font-bold text-slate-900 mt-1">88,938</p>
+                        <p className="text-3xl font-bold text-slate-900 mt-1">89,584</p>
                         <p className="text-sm text-slate-600 mt-1">7 Practice Partners Across Neighbourhood</p>
                       </div>
                       <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
