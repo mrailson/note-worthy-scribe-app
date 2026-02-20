@@ -64,14 +64,6 @@ export const SDADigitalIntegration = () => {
           </div>
         </div>
       )}
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Digital Interoperability Proof of Concept</h2>
-        <p className="text-slate-600 mt-1">
-          Verification evidence for cross-system clinical booking using GP Connect between EMIS and SystmOne (TPP) sites.
-        </p>
-      </div>
-
       {/* Rota Spec Document */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-start gap-4">
         <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
