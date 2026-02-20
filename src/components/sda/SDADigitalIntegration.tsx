@@ -526,7 +526,7 @@ export const SDADigitalIntegration = () => {
                 <p className="text-slate-500">Practices</p>
               </div>
               <div className="text-center">
-                <p className="font-bold text-[#005EB8]">£2.34M</p>
+                <p className="font-bold text-[#005EB8]">£2.36M</p>
                 <p className="text-slate-500">Contract</p>
               </div>
             </div>
