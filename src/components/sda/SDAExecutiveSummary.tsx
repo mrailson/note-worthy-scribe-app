@@ -402,7 +402,7 @@ export const SDAExecutiveSummary = () => {
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-lg font-bold tracking-tight">NRES Neighbourhood – Practice Capacity Breakdown</h2>
-                <p className="text-blue-200 text-sm mt-0.5">April 2025 List Sizes · Appointment Planning Model</p>
+                <p className="text-blue-200 text-sm mt-0.5">Jan 2026 List Sizes · Appointment Planning Model (go live April 2026)</p>
               </div>
               <button onClick={() => setCapacityModalOpen(false)} className="text-white/70 hover:text-white transition-colors mt-0.5">
                 <X className="w-5 h-5" />
@@ -565,7 +565,7 @@ export const SDAExecutiveSummary = () => {
 
             <p className="text-xs text-slate-400 flex items-center gap-1">
               <Info className="w-3 h-3" />
-              Based on April 2025 list sizes. Wkly Min = weekly minimum appointment requirement. F2F and Remote each at 50% of total.
+              Based on Jan 2026 list sizes. Wkly Min = weekly minimum appointment requirement. F2F and Remote each at 50% of total.
             </p>
           </div>
         </DialogContent>
