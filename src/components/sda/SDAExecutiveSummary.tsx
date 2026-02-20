@@ -105,7 +105,7 @@ export const SDAExecutiveSummary = () => {
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-slate-500 font-medium">Annual Capacity</p>
-                        <p className="text-3xl font-bold text-slate-900 mt-1">73,775</p>
+                        <p className="text-3xl font-bold text-slate-900 mt-1">74,301</p>
                         <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                           50% Remote Assumption
                         </span>

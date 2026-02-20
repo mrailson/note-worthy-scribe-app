@@ -76,8 +76,8 @@ const guideItems: GuideItem[] = [
   },
   {
     number: 7,
-    title: "73,775 Additional Appointments Per Year",
-    description: "The SDA will deliver approximately 73,775 additional clinical appointments annually across the neighbourhood. This capacity supplements your existing practice appointments and is shared across all member practices.",
+    title: "74,301 Additional Appointments Per Year",
+    description: "The SDA will deliver approximately 74,301 additional clinical appointments annually across the neighbourhood. This capacity supplements your existing practice appointments and is shared across all member practices.",
     icon: <Calendar className="w-5 h-5" />,
     category: "benefits"
   },
