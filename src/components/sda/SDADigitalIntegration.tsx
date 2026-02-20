@@ -64,52 +64,55 @@ export const SDADigitalIntegration = () => {
           </div>
         </div>
       )}
-      {/* Rota Spec Document */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-start gap-4">
-        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-          <FileText className="w-5 h-5 text-[#005EB8]" />
+      {/* Rota Documents - Combined Card */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5 space-y-5">
+        {/* Word Doc */}
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+            <FileText className="w-5 h-5 text-[#005EB8]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-slate-900 text-sm mb-1">NRES SDA Rota Management System — Technical Specification v2.1</h3>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Technical specification for the SDA rota management system covering appointment targets, workforce rostering, buy-back scheme logic, financial tracking, and compliance reporting across all seven NRES practices. Used to guide system development and serves as the reference document for all contract parameters and business rules.
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <Button variant="outline" size="sm" asChild>
+              <a href="/documents/NRES_SDA_Rota_Spec_v2.1.docx" download>
+                <Download className="h-4 w-4 mr-2" />
+                Download (Word)
+              </a>
+            </Button>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Reference Document</p>
-          <h3 className="font-semibold text-slate-900 text-sm mb-1">NRES SDA Rota Management System — Technical Specification v2.1</h3>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Technical specification for the SDA rota management system covering appointment targets, workforce rostering, buy-back scheme logic, financial tracking, and compliance reporting across all seven NRES practices. Used to guide system development and serves as the reference document for all contract parameters and business rules.
-          </p>
-        </div>
-        <div className="flex-shrink-0">
-          <Button variant="outline" size="sm" asChild>
-            <a href="/documents/NRES_SDA_Rota_Spec_v2.1.docx" download>
-              <Download className="h-4 w-4 mr-2" />
-              Download (Word)
-            </a>
-          </Button>
+
+        <div className="border-t border-slate-100" />
+
+        {/* Excel Workbook */}
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-green-700" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Interim Tool — Go-Live April 2026</p>
+            <h3 className="font-semibold text-slate-900 text-sm mb-1">SDA Rota Management Workbook v3</h3>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Interim Excel tool for go-live (April 2026). Formula-driven across 20 tabs covering practice allocations, rota planning, compliance tracking, buy-back accounting, DNA rates, absence management, and open book financials for all seven practices. To be replaced by the secure web-based system when ready.
+            </p>
+          </div>
+          <div className="flex-shrink-0">
+            <Button variant="outline" size="sm" asChild>
+              <a href="/documents/NRES_SDA_Rota_Management_V3_1.xlsx" download>
+                <Download className="h-4 w-4 mr-2" />
+                Download (Excel)
+              </a>
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Rota Management Workbook */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-start gap-4">
-        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-          <TrendingUp className="w-5 h-5 text-green-700" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Interim Tool — Go-Live April 2026</p>
-          <h3 className="font-semibold text-slate-900 text-sm mb-1">SDA Rota Management Workbook v3</h3>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Interim Excel tool for go-live (April 2026). Formula-driven across 20 tabs covering practice allocations, rota planning, compliance tracking, buy-back accounting, DNA rates, absence management, and open book financials for all seven practices. To be replaced by the secure web-based system when ready.
-          </p>
-        </div>
-        <div className="flex-shrink-0">
-          <Button variant="outline" size="sm" asChild>
-            <a href="/documents/NRES_SDA_Rota_Management_V3_1.xlsx" download>
-              <Download className="h-4 w-4 mr-2" />
-              Download (Excel)
-            </a>
-          </Button>
-        </div>
-      </div>
 
-
-      {/* SDA Pilot Reporting Plan */}
       <CollapsibleCard
         title="SDA Pilot Reporting Plan (Draft)"
         icon={<BarChart3 className="w-5 h-5" />}
