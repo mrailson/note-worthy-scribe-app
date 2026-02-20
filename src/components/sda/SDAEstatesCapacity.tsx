@@ -54,20 +54,20 @@ const capacityData = {
   nonWinter: {
     rate: "15.2 per 1,000",
     weeks: 39,
-    apptsPerWeek: 1352,
-    sessionsPerWeek: 112.7,
+    apptsPerWeek: 1362,
+    sessionsPerWeek: 113.5,
     sessionLength: "4h 10m",
-    f2fRequired: 56.35,
-    remoteRequired: 56.35
+    f2fRequired: 56.75,
+    remoteRequired: 56.75
   },
   winter: {
     rate: "18.2 per 1,000",
     weeks: 13,
-    apptsPerWeek: 1619,
-    sessionsPerWeek: 134.9,
+    apptsPerWeek: 1630,
+    sessionsPerWeek: 135.9,
     sessionLength: "4h 10m",
-    f2fRequired: 67.45,
-    remoteRequired: 67.45
+    f2fRequired: 67.95,
+    remoteRequired: 67.95
   }
 };
 
