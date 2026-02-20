@@ -118,7 +118,7 @@ export const SDADigitalIntegration = () => {
 
 
       <CollapsibleCard
-        title="SDA Pilot Reporting Plan (Draft)"
+        title="SDA Pilot Reporting Plan"
         icon={<BarChart3 className="w-5 h-5" />}
         defaultOpen={false}
         
