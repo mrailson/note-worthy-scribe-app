@@ -72,6 +72,28 @@ export const SDADigitalIntegration = () => {
         </p>
       </div>
 
+      {/* Rota Spec Document */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+          <FileText className="w-5 h-5 text-[#005EB8]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Reference Document</p>
+          <h3 className="font-semibold text-slate-900 text-sm mb-1">NRES SDA Rota Management System — Technical Specification v2.1</h3>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Technical specification for the SDA rota management system covering appointment targets, workforce rostering, buy-back scheme logic, financial tracking, and compliance reporting across all seven NRES practices. Used to guide system development and serves as the reference document for all contract parameters and business rules.
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          <Button variant="outline" size="sm" asChild>
+            <a href="/documents/NRES_SDA_Rota_Spec_v2.1.docx" download>
+              <Download className="h-4 w-4 mr-2" />
+              Download (Word)
+            </a>
+          </Button>
+        </div>
+      </div>
+
       {/* Evidence Cards */}
       <CollapsibleCard
         title="GP Connect Technical Evidence"
