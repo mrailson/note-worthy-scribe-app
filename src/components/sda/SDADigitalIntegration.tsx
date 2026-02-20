@@ -129,7 +129,7 @@ export const SDADigitalIntegration = () => {
             <FileText className="w-5 h-5 text-[#005EB8]" />
             <div>
               <h4 className="font-semibold text-slate-900">NRES SDA Pilot Reporting Plan</h4>
-              <p className="text-sm text-slate-600">Version 1.3 | January 2026</p>
+              <p className="text-sm text-slate-600">Version 1.4 | February 2026</p>
             </div>
           </div>
 
@@ -207,7 +207,7 @@ export const SDADigitalIntegration = () => {
           </div>
 
           <p className="text-xs text-slate-500 italic">
-            Source: NRES_SDA_Pilot_Reporting_Plan.docx v1.3 | Last updated: January 2026
+            Source: NRES_SDA_Pilot_Reporting_Plan.docx v1.4 | Last updated: February 2026
           </p>
         </div>
       </CollapsibleCard>
