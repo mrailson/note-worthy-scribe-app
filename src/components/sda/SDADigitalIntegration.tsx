@@ -100,7 +100,7 @@ export const SDADigitalIntegration = () => {
             <FileText className="w-5 h-5 text-[#005EB8]" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-slate-900 text-sm mb-1">NRES SDA Rota Management System — Technical Specification v2.1</h3>
+            <h3 className="font-semibold text-slate-900 text-sm mb-1">NRES SDA Rota Management System — Functional Specification v2.1</h3>
             <p className="text-sm text-slate-600 leading-relaxed">
               Technical specification for the SDA rota management system covering appointment targets, workforce rostering, buy-back scheme logic, financial tracking, and compliance reporting across all seven NRES practices. Used to guide system development and serves as the reference document for all contract parameters and business rules.
             </p>
