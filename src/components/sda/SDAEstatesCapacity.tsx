@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { TravelTimesThumbnail, TravelTimesSlideshow } from "./TravelTimesSlideshow";
@@ -12,6 +12,7 @@ type SortDirection = "asc" | "desc";
 type BadgeDisplayMode = "total" | "winter" | "nonWinter" | "onsite" | "remote";
 type SitesDisplayMode = "total" | "hub" | "spoke" | "tbc";
 type SessionsDisplayMode = "total" | "winter" | "nonWinter" | "onsite" | "remote";
+type Season = "nonWinter" | "winter" | "total";
 type DurationDisplayMode = "perSession" | "perDay" | "perWeek";
 type ApptsDisplayMode = "perSession" | "perHour" | "perDay";
 
@@ -78,7 +79,7 @@ const getCellColor = (value: number) => {
 };
 
 export const SDAEstatesCapacity = () => {
-  const [season, setSeason] = useState<"winter" | "nonWinter">("winter");
+  const [season, setSeason] = useState<Season>("winter");
   const [viewMode, setViewMode] = useState<"sessions" | "appointments">("sessions");
   const [practiceSortField, setPracticeSortField] = useState<PracticeSortField>("listSize");
   const [practiceSortDirection, setPracticeSortDirection] = useState<SortDirection>("desc");
@@ -91,7 +92,25 @@ export const SDAEstatesCapacity = () => {
   const [durationDisplayMode, setDurationDisplayMode] = useState<DurationDisplayMode>("perSession");
   const [apptsDisplayMode, setApptsDisplayMode] = useState<ApptsDisplayMode>("perSession");
   
-  const currentCapacity = season === "winter" ? capacityData.winter : capacityData.nonWinter;
+  // Full-year "Total" view: NW 39wks + Winter 13wks combined annual figures averaged to a weekly equivalent for display
+  const totalCapacity = {
+    rate: "15.2–18.2 per 1,000",
+    weeks: 52,
+    // Annual totals: NW 1362×39 + Winter 1630×13 = 53118 + 21190 = 74308 ≈ 74,301 authoritative
+    annualAppts: 74301,
+    // Weekly average across full year
+    apptsPerWeek: Math.round(74301 / 52),
+    sessionsPerWeek: Math.round(74301 / 52 / 12 * 10) / 10,
+    sessionLength: "4h 10m",
+    f2fRequired: Math.round(74301 / 52 / 12 / 2 * 10) / 10,
+    remoteRequired: Math.round(74301 / 52 / 12 / 2 * 10) / 10,
+  };
+
+  const currentCapacity = season === "winter" 
+    ? capacityData.winter 
+    : season === "total" 
+      ? totalCapacity 
+      : capacityData.nonWinter;
   const totalWeeklySessions = sessionData.reduce((sum, row) => sum + row.total, 0);
   const multiplier = viewMode === "appointments" ? 12 : 1;
   const unitLabel = viewMode === "appointments" ? "appointments" : "sessions";
@@ -466,6 +485,17 @@ export const SDAEstatesCapacity = () => {
                 <Snowflake className="w-3 h-3" />
                 Winter
               </button>
+              <button
+                onClick={() => setSeason("total")}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1 ${
+                  season === "total" 
+                    ? "bg-white text-slate-900 shadow-sm" 
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <CalendarRange className="w-3 h-3" />
+                Full Year
+              </button>
             </div>
             <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
               <button
@@ -652,6 +682,17 @@ export const SDAEstatesCapacity = () => {
                 <Snowflake className="w-4 h-4" />
                 Winter
               </button>
+              <button 
+                onClick={() => setSeason("total")}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  season === "total" 
+                    ? "bg-slate-700 text-white" 
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                <CalendarRange className="w-4 h-4" />
+                Full Year
+              </button>
             </div>
           </div>
         </div>
@@ -661,20 +702,35 @@ export const SDAEstatesCapacity = () => {
             <p className="text-xl font-bold text-slate-900">{currentCapacity.rate}</p>
             <p className="text-xs text-slate-400">patients</p>
           </div>
-          <div className="bg-slate-50 rounded-lg p-4 text-center">
-            <p className="text-sm text-slate-500">Appointments/Week</p>
-            <p className="text-xl font-bold text-slate-900">{currentCapacity.apptsPerWeek.toLocaleString()}</p>
-            <p className="text-xs text-slate-400">required</p>
-          </div>
-          <div className="bg-slate-50 rounded-lg p-4 text-center">
-            <p className="text-sm text-slate-500 capitalize">{unitLabel}/Week</p>
-            <p className="text-xl font-bold text-slate-900">
-              {viewMode === "appointments" 
-                ? Math.round(currentCapacity.sessionsPerWeek * 12).toLocaleString()
-                : currentCapacity.sessionsPerWeek
+          <div className={`rounded-lg p-4 text-center ${season === "total" ? "bg-slate-700 text-white" : "bg-slate-50"}`}>
+            <p className={`text-sm ${season === "total" ? "text-slate-300" : "text-slate-500"}`}>
+              {season === "total" ? "Annual Appointments" : "Appointments/Week"}
+            </p>
+            <p className={`text-xl font-bold ${season === "total" ? "text-white" : "text-slate-900"}`}>
+              {season === "total" 
+                ? (74301).toLocaleString()
+                : currentCapacity.apptsPerWeek.toLocaleString()
               }
             </p>
-            <p className="text-xs text-slate-400">total needed</p>
+            <p className={`text-xs ${season === "total" ? "text-slate-400" : "text-slate-400"}`}>
+              {season === "total" ? "full year total" : "required"}
+            </p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-4 text-center">
+            <p className="text-sm text-slate-500 capitalize">
+              {season === "total" ? "Annual Sessions" : `${unitLabel}/Week`}
+            </p>
+            <p className="text-xl font-bold text-slate-900">
+              {season === "total"
+                ? Math.round(74301 / 12).toLocaleString()
+                : viewMode === "appointments" 
+                  ? Math.round(currentCapacity.sessionsPerWeek * 12).toLocaleString()
+                  : currentCapacity.sessionsPerWeek
+              }
+            </p>
+            <p className="text-xs text-slate-400">
+              {season === "total" ? "full year total" : "total needed"}
+            </p>
           </div>
           <div className="bg-slate-50 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-500">Duration</p>
@@ -686,27 +742,35 @@ export const SDAEstatesCapacity = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-green-50 rounded-xl p-4 border border-green-200">
             <h4 className="font-semibold text-green-800 mb-2">
-              Face-to-Face {viewMode === "appointments" ? "Appointments" : "Sessions"} Required
+              Face-to-Face {season === "total" ? "Appointments" : viewMode === "appointments" ? "Appointments" : "Sessions"} Required
             </h4>
             <p className="text-3xl font-bold text-green-700">
-              {viewMode === "appointments" 
-                ? Math.round(currentCapacity.f2fRequired * 12).toLocaleString()
-                : currentCapacity.f2fRequired
+              {season === "total"
+                ? Math.round(74301 / 2).toLocaleString()
+                : viewMode === "appointments" 
+                  ? Math.round(currentCapacity.f2fRequired * 12).toLocaleString()
+                  : currentCapacity.f2fRequired
               }
             </p>
-            <p className="text-sm text-green-600">{unitLabel} per week (50% split)</p>
+            <p className="text-sm text-green-600">
+              {season === "total" ? "appointments per year (50% split)" : `${unitLabel} per week (50% split)`}
+            </p>
           </div>
           <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
             <h4 className="font-semibold text-blue-800 mb-2">
-              Remote {viewMode === "appointments" ? "Appointments" : "Sessions"} Required
+              Remote {season === "total" ? "Appointments" : viewMode === "appointments" ? "Appointments" : "Sessions"} Required
             </h4>
             <p className="text-3xl font-bold text-blue-700">
-              {viewMode === "appointments" 
-                ? Math.round(currentCapacity.remoteRequired * 12).toLocaleString()
-                : currentCapacity.remoteRequired
+              {season === "total"
+                ? Math.round(74301 / 2).toLocaleString()
+                : viewMode === "appointments" 
+                  ? Math.round(currentCapacity.remoteRequired * 12).toLocaleString()
+                  : currentCapacity.remoteRequired
               }
             </p>
-            <p className="text-sm text-blue-600">{unitLabel} per week (50% split)</p>
+            <p className="text-sm text-blue-600">
+              {season === "total" ? "appointments per year (50% split)" : `${unitLabel} per week (50% split)`}
+            </p>
           </div>
         </div>
 
