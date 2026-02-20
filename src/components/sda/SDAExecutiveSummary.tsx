@@ -121,9 +121,9 @@ export const SDAExecutiveSummary = () => {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm text-slate-500 font-medium">Contract Value</p>
+                        <p className="text-sm text-slate-500 font-medium">Contract Value (per year)</p>
                         <p className="text-3xl font-bold text-slate-900 mt-1">£2.36m</p>
-                        <p className="text-sm text-slate-600 mt-1">£2,358,746.72 total contract</p>
+                        <p className="text-sm text-slate-600 mt-1">£2,358,746.72 p/a · 2-year pilot</p>
                       </div>
                       <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
                         <PoundSterling className="w-6 h-6 text-green-600" />
