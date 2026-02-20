@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen } from "lucide-react";
+import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, X } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/nres-logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProgrammePlanGantt } from "./programme-plan";
 import { SDAPartnerQuickGuide } from "./SDAPartnerQuickGuide";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const populationData = [
   { name: "The Parks MC", value: 22827, color: "#005EB8" },
@@ -28,12 +29,23 @@ const appointmentData = [
   { name: "Remote", remote: 50, total: 50 },
 ];
 
+const practiceCapacityData = [
+  { practice: "The Parks MC", listSize: 22827, role: "HUB", system: "SystmOne", pct: 25.5, monthly: 50086, budget75: 450776, wklyNonWinter: 347.0, f2fNW: 173.5, remoteNW: 173.5, wklyWinter: 415.5, f2fW: 207.7, remoteW: 207.7, annualTarget: 18933 },
+  { practice: "Brackley MC", listSize: 16212, role: "HUB", system: "SystmOne", pct: 18.1, monthly: 35572, budget75: 320146, wklyNonWinter: 246.4, f2fNW: 123.2, remoteNW: 123.2, wklyWinter: 295.1, f2fW: 147.5, remoteW: 147.5, annualTarget: 13446 },
+  { practice: "Springfield Surgery", listSize: 12611, role: "SPOKE", system: "EMIS", pct: 14.1, monthly: 27671, budget75: 249036, wklyNonWinter: 191.7, f2fNW: 95.8, remoteNW: 95.8, wklyWinter: 229.5, f2fW: 114.8, remoteW: 114.8, annualTarget: 10460 },
+  { practice: "Towcester MC", listSize: 11748, role: "SPOKE", system: "EMIS", pct: 13.1, monthly: 25777, budget75: 231994, wklyNonWinter: 178.6, f2fNW: 89.3, remoteNW: 89.3, wklyWinter: 213.8, f2fW: 106.9, remoteW: 106.9, annualTarget: 9744 },
+  { practice: "Bugbrooke Surgery", listSize: 10788, role: "SPOKE", system: "SystmOne", pct: 12.0, monthly: 23671, budget75: 213036, wklyNonWinter: 164.0, f2fNW: 82.0, remoteNW: 82.0, wklyWinter: 196.3, f2fW: 98.2, remoteW: 98.2, annualTarget: 8948 },
+  { practice: "Brook Health Centre", listSize: 9069, role: "SPOKE", system: "SystmOne", pct: 10.1, monthly: 19899, budget75: 179090, wklyNonWinter: 137.8, f2fNW: 68.9, remoteNW: 68.9, wklyWinter: 165.1, f2fW: 82.5, remoteW: 82.5, annualTarget: 7522 },
+  { practice: "Denton Village Surgery", listSize: 6329, role: "SPOKE", system: "SystmOne", pct: 7.1, monthly: 13887, budget75: 124982, wklyNonWinter: 96.2, f2fNW: 48.1, remoteNW: 48.1, wklyWinter: 115.2, f2fW: 57.6, remoteW: 57.6, annualTarget: 5249 },
+];
+
 export const SDAExecutiveSummary = () => {
   const [chartsOpen, setChartsOpen] = useState(false);
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
   const [actionLogOpen, setActionLogOpen] = useState(true);
   const [metricsOpen, setMetricsOpen] = useState(true);
   const [requirementsOpen, setRequirementsOpen] = useState(true);
+  const [capacityModalOpen, setCapacityModalOpen] = useState(false);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
@@ -68,13 +80,16 @@ export const SDAExecutiveSummary = () => {
           <CollapsibleContent>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setCapacityModalOpen(true)}>
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-slate-500 font-medium">Patient List Size</p>
                         <p className="text-3xl font-bold text-slate-900 mt-1">89,584</p>
                         <p className="text-sm text-slate-600 mt-1">7 Practice Partners Across Neighbourhood</p>
+                        <p className="text-xs text-[#005EB8] mt-2 flex items-center gap-1">
+                          <Info className="w-3 h-3" /> Click for capacity breakdown
+                        </p>
                       </div>
                       <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
                         <Users className="w-6 h-6 text-[#005EB8]" />
@@ -376,6 +391,124 @@ export const SDAExecutiveSummary = () => {
           </CollapsibleContent>
         </Card>
       </Collapsible>
+
+      {/* Practice Capacity Breakdown Modal */}
+      <Dialog open={capacityModalOpen} onOpenChange={setCapacityModalOpen}>
+        <DialogContent className="max-w-[95vw] w-[1200px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-[#005EB8] text-lg font-bold">
+              NRES Neighbourhood – Practice Capacity Breakdown
+            </DialogTitle>
+            <p className="text-sm text-slate-500 mt-1">
+              Non-Winter: 15.2 per 1,000 list (39 weeks) &nbsp;|&nbsp; Winter: 18.2 per 1,000 list (13 weeks)
+            </p>
+          </DialogHeader>
+
+          {/* Practice list size table */}
+          <div className="mt-2 mb-4">
+            <h3 className="text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">Practice List Sizes</h3>
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr style={{ backgroundColor: "#005EB8", color: "white" }}>
+                    <th className="px-3 py-2 text-left font-semibold">Practice</th>
+                    <th className="px-3 py-2 text-right font-semibold">List Size</th>
+                    <th className="px-3 py-2 text-center font-semibold">Hub/Spoke</th>
+                    <th className="px-3 py-2 text-center font-semibold">Clinical System</th>
+                    <th className="px-3 py-2 text-right font-semibold">% of Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {practiceCapacityData.map((p, i) => (
+                    <tr key={p.practice} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <td className="px-3 py-2 font-medium text-slate-900 border-b border-slate-100">{p.practice}</td>
+                      <td className="px-3 py-2 text-right text-slate-700 border-b border-slate-100">{p.listSize.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-center border-b border-slate-100">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${p.role === "HUB" ? "bg-[#005EB8] text-white" : "bg-slate-200 text-slate-700"}`}>
+                          {p.role}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-center text-slate-600 border-b border-slate-100">{p.system}</td>
+                      <td className="px-3 py-2 text-right text-slate-700 border-b border-slate-100">{p.pct}%</td>
+                    </tr>
+                  ))}
+                  <tr style={{ backgroundColor: "#dbeafe" }}>
+                    <td className="px-3 py-2 font-bold text-slate-900 border-t-2 border-[#005EB8]">TOTAL</td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900 border-t-2 border-[#005EB8]">89,584</td>
+                    <td colSpan={2} className="border-t-2 border-[#005EB8]"></td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900 border-t-2 border-[#005EB8]">100.0%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Appointment capacity table */}
+          <div>
+            <h3 className="text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">Appointment Requirements & Financial Allocation</h3>
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr style={{ backgroundColor: "#005EB8", color: "white" }}>
+                    <th className="px-3 py-2 text-left font-semibold" rowSpan={2}>Practice</th>
+                    <th className="px-3 py-2 text-right font-semibold" rowSpan={2}>Monthly Instalment (£)</th>
+                    <th className="px-3 py-2 text-right font-semibold" rowSpan={2}>Recruit Budget 75% (£)</th>
+                    <th className="px-3 py-2 text-center font-semibold border-l border-blue-400" colSpan={3}>Non-Winter (15.2/1,000 · 39 wks)</th>
+                    <th className="px-3 py-2 text-center font-semibold border-l border-blue-400" colSpan={3}>Winter (18.2/1,000 · 13 wks)</th>
+                    <th className="px-3 py-2 text-right font-semibold border-l border-blue-400" rowSpan={2}>Annual Target</th>
+                    <th className="px-3 py-2 text-center font-semibold" rowSpan={2}>Hub/Spoke</th>
+                  </tr>
+                  <tr style={{ backgroundColor: "#003087", color: "white" }}>
+                    <th className="px-3 py-2 text-right font-semibold border-l border-blue-400">Wkly Min</th>
+                    <th className="px-3 py-2 text-right font-semibold">F2F (50%)</th>
+                    <th className="px-3 py-2 text-right font-semibold">Remote (50%)</th>
+                    <th className="px-3 py-2 text-right font-semibold border-l border-blue-400">Wkly Min</th>
+                    <th className="px-3 py-2 text-right font-semibold">F2F (50%)</th>
+                    <th className="px-3 py-2 text-right font-semibold">Remote (50%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {practiceCapacityData.map((p, i) => (
+                    <tr key={p.practice} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <td className="px-3 py-2 font-medium text-slate-900 border-b border-slate-100">{p.practice}</td>
+                      <td className="px-3 py-2 text-right text-slate-700 border-b border-slate-100">£{p.monthly.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right text-slate-700 border-b border-slate-100">£{p.budget75.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-slate-800 border-b border-slate-100 border-l border-slate-200">{p.wklyNonWinter.toFixed(1)}</td>
+                      <td className="px-3 py-2 text-right text-slate-600 border-b border-slate-100">{p.f2fNW.toFixed(1)}</td>
+                      <td className="px-3 py-2 text-right text-slate-600 border-b border-slate-100">{p.remoteNW.toFixed(1)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-slate-800 border-b border-slate-100 border-l border-slate-200">{p.wklyWinter.toFixed(1)}</td>
+                      <td className="px-3 py-2 text-right text-slate-600 border-b border-slate-100">{p.f2fW.toFixed(1)}</td>
+                      <td className="px-3 py-2 text-right text-slate-600 border-b border-slate-100">{p.remoteW.toFixed(1)}</td>
+                      <td className="px-3 py-2 text-right font-bold text-[#005EB8] border-b border-slate-100 border-l border-slate-200">{p.annualTarget.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-center border-b border-slate-100">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${p.role === "HUB" ? "bg-[#005EB8] text-white" : "bg-slate-200 text-slate-700"}`}>
+                          {p.role}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr style={{ backgroundColor: "#dbeafe" }}>
+                    <td className="px-3 py-2 font-bold text-slate-900 border-t-2 border-[#005EB8]">NEIGHBOURHOOD TOTAL</td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900 border-t-2 border-[#005EB8]">£196,562</td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900 border-t-2 border-[#005EB8]">£1,769,060</td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900 border-t-2 border-[#005EB8] border-l border-slate-200">1,361.7</td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900 border-t-2 border-[#005EB8]">680.8</td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900 border-t-2 border-[#005EB8]">680.8</td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900 border-t-2 border-[#005EB8] border-l border-slate-200">1,630.4</td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900 border-t-2 border-[#005EB8]">815.2</td>
+                    <td className="px-3 py-2 text-right font-bold text-slate-900 border-t-2 border-[#005EB8]">815.2</td>
+                    <td className="px-3 py-2 text-right font-bold text-[#005EB8] border-t-2 border-[#005EB8] border-l border-slate-200">74,301</td>
+                    <td className="border-t-2 border-[#005EB8]"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-slate-400 mt-2">
+              * Based on April 2025 list sizes. Wkly Min = weekly minimum appointment requirement. F2F and Remote each at 50% of total.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
