@@ -53,7 +53,7 @@ export const projectRisks: ProjectRisk[] = [
   },
   {
     id: 2,
-    risk: "Financial Governance - £2.34m Funding",
+    risk: "Financial Governance - £2,358,746.72 Funding",
     category: "Financial",
     riskType: 'principal',
     originalLikelihood: 4,

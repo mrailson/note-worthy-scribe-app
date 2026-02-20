@@ -55,8 +55,8 @@ const guideItems: GuideItem[] = [
   },
   {
     number: 4,
-    title: "Contract Value: £2.34m Annually",
-    description: "The total contract value is £2.34 million per year, equating to approximately £26.33 per registered patient. Funding flows through the lead provider (DocMed/PML) and is distributed based on agreed activity and population metrics.",
+    title: "Contract Value: £2,358,746.72 Annually",
+    description: "The total contract value is £2,358,746.72 per year. Funding flows through the lead provider (DocMed/PML) and is distributed based on agreed activity and population metrics.",
     icon: <PoundSterling className="w-5 h-5" />,
     category: "benefits"
   },
