@@ -499,13 +499,13 @@ export const SDAExecutiveSummary = () => {
                         <th className="px-3 py-2.5 text-right font-semibold" rowSpan={2}>Monthly (£)</th>
                         <th className="px-3 py-2.5 text-right font-semibold" rowSpan={2}>Budget 75% (£)</th>
                         <th className="px-3 py-2 text-center font-semibold bg-[#0072CE] border-l-2 border-white/30" colSpan={3}>
-                          <div className="flex items-center justify-center gap-1.5">
+                          <div className="flex items-center justify-center gap-1.5 text-white">
                             <span className="w-2 h-2 rounded-full bg-[#41B6E6]"></span>
                             Non-Winter · 15.2/1,000 · 39 wks
                           </div>
                         </th>
-                        <th className="px-3 py-2 text-center font-semibold bg-[#AE2573] border-l-2 border-white/30" colSpan={3}>
-                          <div className="flex items-center justify-center gap-1.5">
+                        <th className="px-3 py-2.5 text-center font-semibold bg-[#AE2573] border-l-2 border-white/30" colSpan={3}>
+                          <div className="flex items-center justify-center gap-1.5 text-white">
                             <span className="w-2 h-2 rounded-full bg-pink-300"></span>
                             Winter · 18.2/1,000 · 13 wks
                           </div>
