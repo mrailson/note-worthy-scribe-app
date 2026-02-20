@@ -86,6 +86,29 @@ export const SDADigitalIntegration = () => {
         </div>
       </div>
 
+      {/* Rota Management Workbook */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
+          <TrendingUp className="w-5 h-5 text-green-700" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Interim Tool — Go-Live April 2026</p>
+          <h3 className="font-semibold text-slate-900 text-sm mb-1">SDA Rota Management Workbook v3</h3>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Interim Excel tool for go-live (April 2026). Formula-driven across 20 tabs covering practice allocations, rota planning, compliance tracking, buy-back accounting, DNA rates, absence management, and open book financials for all seven practices. To be replaced by the secure web-based system when ready.
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          <Button variant="outline" size="sm" asChild>
+            <a href="/documents/NRES_SDA_Rota_Management_V3_1.xlsx" download>
+              <Download className="h-4 w-4 mr-2" />
+              Download (Excel)
+            </a>
+          </Button>
+        </div>
+      </div>
+
+
       {/* SDA Pilot Reporting Plan */}
       <CollapsibleCard
         title="SDA Pilot Reporting Plan (Draft)"
