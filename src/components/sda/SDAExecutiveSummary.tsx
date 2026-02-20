@@ -46,6 +46,8 @@ export const SDAExecutiveSummary = () => {
   const [metricsOpen, setMetricsOpen] = useState(true);
   const [requirementsOpen, setRequirementsOpen] = useState(true);
   const [capacityModalOpen, setCapacityModalOpen] = useState(false);
+  const [listSizeOpen, setListSizeOpen] = useState(true);
+  const [appointmentsOpen, setAppointmentsOpen] = useState(true);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
@@ -419,142 +421,152 @@ export const SDAExecutiveSummary = () => {
             </div>
           </div>
 
-          <div className="p-6 space-y-6">
-            {/* Practice List Sizes */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1 h-5 rounded-full bg-[#005EB8]"></div>
-                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Practice List Sizes</h3>
-              </div>
-              <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
-                <table className="w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-slate-800 text-white">
-                      <th className="px-4 py-3 text-left font-semibold rounded-tl-xl">Practice</th>
-                      <th className="px-4 py-3 text-right font-semibold">List Size</th>
-                      <th className="px-4 py-3 text-center font-semibold">Hub / Spoke</th>
-                      <th className="px-4 py-3 text-center font-semibold">Clinical System</th>
-                      <th className="px-4 py-3 text-right font-semibold rounded-tr-xl">% of Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {practiceCapacityData.map((p, i) => (
-                      <tr key={p.practice} className={`transition-colors hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/70"}`}>
-                        <td className="px-4 py-3 font-semibold text-slate-900 border-b border-slate-100">{p.practice}</td>
-                        <td className="px-4 py-3 text-right font-mono text-slate-700 border-b border-slate-100">{p.listSize.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-center border-b border-slate-100">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide ${p.role === "HUB" ? "bg-[#005EB8] text-white" : "bg-slate-100 text-slate-600 border border-slate-300"}`}>
-                            {p.role}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center border-b border-slate-100">
-                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${p.system === "EMIS" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-blue-50 text-blue-700 border border-blue-200"}`}>
-                            {p.system}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right border-b border-slate-100">
-                          <div className="flex items-center justify-end gap-2">
-                            <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                              <div className="h-full bg-[#005EB8] rounded-full" style={{ width: `${p.pct}%` }}></div>
-                            </div>
-                            <span className="font-mono text-slate-700 w-10 text-right">{p.pct}%</span>
-                          </div>
-                        </td>
+          <div className="p-6 space-y-4">
+            {/* Practice List Sizes – collapsible */}
+            <div className="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setListSizeOpen(o => !o)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-slate-800 text-white hover:bg-slate-700 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-4 rounded-full bg-[#41B6E6]"></div>
+                  <span className="text-sm font-bold uppercase tracking-wider">Practice List Sizes</span>
+                </div>
+                {listSizeOpen ? <ChevronUp className="w-4 h-4 text-slate-300" /> : <ChevronDown className="w-4 h-4 text-slate-300" />}
+              </button>
+              {listSizeOpen && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-[#005EB8] text-white">
+                        <th className="px-4 py-2.5 text-left font-semibold">Practice</th>
+                        <th className="px-4 py-2.5 text-right font-semibold">List Size</th>
+                        <th className="px-4 py-2.5 text-center font-semibold">Hub / Spoke</th>
+                        <th className="px-4 py-2.5 text-center font-semibold">Clinical System</th>
+                        <th className="px-4 py-2.5 text-right font-semibold">% of Total</th>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-[#005EB8] text-white font-bold">
-                      <td className="px-4 py-3 rounded-bl-xl">TOTAL</td>
-                      <td className="px-4 py-3 text-right font-mono">89,584</td>
-                      <td colSpan={2}></td>
-                      <td className="px-4 py-3 text-right font-mono rounded-br-xl">100.0%</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {practiceCapacityData.map((p, i) => (
+                        <tr key={p.practice} className={`transition-colors hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/70"}`}>
+                          <td className="px-4 py-2.5 font-semibold text-slate-900 border-b border-slate-100">{p.practice}</td>
+                          <td className="px-4 py-2.5 text-right font-mono text-slate-700 border-b border-slate-100">{p.listSize.toLocaleString()}</td>
+                          <td className="px-4 py-2.5 text-center border-b border-slate-100">
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide ${p.role === "HUB" ? "bg-[#005EB8] text-white" : "bg-slate-100 text-slate-600 border border-slate-300"}`}>
+                              {p.role}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-center border-b border-slate-100">
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${p.system === "EMIS" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-blue-50 text-blue-700 border border-blue-200"}`}>
+                              {p.system}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2.5 text-right font-mono text-slate-700 border-b border-slate-100">{p.pct}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-[#005EB8] text-white font-bold">
+                        <td className="px-4 py-2.5">TOTAL</td>
+                        <td className="px-4 py-2.5 text-right font-mono">89,584</td>
+                        <td colSpan={2}></td>
+                        <td className="px-4 py-2.5 text-right font-mono">100.0%</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
             </div>
 
-            {/* Appointment Capacity Table */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-1 h-5 rounded-full bg-[#005EB8]"></div>
-                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Appointment Requirements & Financial Allocation</h3>
-              </div>
-              <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
-                <table className="w-full text-sm border-collapse">
-                  <thead>
-                    <tr className="bg-slate-800 text-white">
-                      <th className="px-3 py-2.5 text-left font-semibold" rowSpan={2}>Practice</th>
-                      <th className="px-3 py-2.5 text-right font-semibold" rowSpan={2}>Monthly (£)</th>
-                      <th className="px-3 py-2.5 text-right font-semibold" rowSpan={2}>Budget 75% (£)</th>
-                      <th className="px-3 py-2 text-center font-semibold bg-[#0072CE] border-l-2 border-white/30" colSpan={3}>
-                        <div className="flex items-center justify-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-[#41B6E6]"></span>
-                          Non-Winter · 15.2/1,000 · 39 wks
-                        </div>
-                      </th>
-                      <th className="px-3 py-2 text-center font-semibold bg-[#AE2573] border-l-2 border-white/30" colSpan={3}>
-                        <div className="flex items-center justify-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-pink-300"></span>
-                          Winter · 18.2/1,000 · 13 wks
-                        </div>
-                      </th>
-                      <th className="px-3 py-2.5 text-right font-semibold bg-[#003087] border-l-2 border-white/30" rowSpan={2}>Annual Target</th>
-                      <th className="px-3 py-2.5 text-center font-semibold" rowSpan={2}>Hub/Spoke</th>
-                    </tr>
-                    <tr>
-                      <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 border-l-2 border-white/30 text-xs">Wkly Min</th>
-                      <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 text-xs">F2F 50%</th>
-                      <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 text-xs">Remote 50%</th>
-                      <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 border-l-2 border-white/30 text-xs">Wkly Min</th>
-                      <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 text-xs">F2F 50%</th>
-                      <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 text-xs">Remote 50%</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {practiceCapacityData.map((p, i) => (
-                      <tr key={p.practice} className={`transition-colors hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/70"}`}>
-                        <td className="px-3 py-2.5 font-semibold text-slate-900 border-b border-slate-100">{p.practice}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-slate-700 border-b border-slate-100">£{p.monthly.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-slate-700 border-b border-slate-100">£{p.budget75.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-right font-mono font-bold text-[#0072CE] border-b border-slate-100 border-l-2 border-blue-100 bg-blue-50/30">{p.wklyNonWinter.toFixed(1)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-blue-50/20">{p.f2fNW.toFixed(1)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-blue-50/20">{p.remoteNW.toFixed(1)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono font-bold text-[#AE2573] border-b border-slate-100 border-l-2 border-pink-100 bg-pink-50/30">{p.wklyWinter.toFixed(1)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-pink-50/20">{p.f2fW.toFixed(1)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-pink-50/20">{p.remoteW.toFixed(1)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono font-bold text-[#003087] border-b border-slate-100 border-l-2 border-indigo-100 bg-indigo-50/30">{p.annualTarget.toLocaleString()}</td>
-                        <td className="px-3 py-2.5 text-center border-b border-slate-100">
-                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${p.role === "HUB" ? "bg-[#005EB8] text-white" : "bg-slate-100 text-slate-600 border border-slate-300"}`}>
-                            {p.role}
-                          </span>
-                        </td>
+            {/* Appointment Capacity – collapsible */}
+            <div className="rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setAppointmentsOpen(o => !o)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-slate-800 text-white hover:bg-slate-700 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-1 h-4 rounded-full bg-[#AE2573]"></div>
+                  <span className="text-sm font-bold uppercase tracking-wider">Appointment Requirements & Financial Allocation</span>
+                </div>
+                {appointmentsOpen ? <ChevronUp className="w-4 h-4 text-slate-300" /> : <ChevronDown className="w-4 h-4 text-slate-300" />}
+              </button>
+              {appointmentsOpen && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-slate-700 text-white">
+                        <th className="px-3 py-2.5 text-left font-semibold" rowSpan={2}>Practice</th>
+                        <th className="px-3 py-2.5 text-right font-semibold" rowSpan={2}>Monthly (£)</th>
+                        <th className="px-3 py-2.5 text-right font-semibold" rowSpan={2}>Budget 75% (£)</th>
+                        <th className="px-3 py-2 text-center font-semibold bg-[#0072CE] border-l-2 border-white/30" colSpan={3}>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#41B6E6]"></span>
+                            Non-Winter · 15.2/1,000 · 39 wks
+                          </div>
+                        </th>
+                        <th className="px-3 py-2 text-center font-semibold bg-[#AE2573] border-l-2 border-white/30" colSpan={3}>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-pink-300"></span>
+                            Winter · 18.2/1,000 · 13 wks
+                          </div>
+                        </th>
+                        <th className="px-3 py-2.5 text-right font-semibold bg-[#003087] border-l-2 border-white/30" rowSpan={2}>Annual Target</th>
+                        <th className="px-3 py-2.5 text-center font-semibold" rowSpan={2}>Hub/Spoke</th>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-[#005EB8] text-white font-bold">
-                      <td className="px-3 py-3 font-bold rounded-bl-xl">NEIGHBOURHOOD TOTAL</td>
-                      <td className="px-3 py-3 text-right font-mono">£196,562</td>
-                      <td className="px-3 py-3 text-right font-mono">£1,769,060</td>
-                      <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60 border-l-2 border-white/20">1,361.7</td>
-                      <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60">680.8</td>
-                      <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60">680.8</td>
-                      <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60 border-l-2 border-white/20">1,630.4</td>
-                      <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60">815.2</td>
-                      <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60">815.2</td>
-                      <td className="px-3 py-3 text-right font-mono bg-[#003087]/80 border-l-2 border-white/20 rounded-br-xl">74,301</td>
-                      <td className="bg-[#003087]/40"></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-              <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-                <Info className="w-3 h-3" />
-                Based on April 2025 list sizes. Wkly Min = weekly minimum appointment requirement. F2F and Remote each at 50% of total.
-              </p>
+                      <tr>
+                        <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 border-l-2 border-white/30 text-xs">Wkly Min</th>
+                        <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 text-xs">F2F 50%</th>
+                        <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 text-xs">Remote 50%</th>
+                        <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 border-l-2 border-white/30 text-xs">Wkly Min</th>
+                        <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 text-xs">F2F 50%</th>
+                        <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 text-xs">Remote 50%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {practiceCapacityData.map((p, i) => (
+                        <tr key={p.practice} className={`transition-colors hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/70"}`}>
+                          <td className="px-3 py-2.5 font-semibold text-slate-900 border-b border-slate-100">{p.practice}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-slate-700 border-b border-slate-100">£{p.monthly.toLocaleString()}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-slate-700 border-b border-slate-100">£{p.budget75.toLocaleString()}</td>
+                          <td className="px-3 py-2.5 text-right font-mono font-bold text-[#0072CE] border-b border-slate-100 border-l-2 border-blue-100 bg-blue-50/30">{p.wklyNonWinter.toFixed(1)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-blue-50/20">{p.f2fNW.toFixed(1)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-blue-50/20">{p.remoteNW.toFixed(1)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono font-bold text-[#AE2573] border-b border-slate-100 border-l-2 border-pink-100 bg-pink-50/30">{p.wklyWinter.toFixed(1)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-pink-50/20">{p.f2fW.toFixed(1)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-pink-50/20">{p.remoteW.toFixed(1)}</td>
+                          <td className="px-3 py-2.5 text-right font-mono font-bold text-[#003087] border-b border-slate-100 border-l-2 border-indigo-100 bg-indigo-50/30">{p.annualTarget.toLocaleString()}</td>
+                          <td className="px-3 py-2.5 text-center border-b border-slate-100">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${p.role === "HUB" ? "bg-[#005EB8] text-white" : "bg-slate-100 text-slate-600 border border-slate-300"}`}>
+                              {p.role}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-[#005EB8] text-white font-bold">
+                        <td className="px-3 py-3 font-bold">NEIGHBOURHOOD TOTAL</td>
+                        <td className="px-3 py-3 text-right font-mono">£196,562</td>
+                        <td className="px-3 py-3 text-right font-mono">£1,769,060</td>
+                        <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60 border-l-2 border-white/20">1,361.7</td>
+                        <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60">680.8</td>
+                        <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60">680.8</td>
+                        <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60 border-l-2 border-white/20">1,630.4</td>
+                        <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60">815.2</td>
+                        <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60">815.2</td>
+                        <td className="px-3 py-3 text-right font-mono bg-[#003087]/80 border-l-2 border-white/20">74,301</td>
+                        <td className="bg-[#003087]/40"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
             </div>
+
+            <p className="text-xs text-slate-400 flex items-center gap-1">
+              <Info className="w-3 h-3" />
+              Based on April 2025 list sizes. Wkly Min = weekly minimum appointment requirement. F2F and Remote each at 50% of total.
+            </p>
           </div>
         </DialogContent>
       </Dialog>
