@@ -118,7 +118,7 @@ export const SDADigitalIntegration = () => {
         title="SDA Pilot Reporting Plan (Draft)"
         icon={<BarChart3 className="w-5 h-5" />}
         defaultOpen={false}
-        badge={<Badge className="bg-amber-500">DRAFT - For Programme Board Approval</Badge>}
+        
       >
         <div className="space-y-6">
           {/* Document reference */}
