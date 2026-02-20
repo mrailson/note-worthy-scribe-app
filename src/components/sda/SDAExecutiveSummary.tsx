@@ -510,7 +510,7 @@ export const SDAExecutiveSummary = () => {
                             Winter · 18.2/1,000 · 13 wks
                           </div>
                         </th>
-                        <th className="px-3 py-2.5 text-right font-semibold bg-[#003087] border-l-2 border-white/30" rowSpan={2}>Annual Target</th>
+                        <th className="px-3 py-2.5 text-right font-semibold bg-indigo-600 text-white border-l-2 border-white/30" rowSpan={2}>Annual Target</th>
                         <th className="px-3 py-2.5 text-center font-semibold" rowSpan={2}>Hub/Spoke</th>
                       </tr>
                       <tr>
