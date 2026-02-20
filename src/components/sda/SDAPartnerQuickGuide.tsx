@@ -35,7 +35,7 @@ const guideItems: GuideItem[] = [
   {
     number: 1,
     title: "What is the SDA Neighbourhood Pilot?",
-    description: "A 12-month NHS innovation pilot testing new models of primary care delivery across the NRES neighbourhood. It's a Local Enhanced Service (LES) commissioned by the ICB to improve access, reduce workload, and share resources across 7 practices serving 88,938 patients.",
+    description: "A 2-year NHS innovation pilot testing new models of primary care delivery across the NRES neighbourhood. It's a Local Enhanced Service (LES) commissioned by the ICB to improve access, reduce workload, and share resources across 7 practices serving 89,584 patients.",
     icon: <Info className="w-5 h-5" />,
     category: "overview"
   },
@@ -55,8 +55,8 @@ const guideItems: GuideItem[] = [
   },
   {
     number: 4,
-    title: "Contract Value: £2,358,746.72 Annually",
-    description: "The total contract value is £2,358,746.72 per year. Funding flows through the lead provider (DocMed/PML) and is distributed based on agreed activity and population metrics.",
+    title: "Contract Value: £2,358,746.72 Per Year",
+    description: "The total contract value is £2,358,746.72 per year across a 2-year pilot. Funding flows through the lead provider (DocMed/PML) and is distributed based on agreed activity and population metrics.",
     icon: <PoundSterling className="w-5 h-5" />,
     category: "benefits"
   },
