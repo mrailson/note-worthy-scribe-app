@@ -35,16 +35,16 @@ const practiceSummary = [
     practice: "The Parks MC", 
     subPractices: ["Roade", "Blisworth", "Grange Park", "Hanslope"],
     totalSessions: 29,
-    listSize: 22689,
+    listSize: 22827,
     role: "HUB",
     system: "SystmOne"
   },
-  { practice: "Brackley MC", totalSessions: 20, listSize: 16128, role: "HUB", system: "SystmOne", note: "Non-GMS rent required" },
-  { practice: "Springfield", totalSessions: 10, listSize: 12649, role: "SPOKE", system: "EMIS" },
-  { practice: "Towcester MC", totalSessions: 17, listSize: 11439, role: "SPOKE", system: "EMIS" },
-  { practice: "Bugbrooke", totalSessions: 10, listSize: 10773, role: "SPOKE", system: "SystmOne" },
-  { practice: "Brook Health", totalSessions: 10, listSize: 8983, role: "TBC", system: "SystmOne", note: "Awaiting NHFT meeting (15 Jan) - will report to board" },
-  { practice: "Denton Village", totalSessions: 3, listSize: 6277, role: "SPOKE", system: "SystmOne", note: "Tue/Fri full day, Thu PM" },
+  { practice: "Brackley MC", totalSessions: 20, listSize: 16212, role: "HUB", system: "SystmOne", note: "Non-GMS rent required" },
+  { practice: "Springfield", totalSessions: 10, listSize: 12611, role: "SPOKE", system: "EMIS" },
+  { practice: "Towcester MC", totalSessions: 17, listSize: 11748, role: "SPOKE", system: "EMIS" },
+  { practice: "Bugbrooke", totalSessions: 10, listSize: 10788, role: "SPOKE", system: "SystmOne" },
+  { practice: "Brook Health", totalSessions: 10, listSize: 9069, role: "TBC", system: "SystmOne", note: "Awaiting NHFT meeting (15 Jan) - will report to board" },
+  { practice: "Denton Village", totalSessions: 3, listSize: 6329, role: "SPOKE", system: "SystmOne", note: "Tue/Fri full day, Thu PM" },
 ];
 
 const totalListSize = practiceSummary.reduce((sum, p) => sum + p.listSize, 0);
