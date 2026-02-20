@@ -236,6 +236,28 @@ export const SDAExecutiveSummary = () => {
         </Card>
       </Collapsible>
 
+      {/* Programme Board ToR */}
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5 flex flex-col sm:flex-row sm:items-start gap-4">
+        <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+          <BookOpen className="w-5 h-5 text-[#005EB8]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Governance Document</p>
+          <h3 className="font-semibold text-slate-900 text-sm mb-1">Same Day Access Innovator — Programme Board Terms of Reference</h3>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Outlines the purpose, scope, membership, responsibilities, and governance structure of the NRES Neighbourhood SDA Programme Board. Covers voting and non-voting membership, workstream oversight, decision-making authority, and assurance arrangements for the Rural South and East neighbourhood, effective from April 2026.
+          </p>
+        </div>
+        <div className="flex-shrink-0">
+          <a href="/documents/Final_Terms_of_Reference_Programme_Board_SDA.docx" download>
+            <button className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-300 rounded-md bg-white hover:bg-slate-50 transition-colors text-slate-700">
+              <Download className="h-4 w-4" />
+              Download (Word)
+            </button>
+          </a>
+        </div>
+      </div>
+
       {/* Collapsible Programme Board Action Log */}
       <Collapsible open={actionLogOpen} onOpenChange={setActionLogOpen}>
         <Card className="bg-white border-0 shadow-sm">
