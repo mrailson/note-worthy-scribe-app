@@ -338,7 +338,7 @@ export const SDAExecutiveSummary = () => {
               <Card className="bg-slate-50 border shadow-none">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg font-semibold text-slate-900">Practice Population Mix</CardTitle>
-                  <p className="text-sm text-slate-500">Source: April 25 List Size</p>
+                  <p className="text-sm text-slate-500">Source: January 2026 List Size</p>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[320px]">
