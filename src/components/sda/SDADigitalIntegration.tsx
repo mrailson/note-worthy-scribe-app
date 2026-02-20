@@ -106,6 +106,7 @@ export const SDADigitalIntegration = () => {
       <CollapsibleCard
         title="Risk Stratification Overview & Patient Continuity of Care"
         icon={<FileText className="w-5 h-5" />}
+        defaultOpen={false}
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="border border-slate-200 rounded-lg p-4">
@@ -151,6 +152,7 @@ export const SDADigitalIntegration = () => {
         <CollapsibleCard
           title="Verification Complete"
           icon={<CheckCircle2 className="w-5 h-5" />}
+          defaultOpen={false}
           className="bg-gradient-to-br from-green-50 to-emerald-50"
           badge={<Badge className="bg-green-600">100% ACCESS GRANTED</Badge>}
         >
@@ -163,6 +165,7 @@ export const SDADigitalIntegration = () => {
         <CollapsibleCard
           title="Remote Hardware Strategy"
           icon={<Laptop className="w-5 h-5" />}
+          defaultOpen={false}
         >
           <div className="space-y-4">
             <div className="flex items-start gap-3">
@@ -211,6 +214,7 @@ export const SDADigitalIntegration = () => {
       <CollapsibleCard
         title="System Access Matrix"
         icon={<Settings className="w-5 h-5" />}
+        defaultOpen={false}
       >
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -274,6 +278,7 @@ export const SDADigitalIntegration = () => {
       <CollapsibleCard
         title="IT & Telephony - Key Questions"
         icon={<Phone className="w-5 h-5" />}
+        defaultOpen={false}
       >
         <div className="space-y-6">
           {/* Question 1 - Triage Systems */}
@@ -492,6 +497,7 @@ export const SDADigitalIntegration = () => {
       <CollapsibleCard
         title="SDA Pilot Reporting Plan (Draft)"
         icon={<BarChart3 className="w-5 h-5" />}
+        defaultOpen={false}
         badge={<Badge className="bg-amber-500">DRAFT - For Programme Board Approval</Badge>}
       >
         <div className="space-y-6">
@@ -715,6 +721,7 @@ export const SDADigitalIntegration = () => {
       <CollapsibleCard
         title="Digital Task & Finish Group - Action Log"
         icon={<ClipboardList className="w-5 h-5" />}
+        defaultOpen={false}
       >
         <div className="overflow-x-auto">
           <Table>
