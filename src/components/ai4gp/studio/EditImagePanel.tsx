@@ -526,7 +526,7 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
                   <p className="text-[10px] text-muted-foreground">
                     Select a stock image to replace with the edited result above
                   </p>
-                  <div className="grid grid-cols-4 gap-2 overflow-y-auto flex-1">
+                  <div className="grid grid-cols-4 gap-2 overflow-y-auto flex-1 auto-rows-[80px]">
                     {stockImages
                       .filter(img => {
                         if (!stockSearchQuery.trim()) return true;
@@ -550,7 +550,7 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
                             }
                           }}
                           disabled={isReplacing}
-                          className="relative group rounded-md overflow-hidden border hover:ring-2 hover:ring-primary transition-all aspect-square"
+                          className="relative group rounded-md overflow-hidden border hover:ring-2 hover:ring-primary transition-all h-[80px] w-full"
                           title={`${img.title} (${img.category})`}
                         >
                           <img
