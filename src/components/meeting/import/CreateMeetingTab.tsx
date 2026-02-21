@@ -32,6 +32,7 @@ import { chunkWavFile, blobToBase64 } from '@/utils/wavChunker';
 import { isLikelyHallucination } from '@/utils/whisperHallucinationPatterns';
 import { cleanWhisperTranscript } from '@/lib/cleanWhisperTranscript';
 import { detectMeetingBoundaries, type BoundaryReport } from '@/utils/detectMeetingBoundaries';
+import { AudioTrimEditor } from './AudioTrimEditor';
 
 interface CreateMeetingTabProps {
   onComplete?: () => void;
@@ -82,6 +83,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   const [importSuccess, setImportSuccess] = useState(false);
   const [importedMeetingId, setImportedMeetingId] = useState<string | null>(null);
   const [boundaryReport, setBoundaryReport] = useState<BoundaryReport | null>(null);
+  const [showTrimEditor, setShowTrimEditor] = useState(false);
 
   const getFileType = (file: File): 'audio' | 'text' | 'document' | null => {
     if (SUPPORTED_AUDIO_TYPES.includes(file.type) || 
@@ -227,31 +229,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     }
   };
 
-  const handleFilesAdded = useCallback(async (files: FileList | File[]) => {
-    const fileArray = Array.from(files);
-    const validFiles: UploadedFile[] = [];
-    
-    for (const file of fileArray) {
-      const fileType = getFileType(file);
-      if (fileType) {
-        validFiles.push({
-          file,
-          name: file.name,
-          size: file.size,
-          type: fileType,
-          status: 'pending'
-        });
-      } else {
-        showToast.warning(`Unsupported file type: ${file.name}`, { section: 'meeting_manager' });
-      }
-    }
-    
-    if (validFiles.length === 0) return;
-
-    // Sort by filename ascending for chronological order (filenames encode date/time)
-    validFiles.sort((a, b) => a.name.localeCompare(b.name));
-    
-    setUploadedFiles(prev => [...prev, ...validFiles]);
+  const processUploadedFiles = useCallback(async (validFiles: UploadedFile[]) => {
     setIsProcessing(true);
     
     // Process files sequentially in chronological order
@@ -282,11 +260,6 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     }
     
     // After all files processed, run boundary detection
-    const doneFiles = [...validFiles]
-      .filter(f => f.status !== 'error')
-      .sort((a, b) => a.name.localeCompare(b.name));
-    
-    // We need to read back the latest state for transcripts
     setUploadedFiles(prev => {
       const completedTranscripts = prev
         .filter(f => f.status === 'done' && f.transcript)
@@ -310,6 +283,56 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     
     setIsProcessing(false);
   }, [updateFileStatus]);
+
+  const handleFilesAdded = useCallback(async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    const validFiles: UploadedFile[] = [];
+    
+    for (const file of fileArray) {
+      const fileType = getFileType(file);
+      if (fileType) {
+        validFiles.push({
+          file,
+          name: file.name,
+          size: file.size,
+          type: fileType,
+          status: 'pending'
+        });
+      } else {
+        showToast.warning(`Unsupported file type: ${file.name}`, { section: 'meeting_manager' });
+      }
+    }
+    
+    if (validFiles.length === 0) return;
+
+    // Sort by filename ascending for chronological order (filenames encode date/time)
+    validFiles.sort((a, b) => a.name.localeCompare(b.name));
+    
+    setUploadedFiles(prev => [...prev, ...validFiles]);
+
+    // If any audio files are present, don't auto-process — let user choose to trim or process directly
+    const hasAudio = validFiles.some(f => f.type === 'audio');
+    if (hasAudio) return;
+
+    // Non-audio-only uploads process immediately
+    await processUploadedFiles(validFiles);
+  }, [updateFileStatus, processUploadedFiles]);
+
+  const handleTrimConfirm = useCallback(async (trimmedFiles: File[]) => {
+    // Replace the uploaded files with trimmed versions and process them
+    const newUploadedFiles: UploadedFile[] = trimmedFiles.map(file => ({
+      file,
+      name: file.name,
+      size: file.size,
+      type: getFileType(file) || 'audio' as const,
+      status: 'pending' as const,
+    }));
+
+    newUploadedFiles.sort((a, b) => a.name.localeCompare(b.name));
+    setUploadedFiles(newUploadedFiles);
+    setShowTrimEditor(false);
+    await processUploadedFiles(newUploadedFiles);
+  }, [processUploadedFiles]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -453,6 +476,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     setPastedText('');
     setUploadedFiles([]);
     setBoundaryReport(null);
+    setShowTrimEditor(false);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -620,6 +644,16 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
               ))}
             </div>
           </div>
+        )}
+        
+        {/* Audio Trim Editor — shown when files are pending and user hasn't started processing */}
+        {uploadedFiles.length > 0 && uploadedFiles.some(f => f.type === 'audio') && uploadedFiles.every(f => f.status === 'pending') && (
+          <AudioTrimEditor
+            files={uploadedFiles.map(f => ({ file: f.file, type: f.type }))}
+            onTrimConfirm={handleTrimConfirm}
+            onCancel={() => setShowTrimEditor(false)}
+            isProcessing={isProcessing}
+          />
         )}
         
         {/* Meeting Boundary Warning */}
@@ -823,7 +857,9 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
         
         {hasPendingFiles && (
           <p className="text-xs text-center text-amber-600 mt-2">
-            Please wait for all files to finish processing
+            {uploadedFiles.some(f => f.type === 'audio' && f.status === 'pending')
+              ? 'Use the trim editor above to process your audio, or it will process when you confirm'
+              : 'Please wait for all files to finish processing'}
           </p>
         )}
       </div>
