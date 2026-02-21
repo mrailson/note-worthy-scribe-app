@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, X } from "lucide-react";
+import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, X, Map } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/nres-logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProgrammePlanGantt } from "./programme-plan";
 import { SDAPartnerQuickGuide } from "./SDAPartnerQuickGuide";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import NRESGlassMap from "./NRESGlassMap";
 
 const populationData = [
   { name: "The Parks MC", value: 22827, color: "#005EB8" },
@@ -48,6 +49,7 @@ export const SDAExecutiveSummary = () => {
   const [capacityModalOpen, setCapacityModalOpen] = useState(false);
   const [listSizeOpen, setListSizeOpen] = useState(true);
   const [appointmentsOpen, setAppointmentsOpen] = useState(true);
+  const [glassMapOpen, setGlassMapOpen] = useState(false);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
@@ -89,9 +91,18 @@ export const SDAExecutiveSummary = () => {
                         <p className="text-sm text-slate-500 font-medium">Patient List Size</p>
                         <p className="text-3xl font-bold text-slate-900 mt-1">89,584</p>
                         <p className="text-sm text-slate-600 mt-1">7 Practice Partners Across Neighbourhood</p>
-                        <p className="text-xs text-[#005EB8] mt-2 flex items-center gap-1">
-                          <Info className="w-3 h-3" /> Click for capacity breakdown
-                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <p className="text-xs text-[#005EB8] flex items-center gap-1">
+                            <Info className="w-3 h-3" /> Click for capacity breakdown
+                          </p>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setGlassMapOpen(true); }}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full transition-colors"
+                            title="View interactive neighbourhood map"
+                          >
+                            <Map className="w-3 h-3" /> Map
+                          </button>
+                        </div>
                       </div>
                       <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
                         <Users className="w-6 h-6 text-[#005EB8]" />
@@ -589,6 +600,16 @@ export const SDAExecutiveSummary = () => {
               <Info className="w-3 h-3" />
               Based on Jan 2026 list sizes. Wkly Min = weekly minimum appointment requirement. F2F and Remote each at 50% of total.
             </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Glass Map Fullscreen Modal */}
+      <Dialog open={glassMapOpen} onOpenChange={setGlassMapOpen}>
+        <DialogContent className="max-w-[98vw] w-[98vw] max-h-[98vh] h-[98vh] p-0 overflow-hidden border-0 bg-[#0e1a2e]">
+          <DialogTitle className="sr-only">NRES Neighbourhood Map</DialogTitle>
+          <div className="w-full h-full overflow-auto">
+            <NRESGlassMap />
           </div>
         </DialogContent>
       </Dialog>
