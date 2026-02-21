@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { TravelTimesThumbnail, TravelTimesSlideshow } from "./TravelTimesSlideshow";
@@ -78,6 +78,16 @@ const getCellColor = (value: number) => {
   return "bg-amber-50 text-amber-700";
 };
 
+const practiceCapacityData = [
+  { practice: "The Parks MC", listSize: 22827, role: "HUB", system: "SystmOne", pct: 25.5, monthly: 50086, budget75: 450776, wklyNonWinter: 347.0, f2fNW: 173.5, remoteNW: 173.5, wklyWinter: 415.5, f2fW: 207.7, remoteW: 207.7, annualTarget: 18933 },
+  { practice: "Brackley MC", listSize: 16212, role: "HUB", system: "SystmOne", pct: 18.1, monthly: 35572, budget75: 320146, wklyNonWinter: 246.4, f2fNW: 123.2, remoteNW: 123.2, wklyWinter: 295.1, f2fW: 147.5, remoteW: 147.5, annualTarget: 13446 },
+  { practice: "Springfield Surgery", listSize: 12611, role: "SPOKE", system: "EMIS", pct: 14.1, monthly: 27671, budget75: 249036, wklyNonWinter: 191.7, f2fNW: 95.8, remoteNW: 95.8, wklyWinter: 229.5, f2fW: 114.8, remoteW: 114.8, annualTarget: 10460 },
+  { practice: "Towcester MC", listSize: 11748, role: "SPOKE", system: "EMIS", pct: 13.1, monthly: 25777, budget75: 231994, wklyNonWinter: 178.6, f2fNW: 89.3, remoteNW: 89.3, wklyWinter: 213.8, f2fW: 106.9, remoteW: 106.9, annualTarget: 9744 },
+  { practice: "Bugbrooke Surgery", listSize: 10788, role: "SPOKE", system: "SystmOne", pct: 12.0, monthly: 23671, budget75: 213036, wklyNonWinter: 164.0, f2fNW: 82.0, remoteNW: 82.0, wklyWinter: 196.3, f2fW: 98.2, remoteW: 98.2, annualTarget: 8948 },
+  { practice: "Brook Health Centre", listSize: 9069, role: "SPOKE", system: "SystmOne", pct: 10.1, monthly: 19899, budget75: 179090, wklyNonWinter: 137.8, f2fNW: 68.9, remoteNW: 68.9, wklyWinter: 165.1, f2fW: 82.5, remoteW: 82.5, annualTarget: 7522 },
+  { practice: "Denton Village Surgery", listSize: 6329, role: "SPOKE", system: "SystmOne", pct: 7.1, monthly: 13887, budget75: 124982, wklyNonWinter: 96.2, f2fNW: 48.1, remoteNW: 48.1, wklyWinter: 115.2, f2fW: 57.6, remoteW: 57.6, annualTarget: 5249 },
+];
+
 export const SDAEstatesCapacity = () => {
   const [season, setSeason] = useState<Season>("winter");
   const [viewMode, setViewMode] = useState<"sessions" | "appointments">("sessions");
@@ -85,6 +95,8 @@ export const SDAEstatesCapacity = () => {
   const [practiceSortDirection, setPracticeSortDirection] = useState<SortDirection>("desc");
   const [badgeDisplayMode, setBadgeDisplayMode] = useState<BadgeDisplayMode>("total");
   const [travelTimesModalOpen, setTravelTimesModalOpen] = useState(false);
+  const [listSizeOpen, setListSizeOpen] = useState(true);
+  const [appointmentsOpen, setAppointmentsOpen] = useState(true);
   
   // Top banner display modes
   const [sitesDisplayMode, setSitesDisplayMode] = useState<SitesDisplayMode>("total");
@@ -888,6 +900,172 @@ export const SDAEstatesCapacity = () => {
             <strong>Note:</strong> 1 session = 12 × 15 min appointments (F2F and Virtual). Initially 15 mins for virtual appointments but the board may change to 10 mins at a later date.
           </p>
         </div>
+      </CollapsibleCard>
+
+      {/* Practice Capacity Breakdown */}
+      <CollapsibleCard
+        title="Practice Capacity Breakdown"
+        icon={<Users className="w-5 h-5" />}
+        badge={
+          <div className="flex gap-2">
+            <span className="inline-flex items-center gap-1.5 bg-blue-50 rounded-full px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#41B6E6]"></span>
+              Non-Winter: 15.2/1,000 · 39 wks
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-pink-50 rounded-full px-2.5 py-0.5 text-xs font-medium text-pink-700 border border-pink-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#AE2573]"></span>
+              Winter: 18.2/1,000 · 13 wks
+            </span>
+          </div>
+        }
+      >
+        <p className="text-sm text-slate-500 mb-4">Jan 2026 List Sizes · Appointment Planning Model (go live April 2026)</p>
+
+        {/* Practice List Sizes */}
+        <div className="rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+          <button
+            onClick={() => setListSizeOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-[#005EB8] text-white hover:bg-[#004f9f] transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-4 rounded-full bg-[#41B6E6]"></div>
+              <span className="text-sm font-bold uppercase tracking-wider">Practice List Sizes</span>
+            </div>
+            {listSizeOpen ? <ChevronUp className="w-4 h-4 text-slate-300" /> : <ChevronDown className="w-4 h-4 text-slate-300" />}
+          </button>
+          {listSizeOpen && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-[#005EB8] text-white">
+                    <th className="px-4 py-2.5 text-left font-semibold">Practice</th>
+                    <th className="px-4 py-2.5 text-right font-semibold">List Size</th>
+                    <th className="px-4 py-2.5 text-center font-semibold">Hub / Spoke</th>
+                    <th className="px-4 py-2.5 text-center font-semibold">Clinical System</th>
+                    <th className="px-4 py-2.5 text-right font-semibold">% of Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {practiceCapacityData.map((p, i) => (
+                    <tr key={p.practice} className={`transition-colors hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/70"}`}>
+                      <td className="px-4 py-2.5 font-semibold text-slate-900 border-b border-slate-100">{p.practice}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-slate-700 border-b border-slate-100">{p.listSize.toLocaleString()}</td>
+                      <td className="px-4 py-2.5 text-center border-b border-slate-100">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide ${p.role === "HUB" ? "bg-[#005EB8] text-white" : "bg-slate-100 text-slate-600 border border-slate-300"}`}>
+                          {p.role}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-center border-b border-slate-100">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${p.system === "EMIS" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-blue-50 text-blue-700 border border-blue-200"}`}>
+                          {p.system}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono text-slate-700 border-b border-slate-100">{p.pct}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-[#005EB8] text-white font-bold">
+                    <td className="px-4 py-2.5">TOTAL</td>
+                    <td className="px-4 py-2.5 text-right font-mono">89,584</td>
+                    <td colSpan={2}></td>
+                    <td className="px-4 py-2.5 text-right font-mono">100.0%</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Appointment Requirements & Financial Allocation */}
+        <div className="rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-4">
+          <button
+            onClick={() => setAppointmentsOpen(o => !o)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-[#005EB8] text-white hover:bg-[#004f9f] transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-4 rounded-full bg-[#AE2573]"></div>
+              <span className="text-sm font-bold uppercase tracking-wider">Appointment Requirements & Financial Allocation</span>
+            </div>
+            {appointmentsOpen ? <ChevronUp className="w-4 h-4 text-slate-300" /> : <ChevronDown className="w-4 h-4 text-slate-300" />}
+          </button>
+          {appointmentsOpen && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-[#003087] text-white">
+                    <th className="px-3 py-2.5 text-left font-semibold" rowSpan={2}>Practice</th>
+                    <th className="px-3 py-2.5 text-right font-semibold" rowSpan={2}>Monthly (£)</th>
+                    <th className="px-3 py-2.5 text-right font-semibold" rowSpan={2}>Budget 75% (£)</th>
+                    <th className="px-3 py-2 text-center font-semibold bg-[#0072CE] border-l-2 border-white/30" colSpan={3}>
+                      <div className="flex items-center justify-center gap-1.5 text-white">
+                        <span className="w-2 h-2 rounded-full bg-[#41B6E6]"></span>
+                        Non-Winter · 15.2/1,000 · 39 wks
+                      </div>
+                    </th>
+                    <th className="px-3 py-2.5 text-center font-semibold bg-[#AE2573] border-l-2 border-white/30" colSpan={3}>
+                      <div className="flex items-center justify-center gap-1.5 text-white">
+                        <span className="w-2 h-2 rounded-full bg-pink-300"></span>
+                        Winter · 18.2/1,000 · 13 wks
+                      </div>
+                    </th>
+                    <th className="px-3 py-2.5 text-right font-semibold bg-indigo-600 text-white border-l-2 border-white/30" rowSpan={2}>Annual Target</th>
+                    <th className="px-3 py-2.5 text-center font-semibold" rowSpan={2}>Hub/Spoke</th>
+                  </tr>
+                  <tr>
+                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 border-l-2 border-white/30 text-xs">Wkly Min</th>
+                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 text-xs">F2F 50%</th>
+                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 text-xs">Remote 50%</th>
+                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 border-l-2 border-white/30 text-xs">Wkly Min</th>
+                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 text-xs">F2F 50%</th>
+                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 text-xs">Remote 50%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {practiceCapacityData.map((p, i) => (
+                    <tr key={p.practice} className={`transition-colors hover:bg-blue-50 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/70"}`}>
+                      <td className="px-3 py-2.5 font-semibold text-slate-900 border-b border-slate-100">{p.practice}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-slate-700 border-b border-slate-100">£{p.monthly.toLocaleString()}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-slate-700 border-b border-slate-100">£{p.budget75.toLocaleString()}</td>
+                      <td className="px-3 py-2.5 text-right font-mono font-bold text-[#0072CE] border-b border-slate-100 border-l-2 border-blue-100 bg-blue-50/30">{p.wklyNonWinter.toFixed(1)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-blue-50/20">{p.f2fNW.toFixed(1)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-blue-50/20">{p.remoteNW.toFixed(1)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono font-bold text-[#AE2573] border-b border-slate-100 border-l-2 border-pink-100 bg-pink-50/30">{p.wklyWinter.toFixed(1)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-pink-50/20">{p.f2fW.toFixed(1)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-slate-600 border-b border-slate-100 bg-pink-50/20">{p.remoteW.toFixed(1)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono font-bold text-[#003087] border-b border-slate-100 border-l-2 border-indigo-100 bg-indigo-50/30">{p.annualTarget.toLocaleString()}</td>
+                      <td className="px-3 py-2.5 text-center border-b border-slate-100">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${p.role === "HUB" ? "bg-[#005EB8] text-white" : "bg-slate-100 text-slate-600 border border-slate-300"}`}>
+                          {p.role}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-[#005EB8] text-white font-bold">
+                    <td className="px-3 py-3 font-bold">NEIGHBOURHOOD TOTAL</td>
+                    <td className="px-3 py-3 text-right font-mono">£196,562</td>
+                    <td className="px-3 py-3 text-right font-mono">£1,769,060</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60 border-l-2 border-white/20">1,361.7</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60">680.8</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60">680.8</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60 border-l-2 border-white/20">1,630.4</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60">815.2</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60">815.2</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#003087]/80 border-l-2 border-white/20">74,301</td>
+                    <td className="bg-[#003087]/40"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <p className="text-xs text-slate-400 flex items-center gap-1">
+          <Info className="w-3 h-3" />
+          Based on Jan 2026 list sizes. Wkly Min = weekly minimum appointment requirement. F2F and Remote each at 50% of total.
+        </p>
       </CollapsibleCard>
 
       {/* Hub Location Status */}
