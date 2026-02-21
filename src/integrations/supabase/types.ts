@@ -7069,6 +7069,9 @@ export type Database = {
           end_time: string
           entered_by: string | null
           id: string
+          invoice_status: string | null
+          invoiced_by: string | null
+          invoiced_date: string | null
           start_time: string
           updated_at: string
           user_id: string
@@ -7084,6 +7087,9 @@ export type Database = {
           end_time: string
           entered_by?: string | null
           id?: string
+          invoice_status?: string | null
+          invoiced_by?: string | null
+          invoiced_date?: string | null
           start_time: string
           updated_at?: string
           user_id: string
@@ -7099,6 +7105,9 @@ export type Database = {
           end_time?: string
           entered_by?: string | null
           id?: string
+          invoice_status?: string | null
+          invoiced_by?: string | null
+          invoiced_date?: string | null
           start_time?: string
           updated_at?: string
           user_id?: string

@@ -9,7 +9,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronDown, ChevronRight, Users, Download, Loader2, Calendar, List, LayoutGrid, Trash2, ArrowUpDown } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ChevronDown, ChevronRight, Users, Download, Loader2, Calendar, List, LayoutGrid, Trash2, ArrowUpDown, FileCheck, Undo2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,6 +39,9 @@ interface AllEntry {
   entered_by: string | null;
   claimant_name: string | null;
   claimant_type: string | null;
+  invoice_status: string | null;
+  invoiced_date: string | null;
+  invoiced_by: string | null;
 }
 
 interface ClaimantInfo {
@@ -82,8 +87,13 @@ export function AdminClaimsReport() {
   const [viewMode, setViewMode] = useState<'summary' | 'detailed'>('summary');
   const [filterName, setFilterName] = useState<string>('all');
   const [filterPractice, setFilterPractice] = useState<string>('all');
+  const [invoiceFilter, setInvoiceFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<SortField>('work_date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [invoiceDate, setInvoiceDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [markingInvoiced, setMarkingInvoiced] = useState(false);
 
   // Check if current user has admin access
   const hasAccess = isSystemAdmin || (user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase()));
@@ -162,6 +172,7 @@ export function AdminClaimsReport() {
       setUserSettings(settingsMap);
       setUserProfiles(profileMap);
       setClaimants(claimantsMap);
+      setSelectedEntries(new Set());
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {
@@ -186,7 +197,6 @@ export function AdminClaimsReport() {
     entries.forEach(e => {
       const date = parseISO(e.work_date);
       if (isWithinInterval(date, { start, end })) {
-        // If entry has a claimant_name, use that; otherwise use user profile
         if (e.claimant_name) {
           const claimant = claimants[e.claimant_name];
           names.add(e.claimant_name);
@@ -212,24 +222,21 @@ export function AdminClaimsReport() {
     const start = parseISO(startDate);
     const end = parseISO(endDate);
 
-    // Helper to get display name and practice for an entry
-    // Group by name to combine entries where user profile name matches claimant name
     const getEntryDetails = (e: AllEntry) => {
       if (e.claimant_name) {
         const claimant = claimants[e.claimant_name];
         return {
           displayName: e.claimant_name,
           practiceName: claimant?.member_practice || 'Not Set',
-          groupKey: `name:${e.claimant_name}` // Group by name
+          groupKey: `name:${e.claimant_name}`
         };
       } else {
         const profile = userProfiles[e.user_id] || { name: e.user_id.substring(0, 8) + '...', practice_name: 'Unknown' };
-        // Check if this user's name exists as a claimant - if so, use claimant's practice
         const matchingClaimant = claimants[profile.name];
         return {
           displayName: profile.name,
           practiceName: matchingClaimant?.member_practice || profile.practice_name,
-          groupKey: `name:${profile.name}` // Group by name to unify with claimant entries
+          groupKey: `name:${profile.name}`
         };
       }
     };
@@ -240,11 +247,12 @@ export function AdminClaimsReport() {
       
       const details = getEntryDetails(e);
       
-      // Apply name filter
       if (filterName !== 'all' && details.displayName !== filterName) return false;
-      
-      // Apply practice filter
       if (filterPractice !== 'all' && details.practiceName !== filterPractice) return false;
+      
+      // Invoice status filter
+      if (invoiceFilter === 'pending' && e.invoice_status === 'invoiced') return false;
+      if (invoiceFilter === 'invoiced' && e.invoice_status !== 'invoiced') return false;
       
       return true;
     });
@@ -297,7 +305,7 @@ export function AdminClaimsReport() {
 
     filteredEntries.forEach(entry => {
       const details = getEntryDetails(entry);
-      const hourlyRate = userSettings[entry.user_id] || 50; // Default £50/hr
+      const hourlyRate = userSettings[entry.user_id] || 50;
       const amount = Number(entry.duration_hours) * hourlyRate;
 
       if (claimMap.has(details.groupKey)) {
@@ -323,10 +331,94 @@ export function AdminClaimsReport() {
       userClaims: Array.from(claimMap.values()).sort((a, b) => b.total_amount - a.total_amount),
       detailedEntries: detailed
     };
-  }, [entries, userSettings, userProfiles, claimants, startDate, endDate, filterName, filterPractice, sortField, sortDirection]);
+  }, [entries, userSettings, userProfiles, claimants, startDate, endDate, filterName, filterPractice, invoiceFilter, sortField, sortDirection]);
 
   const grandTotalHours = userClaims.reduce((sum, u) => sum + u.total_hours, 0);
   const grandTotalAmount = userClaims.reduce((sum, u) => sum + u.total_amount, 0);
+
+  // Selectable entries (uninvoiced only)
+  const selectableEntries = useMemo(() => 
+    detailedEntries.filter(e => e.invoice_status !== 'invoiced'),
+    [detailedEntries]
+  );
+
+  const allSelectableSelected = selectableEntries.length > 0 && selectableEntries.every(e => selectedEntries.has(e.id));
+
+  const handleToggleSelectAll = () => {
+    if (allSelectableSelected) {
+      setSelectedEntries(new Set());
+    } else {
+      setSelectedEntries(new Set(selectableEntries.map(e => e.id)));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedEntries(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleMarkInvoiced = async (entryIds: string[], date: string) => {
+    if (!user?.id) return;
+    setMarkingInvoiced(true);
+    try {
+      const { error } = await supabase
+        .from('nres_hours_entries')
+        .update({
+          invoice_status: 'invoiced',
+          invoiced_date: date,
+          invoiced_by: user.id
+        } as any)
+        .in('id', entryIds);
+
+      if (error) throw error;
+
+      setEntries(prev => prev.map(e => 
+        entryIds.includes(e.id)
+          ? { ...e, invoice_status: 'invoiced', invoiced_date: date, invoiced_by: user.id }
+          : e
+      ));
+      setSelectedEntries(new Set());
+      setShowInvoiceDialog(false);
+      toast.success(`${entryIds.length} ${entryIds.length === 1 ? 'entry' : 'entries'} marked as invoiced`);
+    } catch (error) {
+      console.error('Error marking invoiced:', error);
+      toast.error('Failed to mark entries as invoiced');
+    } finally {
+      setMarkingInvoiced(false);
+    }
+  };
+
+  const handleUnmarkInvoiced = async (entryId: string) => {
+    try {
+      const { error } = await supabase
+        .from('nres_hours_entries')
+        .update({
+          invoice_status: null,
+          invoiced_date: null,
+          invoiced_by: null
+        } as any)
+        .eq('id', entryId);
+
+      if (error) throw error;
+
+      setEntries(prev => prev.map(e => 
+        e.id === entryId
+          ? { ...e, invoice_status: null, invoiced_date: null, invoiced_by: null }
+          : e
+      ));
+      toast.success('Invoice status removed');
+    } catch (error) {
+      console.error('Error unmarking invoiced:', error);
+      toast.error('Failed to remove invoice status');
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -368,15 +460,17 @@ export function AdminClaimsReport() {
       `Period: ${format(parseISO(startDate), 'dd/MM/yyyy')} to ${format(parseISO(endDate), 'dd/MM/yyyy')}`,
       `Generated: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
       '',
-      'User Name,Practice,Date,Start Time,End Time,Hours,Activity Type,Description,Amount,Entered By'
+      'User Name,Practice,Date,Start Time,End Time,Hours,Activity Type,Description,Amount,Entered By,Invoice Status,Invoiced Date,Invoiced By'
     ];
 
-    // Use detailedEntries which already has the entered_by_name resolved
     detailedEntries
       .sort((a, b) => a.user_name.localeCompare(b.user_name) || a.work_date.localeCompare(b.work_date))
       .forEach(entry => {
         const description = entry.description ? `"${entry.description.replace(/"/g, '""')}"` : '';
-        lines.push(`"${entry.user_name}","${entry.practice_name}",${format(parseISO(entry.work_date), 'dd/MM/yyyy')},${entry.start_time.substring(0, 5)},${entry.end_time.substring(0, 5)},${Number(entry.duration_hours).toFixed(2)},"${entry.activity_type || ''}",${description},£${entry.amount.toFixed(2)},"${entry.entered_by_name}"`);
+        const invoiceStatus = entry.invoice_status === 'invoiced' ? 'Invoiced' : 'Pending';
+        const invoicedDate = entry.invoiced_date ? format(parseISO(entry.invoiced_date), 'dd/MM/yyyy') : '';
+        const invoicedByName = entry.invoiced_by ? (userProfiles[entry.invoiced_by]?.name || entry.invoiced_by.substring(0, 8) + '...') : '';
+        lines.push(`"${entry.user_name}","${entry.practice_name}",${format(parseISO(entry.work_date), 'dd/MM/yyyy')},${entry.start_time.substring(0, 5)},${entry.end_time.substring(0, 5)},${Number(entry.duration_hours).toFixed(2)},"${entry.activity_type || ''}",${description},£${entry.amount.toFixed(2)},"${entry.entered_by_name}","${invoiceStatus}","${invoicedDate}","${invoicedByName}"`);
       });
 
     lines.push('');
@@ -507,6 +601,19 @@ export function AdminClaimsReport() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label className="text-xs">Invoice Status</Label>
+                <Select value={invoiceFilter} onValueChange={setInvoiceFilter}>
+                  <SelectTrigger className="w-36 mt-1">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="invoiced">Invoiced</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button onClick={fetchAllData} variant="outline" size="sm" disabled={loading}>
                 {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Refresh
@@ -527,6 +634,32 @@ export function AdminClaimsReport() {
               </div>
             ) : (
               <>
+                {/* Floating action bar for bulk invoicing */}
+                {selectedEntries.size > 0 && (
+                  <div className="sticky top-0 z-10 flex items-center gap-3 rounded-lg border bg-background p-3 shadow-md">
+                    <span className="text-sm font-medium">
+                      {selectedEntries.size} {selectedEntries.size === 1 ? 'entry' : 'entries'} selected
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setInvoiceDate(format(new Date(), 'yyyy-MM-dd'));
+                        setShowInvoiceDialog(true);
+                      }}
+                    >
+                      <FileCheck className="w-4 h-4 mr-1" />
+                      Mark as Invoiced
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedEntries(new Set())}
+                    >
+                      Clear Selection
+                    </Button>
+                  </div>
+                )}
+
                 {/* View Mode Tabs */}
                 <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'summary' | 'detailed')}>
                   <div className="flex items-center justify-between">
@@ -622,6 +755,13 @@ export function AdminClaimsReport() {
                       <Table>
                         <TableHeader>
                           <TableRow>
+                            <TableHead className="w-10">
+                              <Checkbox
+                                checked={allSelectableSelected}
+                                onCheckedChange={handleToggleSelectAll}
+                                aria-label="Select all"
+                              />
+                            </TableHead>
                             <TableHead 
                               className="cursor-pointer hover:bg-muted/50"
                               onClick={() => handleSort('work_date')}
@@ -679,41 +819,104 @@ export function AdminClaimsReport() {
                                 <ArrowUpDown className="w-3 h-3" />
                               </div>
                             </TableHead>
-                            <TableHead className="w-10"></TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="w-20"></TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {detailedEntries.map((entry) => (
-                            <TableRow key={entry.id}>
-                              <TableCell>{format(parseISO(entry.work_date), 'dd/MM/yyyy')}</TableCell>
-                              <TableCell className="font-medium">{entry.user_name}</TableCell>
-                              <TableCell className="text-muted-foreground">{entry.practice_name}</TableCell>
-                              <TableCell>
-                                {entry.start_time.substring(0, 5)} - {entry.end_time.substring(0, 5)}
-                              </TableCell>
-                              <TableCell>{entry.activity_type || '-'}</TableCell>
-                              <TableCell className="text-muted-foreground">
-                                {entry.description || '-'}
-                              </TableCell>
-                              <TableCell className="text-right">{Number(entry.duration_hours).toFixed(2)}</TableCell>
-                              <TableCell className="text-right font-medium">£{formatCurrency(entry.amount)}</TableCell>
-                              <TableCell className="text-muted-foreground text-xs">{entry.entered_by_name}</TableCell>
-                              <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => handleDeleteEntry(entry.id)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {detailedEntries.map((entry) => {
+                            const isInvoiced = entry.invoice_status === 'invoiced';
+                            const invoicedByName = entry.invoiced_by ? (userProfiles[entry.invoiced_by]?.name || entry.invoiced_by.substring(0, 8) + '...') : '';
+                            
+                            return (
+                              <TableRow key={entry.id} className={isInvoiced ? 'bg-green-50/50' : ''}>
+                                <TableCell>
+                                  {!isInvoiced ? (
+                                    <Checkbox
+                                      checked={selectedEntries.has(entry.id)}
+                                      onCheckedChange={() => handleToggleSelect(entry.id)}
+                                      aria-label={`Select entry ${entry.id}`}
+                                    />
+                                  ) : null}
+                                </TableCell>
+                                <TableCell>{format(parseISO(entry.work_date), 'dd/MM/yyyy')}</TableCell>
+                                <TableCell className="font-medium">{entry.user_name}</TableCell>
+                                <TableCell className="text-muted-foreground">{entry.practice_name}</TableCell>
+                                <TableCell>
+                                  {entry.start_time.substring(0, 5)} - {entry.end_time.substring(0, 5)}
+                                </TableCell>
+                                <TableCell>{entry.activity_type || '-'}</TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  {entry.description || '-'}
+                                </TableCell>
+                                <TableCell className="text-right">{Number(entry.duration_hours).toFixed(2)}</TableCell>
+                                <TableCell className="text-right font-medium">£{formatCurrency(entry.amount)}</TableCell>
+                                <TableCell className="text-muted-foreground text-xs">{entry.entered_by_name}</TableCell>
+                                <TableCell>
+                                  {isInvoiced ? (
+                                    <HoverCard>
+                                      <HoverCardTrigger asChild>
+                                        <Badge className="bg-green-600 hover:bg-green-700 text-white cursor-pointer text-xs">
+                                          Invoiced
+                                        </Badge>
+                                      </HoverCardTrigger>
+                                      <HoverCardContent className="w-56" align="start">
+                                        <div className="space-y-1 text-xs">
+                                          <p><span className="font-semibold">Date:</span> {entry.invoiced_date ? format(parseISO(entry.invoiced_date), 'dd/MM/yyyy') : '-'}</p>
+                                          <p><span className="font-semibold">Marked by:</span> {invoicedByName}</p>
+                                        </div>
+                                      </HoverCardContent>
+                                    </HoverCard>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">Pending</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center gap-1">
+                                    {isInvoiced ? (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                        onClick={() => handleUnmarkInvoiced(entry.id)}
+                                        title="Remove invoice status"
+                                      >
+                                        <Undo2 className="w-4 h-4" />
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                        onClick={() => {
+                                          setInvoiceDate(format(new Date(), 'yyyy-MM-dd'));
+                                          setSelectedEntries(new Set([entry.id]));
+                                          setShowInvoiceDialog(true);
+                                        }}
+                                        title="Mark as invoiced"
+                                      >
+                                        <FileCheck className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                      onClick={() => handleDeleteEntry(entry.id)}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                           <TableRow className="font-bold bg-muted">
+                            <TableCell></TableCell>
                             <TableCell colSpan={6}>GRAND TOTAL</TableCell>
                             <TableCell className="text-right">{grandTotalHours.toFixed(2)}</TableCell>
                             <TableCell className="text-right text-lg">£{formatCurrency(grandTotalAmount)}</TableCell>
+                            <TableCell></TableCell>
                             <TableCell></TableCell>
                             <TableCell></TableCell>
                           </TableRow>
@@ -727,6 +930,42 @@ export function AdminClaimsReport() {
           </CardContent>
         </CollapsibleContent>
       </Card>
+
+      {/* Mark as Invoiced Dialog */}
+      <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark as Invoiced to SNO/PML</DialogTitle>
+            <DialogDescription>
+              {selectedEntries.size} {selectedEntries.size === 1 ? 'entry' : 'entries'} will be marked as invoiced.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="invoice-date" className="text-sm">Invoice Date</Label>
+              <Input
+                id="invoice-date"
+                type="date"
+                value={invoiceDate}
+                onChange={(e) => setInvoiceDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInvoiceDialog(false)} disabled={markingInvoiced}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => handleMarkInvoiced(Array.from(selectedEntries), invoiceDate)}
+              disabled={markingInvoiced || !invoiceDate}
+            >
+              {markingInvoiced ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileCheck className="w-4 h-4 mr-2" />}
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Collapsible>
   );
 }
