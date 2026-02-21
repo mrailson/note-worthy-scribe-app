@@ -237,3 +237,71 @@ export function formatTrimDuration(seconds: number): string {
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
+
+/**
+ * Manually decode a WAV file's raw PCM data into an AudioBuffer.
+ * This works when decodeAudioData() fails (e.g. non-standard recorder WAV formats).
+ * Returns null if the buffer isn't a valid WAV.
+ */
+export function decodeWavToAudioBuffer(ctx: AudioContext, buffer: ArrayBuffer): AudioBuffer | null {
+  const bytes = new Uint8Array(buffer);
+  if (bytes.length < 44) return null;
+  
+  const riff = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+  if (riff !== 'RIFF') return null;
+
+  const view = new DataView(buffer);
+  const sampleRate = view.getUint32(24, true);
+  const numChannels = view.getUint16(22, true);
+  const bitsPerSample = view.getUint16(34, true);
+  const blockAlign = numChannels * (bitsPerSample / 8);
+
+  // Find data chunk
+  let offset = 12;
+  let dataOffset = 0;
+  let dataSize = 0;
+  while (offset < bytes.length - 8) {
+    const chunkId = String.fromCharCode(bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]);
+    const chunkSize = view.getUint32(offset + 4, true);
+    if (chunkId === 'data') {
+      dataOffset = offset + 8;
+      dataSize = Math.min(chunkSize, bytes.length - (offset + 8));
+      break;
+    }
+    offset += 8 + chunkSize;
+    if (offset % 2 !== 0) offset++;
+  }
+
+  if (dataOffset === 0 || sampleRate === 0 || blockAlign === 0) return null;
+
+  const frameCount = Math.floor(dataSize / blockAlign);
+  const audioBuffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  // Convert integer PCM samples to Float32 for each channel
+  for (let ch = 0; ch < numChannels; ch++) {
+    const channelData = audioBuffer.getChannelData(ch);
+    for (let i = 0; i < frameCount; i++) {
+      const sampleOffset = dataOffset + i * blockAlign + ch * (bitsPerSample / 8);
+      let sample: number;
+      if (bitsPerSample === 16) {
+        sample = view.getInt16(sampleOffset, true) / 32768;
+      } else if (bitsPerSample === 24) {
+        const b0 = bytes[sampleOffset];
+        const b1 = bytes[sampleOffset + 1];
+        const b2 = bytes[sampleOffset + 2];
+        let val = (b2 << 16) | (b1 << 8) | b0;
+        if (val >= 0x800000) val -= 0x1000000;
+        sample = val / 8388608;
+      } else if (bitsPerSample === 32) {
+        sample = view.getInt32(sampleOffset, true) / 2147483648;
+      } else if (bitsPerSample === 8) {
+        sample = (bytes[sampleOffset] - 128) / 128;
+      } else {
+        sample = 0;
+      }
+      channelData[i] = sample;
+    }
+  }
+
+  return audioBuffer;
+}
