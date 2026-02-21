@@ -15,7 +15,7 @@ const practices = [
     { name: "Paulerspury", lat: 52.0980, lng: -1.0050 },
   ]},
   { id: 4, name: "Denton Village Surgery", short: "DENTON VS", lat: 52.2700, lng: -0.8540, type: "spoke", patients: 6329, postcode: "NN7 1HT", area: "Denton", pct: "7.1%", system: "SystmOne", monthly: 13887, budget75: 124982, nonWinterWk: 96.2, winterWk: 115.2, annual: 5249, branches: [] },
-  { id: 5, name: "Bugbrooke Surgery", short: "BUGBROOKE", lat: 52.2280, lng: -1.0280, type: "spoke", patients: 10788, postcode: "NN7 3QN", area: "Bugbrooke", pct: "12.0%", system: "SystmOne", monthly: 23671, budget75: 213036, nonWinterWk: 164.0, winterWk: 196.3, annual: 8948, branches: [] },
+  { id: 5, name: "Bugbrooke Surgery", short: "BUGBROOKE", lat: 52.2109, lng: -1.0051, type: "spoke", patients: 10788, postcode: "NN7 3QN", area: "Bugbrooke", pct: "12.0%", system: "SystmOne", monthly: 23671, budget75: 213036, nonWinterWk: 164.0, winterWk: 196.3, annual: 8948, branches: [] },
   { id: 6, name: "Springfield Surgery", short: "SPRINGFIELD", lat: 52.0260, lng: -1.1280, type: "spoke", patients: 12611, postcode: "NN13 6AN", area: "Brackley", pct: "14.1%", system: "EMIS", monthly: 27671, budget75: 249036, nonWinterWk: 191.7, winterWk: 229.5, annual: 10460, branches: [] },
 ];
 
@@ -45,14 +45,14 @@ const totals = {
   annual: practices.reduce((s, p) => s + p.annual, 0),
 };
 
-const fmt = (n: number) => "£" + n.toLocaleString();
-function getDriveColor(mins: number) {
+const fmt = (n) => "£" + n.toLocaleString();
+function getDriveColor(mins) {
   if (mins <= 15) return "#00ff88";
   if (mins <= 25) return "#ff9500";
   return "#ff3344";
 }
 
-function projectPoint(lat: number, lng: number, width: number, height: number, padding: number) {
+function projectPoint(lat, lng, width, height, padding) {
   const minLat = 51.98, maxLat = 52.32, minLng = -1.22, maxLng = -0.78;
   return {
     x: padding + ((lng - minLng) / (maxLng - minLng)) * (width - padding * 2),
@@ -63,12 +63,12 @@ function projectPoint(lat: number, lng: number, width: number, height: number, p
 /* ─── TABLE VIEW ─── */
 function TableView() {
   const mono = "'JetBrains Mono', monospace";
-  const thStyle = { padding: "8px 10px", textAlign: "left" as const, fontSize: "9px", letterSpacing: "1.5px", color: "#90b8cc", fontFamily: mono, borderBottom: "1px solid rgba(0,240,255,0.15)", whiteSpace: "nowrap" as const };
-  const thRight = { ...thStyle, textAlign: "right" as const };
-  const tdStyle = { padding: "7px 10px", fontSize: "11px", color: "#d0e8f0", fontFamily: mono, borderBottom: "1px solid rgba(0,240,255,0.06)", whiteSpace: "nowrap" as const };
-  const tdRight = { ...tdStyle, textAlign: "right" as const };
-  const tdNum = { ...tdRight, fontVariantNumeric: "tabular-nums" as const };
-  const badge = (type: string | null, system?: string): React.CSSProperties => ({
+  const thStyle = { padding: "8px 10px", textAlign: "left", fontSize: "9px", letterSpacing: "1.5px", color: "#90b8cc", fontFamily: mono, borderBottom: "1px solid rgba(0,240,255,0.15)", whiteSpace: "nowrap" };
+  const thRight = { ...thStyle, textAlign: "right" };
+  const tdStyle = { padding: "7px 10px", fontSize: "11px", color: "#d0e8f0", fontFamily: mono, borderBottom: "1px solid rgba(0,240,255,0.06)", whiteSpace: "nowrap" };
+  const tdRight = { ...tdStyle, textAlign: "right" };
+  const tdNum = { ...tdRight, fontVariantNumeric: "tabular-nums" };
+  const badge = (type, system) => ({
     padding: "2px 8px", borderRadius: "4px", fontSize: "8px", fontWeight: "700", letterSpacing: "1px",
     background: type === "hub" ? "rgba(0,240,255,0.15)" : system ? (system === "EMIS" ? "rgba(255,107,53,0.1)" : "rgba(138,176,192,0.08)") : "rgba(0,224,138,0.08)",
     color: type === "hub" ? "#00f0ff" : system ? (system === "EMIS" ? "#ff8855" : "#8ab8d0") : "#00e08a",
@@ -90,7 +90,7 @@ function TableView() {
             <tr key={i} style={{ background: i % 2 === 0 ? "transparent" : "rgba(0,240,255,0.02)" }}>
               <td style={{ ...tdStyle, fontWeight: "600", color: "#fff" }}>{p.name}</td>
               <td style={tdNum}>{p.patients.toLocaleString()}</td>
-              <td style={{ ...tdStyle, textAlign: "center" as const }}><span style={badge(p.type, undefined)}>{p.type.toUpperCase()}</span></td>
+              <td style={{ ...tdStyle, textAlign: "center" }}><span style={badge(p.type)}>{p.type.toUpperCase()}</span></td>
               <td style={{ ...tdStyle, textAlign: "center" }}><span style={badge(null, p.system)}>{p.system}</span></td>
               <td style={tdNum}>{p.pct}</td>
             </tr>
@@ -253,22 +253,23 @@ function SvgDefs() {
   );
 }
 
-function GridLines({ width, height }: { width: number; height: number }) {
+function GridLines({ width, height }) {
   const lines = [];
   for (let x = 0; x < width; x += 40) lines.push(<line key={`v${x}`} x1={x} y1={0} x2={x} y2={height} stroke="#1a4560" strokeWidth="0.5" opacity="0.4" />);
   for (let y = 0; y < height; y += 40) lines.push(<line key={`h${y}`} x1={0} y1={y} x2={width} y2={y} stroke="#1a4560" strokeWidth="0.5" opacity="0.4" />);
   return <g>{lines}</g>;
 }
 
-function PulseRing({ cx, cy, color, delay = 0, maxR = 30 }: { cx: number; cy: number; color: string; delay?: number; maxR?: number }) {
+function PulseRing({ cx, cy, color, delay = 0, maxR = 30 }) {
   return (<circle cx={cx} cy={cy} r="6" fill="none" stroke={color} strokeWidth="1"><animate attributeName="r" from="6" to={maxR} dur="3s" begin={`${delay}s`} repeatCount="indefinite" /><animate attributeName="opacity" from="0.6" to="0" dur="3s" begin={`${delay}s`} repeatCount="indefinite" /></circle>);
 }
 
 /* ─── DRIVE TIME LINES (practice or branch source) ─── */
-function DriveLines({ fromPos, times, positions }: { fromPos: { x: number; y: number }; times: number[]; positions: { x: number; y: number }[] }) {
+function DriveLines({ fromPos, times, positions }) {
   return (
     <g>{practices.map((p, i) => {
       const mins = times[i];
+      if (mins === 0) return null;
       const to = positions[i];
       const color = getDriveColor(mins);
       const w = mins <= 15 ? 3 : mins <= 25 ? 2.5 : 2;
@@ -289,29 +290,48 @@ function DriveLines({ fromPos, times, positions }: { fromPos: { x: number; y: nu
 }
 
 /* ─── DRIVE TIME SIDEBAR ─── */
-function DriveTimeSidebar({ title, subtitle, times, isBranch }: { title: string; subtitle?: string | null; times: number[] | null; isBranch: boolean }) {
+function DriveTimeSidebar({ title, subtitle, times, isBranch, onViewSDA }) {
   if (!times) return null;
-  const routes = practices.map((p, i) => ({ practice: p, mins: times[i], idx: i })).sort((a, b) => a.mins - b.mins);
+  const routes = practices.map((p, i) => ({ practice: p, mins: times[i], idx: i })).filter(r => r.mins > 0).sort((a, b) => a.mins - b.mins);
   const accentColor = isBranch ? "#aa88ee" : "#00f0ff";
   return (
-    <div style={{ position: "absolute", top: "12px", right: "12px", background: "rgba(10,26,46,0.95)", border: `1px solid ${isBranch ? "rgba(136,102,204,0.3)" : "rgba(0,240,255,0.25)"}`, borderRadius: "8px", padding: "14px 16px", width: "220px", zIndex: 20, backdropFilter: "blur(12px)", boxShadow: `0 0 30px ${isBranch ? "rgba(136,102,204,0.1)" : "rgba(0,240,255,0.05)"}` }}>
+    <div style={{ position: "absolute", top: "12px", right: "12px", background: "rgba(10,26,46,0.95)", border: `1px solid ${isBranch ? "rgba(136,102,204,0.3)" : "rgba(0,240,255,0.25)"}`, borderRadius: "8px", padding: "14px 16px", width: "220px", zIndex: 20, backdropFilter: "blur(12px)", boxShadow: `0 0 30px ${isBranch ? "rgba(136,102,204,0.1)" : "rgba(0,240,255,0.05)"}` }} onClick={(e) => e.stopPropagation()}>
       <div style={{ color: accentColor, fontSize: "9px", letterSpacing: "2px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "4px" }}>DRIVE TIMES FROM</div>
       <div style={{ color: "#fff", fontSize: "12px", fontWeight: "700", fontFamily: "'JetBrains Mono', monospace", marginBottom: "2px" }}>{title}</div>
       {subtitle && <div style={{ color: isBranch ? "#8866cc" : "#5a8a9a", fontSize: "8px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "10px", paddingBottom: "8px", borderBottom: `1px solid ${isBranch ? "rgba(136,102,204,0.2)" : "rgba(0,240,255,0.15)"}` }}>{subtitle}</div>}
       {!subtitle && <div style={{ marginBottom: "10px", paddingBottom: "0", borderBottom: `1px solid ${isBranch ? "rgba(136,102,204,0.2)" : "rgba(0,240,255,0.15)"}` }} />}
       {routes.map((r, i) => {
         const color = getDriveColor(r.mins);
-        return (<div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 0", borderBottom: i < routes.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}><div style={{ display: "flex", alignItems: "center", gap: "8px" }}><div style={{ width: "6px", height: "6px", borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}` }} /><span style={{ color: "#8ab0c0", fontSize: "9px", fontFamily: "'JetBrains Mono', monospace" }}>{r.practice.short}</span></div><span style={{ color, fontSize: "10px", fontWeight: "700", fontFamily: "'JetBrains Mono', monospace" }}>{r.mins}m</span></div>);
+        return (<div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 0", borderBottom: i < routes.length - 1 ? "1px solid rgba(255,255,255,0.04)" : "none" }}><div style={{ display: "flex", alignItems: "center", gap: "8px" }}><div style={{ width: "6px", height: "6px", borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}` }} /><span style={{ color: "#8ab0c0", fontSize: "9px", fontFamily: "'JetBrains Mono', monospace" }}>{r.practice.short}</span>{r.practice.type === "hub" && <span style={{ fontSize: "7px", fontWeight: "700", letterSpacing: "0.5px", padding: "1px 4px", borderRadius: "3px", background: "rgba(255,107,53,0.15)", color: "#ff6b35", border: "1px solid rgba(255,107,53,0.3)", fontFamily: "'JetBrains Mono', monospace" }}>HUB</span>}</div><span style={{ color, fontSize: "10px", fontWeight: "700", fontFamily: "'JetBrains Mono', monospace" }}>{r.mins}m</span></div>);
       })}
       <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: `1px solid ${isBranch ? "rgba(136,102,204,0.15)" : "rgba(0,240,255,0.1)"}`, display: "flex", flexDirection: "column", gap: "5px" }}>
         {[{ color: "#00ff88", label: "≤ 15 MIN — OPTIMAL" }, { color: "#ff9500", label: "16–25 MIN — ACCEPTABLE" }, { color: "#ff3344", label: "> 25 MIN — AVOID" }].map(l => (<div key={l.label} style={{ display: "flex", alignItems: "center", gap: "6px" }}><div style={{ width: "16px", height: "2px", background: l.color, boxShadow: `0 0 4px ${l.color}`, borderRadius: "1px" }} /><span style={{ color: "#4a6a7a", fontSize: "7px", letterSpacing: "1px", fontFamily: "'JetBrains Mono', monospace" }}>{l.label}</span></div>))}
       </div>
+      {/* View SDA button */}
+      {onViewSDA && (
+        <div
+          onClick={onViewSDA}
+          style={{
+            marginTop: "10px", paddingTop: "10px",
+            borderTop: `1px solid ${isBranch ? "rgba(136,102,204,0.15)" : "rgba(0,240,255,0.1)"}`,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
+            cursor: "pointer", padding: "8px 12px", borderRadius: "6px",
+            background: "rgba(255,215,0,0.08)", border: "1px solid rgba(255,215,0,0.2)",
+            transition: "all 0.3s ease",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,215,0,0.15)"; e.currentTarget.style.borderColor = "rgba(255,215,0,0.4)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,215,0,0.08)"; e.currentTarget.style.borderColor = "rgba(255,215,0,0.2)"; }}
+        >
+          <span style={{ color: "#ffd700", fontSize: "8px", fontWeight: "700", letterSpacing: "1.5px", fontFamily: "'JetBrains Mono', monospace" }}>VIEW SDA ALLOCATION</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffd700" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+        </div>
+      )}
     </div>
   );
 }
 
 /* ─── SDA PANEL ─── */
-function SDAPanel({ practice, visible, acpPct, setAcpPct }: { practice: typeof practices[0]; visible: boolean; acpPct: number; setAcpPct: (v: number) => void }) {
+function SDAPanel({ practice, visible, acpPct, setAcpPct }) {
   if (!visible) return null;
   const barPct = (practice.annual / 18933) * 100;
   const gpSessionCost = 11000 * 1.2938;
@@ -416,12 +436,12 @@ function SDAPanel({ practice, visible, acpPct, setAcpPct }: { practice: typeof p
 
 /* ─── MAP VIEW ─── */
 function MapView() {
-  const [hovered, setHovered] = useState<number | null>(null);
-  const [selected, setSelected] = useState<number | null>(null);       // practice drive time
-  const [sdaPractice, setSdaPractice] = useState<number | null>(null);  // practice SDA
+  const [hovered, setHovered] = useState(null);
+  const [selected, setSelected] = useState(null);       // practice drive time
+  const [sdaPractice, setSdaPractice] = useState(null);  // practice SDA
   const [acpPct, setAcpPct] = useState(50); // ACP % of budget (GP gets remainder)
-  const [selectedBranch, setSelectedBranch] = useState<string | null>(null); // "pi-bi" key
-  const [hoveredBranch, setHoveredBranch] = useState<string | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState(null); // "pi-bi" key
+  const [hoveredBranch, setHoveredBranch] = useState(null);
   const width = 860, height = 660, padding = 80;
   const positions = practices.map(p => projectPoint(p.lat, p.lng, width, height, padding));
   const hubConnections = [[0, 2], [0, 4], [0, 5], [1, 6], [1, 3]];
@@ -431,7 +451,7 @@ function MapView() {
 
   const clearAll = () => { setSelected(null); setSdaPractice(null); setSelectedBranch(null); };
 
-  const handlePinClick = (e: React.MouseEvent, i: number) => {
+  const handlePinClick = (e, i) => {
     e.stopPropagation();
     setSelectedBranch(null);
     if (selected === i) { setSelected(null); setSdaPractice(i); }
@@ -439,14 +459,14 @@ function MapView() {
     else { setSelected(i); setSdaPractice(null); }
   };
 
-  const handleBranchClick = (e: React.MouseEvent, key: string) => {
+  const handleBranchClick = (e, key) => {
     e.stopPropagation();
     setSelected(null); setSdaPractice(null);
     setSelectedBranch(selectedBranch === key ? null : key);
   };
 
   // Determine what drive times/sidebar to show
-  let driveFromPos: { x: number; y: number } | null = null, activeTimes: number[] | null = null, sidebarTitle: string | null = null, sidebarSubtitle: string | null = null, isBranchSidebar = false;
+  let driveFromPos = null, activeTimes = null, sidebarTitle = null, sidebarSubtitle = null, isBranchSidebar = false;
 
   if (selected !== null) {
     driveFromPos = positions[selected];
@@ -470,7 +490,7 @@ function MapView() {
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)", pointerEvents: "none", zIndex: 10, borderRadius: "12px 12px 0 0" }} />
       <div style={{ position: "absolute", top: "10%", left: "-20%", width: "60%", height: "1px", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)", transform: "rotate(-15deg)", pointerEvents: "none", zIndex: 10 }} />
 
-      <DriveTimeSidebar title={sidebarTitle} subtitle={sidebarSubtitle} times={activeTimes} isBranch={isBranchSidebar} />
+      <DriveTimeSidebar title={sidebarTitle} subtitle={sidebarSubtitle} times={activeTimes} isBranch={isBranchSidebar} onViewSDA={selected !== null ? () => { setSdaPractice(selected); setSelected(null); setSelectedBranch(null); } : null} />
       <SDAPanel practice={sdaPractice !== null ? practices[sdaPractice] : null} visible={sdaPractice !== null && selected === null && !selectedBranch} acpPct={acpPct} setAcpPct={setAcpPct} />
 
       <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }} onClick={clearAll}>
@@ -572,7 +592,7 @@ function MapView() {
               <g transform={`translate(${pos.x + off.dx}, ${pos.y + off.dy})`} opacity={hovered === i || isSelected || isSda ? 1 : 0.85}>
                 <rect x="-2" y="-14" width={hovered === i ? 190 : 155} height={hovered === i ? 92 : 22} rx="2" fill="#0a1a2e" stroke={markerColor} strokeWidth={isSelected || isSda ? "1" : "0.5"} opacity={hovered === i ? 0.95 : 0.7} />
                 <text x="6" y="0" fill={markerColor} fontSize="10" fontFamily="'JetBrains Mono', monospace" fontWeight="700" letterSpacing="1">{p.short}</text>
-                {isHub && <text x={p.short.length * 7.2 + 14} y="0" fill="#ff6b35" fontSize="7" fontFamily="'JetBrains Mono', monospace" fontWeight="600">HUB</text>}
+                {isHub && <text x={p.short.length * 7.2 + 14} y="1" fill="#ff6b35" fontSize="10" fontFamily="'JetBrains Mono', monospace" fontWeight="800" letterSpacing="1">HUB</text>}
                 {isTarget && activeTimes && <text x={p.short.length * 7.2 + (isHub ? 32 : 14)} y="0" fill={getDriveColor(activeTimes[i])} fontSize="9" fontFamily="'JetBrains Mono', monospace" fontWeight="700">{activeTimes[i]}m</text>}
                 {hovered === i && (<>
                   <text x="6" y="16" fill="#6ba3be" fontSize="8" fontFamily="'JetBrains Mono', monospace">{p.area} · {p.postcode} · {p.system}</text>
