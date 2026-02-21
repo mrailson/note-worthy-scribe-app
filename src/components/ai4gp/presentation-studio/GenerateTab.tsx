@@ -131,13 +131,25 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
             />
           </div>
           
+          {settings.useStockLibraryImages && (
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => {
+                  // Navigate to stock library in a new tab
+                  window.open('/ai4gp?tab=stock-library', '_blank');
+                }}
+              >
+                <ImageIcon className="h-3.5 w-3.5 mr-1.5" />
+                View Stock Library in Notewell
+                <ExternalLink className="h-3 w-3 ml-1.5" />
+              </Button>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-1 pt-1">
-            {settings.includeSpeakerNotes && (
-              <Badge variant="secondary" className="text-xs">Speaker Notes</Badge>
-            )}
-            {settings.generateImages && (
-              <Badge variant="secondary" className="text-xs">AI Images</Badge>
-            )}
             {settings.includeVoiceover && (
               <Badge variant="secondary" className="text-xs">
                 <Volume2 className="h-3 w-3 mr-1" />
