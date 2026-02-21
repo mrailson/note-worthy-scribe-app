@@ -34,7 +34,7 @@ export const RecordingSetupGuide = () => {
             <div className="flex items-center gap-2">
               <Smartphone className="h-4 w-4 text-primary" />
               <span className="text-sm font-semibold text-foreground">
-                iPhone Recording Guide
+                iPhone Offline (No Internet Available) Recording Guide
               </span>
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">
                 Recommended
