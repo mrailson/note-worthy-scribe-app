@@ -478,3 +478,6 @@ verify_jwt = false
 
 [functions.translation-training-reply]
 verify_jwt = false
+
+[functions.generate-stock-images]
+verify_jwt = true

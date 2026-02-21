@@ -2,13 +2,22 @@ import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Search, Download, PenLine, X, Loader2, ImageIcon, Sprout } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Search, Download, PenLine, X, Loader2, ImageIcon, Sprout, Wand2, Trash2, Sparkles } from 'lucide-react';
 import { useStockImages, STOCK_IMAGE_CATEGORIES, StockImage } from '@/hooks/useStockImages';
 import { StockImageUploader } from './StockImageUploader';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+const AI_MODELS = [
+  { value: 'gemini-flash', label: 'Gemini Flash Image', description: 'Fast, good quality' },
+  { value: 'gemini-pro', label: 'Gemini Pro Image', description: 'Best quality, slower' },
+  { value: 'runware', label: 'Runware FLUX', description: 'Fast, photorealistic' },
+] as const;
 
 interface StockImageLibraryProps {
   onUseInStudio?: (imageUrl: string, imageName: string) => void;
@@ -34,6 +43,12 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
   const [lightboxImage, setLightboxImage] = useState<StockImage | null>(null);
   const [showUploader, setShowUploader] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateModel, setGenerateModel] = useState<string>('gemini-flash');
+  const [showCustomPrompt, setShowCustomPrompt] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [customCategory, setCustomCategory] = useState<string>(selectedCategory || 'Patients');
+  const [customModel, setCustomModel] = useState<string>('gemini-pro');
 
   const SEED_IMAGES = [
     { file: 'patients-consultation.jpg', title: 'Patient Consultation', category: 'Patients', description: 'Patient having a friendly consultation with their GP doctor', tags: ['consultation', 'patient', 'GP', 'doctor', 'diverse'] },
@@ -53,59 +68,88 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
     let success = 0;
     try {
       for (const img of SEED_IMAGES) {
-        // Check if already exists
         const existing = images.find(i => i.title === img.title) || allImages.find(i => i.title === img.title);
         if (existing) continue;
-
-        // Fetch from public folder
         const response = await fetch(`/stock-images/${img.file}`);
-        if (!response.ok) {
-          console.error(`Failed to fetch ${img.file}: ${response.status}`);
-          continue;
-        }
+        if (!response.ok) continue;
         const blob = await response.blob();
         const storagePath = `${img.category.toLowerCase().replace(/[^a-z0-9]/g, '-')}/${img.file}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('stock-images')
-          .upload(storagePath, blob, { contentType: 'image/jpeg', upsert: true });
-        if (uploadError) {
-          console.error(`Upload error for ${img.file}:`, uploadError);
-          continue;
-        }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('stock-images')
-          .getPublicUrl(storagePath);
-
-        const { error: insertError } = await (supabase as any)
-          .from('stock_images')
-          .insert({
-            title: img.title,
-            description: img.description,
-            category: img.category,
-            tags: img.tags,
-            image_url: publicUrl,
-            storage_path: storagePath,
-            file_size: blob.size,
-            is_active: true,
-          });
-        if (insertError) {
-          console.error(`Insert error for ${img.title}:`, insertError);
-          continue;
-        }
+        const { error: uploadError } = await supabase.storage.from('stock-images').upload(storagePath, blob, { contentType: 'image/jpeg', upsert: true });
+        if (uploadError) continue;
+        const { data: { publicUrl } } = supabase.storage.from('stock-images').getPublicUrl(storagePath);
+        const { error: insertError } = await (supabase as any).from('stock_images').insert({ title: img.title, description: img.description, category: img.category, tags: img.tags, image_url: publicUrl, storage_path: storagePath, file_size: blob.size, is_active: true });
+        if (insertError) continue;
         success++;
       }
-      if (success > 0) {
-        toast.success(`Seeded ${success} stock image(s)`);
-        window.location.reload();
-      } else {
-        toast.info('All seed images already exist');
-      }
-    } catch (err) {
-      toast.error('Seed failed: ' + String(err));
+      if (success > 0) { toast.success(`Seeded ${success} stock image(s)`); window.location.reload(); }
+      else toast.info('All seed images already exist');
+    } catch (err) { toast.error('Seed failed: ' + String(err)); }
+    finally { setIsSeeding(false); }
+  };
+
+  const handleGenerateBatch = async () => {
+    const category = selectedCategory || 'Patients';
+    setIsGenerating(true);
+    toast.info(`Generating 10 images for "${category}" using ${AI_MODELS.find(m => m.value === generateModel)?.label}... This may take a few minutes.`);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-stock-images`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ category, count: 10, model: generateModel }),
+        }
+      );
+      
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Generation failed');
+      
+      toast.success(`Generated ${result.generated}/${result.total} images successfully`);
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(`Generation failed: ${err.message}`);
     } finally {
-      setIsSeeding(false);
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCustomGenerate = async () => {
+    if (!customPrompt.trim()) { toast.error('Please enter a prompt'); return; }
+    setIsGenerating(true);
+    toast.info(`Creating custom image with ${AI_MODELS.find(m => m.value === customModel)?.label}...`);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-stock-images`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ category: customCategory, count: 1, model: customModel, customPrompt: customPrompt }),
+        }
+      );
+      
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Generation failed');
+      
+      toast.success('Custom image created successfully');
+      setCustomPrompt('');
+      setShowCustomPrompt(false);
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(`Generation failed: ${err.message}`);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -139,7 +183,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
           className="cursor-pointer text-xs"
           onClick={() => setSelectedCategory(null)}
         >
-          All ({images.length})
+          All ({allImages.length})
         </Badge>
         {STOCK_IMAGE_CATEGORIES.map(cat => {
           const count = categoryCounts[cat] || 0;
@@ -159,37 +203,98 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
 
       {/* Admin controls */}
       {isAdmin && (
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowUploader(!showUploader)}
-          >
-            {showUploader ? 'Hide Uploader' : 'Upload Stock Images'}
-          </Button>
-          {allImages.length === 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSeedImages}
-              disabled={isSeeding}
-            >
-              {isSeeding ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Seeding...</>
-              ) : (
-                <><Sprout className="h-4 w-4 mr-2" />Seed Sample Images</>
-              )}
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowUploader(!showUploader)}>
+              {showUploader ? 'Hide Uploader' : 'Upload Stock Images'}
             </Button>
+            {allImages.length === 0 && (
+              <Button variant="outline" size="sm" onClick={handleSeedImages} disabled={isSeeding}>
+                {isSeeding ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Seeding...</> : <><Sprout className="h-4 w-4 mr-2" />Seed Sample Images</>}
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setShowCustomPrompt(!showCustomPrompt)} disabled={isGenerating}>
+              <Wand2 className="h-4 w-4 mr-2" />
+              Custom Image
+            </Button>
+          </div>
+
+          {/* Batch generate for current category */}
+          <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/20">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-sm font-medium shrink-0">
+              Generate 10 for "{selectedCategory || 'Patients'}"
+            </span>
+            <Select value={generateModel} onValueChange={setGenerateModel}>
+              <SelectTrigger className="w-[180px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {AI_MODELS.map(m => (
+                  <SelectItem key={m.value} value={m.value}>
+                    <span className="text-xs">{m.label}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" onClick={handleGenerateBatch} disabled={isGenerating}>
+              {isGenerating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</> : 'Generate'}
+            </Button>
+          </div>
+
+          {/* Custom prompt panel */}
+          {showCustomPrompt && (
+            <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
+              <h4 className="text-sm font-semibold flex items-center gap-2"><Wand2 className="h-4 w-4" />Create Custom Stock Image</h4>
+              <div className="space-y-1">
+                <Label className="text-xs">Prompt</Label>
+                <Textarea
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  placeholder="Describe the image you want to create, e.g. 'A diverse group of NHS staff celebrating a team achievement in a modern GP surgery'"
+                  rows={3}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Category</Label>
+                  <Select value={customCategory} onValueChange={setCustomCategory}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {STOCK_IMAGE_CATEGORIES.map(cat => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">AI Model</Label>
+                  <Select value={customModel} onValueChange={setCustomModel}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {AI_MODELS.map(m => (
+                        <SelectItem key={m.value} value={m.value}>
+                          <div>
+                            <span className="text-xs font-medium">{m.label}</span>
+                            <span className="text-[10px] text-muted-foreground ml-1">({m.description})</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <Button onClick={handleCustomGenerate} disabled={isGenerating || !customPrompt.trim()} className="w-full" size="sm">
+                {isGenerating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</> : <><Sparkles className="h-4 w-4 mr-2" />Generate Custom Image</>}
+              </Button>
+            </div>
           )}
         </div>
       )}
 
       {/* Admin uploader */}
       {isAdmin && showUploader && (
-        <StockImageUploader
-          onUpload={uploadImage}
-          isUploading={isUploading}
-        />
+        <StockImageUploader onUpload={uploadImage} isUploading={isUploading} />
       )}
 
       {/* Image grid */}
@@ -281,6 +386,20 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
                   >
                     <PenLine className="h-4 w-4 mr-2" />
                     Use in Studio
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => {
+                      if (confirm('Delete this stock image?')) {
+                        deleteImage(lightboxImage);
+                        setLightboxImage(null);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
               </div>
