@@ -98,7 +98,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     if (file.size > MAX_WHISPER_SIZE) {
       console.log(`[CreateMeetingTab] File ${file.name} is ${(file.size / 1024 / 1024).toFixed(1)}MB - chunking client-side`);
       
-      const chunks = await chunkWavFile(file, 20);
+      const chunks = await chunkWavFile(file, 4);
       const transcripts: string[] = [];
       
       for (const chunk of chunks) {
