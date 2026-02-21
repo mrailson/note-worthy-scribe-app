@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList, BarChart3, FileText, AlertTriangle, Users, Calendar, TrendingUp, Download, PoundSterling, X } from "lucide-react";
+import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList, BarChart3, FileText, AlertTriangle, Users, Calendar, TrendingUp, Download, PoundSterling, X, ChevronDown, ChevronUp, Play } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
@@ -23,8 +23,37 @@ const digitalTfActions = [
   { id: 14, description: "Malcolm and Sue to share SOP for test results (see ref 7)", owner: "", organisation: "", dueDate: "", status: "", dateCompleted: "" },
 ];
 
+// Tab data for the Excel workbook explorer
+const excelTabs = [
+  { group: "blue", color: "#2563EB", icon: "⚙️", label: "Assumptions" },
+  { group: "blue", color: "#2563EB", icon: "📊", label: "Allocations" },
+  { group: "blue", color: "#2563EB", icon: "🏥", label: "Room Capacity" },
+  { group: "teal", color: "#0D9488", icon: "📅", label: "Weekly Rota" },
+  { group: "teal", color: "#0D9488", icon: "🗓️", label: "Monthly Rota" },
+  { group: "teal", color: "#0D9488", icon: "👥", label: "Workforce" },
+  { group: "green", color: "#10B981", icon: "🔄", label: "Buy-Back" },
+  { group: "green", color: "#10B981", icon: "💰", label: "Cash Flow" },
+  { group: "amber", color: "#F59E0B", icon: "✅", label: "Compliance" },
+  { group: "amber", color: "#F59E0B", icon: "🚫", label: "DNA Tracking" },
+  { group: "amber", color: "#F59E0B", icon: "📋", label: "Absence" },
+  { group: "purple", color: "#7C3AED", icon: "🏠", label: "7× Practice Dashboards" },
+  { group: "purple", color: "#7C3AED", icon: "📧", label: "Contacts" },
+  { group: "purple", color: "#7C3AED", icon: "📝", label: "Audit Log" },
+];
+
+// Thumbnail configs for the gold standard panel
+const thumbnails = [
+  { label: "Overview", badge: "5 KPIs", bg: "linear-gradient(135deg, #F8FAFC, #EFF6FF)" },
+  { label: "Practices", badge: "7 rows", bg: "linear-gradient(135deg, #F8FAFC, #EFF6FF)" },
+  { label: "Rota & Capacity", badge: "Capacity", bg: "linear-gradient(135deg, #F0FDFA, #F8FAFC)" },
+  { label: "Buy-Back", badge: "6 steps", bg: "linear-gradient(135deg, #F5F3FF, #F8FAFC)" },
+  { label: "Part B Evidence", badge: "4 categories", bg: "linear-gradient(135deg, #EEF2FF, #F8FAFC)" },
+  { label: "Timeline", badge: "4 phases", bg: "linear-gradient(135deg, #FDF8E1, #F8FAFC)" },
+];
+
 export const SDADigitalIntegration = () => {
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; title: string } | null>(null);
+  const [tabExplorerOpen, setTabExplorerOpen] = useState(false);
 
   const handleDownloadImage = () => {
     if (!lightboxImage) return;
@@ -64,57 +93,244 @@ export const SDADigitalIntegration = () => {
           </div>
         </div>
       )}
-      {/* Rota Documents - Combined Card */}
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5 space-y-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-[#003087]">SDA Rota/Buy Back Service Management</h2>
-          <p className="text-xs text-slate-400">Last updated: 20 February 2026</p>
+      {/* ===== SDA Rota / Buy-Back Service Management ===== */}
+      <div className="space-y-4">
+        {/* 1. Section Header */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <h2 className="text-xl font-bold text-[#003087]">SDA Rota / Buy-Back Service Management</h2>
+              <p className="text-sm text-slate-500">Operational tools and reference documents</p>
+            </div>
+            <p className="text-xs text-slate-400">Last updated: 20 February 2026</p>
+          </div>
         </div>
-        {/* Excel Workbook */}
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-green-700" />
+
+        {/* 2. Status Strip */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { border: "#10B981", label: "OPERATIONS TOOL", value: "Excel V3.1 ✓ Ready", subtitle: "No additional funding required" },
+            { border: "#F59E0B", label: "SERVICE GO-LIVE", value: "1 April 2026", subtitle: "39 days — operational from day one" },
+            { border: "#7C3AED", label: "MANAGED BY", value: "Railson & Palin", subtitle: "Populated centrally, practices consulted" },
+            { border: "#2563EB", label: "PRACTICE BURDEN", value: "Minimal", subtitle: "Data gathered centrally where possible" },
+          ].map((card, i) => (
+            <div key={i} className="bg-white rounded-lg border border-slate-200 p-3" style={{ borderLeft: `4px solid ${card.border}` }}>
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1">{card.label}</p>
+              <p className="text-base font-bold" style={{ color: card.border }}>{card.value}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{card.subtitle}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* 3. Section Divider — PRIMARY OPERATIONS TOOL */}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] uppercase font-bold tracking-wider whitespace-nowrap" style={{ color: "#10B981" }}>● PRIMARY OPERATIONS TOOL</span>
+          <div className="flex-1 h-px bg-slate-200" />
+        </div>
+
+        {/* 4. Excel Workbook Card */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5 space-y-4">
+          {/* Header row */}
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold" style={{ backgroundColor: "#ECFDF5", color: "#217346" }}>
+              XL
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h3 className="font-bold text-[15px] text-slate-900">NRES SDA Rota Management Workbook V3.1</h3>
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold" style={{ backgroundColor: "#ECFDF5", color: "#10B981", border: "1px solid #A7F3D0" }}>✓ Ready</span>
+              </div>
+              <p className="text-sm text-slate-500">The operational tool for NRES service management from 1st April 2026</p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Interim Tool — Go-Live April 2026</p>
-            <h3 className="font-semibold text-slate-900 text-sm mb-1">SDA Rota Management Workbook v3</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Interim Excel tool for go-live (April 2026). Formula-driven across 20 tabs covering practice allocations, rota planning, compliance tracking, buy-back accounting, DNA rates, absence management, and open book financials for all seven practices. To be replaced by the secure web-based system when ready.
-            </p>
+
+          {/* Body text */}
+          <p className="text-sm text-slate-600 leading-relaxed">
+            Malcolm Railson and Amanda Palin will manage this workbook centrally, populating it directly where possible and working with practices to gather any data they can't source themselves. Formula-driven across 20 tabs with full open book financials visible to the NRES board and ICB.
+          </p>
+
+          {/* Expandable tab explorer */}
+          <div>
+            <button
+              onClick={() => setTabExplorerOpen(!tabExplorerOpen)}
+              className="w-full flex items-center justify-between p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+            >
+              <span className="text-sm text-slate-700">📋 <span className="font-medium">20 tabs</span> — Core · Rota · Finance · Compliance · Practice</span>
+              {tabExplorerOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+            </button>
+            {tabExplorerOpen && (
+              <div className="flex flex-wrap gap-2 mt-3 p-3 bg-slate-50 rounded-lg">
+                {excelTabs.map((tab, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 bg-white rounded text-xs text-slate-700 border border-slate-200" style={{ borderLeft: `3px solid ${tab.color}` }}>
+                    <span>{tab.icon}</span> {tab.label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="flex-shrink-0">
+
+          {/* Footer */}
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+            <p className="text-[10px] text-slate-400">Formula-driven · Open book · No additional funding required</p>
             <Button variant="outline" size="sm" asChild>
               <a href="/documents/NRES_SDA_Rota_Management_V3_1.xlsx" download>
-                <Download className="h-4 w-4 mr-2" />
-                Download (Excel)
+                <Download className="h-4 w-4 mr-1" />
+                Download Excel
               </a>
             </Button>
           </div>
         </div>
 
-        <div className="border-t border-slate-100" />
+        {/* 5. Green Callout Banner */}
+        <div className="rounded-lg p-4 flex items-start gap-3" style={{ backgroundColor: "#ECFDF5", border: "1px solid #A7F3D0" }}>
+          <span className="text-lg flex-shrink-0">✅</span>
+          <p className="text-sm leading-relaxed" style={{ color: "#065F46" }}>
+            <span className="font-bold" style={{ color: "#047857" }}>No additional funding or resources required.</span> This workbook is complete, tested, and ready for service launch. It provides full operational management capability for the NRES programme from day one without any system build, licensing, or infrastructure costs.
+          </p>
+        </div>
 
-        {/* Word Doc */}
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
-            <FileText className="w-5 h-5 text-[#005EB8]" />
+        {/* 6. Functional Spec Reference Doc */}
+        <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EFF6FF" }}>
+            <FileText className="w-5 h-5" style={{ color: "#2563EB" }} />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-slate-900 text-sm mb-1">NRES SDA Rota Management System — Functional Specification v2.1</h3>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Technical specification for the SDA rota management system covering appointment targets, workforce rostering, buy-back scheme logic, financial tracking, and compliance reporting across all seven NRES practices. Used to guide system development and serves as the reference document for all contract parameters and business rules.
-            </p>
+            <h3 className="font-semibold text-sm text-slate-900">Functional Specification v2.2</h3>
+            <p className="text-xs text-slate-500">Technical reference — appointment targets, buy-back logic, compliance reporting. Describes both Excel and potential future system.</p>
           </div>
-          <div className="flex-shrink-0">
-            <Button variant="outline" size="sm" asChild>
-              <a href="/documents/NRES_SDA_Rota_Spec_v2.1.docx" download>
-                <Download className="h-4 w-4 mr-2" />
-                Download (Word)
-              </a>
-            </Button>
+          <Button variant="outline" size="sm" asChild className="flex-shrink-0">
+            <a href="/documents/NRES_SDA_Rota_Spec_v2.1.docx" download>
+              <Download className="h-4 w-4 mr-1" />
+              Word
+            </a>
+          </Button>
+        </div>
+
+        {/* 7. Second Section Divider */}
+        <div className="flex items-center gap-3 pt-3">
+          <span className="text-[11px] uppercase font-bold tracking-wider whitespace-nowrap" style={{ color: "#D4A800" }}>✦ FOR PROGRAMME BOARD CONSIDERATION POST GO-LIVE IF NEEDED</span>
+          <div className="flex-1 h-px bg-slate-200" />
+        </div>
+
+        {/* 8. Gold Standard Panel */}
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+          {/* Gold ribbon */}
+          <div className="h-[3px]" style={{ background: "linear-gradient(90deg, #F5C518, #D4A800, #F5C518)" }} />
+
+          <div className="p-5 space-y-4">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-sm" style={{ backgroundColor: "#FDF8E1" }}>✦</div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-[14px] text-slate-900">Notewell AI — Live Dashboard System</h3>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold" style={{ backgroundColor: "#FDF8E1", border: "1px solid #F0DC82", color: "#92400E" }}>Gold Standard Option</span>
+                </div>
+              </div>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold" style={{ backgroundColor: "#FDF8E1", border: "1px solid #F0DC82", color: "#92400E" }}>⏳ Subject to Programme Board approval</span>
+            </div>
+
+            {/* Body text */}
+            <p className="text-sm text-slate-600 leading-relaxed">
+              This is not a requirement of the NRES project. The Excel workbook above provides everything needed to run the service. However, should the Programme Board consider that gold standard management of the operational detail would benefit the programme, a live web-based system could replace the Excel over time — providing real-time dashboards, automated compliance alerts, audit trails, and multi-user access with role-based permissions. This would be a decision for the board based on perceived value, not a project dependency.
+            </p>
+
+            {/* Screen preview strip */}
+            <div className="rounded-lg p-4" style={{ backgroundColor: "#FAFBFC" }}>
+              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">What the system could look like — 6 interactive sections</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {thumbnails.map((thumb, i) => (
+                  <div
+                    key={i}
+                    className="group rounded-lg border border-slate-200 overflow-hidden transition-all hover:border-[#7C3AED] hover:-translate-y-0.5 cursor-pointer"
+                    style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px rgba(124,58,237,0.15)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)"; }}
+                  >
+                    <div className="h-[72px] relative p-2" style={{ background: thumb.bg }}>
+                      {/* Mini chart graphics per thumbnail */}
+                      {i === 0 && (
+                        <div className="flex items-end gap-1 h-full">
+                          <div className="w-3 h-6 rounded-sm" style={{ backgroundColor: "#003087" }} />
+                          <div className="w-3 h-8 rounded-sm" style={{ backgroundColor: "#005EB8" }} />
+                          <div className="w-3 h-5 rounded-sm" style={{ backgroundColor: "#0D9488" }} />
+                          <div className="ml-auto w-6 h-6 rounded-full border-2" style={{ borderColor: "#10B981" }} />
+                        </div>
+                      )}
+                      {i === 1 && (
+                        <div className="flex flex-col gap-[2px] h-full justify-center">
+                          {[...Array(5)].map((_, r) => (
+                            <div key={r} className="flex gap-[2px]">
+                              <div className="w-3 h-2 rounded-[1px]" style={{ backgroundColor: "#2563EB", opacity: 0.6 }} />
+                              <div className="w-4 h-2 rounded-[1px] bg-slate-200" />
+                              <div className="w-2 h-2 rounded-[1px]" style={{ backgroundColor: r < 3 ? "#10B981" : r < 4 ? "#F59E0B" : "#EF4444", opacity: 0.7 }} />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {i === 2 && (
+                        <div className="flex items-end gap-[3px] h-full">
+                          {[70, 85, 60, 90, 75, 80, 30].map((h, bi) => (
+                            <div key={bi} className="flex-1 rounded-t-sm" style={{ height: `${h}%`, backgroundColor: bi === 6 ? "#EF4444" : "#0D9488", opacity: 0.7 }} />
+                          ))}
+                        </div>
+                      )}
+                      {i === 3 && (
+                        <div className="flex items-center justify-center gap-3 h-full">
+                          {[0, 1, 2].map((d) => (
+                            <div key={d} className="relative">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#7C3AED" }} />
+                              {d < 2 && <div className="absolute top-1/2 left-full w-4 h-[2px] -translate-y-1/2" style={{ backgroundColor: "#C4B5FD" }} />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {i === 4 && (
+                        <div className="flex flex-col gap-[4px] h-full justify-center">
+                          {[100, 80, 60, 45].map((w, bi) => (
+                            <div key={bi} className="h-2 rounded-full" style={{ width: `${w}%`, backgroundColor: ["#4F46E5", "#7C3AED", "#0D9488", "#2563EB"][bi], opacity: 0.6 }} />
+                          ))}
+                        </div>
+                      )}
+                      {i === 5 && (
+                        <div className="flex items-center justify-center gap-2 h-full">
+                          {[{ fill: "#D4A800", opacity: 1 }, { fill: "#2563EB", opacity: 0.4 }, { fill: "#10B981", opacity: 0.4 }].map((d, di) => (
+                            <div key={di} className="relative">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.fill, opacity: d.opacity }} />
+                              {di < 2 && <div className="absolute top-1/2 left-full w-3 h-[1px] -translate-y-1/2 bg-slate-300" />}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Badge */}
+                      <span className="absolute top-1 right-1 text-[8px] font-semibold px-1 py-0.5 rounded bg-white/90 text-slate-500">{thumb.badge}</span>
+                    </div>
+                    <div className="p-1.5 text-center">
+                      <p className="text-[10px] font-medium text-slate-600">{thumb.label}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Preview button */}
+              <div className="flex justify-center mt-4">
+                <button className="inline-flex items-center gap-2 px-5 py-2 rounded-md text-white text-xs font-bold" style={{ backgroundColor: "#7C3AED" }}>
+                  <Play className="w-3 h-3" /> Open Interactive Preview
+                </button>
+              </div>
+            </div>
+
+            {/* Gold footer note */}
+            <div className="rounded-lg p-3 flex items-start gap-2" style={{ backgroundColor: "#FDF8E1", borderTop: "1px solid #F0DC82" }}>
+              <span className="flex-shrink-0 text-sm">✦</span>
+              <p className="text-xs leading-relaxed" style={{ color: "#92400E" }}>
+                <span className="font-semibold">Programme Board decision only.</span> The interactive preview above shows what a live system could deliver. This is offered as an option for the board to consider if they feel it would add value — it is not a dependency, not currently budgeted, and the Excel workbook is fully sufficient to operate the NRES programme.
+              </p>
+            </div>
           </div>
         </div>
       </div>
+      {/* ===== END SDA Rota / Buy-Back Service Management ===== */}
 
 
       <CollapsibleCard
