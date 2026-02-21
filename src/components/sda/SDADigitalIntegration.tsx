@@ -365,10 +365,15 @@ export const SDADigitalIntegration = () => {
           {/* Document reference */}
           <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
             <FileText className="w-5 h-5 text-[#005EB8]" />
-            <div>
+            <div className="flex-1">
               <h4 className="font-semibold text-slate-900">NRES SDA Pilot Reporting Plan</h4>
               <p className="text-sm text-slate-600">Version 1.4 | February 2026</p>
             </div>
+            <Button variant="outline" size="sm" asChild className="flex-shrink-0">
+              <a href="/documents/NRES_SDA_Pilot_Reporting_Plan.docx" download>
+                <Download className="h-4 w-4 mr-1" /> Word
+              </a>
+            </Button>
           </div>
 
           {/* KPI Grid */}
