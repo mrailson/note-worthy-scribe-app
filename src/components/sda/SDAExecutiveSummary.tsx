@@ -79,7 +79,7 @@ export const SDAExecutiveSummary = () => {
                       <div>
                         <p className="text-sm text-slate-500 font-medium">Patient List Size</p>
                         <p className="text-3xl font-bold text-slate-900 mt-1">89,584</p>
-                        <p className="text-sm text-slate-600 mt-1">7 Practice Partners Across Neighbourhood</p>
+                        <p className="text-sm text-slate-600 mt-1">7 Practices Across Neighbourhood</p>
                       </div>
                       <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
                         <Users className="w-6 h-6 text-[#005EB8]" />
@@ -189,6 +189,7 @@ export const SDAExecutiveSummary = () => {
                         </div>
                       </div>
                     </div>
+                    <p className="text-[10px] text-slate-400 mt-2">Updated: 21 February 2026</p>
                   </CardContent>
                 </Card>
 
