@@ -54,13 +54,19 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
   const [customModel, setCustomModel] = useState<string>('gemini-pro');
   const [customCount, setCustomCount] = useState(1);
   const [isListening, setIsListening] = useState(false);
+  const [listeningTarget, setListeningTarget] = useState<'custom' | 'batch'>('custom');
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
+  const [showBatchInstructions, setShowBatchInstructions] = useState(false);
+  const [batchInstructions, setBatchInstructions] = useState('');
+  const [batchRefFile, setBatchRefFile] = useState<File | null>(null);
+  const [batchRefPreview, setBatchRefPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const batchFileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const preVoiceTextRef = useRef<string>('');
 
-  const handleVoiceInput = useCallback(() => {
+  const handleVoiceInput = useCallback((target: 'custom' | 'batch' = 'custom') => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast.error('Speech recognition is not supported in your browser');
@@ -78,14 +84,20 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
     recognition.interimResults = false;
     recognition.lang = 'en-GB';
     recognitionRef.current = recognition;
-    preVoiceTextRef.current = customPrompt;
+    setListeningTarget(target);
+    preVoiceTextRef.current = target === 'batch' ? batchInstructions : customPrompt;
 
     recognition.onresult = (event: any) => {
       const result = event.results[event.results.length - 1];
       const transcript = result[0].transcript.trim();
       if (transcript) {
         const base = preVoiceTextRef.current;
-        setCustomPrompt(base ? base + ' ' + transcript : transcript);
+        const newText = base ? base + ' ' + transcript : transcript;
+        if (target === 'batch') {
+          setBatchInstructions(newText);
+        } else {
+          setCustomPrompt(newText);
+        }
       }
     };
 
@@ -99,8 +111,8 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
 
     recognition.start();
     setIsListening(true);
-    toast.info('Listening... Speak your prompt');
-  }, [isListening]);
+    toast.info('Listening... Speak your instructions');
+  }, [isListening, customPrompt, batchInstructions]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -123,6 +135,23 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
     setReferenceFile(null);
     setReferencePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleBatchFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please upload an image file'); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error('File must be under 10MB'); return; }
+    setBatchRefFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setBatchRefPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const clearBatchRefFile = () => {
+    setBatchRefFile(null);
+    setBatchRefPreview(null);
+    if (batchFileInputRef.current) batchFileInputRef.current.value = '';
   };
 
   const SEED_IMAGES = [
@@ -169,6 +198,20 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // Upload batch reference image if provided
+      let referenceImageUrl: string | undefined;
+      if (batchRefFile) {
+        const storagePath = `references/${Date.now()}-${batchRefFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('stock-images')
+          .upload(storagePath, batchRefFile, { contentType: batchRefFile.type, upsert: false });
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage.from('stock-images').getPublicUrl(storagePath);
+          referenceImageUrl = publicUrl;
+        }
+      }
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-stock-images`,
         {
@@ -178,7 +221,13 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
             'Authorization': `Bearer ${session?.access_token}`,
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ category, count: 10, model: generateModel }),
+          body: JSON.stringify({ 
+            category, 
+            count: 10, 
+            model: generateModel,
+            ...(batchInstructions.trim() && { batchInstructions: batchInstructions.trim() }),
+            ...(referenceImageUrl && { referenceImageUrl }),
+          }),
         }
       );
       
@@ -321,26 +370,95 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
           </div>
 
           {/* Batch generate for current category */}
-          <div className="flex items-center gap-2 p-3 border rounded-lg bg-muted/20">
-            <Sparkles className="h-4 w-4 text-primary shrink-0" />
-            <span className="text-sm font-medium shrink-0">
-              Generate 10 for "{selectedCategory || 'Patients'}"
-            </span>
-            <Select value={generateModel} onValueChange={setGenerateModel}>
-              <SelectTrigger className="w-[180px] h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {AI_MODELS.map(m => (
-                  <SelectItem key={m.value} value={m.value}>
-                    <span className="text-xs">{m.label}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button size="sm" onClick={handleGenerateBatch} disabled={isGenerating}>
-              {isGenerating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</> : 'Generate'}
-            </Button>
+          <div className="border rounded-lg bg-muted/20 overflow-hidden">
+            <div className="flex items-center gap-2 p-3">
+              <Sparkles className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm font-medium shrink-0">
+                Generate 10 for "{selectedCategory || 'Patients'}"
+              </span>
+              <Select value={generateModel} onValueChange={setGenerateModel}>
+                <SelectTrigger className="w-[180px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AI_MODELS.map(m => (
+                    <SelectItem key={m.value} value={m.value}>
+                      <span className="text-xs">{m.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" onClick={handleGenerateBatch} disabled={isGenerating}>
+                {isGenerating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</> : 'Generate'}
+              </Button>
+            </div>
+            
+            {/* Toggle for custom instructions */}
+            <div className="px-3 pb-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs text-muted-foreground h-7 px-2"
+                onClick={() => setShowBatchInstructions(!showBatchInstructions)}
+              >
+                <PenLine className="h-3 w-3 mr-1" />
+                {showBatchInstructions ? 'Hide' : 'Add'} Custom Instructions
+              </Button>
+            </div>
+
+            {/* Expandable batch instructions panel */}
+            {showBatchInstructions && (
+              <div className="px-3 pb-3 space-y-2 border-t pt-2">
+                <Label className="text-xs text-muted-foreground">
+                  Additional instructions applied to all 10 generated images
+                </Label>
+                <div className="relative">
+                  <Textarea
+                    value={batchInstructions}
+                    onChange={(e) => setBatchInstructions(e.target.value)}
+                    placeholder="e.g. 'Include NHS branding, ensure British spelling, show diverse staff, Northamptonshire setting...'"
+                    rows={2}
+                    className="pr-12 text-xs"
+                  />
+                  <Button
+                    type="button"
+                    variant={isListening && listeningTarget === 'batch' ? 'destructive' : 'ghost'}
+                    size="icon"
+                    className="absolute right-2 top-1.5 h-7 w-7"
+                    onClick={() => handleVoiceInput('batch')}
+                    title={isListening && listeningTarget === 'batch' ? 'Stop listening' : 'Voice input'}
+                  >
+                    {isListening && listeningTarget === 'batch' ? <MicOff className="h-3.5 w-3.5 animate-pulse" /> : <Mic className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+                {isListening && listeningTarget === 'batch' && (
+                  <p className="text-[10px] text-primary animate-pulse">🎤 Listening...</p>
+                )}
+                
+                {/* Batch reference file upload */}
+                <div className="flex items-center gap-2">
+                  <input ref={batchFileInputRef} type="file" accept="image/*" onChange={handleBatchFileSelect} className="hidden" />
+                  <Button type="button" variant="outline" size="sm" onClick={() => batchFileInputRef.current?.click()} className="text-xs h-7">
+                    <Upload className="h-3 w-3 mr-1" />
+                    {batchRefFile ? 'Change' : 'Attach Logo/Image'}
+                  </Button>
+                  {batchRefFile && (
+                    <div className="flex items-center gap-1.5">
+                      <FileImage className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">{batchRefFile.name}</span>
+                      <Button type="button" variant="ghost" size="icon" className="h-5 w-5" onClick={clearBatchRefFile}>
+                        <X className="h-2.5 w-2.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {batchRefPreview && (
+                  <div className="w-14 h-14 rounded border overflow-hidden bg-muted">
+                    <img src={batchRefPreview} alt="Reference" className="w-full h-full object-contain" />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Custom prompt panel */}
@@ -359,16 +477,16 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
                   />
                   <Button
                     type="button"
-                    variant={isListening ? 'destructive' : 'ghost'}
+                    variant={isListening && listeningTarget === 'custom' ? 'destructive' : 'ghost'}
                     size="icon"
                     className="absolute right-2 top-2 h-8 w-8"
-                    onClick={handleVoiceInput}
-                    title={isListening ? 'Stop listening' : 'Voice input'}
+                    onClick={() => handleVoiceInput('custom')}
+                    title={isListening && listeningTarget === 'custom' ? 'Stop listening' : 'Voice input'}
                   >
-                    {isListening ? <MicOff className="h-4 w-4 animate-pulse" /> : <Mic className="h-4 w-4" />}
+                    {isListening && listeningTarget === 'custom' ? <MicOff className="h-4 w-4 animate-pulse" /> : <Mic className="h-4 w-4" />}
                   </Button>
                 </div>
-                {isListening && (
+                {isListening && listeningTarget === 'custom' && (
                   <p className="text-xs text-primary animate-pulse">🎤 Listening... speak your prompt</p>
                 )}
               </div>
