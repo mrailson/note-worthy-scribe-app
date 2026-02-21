@@ -163,8 +163,8 @@ const loadPersistedHistory = (userId: string): PresentationHistoryItem[] => {
 
 const savePersistedHistory = (userId: string, history: PresentationHistoryItem[]) => {
   try {
-    // Strip pptxBase64 and voiceoverPptxBase64 to avoid exceeding localStorage limits
-    const lightweight = history.slice(0, 50).map(item => ({
+    // Keep last 5 items for quick retrieval; strip pptxBase64 (too large) but preserve downloadUrl
+    const lightweight = history.slice(0, 5).map(item => ({
       ...item,
       result: {
         ...item.result,

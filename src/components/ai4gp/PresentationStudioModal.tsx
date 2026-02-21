@@ -26,11 +26,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 interface PresentationStudioModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onOpenStockLibrary?: () => void;
 }
 
 export const PresentationStudioModal: React.FC<PresentationStudioModalProps> = ({
   open,
   onOpenChange,
+  onOpenStockLibrary,
 }) => {
   const {
     settings,
@@ -143,6 +145,7 @@ export const PresentationStudioModal: React.FC<PresentationStudioModalProps> = (
                 onCancel={cancelGeneration}
                 onLoadHistory={loadFromHistory}
                 onUpdate={updateSettings}
+                onOpenStockLibrary={onOpenStockLibrary}
               />
             </TabsContent>
           </div>

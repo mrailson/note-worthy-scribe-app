@@ -39,6 +39,7 @@ interface ImageStudioModalProps {
   onOpenChange: (open: boolean) => void;
   imageGenerationModel?: 'google/gemini-3-pro-image-preview' | 'google/gemini-2.5-flash-image-preview' | 'openai/gpt-image-1';
   initialEditImage?: { url: string; name: string } | null;
+  initialMode?: 'create' | 'edit' | 'stock';
 }
 
 export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
@@ -46,9 +47,10 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   onOpenChange,
   imageGenerationModel = 'google/gemini-2.5-flash-image-preview',
   initialEditImage,
+  initialMode,
 }) => {
   const [showGallery, setShowGallery] = useState(false);
-  const [studioMode, setStudioMode] = useState<'create' | 'edit' | 'stock'>('create');
+  const [studioMode, setStudioMode] = useState<'create' | 'edit' | 'stock'>(initialMode || 'create');
   const [pendingEditImage, setPendingEditImage] = useState<{ url: string; name: string } | null>(null);
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
   
@@ -58,8 +60,10 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   useEffect(() => {
     if (initialEditImage && open) {
       setStudioMode('edit');
+    } else if (initialMode && open) {
+      setStudioMode(initialMode);
     }
-  }, [initialEditImage, open]);
+  }, [initialEditImage, initialMode, open]);
 
   // Clear pending edit image when modal closes
   useEffect(() => {

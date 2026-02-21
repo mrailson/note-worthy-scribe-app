@@ -189,6 +189,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
   const [showMeetingPreview, setShowMeetingPreview] = useState(false);
   const [showPromptsModal, setShowPromptsModal] = useState(false);
   const [showImageStudio, setShowImageStudio] = useState(false);
+  const [imageStudioInitialMode, setImageStudioInitialMode] = useState<'create' | 'edit' | 'stock'>('create');
   const [showPresentationStudio, setShowPresentationStudio] = useState(false);
   const [showAdminDictate, setShowAdminDictate] = useState(false);
   const [showTranslationService, setShowTranslationService] = useState(false);
@@ -1152,6 +1153,7 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
           open={showImageStudio}
           onOpenChange={setShowImageStudio}
           imageGenerationModel={imageGenerationModel}
+          initialMode={imageStudioInitialMode}
         />
       </Suspense>
 
@@ -1160,6 +1162,11 @@ const AI4GPService = ({ isDemoMode = false }: AI4GPServiceProps) => {
         <PresentationStudioModal
           open={showPresentationStudio}
           onOpenChange={setShowPresentationStudio}
+          onOpenStockLibrary={() => {
+            setShowPresentationStudio(false);
+            setImageStudioInitialMode('stock');
+            setShowImageStudio(true);
+          }}
         />
       </Suspense>
 

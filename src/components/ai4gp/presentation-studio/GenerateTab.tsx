@@ -42,6 +42,7 @@ interface GenerateTabProps {
   onCancel: () => void;
   onLoadHistory: (item: PresentationHistoryItem) => void;
   onUpdate: (updates: Partial<PresentationStudioSettings>) => void;
+  onOpenStockLibrary?: () => void;
 }
 
 const PHASE_LABELS: Record<GenerationPhase, string> = {
@@ -72,6 +73,7 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
   onCancel,
   onLoadHistory,
   onUpdate,
+  onOpenStockLibrary,
 }) => {
   const [historyPage, setHistoryPage] = useState(0);
 
@@ -137,10 +139,7 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
                 variant="outline"
                 size="sm"
                 className="text-xs"
-                onClick={() => {
-                  // Navigate to stock library in a new tab
-                  window.open('/ai4gp?tab=stock-library', '_blank');
-                }}
+                onClick={() => onOpenStockLibrary?.()}
               >
                 <ImageIcon className="h-3.5 w-3.5 mr-1.5" />
                 View Stock Library in Notewell
@@ -287,7 +286,7 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
                     </div>
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    {(item.result.downloadUrl || item.result.pptxBase64) && (
+                    {item.result.downloadUrl && (
                       <Button
                         variant="ghost"
                         size="sm"
