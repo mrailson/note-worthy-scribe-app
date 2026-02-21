@@ -314,7 +314,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
 
         if (fileItem.file.size > LARGE_FILE_THRESHOLD) {
           // Large file: chunk client-side, transcribe each chunk individually
-          const chunks = await chunkWavFile(fileItem.file, 20);
+          const chunks = await chunkWavFile(fileItem.file, 4);
           console.log(`🎵 Large file ${fileItem.file.name}: split into ${chunks.length} chunks`);
 
           const chunkTranscripts: string[] = [];
