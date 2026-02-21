@@ -239,6 +239,19 @@ export function formatTrimDuration(seconds: number): string {
 }
 
 /**
+ * Extract the sample rate from a WAV file header.
+ * Returns the sample rate or null if not a valid WAV.
+ */
+export function getWavSampleRate(buffer: ArrayBuffer): number | null {
+  const bytes = new Uint8Array(buffer);
+  if (bytes.length < 28) return null;
+  const riff = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+  if (riff !== 'RIFF') return null;
+  const view = new DataView(buffer);
+  return view.getUint32(24, true);
+}
+
+/**
  * Manually decode a WAV file's raw PCM data into an AudioBuffer.
  * This works when decodeAudioData() fails (e.g. non-standard recorder WAV formats).
  * Returns null if the buffer isn't a valid WAV.

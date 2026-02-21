@@ -21,7 +21,7 @@ import {
   Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getAudioDuration, trimAudioFile, formatTrimDuration, decodeWavToAudioBuffer } from '@/utils/audioTrimmer';
+import { getAudioDuration, trimAudioFile, formatTrimDuration, decodeWavToAudioBuffer, getWavSampleRate } from '@/utils/audioTrimmer';
 
 interface TrimFile {
   file: File;
@@ -137,35 +137,64 @@ export const AudioTrimEditor: React.FC<AudioTrimEditorProps> = ({
     if (!tf || tf.type !== 'audio') return;
 
     try {
-      if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
-        audioContextRef.current = new AudioContext();
-      }
-      const ctx = audioContextRef.current;
-      if (ctx.state === 'suspended') await ctx.resume();
-
       const buffer = await tf.file.arrayBuffer();
       
-      // Try standard decodeAudioData first, then manual WAV parsing
-      let audioBuffer: AudioBuffer | null = null;
+      // Try standard decodeAudioData first
       try {
-        audioBuffer = await ctx.decodeAudioData(buffer.slice(0));
-      } catch {
-        // decodeAudioData failed — try manual WAV PCM parsing
-        audioBuffer = decodeWavToAudioBuffer(ctx, buffer);
+        if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+          audioContextRef.current = new AudioContext();
+        }
+        const ctx = audioContextRef.current;
+        if (ctx.state === 'suspended') await ctx.resume();
+
+        const audioBuffer = await ctx.decodeAudioData(buffer.slice(0));
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(ctx.destination);
+        source.onended = () => setPlayingIndex(null);
+        source.start(0, tf.startSec, tf.endSec - tf.startSec);
+        sourceNodeRef.current = source;
+        setPlayingIndex(index);
+        console.log('[TrimPreview] Playing via decodeAudioData');
+        return;
+      } catch (e) {
+        console.warn('[TrimPreview] decodeAudioData failed, trying manual WAV parse:', e);
       }
 
-      if (!audioBuffer) {
-        console.warn('Could not decode audio for preview');
+      // Fallback: manual WAV PCM parsing with matching sample rate context
+      const wavInfo = getWavSampleRate(buffer);
+      if (!wavInfo) {
+        console.error('[TrimPreview] Not a valid WAV file');
         return;
       }
 
-      const source = ctx.createBufferSource();
+      // Create a new AudioContext at the WAV's sample rate for correct playback
+      const wavCtx = new AudioContext({ sampleRate: wavInfo });
+      if (wavCtx.state === 'suspended') await wavCtx.resume();
+
+      const audioBuffer = decodeWavToAudioBuffer(wavCtx, buffer);
+      if (!audioBuffer) {
+        console.error('[TrimPreview] Manual WAV decode returned null');
+        wavCtx.close();
+        return;
+      }
+
+      console.log(`[TrimPreview] Manual decode: ${audioBuffer.numberOfChannels}ch, ${audioBuffer.sampleRate}Hz, ${audioBuffer.duration.toFixed(1)}s`);
+
+      // Close any previous context
+      if (audioContextRef.current && audioContextRef.current !== wavCtx) {
+        try { audioContextRef.current.close(); } catch {}
+      }
+      audioContextRef.current = wavCtx;
+
+      const source = wavCtx.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(ctx.destination);
+      source.connect(wavCtx.destination);
       source.onended = () => setPlayingIndex(null);
       source.start(0, tf.startSec, tf.endSec - tf.startSec);
       sourceNodeRef.current = source;
       setPlayingIndex(index);
+      console.log(`[TrimPreview] Playing via manual WAV parse from ${tf.startSec.toFixed(1)}s`);
     } catch (err) {
       console.error('Preview playback failed:', err);
       setPlayingIndex(null);
