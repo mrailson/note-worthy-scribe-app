@@ -32,6 +32,9 @@ interface TrimFile {
   isLoading: boolean;
 }
 
+// Hidden audio element ref for fallback playback
+let fallbackAudio: HTMLAudioElement | null = null;
+
 interface AudioTrimEditorProps {
   files: Array<{ file: File; type: 'audio' | 'text' | 'document' }>;
   onTrimConfirm: (trimmedFiles: File[]) => void;
@@ -115,6 +118,11 @@ export const AudioTrimEditor: React.FC<AudioTrimEditorProps> = ({
       try { sourceNodeRef.current.stop(); } catch {}
       sourceNodeRef.current = null;
     }
+    if (fallbackAudio) {
+      fallbackAudio.pause();
+      fallbackAudio.src = '';
+      fallbackAudio = null;
+    }
     setPlayingIndex(null);
   }, []);
 
@@ -129,6 +137,7 @@ export const AudioTrimEditor: React.FC<AudioTrimEditorProps> = ({
     if (!tf || tf.type !== 'audio') return;
 
     try {
+      // Try Web Audio API first
       if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
         audioContextRef.current = new AudioContext();
       }
@@ -136,18 +145,33 @@ export const AudioTrimEditor: React.FC<AudioTrimEditorProps> = ({
       if (ctx.state === 'suspended') await ctx.resume();
 
       const buffer = await tf.file.arrayBuffer();
-      const audioBuffer = await ctx.decodeAudioData(buffer);
+      
+      try {
+        const audioBuffer = await ctx.decodeAudioData(buffer.slice(0));
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(ctx.destination);
+        source.onended = () => setPlayingIndex(null);
+        source.start(0, tf.startSec, tf.endSec - tf.startSec);
+        sourceNodeRef.current = source;
+        setPlayingIndex(index);
+        return;
+      } catch {
+        // decodeAudioData failed — use HTML Audio fallback
+      }
 
-      const source = ctx.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(ctx.destination);
-
-      const startSec = tf.startSec;
-      const duration = tf.endSec - tf.startSec;
-
-      source.onended = () => setPlayingIndex(null);
-      source.start(0, startSec, duration);
-      sourceNodeRef.current = source;
+      // Fallback: use <audio> element with blob URL (works for WAV files browsers can play natively)
+      const blob = new Blob([buffer], { type: tf.file.type || 'audio/wav' });
+      const url = URL.createObjectURL(blob);
+      fallbackAudio = new Audio(url);
+      fallbackAudio.currentTime = tf.startSec;
+      fallbackAudio.ontimeupdate = () => {
+        if (fallbackAudio && fallbackAudio.currentTime >= tf.endSec) {
+          stopPlayback();
+        }
+      };
+      fallbackAudio.onended = () => setPlayingIndex(null);
+      await fallbackAudio.play();
       setPlayingIndex(index);
     } catch (err) {
       console.error('Preview playback failed:', err);
