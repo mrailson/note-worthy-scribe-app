@@ -1,30 +1,79 @@
 
 
-## Add Zoom/Scale Slider to the Glass Map Modal
+## Add Invoice Status Tracking to NRES Hours Entries
 
-### Problem
-The map only fills roughly half the screen on some displays because the map content itself doesn't scale to fill the available viewport space.
+### Overview
+Add the ability for admins to mark hours entries as "Invoiced to SNO/PML" -- individually or in bulk -- with a date invoiced and an audit trail of who made the update.
 
-### Solution
-Add a zoom slider control inside the map modal that lets users scale the map content up or down (e.g. 50%--150%) to best fit their screen resolution.
+### Database Changes
+
+**Add 3 new columns to `nres_hours_entries` table:**
+
+| Column | Type | Default | Purpose |
+|--------|------|---------|---------|
+| `invoice_status` | text | `null` | Values: `null` (not invoiced), `'invoiced'` |
+| `invoiced_date` | date | `null` | The date the entry was invoiced to SNO/PML |
+| `invoiced_by` | uuid | `null` | The user ID of the admin who marked it as invoiced |
+
+Migration SQL:
+```sql
+ALTER TABLE nres_hours_entries
+  ADD COLUMN invoice_status text DEFAULT NULL,
+  ADD COLUMN invoiced_date date DEFAULT NULL,
+  ADD COLUMN invoiced_by uuid DEFAULT NULL;
+```
+
+### UI Changes (AdminClaimsReport.tsx only)
+
+**1. Checkbox column in the Detailed view**
+- Add a checkbox on each row for bulk selection (only on uninvoiced entries).
+- Add a "Select All" checkbox in the header.
+- Show a floating action bar when entries are selected with:
+  - Count of selected entries
+  - A "Mark as Invoiced" button that opens a small dialog/popover to confirm and pick the invoice date (defaults to today)
+
+**2. Invoice status badge on each row**
+- Uninvoiced entries: no badge (or a subtle "Pending" label)
+- Invoiced entries: a green "Invoiced" badge showing the date, with a hover card showing who marked it and when
+
+**3. Individual toggle**
+- In the detailed view, each row gets a small button/icon to mark a single entry as invoiced (or to undo an invoiced status)
+
+**4. Filter by invoice status**
+- Add a filter dropdown: "All", "Pending", "Invoiced" so admins can quickly see what still needs invoicing
+
+**5. CSV export update**
+- Add `Invoice Status`, `Invoiced Date`, and `Invoiced By` columns to the CSV export
 
 ### Technical Details
 
-**File: `src/components/sda/SDAExecutiveSummary.tsx`**
+**File: `src/components/nres/hours-tracker/AdminClaimsReport.tsx`**
+- Add `selectedEntries` state (Set of entry IDs) for bulk selection
+- Add `invoiceFilter` state for filtering by status
+- Add `handleMarkInvoiced(entryIds: string[], date: string)` function that updates the entries via Supabase and records the current user's ID as `invoiced_by`
+- Add `handleUnmarkInvoiced(entryId: string)` to allow reversing the status
+- Update the `AllEntry` and `DetailedEntry` interfaces to include the new fields
+- Update `fetchAllData` to include the new columns (already covered by `select('*')`)
+- Update the detailed table to show checkboxes, status badges, and action buttons
+- Update `exportCSV` to include the new columns
 
-1. Add a `mapZoom` state variable (default: `100`, range `50`--`150`).
-2. Inside the `Dialog` for the Glass Map, add a floating zoom slider bar at the bottom-centre of the modal:
-   - A small horizontal `Slider` component (already available in the project) with minus/plus icons either side.
-   - Shows the current zoom percentage.
-   - Styled with a semi-transparent dark background to match the navy glass aesthetic.
-3. Wrap `<NRESGlassMap />` in a container with `transform: scale()` driven by `mapZoom / 100`, using `transform-origin: top center` so the map scales from the top.
-4. The slider control will sit in a fixed position overlay at the bottom of the modal so it remains accessible regardless of scroll position.
+**File: `src/types/nresHoursTypes.ts`**
+- Update `NRESHoursEntry` interface to include `invoice_status`, `invoiced_date`, `invoiced_by`
 
-**Approximate layout of the zoom bar:**
+### Workflow
 
 ```text
-  [ - ]  ======|======  [ + ]   85%
+Admin opens Admin Claims Report
+  --> Switches to Detailed view
+  --> Filters to "Pending" entries
+  --> Selects entries via checkboxes (individually or "Select All")
+  --> Clicks "Mark as Invoiced"
+  --> Confirms date (defaults to today)
+  --> Entries updated with status, date, and admin's user ID
+  --> Badge changes to "Invoiced" with date shown
 ```
 
-No other files need changing. The existing `Slider` UI component and `lucide-react` icons (`ZoomIn`, `ZoomOut`) will be reused.
+### Security
+- Only the existing admin users (ADMIN_EMAILS list + system admins) can see and use this feature, as it lives within the `AdminClaimsReport` component which already gates access.
+- The `invoiced_by` field uses the authenticated user's ID from the auth context for a full audit trail.
 
