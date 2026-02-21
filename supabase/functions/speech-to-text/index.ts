@@ -195,9 +195,40 @@ async function handleLargeAudio(
   console.log(`📦 [${requestId}] Downloaded ${fileBytes.length} bytes`);
 
   try {
-    // Parse WAV header
+    // Check if it's a WAV file by looking for RIFF header
+    const isWav = fileBytes.length >= 4 &&
+      String.fromCharCode(fileBytes[0], fileBytes[1], fileBytes[2], fileBytes[3]) === 'RIFF';
+
+    if (!isWav) {
+      // Non-WAV file (e.g. m4a, mp3): preprocess then send whole file to Whisper
+      console.log(`🎵 [${requestId}] Non-WAV file (${fileName}), ${(fileBytes.length / 1024 / 1024).toFixed(1)}MB — sending directly to Whisper`);
+
+      const ext = (fileName || '').split('.').pop()?.toLowerCase() || 'bin';
+      const mimeMap: Record<string, string> = {
+        m4a: 'audio/m4a', mp3: 'audio/mpeg', mp4: 'audio/mp4',
+        ogg: 'audio/ogg', webm: 'audio/webm', aac: 'audio/aac',
+        wav: 'audio/wav', flac: 'audio/flac',
+      };
+      const mime = mimeMap[ext] || 'audio/mpeg';
+
+      // Preprocess through transcode-audio
+      const preprocessed = await preprocessAudioViaTranscode(fileBytes, mime, requestId);
+
+      const result = await transcribeChunkViaWhisper(
+        preprocessed.bytes, preprocessed.mimeType, preprocessed.extension,
+        fileName || `audio.${ext}`, apiKey, language, requestId
+      );
+
+      console.log(`✅ [${requestId}] Non-WAV transcription complete: ${result.text.length} chars, ${result.duration.toFixed(1)}s`);
+
+      return new Response(
+        JSON.stringify({ text: result.text, duration: result.duration, chunks: 1 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // WAV file: parse header and chunk
     const wav = parseWavHeader(fileBytes);
-    const bytesPerSecond = wav.sampleRate * wav.numChannels * (wav.bitsPerSample / 8);
     const TARGET_CHUNK = 20 * 1024 * 1024; // 20MB
     const chunkDataSize = Math.floor(TARGET_CHUNK / (wav.numChannels * (wav.bitsPerSample / 8))) * (wav.numChannels * (wav.bitsPerSample / 8));
     const totalDataSize = Math.min(wav.dataSize, fileBytes.length - wav.dataOffset);

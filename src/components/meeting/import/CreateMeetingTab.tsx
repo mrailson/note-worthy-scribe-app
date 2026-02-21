@@ -113,12 +113,43 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   };
 
   const MAX_WHISPER_SIZE = 25 * 1024 * 1024; // 25MB Whisper limit
+  const MAX_BASE64_RAW_SIZE = 4 * 1024 * 1024; // 4MB raw → ~5.3MB base64, safely under edge function limit
 
   const updateFileStatus = useCallback((fileName: string, updates: Partial<UploadedFile>) => {
     setUploadedFiles(prev =>
       prev.map(f => f.name === fileName ? { ...f, ...updates } : f)
     );
   }, []);
+
+  /**
+   * Upload file to temp storage and transcribe via speech-to-text process-large-audio action.
+   * Used for non-WAV files that are too large for base64 in the request body.
+   */
+  const transcribeViaStorage = async (file: File, onProgress: (msg: string) => void): Promise<string> => {
+    onProgress('Uploading audio for processing…');
+    const tempPath = `temp-transcribe/${crypto.randomUUID().substring(0, 8)}/${file.name}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('audio-imports')
+      .upload(tempPath, file, { contentType: file.type || 'audio/mpeg', upsert: false });
+    
+    if (uploadError) throw new Error(`Failed to upload for transcription: ${uploadError.message}`);
+    
+    onProgress('Transcribing audio…');
+    const { data, error } = await supabase.functions.invoke('speech-to-text', {
+      body: {
+        action: 'process-large-audio',
+        storagePath: tempPath,
+        fileName: file.name,
+      }
+    });
+    
+    if (error) throw new Error(`Transcription failed: ${error.message}`);
+    if (!data?.text) throw new Error('No transcript returned');
+    
+    const cleanResult = cleanWhisperTranscript(data.text);
+    return cleanResult.text || data.text;
+  };
 
   const transcribeAudioFile = async (file: File, onProgress: (msg: string) => void): Promise<string> => {
     // For large files, chunk client-side and transcribe each chunk individually
@@ -164,7 +195,16 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
       return cleanResult.text || stitched;
     }
     
-    // For smaller files, use base64 approach with Whisper
+    // For files too large for base64 but not WAV-chunkable, use storage-based approach
+    if (file.size > MAX_BASE64_RAW_SIZE) {
+      const isWav = file.name.toLowerCase().endsWith('.wav');
+      if (!isWav) {
+        console.log(`[CreateMeetingTab] File ${file.name} is ${(file.size / 1024 / 1024).toFixed(1)}MB (non-WAV) - using storage-based transcription`);
+        return transcribeViaStorage(file, onProgress);
+      }
+    }
+
+    // For smaller files, use base64 approach with speech-to-text
     onProgress('Transcribing audio…');
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -172,8 +212,12 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
         try {
           const base64Audio = (reader.result as string).split(',')[1];
           
-          const { data, error } = await supabase.functions.invoke('transcribe-audio', {
-            body: { audio: base64Audio }
+          const { data, error } = await supabase.functions.invoke('speech-to-text', {
+            body: { 
+              audio: base64Audio,
+              mimeType: file.type || 'audio/mpeg',
+              fileName: file.name,
+            }
           });
           
           if (error) throw error;
