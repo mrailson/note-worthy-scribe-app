@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import mammoth from 'mammoth';
 import { ImageProcessor } from '@/utils/fileProcessors/ImageProcessor';
+import { chunkWavFile, blobToBase64 } from '@/utils/wavChunker';
 
 interface MultiAudioImportProps {
   open: boolean;
@@ -312,32 +313,30 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
         let transcript: string;
 
         if (fileItem.file.size > LARGE_FILE_THRESHOLD) {
-          // Large file: upload to Storage, then chunked transcription
-          const timestamp = Date.now();
-          const randomId = Math.random().toString(36).substring(7);
-          const storagePath = `temp/${timestamp}-${randomId}.wav`;
+          // Large file: chunk client-side, transcribe each chunk individually
+          const chunks = await chunkWavFile(fileItem.file, 20);
+          console.log(`🎵 Large file ${fileItem.file.name}: split into ${chunks.length} chunks`);
 
-          updatedFiles[i] = { ...fileItem, status: 'transcribing' };
-          setFiles([...updatedFiles]);
+          const chunkTranscripts: string[] = [];
+          for (const chunk of chunks) {
+            updatedFiles[i] = { ...fileItem, status: 'transcribing' };
+            setFiles([...updatedFiles]);
+            showToast.info(`Transcribing chunk ${chunk.index + 1} of ${chunk.total}…`, { section: 'meeting_manager' });
 
-          const { error: uploadError } = await supabase.storage
-            .from('audio-imports')
-            .upload(storagePath, fileItem.file, {
-              contentType: fileItem.file.type || 'audio/wav',
-              upsert: false
+            const base64Chunk = await blobToBase64(chunk.blob);
+            const { data, error } = await supabase.functions.invoke('speech-to-text', {
+              body: {
+                audio: base64Chunk,
+                mimeType: 'audio/wav',
+                fileName: `${fileItem.file.name}_chunk${chunk.index}.wav`,
+              }
             });
-          if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
-
-          const { data, error } = await supabase.functions.invoke('speech-to-text', {
-            body: {
-              action: 'process-large-audio',
-              storagePath,
-              fileName: fileItem.file.name,
-            }
-          });
-          if (error) throw new Error(error.message);
-          if (!data?.text) throw new Error('No transcription received');
-          transcript = data.text;
+            if (error) throw new Error(`Chunk ${chunk.index + 1} failed: ${error.message}`);
+            if (data?.text?.trim()) chunkTranscripts.push(data.text.trim());
+          }
+          
+          if (chunkTranscripts.length === 0) throw new Error('No transcription received');
+          transcript = chunkTranscripts.join('\n');
         } else {
           // Small file: base64 approach
           const base64Audio = await convertToBase64(fileItem.file);

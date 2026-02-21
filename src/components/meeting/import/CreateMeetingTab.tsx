@@ -25,6 +25,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { chunkWavFile, blobToBase64 } from '@/utils/wavChunker';
 
 interface CreateMeetingTabProps {
   onComplete?: () => void;
@@ -93,40 +94,31 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   const MAX_WHISPER_SIZE = 25 * 1024 * 1024; // 25MB Whisper limit
 
   const transcribeAudioFile = async (file: File): Promise<string> => {
-    // For large files, upload to storage first then use chunked Whisper transcription
+    // For large files, chunk client-side and transcribe each chunk individually
     if (file.size > MAX_WHISPER_SIZE) {
-      console.log(`[CreateMeetingTab] File ${file.name} is ${(file.size / 1024 / 1024).toFixed(1)}MB - uploading for chunked transcription`);
+      console.log(`[CreateMeetingTab] File ${file.name} is ${(file.size / 1024 / 1024).toFixed(1)}MB - chunking client-side`);
       
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(7);
-      const fileExt = file.name.split('.').pop() || 'wav';
-      const storagePath = `temp/${timestamp}-${randomId}.${fileExt}`;
+      const chunks = await chunkWavFile(file, 20);
+      const transcripts: string[] = [];
       
-      const { error: uploadError } = await supabase.storage
-        .from('audio-imports')
-        .upload(storagePath, file, {
-          contentType: file.type || 'audio/wav',
-          upsert: false
+      for (const chunk of chunks) {
+        console.log(`[CreateMeetingTab] Transcribing chunk ${chunk.index + 1}/${chunk.total}…`);
+        const base64Chunk = await blobToBase64(chunk.blob);
+        
+        const { data, error } = await supabase.functions.invoke('speech-to-text', {
+          body: {
+            audio: base64Chunk,
+            mimeType: 'audio/wav',
+            fileName: `${file.name}_chunk${chunk.index}.wav`,
+          }
         });
-      
-      if (uploadError) {
-        throw new Error(`Failed to upload file: ${uploadError.message}`);
+        
+        if (error) throw new Error(`Chunk ${chunk.index + 1} failed: ${error.message}`);
+        if (data?.text?.trim()) transcripts.push(data.text.trim());
       }
       
-      console.log('[CreateMeetingTab] File uploaded, calling speech-to-text with process-large-audio…');
-      
-      const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { 
-          action: 'process-large-audio',
-          storagePath,
-          fileName: file.name
-        }
-      });
-      
-      if (error) throw error;
-      if (!data?.text) throw new Error('No transcript returned');
-      
-      return data.text;
+      if (transcripts.length === 0) throw new Error('No transcript returned');
+      return transcripts.join('\n');
     }
     
     // For smaller files, use base64 approach with Whisper
