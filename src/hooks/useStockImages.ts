@@ -137,9 +137,17 @@ export function useStockImages() {
   // Replace stock image file (admin only) — keeps metadata, swaps the file
   const replaceMutation = useMutation({
     mutationFn: async ({ image, newImageDataUrl }: { image: StockImage; newImageDataUrl: string }) => {
-      // Convert data URL to blob
-      const res = await fetch(newImageDataUrl);
-      const blob = await res.blob();
+      // Convert data URL to blob without fetch (avoids "Failed to fetch" on large base64)
+      const [header, base64] = newImageDataUrl.split(',');
+      const mimeMatch = header.match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+      const byteString = atob(base64);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mime });
 
       // Upload replacement to same storage path (overwrite)
       const { error: uploadError } = await supabase.storage
