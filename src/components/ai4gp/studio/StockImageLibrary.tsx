@@ -58,6 +58,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+  const preVoiceTextRef = useRef<string>('');
 
   const handleVoiceInput = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -73,21 +74,19 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.interimResults = false;
     recognition.lang = 'en-GB';
     recognitionRef.current = recognition;
+    preVoiceTextRef.current = customPrompt;
 
     recognition.onresult = (event: any) => {
-      let transcript = '';
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
+      const result = event.results[event.results.length - 1];
+      const transcript = result[0].transcript.trim();
+      if (transcript) {
+        const base = preVoiceTextRef.current;
+        setCustomPrompt(base ? base + ' ' + transcript : transcript);
       }
-      setCustomPrompt(prev => {
-        // If we had text before voice, append. Otherwise replace.
-        const base = prev && !isListening ? prev + ' ' : '';
-        return base + transcript;
-      });
     };
 
     recognition.onerror = (event: any) => {
