@@ -84,7 +84,7 @@ export const SDAExecutiveSummary = () => {
           <CollapsibleContent>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setCapacityModalOpen(true)}>
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div>
@@ -92,11 +92,8 @@ export const SDAExecutiveSummary = () => {
                         <p className="text-3xl font-bold text-slate-900 mt-1">89,584</p>
                         <p className="text-sm text-slate-600 mt-1">7 Practice Partners Across Neighbourhood</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <p className="text-xs text-[#005EB8] flex items-center gap-1">
-                            <Info className="w-3 h-3" /> Click for capacity breakdown
-                          </p>
                           <button
-                            onClick={(e) => { e.stopPropagation(); setGlassMapOpen(true); }}
+                            onClick={() => setGlassMapOpen(true)}
                             className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full transition-colors"
                             title="View interactive neighbourhood map"
                           >
@@ -111,7 +108,7 @@ export const SDAExecutiveSummary = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setCapacityModalOpen(true)}>
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div>
@@ -120,6 +117,9 @@ export const SDAExecutiveSummary = () => {
                         <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                           50% Remote Assumption
                         </span>
+                        <p className="text-xs text-[#005EB8] flex items-center gap-1 mt-2">
+                          <Info className="w-3 h-3" /> Click for capacity breakdown
+                        </p>
                       </div>
                       <div className="w-12 h-12 rounded-xl bg-cyan-50 flex items-center justify-center">
                         <Calendar className="w-6 h-6 text-cyan-600" />
