@@ -264,13 +264,13 @@ export function decodeWavToAudioBuffer(ctx: AudioContext, buffer: ArrayBuffer): 
   if (riff !== 'RIFF') return null;
 
   const view = new DataView(buffer);
-  const formatCode = view.getUint16(20, true); // 1=PCM, 6=A-law, 7=mu-law
+  const formatCode = view.getUint16(20, true); // 1=PCM, 6=A-law, 7=mu-law, 17=IMA ADPCM
   const numChannels = view.getUint16(22, true);
   const sampleRate = view.getUint32(24, true);
+  const blockAlignHeader = view.getUint16(32, true);
   const bitsPerSample = view.getUint16(34, true);
-  const blockAlign = numChannels * (bitsPerSample / 8);
 
-  console.log(`[WAV decode] format=${formatCode}, ${numChannels}ch, ${sampleRate}Hz, ${bitsPerSample}bit`);
+  console.log(`[WAV decode] format=${formatCode}, ${numChannels}ch, ${sampleRate}Hz, ${bitsPerSample}bit, blockAlign=${blockAlignHeader}`);
 
   // Find data chunk
   let offset = 12;
@@ -288,7 +288,15 @@ export function decodeWavToAudioBuffer(ctx: AudioContext, buffer: ArrayBuffer): 
     if (offset % 2 !== 0) offset++;
   }
 
-  if (dataOffset === 0 || sampleRate === 0 || blockAlign === 0) return null;
+  if (dataOffset === 0 || sampleRate === 0) return null;
+
+  // IMA ADPCM (format 17) — needs special block-based decoding
+  if (formatCode === 17) {
+    return decodeImaAdpcm(ctx, bytes, view, dataOffset, dataSize, blockAlignHeader, numChannels, sampleRate);
+  }
+
+  const blockAlign = numChannels * (bitsPerSample / 8);
+  if (blockAlign === 0) return null;
 
   const frameCount = Math.floor(dataSize / blockAlign);
   const audioBuffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
@@ -300,10 +308,8 @@ export function decodeWavToAudioBuffer(ctx: AudioContext, buffer: ArrayBuffer): 
       let sample: number;
 
       if (formatCode === 6) {
-        // A-law decoding
         sample = alawToLinear(bytes[sampleOffset]);
       } else if (formatCode === 7) {
-        // mu-law decoding
         sample = mulawToLinear(bytes[sampleOffset]);
       } else if (bitsPerSample === 16) {
         sample = view.getInt16(sampleOffset, true) / 32768;
@@ -317,7 +323,6 @@ export function decodeWavToAudioBuffer(ctx: AudioContext, buffer: ArrayBuffer): 
       } else if (bitsPerSample === 32) {
         sample = view.getInt32(sampleOffset, true) / 2147483648;
       } else if (bitsPerSample === 8) {
-        // Unsigned 8-bit PCM
         sample = (bytes[sampleOffset] - 128) / 128;
       } else {
         sample = 0;
@@ -354,4 +359,118 @@ function mulawToLinear(mulaw: number): number {
   const mantissa = mu & 0x0F;
   const magnitude = ((mantissa * 2 + 33) << segment) - 33;
   return sign * magnitude / 32768;
+}
+
+// --- IMA ADPCM decoder (format 17) ---
+
+const IMA_STEP_TABLE = [
+  7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 19, 21, 23, 25, 28, 31,
+  34, 37, 41, 45, 50, 55, 60, 66, 73, 80, 88, 97, 107, 118, 130, 143,
+  157, 173, 190, 209, 230, 253, 279, 307, 337, 371, 408, 449, 494, 544, 598, 658,
+  724, 796, 876, 963, 1060, 1166, 1282, 1411, 1552, 1707, 1878, 2066, 2272, 2499, 2749, 3024,
+  3327, 3660, 4026, 4428, 4871, 5358, 5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899,
+  15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
+];
+
+const IMA_INDEX_TABLE = [
+  -1, -1, -1, -1, 2, 4, 6, 8,
+  -1, -1, -1, -1, 2, 4, 6, 8
+];
+
+function decodeImaAdpcm(
+  ctx: AudioContext,
+  bytes: Uint8Array,
+  view: DataView,
+  dataOffset: number,
+  dataSize: number,
+  blockAlign: number,
+  numChannels: number,
+  sampleRate: number
+): AudioBuffer | null {
+  if (blockAlign === 0) return null;
+
+  // Samples per block: preamble has 1 sample per channel, then (blockAlign - 4*channels) bytes of nibbles
+  const samplesPerBlock = (blockAlign - 4 * numChannels) * 2 / numChannels + 1;
+  const numBlocks = Math.floor(dataSize / blockAlign);
+  const totalSamples = numBlocks * samplesPerBlock;
+
+  console.log(`[IMA ADPCM] ${numBlocks} blocks, ${samplesPerBlock} samples/block, ${totalSamples} total samples`);
+
+  const audioBuffer = ctx.createBuffer(numChannels, totalSamples, sampleRate);
+  const channelData: Float32Array[] = [];
+  for (let ch = 0; ch < numChannels; ch++) {
+    channelData.push(audioBuffer.getChannelData(ch));
+  }
+
+  let sampleIdx = 0;
+
+  for (let block = 0; block < numBlocks; block++) {
+    const blockStart = dataOffset + block * blockAlign;
+    const predictors: number[] = [];
+    const stepIndices: number[] = [];
+
+    // Read preamble for each channel (4 bytes each)
+    for (let ch = 0; ch < numChannels; ch++) {
+      const preambleOffset = blockStart + ch * 4;
+      let predictor = view.getInt16(preambleOffset, true);
+      let stepIndex = bytes[preambleOffset + 2];
+      // Clamp step index
+      if (stepIndex > 88) stepIndex = 88;
+      if (stepIndex < 0) stepIndex = 0;
+      predictors.push(predictor);
+      stepIndices.push(stepIndex);
+      channelData[ch][sampleIdx] = predictor / 32768;
+    }
+    sampleIdx++;
+
+    // Decode nibbles
+    const dataStart = blockStart + 4 * numChannels;
+    const nibbleBytes = blockAlign - 4 * numChannels;
+
+    if (numChannels === 1) {
+      // Mono: sequential nibbles
+      for (let i = 0; i < nibbleBytes; i++) {
+        const b = bytes[dataStart + i];
+        for (let nibbleIdx = 0; nibbleIdx < 2; nibbleIdx++) {
+          const nibble = nibbleIdx === 0 ? (b & 0x0F) : ((b >> 4) & 0x0F);
+          const step = IMA_STEP_TABLE[stepIndices[0]];
+          let diff = ((nibble & 7) * 2 + 1) * step / 8;
+          if (nibble & 8) diff = -diff;
+          predictors[0] = Math.max(-32768, Math.min(32767, predictors[0] + diff));
+          stepIndices[0] = Math.max(0, Math.min(88, stepIndices[0] + IMA_INDEX_TABLE[nibble]));
+          if (sampleIdx < totalSamples) {
+            channelData[0][sampleIdx] = predictors[0] / 32768;
+            sampleIdx++;
+          }
+        }
+      }
+    } else {
+      // Stereo/multi-channel: interleaved in 4-byte packets per channel
+      let bytePos = 0;
+      const samplesRemaining = samplesPerBlock - 1;
+      let decoded = 0;
+      while (decoded < samplesRemaining && (dataStart + bytePos) < bytes.length) {
+        for (let ch = 0; ch < numChannels; ch++) {
+          // Each channel gets 4 bytes = 8 nibbles
+          for (let j = 0; j < 4 && decoded < samplesRemaining; j++) {
+            const b = bytes[dataStart + bytePos];
+            bytePos++;
+            for (let nibbleIdx = 0; nibbleIdx < 2 && decoded < samplesRemaining; nibbleIdx++) {
+              const nibble = nibbleIdx === 0 ? (b & 0x0F) : ((b >> 4) & 0x0F);
+              const step = IMA_STEP_TABLE[stepIndices[ch]];
+              let diff = ((nibble & 7) * 2 + 1) * step / 8;
+              if (nibble & 8) diff = -diff;
+              predictors[ch] = Math.max(-32768, Math.min(32767, predictors[ch] + diff));
+              stepIndices[ch] = Math.max(0, Math.min(88, stepIndices[ch] + IMA_INDEX_TABLE[nibble]));
+              channelData[ch][sampleIdx + decoded] = predictors[ch] / 32768;
+              decoded++;
+            }
+          }
+        }
+      }
+      sampleIdx += decoded;
+    }
+  }
+
+  return audioBuffer;
 }
