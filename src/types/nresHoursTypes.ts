@@ -19,6 +19,9 @@ export interface NRESHoursEntry {
   claimant_type: 'gp' | 'pm' | null;
   claimant_name: string | null;
   entered_by: string | null;
+  invoice_status: string | null;
+  invoiced_date: string | null;
+  invoiced_by: string | null;
   created_at: string;
   updated_at: string;
 }
