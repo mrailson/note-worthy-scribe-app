@@ -200,7 +200,7 @@ serve(async (req) => {
     fd.append("logprob_threshold", "-1.0");
     fd.append("hallucination_silence_threshold", "0.6");   // Avoids filler hallucinations
     fd.append("prompt", prompt || "");
-    if (language) fd.append("language", language);
+    fd.append("language", language || "en");
 
     const idem = crypto.randomUUID();
 
