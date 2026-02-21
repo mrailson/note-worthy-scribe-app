@@ -73,119 +73,120 @@ export const SDAExecutiveSummary = () => {
           <CollapsibleContent>
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-sm text-slate-500 font-medium">Patient List Size</p>
                         <p className="text-3xl font-bold text-slate-900 mt-1">89,584</p>
                         <p className="text-sm text-slate-600 mt-1">7 Practice Partners Across Neighbourhood</p>
-                        {/* Live Planning Map Button */}
-                        <div
-                          onMouseEnter={() => setMapBtnHovered(true)}
-                          onMouseLeave={() => setMapBtnHovered(false)}
-                          onClick={() => setShowMapModal(true)}
-                          style={{
-                            position: "relative",
-                            cursor: "pointer",
-                            borderRadius: "10px",
-                            padding: "14px 16px",
-                            background: mapBtnHovered 
-                              ? "linear-gradient(135deg, #009198 0%, #00737a 100%)" 
-                              : "linear-gradient(135deg, #f0fafa 0%, #e8f6f7 100%)",
-                            border: mapBtnHovered ? "1px solid #009198" : "1px solid rgba(0, 145, 152, 0.2)",
-                            transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
-                            animation: !mapBtnHovered ? "attentionPulse 3s ease-in-out infinite" : "none",
-                            boxShadow: mapBtnHovered 
-                              ? "0 8px 30px rgba(0, 145, 152, 0.3), 0 0 0 1px rgba(0, 145, 152, 0.1)" 
-                              : "0 2px 12px rgba(0, 145, 152, 0.15)",
-                            overflow: "hidden",
-                            marginTop: "12px",
-                          }}
-                        >
-                          {mapBtnHovered && (
-                            <div style={{
-                              position: "absolute",
-                              top: 0, left: 0, right: 0, bottom: 0,
-                              background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)",
-                              backgroundSize: "200% 100%",
-                              animation: "shimmer 2s linear infinite",
-                              pointerEvents: "none",
-                            }} />
-                          )}
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px", position: "relative", zIndex: 1 }}>
-                            <div style={{
-                              width: "40px", height: "40px", borderRadius: "8px",
-                              background: mapBtnHovered ? "rgba(255,255,255,0.15)" : "rgba(0,145,152,0.08)",
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              transition: "all 0.3s ease", flexShrink: 0,
-                            }}>
-                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                                <circle cx="12" cy="8" r="2.5" fill={mapBtnHovered ? "#fff" : "#009198"} opacity="0.9">
-                                  <animate attributeName="r" values="2.5;3;2.5" dur="2s" repeatCount="indefinite" />
-                                </circle>
-                                <circle cx="6" cy="16" r="2" fill={mapBtnHovered ? "#fff" : "#009198"} opacity="0.7">
-                                  <animate attributeName="r" values="2;2.3;2" dur="2.5s" repeatCount="indefinite" />
-                                </circle>
-                                <circle cx="18" cy="16" r="2" fill={mapBtnHovered ? "#fff" : "#009198"} opacity="0.7">
-                                  <animate attributeName="r" values="2;2.3;2" dur="2.5s" begin="0.5s" repeatCount="indefinite" />
-                                </circle>
-                                <circle cx="5" cy="10" r="1.2" fill={mapBtnHovered ? "rgba(255,255,255,0.5)" : "rgba(0,145,152,0.4)"} />
-                                <circle cx="19" cy="10" r="1.2" fill={mapBtnHovered ? "rgba(255,255,255,0.5)" : "rgba(0,145,152,0.4)"} />
-                                <line x1="12" y1="8" x2="6" y2="16" stroke={mapBtnHovered ? "rgba(255,255,255,0.4)" : "rgba(0,145,152,0.3)"} strokeWidth="1" strokeDasharray="2 2">
-                                  <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="1.5s" repeatCount="indefinite" />
-                                </line>
-                                <line x1="12" y1="8" x2="18" y2="16" stroke={mapBtnHovered ? "rgba(255,255,255,0.4)" : "rgba(0,145,152,0.3)"} strokeWidth="1" strokeDasharray="2 2">
-                                  <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="1.5s" repeatCount="indefinite" />
-                                </line>
-                                <line x1="12" y1="8" x2="5" y2="10" stroke={mapBtnHovered ? "rgba(255,255,255,0.25)" : "rgba(0,145,152,0.2)"} strokeWidth="0.8" strokeDasharray="1.5 1.5">
-                                  <animate attributeName="stroke-dashoffset" from="0" to="-6" dur="2s" repeatCount="indefinite" />
-                                </line>
-                                <line x1="12" y1="8" x2="19" y2="10" stroke={mapBtnHovered ? "rgba(255,255,255,0.25)" : "rgba(0,145,152,0.2)"} strokeWidth="0.8" strokeDasharray="1.5 1.5">
-                                  <animate attributeName="stroke-dashoffset" from="0" to="-6" dur="2s" repeatCount="indefinite" />
-                                </line>
-                                <line x1="6" y1="16" x2="18" y2="16" stroke={mapBtnHovered ? "rgba(255,255,255,0.2)" : "rgba(0,145,152,0.15)"} strokeWidth="0.6" strokeDasharray="3 3">
-                                  <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="3s" repeatCount="indefinite" />
-                                </line>
-                              </svg>
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <span style={{
-                                  fontSize: "13px", fontWeight: 700, letterSpacing: "0.3px",
-                                  color: mapBtnHovered ? "#fff" : "#006b70",
-                                  transition: "color 0.3s ease",
-                                  whiteSpace: "nowrap",
-                                }}>Live Planning Map</span>
-                                <span style={{
-                                  fontSize: "7px", fontWeight: 700, letterSpacing: "1.5px",
-                                  padding: "2px 6px", borderRadius: "4px",
-                                  background: mapBtnHovered ? "rgba(255,255,255,0.2)" : "rgba(0,145,152,0.1)",
-                                  color: mapBtnHovered ? "rgba(255,255,255,0.9)" : "#009198",
-                                  transition: "all 0.3s ease",
-                                }}>INTERACTIVE</span>
-                              </div>
-                              <div style={{
-                                fontSize: "10px", marginTop: "2px",
-                                color: mapBtnHovered ? "rgba(255,255,255,0.8)" : "#5a8a8d",
-                                transition: "color 0.3s ease",
-                              }}>Drive times, SDA capacity & resource modelling</div>
-                            </div>
-                            <div style={{
-                              width: "28px", height: "28px", borderRadius: "6px",
-                              background: mapBtnHovered ? "rgba(255,255,255,0.15)" : "rgba(0,145,152,0.06)",
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              transition: "all 0.3s ease", flexShrink: 0,
-                            }}>
-                              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                <path d="M5 3L9 7L5 11" stroke={mapBtnHovered ? "#fff" : "#009198"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            </div>
-                          </div>
-                        </div>
                       </div>
-                      <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
                         <Users className="w-6 h-6 text-[#005EB8]" />
+                      </div>
+                    </div>
+                    {/* Live Planning Map Button */}
+                    <div
+                      onMouseEnter={() => setMapBtnHovered(true)}
+                      onMouseLeave={() => setMapBtnHovered(false)}
+                      onClick={() => setShowMapModal(true)}
+                      style={{
+                        position: "relative",
+                        cursor: "pointer",
+                        borderRadius: "10px",
+                        padding: "10px 12px",
+                        background: mapBtnHovered 
+                          ? "linear-gradient(135deg, #009198 0%, #00737a 100%)" 
+                          : "linear-gradient(135deg, #f0fafa 0%, #e8f6f7 100%)",
+                        border: mapBtnHovered ? "1px solid #009198" : "1px solid rgba(0, 145, 152, 0.2)",
+                        transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+                        animation: !mapBtnHovered ? "attentionPulse 3s ease-in-out infinite" : "none",
+                        boxShadow: mapBtnHovered 
+                          ? "0 8px 30px rgba(0, 145, 152, 0.3), 0 0 0 1px rgba(0, 145, 152, 0.1)" 
+                          : "0 2px 12px rgba(0, 145, 152, 0.15)",
+                        overflow: "hidden",
+                        marginTop: "12px",
+                        maxWidth: "100%",
+                      }}
+                    >
+                      {mapBtnHovered && (
+                        <div style={{
+                          position: "absolute",
+                          top: 0, left: 0, right: 0, bottom: 0,
+                          background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)",
+                          backgroundSize: "200% 100%",
+                          animation: "shimmer 2s linear infinite",
+                          pointerEvents: "none",
+                        }} />
+                      )}
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative", zIndex: 1 }}>
+                        <div style={{
+                          width: "36px", height: "36px", borderRadius: "8px",
+                          background: mapBtnHovered ? "rgba(255,255,255,0.15)" : "rgba(0,145,152,0.08)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "all 0.3s ease", flexShrink: 0,
+                        }}>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="8" r="2.5" fill={mapBtnHovered ? "#fff" : "#009198"} opacity="0.9">
+                              <animate attributeName="r" values="2.5;3;2.5" dur="2s" repeatCount="indefinite" />
+                            </circle>
+                            <circle cx="6" cy="16" r="2" fill={mapBtnHovered ? "#fff" : "#009198"} opacity="0.7">
+                              <animate attributeName="r" values="2;2.3;2" dur="2.5s" repeatCount="indefinite" />
+                            </circle>
+                            <circle cx="18" cy="16" r="2" fill={mapBtnHovered ? "#fff" : "#009198"} opacity="0.7">
+                              <animate attributeName="r" values="2;2.3;2" dur="2.5s" begin="0.5s" repeatCount="indefinite" />
+                            </circle>
+                            <circle cx="5" cy="10" r="1.2" fill={mapBtnHovered ? "rgba(255,255,255,0.5)" : "rgba(0,145,152,0.4)"} />
+                            <circle cx="19" cy="10" r="1.2" fill={mapBtnHovered ? "rgba(255,255,255,0.5)" : "rgba(0,145,152,0.4)"} />
+                            <line x1="12" y1="8" x2="6" y2="16" stroke={mapBtnHovered ? "rgba(255,255,255,0.4)" : "rgba(0,145,152,0.3)"} strokeWidth="1" strokeDasharray="2 2">
+                              <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="1.5s" repeatCount="indefinite" />
+                            </line>
+                            <line x1="12" y1="8" x2="18" y2="16" stroke={mapBtnHovered ? "rgba(255,255,255,0.4)" : "rgba(0,145,152,0.3)"} strokeWidth="1" strokeDasharray="2 2">
+                              <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="1.5s" repeatCount="indefinite" />
+                            </line>
+                            <line x1="12" y1="8" x2="5" y2="10" stroke={mapBtnHovered ? "rgba(255,255,255,0.25)" : "rgba(0,145,152,0.2)"} strokeWidth="0.8" strokeDasharray="1.5 1.5">
+                              <animate attributeName="stroke-dashoffset" from="0" to="-6" dur="2s" repeatCount="indefinite" />
+                            </line>
+                            <line x1="12" y1="8" x2="19" y2="10" stroke={mapBtnHovered ? "rgba(255,255,255,0.25)" : "rgba(0,145,152,0.2)"} strokeWidth="0.8" strokeDasharray="1.5 1.5">
+                              <animate attributeName="stroke-dashoffset" from="0" to="-6" dur="2s" repeatCount="indefinite" />
+                            </line>
+                            <line x1="6" y1="16" x2="18" y2="16" stroke={mapBtnHovered ? "rgba(255,255,255,0.2)" : "rgba(0,145,152,0.15)"} strokeWidth="0.6" strokeDasharray="3 3">
+                              <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="3s" repeatCount="indefinite" />
+                            </line>
+                          </svg>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{
+                              fontSize: "12px", fontWeight: 700, letterSpacing: "0.3px",
+                              color: mapBtnHovered ? "#fff" : "#006b70",
+                              transition: "color 0.3s ease",
+                              whiteSpace: "nowrap",
+                            }}>Live Planning Map</span>
+                            <span style={{
+                              fontSize: "7px", fontWeight: 700, letterSpacing: "1.5px",
+                              padding: "2px 5px", borderRadius: "4px",
+                              background: mapBtnHovered ? "rgba(255,255,255,0.2)" : "rgba(0,145,152,0.1)",
+                              color: mapBtnHovered ? "rgba(255,255,255,0.9)" : "#009198",
+                              transition: "all 0.3s ease",
+                            }}>INTERACTIVE</span>
+                          </div>
+                          <div style={{
+                            fontSize: "9px", marginTop: "2px",
+                            color: mapBtnHovered ? "rgba(255,255,255,0.8)" : "#5a8a8d",
+                            transition: "color 0.3s ease",
+                          }}>Drive times, SDA capacity & resource modelling</div>
+                        </div>
+                        <div style={{
+                          width: "24px", height: "24px", borderRadius: "6px",
+                          background: mapBtnHovered ? "rgba(255,255,255,0.15)" : "rgba(0,145,152,0.06)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "all 0.3s ease", flexShrink: 0,
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                            <path d="M5 3L9 7L5 11" stroke={mapBtnHovered ? "#fff" : "#009198"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
