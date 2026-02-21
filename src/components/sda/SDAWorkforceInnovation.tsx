@@ -101,7 +101,7 @@ export const SDAWorkforceInnovation = () => {
           <div>
             <p className="font-semibold text-amber-800">Update – 10 February 2026</p>
             <p className="text-sm text-amber-700 mt-1">
-              Salaried GP Redundancy Liability briefing added — based on LMC/BMA guidance. See below for key points and full document download. PML will be bringing updates to the Programme Board with suggested contract wording and other mitigating factors. A new risk analysis will be completed and presented to the PB.
+              Salaried GP Redundancy Liability briefing added — based on LMC/BMA guidance. See below for key points and full document download. PML will be bringing updates to the Programme Board with suggested contract wording and other mitigating factors. A new risk analysis will be completed and presented to the PB. Further updates expected from PML for the next PB on Tuesday 25th February 2026.
             </p>
           </div>
         </div>
