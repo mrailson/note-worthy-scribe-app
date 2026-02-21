@@ -26,6 +26,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { chunkWavFile, blobToBase64 } from '@/utils/wavChunker';
+import { isLikelyHallucination } from '@/utils/whisperHallucinationPatterns';
+import { cleanWhisperTranscript } from '@/lib/cleanWhisperTranscript';
 
 interface CreateMeetingTabProps {
   onComplete?: () => void;
@@ -100,6 +102,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
       
       const chunks = await chunkWavFile(file, 4);
       const transcripts: string[] = [];
+      let hallucinationCount = 0;
       
       for (const chunk of chunks) {
         console.log(`[CreateMeetingTab] Transcribing chunk ${chunk.index + 1}/${chunk.total}…`);
@@ -114,11 +117,23 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
         });
         
         if (error) throw new Error(`Chunk ${chunk.index + 1} failed: ${error.message}`);
-        if (data?.text?.trim()) transcripts.push(data.text.trim());
+        const chunkText = data?.text?.trim();
+        if (chunkText) {
+          const halCheck = isLikelyHallucination(chunkText, data?.confidence);
+          if (halCheck.isHallucination) {
+            console.warn(`⚠️ Chunk ${chunk.index + 1} rejected as hallucination: ${halCheck.reason}`);
+            hallucinationCount++;
+          } else {
+            transcripts.push(chunkText);
+          }
+        }
       }
       
-      if (transcripts.length === 0) throw new Error('No transcript returned');
-      return transcripts.join('\n');
+      if (hallucinationCount > 0) console.log(`🧹 Filtered ${hallucinationCount}/${chunks.length} hallucinated chunks`);
+      if (transcripts.length === 0) throw new Error('No usable transcript (all chunks were hallucinations)');
+      const stitched = transcripts.join('\n');
+      const cleanResult = cleanWhisperTranscript(stitched);
+      return cleanResult.text || stitched;
     }
     
     // For smaller files, use base64 approach with Whisper
