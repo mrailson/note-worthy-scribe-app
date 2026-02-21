@@ -18,8 +18,11 @@ import {
   Check,
   CheckCircle2,
   History,
-  Plus
+  Plus,
+  Download
 } from 'lucide-react';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { saveAs } from 'file-saver';
 import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -680,21 +683,84 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
         {/* Preview Combined Content */}
         {hasContent && (
           <div className="p-3 bg-muted/30 rounded-md border border-border/50">
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Content Preview</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Content Preview</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1.5"
+                onClick={async () => {
+                  const transcript = getCombinedTranscript();
+                  if (!transcript) return;
+                  const paragraphs = transcript
+                    .split(/\n\n+/)
+                    .map(p => p.trim())
+                    .filter(p => p.length > 0)
+                    .flatMap(p => {
+                      if (p.length > 500) {
+                        const sentences = p.match(/[^.!?]+[.!?]+/g) || [p];
+                        const chunks: string[] = [];
+                        let current = '';
+                        sentences.forEach((s, i) => {
+                          current += s;
+                          if ((i + 1) % 4 === 0) { chunks.push(current.trim()); current = ''; }
+                        });
+                        if (current.trim()) chunks.push(current.trim());
+                        return chunks;
+                      }
+                      return [p];
+                    });
+                  const doc = new Document({
+                    sections: [{
+                      properties: {},
+                      children: [
+                        new Paragraph({ children: [new TextRun({ text: 'Meeting Transcript', bold: true, size: 28 })], heading: HeadingLevel.HEADING_1, spacing: { after: 200 } }),
+                        new Paragraph({ children: [new TextRun({ text: `${transcript.split(/\s+/).filter(Boolean).length} words`, italics: true, size: 20, color: '666666' })], spacing: { after: 300 } }),
+                        ...paragraphs.map(p => new Paragraph({ children: [new TextRun({ text: p, size: 22 })], spacing: { after: 200, line: 320 } })),
+                      ],
+                    }],
+                  });
+                  const blob = await Packer.toBlob(doc);
+                  saveAs(blob, `transcript-${new Date().toISOString().slice(0, 10)}.docx`);
+                  showToast.success('Transcript downloaded');
+                }}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Word
+              </Button>
             </div>
             <p className="text-xs text-muted-foreground mb-2">
               {getCombinedTranscript().split(/\s+/).filter(Boolean).length} total words from{' '}
               {(pastedText.trim() ? 1 : 0) + uploadedFiles.filter(f => f.status === 'done').length} source(s)
             </p>
-            <ScrollArea className="max-h-48 rounded border border-border/30 bg-background p-2">
-              <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
-                {getCombinedTranscript().slice(0, 3000)}
-                {getCombinedTranscript().length > 3000 && (
-                  <span className="text-muted-foreground italic">… (truncated)</span>
-                )}
-              </p>
+            <ScrollArea className="max-h-[400px] rounded border border-border/30 bg-background p-3">
+              <div className="text-sm text-foreground/90 leading-relaxed space-y-3">
+                {(() => {
+                  const text = getCombinedTranscript();
+                  const paragraphs = text
+                    .split(/\n\n+/)
+                    .map(p => p.trim())
+                    .filter(p => p.length > 0)
+                    .flatMap(p => {
+                      if (p.length > 500) {
+                        const sentences = p.match(/[^.!?]+[.!?]+/g) || [p];
+                        const chunks: string[] = [];
+                        let current = '';
+                        sentences.forEach((s, i) => {
+                          current += s;
+                          if ((i + 1) % 4 === 0) { chunks.push(current.trim()); current = ''; }
+                        });
+                        if (current.trim()) chunks.push(current.trim());
+                        return chunks;
+                      }
+                      return [p];
+                    });
+                  return paragraphs.map((p, i) => <p key={i}>{p}</p>);
+                })()}
+              </div>
             </ScrollArea>
           </div>
         )}
