@@ -21,7 +21,7 @@ import {
   Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getAudioDuration, trimAudioFile, formatTrimDuration } from '@/utils/audioTrimmer';
+import { getAudioDuration, trimAudioFile, formatTrimDuration, decodeWavToAudioBuffer } from '@/utils/audioTrimmer';
 
 interface TrimFile {
   file: File;
@@ -137,7 +137,6 @@ export const AudioTrimEditor: React.FC<AudioTrimEditorProps> = ({
     if (!tf || tf.type !== 'audio') return;
 
     try {
-      // Try Web Audio API first
       if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
         audioContextRef.current = new AudioContext();
       }
@@ -146,32 +145,26 @@ export const AudioTrimEditor: React.FC<AudioTrimEditorProps> = ({
 
       const buffer = await tf.file.arrayBuffer();
       
+      // Try standard decodeAudioData first, then manual WAV parsing
+      let audioBuffer: AudioBuffer | null = null;
       try {
-        const audioBuffer = await ctx.decodeAudioData(buffer.slice(0));
-        const source = ctx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(ctx.destination);
-        source.onended = () => setPlayingIndex(null);
-        source.start(0, tf.startSec, tf.endSec - tf.startSec);
-        sourceNodeRef.current = source;
-        setPlayingIndex(index);
-        return;
+        audioBuffer = await ctx.decodeAudioData(buffer.slice(0));
       } catch {
-        // decodeAudioData failed — use HTML Audio fallback
+        // decodeAudioData failed — try manual WAV PCM parsing
+        audioBuffer = decodeWavToAudioBuffer(ctx, buffer);
       }
 
-      // Fallback: use <audio> element with blob URL (works for WAV files browsers can play natively)
-      const blob = new Blob([buffer], { type: tf.file.type || 'audio/wav' });
-      const url = URL.createObjectURL(blob);
-      fallbackAudio = new Audio(url);
-      fallbackAudio.currentTime = tf.startSec;
-      fallbackAudio.ontimeupdate = () => {
-        if (fallbackAudio && fallbackAudio.currentTime >= tf.endSec) {
-          stopPlayback();
-        }
-      };
-      fallbackAudio.onended = () => setPlayingIndex(null);
-      await fallbackAudio.play();
+      if (!audioBuffer) {
+        console.warn('Could not decode audio for preview');
+        return;
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(ctx.destination);
+      source.onended = () => setPlayingIndex(null);
+      source.start(0, tf.startSec, tf.endSec - tf.startSec);
+      sourceNodeRef.current = source;
       setPlayingIndex(index);
     } catch (err) {
       console.error('Preview playback failed:', err);
