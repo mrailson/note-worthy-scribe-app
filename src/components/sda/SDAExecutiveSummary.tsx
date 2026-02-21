@@ -40,7 +40,7 @@ export const SDAExecutiveSummary = () => {
   
   const [mapBtnHovered, setMapBtnHovered] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
-  const [mapZoom, setMapZoom] = useState(100);
+  const [mapZoom, setMapZoom] = useState(120);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
