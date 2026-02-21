@@ -213,7 +213,10 @@ serve(async (req) => {
   try {
     // Auth check
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('Not authenticated');
+    console.log('Auth header present:', !!authHeader, 'starts with Bearer:', authHeader?.startsWith('Bearer '));
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -221,12 +224,28 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) throw new Error('Not authenticated');
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    console.log('getClaims result:', { hasClaims: !!claimsData?.claims, error: claimsError?.message });
+    
+    if (claimsError || !claimsData?.claims) {
+      // Fallback to getUser if getClaims not available
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+      console.log('getUser fallback:', { userId: user?.id, error: authError?.message });
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: 'Not authenticated' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      var userId = user.id;
+    } else {
+      var userId = claimsData.claims.sub as string;
+    }
 
     // Admin check
-    const { data: isAdmin } = await supabaseClient.rpc('is_system_admin', { _user_id: user.id });
-    if (!isAdmin) throw new Error('Admin access required');
+    const { data: isAdmin } = await supabaseClient.rpc('is_system_admin', { _user_id: userId });
+    console.log('Admin check:', { userId, isAdmin });
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: 'Admin access required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     const { category, count, model, customPrompt } = await req.json() as GenerateRequest;
 
