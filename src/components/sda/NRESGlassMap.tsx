@@ -348,7 +348,7 @@ export default function NRESGlassMap() {
       <div style={{ position: "absolute", bottom: "-10%", right: "15%", width: "300px", height: "300px", background: "radial-gradient(circle, rgba(0,224,138,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "10px", width: "100%", maxWidth: `${width}px` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "10px", width: "100%" }}>
         <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: selected !== null ? "#00ff88" : "#00f0ff", boxShadow: `0 0 12px ${selected !== null ? "#00ff88" : "#00f0ff"}`, animation: "pulse 2s ease-in-out infinite" }} />
         <div>
           <div style={{ color: "#00f0ff", fontSize: "13px", fontWeight: "700", letterSpacing: "4px" }}>NRES NEIGHBOURHOOD</div>
@@ -381,7 +381,7 @@ export default function NRESGlassMap() {
 
       {/* Glass Map */}
       <div style={{
-        position: "relative", width: "100%", maxWidth: `${width}px`, borderRadius: "12px",
+        position: "relative", width: "100%", borderRadius: "12px",
         border: `1px solid rgba(${selected !== null ? "0,255,136" : sdaPractice !== null ? "255,215,0" : "0,240,255"},0.2)`,
         background: "linear-gradient(135deg, rgba(18,42,68,0.85) 0%, rgba(12,30,52,0.9) 100%)",
         boxShadow: "0 0 60px rgba(0,240,255,0.08), inset 0 0 60px rgba(0,240,255,0.03), 0 20px 60px rgba(0,0,0,0.3)",
@@ -502,7 +502,7 @@ export default function NRESGlassMap() {
       </div>
 
       {/* Legend */}
-      <div style={{ display: "flex", gap: "14px", marginTop: "10px", flexWrap: "wrap", width: "100%", maxWidth: `${width}px`, justifyContent: "center" }}>
+      <div style={{ display: "flex", gap: "14px", marginTop: "10px", flexWrap: "wrap", width: "100%", justifyContent: "center" }}>
         {[
           { color: "#00f0ff", label: "HUB", shape: "circle" },
           { color: "#00e08a", label: "SPOKE", shape: "circle" },
