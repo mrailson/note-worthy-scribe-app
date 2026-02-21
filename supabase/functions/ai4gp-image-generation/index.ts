@@ -1088,6 +1088,25 @@ Content guidelines:
         });
       }
       
+      // Helper: convert a URL or base64 string into a proper data URL for the AI gateway
+      async function toDataUrl(content: string, mimeType: string): Promise<string> {
+        if (content.startsWith('data:')) return content;
+        if (content.startsWith('http://') || content.startsWith('https://')) {
+          console.log(`  🌐 Fetching remote image: ${content.substring(0, 120)}...`);
+          const imgResp = await fetch(content);
+          if (!imgResp.ok) throw new Error(`Failed to fetch image: ${imgResp.status}`);
+          const buf = await imgResp.arrayBuffer();
+          const bytes = new Uint8Array(buf);
+          let binary = '';
+          for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+          const b64 = btoa(binary);
+          const detectedType = imgResp.headers.get('content-type') || mimeType || 'image/png';
+          return `data:${detectedType};base64,${b64}`;
+        }
+        // Assume raw base64
+        return `data:${mimeType || 'image/png'};base64,${content}`;
+      }
+
       // Add reference images from Image Studio if provided
       if (referenceImages && referenceImages.length > 0) {
         const firstRefMode = referenceImages[0]?.mode || 'unknown';
@@ -1096,9 +1115,7 @@ Content guidelines:
         let totalRefSizeKB = 0;
         
         for (const refImg of referenceImages) {
-          const imageDataUrl = refImg.content.startsWith('data:') 
-            ? refImg.content 
-            : `data:${refImg.type};base64,${refImg.content}`;
+          const imageDataUrl = await toDataUrl(refImg.content, refImg.type);
           
           // Estimate size for logging
           const base64Part = imageDataUrl.split(',')[1] || imageDataUrl;
@@ -1123,10 +1140,7 @@ Content guidelines:
       if (imageAttachments && imageAttachments.length > 0) {
         console.log(`📎 Including ${imageAttachments.length} image attachment(s) for reference`);
         for (const attachment of imageAttachments) {
-          // Check if content is already a data URL or needs conversion
-          const imageDataUrl = attachment.content.startsWith('data:') 
-            ? attachment.content 
-            : `data:${attachment.type};base64,${attachment.content}`;
+          const imageDataUrl = await toDataUrl(attachment.content, attachment.type);
           
           messageContent.push({
             type: 'image_url',
