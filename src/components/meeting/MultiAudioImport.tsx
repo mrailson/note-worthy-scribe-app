@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils';
 import mammoth from 'mammoth';
 import { ImageProcessor } from '@/utils/fileProcessors/ImageProcessor';
 import { chunkWavFile, blobToBase64 } from '@/utils/wavChunker';
+import { isLikelyHallucination } from '@/utils/whisperHallucinationPatterns';
+import { cleanWhisperTranscript } from '@/lib/cleanWhisperTranscript';
 
 interface MultiAudioImportProps {
   open: boolean;
@@ -318,6 +320,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
           console.log(`🎵 Large file ${fileItem.file.name}: split into ${chunks.length} chunks`);
 
           const chunkTranscripts: string[] = [];
+          let hallucinationCount = 0;
           for (const chunk of chunks) {
             updatedFiles[i] = { ...fileItem, status: 'transcribing' };
             setFiles([...updatedFiles]);
@@ -332,11 +335,27 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
               }
             });
             if (error) throw new Error(`Chunk ${chunk.index + 1} failed: ${error.message}`);
-            if (data?.text?.trim()) chunkTranscripts.push(data.text.trim());
+            const chunkText = data?.text?.trim();
+            if (chunkText) {
+              // Filter hallucinated chunks before stitching
+              const halCheck = isLikelyHallucination(chunkText, data?.confidence);
+              if (halCheck.isHallucination) {
+                console.warn(`⚠️ Chunk ${chunk.index + 1} rejected as hallucination: ${halCheck.reason}`);
+                hallucinationCount++;
+              } else {
+                chunkTranscripts.push(chunkText);
+              }
+            }
           }
           
-          if (chunkTranscripts.length === 0) throw new Error('No transcription received');
-          transcript = chunkTranscripts.join('\n');
+          if (hallucinationCount > 0) {
+            console.log(`🧹 Filtered ${hallucinationCount}/${chunks.length} hallucinated chunks`);
+          }
+          if (chunkTranscripts.length === 0) throw new Error('No usable transcription received (all chunks were hallucinations)');
+          // Post-stitch dedup to remove cross-chunk repetition
+          const stitched = chunkTranscripts.join('\n');
+          const cleanResult = cleanWhisperTranscript(stitched);
+          transcript = cleanResult.text || stitched;
         } else {
           // Small file: base64 approach
           const base64Audio = await convertToBase64(fileItem.file);
