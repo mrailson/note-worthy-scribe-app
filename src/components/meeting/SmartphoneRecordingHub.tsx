@@ -535,14 +535,6 @@ export const SmartphoneRecordingHub = () => {
                   </CollapsibleContent>
                 </Collapsible>
 
-                {/* Good practice tip */}
-                <div className="bg-muted/50 rounded-lg p-2.5 border border-border/50">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Lock className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-[11px] font-semibold text-foreground">Good practice</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">Upload promptly, delete from phone after, ensure consent was declared</p>
-                </div>
 
                 <div className="bg-primary/5 rounded-lg p-2.5 border border-primary/10">
                   <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
