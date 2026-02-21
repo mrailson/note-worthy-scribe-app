@@ -12,6 +12,7 @@ interface GenerateRequest {
   model: 'gemini-flash' | 'gemini-pro' | 'runware';
   customPrompt?: string;
   referenceImageUrl?: string;
+  batchInstructions?: string;
 }
 
 const CATEGORY_PROMPTS: Record<string, string[]> = {
@@ -248,7 +249,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Admin access required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const { category, count, model, customPrompt, referenceImageUrl } = await req.json() as GenerateRequest;
+    const { category, count, model, customPrompt, referenceImageUrl, batchInstructions } = await req.json() as GenerateRequest;
 
     if (!category || !model) throw new Error('Category and model are required');
 
@@ -270,6 +271,16 @@ serve(async (req) => {
       // Pick random prompts that haven't been used (based on randomisation)
       const shuffled = [...categoryPrompts].sort(() => Math.random() - 0.5);
       prompts = shuffled.slice(0, imageCount);
+      
+      // Append batch instructions and reference image to each prompt if provided
+      if (batchInstructions || referenceImageUrl) {
+        prompts = prompts.map(p => {
+          let enhanced = p;
+          if (batchInstructions) enhanced += `. Additional instructions: ${batchInstructions}`;
+          if (referenceImageUrl) enhanced += `. Use this reference image for style/content guidance: ${referenceImageUrl}`;
+          return enhanced;
+        });
+      }
     }
 
     // Use service role client for storage/db operations
