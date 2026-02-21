@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Smartphone, QrCode, WifiOff, Upload, Shield, Mic, Volume2, Square, Pause, Info, CheckCircle, Lock, Lightbulb, FileAudio, Share2 } from 'lucide-react';
+import { Smartphone, QrCode, WifiOff, Upload, Shield, Mic, Volume2, Square, Pause, Info, CheckCircle, Lock, Lightbulb, FileAudio, Share2, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDeviceInfo } from '@/hooks/use-mobile';
@@ -299,38 +300,44 @@ export const SmartphoneRecordingHub = () => {
                 </p>
 
                 {/* iPhone instructions */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+                <Collapsible>
+                  <CollapsibleTrigger className="flex items-center gap-2 w-full text-left group">
                     <span className="text-base">🍎</span>
                     <span className="text-xs font-semibold text-foreground">iPhone (Voice Memos)</span>
-                  </div>
-                  <div className="ml-6 space-y-1.5 text-xs text-foreground/90">
-                    <p><strong>1.</strong> Open <strong>Voice Memos</strong> → tap the recording</p>
-                    <p><strong>2.</strong> Tap <strong>Share</strong> → <strong>Save to Files</strong> (On My iPhone, OneDrive, or NHS-approved storage)</p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                      <Info className="h-3 w-3 text-primary shrink-0" />
-                      The file is usually saved as .m4a — perfect for NoteWell.
-                    </p>
-                    <p><strong>3.</strong> Return here → <strong>Choose Files</strong> or drag &amp; drop → <strong>Create Meeting &amp; Generate Notes</strong></p>
-                  </div>
-                </div>
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto transition-transform group-data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="ml-6 space-y-1.5 text-xs text-foreground/90 pt-2">
+                      <p><strong>1.</strong> Open <strong>Voice Memos</strong> → tap the recording</p>
+                      <p><strong>2.</strong> Tap <strong>Share</strong> → <strong>Save to Files</strong> (On My iPhone, OneDrive, or NHS-approved storage)</p>
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Info className="h-3 w-3 text-primary shrink-0" />
+                        The file is usually saved as .m4a — perfect for NoteWell.
+                      </p>
+                      <p><strong>3.</strong> Return here → <strong>Choose Files</strong> or drag &amp; drop → <strong>Create Meeting &amp; Generate Notes</strong></p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 {/* Android instructions */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+                <Collapsible>
+                  <CollapsibleTrigger className="flex items-center gap-2 w-full text-left group">
                     <span className="text-base">🤖</span>
                     <span className="text-xs font-semibold text-foreground">Android (Voice Recorder)</span>
-                  </div>
-                  <div className="ml-6 space-y-1.5 text-xs text-foreground/90">
-                    <p><strong>1.</strong> Open <strong>Voice Recorder</strong> → select the recording</p>
-                    <p><strong>2.</strong> Tap <strong>Share</strong> → save to Files, Downloads, or OneDrive</p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                      <Info className="h-3 w-3 text-primary shrink-0" />
-                      Common formats: .m4a, .aac, .wav — all supported.
-                    </p>
-                    <p><strong>3.</strong> Return here → <strong>Choose Files</strong> → <strong>Create Meeting &amp; Generate Notes</strong></p>
-                  </div>
-                </div>
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto transition-transform group-data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="ml-6 space-y-1.5 text-xs text-foreground/90 pt-2">
+                      <p><strong>1.</strong> Open <strong>Voice Recorder</strong> → select the recording</p>
+                      <p><strong>2.</strong> Tap <strong>Share</strong> → save to Files, Downloads, or OneDrive</p>
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Info className="h-3 w-3 text-primary shrink-0" />
+                        Common formats: .m4a, .aac, .wav — all supported.
+                      </p>
+                      <p><strong>3.</strong> Return here → <strong>Choose Files</strong> → <strong>Create Meeting &amp; Generate Notes</strong></p>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 {/* Supported files & tips */}
                 <div className="grid grid-cols-2 gap-2">
