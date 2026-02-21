@@ -74,6 +74,185 @@ async function preprocessAudioViaTranscode(
 
 // ── Main handler ────────────────────────────────────────────────────────────
 
+// ── WAV header helpers ──────────────────────────────────────────────────────
+
+function parseWavHeader(buf: Uint8Array): { sampleRate: number; numChannels: number; bitsPerSample: number; dataOffset: number; dataSize: number } {
+  const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  // Find "data" sub-chunk
+  let dataOffset = 12; // skip RIFF header
+  let dataSize = 0;
+  while (dataOffset < buf.length - 8) {
+    const chunkId = String.fromCharCode(buf[dataOffset], buf[dataOffset + 1], buf[dataOffset + 2], buf[dataOffset + 3]);
+    const chunkSize = view.getUint32(dataOffset + 4, true);
+    if (chunkId === 'data') {
+      dataOffset += 8;
+      dataSize = chunkSize;
+      break;
+    }
+    dataOffset += 8 + chunkSize;
+    if (dataOffset % 2 !== 0) dataOffset++; // pad byte
+  }
+  return {
+    numChannels: view.getUint16(22, true),
+    sampleRate: view.getUint32(24, true),
+    bitsPerSample: view.getUint16(34, true),
+    dataOffset,
+    dataSize,
+  };
+}
+
+function buildWavHeader(dataSize: number, sampleRate: number, numChannels: number, bitsPerSample: number): Uint8Array {
+  const header = new Uint8Array(44);
+  const view = new DataView(header.buffer);
+  const blockAlign = numChannels * (bitsPerSample / 8);
+  const byteRate = sampleRate * blockAlign;
+  // RIFF
+  header.set([0x52, 0x49, 0x46, 0x46]); // "RIFF"
+  view.setUint32(4, 36 + dataSize, true);
+  header.set([0x57, 0x41, 0x56, 0x45], 8); // "WAVE"
+  // fmt
+  header.set([0x66, 0x6d, 0x74, 0x20], 12); // "fmt "
+  view.setUint32(16, 16, true); // PCM
+  view.setUint16(20, 1, true); // PCM format
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  // data
+  header.set([0x64, 0x61, 0x74, 0x61], 36); // "data"
+  view.setUint32(40, dataSize, true);
+  return header;
+}
+
+// ── Whisper single-chunk transcription (reused by both paths) ───────────────
+
+async function transcribeChunkViaWhisper(
+  audioBytes: Uint8Array,
+  mimeType: string,
+  extension: string,
+  fileName: string,
+  apiKey: string,
+  language: string,
+  requestId: string,
+): Promise<{ text: string; duration: number }> {
+  const formData = new FormData();
+  const audioBlob = new Blob([audioBytes], { type: mimeType });
+  formData.append('file', audioBlob, fileName || `audio.${extension}`);
+  formData.append('model', 'whisper-1');
+  formData.append('language', language);
+  formData.append('response_format', 'verbose_json');
+  formData.append('temperature', '0');
+  formData.append('prompt', language === 'en'
+    ? 'UK GP consultation. NHS primary care. Clinical terms: SNOMED, NICE guidelines, BNF, QoF, PCN, hypertension, diabetes mellitus, COPD, CKD, atrial fibrillation. GP systems: SystmOne, EMIS. UK spellings.'
+    : 'Healthcare conversation. Medical consultation.');
+
+  let response: Response | undefined;
+  let lastError: Error | undefined;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+        body: formData,
+        signal: AbortSignal.timeout(120000),
+      });
+      if (response.ok) break;
+      const errText = await response.text();
+      if (response.status >= 400 && response.status < 500) throw new Error(`Whisper ${response.status}: ${errText}`);
+      lastError = new Error(`Whisper ${response.status}: ${errText}`);
+    } catch (e: any) {
+      lastError = e;
+    }
+    if (attempt < 3) await new Promise(r => setTimeout(r, Math.pow(2, attempt - 1) * 1000));
+  }
+  if (!response || !response.ok) throw lastError || new Error('Whisper failed after retries');
+  const result = await response.json();
+  return { text: result.text || '', duration: result.duration || 0 };
+}
+
+// ── Large-audio handler ─────────────────────────────────────────────────────
+
+async function handleLargeAudio(
+  storagePath: string,
+  fileName: string,
+  apiKey: string,
+  language: string,
+  requestId: string,
+): Promise<Response> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+  console.log(`📥 [${requestId}] Downloading ${storagePath} from audio-imports bucket…`);
+
+  // Download from storage
+  const downloadUrl = `${supabaseUrl}/storage/v1/object/audio-imports/${storagePath}`;
+  const dlResp = await fetch(downloadUrl, {
+    headers: { 'Authorization': `Bearer ${serviceKey}`, 'apikey': serviceKey },
+  });
+  if (!dlResp.ok) throw new Error(`Storage download failed: ${dlResp.status} ${await dlResp.text()}`);
+  const fileBytes = new Uint8Array(await dlResp.arrayBuffer());
+  console.log(`📦 [${requestId}] Downloaded ${fileBytes.length} bytes`);
+
+  try {
+    // Parse WAV header
+    const wav = parseWavHeader(fileBytes);
+    const bytesPerSecond = wav.sampleRate * wav.numChannels * (wav.bitsPerSample / 8);
+    const TARGET_CHUNK = 20 * 1024 * 1024; // 20MB
+    const chunkDataSize = Math.floor(TARGET_CHUNK / (wav.numChannels * (wav.bitsPerSample / 8))) * (wav.numChannels * (wav.bitsPerSample / 8));
+    const totalDataSize = Math.min(wav.dataSize, fileBytes.length - wav.dataOffset);
+    const numChunks = Math.ceil(totalDataSize / chunkDataSize);
+
+    console.log(`🎵 [${requestId}] WAV: ${wav.sampleRate}Hz, ${wav.numChannels}ch, ${wav.bitsPerSample}bit, ${(totalDataSize / 1024 / 1024).toFixed(1)}MB PCM, ${numChunks} chunks`);
+
+    const transcripts: string[] = [];
+    let totalDuration = 0;
+
+    for (let i = 0; i < numChunks; i++) {
+      const start = wav.dataOffset + i * chunkDataSize;
+      const end = Math.min(start + chunkDataSize, wav.dataOffset + totalDataSize);
+      const pcmSlice = fileBytes.slice(start, end);
+      const chunkHeader = buildWavHeader(pcmSlice.length, wav.sampleRate, wav.numChannels, wav.bitsPerSample);
+
+      const chunkFile = new Uint8Array(chunkHeader.length + pcmSlice.length);
+      chunkFile.set(chunkHeader);
+      chunkFile.set(pcmSlice, chunkHeader.length);
+
+      console.log(`🔄 [${requestId}] Transcribing chunk ${i + 1}/${numChunks} (${(chunkFile.length / 1024 / 1024).toFixed(1)}MB)…`);
+
+      const result = await transcribeChunkViaWhisper(
+        chunkFile, 'audio/wav', 'wav', `chunk_${i}.wav`, apiKey, language, requestId
+      );
+
+      if (result.text.trim()) transcripts.push(result.text.trim());
+      totalDuration += result.duration;
+      console.log(`✅ [${requestId}] Chunk ${i + 1} done: ${result.text.length} chars, ${result.duration.toFixed(1)}s`);
+    }
+
+    const combinedText = transcripts.join('\n');
+    console.log(`✅ [${requestId}] All ${numChunks} chunks complete: ${combinedText.length} chars, ${totalDuration.toFixed(1)}s total`);
+
+    return new Response(
+      JSON.stringify({ text: combinedText, duration: totalDuration, chunks: numChunks }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } finally {
+    // Always delete temp file
+    console.log(`🗑️ [${requestId}] Deleting temp file: ${storagePath}`);
+    try {
+      const deleteUrl = `${supabaseUrl}/storage/v1/object/audio-imports/${storagePath}`;
+      await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${serviceKey}`, 'apikey': serviceKey },
+      });
+    } catch (e) {
+      console.warn(`⚠️ [${requestId}] Failed to delete temp file:`, e);
+    }
+  }
+}
+
+// ── Main handler ────────────────────────────────────────────────────────────
+
 serve(async (req) => {
   const requestId = crypto.randomUUID().slice(0, 8);
   console.log(`📨 [${requestId}] SPEECH-TO-TEXT: Request received: ${req.method}`);
@@ -89,7 +268,17 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { audio, mimeType, fileName, language } = await req.json();
+    const body = await req.json();
+
+    // ── Large-audio branch ──
+    if (body.action === 'process-large-audio') {
+      const { storagePath, fileName: fn } = body;
+      if (!storagePath) throw new Error('storagePath is required for process-large-audio');
+      return await handleLargeAudio(storagePath, fn || 'audio.wav', OPENAI_API_KEY, body.language || 'en', requestId);
+    }
+
+    // ── Default base64 branch (unchanged) ──
+    const { audio, mimeType, fileName, language } = body;
 
     if (!audio) {
       console.error(`❌ [${requestId}] No audio data provided`);

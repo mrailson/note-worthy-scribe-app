@@ -156,7 +156,6 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
     if (!selectedFiles) return;
 
     const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/wave', 'audio/x-wav', 'audio/m4a', 'audio/x-m4a', 'audio/mp4', ''];
-    const maxSize = 25 * 1024 * 1024; // 25MB for audio
 
     const newFiles: AudioFileItem[] = [];
     
@@ -166,11 +165,6 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
       
       if (!hasValidType && !hasValidExtension) {
         showToast.error(`${file.name}: Unsupported format. Use MP3, WAV, or M4A.`, { section: 'meeting_manager' });
-        continue;
-      }
-      
-      if (file.size > maxSize) {
-        showToast.error(`${file.name}: File too large. Maximum 25MB.`, { section: 'meeting_manager' });
         continue;
       }
 
@@ -314,19 +308,47 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
       setFiles([...updatedFiles]);
 
       try {
-        const base64Audio = await convertToBase64(fileItem.file);
-        
-        const { data, error } = await supabase.functions.invoke('mp3-transcription', {
-          body: {
-            audio: base64Audio,
-            filename: fileItem.file.name
-          }
-        });
+        const LARGE_FILE_THRESHOLD = 25 * 1024 * 1024; // 25MB
+        let transcript: string;
 
-        if (error) throw new Error(error.message);
-        if (!data?.text) throw new Error('No transcription received');
+        if (fileItem.file.size > LARGE_FILE_THRESHOLD) {
+          // Large file: upload to Storage, then chunked transcription
+          const timestamp = Date.now();
+          const randomId = Math.random().toString(36).substring(7);
+          const storagePath = `temp/${timestamp}-${randomId}.wav`;
 
-        const transcript = data.text;
+          updatedFiles[i] = { ...fileItem, status: 'transcribing' };
+          setFiles([...updatedFiles]);
+
+          const { error: uploadError } = await supabase.storage
+            .from('audio-imports')
+            .upload(storagePath, fileItem.file, {
+              contentType: fileItem.file.type || 'audio/wav',
+              upsert: false
+            });
+          if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+          const { data, error } = await supabase.functions.invoke('speech-to-text', {
+            body: {
+              action: 'process-large-audio',
+              storagePath,
+              fileName: fileItem.file.name,
+            }
+          });
+          if (error) throw new Error(error.message);
+          if (!data?.text) throw new Error('No transcription received');
+          transcript = data.text;
+        } else {
+          // Small file: base64 approach
+          const base64Audio = await convertToBase64(fileItem.file);
+          const { data, error } = await supabase.functions.invoke('mp3-transcription', {
+            body: { audio: base64Audio, filename: fileItem.file.name }
+          });
+          if (error) throw new Error(error.message);
+          if (!data?.text) throw new Error('No transcription received');
+          transcript = data.text;
+        }
+
         transcripts.push(transcript);
         
         updatedFiles[i] = { 
@@ -550,7 +572,7 @@ export const MultiAudioImport: React.FC<MultiAudioImportProps> = ({
                       Choose Audio Files
                     </Button>
                     <span className="text-xs text-muted-foreground self-center">
-                      MP3, WAV, M4A • Max 25MB each
+                      MP3, WAV, M4A • Large files auto-chunked
                     </span>
                   </div>
 
