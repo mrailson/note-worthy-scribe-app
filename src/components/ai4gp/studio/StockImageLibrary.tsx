@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Search, Download, PenLine, X, Loader2, ImageIcon, Sprout, Wand2, Trash2, Sparkles } from 'lucide-react';
 import { useStockImages, STOCK_IMAGE_CATEGORIES, StockImage } from '@/hooks/useStockImages';
+import { useQueryClient } from '@tanstack/react-query';
 import { StockImageUploader } from './StockImageUploader';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -39,6 +40,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
     deleteImage,
     isDeleting,
   } = useStockImages();
+  const queryClient = useQueryClient();
 
   const [lightboxImage, setLightboxImage] = useState<StockImage | null>(null);
   const [showUploader, setShowUploader] = useState(false);
@@ -81,7 +83,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
         if (insertError) continue;
         success++;
       }
-      if (success > 0) { toast.success(`Seeded ${success} stock image(s)`); window.location.reload(); }
+      if (success > 0) { toast.success(`Seeded ${success} stock image(s)`); queryClient.invalidateQueries({ queryKey: ['stock-images'] }); }
       else toast.info('All seed images already exist');
     } catch (err) { toast.error('Seed failed: ' + String(err)); }
     finally { setIsSeeding(false); }
@@ -111,7 +113,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
       if (!response.ok) throw new Error(result.error || 'Generation failed');
       
       toast.success(`Generated ${result.generated}/${result.total} images successfully`);
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['stock-images'] });
     } catch (err: any) {
       toast.error(`Generation failed: ${err.message}`);
     } finally {
@@ -145,7 +147,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
       toast.success('Custom image created successfully');
       setCustomPrompt('');
       setShowCustomPrompt(false);
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['stock-images'] });
     } catch (err: any) {
       toast.error(`Generation failed: ${err.message}`);
     } finally {
