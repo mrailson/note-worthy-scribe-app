@@ -713,18 +713,52 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
                       }
                       return [p];
                     });
+                  const now = new Date();
+                  const dateStr = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                  const wordCount = transcript.split(/\s+/).filter(Boolean).length;
+                  const sourceFiles = uploadedFiles.filter(f => f.status === 'done');
+                  const fileNames = sourceFiles.map(f => f.name).join(', ') || 'Pasted text';
+                  const totalSizeMB = sourceFiles.reduce((sum, f) => sum + f.size, 0) / (1024 * 1024);
+                  const sourceCount = (pastedText.trim() ? 1 : 0) + sourceFiles.length;
+
+                  const metaRows: { label: string; value: string }[] = [
+                    { label: 'Date', value: dateStr },
+                    { label: 'Time', value: timeStr },
+                    { label: 'Title', value: meetingTitle || 'Untitled Meeting' },
+                    { label: 'Source file(s)', value: fileNames },
+                    ...(totalSizeMB > 0 ? [{ label: 'Total file size', value: `${totalSizeMB.toFixed(1)} MB` }] : []),
+                    { label: 'Sources', value: `${sourceCount}` },
+                    { label: 'Word count', value: `${wordCount.toLocaleString()}` },
+                    { label: 'Character count', value: `${transcript.length.toLocaleString()}` },
+                  ];
+
                   const doc = new Document({
                     sections: [{
                       properties: {},
                       children: [
-                        new Paragraph({ children: [new TextRun({ text: 'Meeting Transcript', bold: true, size: 28 })], heading: HeadingLevel.HEADING_1, spacing: { after: 200 } }),
-                        new Paragraph({ children: [new TextRun({ text: `${transcript.split(/\s+/).filter(Boolean).length} words`, italics: true, size: 20, color: '666666' })], spacing: { after: 300 } }),
+                        new Paragraph({ children: [new TextRun({ text: meetingTitle || 'Meeting Transcript', bold: true, size: 32 })], heading: HeadingLevel.HEADING_1, spacing: { after: 120 } }),
+                        new Paragraph({ children: [new TextRun({ text: '', size: 12 })], spacing: { after: 80 } }),
+                        // Metadata section
+                        ...metaRows.map(row => new Paragraph({
+                          children: [
+                            new TextRun({ text: `${row.label}: `, bold: true, size: 20, color: '444444' }),
+                            new TextRun({ text: row.value, size: 20, color: '666666' }),
+                          ],
+                          spacing: { after: 60 },
+                        })),
+                        // Divider
+                        new Paragraph({ children: [new TextRun({ text: '─'.repeat(60), size: 16, color: 'CCCCCC' })], spacing: { before: 200, after: 200 } }),
+                        // Transcript heading
+                        new Paragraph({ children: [new TextRun({ text: 'Transcript', bold: true, size: 26 })], heading: HeadingLevel.HEADING_2, spacing: { after: 200 } }),
+                        // Transcript paragraphs
                         ...paragraphs.map(p => new Paragraph({ children: [new TextRun({ text: p, size: 22 })], spacing: { after: 200, line: 320 } })),
                       ],
                     }],
                   });
                   const blob = await Packer.toBlob(doc);
-                  saveAs(blob, `transcript-${new Date().toISOString().slice(0, 10)}.docx`);
+                  const safeTitle = (meetingTitle || 'transcript').replace(/[^a-zA-Z0-9-_ ]/g, '').slice(0, 50);
+                  saveAs(blob, `${safeTitle}-${now.toISOString().slice(0, 10)}.docx`);
                   showToast.success('Transcript downloaded');
                 }}
               >
