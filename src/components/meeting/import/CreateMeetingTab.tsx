@@ -571,12 +571,11 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
           <CardContent className="py-6 flex flex-col items-center justify-center gap-2">
             <div className="flex items-center gap-2 text-muted-foreground">
               <FileAudio className="h-5 w-5" />
-              <FileText className="h-5 w-5" />
             </div>
             <div className="text-center">
-              <p className="font-medium text-sm">Drop audio, text or document files here</p>
+              <p className="font-medium text-sm">Drop audio files here</p>
               <p className="text-xs text-muted-foreground">
-                MP3, WAV, M4A, PDF, DOCX, TXT — or paste/click to browse
+                MP3, WAV, M4A, OGG, WebM — or click to browse
               </p>
             </div>
             <Button variant="outline" size="sm" className="mt-1">

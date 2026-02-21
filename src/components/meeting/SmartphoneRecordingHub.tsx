@@ -283,10 +283,14 @@ export const SmartphoneRecordingHub = () => {
             <TabsContent value="offline">
               <div className="space-y-4 py-2">
                 {/* iPhone Section */}
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-base">🍎</span>
-                  <span className="text-sm font-semibold text-foreground">iPhone Recording</span>
-                </div>
+                <Collapsible defaultOpen={true}>
+                  <CollapsibleTrigger className="flex items-center gap-2 w-full text-left group">
+                    <span className="text-base">🍎</span>
+                    <span className="text-sm font-semibold text-foreground">iPhone Recording</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto transition-transform group-data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="space-y-4 pt-3">
 
                 <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
                   <div className="flex items-center gap-2 mb-1">
@@ -344,15 +348,22 @@ export const SmartphoneRecordingHub = () => {
                     <li className="flex items-start gap-2"><span className="text-primary mt-0.5">3.</span><span>Use the <strong>Import Audio</strong> tab above to upload &amp; transcribe</span></li>
                   </ul>
                 </GuideStep>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 {/* Divider */}
                 <div className="border-t border-border my-4" />
 
                 {/* Android Section */}
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-base">🤖</span>
-                  <span className="text-sm font-semibold text-foreground">Android Recording</span>
-                </div>
+                <Collapsible defaultOpen={false}>
+                  <CollapsibleTrigger className="flex items-center gap-2 w-full text-left group">
+                    <span className="text-base">🤖</span>
+                    <span className="text-sm font-semibold text-foreground">Android Recording</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto transition-transform group-data-[state=open]:rotate-180" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="space-y-4 pt-3">
 
                 <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
                   <div className="flex items-center gap-2 mb-1">
@@ -419,6 +430,9 @@ export const SmartphoneRecordingHub = () => {
                     <li className="flex items-start gap-2"><span className="text-primary mt-0.5">3.</span><span>Use the <strong>Import Audio</strong> tab above to upload &amp; transcribe</span></li>
                   </ul>
                 </GuideStep>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
             </TabsContent>
 
@@ -431,49 +445,54 @@ export const SmartphoneRecordingHub = () => {
 
                 {/* QR Code for phone upload */}
                 {!isSmartphone && (
-                  <div className="bg-muted/30 rounded-lg p-3 border border-border/50">
-                    <div className="flex items-center gap-2 mb-2">
+                  <Collapsible defaultOpen={true}>
+                    <CollapsibleTrigger className="flex items-center gap-2 w-full text-left group">
                       <QrCode className="h-4 w-4 text-primary" />
                       <span className="text-xs font-semibold text-foreground">Upload from Phone</span>
                       {phoneUploadCount > 0 && (
-                        <Badge variant="default" className="ml-auto h-5 px-1.5 text-[10px] bg-green-600">
+                        <Badge variant="default" className="ml-1 h-5 px-1.5 text-[10px] bg-green-600">
                           {phoneUploadCount} received
                         </Badge>
                       )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mb-2">
-                      Scan with your phone camera to select and upload audio files directly.
-                    </p>
-                    {audioImportLoading ? (
-                      <div className="flex justify-center py-4">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      </div>
-                    ) : audioImportQr ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="bg-white rounded-lg p-3">
-                          <img src={audioImportQr} alt="Audio upload QR code" className="w-40 h-40" />
-                        </div>
-                        {audioImportShortCode && (
-                          <p className="text-xs text-muted-foreground font-mono tracking-widest">
-                            {audioImportShortCode}
-                          </p>
-                        )}
-                        <p className="text-[11px] text-muted-foreground">
-                          Files uploaded from your phone will appear here automatically.
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-auto transition-transform group-data-[state=open]:rotate-180" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="bg-muted/30 rounded-lg p-3 border border-border/50 mt-2">
+                        <p className="text-[11px] text-muted-foreground mb-2">
+                          Scan with your phone camera to select and upload audio files directly.
                         </p>
+                        {audioImportLoading ? (
+                          <div className="flex justify-center py-4">
+                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          </div>
+                        ) : audioImportQr ? (
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="bg-white rounded-lg p-3">
+                              <img src={audioImportQr} alt="Audio upload QR code" className="w-40 h-40" />
+                            </div>
+                            {audioImportShortCode && (
+                              <p className="text-xs text-muted-foreground font-mono tracking-widest">
+                                {audioImportShortCode}
+                              </p>
+                            )}
+                            <p className="text-[11px] text-muted-foreground">
+                              Files uploaded from your phone will appear here automatically.
+                            </p>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={createAudioImportSession}
+                            className="w-full"
+                          >
+                            <QrCode className="h-3.5 w-3.5 mr-1.5" />
+                            Generate QR Code
+                          </Button>
+                        )}
                       </div>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={createAudioImportSession}
-                        className="w-full"
-                      >
-                        <QrCode className="h-3.5 w-3.5 mr-1.5" />
-                        Generate QR Code
-                      </Button>
-                    )}
-                  </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 )}
 
                 {/* iPhone instructions */}
@@ -516,22 +535,13 @@ export const SmartphoneRecordingHub = () => {
                   </CollapsibleContent>
                 </Collapsible>
 
-                {/* Supported files & tips */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-muted/50 rounded-lg p-2.5 border border-border/50">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <CheckCircle className="h-3.5 w-3.5 text-primary" />
-                      <span className="text-[11px] font-semibold text-foreground">Supported files</span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">MP3, M4A, WAV, PDF, DOCX, TXT — or paste text directly</p>
+                {/* Good practice tip */}
+                <div className="bg-muted/50 rounded-lg p-2.5 border border-border/50">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Lock className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-[11px] font-semibold text-foreground">Good practice</span>
                   </div>
-                  <div className="bg-muted/50 rounded-lg p-2.5 border border-border/50">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <Lock className="h-3.5 w-3.5 text-primary" />
-                      <span className="text-[11px] font-semibold text-foreground">Good practice</span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">Upload promptly, delete from phone after, ensure consent was declared</p>
-                  </div>
+                  <p className="text-[11px] text-muted-foreground">Upload promptly, delete from phone after, ensure consent was declared</p>
                 </div>
 
                 <div className="bg-primary/5 rounded-lg p-2.5 border border-primary/10">
