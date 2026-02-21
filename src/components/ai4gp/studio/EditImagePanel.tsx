@@ -23,7 +23,7 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 
 interface EditImagePanelProps {
-  onQuickEdit: (imageContent: string, instructions: string) => Promise<GeneratedImage | null>;
+  onQuickEdit: (imageContent: string, instructions: string, referenceImage?: string) => Promise<GeneratedImage | null>;
   onSaveToGallery: (result: GeneratedImage) => Promise<string | null>;
   onGallerySaved?: () => void;
   isGenerating: boolean;
@@ -122,13 +122,7 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
   const handleApplyChanges = async () => {
     if (!uploadedImage || !editInstructions.trim()) return;
     
-    // If there's a reference file, append its base64 as context
-    let instructions = editInstructions;
-    if (referencePreview) {
-      instructions += `\n\n[Reference image provided - integrate this logo/image into the edit: ${referencePreview}]`;
-    }
-    
-    const result = await onQuickEdit(uploadedImage.content, instructions);
+    const result = await onQuickEdit(uploadedImage.content, editInstructions, referencePreview || undefined);
     if (result) {
       setEditResult(result);
       setSavedImageId(null);
