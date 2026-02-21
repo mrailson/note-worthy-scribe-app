@@ -593,7 +593,7 @@ function MapView() {
                 <rect x="-2" y="-14" width={hovered === i ? 190 : 155} height={hovered === i ? 92 : 22} rx="2" fill="#0a1a2e" stroke={markerColor} strokeWidth={isSelected || isSda ? "1" : "0.5"} opacity={hovered === i ? 0.95 : 0.7} />
                 <text x="6" y="0" fill={markerColor} fontSize="10" fontFamily="'JetBrains Mono', monospace" fontWeight="700" letterSpacing="1">{p.short}</text>
                 {isHub && <text x={p.short.length * 7.2 + 14} y="1" fill="#ff6b35" fontSize="10" fontFamily="'JetBrains Mono', monospace" fontWeight="800" letterSpacing="1">HUB</text>}
-                {isTarget && activeTimes && <text x={p.short.length * 7.2 + (isHub ? 32 : 14)} y="0" fill={getDriveColor(activeTimes[i])} fontSize="9" fontFamily="'JetBrains Mono', monospace" fontWeight="700">{activeTimes[i]}m</text>}
+                {isTarget && activeTimes && <text x={p.short.length * 7.2 + (isHub ? 46 : 14)} y="0" fill={getDriveColor(activeTimes[i])} fontSize="9" fontFamily="'JetBrains Mono', monospace" fontWeight="700">{activeTimes[i]}m</text>}
                 {hovered === i && (<>
                   <text x="6" y="16" fill="#6ba3be" fontSize="8" fontFamily="'JetBrains Mono', monospace">{p.area} · {p.postcode} · {p.system}</text>
                   <text x="6" y="30" fill="#4a8a6a" fontSize="8" fontFamily="'JetBrains Mono', monospace">PATIENTS: {p.patients.toLocaleString()} ({p.pct})</text>
