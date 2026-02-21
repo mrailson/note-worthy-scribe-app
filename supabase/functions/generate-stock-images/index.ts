@@ -11,6 +11,7 @@ interface GenerateRequest {
   count: number;
   model: 'gemini-flash' | 'gemini-pro' | 'runware';
   customPrompt?: string;
+  referenceImageUrl?: string;
 }
 
 const CATEGORY_PROMPTS: Record<string, string[]> = {
@@ -247,7 +248,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Admin access required' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const { category, count, model, customPrompt } = await req.json() as GenerateRequest;
+    const { category, count, model, customPrompt, referenceImageUrl } = await req.json() as GenerateRequest;
 
     if (!category || !model) throw new Error('Category and model are required');
 
@@ -257,7 +258,13 @@ serve(async (req) => {
     // Get prompts
     let prompts: string[] = [];
     if (customPrompt) {
-      prompts = [customPrompt];
+      // For custom prompts, repeat the same prompt for the requested count
+      const customCount = Math.min(count || 1, 5);
+      // Append reference image instruction if provided
+      const enhancedPrompt = referenceImageUrl 
+        ? `${customPrompt}. Use this reference image for style/content guidance: ${referenceImageUrl}`
+        : customPrompt;
+      prompts = Array(customCount).fill(enhancedPrompt);
     } else {
       const categoryPrompts = CATEGORY_PROMPTS[category] || [];
       // Pick random prompts that haven't been used (based on randomisation)
@@ -274,7 +281,7 @@ serve(async (req) => {
     for (let i = 0; i < prompts.length; i++) {
       const prompt = prompts[i];
       const title = customPrompt 
-        ? `Custom: ${customPrompt.substring(0, 50)}`
+        ? `Custom: ${customPrompt.substring(0, 50)}${prompts.length > 1 ? ` (${i + 1}/${prompts.length})` : ''}`
         : prompt.split(',')[0].replace(/^A |^An /, '').substring(0, 60);
       
       try {
