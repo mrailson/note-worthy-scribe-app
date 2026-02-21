@@ -150,11 +150,11 @@ async function generateWithGemini(prompt: string, model: 'flash' | 'pro'): Promi
       'Authorization': `Bearer ${LOVABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: modelName,
-      messages: [{ role: 'user', content: `Generate a high quality, photorealistic image: ${prompt}. Ultra high resolution, professional photography style.` }],
-      modalities: ['image', 'text'],
-    }),
+      body: JSON.stringify({
+        model: modelName,
+        messages: [{ role: 'user', content: `Generate a high quality, photorealistic image: ${prompt}. Ultra high resolution, professional photography style. CRITICAL: Do NOT include ANY text, words, letters, numbers, labels, signs, captions, watermarks or writing of any kind in the image. The image must be purely visual with zero text elements.` }],
+        modalities: ['image', 'text'],
+      }),
   });
 
   if (!response.ok) {
@@ -181,7 +181,7 @@ async function generateWithRunware(prompt: string): Promise<string> {
       {
         taskType: 'imageInference',
         taskUUID,
-        positivePrompt: `${prompt}. Ultra high resolution, professional photography style.`,
+        positivePrompt: `${prompt}. Ultra high resolution, professional photography style. No text, no words, no letters, no labels, no signs, no writing, no watermarks.`,
         width: 1024,
         height: 768,
         model: 'runware:100@1',
