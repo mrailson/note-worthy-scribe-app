@@ -37,6 +37,7 @@ import { AudioTrimEditor } from './AudioTrimEditor';
 interface CreateMeetingTabProps {
   onComplete?: () => void;
   onClose?: () => void;
+  onFilesAddedRef?: React.MutableRefObject<((files: File[]) => void) | null>;
 }
 
 interface UploadedFile {
@@ -68,7 +69,8 @@ const SUPPORTED_DOCUMENT_TYPES = [
 
 export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   onComplete,
-  onClose
+  onClose,
+  onFilesAddedRef
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -85,6 +87,15 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   const [boundaryReport, setBoundaryReport] = useState<BoundaryReport | null>(null);
   const [showTrimEditor, setShowTrimEditor] = useState(false);
 
+  // Expose handleFilesAdded to parent via ref
+  React.useEffect(() => {
+    if (onFilesAddedRef) {
+      onFilesAddedRef.current = (files: File[]) => handleFilesAdded(files);
+    }
+    return () => {
+      if (onFilesAddedRef) onFilesAddedRef.current = null;
+    };
+  });
   const getFileType = (file: File): 'audio' | 'text' | 'document' | null => {
     if (SUPPORTED_AUDIO_TYPES.includes(file.type) || 
         file.name.match(/\.(mp3|wav|webm|ogg|m4a|mp4)$/i)) {
@@ -570,7 +581,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
             </div>
             <Button variant="outline" size="sm" className="mt-1">
               <Upload className="h-4 w-4 mr-2" />
-              Choose Files
+              Upload from This Device
             </Button>
           </CardContent>
         </Card>

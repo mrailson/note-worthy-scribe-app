@@ -123,6 +123,7 @@ const ComplaintCapture = lazy(() => import("./pages/ComplaintCapture"));
 const ComplimentDetails = lazy(() => import("./pages/ComplimentDetails"));
 const MockCQCInspection = lazy(() => import("./pages/MockCQCInspection"));
 const InspectionCapture = lazy(() => import("./pages/InspectionCapture"));
+const AudioUploadCapture = lazy(() => import("./pages/AudioUploadCapture"));
 
 // Global loading fallback
 const PageLoader = () => (
@@ -344,6 +345,8 @@ const App = () => {
                 <Route path="/c/:shortCode" element={<AIChatCapture />} />
                 <Route path="/complaint-capture/:shortCode" element={<ComplaintCapture />} />
                 <Route path="/inspection-capture/:shortCode" element={<InspectionCapture />} />
+                <Route path="/audio-upload/:token" element={<AudioUploadCapture />} />
+                <Route path="/a/:shortCode" element={<AudioUploadCapture />} />
                 
                 {/* Survey Routes */}
                 <Route path="/surveys" element={

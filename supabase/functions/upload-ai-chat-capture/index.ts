@@ -18,7 +18,13 @@ const inferExtension = (name: string | undefined, mimeType: string | undefined) 
   if (t.includes('webp')) return 'webp';
   if (t.includes('heic')) return 'heic';
   if (t.includes('heif')) return 'heif';
-  return 'jpg';
+  if (t.includes('mpeg') || t.includes('mp3')) return 'mp3';
+  if (t.includes('mp4') || t.includes('m4a')) return 'm4a';
+  if (t.includes('wav')) return 'wav';
+  if (t.includes('aac')) return 'aac';
+  if (t.includes('ogg')) return 'ogg';
+  if (t.includes('webm')) return 'webm';
+  return 'bin';
 };
 
 serve(async (req) => {
@@ -43,20 +49,21 @@ serve(async (req) => {
     const tokenValue = formData.get("token");
     const shortCodeValue = formData.get("shortCode");
     const fileValue = formData.get("file");
+    const actionValue = formData.get("action");
+
+    const action = typeof actionValue === "string" ? actionValue : null;
+    const isAudioImport = action === "audio-import";
 
     console.log("FormData parsed:", {
       hasToken: !!tokenValue,
       hasShortCode: !!shortCodeValue,
       hasFile: !!fileValue,
-      fileType: fileValue ? typeof fileValue : 'null',
-      fileIsFile: fileValue instanceof File,
-      fileIsBlob: fileValue instanceof Blob,
+      action: action || 'default',
     });
 
     const token = typeof tokenValue === "string" ? tokenValue : null;
     const shortCode = typeof shortCodeValue === "string" ? shortCodeValue : null;
 
-    // Some clients can send a Blob without filename metadata.
     const fileBlob =
       fileValue instanceof File
         ? fileValue
@@ -64,10 +71,10 @@ serve(async (req) => {
           ? fileValue
           : null;
 
-    const originalName = fileValue instanceof File ? fileValue.name : `photo-${Date.now()}.jpg`;
+    const originalName = fileValue instanceof File ? fileValue.name : `upload-${Date.now()}.${isAudioImport ? 'mp3' : 'jpg'}`;
     const contentType =
       (fileValue && typeof (fileValue as any).type === "string" && (fileValue as any).type) ||
-      "image/jpeg";
+      (isAudioImport ? "audio/mpeg" : "image/jpeg");
     const fileSize =
       (fileValue && typeof (fileValue as any).size === "number" && (fileValue as any).size) ||
       null;
@@ -82,22 +89,23 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Determine lookup field and value
+    // Route to appropriate table/bucket based on action
+    const sessionTable = isAudioImport ? "audio_import_sessions" : "ai_chat_capture_sessions";
+    const storageBucket = isAudioImport ? "audio-imports" : "ai-chat-captures";
+    const uploadsTable = isAudioImport ? "audio_import_uploads" : "ai_chat_captured_images";
+
     const lookupValue = shortCode || token!;
     const lookupField = shortCode ? "short_code" : "session_token";
 
-    console.log(`Processing upload by ${lookupField}:`, lookupValue.substring(0, 6) + "...", {
-      name: originalName,
-      type: contentType,
-      size: fileSize,
+    console.log(`Processing upload [${action || 'default'}] by ${lookupField}:`, lookupValue.substring(0, 6) + "...", {
+      name: originalName, type: contentType, size: fileSize,
     });
 
     // Validate the session
     const { data: session, error: sessionError } = await supabase
-      .from("ai_chat_capture_sessions")
+      .from(sessionTable)
       .select("id, user_id, expires_at, is_active")
       .eq(lookupField, lookupValue)
       .single();
@@ -135,15 +143,12 @@ serve(async (req) => {
     // Upload file to storage
     const arrayBuffer = await fileBlob.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
-    
-    console.log("Uploading to storage:", { fileName, size: bytes.length });
-    
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("ai-chat-captures")
-      .upload(fileName, bytes, {
-        contentType,
-        upsert: false
-      });
+
+    console.log("Uploading to storage:", { bucket: storageBucket, fileName, size: bytes.length });
+
+    const { error: uploadError } = await supabase.storage
+      .from(storageBucket)
+      .upload(fileName, bytes, { contentType, upsert: false });
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
@@ -155,18 +160,29 @@ serve(async (req) => {
 
     // Get public URL
     const { data: urlData } = supabase.storage
-      .from("ai-chat-captures")
+      .from(storageBucket)
       .getPublicUrl(fileName);
 
-    // Record the uploaded image in the database
-    const { data: imageRecord, error: insertError } = await supabase
-      .from("ai_chat_captured_images")
-      .insert({
-        session_id: session.id,
-        file_name: originalName,
-        file_url: urlData.publicUrl,
-        file_size: fileSize
-      })
+    // Record the upload in the appropriate table
+    const insertPayload = isAudioImport
+      ? {
+          session_id: session.id,
+          file_name: originalName,
+          file_url: urlData.publicUrl,
+          file_size: fileSize,
+          mime_type: contentType,
+          storage_path: fileName,
+        }
+      : {
+          session_id: session.id,
+          file_name: originalName,
+          file_url: urlData.publicUrl,
+          file_size: fileSize,
+        };
+
+    const { data: record, error: insertError } = await supabase
+      .from(uploadsTable)
+      .insert(insertPayload)
       .select()
       .single();
 
@@ -178,17 +194,17 @@ serve(async (req) => {
       );
     }
 
-    console.log("Upload successful:", imageRecord.id);
+    console.log("Upload successful:", record.id);
 
     return new Response(
       JSON.stringify({
         success: true,
         image: {
-          id: imageRecord.id,
-          file_name: imageRecord.file_name,
-          file_url: imageRecord.file_url,
-          file_size: imageRecord.file_size
-        }
+          id: record.id,
+          file_name: record.file_name,
+          file_url: record.file_url,
+          file_size: record.file_size,
+        },
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
