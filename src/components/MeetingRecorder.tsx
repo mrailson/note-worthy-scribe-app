@@ -6318,9 +6318,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         }
         setActiveTab(tab);
       }} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="recorder" className="flex items-center gap-2">
-            <Mic className="h-5 w-5" />
+        <div className="flex items-center gap-1">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="recorder" className="flex items-center gap-2">
+              <Mic className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Recorder</span>
             <span className="sm:hidden">Record</span>
           </TabsTrigger>
@@ -6345,13 +6346,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               </Badge>
             )}
           </TabsTrigger>
-        </TabsList>
-
+          </TabsList>
+          {!isRecording && <RecordingSetupGuide />}
+        </div>
         {/* Meeting Recorder Tab - ONLY recording controls */}
         <TabsContent value="recorder" className="space-y-6 mt-6">
           <div className="space-y-4">
-            {/* iPhone Recording Setup Guide - shown when not recording */}
-            {!isRecording && <RecordingSetupGuide />}
             {/* Compact Stats Dashboard */}
             <Card className="bg-gradient-to-br from-background to-muted/30">
               <CardContent className="pt-4 pb-4">
