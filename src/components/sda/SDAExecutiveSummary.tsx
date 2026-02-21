@@ -165,6 +165,7 @@ export const SDAExecutiveSummary = () => {
                                   fontSize: "13px", fontWeight: 700, letterSpacing: "0.3px",
                                   color: mapBtnHovered ? "#fff" : "#006b70",
                                   transition: "color 0.3s ease",
+                                  whiteSpace: "nowrap",
                                 }}>Live Planning Map</span>
                                 <span style={{
                                   fontSize: "7px", fontWeight: 700, letterSpacing: "1.5px",
