@@ -6318,12 +6318,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         }
         setActiveTab(tab);
       }} className="w-full">
-        <div className="flex items-center gap-1">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="recorder" className="flex items-center gap-2">
-              <Mic className="h-5 w-5" />
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="recorder" className="flex items-center gap-2">
+            <Mic className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Recorder</span>
             <span className="sm:hidden">Record</span>
+            {!isRecording && <RecordingSetupGuide />}
           </TabsTrigger>
           <TabsTrigger value="transcript" className="flex items-center gap-2" disabled={isRecording} title={isRecording ? "Stop recording to access this tab" : undefined}>
             <FileText className="h-5 w-5" />
@@ -6346,9 +6346,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               </Badge>
             )}
           </TabsTrigger>
-          </TabsList>
-          {!isRecording && <RecordingSetupGuide />}
-        </div>
+        </TabsList>
         {/* Meeting Recorder Tab - ONLY recording controls */}
         <TabsContent value="recorder" className="space-y-6 mt-6">
           <div className="space-y-4">

@@ -32,13 +32,16 @@ export const RecordingSetupGuide = () => {
       <Tooltip>
         <TooltipTrigger asChild>
           <DialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-primary"
+            <span
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(true);
+              }}
+              className="inline-flex items-center justify-center h-4 w-4 text-muted-foreground hover:text-primary cursor-pointer"
             >
-              <Info className="h-4 w-4" />
-            </Button>
+              <Info className="h-3.5 w-3.5" />
+            </span>
           </DialogTrigger>
         </TooltipTrigger>
         <TooltipContent side="bottom">
