@@ -1,138 +1,120 @@
 
 
-## Consolidate Audio Import into Existing Edge Functions
+## Stock Image Library for Image Studio
 
-### Problem
-The plan requires two new edge functions (`upload-audio-import` and `validate-audio-import-token`), but creating new functions worsens the deployment rate-limiting issue.
-
-### Solution
-Extend two existing edge functions with an `action` branching parameter, following the project's established consolidation pattern.
+### Overview
+Add a searchable, categorised stock image library to Image Studio, pre-populated with images relevant to GP practices and Northamptonshire Primary Care. Users can browse, search, filter by category, and download images for use in presentations, documents, etc.
 
 ### What Changes
 
-**1. Database migration: `audio_import_sessions` table + storage bucket**
+**1. Database: `stock_images` table**
 
-Create a lightweight session table to track QR-based audio import sessions:
+A new table to store curated stock image metadata:
 
-```sql
-CREATE TABLE public.audio_import_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,
-  session_token UUID NOT NULL DEFAULT gen_random_uuid(),
-  short_code TEXT NOT NULL,
-  is_active BOOLEAN DEFAULT true,
-  expires_at TIMESTAMPTZ NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | UUID (PK) | Unique identifier |
+| title | TEXT | Descriptive title (e.g. "Patient consultation") |
+| description | TEXT | Longer description for search matching |
+| category | TEXT | Primary category (e.g. "Patients", "Buildings") |
+| tags | TEXT[] | Array of searchable tags |
+| image_url | TEXT | Public URL from storage bucket |
+| storage_path | TEXT | Path within the storage bucket |
+| file_size | INTEGER | File size in bytes |
+| is_active | BOOLEAN | Soft-delete / hide toggle |
+| created_at | TIMESTAMPTZ | When added |
 
-CREATE UNIQUE INDEX idx_audio_import_sessions_token ON audio_import_sessions(session_token);
-CREATE UNIQUE INDEX idx_audio_import_sessions_short_code ON audio_import_sessions(short_code);
-```
+RLS: All authenticated users can SELECT (read-only library). Only admins (or service role) can INSERT/UPDATE/DELETE.
 
-RLS: authenticated users can manage their own sessions.
+**2. Storage bucket: `stock-images`**
 
-Create the `audio-imports` storage bucket (private) with RLS for service-role uploads.
+A public bucket to serve images without authentication tokens in URLs, making them easy to download and paste into PowerPoint.
 
-Also create `audio_import_uploads` table to track individual file uploads:
+**3. Categories**
 
-```sql
-CREATE TABLE public.audio_import_uploads (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id UUID REFERENCES audio_import_sessions(id),
-  file_name TEXT NOT NULL,
-  file_url TEXT NOT NULL,
-  file_size INTEGER,
-  mime_type TEXT,
-  storage_path TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-```
+Pre-defined categories tailored to GP/primary care:
 
-RLS on `audio_import_uploads`: enable Realtime for INSERT events so the desktop browser can subscribe.
+- **Patients** -- diverse patient images, consultation scenes
+- **Buildings** -- GP surgery exteriors, Northamptonshire landmarks, NHS buildings
+- **Reception & Waiting Areas** -- front desk, waiting rooms, check-in screens
+- **Clinical Rooms** -- consultation rooms, examination areas, equipment
+- **Staff & Teams** -- GPs, nurses, receptionists, practice managers, multidisciplinary teams
+- **Technology** -- computer screens, EMIS/SystmOne mockups, telehealth, digital tools
+- **Community & Wellbeing** -- community health, social prescribing, outdoor activities
+- **Meetings & Training** -- boardrooms, training sessions, presentations
+- **Branding & Logos** -- NHS logos, NPCA branding elements, PCN logos
+- **Infographic Elements** -- icons, arrows, backgrounds, decorative elements
 
-**2. Extend `validate-ai-chat-capture-token` with `action: 'audio-import'`**
+**4. New component: `StockImageLibrary.tsx`**
 
-Add branching logic so when the request body includes `action: 'audio-import'`, it validates against `audio_import_sessions` instead of `ai_chat_capture_sessions`. The existing AI chat capture validation remains the default behaviour.
+A browsable panel within Image Studio with:
 
-```text
-Request body:
-  { token, shortCode }               --> existing AI chat capture validation (unchanged)
-  { token, shortCode, action: 'audio-import' } --> audio import session validation
-```
+- Category sidebar/filter chips across the top
+- Search bar filtering on title, description, and tags
+- Thumbnail grid with hover preview
+- Click to view full size in a lightbox
+- Download button (saves the image file directly)
+- "Use in Studio" button to load the image into the Edit Image panel
+- Image count per category shown on filter chips
 
-Response shape is identical: `{ valid, session_id, user_id }`.
+**5. Integration into `ImageStudioModal.tsx`**
 
-**3. Extend `upload-ai-chat-capture` with `action: 'audio-import'`**
+Add a third mode alongside "Create New" and "Edit Image":
 
-Add branching logic so when the form data includes `action=audio-import`, it:
-- Validates against `audio_import_sessions` (instead of `ai_chat_capture_sessions`)
-- Uploads to `audio-imports` bucket (instead of `ai-chat-captures`)
-- Records in `audio_import_uploads` table (instead of `ai_chat_captured_images`)
-- Supports audio MIME types (audio/mpeg, audio/mp4, audio/wav, audio/aac, audio/ogg, audio/webm)
+- **Stock Library** -- new button with a `Library` icon in the mode toggle row
+- When selected, replaces the tab content with the `StockImageLibrary` component
+- "Use in Studio" action switches to Edit mode with the selected stock image loaded
 
-The existing AI chat capture upload logic remains completely unchanged as the default path.
+Alternatively, add a "Stock Library" tab within the existing gallery modal, keeping the studio modes as they are. The stock library would sit as a new tab in `ImageGalleryModal` alongside "All Images", "Favourites", and "Categories".
 
-**4. New page: `src/pages/AudioUploadCapture.tsx`**
+The chosen approach: **Add as a new mode in Image Studio** (third button in the header), keeping it prominent and easy to discover.
 
-A mobile-optimised public page at `/audio-upload/:token` (and `/a/:shortCode` for short URLs):
-- Calls `validate-ai-chat-capture-token` with `action: 'audio-import'` to validate
-- Shows a file picker accepting audio types (.mp3, .m4a, .wav, .aac, .ogg, .webm)
-- Uploads via `upload-ai-chat-capture` with `action=audio-import` in form data
-- Shows upload progress and success confirmation
-- "Upload another" option
-- NoteWell branding, clean mobile UX
+**6. Admin upload workflow**
 
-**5. Register route in `src/App.tsx`**
+For populating the library, add a simple admin section (visible only to admin users) within the Stock Library panel:
 
-Add `/audio-upload/:token` and `/a/:shortCode` routes pointing to `AudioUploadCapture`.
+- Drag-and-drop upload area
+- Fields for title, category (dropdown), tags (comma-separated)
+- Bulk upload support
+- Edit/delete existing stock images
 
-**6. Update `SmartphoneRecordingHub.tsx` (Import Audio tab)**
-
-- Generate a session in `audio_import_sessions` when the Import tab is opened (with 6-char short code)
-- Generate QR code pointing to `/a/{shortCode}`
-- Subscribe to Supabase Realtime on `audio_import_uploads` filtered by `session_id`
-- When a file arrives: download from storage, convert to `File`, inject into `CreateMeetingTab`
-- Show toast: "Audio file received from phone"
-- Display received file count badge
-
-**7. Update `CreateMeetingTab.tsx`**
-
-- Rename "Choose Files" button to "Upload from This Device"
-- Expose file injection via a ref/callback so the hub can programmatically add phone-uploaded files
+Admin detection uses the existing `is_admin` check from the user profile.
 
 ### Architecture Flow
 
 ```text
-Phone                                Desktop
-/a/:shortCode                       SmartphoneRecordingHub (Import tab)
-  |                                    |
-  | validate-ai-chat-capture-token     | Creates session in
-  | (action=audio-import)              | audio_import_sessions
-  |                                    |
-  | upload-ai-chat-capture             | Subscribes to Realtime
-  | (action=audio-import)              | on audio_import_uploads
-  |   --> audio-imports bucket         |   |
-  |   --> audio_import_uploads row --- |-->| Auto-downloads file
-  |                                    |   | Injects into CreateMeetingTab
-  v                                    v
-"Upload complete!"                   "Audio received from phone"
+Image Studio Modal
+  |-- [Create New]  [Edit Image]  [Stock Library]
+  |
+  Stock Library mode:
+    +-- Search bar
+    +-- Category filter chips (with counts)
+    +-- Thumbnail grid (from stock_images table)
+    |     |-- Click: select & show details
+    |     |-- Download button
+    |     |-- "Use in Studio" button --> switches to Edit mode
+    +-- Admin section (if admin user)
+          |-- Upload new stock images
+          |-- Edit/delete existing
 ```
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/validate-ai-chat-capture-token/index.ts` | Add `action: 'audio-import'` branch |
-| `supabase/functions/upload-ai-chat-capture/index.ts` | Add `action: 'audio-import'` branch |
-| `src/pages/AudioUploadCapture.tsx` | New mobile upload page |
-| `src/App.tsx` | Register new routes |
-| `src/components/meeting/SmartphoneRecordingHub.tsx` | QR code + Realtime subscription |
-| `src/components/meeting/import/CreateMeetingTab.tsx` | Rename button + expose file injection |
-| SQL migration | New tables + storage bucket + RLS |
+| SQL migration | New `stock_images` table, `stock-images` public bucket, RLS policies |
+| `src/components/ai4gp/studio/StockImageLibrary.tsx` | **New** -- browsable/searchable stock image grid |
+| `src/components/ai4gp/studio/StockImageUploader.tsx` | **New** -- admin upload component |
+| `src/components/ai4gp/ImageStudioModal.tsx` | Add "Stock Library" as third mode |
+| `src/hooks/useStockImages.ts` | **New** -- hook for fetching/filtering/managing stock images |
+| `src/integrations/supabase/types.ts` | Auto-updated with new table type |
 
-### Why This Approach
+### Technical Details
 
-- **Zero new edge functions** -- reuses two existing functions with action branching
-- Follows the project's established consolidation architecture
-- Same session/token/upload pattern as complaints and AI chat capture
-- Realtime subscription ensures instant desktop feedback when phone uploads complete
+- Images served from a **public** Supabase storage bucket so URLs work directly in PowerPoint without auth tokens
+- Full-text search uses PostgreSQL `ILIKE` on title/description plus `@>` array containment on tags
+- Category counts fetched with a grouped query for the filter chips
+- Download uses a direct `<a>` tag with the public storage URL and `download` attribute
+- Stock images are read-only for regular users; admin flag gates the upload UI
+- Lazy-loaded thumbnails with intersection observer for performance on large libraries
+
