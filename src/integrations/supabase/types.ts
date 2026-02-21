@@ -9151,6 +9151,45 @@ export type Database = {
           },
         ]
       }
+      stock_images: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          file_size: number | null
+          id: string
+          image_url: string
+          is_active: boolean
+          storage_path: string
+          tags: string[] | null
+          title: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          id?: string
+          image_url: string
+          is_active?: boolean
+          storage_path: string
+          tags?: string[] | null
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          file_size?: number | null
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          storage_path?: string
+          tags?: string[] | null
+          title?: string
+        }
+        Relationships: []
+      }
       supplier_incidents: {
         Row: {
           actual_completion_date: string | null

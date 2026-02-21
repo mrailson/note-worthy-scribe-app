@@ -16,7 +16,8 @@ import {
   Images,
   PenLine,
   Plus,
-  Loader2
+  Loader2,
+  Library
 } from 'lucide-react';
 import { useImageStudio } from '@/hooks/useImageStudio';
 import { useImageGallery } from '@/hooks/useImageGallery';
@@ -26,6 +27,7 @@ import { BrandingTab } from './studio/BrandingTab';
 import { ReferenceTab } from './studio/ReferenceTab';
 import { GenerateTab } from './studio/GenerateTab';
 import { EditImagePanel } from './studio/EditImagePanel';
+import { StockImageLibrary } from './studio/StockImageLibrary';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
@@ -46,7 +48,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   initialEditImage,
 }) => {
   const [showGallery, setShowGallery] = useState(false);
-  const [studioMode, setStudioMode] = useState<'create' | 'edit'>('create');
+  const [studioMode, setStudioMode] = useState<'create' | 'edit' | 'stock'>('create');
   const [pendingEditImage, setPendingEditImage] = useState<{ url: string; name: string } | null>(null);
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
   
@@ -153,6 +155,15 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
               <PenLine className="h-4 w-4 mr-2" />
               Edit Image
             </Button>
+            <Button
+              variant={studioMode === 'stock' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStudioMode('stock')}
+              className="flex-1"
+            >
+              <Library className="h-4 w-4 mr-2" />
+              Stock Library
+            </Button>
           </div>
         </DialogHeader>
 
@@ -166,6 +177,18 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
               isGenerating={isGenerating}
               progress={generationProgress}
               initialImage={pendingEditImage || initialEditImage}
+            />
+          </div>
+        )}
+
+        {/* Stock Library Mode */}
+        {studioMode === 'stock' && (
+          <div className="flex-1 overflow-y-auto p-4">
+            <StockImageLibrary
+              onUseInStudio={(url, name) => {
+                setPendingEditImage({ url, name });
+                setStudioMode('edit');
+              }}
             />
           </div>
         )}
