@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info } from "lucide-react";
+import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, ZoomIn, ZoomOut } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/nres-logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
@@ -39,6 +40,7 @@ export const SDAExecutiveSummary = () => {
   
   const [mapBtnHovered, setMapBtnHovered] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
+  const [mapZoom, setMapZoom] = useState(100);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
@@ -510,10 +512,38 @@ export const SDAExecutiveSummary = () => {
       </Collapsible>
 
       {/* Glass Map Fullscreen Modal */}
-      <Dialog open={showMapModal} onOpenChange={setShowMapModal}>
+      <Dialog open={showMapModal} onOpenChange={(open) => { setShowMapModal(open); if (!open) setMapZoom(100); }}>
         <DialogContent className="!max-w-none !w-screen !h-screen !max-h-screen !translate-x-[-50%] !translate-y-[-50%] !rounded-none p-0 overflow-auto border-0 bg-[#0e1a2e] mx-0 my-0">
           <DialogTitle className="sr-only">NRES Neighbourhood Map</DialogTitle>
-          <NRESGlassMap />
+          <div style={{ transform: `scale(${mapZoom / 100})`, transformOrigin: 'top center', transition: 'transform 0.2s ease' }}>
+            <NRESGlassMap />
+          </div>
+          {/* Zoom slider bar */}
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 bg-[#0e1a2e]/90 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2.5 shadow-lg">
+            <button
+              onClick={() => setMapZoom(Math.max(50, mapZoom - 10))}
+              className="text-white/70 hover:text-white transition-colors"
+              aria-label="Zoom out"
+            >
+              <ZoomOut className="w-4 h-4" />
+            </button>
+            <Slider
+              value={[mapZoom]}
+              onValueChange={(v) => setMapZoom(v[0])}
+              min={50}
+              max={150}
+              step={5}
+              className="w-40"
+            />
+            <button
+              onClick={() => setMapZoom(Math.min(150, mapZoom + 10))}
+              className="text-white/70 hover:text-white transition-colors"
+              aria-label="Zoom in"
+            >
+              <ZoomIn className="w-4 h-4" />
+            </button>
+            <span className="text-white/70 text-xs font-mono min-w-[3ch] text-right">{mapZoom}%</span>
+          </div>
         </DialogContent>
       </Dialog>
 
