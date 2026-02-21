@@ -12,7 +12,10 @@ import {
   Save,
   ExternalLink,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Mic,
+  MicOff,
+  FileImage
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GeneratedImage } from '@/types/ai4gp';
@@ -41,7 +44,13 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
   const [editResult, setEditResult] = useState<GeneratedImage | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [savedImageId, setSavedImageId] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+  const preVoiceTextRef = useRef<string>('');
+  const refFileInputRef = useRef<HTMLInputElement>(null);
 
   // Load initial image if provided
   useEffect(() => {
@@ -113,11 +122,82 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
   const handleApplyChanges = async () => {
     if (!uploadedImage || !editInstructions.trim()) return;
     
-    const result = await onQuickEdit(uploadedImage.content, editInstructions);
+    // If there's a reference file, append its base64 as context
+    let instructions = editInstructions;
+    if (referencePreview) {
+      instructions += `\n\n[Reference image provided - integrate this logo/image into the edit: ${referencePreview}]`;
+    }
+    
+    const result = await onQuickEdit(uploadedImage.content, instructions);
     if (result) {
       setEditResult(result);
       setSavedImageId(null);
     }
+  };
+
+  const handleVoiceInput = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition is not supported in your browser');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-GB';
+    recognitionRef.current = recognition;
+    preVoiceTextRef.current = editInstructions;
+
+    recognition.onresult = (event: any) => {
+      const result = event.results[event.results.length - 1];
+      const transcript = result[0].transcript.trim();
+      if (transcript) {
+        const base = preVoiceTextRef.current;
+        setEditInstructions(base ? base + ' ' + transcript : transcript);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      if (event.error !== 'aborted') toast.error('Voice input error: ' + event.error);
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    recognition.start();
+    setIsListening(true);
+    toast.info('Listening... speak your edit instructions');
+  }, [isListening, editInstructions]);
+
+  const handleRefFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File must be under 10MB');
+      return;
+    }
+    setReferenceFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setReferencePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const clearRefFile = () => {
+    setReferenceFile(null);
+    setReferencePreview(null);
+    if (refFileInputRef.current) refFileInputRef.current.value = '';
   };
 
   const handleEditAgain = () => {
@@ -235,13 +315,68 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
             <Sparkles className="h-4 w-4 text-primary" />
             What changes would you like?
           </label>
-          <Textarea
-            value={editInstructions}
-            onChange={(e) => setEditInstructions(e.target.value)}
-            placeholder="e.g., Add our practice phone number in the bottom right, change the background to blue, make it landscape format..."
-            className="min-h-[100px] resize-none"
-            disabled={isGenerating}
-          />
+          <div className="relative">
+            <Textarea
+              value={editInstructions}
+              onChange={(e) => setEditInstructions(e.target.value)}
+              placeholder="e.g., Add our practice phone number in the bottom right, change the background to blue, make it landscape format..."
+              className="min-h-[100px] resize-none pr-12"
+              disabled={isGenerating}
+            />
+            <Button
+              type="button"
+              variant={isListening ? 'destructive' : 'ghost'}
+              size="icon"
+              className="absolute right-2 top-2 h-8 w-8"
+              onClick={handleVoiceInput}
+              disabled={isGenerating}
+              title={isListening ? 'Stop listening' : 'Voice input'}
+            >
+              {isListening ? <MicOff className="h-4 w-4 animate-pulse" /> : <Mic className="h-4 w-4" />}
+            </Button>
+          </div>
+          {isListening && (
+            <p className="text-xs text-primary animate-pulse">🎤 Listening... speak your edit instructions</p>
+          )}
+
+          {/* Reference file upload */}
+          <div className="flex items-center gap-2 mt-1">
+            <input
+              ref={refFileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleRefFileSelect}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => refFileInputRef.current?.click()}
+              disabled={isGenerating}
+              className="text-xs"
+            >
+              <Upload className="h-3.5 w-3.5 mr-1.5" />
+              {referenceFile ? 'Change' : 'Attach Logo/Image'}
+            </Button>
+            {referenceFile && (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <FileImage className="h-3.5 w-3.5" />
+                  <span className="truncate max-w-[120px]">{referenceFile.name}</span>
+                </div>
+                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={clearRefFile} disabled={isGenerating}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </div>
+          {referencePreview && (
+            <div className="mt-1 relative w-16 h-16 rounded border overflow-hidden bg-muted">
+              <img src={referencePreview} alt="Reference" className="w-full h-full object-contain" />
+            </div>
+          )}
+          <p className="text-[10px] text-muted-foreground">Optionally attach a logo or image to integrate into your edit</p>
         </div>
       )}
 
