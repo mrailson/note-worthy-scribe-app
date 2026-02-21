@@ -85,7 +85,7 @@ export interface WavChunk {
  * Each chunk is a valid WAV file with its own header.
  * Non-WAV files or small WAV files are returned as a single chunk.
  */
-export async function chunkWavFile(file: File, targetSizeMB = 20): Promise<WavChunk[]> {
+export async function chunkWavFile(file: File, targetSizeMB = 4): Promise<WavChunk[]> {
   const TARGET_BYTES = targetSizeMB * 1024 * 1024;
 
   const buffer = await file.arrayBuffer();
