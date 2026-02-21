@@ -272,7 +272,7 @@ export const SmartphoneRecordingHub = () => {
                   <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                       <Info className="h-3.5 w-3.5 text-primary shrink-0" />
-                      Requires internet on both devices during recording.
+                      Requires reliable internet on smartphone during recording. If not reliable, use the offline recording method — see the Offline Guide for instructions.
                     </p>
                   </div>
                 </div>
