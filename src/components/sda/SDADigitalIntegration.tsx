@@ -713,7 +713,7 @@ export const SDADigitalIntegration = () => {
               <div className="bg-slate-50 rounded-lg p-3">
                 <p className="text-sm font-medium text-slate-700">Who orders pathology?</p>
                  <div className="bg-green-50 border border-green-300 rounded p-3 mt-1">
-                   <p className="text-sm font-semibold text-green-800">✓ Agreed: D. Seeing clinician orders and a centralised review system reports outstanding results from Hubs (where the patient is from another practice) and these are managed centrally</p>
+                   <p className="text-sm font-semibold text-green-800">✓ Agreed: D. Seeing clinician orders and a centralised review system reports unactioned Hub requested results (where the patient is from another practice — i.e. excluding patients of that Hub). A process for follow-up will be agreed by the PB and actioned TBC</p>
                  </div>
               </div>
               <div className="bg-slate-50 rounded-lg p-3">
