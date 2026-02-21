@@ -670,9 +670,10 @@ export const SDADigitalIntegration = () => {
               <HelpCircle className="w-5 h-5 text-[#005EB8] flex-shrink-0 mt-0.5" />
               <h4 className="font-semibold text-slate-900">How will practice triage systems feed into the appointments?</h4>
             </div>
-            <p className="text-sm text-slate-600 ml-7 mb-3">
-              <span className="italic text-amber-600">Answer pending - to be confirmed with clinical leads</span>
-            </p>
+             <div className="ml-7 mb-3 bg-green-50 border border-green-300 rounded-lg p-3">
+               <p className="text-sm font-semibold text-green-800">✓ Agreed: B. Practice-Led Triage</p>
+               <p className="text-xs text-green-700 mt-1">Each practice triages their own patients but can book into neighbourhood-wide SDA slots when appropriate</p>
+             </div>
             <div className="ml-7 bg-purple-50 rounded-lg p-4 border border-purple-200">
               <h5 className="font-semibold text-purple-900 mb-2 text-sm">Options for Programme Board to Consider:</h5>
               <ul className="text-sm text-slate-700 space-y-2">
@@ -705,48 +706,21 @@ export const SDADigitalIntegration = () => {
             <div className="ml-7 space-y-3">
               <div className="bg-slate-50 rounded-lg p-3">
                 <p className="text-sm font-medium text-slate-700">Who is responsible for follow-up?</p>
-                <p className="text-sm text-slate-600 mt-1 mb-2">
-                  <span className="italic text-amber-600">Answer pending - governance to be agreed</span>
-                </p>
-                <div className="bg-purple-50 rounded p-3 border border-purple-200">
-                  <h6 className="font-semibold text-purple-900 mb-1 text-xs">Options for Board:</h6>
-                  <ul className="text-xs text-slate-700 space-y-1">
-                    <li><span className="font-semibold text-purple-700">A.</span> Seeing clinician completes acute episode; registered practice handles ongoing care</li>
-                    <li><span className="font-semibold text-purple-700">B.</span> All follow-up returns to registered practice with clear handover protocol</li>
-                    <li><span className="font-semibold text-purple-700">C.</span> Time-limited follow-up (e.g., 72hrs) with seeing clinician, then handover</li>
-                    <li><span className="font-semibold text-purple-700">D.</span> Other: Alternative approach to be proposed by the Board</li>
-                  </ul>
-                </div>
+                 <div className="bg-green-50 border border-green-300 rounded p-3 mt-1">
+                   <p className="text-sm font-semibold text-green-800">✓ Agreed: A. Seeing clinician completes acute episode; registered practice handles ongoing care</p>
+                 </div>
               </div>
               <div className="bg-slate-50 rounded-lg p-3">
                 <p className="text-sm font-medium text-slate-700">Who orders pathology?</p>
-                <p className="text-sm text-slate-600 mt-1 mb-2">
-                  <span className="italic text-amber-600">Answer pending - governance to be agreed</span>
-                </p>
-                <div className="bg-purple-50 rounded p-3 border border-purple-200">
-                  <h6 className="font-semibold text-purple-900 mb-1 text-xs">Options for Board:</h6>
-                  <ul className="text-xs text-slate-700 space-y-1">
-                    <li><span className="font-semibold text-purple-700">A.</span> Seeing clinician orders and actions results (requires cross-practice permissions)</li>
-                    <li><span className="font-semibold text-purple-700">B.</span> Registered practice orders on behalf with shared task in clinical system</li>
-                    <li><span className="font-semibold text-purple-700">C.</span> Seeing clinician orders; results route to registered practice for action</li>
-                    <li><span className="font-semibold text-purple-700">D.</span> Other: Alternative approach to be proposed by the Board</li>
-                  </ul>
-                </div>
+                 <div className="bg-green-50 border border-green-300 rounded p-3 mt-1">
+                   <p className="text-sm font-semibold text-green-800">✓ Agreed: D. Seeing clinician orders and a centralised review system reports outstanding results from Hubs (where the patient is from another practice) and these are managed centrally</p>
+                 </div>
               </div>
               <div className="bg-slate-50 rounded-lg p-3">
                 <p className="text-sm font-medium text-slate-700">Who handles referrals?</p>
-                <p className="text-sm text-slate-600 mt-1 mb-2">
-                  <span className="italic text-amber-600">Answer pending - governance to be agreed</span>
-                </p>
-                <div className="bg-purple-50 rounded p-3 border border-purple-200">
-                  <h6 className="font-semibold text-purple-900 mb-1 text-xs">Options for Board:</h6>
-                  <ul className="text-xs text-slate-700 space-y-1">
-                    <li><span className="font-semibold text-purple-700">A.</span> Seeing clinician makes referral using patient's registered practice code</li>
-                    <li><span className="font-semibold text-purple-700">B.</span> Referral tasked to registered practice to process</li>
-                    <li><span className="font-semibold text-purple-700">C.</span> Centralised referral hub processes all SDA-generated referrals</li>
-                    <li><span className="font-semibold text-purple-700">D.</span> Other: Alternative approach to be proposed by the Board</li>
-                  </ul>
-                </div>
+                 <div className="bg-green-50 border border-green-300 rounded p-3 mt-1">
+                   <p className="text-sm font-semibold text-green-800">✓ Agreed: A. Seeing clinician makes referral using patient's registered practice code</p>
+                 </div>
               </div>
             </div>
           </div>
