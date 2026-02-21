@@ -75,6 +75,7 @@ import { useDeepgramRealtimePreview } from "@/hooks/useDeepgramRealtimePreview";
 import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
+import { RecordingSetupGuide } from "@/components/meeting/RecordingSetupGuide";
 import { useRecordingHealthMonitor } from "@/hooks/useRecordingHealthMonitor";
 import { useBackupRecorder } from "@/hooks/useBackupRecorder";
 import { BackupIndicator } from "@/components/offline/BackupIndicator";
@@ -6349,6 +6350,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         {/* Meeting Recorder Tab - ONLY recording controls */}
         <TabsContent value="recorder" className="space-y-6 mt-6">
           <div className="space-y-4">
+            {/* iPhone Recording Setup Guide - shown when not recording */}
+            {!isRecording && <RecordingSetupGuide />}
             {/* Compact Stats Dashboard */}
             <Card className="bg-gradient-to-br from-background to-muted/30">
               <CardContent className="pt-4 pb-4">
