@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, Map } from "lucide-react";
+import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/nres-logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
@@ -36,7 +36,7 @@ export const SDAExecutiveSummary = () => {
   const [actionLogOpen, setActionLogOpen] = useState(true);
   const [metricsOpen, setMetricsOpen] = useState(true);
   const [requirementsOpen, setRequirementsOpen] = useState(true);
-  const [glassMapOpen, setGlassMapOpen] = useState(false);
+  
   const [mapBtnHovered, setMapBtnHovered] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
 
@@ -80,16 +80,6 @@ export const SDAExecutiveSummary = () => {
                         <p className="text-sm text-slate-500 font-medium">Patient List Size</p>
                         <p className="text-3xl font-bold text-slate-900 mt-1">89,584</p>
                         <p className="text-sm text-slate-600 mt-1">7 Practice Partners Across Neighbourhood</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <button
-                            onClick={() => setGlassMapOpen(true)}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full transition-colors"
-                            title="View interactive neighbourhood map"
-                          >
-                            <Map className="w-3 h-3" /> Map
-                          </button>
-                        </div>
-
                         {/* Live Planning Map Button */}
                         <div
                           onMouseEnter={() => setMapBtnHovered(true)}
@@ -518,7 +508,7 @@ export const SDAExecutiveSummary = () => {
       </Collapsible>
 
       {/* Glass Map Fullscreen Modal */}
-      <Dialog open={glassMapOpen || showMapModal} onOpenChange={(open) => { setGlassMapOpen(open); setShowMapModal(open); }}>
+      <Dialog open={showMapModal} onOpenChange={setShowMapModal}>
         <DialogContent className="!max-w-none !w-screen !h-screen !max-h-screen !translate-x-[-50%] !translate-y-[-50%] !rounded-none p-0 overflow-auto border-0 bg-[#0e1a2e] mx-0 my-0">
           <DialogTitle className="sr-only">NRES Neighbourhood Map</DialogTitle>
           <NRESGlassMap />
