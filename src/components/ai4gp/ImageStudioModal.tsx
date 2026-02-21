@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useImageStudio } from '@/hooks/useImageStudio';
 import { useImageGallery } from '@/hooks/useImageGallery';
+import { useStockImages } from '@/hooks/useStockImages';
 import { ContextTab } from './studio/ContextTab';
 import { StyleTab } from './studio/StyleTab';
 import { BrandingTab } from './studio/BrandingTab';
@@ -55,6 +56,7 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
   const [hasUploadedFiles, setHasUploadedFiles] = useState(false);
   
   const { fetchImages } = useImageGallery();
+  const { allImages: stockImages, isAdmin, replaceStockImage, isReplacing } = useStockImages();
 
   // When initialEditImage is provided, switch to edit mode
   useEffect(() => {
@@ -182,6 +184,10 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
               isGenerating={isGenerating}
               progress={generationProgress}
               initialImage={pendingEditImage || initialEditImage}
+              isAdmin={isAdmin}
+              stockImages={stockImages}
+              onReplaceStockImage={(image, newImageDataUrl) => replaceStockImage({ image, newImageDataUrl })}
+              isReplacing={isReplacing}
             />
           </div>
         )}
