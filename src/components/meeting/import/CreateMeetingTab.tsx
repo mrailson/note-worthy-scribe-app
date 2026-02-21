@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { chunkWavFile, blobToBase64 } from '@/utils/wavChunker';
 import { isLikelyHallucination } from '@/utils/whisperHallucinationPatterns';
 import { cleanWhisperTranscript } from '@/lib/cleanWhisperTranscript';
+import { detectMeetingBoundaries, type BoundaryReport } from '@/utils/detectMeetingBoundaries';
 
 interface CreateMeetingTabProps {
   onComplete?: () => void;
@@ -77,6 +78,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
   const [importedMeetingId, setImportedMeetingId] = useState<string | null>(null);
+  const [boundaryReport, setBoundaryReport] = useState<BoundaryReport | null>(null);
 
   const getFileType = (file: File): 'audio' | 'text' | 'document' | null => {
     if (SUPPORTED_AUDIO_TYPES.includes(file.type) || 
@@ -276,6 +278,33 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
       }
     }
     
+    // After all files processed, run boundary detection
+    const doneFiles = [...validFiles]
+      .filter(f => f.status !== 'error')
+      .sort((a, b) => a.name.localeCompare(b.name));
+    
+    // We need to read back the latest state for transcripts
+    setUploadedFiles(prev => {
+      const completedTranscripts = prev
+        .filter(f => f.status === 'done' && f.transcript)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      
+      if (completedTranscripts.length >= 2) {
+        const report = detectMeetingBoundaries(
+          completedTranscripts.map(f => f.transcript!),
+          completedTranscripts.map(f => f.name)
+        );
+        setBoundaryReport(report);
+        if (report.hasBoundaries) {
+          console.warn('🚧 Meeting boundary detected:', report.warning);
+        }
+      } else {
+        setBoundaryReport(null);
+      }
+      
+      return prev;
+    });
+    
     setIsProcessing(false);
   }, [updateFileStatus]);
 
@@ -420,6 +449,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     setMeetingTitle('');
     setPastedText('');
     setUploadedFiles([]);
+    setBoundaryReport(null);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -589,6 +619,45 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
           </div>
         )}
         
+        {/* Meeting Boundary Warning */}
+        {boundaryReport?.hasBoundaries && (
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-md">
+            <div className="flex items-start gap-2">
+              <span className="text-amber-600 dark:text-amber-400 text-sm mt-0.5">⚠️</span>
+              <div className="space-y-1 flex-1">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                  Mixed meetings detected
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Some uploaded files appear to be from different meetings. Merging them into one transcript may produce unreliable results.
+                </p>
+                {boundaryReport.boundaries.map((b, i) => (
+                  <p key={i} className="text-xs text-amber-600 dark:text-amber-500">
+                    • Topic shift between file {b.fileIndex} and {b.fileIndex + 1} ({(b.similarity * 100).toFixed(0)}% overlap)
+                    {b.keywordsBefore.length > 0 && (
+                      <span> — before: <em>{b.keywordsBefore.slice(0, 3).join(', ')}</em></span>
+                    )}
+                    {b.keywordsAfter.length > 0 && (
+                      <span> → after: <em>{b.keywordsAfter.slice(0, 3).join(', ')}</em></span>
+                    )}
+                  </p>
+                ))}
+                <p className="text-xs text-amber-700 dark:text-amber-400 font-medium mt-1">
+                  Consider removing unrelated files and importing them as a separate meeting.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-5 w-5 text-amber-600 hover:text-amber-800 shrink-0"
+                onClick={() => setBoundaryReport(null)}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Paste Transcript */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
