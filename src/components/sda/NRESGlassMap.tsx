@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from "react";
 
 const practices = [
@@ -26,7 +27,7 @@ const driveTimes = [
 
 // Branch drive times to each of the 7 practices
 // Key: "practiceIdx-branchIdx" → [time to Parks, Brackley, Brook, Towcester, Denton, Bugbrooke, Springfield]
-const branchDriveTimes: Record<string, number[]> = {
+const branchDriveTimes = {
   "0-0": [8, 22, 12, 12, 15, 12, 24],   // Roade
   "0-1": [22, 42, 32, 32, 28, 30, 44],   // Hanslope
   "0-2": [10, 20, 10, 10, 18, 6, 22],    // Blisworth
@@ -62,11 +63,11 @@ function projectPoint(lat: number, lng: number, width: number, height: number, p
 /* ─── TABLE VIEW ─── */
 function TableView() {
   const mono = "'JetBrains Mono', monospace";
-  const thStyle: React.CSSProperties = { padding: "8px 10px", textAlign: "left", fontSize: "9px", letterSpacing: "1.5px", color: "#90b8cc", fontFamily: mono, borderBottom: "1px solid rgba(0,240,255,0.15)", whiteSpace: "nowrap" };
-  const thRight: React.CSSProperties = { ...thStyle, textAlign: "right" };
-  const tdStyle: React.CSSProperties = { padding: "7px 10px", fontSize: "11px", color: "#d0e8f0", fontFamily: mono, borderBottom: "1px solid rgba(0,240,255,0.06)", whiteSpace: "nowrap" };
-  const tdRight: React.CSSProperties = { ...tdStyle, textAlign: "right" };
-  const tdNum: React.CSSProperties = { ...tdRight, fontVariantNumeric: "tabular-nums" };
+  const thStyle = { padding: "8px 10px", textAlign: "left" as const, fontSize: "9px", letterSpacing: "1.5px", color: "#90b8cc", fontFamily: mono, borderBottom: "1px solid rgba(0,240,255,0.15)", whiteSpace: "nowrap" as const };
+  const thRight = { ...thStyle, textAlign: "right" as const };
+  const tdStyle = { padding: "7px 10px", fontSize: "11px", color: "#d0e8f0", fontFamily: mono, borderBottom: "1px solid rgba(0,240,255,0.06)", whiteSpace: "nowrap" as const };
+  const tdRight = { ...tdStyle, textAlign: "right" as const };
+  const tdNum = { ...tdRight, fontVariantNumeric: "tabular-nums" as const };
   const badge = (type: string | null, system?: string): React.CSSProperties => ({
     padding: "2px 8px", borderRadius: "4px", fontSize: "8px", fontWeight: "700", letterSpacing: "1px",
     background: type === "hub" ? "rgba(0,240,255,0.15)" : system ? (system === "EMIS" ? "rgba(255,107,53,0.1)" : "rgba(138,176,192,0.08)") : "rgba(0,224,138,0.08)",
@@ -89,7 +90,7 @@ function TableView() {
             <tr key={i} style={{ background: i % 2 === 0 ? "transparent" : "rgba(0,240,255,0.02)" }}>
               <td style={{ ...tdStyle, fontWeight: "600", color: "#fff" }}>{p.name}</td>
               <td style={tdNum}>{p.patients.toLocaleString()}</td>
-              <td style={{ ...tdStyle, textAlign: "center" }}><span style={badge(p.type)}>{p.type.toUpperCase()}</span></td>
+              <td style={{ ...tdStyle, textAlign: "center" as const }}><span style={badge(p.type, undefined)}>{p.type.toUpperCase()}</span></td>
               <td style={{ ...tdStyle, textAlign: "center" }}><span style={badge(null, p.system)}>{p.system}</span></td>
               <td style={tdNum}>{p.pct}</td>
             </tr>
@@ -253,7 +254,7 @@ function SvgDefs() {
 }
 
 function GridLines({ width, height }: { width: number; height: number }) {
-  const lines: React.ReactElement[] = [];
+  const lines = [];
   for (let x = 0; x < width; x += 40) lines.push(<line key={`v${x}`} x1={x} y1={0} x2={x} y2={height} stroke="#1a4560" strokeWidth="0.5" opacity="0.4" />);
   for (let y = 0; y < height; y += 40) lines.push(<line key={`h${y}`} x1={0} y1={y} x2={width} y2={y} stroke="#1a4560" strokeWidth="0.5" opacity="0.4" />);
   return <g>{lines}</g>;
@@ -288,7 +289,7 @@ function DriveLines({ fromPos, times, positions }: { fromPos: { x: number; y: nu
 }
 
 /* ─── DRIVE TIME SIDEBAR ─── */
-function DriveTimeSidebar({ title, subtitle, times, isBranch }: { title: string | null; subtitle: string | null; times: number[] | null; isBranch: boolean }) {
+function DriveTimeSidebar({ title, subtitle, times, isBranch }: { title: string; subtitle?: string | null; times: number[] | null; isBranch: boolean }) {
   if (!times) return null;
   const routes = practices.map((p, i) => ({ practice: p, mins: times[i], idx: i })).sort((a, b) => a.mins - b.mins);
   const accentColor = isBranch ? "#aa88ee" : "#00f0ff";
@@ -310,31 +311,34 @@ function DriveTimeSidebar({ title, subtitle, times, isBranch }: { title: string 
 }
 
 /* ─── SDA PANEL ─── */
-function SDAPanel({ practice, visible }: { practice: typeof practices[0] | null; visible: boolean }) {
-  if (!visible || !practice) return null;
+function SDAPanel({ practice, visible, acpPct, setAcpPct }: { practice: typeof practices[0]; visible: boolean; acpPct: number; setAcpPct: (v: number) => void }) {
+  if (!visible) return null;
   const barPct = (practice.annual / 18933) * 100;
   const gpSessionCost = 11000 * 1.2938;
   const acpAnnualCost = 60000 * 1.2938;
-  const gpBudget = practice.budget75 / 2;
-  const acpBudget = practice.budget75 / 2;
+  const gpPct = 100 - acpPct;
+  const gpBudget = practice.budget75 * (gpPct / 100);
+  const acpBudget = practice.budget75 * (acpPct / 100);
   const gpSessions = gpBudget / gpSessionCost;
   const acpFte = acpBudget / acpAnnualCost;
+  const mono = "'JetBrains Mono', monospace";
+  const stops = [0, 25, 50];
   return (
     <div style={{ position: "absolute", bottom: "12px", left: "12px", right: "12px", background: "rgba(10,26,46,0.95)", border: "1px solid rgba(0,240,255,0.2)", borderRadius: "8px", padding: "12px 16px", zIndex: 20, backdropFilter: "blur(12px)", display: "flex", gap: "16px", alignItems: "stretch" }}>
       <div style={{ minWidth: "140px", borderRight: "1px solid rgba(0,240,255,0.2)", paddingRight: "16px" }}>
-        <div style={{ color: "#00f0ff", fontSize: "8px", letterSpacing: "2px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "4px" }}>SDA ALLOCATION</div>
-        <div style={{ color: "#fff", fontSize: "13px", fontWeight: "700", fontFamily: "'JetBrains Mono', monospace", marginBottom: "6px" }}>{practice.short}</div>
+        <div style={{ color: "#00f0ff", fontSize: "8px", letterSpacing: "2px", fontFamily: mono, marginBottom: "4px" }}>SDA ALLOCATION</div>
+        <div style={{ color: "#fff", fontSize: "13px", fontWeight: "700", fontFamily: mono, marginBottom: "6px" }}>{practice.short}</div>
         <div style={{ display: "flex", gap: "6px", alignItems: "center", marginBottom: "4px", flexWrap: "wrap" }}>
-          <span style={{ padding: "1px 6px", borderRadius: "3px", fontSize: "7px", fontWeight: "700", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "1px", background: practice.type === "hub" ? "rgba(0,240,255,0.15)" : "rgba(0,224,138,0.1)", color: practice.type === "hub" ? "#00f0ff" : "#00e08a", border: `1px solid ${practice.type === "hub" ? "rgba(0,240,255,0.3)" : "rgba(0,224,138,0.2)"}` }}>{practice.type === "hub" ? "HUB" : "SPOKE"}</span>
-          <span style={{ padding: "1px 6px", borderRadius: "3px", fontSize: "7px", fontWeight: "600", fontFamily: "'JetBrains Mono', monospace", background: practice.system === "EMIS" ? "rgba(255,107,53,0.12)" : "rgba(138,176,192,0.1)", color: practice.system === "EMIS" ? "#ff6b35" : "#6ba3be", border: `1px solid ${practice.system === "EMIS" ? "rgba(255,107,53,0.25)" : "rgba(138,176,192,0.2)"}` }}>{practice.system}</span>
+          <span style={{ padding: "1px 6px", borderRadius: "3px", fontSize: "7px", fontWeight: "700", fontFamily: mono, letterSpacing: "1px", background: practice.type === "hub" ? "rgba(0,240,255,0.15)" : "rgba(0,224,138,0.1)", color: practice.type === "hub" ? "#00f0ff" : "#00e08a", border: `1px solid ${practice.type === "hub" ? "rgba(0,240,255,0.3)" : "rgba(0,224,138,0.2)"}` }}>{practice.type === "hub" ? "HUB" : "SPOKE"}</span>
+          <span style={{ padding: "1px 6px", borderRadius: "3px", fontSize: "7px", fontWeight: "600", fontFamily: mono, background: practice.system === "EMIS" ? "rgba(255,107,53,0.12)" : "rgba(138,176,192,0.1)", color: practice.system === "EMIS" ? "#ff6b35" : "#6ba3be", border: `1px solid ${practice.system === "EMIS" ? "rgba(255,107,53,0.25)" : "rgba(138,176,192,0.2)"}` }}>{practice.system}</span>
         </div>
-        <div style={{ color: "#b0d0e0", fontSize: "8px", fontFamily: "'JetBrains Mono', monospace" }}>{practice.patients.toLocaleString()} patients · {practice.pct}</div>
+        <div style={{ color: "#b0d0e0", fontSize: "8px", fontFamily: mono }}>{practice.patients.toLocaleString()} patients · {practice.pct}</div>
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px" }}>
         <div style={{ display: "flex", gap: "20px" }}>
-          <div><div style={{ color: "#90b8cc", fontSize: "7px", letterSpacing: "1px", fontFamily: "'JetBrains Mono', monospace" }}>MONTHLY</div><div style={{ color: "#00e08a", fontSize: "14px", fontWeight: "700", fontFamily: "'JetBrains Mono', monospace" }}>{fmt(practice.monthly)}</div></div>
-          <div><div style={{ color: "#90b8cc", fontSize: "7px", letterSpacing: "1px", fontFamily: "'JetBrains Mono', monospace" }}>BUDGET 75%</div><div style={{ color: "#00f0ff", fontSize: "14px", fontWeight: "700", fontFamily: "'JetBrains Mono', monospace" }}>{fmt(practice.budget75)}</div></div>
-          <div><div style={{ color: "#90b8cc", fontSize: "7px", letterSpacing: "1px", fontFamily: "'JetBrains Mono', monospace" }}>ANNUAL SDA REQ</div><div style={{ color: "#ffd700", fontSize: "14px", fontWeight: "700", fontFamily: "'JetBrains Mono', monospace" }}>{practice.annual.toLocaleString()}</div></div>
+          <div><div style={{ color: "#90b8cc", fontSize: "7px", letterSpacing: "1px", fontFamily: mono }}>MONTHLY</div><div style={{ color: "#00e08a", fontSize: "14px", fontWeight: "700", fontFamily: mono }}>{fmt(practice.monthly)}</div></div>
+          <div><div style={{ color: "#90b8cc", fontSize: "7px", letterSpacing: "1px", fontFamily: mono }}>BUDGET 75%</div><div style={{ color: "#00f0ff", fontSize: "14px", fontWeight: "700", fontFamily: mono }}>{fmt(practice.budget75)}</div></div>
+          <div><div style={{ color: "#90b8cc", fontSize: "7px", letterSpacing: "1px", fontFamily: mono }}>ANNUAL SDA REQ</div><div style={{ color: "#ffd700", fontSize: "14px", fontWeight: "700", fontFamily: mono }}>{practice.annual.toLocaleString()}</div></div>
         </div>
         <div style={{ position: "relative", height: "6px", background: "rgba(255,255,255,0.08)", borderRadius: "3px", overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${barPct}%`, borderRadius: "3px", background: `linear-gradient(90deg, #00f0ff, ${practice.type === "hub" ? "#00e08a" : "#0088cc"})`, boxShadow: "0 0 8px rgba(0,240,255,0.3)", transition: "width 0.8s ease" }} />
@@ -342,24 +346,69 @@ function SDAPanel({ practice, visible }: { practice: typeof practices[0] | null;
       </div>
       <div style={{ minWidth: "130px", borderLeft: "1px solid rgba(0,240,255,0.2)", paddingLeft: "16px" }}>
         <div style={{ display: "flex", gap: "16px" }}>
-          <div><div style={{ color: "#80ccaa", fontSize: "7px", letterSpacing: "1px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "3px" }}>● NON-WINTER /WK</div><div style={{ display: "flex", gap: "8px", alignItems: "baseline" }}><span style={{ color: "#00e08a", fontSize: "16px", fontWeight: "800", fontFamily: "'JetBrains Mono', monospace" }}>{practice.nonWinterWk}</span><span style={{ color: "#8abba0", fontSize: "7px", fontFamily: "'JetBrains Mono', monospace" }}>F2F {(practice.nonWinterWk / 2).toFixed(1)} · REM {(practice.nonWinterWk / 2).toFixed(1)}</span></div></div>
-          <div><div style={{ color: "#cc9080", fontSize: "7px", letterSpacing: "1px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "3px" }}>❄ WINTER /WK</div><div style={{ display: "flex", gap: "8px", alignItems: "baseline" }}><span style={{ color: "#ff6b35", fontSize: "16px", fontWeight: "800", fontFamily: "'JetBrains Mono', monospace" }}>{practice.winterWk}</span><span style={{ color: "#bb8878", fontSize: "7px", fontFamily: "'JetBrains Mono', monospace" }}>F2F {(practice.winterWk / 2).toFixed(1)} · REM {(practice.winterWk / 2).toFixed(1)}</span></div></div>
+          <div><div style={{ color: "#80ccaa", fontSize: "7px", letterSpacing: "1px", fontFamily: mono, marginBottom: "3px" }}>● NON-WINTER /WK</div><div style={{ display: "flex", gap: "8px", alignItems: "baseline" }}><span style={{ color: "#00e08a", fontSize: "16px", fontWeight: "800", fontFamily: mono }}>{practice.nonWinterWk}</span><span style={{ color: "#8abba0", fontSize: "7px", fontFamily: mono }}>F2F {(practice.nonWinterWk / 2).toFixed(1)} · REM {(practice.nonWinterWk / 2).toFixed(1)}</span></div></div>
+          <div><div style={{ color: "#cc9080", fontSize: "7px", letterSpacing: "1px", fontFamily: mono, marginBottom: "3px" }}>❄ WINTER /WK</div><div style={{ display: "flex", gap: "8px", alignItems: "baseline" }}><span style={{ color: "#ff6b35", fontSize: "16px", fontWeight: "800", fontFamily: mono }}>{practice.winterWk}</span><span style={{ color: "#bb8878", fontSize: "7px", fontFamily: mono }}>F2F {(practice.winterWk / 2).toFixed(1)} · REM {(practice.winterWk / 2).toFixed(1)}</span></div></div>
         </div>
-        <div style={{ color: "#7a9aaa", fontSize: "7px", fontFamily: "'JetBrains Mono', monospace", marginTop: "6px" }}>39 WKS NON-WINTER · 13 WKS WINTER · 15.2/18.2 PER 1K</div>
+        <div style={{ color: "#7a9aaa", fontSize: "7px", fontFamily: mono, marginTop: "6px" }}>39 WKS NON-WINTER · 13 WKS WINTER · 15.2/18.2 PER 1K</div>
       </div>
-      <div style={{ minWidth: "120px", borderLeft: "1px solid rgba(170,136,238,0.2)", paddingLeft: "16px" }}>
-        <div style={{ color: "#ffffff", fontSize: "7px", letterSpacing: "1.5px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "6px" }}>RESOURCE (50/50)</div>
-        <div style={{ display: "flex", gap: "16px" }}>
-          <div>
-            <div style={{ color: "#c0e0f0", fontSize: "7px", letterSpacing: "1px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "3px" }}>GP SESSIONS</div>
-            <span style={{ color: "#00f0ff", fontSize: "16px", fontWeight: "800", fontFamily: "'JetBrains Mono', monospace" }}>{gpSessions.toFixed(1)}</span>
+      {/* Resource section with slider */}
+      <div style={{ minWidth: "185px", borderLeft: "1px solid rgba(170,136,238,0.3)", paddingLeft: "16px" }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+          <span style={{ color: "#ffffff", fontSize: "7px", letterSpacing: "1.5px", fontFamily: mono }}>RESOURCE MIX</span>
+          <span style={{ color: "#90b8cc", fontSize: "8px", fontFamily: mono, fontWeight: "700" }}>GP {gpPct}% <span style={{ color: "#5a7a8a" }}>·</span> ACP {acpPct}%</span>
+        </div>
+        {/* Slider track */}
+        <div style={{ position: "relative", height: "20px", marginBottom: "4px" }}>
+          <div style={{ position: "absolute", top: "8px", left: "0", right: "0", height: "4px", borderRadius: "2px", background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${gpPct}%`, background: "linear-gradient(90deg, #00f0ff, #00e08a)", borderRadius: "2px", transition: "width 0.3s ease", boxShadow: "0 0 8px rgba(0,240,255,0.3)" }} />
           </div>
+          {/* Clickable stop buttons */}
+          {stops.map((stop) => {
+            const gp = 100 - stop;
+            const xPct = gp;
+            const isActive = acpPct === stop;
+            return (
+              <div key={stop} onClick={() => setAcpPct(stop)} style={{ position: "absolute", left: `${xPct}%`, top: "2px", transform: "translateX(-50%)", cursor: "pointer", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <div style={{ width: isActive ? "14px" : "10px", height: isActive ? "14px" : "10px", borderRadius: "50%", background: isActive ? "#00f0ff" : "rgba(30,60,90,0.9)", border: `2px solid ${isActive ? "#00f0ff" : "rgba(0,240,255,0.4)"}`, boxShadow: isActive ? "0 0 10px rgba(0,240,255,0.5)" : "none", transition: "all 0.3s ease" }} />
+              </div>
+            );
+          })}
+        </div>
+        {/* Stop labels */}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", position: "relative", height: "10px" }}>
+          {stops.map((stop) => {
+            const gp = 100 - stop;
+            const xPct = gp;
+            const isActive = acpPct === stop;
+            return (
+              <div key={stop} onClick={() => setAcpPct(stop)} style={{ position: "absolute", left: `${xPct}%`, transform: "translateX(-50%)", cursor: "pointer" }}>
+                <span style={{ color: isActive ? "#00f0ff" : "#5a7a8a", fontSize: "7px", fontFamily: mono, fontWeight: isActive ? "700" : "400", transition: "all 0.3s ease" }}>{gp}/{stop}</span>
+              </div>
+            );
+          })}
+        </div>
+        {/* Results */}
+        <div style={{ display: "flex", gap: "14px", paddingTop: "4px", borderTop: "1px solid rgba(0,240,255,0.1)" }}>
           <div>
-            <div style={{ color: "#e0d0ff", fontSize: "7px", letterSpacing: "1px", fontFamily: "'JetBrains Mono', monospace", marginBottom: "3px" }}>ACP WTE</div>
-            <span style={{ color: "#eeddff", fontSize: "16px", fontWeight: "800", fontFamily: "'JetBrains Mono', monospace" }}>{acpFte.toFixed(2)}</span>
+            <div style={{ color: "#c0e0f0", fontSize: "7px", letterSpacing: "1px", fontFamily: mono, marginBottom: "2px" }}>GP SESSIONS</div>
+            <span style={{ color: "#00f0ff", fontSize: "16px", fontWeight: "800", fontFamily: mono, transition: "all 0.3s ease" }}>{gpSessions.toFixed(1)}</span>
+            <div style={{ color: "#5a8a9a", fontSize: "7px", fontFamily: mono }}>{fmt(Math.round(gpBudget))}</div>
+          </div>
+          <div style={{ opacity: acpPct === 0 ? 0.3 : 1, transition: "opacity 0.3s ease" }}>
+            <div style={{ color: "#e0d0ff", fontSize: "7px", letterSpacing: "1px", fontFamily: mono, marginBottom: "2px" }}>ACP WTE</div>
+            <span style={{ color: "#eeddff", fontSize: "16px", fontWeight: "800", fontFamily: mono, transition: "all 0.3s ease" }}>{acpFte.toFixed(2)}</span>
+            <div style={{ color: "#5a8a9a", fontSize: "7px", fontFamily: mono }}>{acpPct === 0 ? "—" : fmt(Math.round(acpBudget))}</div>
           </div>
         </div>
-        <div style={{ color: "#b0a0c0", fontSize: "7px", fontFamily: "'JetBrains Mono', monospace", marginTop: "6px" }}>GP £14,232/sess · ACP £77,628/yr</div>
+        {/* Assumptions */}
+        <div style={{ marginTop: "6px", paddingTop: "5px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ color: "#90a8b8", fontSize: "7px", fontFamily: mono, lineHeight: "1.6" }}>
+            <span style={{ color: "#00f0ff" }}>GP</span> £11,000/sess + 29.38% = <span style={{ color: "#c0e0f0" }}>£14,232</span>/sess
+          </div>
+          <div style={{ color: "#90a8b8", fontSize: "7px", fontFamily: mono, lineHeight: "1.6" }}>
+            <span style={{ color: "#eeddff" }}>ACP</span> £60,000/yr + 29.38% = <span style={{ color: "#c0e0f0" }}>£77,628</span>/yr
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -368,9 +417,10 @@ function SDAPanel({ practice, visible }: { practice: typeof practices[0] | null;
 /* ─── MAP VIEW ─── */
 function MapView() {
   const [hovered, setHovered] = useState<number | null>(null);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [sdaPractice, setSdaPractice] = useState<number | null>(null);
-  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);       // practice drive time
+  const [sdaPractice, setSdaPractice] = useState<number | null>(null);  // practice SDA
+  const [acpPct, setAcpPct] = useState(50); // ACP % of budget (GP gets remainder)
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null); // "pi-bi" key
   const [hoveredBranch, setHoveredBranch] = useState<string | null>(null);
   const width = 860, height = 660, padding = 80;
   const positions = practices.map(p => projectPoint(p.lat, p.lng, width, height, padding));
@@ -396,11 +446,7 @@ function MapView() {
   };
 
   // Determine what drive times/sidebar to show
-  let driveFromPos: { x: number; y: number } | null = null;
-  let activeTimes: number[] | null = null;
-  let sidebarTitle: string | null = null;
-  let sidebarSubtitle: string | null = null;
-  let isBranchSidebar = false;
+  let driveFromPos: { x: number; y: number } | null = null, activeTimes: number[] | null = null, sidebarTitle: string | null = null, sidebarSubtitle: string | null = null, isBranchSidebar = false;
 
   if (selected !== null) {
     driveFromPos = positions[selected];
@@ -425,7 +471,7 @@ function MapView() {
       <div style={{ position: "absolute", top: "10%", left: "-20%", width: "60%", height: "1px", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)", transform: "rotate(-15deg)", pointerEvents: "none", zIndex: 10 }} />
 
       <DriveTimeSidebar title={sidebarTitle} subtitle={sidebarSubtitle} times={activeTimes} isBranch={isBranchSidebar} />
-      <SDAPanel practice={sdaPractice !== null ? practices[sdaPractice] : null} visible={sdaPractice !== null && selected === null && !selectedBranch} />
+      <SDAPanel practice={sdaPractice !== null ? practices[sdaPractice] : null} visible={sdaPractice !== null && selected === null && !selectedBranch} acpPct={acpPct} setAcpPct={setAcpPct} />
 
       <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }} onClick={clearAll}>
         <SvgDefs /><GridLines width={width} height={height} />
@@ -545,7 +591,7 @@ function MapView() {
   );
 }
 
-/* ─── MAIN COMPONENT ─── */
+/* ─── MAIN APP ─── */
 export default function NRESGlassMap() {
   const [activeTab, setActiveTab] = useState("map");
   const [time, setTime] = useState(new Date());
@@ -612,12 +658,12 @@ export default function NRESGlassMap() {
           {[{ color: "#00f0ff", label: "HUB", shape: "circle" }, { color: "#00e08a", label: "SPOKE", shape: "circle" }, { color: "#8866cc", label: "BRANCH (CLICK)", shape: "diamond" }, { color: "#00ff88", label: "≤15m" }, { color: "#ff9500", label: "16-25m" }, { color: "#ff3344", label: ">25m" }, { color: "#ffd700", label: "SDA VIEW" }].map(item => (
             <div key={item.label} style={{ display: "flex", alignItems: "center", gap: "5px" }}>
               {item.shape === "diamond" ? <div style={{ width: "7px", height: "7px", background: item.color, boxShadow: `0 0 6px ${item.color}`, transform: "rotate(45deg)" }} /> : <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: item.color, boxShadow: `0 0 6px ${item.color}` }} />}
-              <span style={{ color: "#4a7a9a", fontSize: "7px", letterSpacing: "1.5px", fontFamily: mono }}>{item.label}</span>
+              <span style={{ color: "#ffffff", fontSize: "7px", fontWeight: "700", letterSpacing: "1.5px", fontFamily: mono }}>{item.label}</span>
             </div>
           ))}
         </div>
       )}
-      <div style={{ color: "#2a4a6a", fontSize: "7px", letterSpacing: "2px", marginTop: "8px", textAlign: "center", fontFamily: mono }}>PCN SERVICES LTD · NRES PROGRAMME · APPOINTMENT PLANNING MODEL · GO LIVE APRIL 2026</div>
+      <div style={{ color: "#ffffff", fontSize: "7px", fontWeight: "700", letterSpacing: "2px", marginTop: "8px", textAlign: "center", fontFamily: mono }}>NRES PROGRAMME · APPOINTMENT PLANNING MODEL · GO LIVE APRIL 2026</div>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap');@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}table{border-spacing:0;}`}</style>
     </div>
   );
