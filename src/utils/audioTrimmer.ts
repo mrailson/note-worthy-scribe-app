@@ -252,9 +252,9 @@ export function getWavSampleRate(buffer: ArrayBuffer): number | null {
 }
 
 /**
- * Manually decode a WAV file's raw PCM data into an AudioBuffer.
- * This works when decodeAudioData() fails (e.g. non-standard recorder WAV formats).
- * Returns null if the buffer isn't a valid WAV.
+ * Manually decode a WAV file's raw data into an AudioBuffer.
+ * Supports PCM (format 1), A-law (format 6), and mu-law (format 7).
+ * This works when decodeAudioData() fails (e.g. recorder WAV formats).
  */
 export function decodeWavToAudioBuffer(ctx: AudioContext, buffer: ArrayBuffer): AudioBuffer | null {
   const bytes = new Uint8Array(buffer);
@@ -264,10 +264,13 @@ export function decodeWavToAudioBuffer(ctx: AudioContext, buffer: ArrayBuffer): 
   if (riff !== 'RIFF') return null;
 
   const view = new DataView(buffer);
-  const sampleRate = view.getUint32(24, true);
+  const formatCode = view.getUint16(20, true); // 1=PCM, 6=A-law, 7=mu-law
   const numChannels = view.getUint16(22, true);
+  const sampleRate = view.getUint32(24, true);
   const bitsPerSample = view.getUint16(34, true);
   const blockAlign = numChannels * (bitsPerSample / 8);
+
+  console.log(`[WAV decode] format=${formatCode}, ${numChannels}ch, ${sampleRate}Hz, ${bitsPerSample}bit`);
 
   // Find data chunk
   let offset = 12;
@@ -290,13 +293,19 @@ export function decodeWavToAudioBuffer(ctx: AudioContext, buffer: ArrayBuffer): 
   const frameCount = Math.floor(dataSize / blockAlign);
   const audioBuffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
 
-  // Convert integer PCM samples to Float32 for each channel
   for (let ch = 0; ch < numChannels; ch++) {
     const channelData = audioBuffer.getChannelData(ch);
     for (let i = 0; i < frameCount; i++) {
       const sampleOffset = dataOffset + i * blockAlign + ch * (bitsPerSample / 8);
       let sample: number;
-      if (bitsPerSample === 16) {
+
+      if (formatCode === 6) {
+        // A-law decoding
+        sample = alawToLinear(bytes[sampleOffset]);
+      } else if (formatCode === 7) {
+        // mu-law decoding
+        sample = mulawToLinear(bytes[sampleOffset]);
+      } else if (bitsPerSample === 16) {
         sample = view.getInt16(sampleOffset, true) / 32768;
       } else if (bitsPerSample === 24) {
         const b0 = bytes[sampleOffset];
@@ -308,6 +317,7 @@ export function decodeWavToAudioBuffer(ctx: AudioContext, buffer: ArrayBuffer): 
       } else if (bitsPerSample === 32) {
         sample = view.getInt32(sampleOffset, true) / 2147483648;
       } else if (bitsPerSample === 8) {
+        // Unsigned 8-bit PCM
         sample = (bytes[sampleOffset] - 128) / 128;
       } else {
         sample = 0;
@@ -317,4 +327,31 @@ export function decodeWavToAudioBuffer(ctx: AudioContext, buffer: ArrayBuffer): 
   }
 
   return audioBuffer;
+}
+
+// --- A-law and mu-law decoders (ITU-T G.711) ---
+
+function alawToLinear(alaw: number): number {
+  let a = alaw ^ 0x55;
+  const sign = (a & 0x80) ? -1 : 1;
+  a = a & 0x7F;
+  const segment = (a >> 4) & 0x07;
+  const mantissa = a & 0x0F;
+  let magnitude: number;
+  if (segment === 0) {
+    magnitude = (mantissa * 2 + 1) * 2;
+  } else {
+    magnitude = ((mantissa * 2 + 33) << segment) >> 1;
+  }
+  // Normalise to -1..1 range (max A-law value is ~32256)
+  return sign * magnitude / 32768;
+}
+
+function mulawToLinear(mulaw: number): number {
+  const mu = ~mulaw & 0xFF;
+  const sign = (mu & 0x80) ? -1 : 1;
+  const segment = (mu >> 4) & 0x07;
+  const mantissa = mu & 0x0F;
+  const magnitude = ((mantissa * 2 + 33) << segment) - 33;
+  return sign * magnitude / 32768;
 }
