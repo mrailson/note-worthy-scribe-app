@@ -594,10 +594,18 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
               <Sparkles className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">Content Preview</span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground mb-2">
               {getCombinedTranscript().split(/\s+/).filter(Boolean).length} total words from{' '}
               {(pastedText.trim() ? 1 : 0) + uploadedFiles.filter(f => f.status === 'done').length} source(s)
             </p>
+            <ScrollArea className="max-h-48 rounded border border-border/30 bg-background p-2">
+              <p className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                {getCombinedTranscript().slice(0, 3000)}
+                {getCombinedTranscript().length > 3000 && (
+                  <span className="text-muted-foreground italic">… (truncated)</span>
+                )}
+              </p>
+            </ScrollArea>
           </div>
         )}
       </div>
