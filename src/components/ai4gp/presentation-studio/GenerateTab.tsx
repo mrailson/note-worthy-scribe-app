@@ -15,8 +15,11 @@ import {
   RefreshCw,
   History,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ImageIcon
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type {
@@ -38,6 +41,7 @@ interface GenerateTabProps {
   onDownload: (withVoiceover?: boolean, customResult?: GeneratedPresentation) => void;
   onCancel: () => void;
   onLoadHistory: (item: PresentationHistoryItem) => void;
+  onUpdate: (updates: Partial<PresentationStudioSettings>) => void;
 }
 
 const PHASE_LABELS: Record<GenerationPhase, string> = {
@@ -67,12 +71,14 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
   onDownload,
   onCancel,
   onLoadHistory,
+  onUpdate,
 }) => {
   const [historyPage, setHistoryPage] = useState(0);
 
   const enabledSlideTypes = settings.slideTypes.filter(st => st.enabled).length;
   const selectedDocs = settings.supportingDocuments.filter(d => d.selected).length;
-  const canGenerate = (settings.topic.trim() || selectedDocs > 0) && !isGenerating;
+  const hasPastedContent = (settings.pastedContent?.trim().length ?? 0) > 0;
+  const canGenerate = (settings.topic.trim() || selectedDocs > 0 || hasPastedContent) && !isGenerating;
 
   // Pagination calculations
   const totalPages = Math.ceil(history.length / PAGE_SIZE);
@@ -98,6 +104,31 @@ export const GenerateTab: React.FC<GenerateTabProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">{selectedDocs} documents</span>
             </div>
+            {hasPastedContent && (
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Pasted content</span>
+              </div>
+            )}
+          </div>
+
+          {/* Stock Library Images Toggle */}
+          <div className="flex items-center justify-between pt-2 border-t">
+            <div className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <Label htmlFor="stock-images-toggle" className="text-sm font-medium cursor-pointer">
+                  Use Notewell Stock Library Images
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Replace AI-generated images with Notewell Stock Library
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="stock-images-toggle"
+              checked={settings.useStockLibraryImages}
+              onCheckedChange={(checked) => onUpdate({ useStockLibraryImages: checked })}
+            />
           </div>
           
           <div className="flex flex-wrap gap-1 pt-1">
