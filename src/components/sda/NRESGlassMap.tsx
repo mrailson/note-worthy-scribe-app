@@ -21,8 +21,8 @@ const practices = [
 
 // Practice-to-practice drive times [Parks, Brackley, Brook, Towcester, Denton, Bugbrooke, Springfield]
 const driveTimes = [
-  [0,28,18,18,17,18,30],[28,0,16,16,39,25,2],[18,16,0,2,29,16,18],
-  [18,16,2,0,29,16,18],[17,39,29,29,0,29,41],[18,25,16,16,29,0,27],[30,2,18,18,41,27,0],
+  [0,28,18,18,17,18,30],[28,0,16,16,39,25,2],[18,16,0,1,29,16,18],
+  [18,16,1,0,29,16,18],[17,39,29,29,0,29,41],[18,25,16,16,29,0,27],[30,2,18,18,41,27,0],
 ];
 
 // Branch drive times to each of the 7 practices
