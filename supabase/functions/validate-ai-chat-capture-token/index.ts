@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { token, shortCode } = await req.json();
+    const { token, shortCode, action } = await req.json();
 
     if (!token && !shortCode) {
       return new Response(
@@ -26,13 +26,17 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Determine which table to validate against
+    const tableName = action === "audio-import"
+      ? "audio_import_sessions"
+      : "ai_chat_capture_sessions";
+
     const lookupValue = shortCode || token;
     const lookupField = shortCode ? "short_code" : "session_token";
-    console.log(`Validating AI chat capture by ${lookupField}:`, lookupValue.substring(0, 6) + "...");
+    console.log(`Validating ${tableName} by ${lookupField}:`, lookupValue.substring(0, 6) + "...");
 
-    // Look up the session by short_code or session_token
     const { data: session, error: sessionError } = await supabase
-      .from("ai_chat_capture_sessions")
+      .from(tableName)
       .select("id, user_id, expires_at, is_active")
       .eq(lookupField, lookupValue)
       .single();
@@ -45,7 +49,6 @@ serve(async (req) => {
       );
     }
 
-    // Check if session is active
     if (!session.is_active) {
       return new Response(
         JSON.stringify({ valid: false, error: "Session is no longer active" }),
@@ -53,7 +56,6 @@ serve(async (req) => {
       );
     }
 
-    // Check if session has expired
     if (session.expires_at && new Date(session.expires_at) < new Date()) {
       return new Response(
         JSON.stringify({ valid: false, error: "Session has expired" }),
