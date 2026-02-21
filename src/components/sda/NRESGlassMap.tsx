@@ -338,11 +338,11 @@ export default function NRESGlassMap() {
 
   return (
     <div style={{
-      width: "100%", minHeight: "100%",
+      width: "100%", height: "100vh",
       background: "radial-gradient(ellipse at 30% 20%, #1a2d4a 0%, #132238 40%, #0e1a2e 100%)",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      padding: "20px", fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
-      overflow: "hidden", position: "relative",
+      padding: "16px", fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', monospace",
+      overflow: "hidden", position: "relative", boxSizing: "border-box",
     }}>
       <div style={{ position: "absolute", top: "-20%", left: "10%", width: "400px", height: "400px", background: "radial-gradient(circle, rgba(0,240,255,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
       <div style={{ position: "absolute", bottom: "-10%", right: "15%", width: "300px", height: "300px", background: "radial-gradient(circle, rgba(0,224,138,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
@@ -381,11 +381,11 @@ export default function NRESGlassMap() {
 
       {/* Glass Map */}
       <div style={{
-        position: "relative", width: "100%", borderRadius: "12px",
+        position: "relative", width: "100%", flex: "1 1 0", minHeight: 0, borderRadius: "12px",
         border: `1px solid rgba(${selected !== null ? "0,255,136" : sdaPractice !== null ? "255,215,0" : "0,240,255"},0.2)`,
         background: "linear-gradient(135deg, rgba(18,42,68,0.85) 0%, rgba(12,30,52,0.9) 100%)",
         boxShadow: "0 0 60px rgba(0,240,255,0.08), inset 0 0 60px rgba(0,240,255,0.03), 0 20px 60px rgba(0,0,0,0.3)",
-        backdropFilter: "blur(20px)", overflow: "hidden",
+        backdropFilter: "blur(20px)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
       }}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, transparent 100%)", pointerEvents: "none", zIndex: 10, borderRadius: "12px 12px 0 0" }} />
         <div style={{ position: "absolute", top: "10%", left: "-20%", width: "60%", height: "1px", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)", transform: "rotate(-15deg)", pointerEvents: "none", zIndex: 10 }} />
@@ -393,7 +393,7 @@ export default function NRESGlassMap() {
         <DriveTimeSidebar selectedIdx={selected} />
         <SDAPanel practice={sdaPractice !== null ? practices[sdaPractice] : null} visible={sdaPractice !== null && selected === null} />
 
-        <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }}
+        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" style={{ display: "block", maxWidth: "100%", maxHeight: "100%" }}
           onClick={() => { setSelected(null); setSdaPractice(null); }}>
           <SvgDefs />
           <GridLines width={width} height={height} />
