@@ -207,23 +207,6 @@ export const SDADigitalIntegration = () => {
           </p>
         </div>
 
-        {/* 6. Functional Spec Reference Doc */}
-        <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EFF6FF" }}>
-            <FileText className="w-5 h-5" style={{ color: "#2563EB" }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm text-slate-900">Functional Specification v2.3</h3>
-            <p className="text-xs text-slate-500">Technical reference — appointment targets, buy-back logic, compliance reporting. Describes both Excel and potential future system.</p>
-          </div>
-          <Button variant="outline" size="sm" asChild className="flex-shrink-0">
-            <a href="/documents/NRES_SDA_Rota_Spec_v2.3.docx" download>
-              <Download className="h-4 w-4 mr-1" />
-              Word
-            </a>
-          </Button>
-        </div>
-
         <div className="flex items-center gap-3 pt-3">
           <span className="text-[11px] uppercase font-bold tracking-wider whitespace-nowrap" style={{ color: "#D4A800" }}>✦ FOR PROGRAMME BOARD CONSIDERATION POST GO-LIVE IF NEEDED</span>
           <div className="flex-1 h-px bg-slate-200" />
@@ -339,6 +322,23 @@ export const SDADigitalIntegration = () => {
                   <Play className="w-3 h-3" /> Open Interactive Preview
                 </button>
               </div>
+            </div>
+
+            {/* Functional Spec Reference Doc */}
+            <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EFF6FF" }}>
+                <FileText className="w-5 h-5" style={{ color: "#2563EB" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm text-slate-900">Functional Specification v2.3</h3>
+                <p className="text-xs text-slate-500">Technical reference — appointment targets, buy-back logic, compliance reporting. Describes both Excel and potential future system.</p>
+              </div>
+              <Button variant="outline" size="sm" asChild className="flex-shrink-0">
+                <a href="/documents/NRES_SDA_Rota_Spec_v2.3.docx" download>
+                  <Download className="h-4 w-4 mr-1" />
+                  Word
+                </a>
+              </Button>
             </div>
 
             {/* Gold footer note */}
