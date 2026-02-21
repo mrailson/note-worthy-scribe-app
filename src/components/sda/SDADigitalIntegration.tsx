@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,6 +7,8 @@ import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
 import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
+
+const NRESOverviewPreview = lazy(() => import("@/components/sda/NRESOverviewPreview"));
 
 // Digital Task and Finish Action Log Data
 const digitalTfActions = [
@@ -54,6 +56,7 @@ const thumbnails = [
 export const SDADigitalIntegration = () => {
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; title: string } | null>(null);
   const [tabExplorerOpen, setTabExplorerOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const handleDownloadImage = () => {
     if (!lightboxImage) return;
@@ -67,6 +70,21 @@ export const SDADigitalIntegration = () => {
   };
 
   return (
+    <>
+      {/* Interactive Preview Fullscreen Modal */}
+      {previewOpen && (
+        <div className="fixed inset-0 z-[200] bg-white overflow-auto">
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200 shadow-sm">
+            <span className="text-sm font-semibold text-slate-700">Interactive Preview — Notewell AI</span>
+            <Button variant="outline" size="sm" onClick={() => setPreviewOpen(false)}>
+              <X className="h-4 w-4 mr-1" /> Close Preview
+            </Button>
+          </div>
+          <Suspense fallback={<div className="flex items-center justify-center h-screen text-slate-400">Loading preview…</div>}>
+            <NRESOverviewPreview />
+          </Suspense>
+        </div>
+      )}
     <div className="space-y-6">
       {/* Fullscreen Lightbox */}
       {lightboxImage && (
@@ -313,7 +331,11 @@ export const SDADigitalIntegration = () => {
 
               {/* Preview button */}
               <div className="flex justify-center mt-4">
-                <button className="inline-flex items-center gap-2 px-5 py-2 rounded-md text-white text-xs font-bold" style={{ backgroundColor: "#7C3AED" }}>
+                <button
+                  onClick={() => setPreviewOpen(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2 rounded-md text-white text-xs font-bold hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: "#7C3AED" }}
+                >
                   <Play className="w-3 h-3" /> Open Interactive Preview
                 </button>
               </div>
@@ -911,5 +933,6 @@ export const SDADigitalIntegration = () => {
         </div>
       </CollapsibleCard>
     </div>
+    </>
   );
 };
