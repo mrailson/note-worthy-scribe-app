@@ -62,7 +62,7 @@ import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { TabAudioGuidanceDialog } from "@/components/meeting/TabAudioGuidanceDialog";
 import { AudioCaptureStatusIndicator } from "@/components/meeting/AudioCaptureStatusIndicator";
 import { QuickAudioSourceSwitcher, AudioSourceMode as QuickAudioSourceMode } from "@/components/meeting/QuickAudioSourceSwitcher";
-import { QuickRecordQRLink } from "@/components/meeting/QuickRecordQRLink";
+import { SmartphoneRecordingHub } from "@/components/meeting/SmartphoneRecordingHub";
 import { MeetingMicrophoneSettings } from "@/components/meeting/MeetingMicrophoneSettings";
 import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscriptImportModal";
 import { LiveImportModal } from "@/components/meeting/import/LiveImportModal";
@@ -75,7 +75,7 @@ import { useDeepgramRealtimePreview } from "@/hooks/useDeepgramRealtimePreview";
 import { MeetingPausedBanner } from "@/components/meeting/MeetingPausedBanner";
 import { TranscriptDisplay } from "@/components/scribe/TranscriptDisplay";
 import { useMeetingKillSignal } from "@/hooks/useMeetingKillSignal";
-import { RecordingSetupGuide } from "@/components/meeting/RecordingSetupGuide";
+
 import { useRecordingHealthMonitor } from "@/hooks/useRecordingHealthMonitor";
 import { useBackupRecorder } from "@/hooks/useBackupRecorder";
 import { BackupIndicator } from "@/components/offline/BackupIndicator";
@@ -6323,7 +6323,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <Mic className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Recorder</span>
             <span className="sm:hidden">Record</span>
-            {!isRecording && <RecordingSetupGuide />}
           </TabsTrigger>
           <TabsTrigger value="transcript" className="flex items-center gap-2" disabled={isRecording} title={isRecording ? "Stop recording to access this tab" : undefined}>
             <FileText className="h-5 w-5" />
@@ -6407,7 +6406,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                     onAudioSourceChange={setAudioSourceMode}
                     currentAudioSource={audioSourceMode}
                   />
-                  <QuickRecordQRLink />
+                  <SmartphoneRecordingHub />
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
