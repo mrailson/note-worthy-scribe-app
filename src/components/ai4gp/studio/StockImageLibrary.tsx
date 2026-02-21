@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Search, Download, PenLine, X, Loader2, ImageIcon, Sprout, Wand2, Trash2, Sparkles } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Search, Download, PenLine, X, Loader2, ImageIcon, Sprout, Wand2, Trash2, Sparkles, Mic, MicOff, Upload, FileImage } from 'lucide-react';
 import { useStockImages, STOCK_IMAGE_CATEGORIES, StockImage } from '@/hooks/useStockImages';
 import { useQueryClient } from '@tanstack/react-query';
 import { StockImageUploader } from './StockImageUploader';
@@ -51,6 +52,79 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
   const [customPrompt, setCustomPrompt] = useState('');
   const [customCategory, setCustomCategory] = useState<string>(selectedCategory || 'Patients');
   const [customModel, setCustomModel] = useState<string>('gemini-pro');
+  const [customCount, setCustomCount] = useState(1);
+  const [isListening, setIsListening] = useState(false);
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const [referencePreview, setReferencePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  const handleVoiceInput = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error('Speech recognition is not supported in your browser');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-GB';
+    recognitionRef.current = recognition;
+
+    recognition.onresult = (event: any) => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setCustomPrompt(prev => {
+        // If we had text before voice, append. Otherwise replace.
+        const base = prev && !isListening ? prev + ' ' : '';
+        return base + transcript;
+      });
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      if (event.error !== 'aborted') toast.error('Voice input error: ' + event.error);
+    };
+
+    recognition.onend = () => setIsListening(false);
+
+    recognition.start();
+    setIsListening(true);
+    toast.info('Listening... Speak your prompt');
+  }, [isListening]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File must be under 10MB');
+      return;
+    }
+    setReferenceFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setReferencePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const clearReferenceFile = () => {
+    setReferenceFile(null);
+    setReferencePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const SEED_IMAGES = [
     { file: 'patients-consultation.jpg', title: 'Patient Consultation', category: 'Patients', description: 'Patient having a friendly consultation with their GP doctor', tags: ['consultation', 'patient', 'GP', 'doctor', 'diverse'] },
@@ -124,10 +198,29 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
   const handleCustomGenerate = async () => {
     if (!customPrompt.trim()) { toast.error('Please enter a prompt'); return; }
     setIsGenerating(true);
-    toast.info(`Creating custom image with ${AI_MODELS.find(m => m.value === customModel)?.label}...`);
+    const modelLabel = AI_MODELS.find(m => m.value === customModel)?.label;
+    toast.info(`Creating ${customCount} custom image${customCount > 1 ? 's' : ''} with ${modelLabel}...`);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // Upload reference image if provided
+      let referenceImageUrl: string | undefined;
+      if (referenceFile) {
+        const storagePath = `references/${Date.now()}-${referenceFile.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('stock-images')
+          .upload(storagePath, referenceFile, { contentType: referenceFile.type, upsert: false });
+        
+        if (uploadError) {
+          console.error('Reference upload error:', uploadError);
+          toast.error('Failed to upload reference image');
+        } else {
+          const { data: { publicUrl } } = supabase.storage.from('stock-images').getPublicUrl(storagePath);
+          referenceImageUrl = publicUrl;
+        }
+      }
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-stock-images`,
         {
@@ -137,15 +230,22 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
             'Authorization': `Bearer ${session?.access_token}`,
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ category: customCategory, count: 1, model: customModel, customPrompt: customPrompt }),
+          body: JSON.stringify({ 
+            category: customCategory, 
+            count: customCount, 
+            model: customModel, 
+            customPrompt: customPrompt,
+            referenceImageUrl,
+          }),
         }
       );
       
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Generation failed');
       
-      toast.success('Custom image created successfully');
+      toast.success(`${result.generated} custom image${result.generated > 1 ? 's' : ''} created successfully`);
       setCustomPrompt('');
+      clearReferenceFile();
       setShowCustomPrompt(false);
       queryClient.invalidateQueries({ queryKey: ['stock-images'] });
     } catch (err: any) {
@@ -250,14 +350,72 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
               <h4 className="text-sm font-semibold flex items-center gap-2"><Wand2 className="h-4 w-4" />Create Custom Stock Image</h4>
               <div className="space-y-1">
                 <Label className="text-xs">Prompt</Label>
-                <Textarea
-                  value={customPrompt}
-                  onChange={(e) => setCustomPrompt(e.target.value)}
-                  placeholder="Describe the image you want to create, e.g. 'A diverse group of NHS staff celebrating a team achievement in a modern GP surgery'"
-                  rows={3}
-                />
+                <div className="relative">
+                  <Textarea
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    placeholder="Describe the image you want to create, e.g. 'A diverse group of NHS staff celebrating a team achievement in a modern GP surgery'"
+                    rows={3}
+                    className="pr-12"
+                  />
+                  <Button
+                    type="button"
+                    variant={isListening ? 'destructive' : 'ghost'}
+                    size="icon"
+                    className="absolute right-2 top-2 h-8 w-8"
+                    onClick={handleVoiceInput}
+                    title={isListening ? 'Stop listening' : 'Voice input'}
+                  >
+                    {isListening ? <MicOff className="h-4 w-4 animate-pulse" /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                </div>
+                {isListening && (
+                  <p className="text-xs text-primary animate-pulse">🎤 Listening... speak your prompt</p>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
+
+              {/* Reference file upload */}
+              <div className="space-y-1">
+                <Label className="text-xs">Reference Image (optional)</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-xs"
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1.5" />
+                    {referenceFile ? 'Change File' : 'Upload Logo/Image'}
+                  </Button>
+                  {referenceFile && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <FileImage className="h-3.5 w-3.5" />
+                        <span className="truncate max-w-[120px]">{referenceFile.name}</span>
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={clearReferenceFile}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {referencePreview && (
+                  <div className="mt-1.5 relative w-20 h-20 rounded border overflow-hidden bg-muted">
+                    <img src={referencePreview} alt="Reference" className="w-full h-full object-contain" />
+                  </div>
+                )}
+                <p className="text-[10px] text-muted-foreground">Upload a logo or reference image to integrate into the generated image</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Category</Label>
                   <Select value={customCategory} onValueChange={setCustomCategory}>
@@ -285,9 +443,21 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Variations: {customCount}</Label>
+                  <Slider
+                    value={[customCount]}
+                    onValueChange={([v]) => setCustomCount(v)}
+                    min={1}
+                    max={5}
+                    step={1}
+                    className="mt-2"
+                  />
+                  <p className="text-[10px] text-muted-foreground text-center">1–5 images</p>
+                </div>
               </div>
               <Button onClick={handleCustomGenerate} disabled={isGenerating || !customPrompt.trim()} className="w-full" size="sm">
-                {isGenerating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</> : <><Sparkles className="h-4 w-4 mr-2" />Generate Custom Image</>}
+                {isGenerating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating {customCount > 1 ? `${customCount} images` : ''}...</> : <><Sparkles className="h-4 w-4 mr-2" />Generate {customCount > 1 ? `${customCount} Custom Images` : 'Custom Image'}</>}
               </Button>
             </div>
           )}
