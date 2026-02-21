@@ -40,6 +40,7 @@ interface UploadedFile {
   size: number;
   type: 'audio' | 'text' | 'document';
   status: 'pending' | 'transcribing' | 'done' | 'error';
+  statusMessage?: string;
   transcript?: string;
   error?: string;
 }
@@ -95,9 +96,16 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
 
   const MAX_WHISPER_SIZE = 25 * 1024 * 1024; // 25MB Whisper limit
 
-  const transcribeAudioFile = async (file: File): Promise<string> => {
+  const updateFileStatus = useCallback((fileName: string, updates: Partial<UploadedFile>) => {
+    setUploadedFiles(prev =>
+      prev.map(f => f.name === fileName ? { ...f, ...updates } : f)
+    );
+  }, []);
+
+  const transcribeAudioFile = async (file: File, onProgress: (msg: string) => void): Promise<string> => {
     // For large files, chunk client-side and transcribe each chunk individually
     if (file.size > MAX_WHISPER_SIZE) {
+      onProgress('Preparing audio chunks…');
       console.log(`[CreateMeetingTab] File ${file.name} is ${(file.size / 1024 / 1024).toFixed(1)}MB - chunking client-side`);
       
       const chunks = await chunkWavFile(file, 4);
@@ -105,6 +113,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
       let hallucinationCount = 0;
       
       for (const chunk of chunks) {
+        onProgress(`Transcribing audio (chunk ${chunk.index + 1} of ${chunk.total})…`);
         console.log(`[CreateMeetingTab] Transcribing chunk ${chunk.index + 1}/${chunk.total}…`);
         const base64Chunk = await blobToBase64(chunk.blob);
         
@@ -129,6 +138,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
         }
       }
       
+      onProgress('Cleaning transcript…');
       if (hallucinationCount > 0) console.log(`🧹 Filtered ${hallucinationCount}/${chunks.length} hallucinated chunks`);
       if (transcripts.length === 0) throw new Error('No usable transcript (all chunks were hallucinations)');
       const stitched = transcripts.join('\n');
@@ -137,6 +147,7 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     }
     
     // For smaller files, use base64 approach with Whisper
+    onProgress('Transcribing audio…');
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = async () => {
@@ -198,12 +209,15 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     });
   };
 
-  const processFile = async (uploadedFile: UploadedFile): Promise<string> => {
+  const processFile = async (uploadedFile: UploadedFile, onProgress: (msg: string) => void): Promise<string> => {
     if (uploadedFile.type === 'audio') {
-      return transcribeAudioFile(uploadedFile.file);
+      onProgress('Uploading audio…');
+      return transcribeAudioFile(uploadedFile.file, onProgress);
     } else if (uploadedFile.type === 'document') {
+      onProgress('Extracting text from document…');
       return extractDocumentText(uploadedFile.file);
     } else {
+      onProgress('Reading file…');
       return readTextFile(uploadedFile.file);
     }
   };
@@ -228,38 +242,42 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
     }
     
     if (validFiles.length === 0) return;
+
+    // Sort by filename ascending for chronological order (filenames encode date/time)
+    validFiles.sort((a, b) => a.name.localeCompare(b.name));
     
     setUploadedFiles(prev => [...prev, ...validFiles]);
     setIsProcessing(true);
     
-    // Process files sequentially
+    // Process files sequentially in chronological order
     for (const uploadedFile of validFiles) {
       try {
-        setUploadedFiles(prev => 
-          prev.map(f => f.name === uploadedFile.name ? { ...f, status: 'transcribing' } : f)
-        );
+        updateFileStatus(uploadedFile.name, { status: 'transcribing', statusMessage: 'Queued…' });
         
-        const transcript = await processFile(uploadedFile);
+        const onProgress = (msg: string) => {
+          updateFileStatus(uploadedFile.name, { statusMessage: msg });
+        };
         
-        setUploadedFiles(prev => 
-          prev.map(f => f.name === uploadedFile.name 
-            ? { ...f, status: 'done', transcript } 
-            : f
-          )
-        );
+        const transcript = await processFile(uploadedFile, onProgress);
+        const wordCount = transcript.split(/\s+/).filter(Boolean).length;
+        
+        updateFileStatus(uploadedFile.name, {
+          status: 'done',
+          transcript,
+          statusMessage: `Done (${wordCount.toLocaleString()} words)`
+        });
       } catch (error: any) {
         console.error('File processing error:', error);
-        setUploadedFiles(prev => 
-          prev.map(f => f.name === uploadedFile.name 
-            ? { ...f, status: 'error', error: error.message } 
-            : f
-          )
-        );
+        updateFileStatus(uploadedFile.name, {
+          status: 'error',
+          error: error.message,
+          statusMessage: `Error: ${error.message}`
+        });
       }
     }
     
     setIsProcessing(false);
-  }, []);
+  }, [updateFileStatus]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -304,11 +322,12 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
       parts.push(pastedText.trim());
     }
     
-    // Add file transcripts
-    for (const file of uploadedFiles) {
-      if (file.status === 'done' && file.transcript) {
-        parts.push(file.transcript);
-      }
+    // Add file transcripts sorted by filename for chronological order
+    const sortedFiles = [...uploadedFiles]
+      .filter(f => f.status === 'done' && f.transcript)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    for (const file of sortedFiles) {
+      parts.push(file.transcript!);
     }
     
     return parts.join('\n\n');
@@ -533,22 +552,24 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
                   </div>
                   <div className="flex items-center gap-2">
                     {file.status === 'pending' && (
-                      <Badge variant="secondary" className="text-xs">Pending</Badge>
+                      <Badge variant="secondary" className="text-xs">Queued</Badge>
                     )}
                     {file.status === 'transcribing' && (
-                      <Badge variant="secondary" className="text-xs">
-                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                        Processing
+                      <Badge variant="secondary" className="text-xs max-w-[200px]">
+                        <Loader2 className="h-3 w-3 animate-spin mr-1 shrink-0" />
+                        <span className="truncate">{file.statusMessage || 'Processing…'}</span>
                       </Badge>
                     )}
                     {file.status === 'done' && (
-                      <Badge variant="default" className="text-xs bg-green-600">
-                        <Check className="h-3 w-3 mr-1" />
-                        Done
+                      <Badge variant="default" className="text-xs bg-green-600 max-w-[200px]">
+                        <Check className="h-3 w-3 mr-1 shrink-0" />
+                        <span className="truncate">{file.statusMessage || 'Done'}</span>
                       </Badge>
                     )}
                     {file.status === 'error' && (
-                      <Badge variant="destructive" className="text-xs">Error</Badge>
+                      <Badge variant="destructive" className="text-xs max-w-[200px]">
+                        <span className="truncate">{file.statusMessage || 'Error'}</span>
+                      </Badge>
                     )}
                     <Button
                       variant="ghost"
