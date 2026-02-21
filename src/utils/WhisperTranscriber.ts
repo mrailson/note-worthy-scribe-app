@@ -128,7 +128,7 @@ export class WhisperTranscriber {
     formData.append('isFinal', meta.isFinal ? 'true' : 'false');
     formData.append('sessionId', this.sessionId);
     
-    if (meta.language) formData.append('language', meta.language);
+    formData.append('language', meta.language || 'en');
     if (meta.meetingId) formData.append('meetingId', meta.meetingId);
 
     console.log(`📡 WHISPER: Uploading chunk ${this.chunkIndex} (${blob.size} bytes, isFinal: ${meta.isFinal})`);

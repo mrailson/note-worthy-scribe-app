@@ -143,6 +143,7 @@ serve(async (req) => {
     const blob = new Blob([binaryAudio], { type: 'audio/webm' });
     formData.append('file', blob, 'meeting_audio.webm');
     formData.append('model', 'whisper-1');
+    formData.append('language', 'en');
     formData.append('response_format', 'verbose_json');
     formData.append('timestamp_granularities[]', 'word');
     formData.append('prompt', 'This is a healthcare meeting recording. Please transcribe medical terms, NHS terminology, and proper nouns accurately.');
