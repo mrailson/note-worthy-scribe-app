@@ -93,41 +93,38 @@ export const CreateMeetingTab: React.FC<CreateMeetingTabProps> = ({
   const MAX_WHISPER_SIZE = 25 * 1024 * 1024; // 25MB Whisper limit
 
   const transcribeAudioFile = async (file: File): Promise<string> => {
-    // For large files, upload to storage first then use URL-based transcription
+    // For large files, upload to storage first then use chunked Whisper transcription
     if (file.size > MAX_WHISPER_SIZE) {
-      console.log(`[CreateMeetingTab] File ${file.name} is ${(file.size / 1024 / 1024).toFixed(1)}MB - uploading to storage for AssemblyAI`);
+      console.log(`[CreateMeetingTab] File ${file.name} is ${(file.size / 1024 / 1024).toFixed(1)}MB - uploading for chunked transcription`);
       
-      // Generate unique path for temporary upload
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(7);
-      const fileExt = file.name.split('.').pop() || 'mp3';
+      const fileExt = file.name.split('.').pop() || 'wav';
       const storagePath = `temp/${timestamp}-${randomId}.${fileExt}`;
       
-      // Upload file directly to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('audio-imports')
         .upload(storagePath, file, {
-          contentType: file.type || 'audio/mpeg',
+          contentType: file.type || 'audio/wav',
           upsert: false
         });
       
       if (uploadError) {
-        console.error('[CreateMeetingTab] Storage upload failed:', uploadError);
         throw new Error(`Failed to upload file: ${uploadError.message}`);
       }
       
-      console.log('[CreateMeetingTab] File uploaded to storage, calling AssemblyAI...');
+      console.log('[CreateMeetingTab] File uploaded, calling speech-to-text with process-large-audio…');
       
-      // Call the URL-based transcription function
-      const { data, error } = await supabase.functions.invoke('assemblyai-transcription-url', {
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
         body: { 
+          action: 'process-large-audio',
           storagePath,
           fileName: file.name
         }
       });
       
       if (error) throw error;
-      if (!data?.text) throw new Error('No transcript returned from AssemblyAI');
+      if (!data?.text) throw new Error('No transcript returned');
       
       return data.text;
     }
