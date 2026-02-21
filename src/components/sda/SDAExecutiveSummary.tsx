@@ -606,11 +606,9 @@ export const SDAExecutiveSummary = () => {
 
       {/* Glass Map Fullscreen Modal */}
       <Dialog open={glassMapOpen} onOpenChange={setGlassMapOpen}>
-        <DialogContent className="max-w-[98vw] w-[98vw] max-h-[98vh] h-[98vh] p-0 overflow-hidden border-0 bg-[#0e1a2e]">
+        <DialogContent className="!max-w-none !w-screen !h-screen !max-h-screen !translate-x-[-50%] !translate-y-[-50%] !rounded-none p-0 overflow-auto border-0 bg-[#0e1a2e] mx-0 my-0">
           <DialogTitle className="sr-only">NRES Neighbourhood Map</DialogTitle>
-          <div className="w-full h-full overflow-auto">
-            <NRESGlassMap />
-          </div>
+          <NRESGlassMap />
         </DialogContent>
       </Dialog>
     </div>
