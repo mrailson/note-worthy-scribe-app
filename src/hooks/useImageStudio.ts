@@ -561,7 +561,8 @@ export function useImageStudio() {
   const quickEdit = useCallback(async (
     imageContent: string,
     editInstructions: string,
-    imageModel?: string
+    imageModel?: string,
+    referenceImage?: string
   ): Promise<GeneratedImage | null> => {
     if (!imageContent || !editInstructions.trim()) {
       toast.error('Please provide an image and editing instructions');
@@ -601,14 +602,27 @@ export function useImageStudio() {
         setState(prev => ({ ...prev, generationProgress: 30 }));
 
         // Build simplified edit request
+        const refImages: ImageStudioRequest['referenceImages'] = [{
+          content: optimisedContent,
+          type: 'image/jpeg',
+          mode: 'edit-source' as any,
+          instructions: editInstructions,
+        }];
+
+        // Add the user's reference/logo image as a second reference
+        if (referenceImage) {
+          refImages.push({
+            content: referenceImage,
+            type: 'image/png',
+            mode: 'style-match' as any,
+            instructions: 'Integrate this logo/image into the edited result as specified in the instructions.',
+          });
+          console.log('📎 Including reference/logo image in edit request');
+        }
+
         const request: ImageStudioRequest = {
-          prompt: editInstructions,
-          referenceImages: [{
-            content: optimisedContent,
-            type: 'image/jpeg',
-            mode: 'edit-source',
-            instructions: editInstructions,
-          }],
+          prompt: editInstructions + (referenceImage ? '\n\nIMPORTANT: A reference logo/image has been provided as an additional image. You MUST integrate it into the result as described in the instructions above.' : ''),
+          referenceImages: refImages,
           imageModel: model as ImageStudioRequest['imageModel'],
           isStudioRequest: true,
         };

@@ -98,9 +98,9 @@ export const ImageStudioModal: React.FC<ImageStudioModalProps> = ({
     generateImage(imageGenerationModel);
   };
 
-  const handleQuickEdit = async (imageContent: string, instructions: string) => {
+  const handleQuickEdit = async (imageContent: string, instructions: string, referenceImage?: string) => {
     // Always use Gemini 3 Pro for edits — most powerful and accurate
-    return quickEdit(imageContent, instructions, 'google/gemini-3-pro-image-preview');
+    return quickEdit(imageContent, instructions, 'google/gemini-3-pro-image-preview', referenceImage);
   };
 
   const tabs = [
