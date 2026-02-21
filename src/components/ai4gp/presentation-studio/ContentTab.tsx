@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Plus, X, FileText, Upload, FileSpreadsheet, File, Trash2, Check, ChevronDown, Loader2, Paperclip, Users, BarChart3, MessageSquare } from 'lucide-react';
+import { Plus, X, FileText, Upload, FileSpreadsheet, File, Trash2, Check, ChevronDown, Loader2, Paperclip, Users, BarChart3, MessageSquare, ClipboardPaste } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -445,6 +445,31 @@ export const ContentTab: React.FC<ContentTabProps> = ({
             </div>
           </ScrollArea>
         )}
+      </div>
+
+      {/* Paste Content */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <ClipboardPaste className="h-4 w-4" />
+          Paste Content (optional)
+        </Label>
+        <Textarea
+          placeholder="Paste meeting minutes, reports, notes, or any text you'd like to include in the presentation..."
+          value={settings.pastedContent || ''}
+          onChange={(e) => onUpdate({ pastedContent: e.target.value })}
+          rows={5}
+          className="resize-y"
+        />
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Paste text directly to use alongside or instead of uploaded documents
+          </p>
+          {(settings.pastedContent?.length ?? 0) > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {(settings.pastedContent?.length ?? 0).toLocaleString()} characters
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Custom Instructions */}

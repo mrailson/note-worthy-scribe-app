@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -122,6 +123,8 @@ serve(async (req) => {
       fontStyle,
       supportingFiles,
       includeSpeakerNotes = true,
+      pastedContent,
+      useStockLibraryImages = false,
     } = requestBody;
 
     // Handle supportingContent
@@ -147,6 +150,12 @@ serve(async (req) => {
         supportingContent = extractedContent;
         console.log(`[Gamma] Combined supporting content: ${supportingContent.length} chars`);
       }
+    }
+
+    // Append pasted content
+    if (pastedContent && typeof pastedContent === 'string' && pastedContent.trim().length > 0) {
+      console.log(`[Gamma] Including pasted content: ${pastedContent.length} chars`);
+      supportingContent += `\n--- Pasted Content ---\n${pastedContent.trim()}\n`;
     }
 
     const themeId = requestBody.themeId || requestBody.templateId;
@@ -273,6 +282,41 @@ serve(async (req) => {
         dimensions: '16x9',
       },
     };
+
+    // Stock Library Images: inject URLs and disable AI generation
+    if (useStockLibraryImages) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        const { data: stockImages, error: stockError } = await supabaseClient
+          .from('stock_images')
+          .select('image_url, title, tags, category')
+          .eq('is_active', true)
+          .limit(15);
+
+        if (stockError) {
+          console.warn(`[Gamma] Stock images query failed: ${stockError.message}`);
+        } else if (stockImages && stockImages.length > 0) {
+          console.log(`[Gamma] Found ${stockImages.length} stock library images`);
+          
+          const imageRefs = stockImages
+            .map((img: any) => `![${img.title || img.category}](${img.image_url})`)
+            .join('\n');
+          
+          requestPayload.inputText += `\n\nUse these images in the presentation slides:\n${imageRefs}`;
+          requestPayload.imageOptions = { source: 'noImages' };
+          
+          console.log(`[Gamma] Injected ${stockImages.length} stock image URLs, set imageOptions to noImages`);
+        } else {
+          console.warn('[Gamma] No active stock images found, falling back to AI-generated images');
+        }
+      } catch (stockErr) {
+        console.error('[Gamma] Error fetching stock images:', stockErr);
+        // Fall back to AI-generated images
+      }
+    }
 
     if (themeId && themeSource === 'gamma') {
       requestPayload.themeId = themeId;

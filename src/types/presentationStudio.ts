@@ -116,6 +116,7 @@ export interface PresentationStudioSettings {
   targetAudience: TargetAudienceId;
   keyPoints: string[];
   supportingDocuments: SupportingDocument[];
+  pastedContent: string;
   
   // Style & Design
   templateId: TemplateId;
@@ -142,6 +143,7 @@ export interface PresentationStudioSettings {
   includeVoiceover: boolean;
   voiceId: string;
   customInstructions: string;
+  useStockLibraryImages: boolean;
 }
 
 // Generation Progress Phase
@@ -234,4 +236,6 @@ export interface PresentationStudioRequest {
   }[];
   isStudioRequest: true;
   customInstructions?: string;
+  pastedContent?: string;
+  useStockLibraryImages?: boolean;
 }

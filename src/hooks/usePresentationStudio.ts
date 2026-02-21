@@ -38,6 +38,7 @@ const DEFAULT_SETTINGS: PresentationStudioSettings = {
   targetAudience: 'board-members',
   keyPoints: [],
   supportingDocuments: [],
+  pastedContent: '',
   
   // Style & Design
   templateId: 'nhs-professional',
@@ -64,6 +65,7 @@ const DEFAULT_SETTINGS: PresentationStudioSettings = {
   includeVoiceover: false,
   voiceId: 'JBFqnCBsd6RMkjVDRZzb', // George - British Male Professional
   customInstructions: '',
+  useStockLibraryImages: false,
 };
 
 // Keys for persisted settings (Branding & Slides tabs)
@@ -90,6 +92,7 @@ interface PersistedSettings {
   generateImages: boolean;
   includeVoiceover: boolean;
   voiceId: string;
+  useStockLibraryImages: boolean;
 }
 
 const getStorageKey = (userId: string) => `${STORAGE_KEY_PREFIX}-${userId}`;
@@ -128,6 +131,7 @@ const savePersistedSettings = (userId: string, settings: PresentationStudioSetti
       generateImages: settings.generateImages,
       includeVoiceover: settings.includeVoiceover,
       voiceId: settings.voiceId,
+      useStockLibraryImages: settings.useStockLibraryImages,
     };
     localStorage.setItem(getStorageKey(userId), JSON.stringify(toStore));
   } catch (e) {
@@ -252,6 +256,7 @@ export function usePresentationStudio() {
     state.settings.generateImages,
     state.settings.includeVoiceover,
     state.settings.voiceId,
+    state.settings.useStockLibraryImages,
   ]);
 
   // Save history whenever it changes
@@ -383,8 +388,8 @@ export function usePresentationStudio() {
   const generatePresentation = useCallback(async () => {
     const { settings } = stateRef.current;
     
-    if (!settings.topic.trim() && settings.supportingDocuments.length === 0) {
-      toast.error('Please provide a topic or upload supporting documents');
+    if (!settings.topic.trim() && settings.supportingDocuments.length === 0 && !settings.pastedContent?.trim()) {
+      toast.error('Please provide a topic, upload documents, or paste content');
       return null;
     }
 
@@ -474,6 +479,8 @@ export function usePresentationStudio() {
           })),
         isStudioRequest: true,
         customInstructions: settings.customInstructions?.trim() || undefined,
+        pastedContent: settings.pastedContent?.trim() || undefined,
+        useStockLibraryImages: settings.useStockLibraryImages || undefined,
       };
 
       setPhase('generating-content', 30);

@@ -142,6 +142,7 @@ export const PresentationStudioModal: React.FC<PresentationStudioModalProps> = (
                 onDownload={downloadPresentation}
                 onCancel={cancelGeneration}
                 onLoadHistory={loadFromHistory}
+                onUpdate={updateSettings}
               />
             </TabsContent>
           </div>
