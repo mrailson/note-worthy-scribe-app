@@ -134,6 +134,40 @@ export function useStockImages() {
     },
   });
 
+  // Replace stock image file (admin only) — keeps metadata, swaps the file
+  const replaceMutation = useMutation({
+    mutationFn: async ({ image, newImageDataUrl }: { image: StockImage; newImageDataUrl: string }) => {
+      // Convert data URL to blob
+      const res = await fetch(newImageDataUrl);
+      const blob = await res.blob();
+
+      // Upload replacement to same storage path (overwrite)
+      const { error: uploadError } = await supabase.storage
+        .from('stock-images')
+        .upload(image.storage_path, blob, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      // Update timestamp so caches refresh
+      const { data: { publicUrl } } = supabase.storage
+        .from('stock-images')
+        .getPublicUrl(image.storage_path);
+
+      const freshUrl = `${publicUrl}?t=${Date.now()}`;
+      const { error: updateError } = await supabase
+        .from('stock_images' as any)
+        .update({ image_url: freshUrl } as any)
+        .eq('id', image.id);
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stock-images'] });
+      toast.success('Stock image replaced successfully');
+    },
+    onError: (err: any) => {
+      toast.error(`Replace failed: ${err.message}`);
+    },
+  });
+
   // Delete stock image (admin only)
   const deleteMutation = useMutation({
     mutationFn: async (image: StockImage) => {
@@ -167,5 +201,7 @@ export function useStockImages() {
     isUploading: uploadMutation.isPending,
     deleteImage: deleteMutation.mutateAsync,
     isDeleting: deleteMutation.isPending,
+    replaceStockImage: replaceMutation.mutateAsync,
+    isReplacing: replaceMutation.isPending,
   };
 }

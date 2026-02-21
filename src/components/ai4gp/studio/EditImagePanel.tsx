@@ -15,12 +15,15 @@ import {
   Image as ImageIcon,
   Mic,
   MicOff,
-  FileImage
+  FileImage,
+  Replace,
+  Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { GeneratedImage } from '@/types/ai4gp';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
+import type { StockImage } from '@/hooks/useStockImages';
 
 interface EditImagePanelProps {
   onQuickEdit: (imageContent: string, instructions: string, referenceImage?: string) => Promise<GeneratedImage | null>;
@@ -29,6 +32,11 @@ interface EditImagePanelProps {
   isGenerating: boolean;
   progress: number;
   initialImage?: { url: string; name: string } | null;
+  // Admin stock replacement
+  isAdmin?: boolean;
+  stockImages?: StockImage[];
+  onReplaceStockImage?: (image: StockImage, newImageDataUrl: string) => Promise<void>;
+  isReplacing?: boolean;
 }
 
 export const EditImagePanel: React.FC<EditImagePanelProps> = ({
@@ -38,8 +46,14 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
   isGenerating,
   progress,
   initialImage,
+  isAdmin,
+  stockImages,
+  onReplaceStockImage,
+  isReplacing,
 }) => {
   const [uploadedImage, setUploadedImage] = useState<{ content: string; name: string } | null>(null);
+  const [showStockPicker, setShowStockPicker] = useState(false);
+  const [stockSearchQuery, setStockSearchQuery] = useState('');
   const [editInstructions, setEditInstructions] = useState('');
   const [editResult, setEditResult] = useState<GeneratedImage | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -483,6 +497,82 @@ export const EditImagePanel: React.FC<EditImagePanelProps> = ({
               Edit Again
             </Button>
           </div>
+
+          {/* Admin: Replace Stock Image */}
+          {isAdmin && onReplaceStockImage && editResult && (
+            <div className="space-y-2 border-t pt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowStockPicker(!showStockPicker)}
+                className="w-full text-xs"
+              >
+                <Replace className="h-3.5 w-3.5 mr-1.5" />
+                Replace a Stock Library Image with This
+              </Button>
+
+              {showStockPicker && stockImages && (
+                <div className="space-y-2 border rounded-lg p-3 bg-muted/30 max-h-[300px] flex flex-col">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={stockSearchQuery}
+                      onChange={(e) => setStockSearchQuery(e.target.value)}
+                      placeholder="Search stock images..."
+                      className="w-full pl-8 pr-3 py-2 text-xs border rounded-md bg-background"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Select a stock image to replace with the edited result above
+                  </p>
+                  <div className="grid grid-cols-4 gap-2 overflow-y-auto flex-1">
+                    {stockImages
+                      .filter(img => {
+                        if (!stockSearchQuery.trim()) return true;
+                        const q = stockSearchQuery.toLowerCase();
+                        return img.title.toLowerCase().includes(q) ||
+                          img.category.toLowerCase().includes(q) ||
+                          img.tags?.some(t => t.toLowerCase().includes(q));
+                      })
+                      .slice(0, 40)
+                      .map(img => (
+                        <button
+                          key={img.id}
+                          onClick={async () => {
+                            if (!editResult?.url) return;
+                            try {
+                              await onReplaceStockImage(img, editResult.url);
+                              setShowStockPicker(false);
+                              setStockSearchQuery('');
+                            } catch {
+                              // error handled by mutation
+                            }
+                          }}
+                          disabled={isReplacing}
+                          className="relative group rounded-md overflow-hidden border hover:ring-2 hover:ring-primary transition-all aspect-square"
+                          title={`${img.title} (${img.category})`}
+                        >
+                          <img
+                            src={img.image_url}
+                            alt={img.title}
+                            className="w-full h-full object-cover"
+                          />
+                          {isReplacing && (
+                            <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            </div>
+                          )}
+                          <div className="absolute inset-x-0 bottom-0 bg-black/60 px-1 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p className="text-[8px] text-white truncate">{img.title}</p>
+                          </div>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
