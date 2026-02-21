@@ -65,7 +65,7 @@ const DEFAULT_SETTINGS: PresentationStudioSettings = {
   includeVoiceover: false,
   voiceId: 'JBFqnCBsd6RMkjVDRZzb', // George - British Male Professional
   customInstructions: '',
-  useStockLibraryImages: false,
+  useStockLibraryImages: true,
 };
 
 // Keys for persisted settings (Branding & Slides tabs)
