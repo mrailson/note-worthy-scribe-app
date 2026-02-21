@@ -152,7 +152,7 @@ async function generateWithGemini(prompt: string, model: 'flash' | 'pro'): Promi
     },
       body: JSON.stringify({
         model: modelName,
-        messages: [{ role: 'user', content: `Generate a high quality, photorealistic image: ${prompt}. Ultra high resolution, professional photography style. CRITICAL: Do NOT include ANY text, words, letters, numbers, labels, signs, captions, watermarks or writing of any kind in the image. The image must be purely visual with zero text elements.` }],
+        messages: [{ role: 'user', content: `Generate a high quality, photorealistic image: ${prompt}. Ultra high resolution, professional photography style.\n\nCRITICAL TEXT QUALITY RULES:\n- Any text in the image MUST be spelled correctly with zero typos\n- Use British English spelling (e.g. colour, organisation, centre, programme)\n- Keep text minimal — use short, simple words that are easy to render accurately\n- If you cannot render a word correctly, omit it entirely rather than misspell it\n- Double-check every word before rendering\n- Prefer icons and visual elements over text where possible` }],
         modalities: ['image', 'text'],
       }),
   });
@@ -181,7 +181,7 @@ async function generateWithRunware(prompt: string): Promise<string> {
       {
         taskType: 'imageInference',
         taskUUID,
-        positivePrompt: `${prompt}. Ultra high resolution, professional photography style. No text, no words, no letters, no labels, no signs, no writing, no watermarks.`,
+        positivePrompt: `${prompt}. Ultra high resolution, professional photography style. All text must be spelled correctly using British English. Prefer icons over text. Keep any text short and simple.`,
         width: 1024,
         height: 768,
         model: 'runware:100@1',
