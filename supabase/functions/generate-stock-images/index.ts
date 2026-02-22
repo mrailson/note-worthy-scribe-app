@@ -298,7 +298,7 @@ async function generateWithGemini(prompt: string, model: 'flash' | 'pro'): Promi
     },
       body: JSON.stringify({
         model: modelName,
-        messages: [{ role: 'user', content: `Generate a high quality, photorealistic image: ${prompt}. Ultra high resolution, professional photography style.\n\nCRITICAL TEXT QUALITY RULES:\n- Any text in the image MUST be spelled correctly with zero typos\n- Use British English spelling (e.g. colour, organisation, centre, programme)\n- Keep text minimal — use short, simple words that are easy to render accurately\n- If you cannot render a word correctly, omit it entirely rather than misspell it\n- Double-check every word before rendering\n- Prefer icons and visual elements over text where possible` }],
+        messages: [{ role: 'user', content: `Generate a high quality, photorealistic image: ${prompt}. Ultra high resolution, professional photography style.\n\nCRITICAL: DO NOT include ANY text, words, letters, signs, labels, or captions in the image. The image must be purely visual with ZERO text elements. Use icons, symbols, and visual storytelling instead of any written words. If the scene naturally includes signs or screens, leave them blank or show abstract shapes instead of text.` }],
         modalities: ['image', 'text'],
       }),
   });
