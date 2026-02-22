@@ -371,6 +371,135 @@ export const SDADigitalIntegration = () => {
       {/* ===== END SDA Rota / Buy-Back Service Management ===== */}
 
 
+      <CollapsibleCard
+        title="SDA Reporting Requirements from Specification — Overview & Planning"
+        icon={<BarChart3 className="w-5 h-5" />}
+        defaultOpen={false}
+        
+      >
+        <div className="space-y-6">
+          {/* Interactive Reporting Requirements Explorer */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-200">
+            <div className="flex items-start gap-4">
+              <div className="bg-amber-100 rounded-lg p-2.5 mt-0.5">
+                <BarChart3 className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-slate-900 text-lg mb-1">Interactive ICB Reporting Requirements Explorer</h4>
+                <p className="text-sm text-slate-600 mb-3">
+                  A comprehensive interactive guide covering all ICB reporting requirements extracted from the SDA specification. 
+                  Explore 10 reporting domains including activity & performance, quality & safety, referrals, prescribing, workforce, 
+                  Part B complex care, financial reporting, innovator site duties, and governance compliance — with direct quotes, 
+                  mandatory status indicators, and data field specifications.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <span className="bg-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-medium">30+ Mandatory Requirements</span>
+                  <span className="bg-purple-100 text-purple-700 text-xs px-2.5 py-1 rounded-full font-medium">10 Reporting Domains</span>
+                  <span className="bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">ICB Specification Quotes</span>
+                  <span className="bg-emerald-100 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-medium">v1.7</span>
+                </div>
+                <Button 
+                  onClick={() => setReportingPreviewOpen(true)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white shadow-md"
+                >
+                  <Play className="h-4 w-4 mr-2" /> Open Interactive Preview
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Document reference */}
+          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+            <FileText className="w-5 h-5 text-[#005EB8]" />
+            <div className="flex-1">
+              <h4 className="font-semibold text-slate-900">NRES SDA Reporting Requirements from Specification — Overview & Planning</h4>
+              <p className="text-sm text-slate-600">Version 1.6 | February 2026</p>
+            </div>
+            <Button variant="outline" size="sm" asChild className="flex-shrink-0">
+              <a href="/documents/NRES_SDA_Reporting_Plan_v1_6.docx" download>
+                <Download className="h-4 w-4 mr-1" /> Word
+              </a>
+            </Button>
+          </div>
+
+          {/* KPI Grid */}
+          <div>
+            <h4 className="font-semibold text-slate-900 mb-3">Key Performance Indicators</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { label: "Total Appointments Delivered", target: "Monthly", color: "bg-blue-50 border-blue-200" },
+                { label: "Hub Utilisation Rate", target: "≥ 85%", color: "bg-green-50 border-green-200" },
+                { label: "Patient Satisfaction Score", target: "≥ 4.0/5.0", color: "bg-purple-50 border-purple-200" },
+                { label: "Workforce Rostering Compliance", target: "≥ 90%", color: "bg-cyan-50 border-cyan-200" },
+                { label: "Financial Reconciliation", target: "Monthly", color: "bg-amber-50 border-amber-200" },
+                { label: "Incident / Significant Events", target: "Real-time", color: "bg-red-50 border-red-200" },
+              ].map((kpi, index) => (
+                <div key={index} className={`${kpi.color} rounded-lg p-4 border`}>
+                  <p className="text-sm font-medium text-slate-700">{kpi.label}</p>
+                  <p className="text-lg font-bold text-slate-900 mt-1">{kpi.target}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Reporting Frequency */}
+          <div>
+            <h4 className="font-semibold text-slate-900 mb-3">Reporting Frequency & Submission</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-slate-100">
+                    <th className="text-left p-3 font-semibold text-slate-700 border border-slate-200">Report</th>
+                    <th className="text-left p-3 font-semibold text-slate-700 border border-slate-200">Frequency</th>
+                    <th className="text-left p-3 font-semibold text-slate-700 border border-slate-200">Owner</th>
+                    <th className="text-left p-3 font-semibold text-slate-700 border border-slate-200">Submitted To</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { report: "Appointment Activity Report", frequency: "Monthly", owner: "Malcolm Railson", to: "ICB / Programme Board" },
+                    { report: "Workforce Rota Summary", frequency: "Monthly", owner: "Practice Managers", to: "Lead Provider (DocMed/PML)" },
+                    { report: "Financial Reconciliation", frequency: "Monthly", owner: "Finance Lead", to: "ICB Finance Team" },
+                    { report: "Patient Satisfaction Dashboard", frequency: "Quarterly", owner: "Quality Lead", to: "Programme Board" },
+                    { report: "Incident & SEA Log", frequency: "As required", owner: "Clinical Governance Lead", to: "ICB / CQC if required" },
+                    { report: "Full Programme Evaluation", frequency: "End of Year 1 & Year 2", owner: "Programme Manager", to: "ICB / NHS England" },
+                  ].map((row, i) => (
+                    <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <td className="p-3 border border-slate-200 font-medium text-slate-800">{row.report}</td>
+                      <td className="p-3 border border-slate-200 text-slate-600">{row.frequency}</td>
+                      <td className="p-3 border border-slate-200 text-slate-600">{row.owner}</td>
+                      <td className="p-3 border border-slate-200 text-slate-600">{row.to}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* RAG Status */}
+          <div>
+            <h4 className="font-semibold text-slate-900 mb-3">RAG Status Escalation Thresholds</h4>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <Badge className="bg-green-600 mt-0.5 flex-shrink-0">GREEN</Badge>
+                <p className="text-sm text-slate-700">All KPIs on track. Hub utilisation ≥ 85%, patient satisfaction ≥ 4.0/5.0, no unresolved incidents.</p>
+              </div>
+              <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <Badge className="bg-amber-500 mt-0.5 flex-shrink-0">AMBER</Badge>
+                <p className="text-sm text-slate-700">One or more KPIs below target for ≤ 4 weeks. Corrective action plan required within 10 working days.</p>
+              </div>
+              <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <Badge className="bg-red-600 mt-0.5 flex-shrink-0">RED</Badge>
+                <p className="text-sm text-slate-700">KPIs persistently below target for &gt; 4 weeks, patient safety concern, or financial discrepancy. Immediate escalation to ICB required.</p>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-500 italic">
+            Source: NRES_SDA_Pilot_Reporting_Plan.docx v1.4 | Last updated: February 2026
+          </p>
+        </div>
+      </CollapsibleCard>
 
       {/* Evidence Cards */}
       <CollapsibleCard
