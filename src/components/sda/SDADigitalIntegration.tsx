@@ -171,7 +171,7 @@ export const SDADigitalIntegration = () => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h3 className="font-bold text-[15px] text-slate-900">NRES SDA Rota Management Workbook V3.1</h3>
+                <h3 className="font-bold text-[15px] text-slate-900">NRES SDA Rota Management and Buy Back Resource Workbook V3.1</h3>
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold" style={{ backgroundColor: "#ECFDF5", color: "#10B981", border: "1px solid #A7F3D0" }}>✓ Ready</span>
               </div>
               <p className="text-sm text-slate-500">The operational tool for NRES service management from 1st April 2026</p>
