@@ -728,7 +728,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
                     className="flex-1"
                   >
                     <PenLine className="h-4 w-4 mr-2" />
-                    Use in Studio
+                    Edit in Image Studio
                   </Button>
                 )}
                 {isAdmin && (
