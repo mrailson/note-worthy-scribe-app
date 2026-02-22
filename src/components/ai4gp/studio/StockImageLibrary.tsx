@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Search, Download, PenLine, X, Loader2, ImageIcon, Sprout, Wand2, Trash2, Sparkles, Mic, MicOff, Upload, FileImage } from 'lucide-react';
+import { Search, Download, PenLine, X, Loader2, ImageIcon, Sprout, Wand2, Trash2, Sparkles, Mic, MicOff, Upload, FileImage, ChevronRight } from 'lucide-react';
 import { useStockImages, STOCK_IMAGE_CATEGORIES, CATEGORY_GROUPS, StockImage } from '@/hooks/useStockImages';
 import { useQueryClient } from '@tanstack/react-query';
 import { StockImageUploader } from './StockImageUploader';
@@ -58,6 +58,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
   const [referenceFile, setReferenceFile] = useState<File | null>(null);
   const [referencePreview, setReferencePreview] = useState<string | null>(null);
   const [showBatchInstructions, setShowBatchInstructions] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [batchInstructions, setBatchInstructions] = useState('');
   const [batchRefFile, setBatchRefFile] = useState<File | null>(null);
   const [batchRefPreview, setBatchRefPreview] = useState<string | null>(null);
@@ -326,8 +327,8 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
         />
       </div>
 
-      {/* Category filter chips — grouped */}
-      <div className="space-y-2">
+      {/* Category filter chips — collapsible groups */}
+      <div className="space-y-1">
         <Badge
           variant={selectedCategory === null ? 'default' : 'outline'}
           className="cursor-pointer text-xs"
@@ -342,23 +343,43 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
             return count > 0 || isAdmin;
           });
           if (visibleCats.length === 0) return null;
+          const groupCount = group.categories.reduce((sum, cat) => sum + (categoryCounts[cat] || 0), 0);
+          const hasSelectedInGroup = group.categories.includes(selectedCategory as any);
+          const isExpanded = expandedGroups.includes(group.label);
           return (
-            <div key={group.label}>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                {group.label}
-              </span>
-              <div className="flex flex-wrap gap-1 mt-0.5">
-                {visibleCats.map(cat => (
-                  <Badge
-                    key={cat}
-                    variant={selectedCategory === cat ? 'default' : 'outline'}
-                    className="cursor-pointer text-xs"
-                    onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-                  >
-                    {cat} ({categoryCounts[cat] || 0})
-                  </Badge>
-                ))}
-              </div>
+            <div key={group.label} className="border rounded-md overflow-hidden">
+              <button
+                type="button"
+                className="flex items-center justify-between w-full px-2.5 py-1.5 text-left hover:bg-muted/50 transition-colors"
+                onClick={() => setExpandedGroups(prev =>
+                  prev.includes(group.label) ? prev.filter(g => g !== group.label) : [...prev, group.label]
+                )}
+              >
+                <span className={cn(
+                  "text-[11px] uppercase tracking-wider font-medium",
+                  hasSelectedInGroup ? "text-primary" : "text-muted-foreground"
+                )}>
+                  {group.label} ({groupCount})
+                </span>
+                <ChevronRight className={cn(
+                  "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+                  isExpanded && "rotate-90"
+                )} />
+              </button>
+              {isExpanded && (
+                <div className="flex flex-wrap gap-1 px-2.5 pb-2">
+                  {visibleCats.map(cat => (
+                    <Badge
+                      key={cat}
+                      variant={selectedCategory === cat ? 'default' : 'outline'}
+                      className="cursor-pointer text-xs"
+                      onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                    >
+                      {cat} ({categoryCounts[cat] || 0})
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
