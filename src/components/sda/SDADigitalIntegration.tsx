@@ -191,13 +191,7 @@ export const SDADigitalIntegration = () => {
           </div>
         </div>
 
-        {/* 5. Green Callout Banner */}
-        <div className="rounded-lg p-4 flex items-start gap-3" style={{ backgroundColor: "#ECFDF5", border: "1px solid #A7F3D0" }}>
-          <span className="text-lg flex-shrink-0">✅</span>
-          <p className="text-sm leading-relaxed" style={{ color: "#065F46" }}>
-            <span className="font-bold" style={{ color: "#047857" }}>No additional funding or resources required.</span> This workbook is complete, tested, and ready for service launch. It provides full operational management capability for the NRES programme from day one without any system build, licensing, or infrastructure costs.
-          </p>
-        </div>
+
 
       </div>
       {/* ===== END SDA Rota / Buy-Back Service Management ===== */}
