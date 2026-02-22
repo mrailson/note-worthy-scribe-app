@@ -39,7 +39,7 @@ interface ImageGenerationRequest {
     };
     includeLogo?: boolean;
   };
-  requestType?: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'leaflet' | 'newsletter' | 'social' | 'waiting-room' | 'form-header' | 'campaign' | 'general';
+  requestType?: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'leaflet' | 'newsletter' | 'social' | 'waiting-room' | 'form-header' | 'campaign' | 'photo' | 'general';
   includeBranding?: boolean;  // Option to include practice branding
   
   // Image Studio specific fields
@@ -48,7 +48,7 @@ interface ImageGenerationRequest {
   summariseSupportingContent?: boolean;
   keyMessages?: string[];
   targetAudience?: 'patients' | 'staff' | 'public' | 'clinical' | 'elderly' | 'parents' | 'young-adults' | 'executive-board';
-  purpose?: 'poster' | 'social' | 'leaflet' | 'newsletter' | 'banner' | 'waiting-room' | 'infographic' | 'campaign' | 'form-header' | 'general';
+  purpose?: 'poster' | 'social' | 'leaflet' | 'newsletter' | 'banner' | 'waiting-room' | 'infographic' | 'campaign' | 'form-header' | 'photo' | 'general';
   stylePreset?: 'nhs-professional' | 'modern-minimal' | 'friendly-welcoming' | 'bold-impactful' | 'clinical-medical' | 'custom';
   colourPalette?: {
     primary: string;
@@ -507,6 +507,7 @@ CURRENT DATE: ${dateStr}
       'form-header': 'professional document header or letterhead with clean, formal design',
       campaign: 'health campaign promotional material with clear call-to-action',
       banner: 'website or email banner with professional design',
+      photo: 'realistic photographic image with natural lighting, depth of field, and photorealistic detail',
       general: 'image or visual'
     };
 

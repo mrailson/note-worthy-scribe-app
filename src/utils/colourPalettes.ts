@@ -145,6 +145,7 @@ export const PURPOSE_TYPES = [
   { id: 'infographic', label: 'Infographic', description: 'Data visualisation', aspectRatio: '9:16' },
   { id: 'campaign', label: 'Campaign', description: 'Health campaign material', aspectRatio: '1:1' },
   { id: 'form-header', label: 'Letterhead', description: 'Document header/logo', aspectRatio: '4:1' },
+  { id: 'photo', label: 'Photo Image', description: 'Realistic photograph style', aspectRatio: '4:3' },
   { id: 'general', label: 'General', description: 'Custom purpose', aspectRatio: '1:1' }
 ] as const;
 

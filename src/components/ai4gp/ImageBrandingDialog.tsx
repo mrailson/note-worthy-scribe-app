@@ -241,6 +241,7 @@ export const ImageBrandingDialog: React.FC<ImageBrandingDialogProps> = ({
     infographic: 'infographic',
     chart: 'chart',
     diagram: 'diagram',
+    photo: 'photo image',
     general: 'image',
   };
 
