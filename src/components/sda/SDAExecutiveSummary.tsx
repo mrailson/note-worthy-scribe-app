@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, ZoomIn, ZoomOut } from "lucide-react";
+import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList, FileText, Download, BookOpen, Info, ZoomIn, ZoomOut, X } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/nres-logo.png";
@@ -15,6 +15,8 @@ import { ProgrammePlanGantt } from "./programme-plan";
 import { SDAPartnerQuickGuide } from "./SDAPartnerQuickGuide";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import NRESGlassMap from "./NRESGlassMap";
+
+const NRESReportingRequirements = lazy(() => import("@/components/sda/NRESReportingRequirements"));
 
 const populationData = [
   { name: "The Parks MC", value: 22827, color: "#005EB8" },
@@ -41,6 +43,8 @@ export const SDAExecutiveSummary = () => {
   const [mapBtnHovered, setMapBtnHovered] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapZoom, setMapZoom] = useState(120);
+  const [reportingBtnHovered, setReportingBtnHovered] = useState(false);
+  const [showReportingPreview, setShowReportingPreview] = useState(false);
 
   const handleDownloadBidRequirements = () => {
     const link = document.createElement('a');
@@ -52,6 +56,21 @@ export const SDAExecutiveSummary = () => {
   };
 
   return (
+    <>
+      {/* Reporting Requirements Fullscreen Modal */}
+      {showReportingPreview && (
+        <div className="fixed inset-0 z-[200] bg-white overflow-auto">
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200 shadow-sm">
+            <span className="text-sm font-semibold text-slate-700">ICB Reporting Requirements Explorer</span>
+            <Button variant="outline" size="sm" onClick={() => setShowReportingPreview(false)}>
+              <X className="h-4 w-4 mr-1" /> Close Preview
+            </Button>
+          </div>
+          <Suspense fallback={<div className="flex items-center justify-center h-screen text-slate-400">Loading preview…</div>}>
+            <NRESReportingRequirements />
+          </Suspense>
+        </div>
+      )}
     <div className="space-y-6">
       {/* Collapsible Key Metrics Row */}
       <Collapsible open={metricsOpen} onOpenChange={setMetricsOpen}>
@@ -224,6 +243,98 @@ export const SDAExecutiveSummary = () => {
                         <PoundSterling className="w-6 h-6 text-green-600" />
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+
+                {/* Reporting Requirements Button - same style as Live Planning Map */}
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div
+                      onMouseEnter={() => setReportingBtnHovered(true)}
+                      onMouseLeave={() => setReportingBtnHovered(false)}
+                      onClick={() => setShowReportingPreview(true)}
+                      style={{
+                        position: "relative",
+                        cursor: "pointer",
+                        borderRadius: "10px",
+                        padding: "10px 12px",
+                        background: reportingBtnHovered 
+                          ? "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)" 
+                          : "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)",
+                        border: reportingBtnHovered ? "1px solid #7c3aed" : "1px solid rgba(124, 58, 237, 0.2)",
+                        transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+                        animation: !reportingBtnHovered ? "reportingPulse 3s ease-in-out infinite" : "none",
+                        boxShadow: reportingBtnHovered 
+                          ? "0 8px 30px rgba(124, 58, 237, 0.3), 0 0 0 1px rgba(124, 58, 237, 0.1)" 
+                          : "0 2px 12px rgba(124, 58, 237, 0.15)",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {reportingBtnHovered && (
+                        <div style={{
+                          position: "absolute",
+                          top: 0, left: 0, right: 0, bottom: 0,
+                          background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)",
+                          backgroundSize: "200% 100%",
+                          animation: "shimmer 2s linear infinite",
+                          pointerEvents: "none",
+                        }} />
+                      )}
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative", zIndex: 1 }}>
+                        <div style={{
+                          width: "36px", height: "36px", borderRadius: "8px",
+                          background: reportingBtnHovered ? "rgba(255,255,255,0.15)" : "rgba(124,58,237,0.08)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "all 0.3s ease", flexShrink: 0,
+                        }}>
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                            <rect x="4" y="3" width="16" height="18" rx="2" stroke={reportingBtnHovered ? "#fff" : "#7c3aed"} strokeWidth="1.5" fill="none">
+                              <animate attributeName="opacity" values="0.9;1;0.9" dur="2s" repeatCount="indefinite" />
+                            </rect>
+                            <line x1="8" y1="8" x2="16" y2="8" stroke={reportingBtnHovered ? "rgba(255,255,255,0.7)" : "rgba(124,58,237,0.5)"} strokeWidth="1.2" />
+                            <line x1="8" y1="12" x2="14" y2="12" stroke={reportingBtnHovered ? "rgba(255,255,255,0.5)" : "rgba(124,58,237,0.35)"} strokeWidth="1.2" />
+                            <line x1="8" y1="16" x2="12" y2="16" stroke={reportingBtnHovered ? "rgba(255,255,255,0.5)" : "rgba(124,58,237,0.35)"} strokeWidth="1.2" />
+                            <circle cx="17" cy="17" r="4" fill={reportingBtnHovered ? "rgba(255,255,255,0.2)" : "rgba(124,58,237,0.1)"} stroke={reportingBtnHovered ? "#fff" : "#7c3aed"} strokeWidth="1.2">
+                              <animate attributeName="r" values="4;4.5;4" dur="2.5s" repeatCount="indefinite" />
+                            </circle>
+                            <path d="M15.5 17H18.5M17 15.5V18.5" stroke={reportingBtnHovered ? "#fff" : "#7c3aed"} strokeWidth="1" strokeLinecap="round" />
+                          </svg>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{
+                              fontSize: "12px", fontWeight: 700, letterSpacing: "0.3px",
+                              color: reportingBtnHovered ? "#fff" : "#5b21b6",
+                              transition: "color 0.3s ease",
+                              whiteSpace: "nowrap",
+                            }}>Reporting Requirements</span>
+                            <span style={{
+                              fontSize: "7px", fontWeight: 700, letterSpacing: "1.5px",
+                              padding: "2px 5px", borderRadius: "4px",
+                              background: reportingBtnHovered ? "rgba(255,255,255,0.2)" : "rgba(124,58,237,0.1)",
+                              color: reportingBtnHovered ? "rgba(255,255,255,0.9)" : "#7c3aed",
+                              transition: "all 0.3s ease",
+                            }}>INTERACTIVE</span>
+                          </div>
+                          <div style={{
+                            fontSize: "9px", marginTop: "2px",
+                            color: reportingBtnHovered ? "rgba(255,255,255,0.8)" : "#7c6da0",
+                            transition: "color 0.3s ease",
+                          }}>ICB specification requirements & compliance guide</div>
+                        </div>
+                        <div style={{
+                          width: "24px", height: "24px", borderRadius: "6px",
+                          background: reportingBtnHovered ? "rgba(255,255,255,0.15)" : "rgba(124,58,237,0.06)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          transition: "all 0.3s ease", flexShrink: 0,
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                            <path d="M5 3L9 7L5 11" stroke={reportingBtnHovered ? "#fff" : "#7c3aed"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-2">Updated: 22 February 2026</p>
                   </CardContent>
                 </Card>
 
@@ -558,7 +669,13 @@ export const SDAExecutiveSummary = () => {
           50% { box-shadow: 0 2px 20px rgba(0, 145, 152, 0.35), 0 0 0 3px rgba(0, 145, 152, 0.08); }
           100% { box-shadow: 0 2px 12px rgba(0, 145, 152, 0.15); }
         }
+        @keyframes reportingPulse {
+          0% { box-shadow: 0 2px 12px rgba(124, 58, 237, 0.15); }
+          50% { box-shadow: 0 2px 20px rgba(124, 58, 237, 0.35), 0 0 0 3px rgba(124, 58, 237, 0.08); }
+          100% { box-shadow: 0 2px 12px rgba(124, 58, 237, 0.15); }
+        }
       `}</style>
     </div>
+    </>
   );
 };
