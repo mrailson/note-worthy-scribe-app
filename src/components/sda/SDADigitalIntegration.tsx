@@ -112,7 +112,7 @@ export const SDADigitalIntegration = () => {
               <h2 className="text-xl font-bold text-[#003087]">NRES New Models — ICB Contractual & Reporting Requirements Overview</h2>
               <p className="text-sm text-slate-500">Operational tools and reference documents</p>
             </div>
-            <p className="text-xs text-slate-400">Last updated: 20 February 2026</p>
+            <p className="text-xs text-slate-400">Last updated: 22 February 2026</p>
           </div>
         </div>
 
@@ -200,7 +200,7 @@ export const SDADigitalIntegration = () => {
       <CollapsibleCard
         title="SDA Reporting Requirements from Specification — Overview & Planning"
         icon={<BarChart3 className="w-5 h-5" />}
-        defaultOpen={false}
+        defaultOpen={true}
         
       >
         <div className="space-y-6">
@@ -322,7 +322,7 @@ export const SDADigitalIntegration = () => {
           </div>
 
           <p className="text-xs text-slate-500 italic">
-            Source: NRES_SDA_Pilot_Reporting_Plan.docx v1.4 | Last updated: February 2026
+            Source: NRES_SDA_Pilot_Reporting_Plan.docx v1.4 | Last updated: 22 February 2026
           </p>
         </div>
       </CollapsibleCard>
