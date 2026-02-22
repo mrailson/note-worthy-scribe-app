@@ -243,12 +243,7 @@ export const SDAExecutiveSummary = () => {
                         <PoundSterling className="w-6 h-6 text-green-600" />
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Reporting Requirements Button - same style as Live Planning Map */}
-                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
+                    {/* Reporting Requirements Button */}
                     <div
                       onMouseEnter={() => setReportingBtnHovered(true)}
                       onMouseLeave={() => setReportingBtnHovered(false)}
@@ -268,6 +263,8 @@ export const SDAExecutiveSummary = () => {
                           ? "0 8px 30px rgba(124, 58, 237, 0.3), 0 0 0 1px rgba(124, 58, 237, 0.1)" 
                           : "0 2px 12px rgba(124, 58, 237, 0.15)",
                         overflow: "hidden",
+                        marginTop: "12px",
+                        maxWidth: "100%",
                       }}
                     >
                       {reportingBtnHovered && (
