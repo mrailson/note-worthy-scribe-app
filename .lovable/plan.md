@@ -1,32 +1,21 @@
 
-## Improved Delete Confirmation for Stock Images
 
-### What changes
-Replace the browser's native `confirm()` dialog with a proper styled confirmation dialog, and add a "Bulk Delete Mode" toggle that, when enabled, skips the confirmation for 15 minutes to allow rapid bulk deletion.
+## Fix: Delete Confirmation Locking the Page
 
-### How it works
+### Problem
+The delete confirmation `AlertDialog` opens on top of the lightbox `Dialog`, causing two overlapping overlays (both at `z-[100]`). This makes the background go completely black and the page appears locked — clicks don't reach through properly.
 
-1. **Proper Delete Confirmation Dialog** -- A styled AlertDialog (Radix) will appear when deleting a stock image, showing the image thumbnail, title, and a clear "Delete" / "Cancel" button pair.
+### Solution
+Two changes to `src/components/ai4gp/studio/StockImageLibrary.tsx`:
 
-2. **Bulk Delete Mode Toggle** -- A switch/slider labelled "Bulk Delete Mode (skip confirmations for 15 min)" visible only to admins. When toggled on:
-   - A timestamp is recorded
-   - For the next 15 minutes, clicking delete will immediately delete without confirmation
-   - A subtle badge/timer shows remaining time
-   - After 15 minutes, the mode automatically expires and confirmations resume
+1. **Close the lightbox before showing the delete confirmation** -- When delete is clicked from within the lightbox, close the lightbox first, then show the `AlertDialog`. This avoids stacking two modal overlays.
 
-3. **Two delete points updated** -- Both the grid overlay delete button and the lightbox modal delete button will use the new logic.
+2. **Ensure the AlertDialog has a higher z-index** -- As a safety measure, give the `AlertDialogContent` and its overlay a `z-[110]` or higher so it always renders above anything else, matching what the alert-dialog component already supports.
 
 ### Technical details
 
-**File: `src/components/ai4gp/studio/StockImageLibrary.tsx`**
+- In the lightbox delete button's `onClick` handler (around line 841), add `setLightboxImage(null)` before calling `handleDelete(lightboxImage)`, so the lightbox closes first.
+- Optionally add a `className` override on `AlertDialogContent` to ensure `z-[110]` stacking.
 
-- Import `AlertDialog`, `AlertDialogAction`, `AlertDialogCancel`, `AlertDialogContent`, `AlertDialogDescription`, `AlertDialogFooter`, `AlertDialogHeader`, `AlertDialogTitle` from Radix, and `Switch` from the UI library.
-- Add state:
-  - `deleteTarget: StockImage | null` -- the image pending deletion confirmation
-  - `bulkDeleteUntil: number | null` -- timestamp when bulk mode expires
-- Add a helper `isBulkDeleteActive` that checks if `bulkDeleteUntil` is set and `Date.now() < bulkDeleteUntil`.
-- Add a `handleDelete(image)` function: if bulk mode is active, delete immediately; otherwise set `deleteTarget` to show the confirmation dialog.
-- Replace both `confirm(...)` calls with `handleDelete(...)`.
-- Add an `AlertDialog` component rendering the confirmation with image preview.
-- Add a `Switch` toggle in the admin toolbar area for "Bulk Delete Mode" that sets `bulkDeleteUntil` to `Date.now() + 15 * 60 * 1000`.
-- Use a `useEffect` with a timer to auto-clear `bulkDeleteUntil` when it expires and show a toast notification.
+This is a small, targeted fix -- two lines changed.
+
