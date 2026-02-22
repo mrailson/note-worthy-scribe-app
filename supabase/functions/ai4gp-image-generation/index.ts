@@ -733,11 +733,13 @@ Content guidelines:
 - No explicit, offensive, or inappropriate imagery`;
     } else if (effectiveRequestType === 'infographic') {
       // Infographic without document content - use prompt directly
+      // Truncate very long prompts to prevent AI gateway timeouts
+      const truncatedPrompt = prompt.length > 4000 ? prompt.substring(0, 4000) + '\n\n[Content truncated for image generation — focus on the key points above]' : prompt;
       const brandingSection = buildBrandingSection(practiceContext, effectiveRequestType, brandingLevel, includeLogo, customBranding, editedDetails, customPracticeName);
       
       imagePrompt = `Create a professional single-page infographic.
 
-${prompt}
+${truncatedPrompt}
 ${brandingSection}
 
 TEXT GUIDELINES:
@@ -1156,12 +1158,14 @@ Content guidelines:
         text: imagePrompt
       });
       
-      // Add timeout to prevent hanging indefinitely (90 seconds)
+      // Add timeout to prevent hanging indefinitely
+      // Gemini 3 Pro is slower — allow 150s, others 90s
+      const timeoutMs = selectedImageModel.includes('gemini-3-pro') ? 150000 : 90000;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
-        console.error('Image generation timeout after 90 seconds');
+        console.error(`Image generation timeout after ${timeoutMs / 1000} seconds`);
         controller.abort();
-      }, 90000);
+      }, timeoutMs);
 
       let response;
       try {
@@ -1269,8 +1273,14 @@ Content guidelines:
         }
       }
 
-      // Safely parse JSON response - handle empty or malformed responses
-      const responseText = await response.text();
+      // Safely parse JSON response - handle empty, malformed, or connection-dropped responses
+      let responseText: string;
+      try {
+        responseText = await response.text();
+      } catch (bodyErr) {
+        console.error('Failed to read response body (connection may have been dropped):', bodyErr);
+        throw new Error('The image generation request took too long. Please try a shorter prompt or a simpler image.');
+      }
       if (!responseText || responseText.trim() === '') {
         console.error('Empty response from AI Gateway');
         throw new Error('Image generation returned an empty response. Please try again.');
