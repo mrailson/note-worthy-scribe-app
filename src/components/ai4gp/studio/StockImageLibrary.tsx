@@ -763,7 +763,11 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
             <div
               key={image.id}
               className="group relative rounded-lg overflow-hidden border bg-muted/30 cursor-pointer aspect-[4/3]"
-              onClick={() => setLightboxImage(image)}
+              onClick={(e) => {
+                // Don't open lightbox if delete button was clicked
+                if ((e.target as HTMLElement).closest('[data-delete-btn]')) return;
+                setLightboxImage(image);
+              }}
             >
               <img
                 src={image.image_url}
@@ -779,14 +783,16 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
               </div>
               {isAdmin && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(image);
-                  }}
-                  className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+                   data-delete-btn
+                   onClick={(e) => {
+                     e.stopPropagation();
+                     e.preventDefault();
+                     handleDelete(image);
+                   }}
+                   className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                 >
+                   <X className="h-3 w-3" />
+                 </button>
               )}
             </div>
           ))}
