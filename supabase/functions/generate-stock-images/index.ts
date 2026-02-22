@@ -397,7 +397,9 @@ serve(async (req) => {
 
     if (!category || !model) throw new Error('Category and model are required');
 
-    const imageCount = Math.min(count || 10, 10);
+    // Limit Pro model to 5 images max due to longer generation time (~30s each)
+    const maxCount = (model === 'gemini-pro') ? Math.min(count || 5, 5) : Math.min(count || 10, 10);
+    const imageCount = maxCount;
     const results: { title: string; imageUrl: string; error?: string }[] = [];
 
     // Get prompts

@@ -201,7 +201,8 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
   const handleGenerateBatch = async () => {
     const category = selectedCategory || 'Patients';
     setIsGenerating(true);
-    toast.info(`Generating 10 images for "${category}" using ${AI_MODELS.find(m => m.value === generateModel)?.label}... This may take a few minutes.`);
+    const batchCount = generateModel === 'gemini-pro' ? 5 : 10;
+    toast.info(`Generating ${batchCount} images for "${category}" using ${AI_MODELS.find(m => m.value === generateModel)?.label}... This may take a few minutes.`);
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -514,7 +515,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
             <div className="flex items-center gap-2 p-3">
               <Sparkles className="h-4 w-4 text-primary shrink-0" />
               <span className="text-sm font-medium shrink-0">
-                Generate 10 for "{selectedCategory || 'Patients'}"
+                Generate {generateModel === 'gemini-pro' ? '5' : '10'} for "{selectedCategory || 'Patients'}"
               </span>
               <Select value={generateModel} onValueChange={setGenerateModel}>
                 <SelectTrigger className="w-[180px] h-8 text-xs">
