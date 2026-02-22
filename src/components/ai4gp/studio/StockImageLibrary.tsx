@@ -1,13 +1,15 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { Search, Download, PenLine, X, Loader2, ImageIcon, Sprout, Wand2, Trash2, Sparkles, Mic, MicOff, Upload, FileImage, ChevronRight } from 'lucide-react';
+import { Search, Download, PenLine, X, Loader2, ImageIcon, Sprout, Wand2, Trash2, Sparkles, Mic, MicOff, Upload, FileImage, ChevronRight, Timer } from 'lucide-react';
 import { useStockImages, STOCK_IMAGE_CATEGORIES, CATEGORY_GROUPS, StockImage } from '@/hooks/useStockImages';
 import { useQueryClient } from '@tanstack/react-query';
 import { StockImageUploader } from './StockImageUploader';
@@ -62,6 +64,9 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
   const [batchInstructions, setBatchInstructions] = useState('');
   const [batchRefFile, setBatchRefFile] = useState<File | null>(null);
   const [batchRefPreview, setBatchRefPreview] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<StockImage | null>(null);
+  const [bulkDeleteUntil, setBulkDeleteUntil] = useState<number | null>(null);
+  const [bulkTimeLeft, setBulkTimeLeft] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const batchFileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -324,6 +329,44 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
     }
   };
 
+  // Bulk delete mode timer
+  const isBulkDeleteActive = bulkDeleteUntil !== null && Date.now() < bulkDeleteUntil;
+
+  useEffect(() => {
+    if (!bulkDeleteUntil) return;
+    const tick = () => {
+      const remaining = bulkDeleteUntil - Date.now();
+      if (remaining <= 0) {
+        setBulkDeleteUntil(null);
+        setBulkTimeLeft('');
+        toast.info('Bulk delete mode has expired — confirmations resumed');
+        return;
+      }
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      setBulkTimeLeft(`${mins}:${secs.toString().padStart(2, '0')}`);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [bulkDeleteUntil]);
+
+  const handleDelete = (image: StockImage) => {
+    if (isBulkDeleteActive) {
+      deleteImage(image);
+    } else {
+      setDeleteTarget(image);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      deleteImage(deleteTarget);
+      if (lightboxImage?.id === deleteTarget.id) setLightboxImage(null);
+      setDeleteTarget(null);
+    }
+  };
+
   const handleDownload = (image: StockImage) => {
     const link = document.createElement('a');
     link.href = image.image_url;
@@ -423,7 +466,34 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
             </Button>
           </div>
 
-          {/* Batch generate for current category */}
+          {/* Bulk Delete Mode toggle */}
+          <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+            <Switch
+              checked={isBulkDeleteActive}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setBulkDeleteUntil(Date.now() + 15 * 60 * 1000);
+                  toast.success('Bulk delete mode enabled — confirmations skipped for 15 minutes');
+                } else {
+                  setBulkDeleteUntil(null);
+                  setBulkTimeLeft('');
+                  toast.info('Bulk delete mode disabled');
+                }
+              }}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium">Bulk Delete Mode</p>
+              <p className="text-[10px] text-muted-foreground">Skip confirmations for 15 min</p>
+            </div>
+            {isBulkDeleteActive && (
+              <Badge variant="destructive" className="text-[10px] gap-1 shrink-0">
+                <Timer className="h-3 w-3" />
+                {bulkTimeLeft}
+              </Badge>
+            )}
+          </div>
+
+
           <div className="border rounded-lg bg-muted/20 overflow-hidden">
             <div className="flex items-center gap-2 p-3">
               <Sparkles className="h-4 w-4 text-primary shrink-0" />
@@ -679,7 +749,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (confirm('Delete this stock image?')) deleteImage(image);
+                    handleDelete(image);
                   }}
                   className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
@@ -736,10 +806,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
                     variant="destructive"
                     size="icon"
                     onClick={() => {
-                      if (confirm('Delete this stock image?')) {
-                        deleteImage(lightboxImage);
-                        setLightboxImage(null);
-                      }
+                      handleDelete(lightboxImage);
                     }}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -750,6 +817,40 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete stock image?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this image from the library. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteTarget && (
+            <div className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
+              <img
+                src={deleteTarget.image_url}
+                alt={deleteTarget.title}
+                className="w-16 h-16 object-cover rounded"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{deleteTarget.title}</p>
+                <p className="text-xs text-muted-foreground">{deleteTarget.category}</p>
+              </div>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
