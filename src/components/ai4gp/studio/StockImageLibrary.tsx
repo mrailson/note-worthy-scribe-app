@@ -693,7 +693,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
 
       {/* Lightbox */}
       <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full p-4">
+        <DialogContent className="max-w-3xl max-h-[95vh] w-fit p-4">
           {lightboxImage && (
             <div className="flex flex-col gap-4">
               <img
