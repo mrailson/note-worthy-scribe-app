@@ -67,6 +67,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
   const [deleteTarget, setDeleteTarget] = useState<StockImage | null>(null);
   const [bulkDeleteUntil, setBulkDeleteUntil] = useState<number | null>(null);
   const [bulkTimeLeft, setBulkTimeLeft] = useState<string>('');
+  const [showNewOnly, setShowNewOnly] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const batchFileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -493,7 +494,22 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
             )}
           </div>
 
+          {/* New images only toggle */}
+          <div className="flex items-center gap-3 rounded-lg border px-3 py-2">
+            <Switch
+              checked={showNewOnly}
+              onCheckedChange={setShowNewOnly}
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium">New Images Only</p>
+              <p className="text-[10px] text-muted-foreground">Show only images created in the last 24 hours</p>
+            </div>
+            {showNewOnly && (
+              <Badge variant="secondary" className="text-[10px] shrink-0">Last 24h</Badge>
+            )}
+          </div>
 
+          {/* Batch generate for current category */}
           <div className="border rounded-lg bg-muted/20 overflow-hidden">
             <div className="flex items-center gap-2 p-3">
               <Sparkles className="h-4 w-4 text-primary shrink-0" />
@@ -711,23 +727,39 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
       )}
 
       {/* Image grid */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      ) : images.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-          <ImageIcon className="h-10 w-10 mb-2" />
-          <p className="text-sm">No stock images found</p>
-          {searchQuery && (
-            <Button variant="ghost" size="sm" onClick={() => setSearchQuery('')} className="mt-2">
-              Clear search
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {images.map(image => (
+      {(() => {
+        const displayImages = showNewOnly
+          ? images.filter(img => {
+              const created = new Date(img.created_at).getTime();
+              return Date.now() - created < 24 * 60 * 60 * 1000;
+            })
+          : images;
+        return isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : displayImages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <ImageIcon className="h-10 w-10 mb-2" />
+            <p className="text-sm">{showNewOnly ? 'No images created in the last 24 hours' : 'No stock images found'}</p>
+            {(searchQuery || showNewOnly) && (
+              <div className="flex gap-2 mt-2">
+                {searchQuery && (
+                  <Button variant="ghost" size="sm" onClick={() => setSearchQuery('')}>
+                    Clear search
+                  </Button>
+                )}
+                {showNewOnly && (
+                  <Button variant="ghost" size="sm" onClick={() => setShowNewOnly(false)}>
+                    Show all images
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {displayImages.map(image => (
             <div
               key={image.id}
               className="group relative rounded-lg overflow-hidden border bg-muted/30 cursor-pointer aspect-[4/3]"
@@ -759,7 +791,8 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
             </div>
           ))}
         </div>
-      )}
+        );
+      })()}
 
       {/* Lightbox */}
       <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
