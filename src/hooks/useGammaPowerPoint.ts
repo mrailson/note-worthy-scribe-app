@@ -149,7 +149,7 @@ export const useGammaPowerPoint = () => {
     return { topic, supportingContent };
   };
 
-  const generateWithGamma = async (content: string, title?: string, storeInCloud = true, slideCount = 4): Promise<GenerationResult> => {
+  const generateWithGamma = async (content: string, title?: string, storeInCloud = true, slideCount = 4, useStockLibraryImages = true): Promise<GenerationResult> => {
     if (!content?.trim()) {
       toast.error('No content to generate presentation from');
       return { success: false, error: 'No content provided' };
@@ -170,6 +170,7 @@ export const useGammaPowerPoint = () => {
         presentationType: 'Professional Healthcare Presentation',
         audience: 'healthcare professionals',
         includeSpeakerNotes: true,
+        useStockLibraryImages,
       };
 
       // Include theme settings
