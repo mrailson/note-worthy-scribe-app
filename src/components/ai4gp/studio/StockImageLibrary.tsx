@@ -839,6 +839,7 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
                     variant="destructive"
                     size="icon"
                     onClick={() => {
+                      setLightboxImage(null);
                       handleDelete(lightboxImage);
                     }}
                   >
