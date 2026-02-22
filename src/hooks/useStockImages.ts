@@ -14,9 +14,49 @@ export const STOCK_IMAGE_CATEGORIES = [
   'Meetings & Training',
   'Branding & Logos',
   'Infographic Elements',
+  'Health Promotion & Campaigns',
+  'Signage & Wayfinding',
+  'Patient Safety & Infection Control',
+  'Pharmacy & Prescriptions',
+  'Mental Health & Wellbeing',
+  'Access & Inclusivity',
+  'Seasonal & Calendar Events',
+  'Self-Care & Prevention',
+  'Urgent & Emergency Care',
+  'HR & Recruitment',
+  'Data & Digital Services',
+  'CQC & Compliance',
 ] as const;
 
 export type StockImageCategory = typeof STOCK_IMAGE_CATEGORIES[number];
+
+export const CATEGORY_GROUPS: { label: string; categories: StockImageCategory[] }[] = [
+  {
+    label: 'Clinical',
+    categories: ['Patients', 'Clinical Rooms', 'Patient Safety & Infection Control', 'Pharmacy & Prescriptions', 'Urgent & Emergency Care'],
+  },
+  {
+    label: 'Practice & Facilities',
+    categories: ['Buildings', 'Reception & Waiting Areas', 'Signage & Wayfinding', 'Access & Inclusivity'],
+  },
+  {
+    label: 'People & Culture',
+    categories: ['Staff & Teams', 'HR & Recruitment', 'Meetings & Training'],
+  },
+  {
+    label: 'Health & Community',
+    categories: ['Community & Wellbeing', 'Mental Health & Wellbeing', 'Health Promotion & Campaigns', 'Self-Care & Prevention', 'Seasonal & Calendar Events'],
+  },
+  {
+    label: 'Digital & Governance',
+    categories: ['Technology', 'Data & Digital Services', 'CQC & Compliance'],
+  },
+  {
+    label: 'Design Assets',
+    categories: ['Branding & Logos', 'Infographic Elements'],
+  },
+];
+
 
 export interface StockImage {
   id: string;

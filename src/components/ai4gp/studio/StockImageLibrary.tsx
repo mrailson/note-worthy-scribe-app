@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Search, Download, PenLine, X, Loader2, ImageIcon, Sprout, Wand2, Trash2, Sparkles, Mic, MicOff, Upload, FileImage } from 'lucide-react';
-import { useStockImages, STOCK_IMAGE_CATEGORIES, StockImage } from '@/hooks/useStockImages';
+import { useStockImages, STOCK_IMAGE_CATEGORIES, CATEGORY_GROUPS, StockImage } from '@/hooks/useStockImages';
 import { useQueryClient } from '@tanstack/react-query';
 import { StockImageUploader } from './StockImageUploader';
 import { supabase } from '@/integrations/supabase/client';
@@ -326,8 +326,8 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
         />
       </div>
 
-      {/* Category filter chips */}
-      <div className="flex flex-wrap gap-1.5">
+      {/* Category filter chips — grouped */}
+      <div className="space-y-2">
         <Badge
           variant={selectedCategory === null ? 'default' : 'outline'}
           className="cursor-pointer text-xs"
@@ -335,18 +335,31 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
         >
           All ({allImages.length})
         </Badge>
-        {STOCK_IMAGE_CATEGORIES.map(cat => {
-          const count = categoryCounts[cat] || 0;
-          if (count === 0 && !isAdmin) return null;
+
+        {CATEGORY_GROUPS.map(group => {
+          const visibleCats = group.categories.filter(cat => {
+            const count = categoryCounts[cat] || 0;
+            return count > 0 || isAdmin;
+          });
+          if (visibleCats.length === 0) return null;
           return (
-            <Badge
-              key={cat}
-              variant={selectedCategory === cat ? 'default' : 'outline'}
-              className="cursor-pointer text-xs"
-              onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
-            >
-              {cat} ({count})
-            </Badge>
+            <div key={group.label}>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                {group.label}
+              </span>
+              <div className="flex flex-wrap gap-1 mt-0.5">
+                {visibleCats.map(cat => (
+                  <Badge
+                    key={cat}
+                    variant={selectedCategory === cat ? 'default' : 'outline'}
+                    className="cursor-pointer text-xs"
+                    onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                  >
+                    {cat} ({categoryCounts[cat] || 0})
+                  </Badge>
+                ))}
+              </div>
+            </div>
           );
         })}
       </div>
