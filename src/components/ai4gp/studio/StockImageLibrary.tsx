@@ -213,6 +213,9 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
         }
       }
       
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 min timeout
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-stock-images`,
         {
@@ -229,8 +232,10 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
             ...(batchInstructions.trim() && { batchInstructions: batchInstructions.trim() }),
             ...(referenceImageUrl && { referenceImageUrl }),
           }),
+          signal: controller.signal,
         }
       );
+      clearTimeout(timeout);
       
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Generation failed');
@@ -238,7 +243,12 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
       toast.success(`Generated ${result.generated}/${result.total} images successfully`);
       queryClient.invalidateQueries({ queryKey: ['stock-images'] });
     } catch (err: any) {
-      toast.error(`Generation failed: ${err.message}`);
+      if (err.name === 'AbortError') {
+        toast.info('Generation is taking a while — images may still be appearing. Refresh to check.', { duration: 8000 });
+        queryClient.invalidateQueries({ queryKey: ['stock-images'] });
+      } else {
+        toast.error(`Generation failed: ${err.message}`);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -270,6 +280,9 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
         }
       }
       
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+      
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-stock-images`,
         {
@@ -286,8 +299,10 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
             customPrompt: customPrompt,
             referenceImageUrl,
           }),
+          signal: controller.signal,
         }
       );
+      clearTimeout(timeout);
       
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Generation failed');
@@ -298,7 +313,12 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
       setShowCustomPrompt(false);
       queryClient.invalidateQueries({ queryKey: ['stock-images'] });
     } catch (err: any) {
-      toast.error(`Generation failed: ${err.message}`);
+      if (err.name === 'AbortError') {
+        toast.info('Generation is taking a while — images may still be appearing. Refresh to check.', { duration: 8000 });
+        queryClient.invalidateQueries({ queryKey: ['stock-images'] });
+      } else {
+        toast.error(`Generation failed: ${err.message}`);
+      }
     } finally {
       setIsGenerating(false);
     }
