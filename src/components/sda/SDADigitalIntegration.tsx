@@ -356,7 +356,7 @@ export const SDADigitalIntegration = () => {
 
 
       <CollapsibleCard
-        title="SDA Pilot Reporting Plan"
+        title="SDA Reporting Requirements from Specification — Overview & Planning"
         icon={<BarChart3 className="w-5 h-5" />}
         defaultOpen={false}
         
@@ -366,7 +366,7 @@ export const SDADigitalIntegration = () => {
           <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
             <FileText className="w-5 h-5 text-[#005EB8]" />
             <div className="flex-1">
-              <h4 className="font-semibold text-slate-900">NRES SDA Pilot Reporting Plan</h4>
+              <h4 className="font-semibold text-slate-900">NRES SDA Reporting Requirements from Specification — Overview & Planning</h4>
               <p className="text-sm text-slate-600">Version 1.6 | February 2026</p>
             </div>
             <Button variant="outline" size="sm" asChild className="flex-shrink-0">
