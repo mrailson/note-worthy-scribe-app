@@ -1,79 +1,83 @@
 
 
-## Add Invoice Status Tracking to NRES Hours Entries
+## Add 12 New Stock Image Categories for Primary Care
 
 ### Overview
-Add the ability for admins to mark hours entries as "Invoiced to SNO/PML" -- individually or in bulk -- with a date invoiced and an audit trail of who made the update.
+Add 12 new GP-practice-specific stock image categories to the Stock Library, with prompts tailored to Northamptonshire NHS primary care settings. The category filter chips will be reorganised into logical groups to keep the UI tidy as the list grows from 10 to 22 categories.
 
-### Database Changes
+### New Categories
+1. **Health Promotion & Campaigns** — Flu jabs, cancer screening, smoking cessation, NHS campaign materials
+2. **Signage & Wayfinding** — Door signs, directional arrows, room labels, accessibility symbols
+3. **Patient Safety & Infection Control** — Hand hygiene, PPE, sharps disposal, clinical waste
+4. **Pharmacy & Prescriptions** — Repeat prescriptions, pharmacy counters, electronic prescribing
+5. **Mental Health & Wellbeing** — Calm spaces, counselling rooms, mindfulness, social prescribing
+6. **Access & Inclusivity** — Wheelchair ramps, hearing loops, Easy Read materials, BSL
+7. **Seasonal & Calendar Events** — Winter pressures, flu season, Christmas closures, bank holidays
+8. **Self-Care & Prevention** — Patient education, healthy lifestyle, long-term condition management
+9. **Urgent & Emergency Care** — Minor injuries, triage, 111 signposting, emergency equipment
+10. **HR & Recruitment** — Job adverts, induction, staff wellbeing, appraisals
+11. **Data & Digital Services** — Online access, NHS App, data dashboards, cyber security
+12. **CQC & Compliance** — Inspection preparation, policy folders, ratings displays, governance
 
-**Add 3 new columns to `nres_hours_entries` table:**
-
-| Column | Type | Default | Purpose |
-|--------|------|---------|---------|
-| `invoice_status` | text | `null` | Values: `null` (not invoiced), `'invoiced'` |
-| `invoiced_date` | date | `null` | The date the entry was invoiced to SNO/PML |
-| `invoiced_by` | uuid | `null` | The user ID of the admin who marked it as invoiced |
-
-Migration SQL:
-```sql
-ALTER TABLE nres_hours_entries
-  ADD COLUMN invoice_status text DEFAULT NULL,
-  ADD COLUMN invoiced_date date DEFAULT NULL,
-  ADD COLUMN invoiced_by uuid DEFAULT NULL;
-```
-
-### UI Changes (AdminClaimsReport.tsx only)
-
-**1. Checkbox column in the Detailed view**
-- Add a checkbox on each row for bulk selection (only on uninvoiced entries).
-- Add a "Select All" checkbox in the header.
-- Show a floating action bar when entries are selected with:
-  - Count of selected entries
-  - A "Mark as Invoiced" button that opens a small dialog/popover to confirm and pick the invoice date (defaults to today)
-
-**2. Invoice status badge on each row**
-- Uninvoiced entries: no badge (or a subtle "Pending" label)
-- Invoiced entries: a green "Invoiced" badge showing the date, with a hover card showing who marked it and when
-
-**3. Individual toggle**
-- In the detailed view, each row gets a small button/icon to mark a single entry as invoiced (or to undo an invoiced status)
-
-**4. Filter by invoice status**
-- Add a filter dropdown: "All", "Pending", "Invoiced" so admins can quickly see what still needs invoicing
-
-**5. CSV export update**
-- Add `Invoice Status`, `Invoiced Date`, and `Invoiced By` columns to the CSV export
-
-### Technical Details
-
-**File: `src/components/nres/hours-tracker/AdminClaimsReport.tsx`**
-- Add `selectedEntries` state (Set of entry IDs) for bulk selection
-- Add `invoiceFilter` state for filtering by status
-- Add `handleMarkInvoiced(entryIds: string[], date: string)` function that updates the entries via Supabase and records the current user's ID as `invoiced_by`
-- Add `handleUnmarkInvoiced(entryId: string)` to allow reversing the status
-- Update the `AllEntry` and `DetailedEntry` interfaces to include the new fields
-- Update `fetchAllData` to include the new columns (already covered by `select('*')`)
-- Update the detailed table to show checkboxes, status badges, and action buttons
-- Update `exportCSV` to include the new columns
-
-**File: `src/types/nresHoursTypes.ts`**
-- Update `NRESHoursEntry` interface to include `invoice_status`, `invoiced_date`, `invoiced_by`
-
-### Workflow
+### UI Improvements — Grouped Category Display
+Currently the 10 categories display as a flat row of badge chips which will become unwieldy at 22. The plan is to group them into labelled sections:
 
 ```text
-Admin opens Admin Claims Report
-  --> Switches to Detailed view
-  --> Filters to "Pending" entries
-  --> Selects entries via checkboxes (individually or "Select All")
-  --> Clicks "Mark as Invoiced"
-  --> Confirms date (defaults to today)
-  --> Entries updated with status, date, and admin's user ID
-  --> Badge changes to "Invoiced" with date shown
+[Clinical]
+  Patients | Clinical Rooms | Patient Safety & Infection Control | Pharmacy & Prescriptions | Urgent & Emergency Care
+
+[Practice & Facilities]
+  Buildings | Reception & Waiting Areas | Signage & Wayfinding | Access & Inclusivity
+
+[People & Culture]
+  Staff & Teams | HR & Recruitment | Meetings & Training
+
+[Health & Community]
+  Community & Wellbeing | Mental Health & Wellbeing | Health Promotion & Campaigns | Self-Care & Prevention | Seasonal & Calendar Events
+
+[Digital & Governance]
+  Technology | Data & Digital Services | CQC & Compliance
+
+[Design Assets]
+  Branding & Logos | Infographic Elements
 ```
 
-### Security
-- Only the existing admin users (ADMIN_EMAILS list + system admins) can see and use this feature, as it lives within the `AdminClaimsReport` component which already gates access.
-- The `invoiced_by` field uses the authenticated user's ID from the auth context for a full audit trail.
+Each group heading will be a small muted label, with the badge chips beneath it. An "All (n)" chip remains at the top. Empty categories (zero images) are still hidden for non-admin users.
+
+### Technical Changes
+
+**1. `src/hooks/useStockImages.ts`**
+- Expand `STOCK_IMAGE_CATEGORIES` array from 10 to 22 entries
+- Add a new exported `CATEGORY_GROUPS` constant mapping group names to their categories, used by the UI for grouped display
+
+**2. `src/components/ai4gp/studio/StockImageLibrary.tsx`**
+- Replace the flat `flex-wrap` badge list with grouped sections using `CATEGORY_GROUPS`
+- Each group has a small `text-[10px] uppercase text-muted-foreground` label followed by its category badges
+- Keeps compact layout — groups separated by a thin divider or extra spacing
+
+**3. `src/components/ai4gp/studio/StockImageUploader.tsx`**
+- No structural changes needed — it already iterates `STOCK_IMAGE_CATEGORIES` for the dropdown, so the new categories appear automatically
+
+**4. `supabase/functions/generate-stock-images/index.ts`**
+- Add 12 new entries to `CATEGORY_PROMPTS` with 10 prompts each
+- All prompts will be specific to GP practices with Northamptonshire context where practical (e.g. Northamptonshire village settings, local community references, East Midlands architecture)
+- All prompts use British English and reference NHS/EMIS/SystmOne where relevant
+
+### Prompt Style Examples
+
+**Health Promotion & Campaigns:**
+- "A GP surgery noticeboard displaying seasonal flu vaccination campaign posters, NHS branding, Northamptonshire ICB materials, colourful health promotion"
+- "A practice nurse administering a flu jab to an elderly patient, NHS immunisation clinic, professional clinical setting"
+
+**Signage & Wayfinding:**
+- "A clear door sign for a GP consultation room reading 'Room 3 — Dr Patel', NHS blue, accessible font, Braille strip below"
+
+**CQC & Compliance:**
+- "A CQC 'Good' rating certificate displayed in a GP surgery reception area, NHS inspection results, professional framed display"
+
+**Pharmacy & Prescriptions:**
+- "A clinical pharmacist reviewing repeat prescriptions on EMIS Web in a GP practice dispensary, medication shelves, NHS"
+
+### No Database or Schema Changes Required
+The `stock_images` table already uses a free-text `category` column, so new categories work immediately without migration.
 
