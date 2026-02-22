@@ -839,8 +839,12 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
                     variant="destructive"
                     size="icon"
                     onClick={() => {
+                      const imageToDelete = lightboxImage;
                       setLightboxImage(null);
-                      handleDelete(lightboxImage);
+                      // Delay to let lightbox fully close before opening AlertDialog
+                      setTimeout(() => {
+                        if (imageToDelete) handleDelete(imageToDelete);
+                      }, 150);
                     }}
                   >
                     <Trash2 className="h-4 w-4" />
