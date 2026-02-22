@@ -109,7 +109,7 @@ export const SDADigitalIntegration = () => {
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-1">
             <div>
-              <h2 className="text-xl font-bold text-[#003087]">SDA Rota / Buy-Back Service Management</h2>
+              <h2 className="text-xl font-bold text-[#003087]">NRES New Models — ICB Contractual & Reporting Requirements Overview</h2>
               <p className="text-sm text-slate-500">Operational tools and reference documents</p>
             </div>
             <p className="text-xs text-slate-400">Last updated: 20 February 2026</p>
