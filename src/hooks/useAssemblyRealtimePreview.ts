@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { AssemblyRealtimeClient } from "@/lib/assembly-realtime";
+import { detectDevice } from "@/utils/DeviceDetection";
 
 export type PreviewStatus = 'idle' | 'connecting' | 'connected' | 'recording' | 'reconnecting' | 'error' | 'stopped';
 
@@ -186,13 +187,13 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
           onClose: (code: number, reason: string) => {
             console.log('🔌 AssemblyAI: WebSocket closed during/after reconnect', { code, reason });
 
-            if (intentionalStopRef.current || code === 1000) {
+            if (intentionalStopRef.current) {
               setStatus('stopped');
               setIsActive(false);
               return;
             }
 
-            // Unexpected close - try again
+            // Any unexpected close (including 1000) triggers reconnect
             attemptReconnect();
           },
           onError: (err: Error) => {
@@ -278,13 +279,14 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
           console.log('🔌 AssemblyAI preview closed', { code, reason });
           setIsActive(false);
 
-          // Normal stop (we initiated termination)
-          if (intentionalStopRef.current || code === 1000) {
+          // Only treat as intentional if WE initiated the stop
+          if (intentionalStopRef.current) {
             setStatus('stopped');
             return;
           }
 
-          // Unexpected disconnection - attempt auto-reconnect
+          // Any unexpected close (including code 1000 from server-side idle timeout
+          // or token expiry) should trigger auto-reconnect
           const msg = `AssemblyAI disconnected (${code || 0})${reason ? `: ${reason}` : ''}`;
           console.warn(`⚠️ ${msg} - attempting auto-reconnect...`);
           setError(msg);
@@ -364,6 +366,32 @@ export const useAssemblyRealtimePreview = (): UseAssemblyRealtimePreviewReturn =
     lastFinalAtRef.current = 0;
     setError(null);
   }, []);
+
+  // Visibility change listener — reconnect when page resumes from background
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (intentionalStopRef.current) return;
+      
+      // Only reconnect if we had an active session (stream was stored)
+      if (!lastExternalStreamRef.current) return;
+
+      const client = clientRef.current;
+      const isAlive = client && isActive;
+
+      if (!isAlive) {
+        console.log('📡 AssemblyAI: Page resumed from background, connection dead — reconnecting...');
+        reconnectAttemptsRef.current = 0;
+        setReconnectAttempts(0);
+        attemptReconnect();
+      } else {
+        console.log('📡 AssemblyAI: Page resumed, connection still alive ✅');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isActive, attemptReconnect]);
 
   // Cleanup on unmount
   useEffect(() => {
