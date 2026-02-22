@@ -106,8 +106,18 @@ Deno.serve(async (req: Request) => {
           }));
         };
         
+        let assemblyMsgCount = 0;
         assemblySocket.onmessage = (assemblyEvent) => {
-          // Avoid logging every message (Turn messages can be frequent)
+          assemblyMsgCount++;
+          // Log first 5 messages and then every 20th for diagnostics
+          if (assemblyMsgCount <= 5 || assemblyMsgCount % 20 === 0) {
+            try {
+              const preview = typeof assemblyEvent.data === 'string' 
+                ? assemblyEvent.data.substring(0, 200) 
+                : `[binary ${(assemblyEvent.data as ArrayBuffer).byteLength}B]`;
+              console.log(`📝 AssemblyAI msg #${assemblyMsgCount}: ${preview}`);
+            } catch { /* ignore */ }
+          }
           safeSend(socket, assemblyEvent.data);
         };
         
