@@ -69,8 +69,8 @@ export class DesktopWhisperTranscriber {
   private readonly SILENCE_DURATION_MS = 5000; // 5 seconds of silence triggers flush
   private readonly MIN_CHUNK_DURATION_MS = 60000; // Minimum 60s before silence-based flushing (Option A: 90s chunks)
   
-  // Extended silence detection for auto-stop (20 minutes of no speech activity)
-  private readonly SILENCE_AUTO_STOP_MS = 20 * 60 * 1000; // 20 minutes
+  // Extended silence detection for auto-stop (90 minutes of no speech activity)
+  private readonly SILENCE_AUTO_STOP_MS = 90 * 60 * 1000; // 90 minutes
   private extendedSilenceCheckInterval: NodeJS.Timeout | null = null;
   private lastTranscriptActivityTime = 0;
   public onSilenceAutoStop?: () => void;
@@ -164,7 +164,7 @@ export class DesktopWhisperTranscriber {
       
       const silenceDuration = Date.now() - this.lastTranscriptActivityTime;
       if (silenceDuration > this.SILENCE_AUTO_STOP_MS) {
-        console.warn(`⚠️ 20 minutes of inactivity detected (${Math.round(silenceDuration / 60000)} min) - triggering auto-stop`);
+        console.warn(`⚠️ 90 minutes of inactivity detected (${Math.round(silenceDuration / 60000)} min) - triggering auto-stop`);
         if (this.onSilenceAutoStop) {
           this.onSilenceAutoStop();
         }
@@ -847,6 +847,10 @@ export class DesktopWhisperTranscriber {
       const chunkEndTimeSeconds = chunkStartTimeSeconds + estimatedChunkDurationSeconds;
       
       console.log(`🖥️ Audio blob size: ${blobSizeBytes} bytes, type: ${blobMimeType}`);
+      
+      // Update activity time when chunks are being sent (not just when results arrive)
+      // This prevents false auto-stop when tab is backgrounded but audio is still flowing
+      this.lastTranscriptActivityTime = Date.now();
       
       this.audioChunks = []; // Clear current chunks after processing
 

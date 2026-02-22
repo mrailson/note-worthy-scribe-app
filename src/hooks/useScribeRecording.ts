@@ -325,12 +325,12 @@ export const useScribeRecording = () => {
           chunkDurationMs // customChunkDurationMs - user preference
         );
         
-        // Connect silence auto-stop callback (20 min inactivity protection)
+        // Connect silence auto-stop callback (90 min inactivity protection)
         desktopTranscriberRef.current.onSilenceAutoStop = async () => {
           if (silenceAutoStopTriggeredRef.current) return; // Prevent multiple triggers
           silenceAutoStopTriggeredRef.current = true;
-          console.warn('⚠️ 20 minutes of inactivity detected - auto-stopping Scribe');
-          toast.warning('Consultation stopped due to 20 minutes of inactivity', { 
+          console.warn('⚠️ 90 minutes of inactivity detected - auto-stopping Scribe');
+          toast.warning('Consultation stopped due to 90 minutes of inactivity', { 
             duration: 10000 
           });
           if (stopRecordingRef.current) {
@@ -643,12 +643,12 @@ export const useScribeRecording = () => {
         combinedStream // externalStream
       );
       
-      // Connect silence auto-stop callback (20 min inactivity protection)
+      // Connect silence auto-stop callback (90 min inactivity protection)
       desktopTranscriberRef.current.onSilenceAutoStop = async () => {
         if (silenceAutoStopTriggeredRef.current) return; // Prevent multiple triggers
         silenceAutoStopTriggeredRef.current = true;
-        console.warn('⚠️ 20 minutes of inactivity detected - auto-stopping Scribe');
-        toast.warning('Consultation stopped due to 20 minutes of inactivity', { 
+        console.warn('⚠️ 90 minutes of inactivity detected - auto-stopping Scribe');
+        toast.warning('Consultation stopped due to 90 minutes of inactivity', { 
           duration: 10000 
         });
         if (stopRecordingRef.current) {
