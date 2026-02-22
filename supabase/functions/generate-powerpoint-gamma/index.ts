@@ -209,6 +209,7 @@ serve(async (req) => {
 
     // Data integrity (condensed)
     additionalInstructions += ` DATA INTEGRITY: Only use statistics/numbers explicitly in the source content. Never fabricate figures. Use qualitative descriptions if data is absent.`;
+    additionalInstructions += ` LAYOUT: Body text must be at least 16pt. Headings at least 24pt. Never shrink text to fit more content — split across slides instead.`;
 
     // Custom instructions (highest priority — added early)
     if (customInstructions) {
@@ -229,12 +230,12 @@ serve(async (req) => {
 
     // Font style — always specify standard Office fonts to prevent "Save with Fonts" warning
     const fontMap: Record<string, string> = {
-      'professional': 'Use Calibri or Arial fonts only',
-      'modern': 'Use Calibri or Segoe UI fonts only',
-      'elegant': 'Use Georgia or Cambria serif fonts only',
-      'clean': 'Use Arial or Calibri fonts only',
+      'professional': 'Prefer Calibri or Arial',
+      'modern': 'Prefer Calibri or Segoe UI',
+      'elegant': 'Prefer Georgia or Cambria serif fonts',
+      'clean': 'Prefer Arial or Calibri',
     };
-    const fontInstruction = fontMap[fontStyle] || 'Use Calibri or Arial fonts only — do not use Inter or any non-standard fonts';
+    const fontInstruction = fontMap[fontStyle] || 'Prefer standard Office fonts such as Calibri or Arial';
     additionalInstructions += ` FONTS: ${fontInstruction}.`;
 
     // Branding (condensed)
@@ -294,7 +295,7 @@ serve(async (req) => {
           .from('stock_images')
           .select('image_url, title, tags, category')
           .eq('is_active', true)
-          .limit(15);
+          .limit(5);
 
         if (stockError) {
           console.warn(`[Gamma] Stock images query failed: ${stockError.message}`);
@@ -305,7 +306,7 @@ serve(async (req) => {
             .map((img: any) => `![${img.title || img.category}](${img.image_url})`)
             .join('\n');
           
-          requestPayload.inputText += `\n\nUse these images in the presentation slides:\n${imageRefs}`;
+          requestPayload.inputText += `\n\nUse at most one image per slide. Select the most relevant image for each slide's topic.\n${imageRefs}`;
           requestPayload.imageOptions = { source: 'noImages' };
           
           console.log(`[Gamma] Injected ${stockImages.length} stock image URLs, set imageOptions to noImages`);
