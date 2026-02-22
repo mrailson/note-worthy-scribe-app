@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
 import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
 
-const NRESOverviewPreview = lazy(() => import("@/components/sda/NRESOverviewPreview"));
+
 const NRESReportingRequirements = lazy(() => import("@/components/sda/NRESReportingRequirements"));
 
 // Digital Task and Finish Action Log Data
@@ -44,20 +44,10 @@ const excelTabs = [
   { group: "purple", color: "#7C3AED", icon: "📝", label: "Audit Log" },
 ];
 
-// Thumbnail configs for the gold standard panel
-const thumbnails = [
-  { label: "Overview", badge: "5 KPIs", bg: "linear-gradient(135deg, #F8FAFC, #EFF6FF)" },
-  { label: "Practices", badge: "7 rows", bg: "linear-gradient(135deg, #F8FAFC, #EFF6FF)" },
-  { label: "Rota & Capacity", badge: "Capacity", bg: "linear-gradient(135deg, #F0FDFA, #F8FAFC)" },
-  { label: "Buy-Back", badge: "6 steps", bg: "linear-gradient(135deg, #F5F3FF, #F8FAFC)" },
-  { label: "Part B Evidence", badge: "4 categories", bg: "linear-gradient(135deg, #EEF2FF, #F8FAFC)" },
-  { label: "Timeline", badge: "4 phases", bg: "linear-gradient(135deg, #FDF8E1, #F8FAFC)" },
-];
 
 export const SDADigitalIntegration = () => {
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; title: string } | null>(null);
   const [tabExplorerOpen, setTabExplorerOpen] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [reportingPreviewOpen, setReportingPreviewOpen] = useState(false);
 
   const handleDownloadImage = () => {
@@ -73,20 +63,6 @@ export const SDADigitalIntegration = () => {
 
   return (
     <>
-      {/* Interactive Preview Fullscreen Modal */}
-      {previewOpen && (
-        <div className="fixed inset-0 z-[200] bg-white overflow-auto">
-          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200 shadow-sm">
-            <span className="text-sm font-semibold text-slate-700">Interactive Preview — Notewell AI</span>
-            <Button variant="outline" size="sm" onClick={() => setPreviewOpen(false)}>
-              <X className="h-4 w-4 mr-1" /> Close Preview
-            </Button>
-          </div>
-          <Suspense fallback={<div className="flex items-center justify-center h-screen text-slate-400">Loading preview…</div>}>
-            <NRESOverviewPreview />
-          </Suspense>
-        </div>
-      )}
       {/* Reporting Requirements Fullscreen Modal */}
       {reportingPreviewOpen && (
         <div className="fixed inset-0 z-[200] bg-white overflow-auto">
@@ -221,150 +197,6 @@ export const SDADigitalIntegration = () => {
           <p className="text-sm leading-relaxed" style={{ color: "#065F46" }}>
             <span className="font-bold" style={{ color: "#047857" }}>No additional funding or resources required.</span> This workbook is complete, tested, and ready for service launch. It provides full operational management capability for the NRES programme from day one without any system build, licensing, or infrastructure costs.
           </p>
-        </div>
-
-        <div className="flex items-center gap-3 pt-3">
-          <span className="text-[11px] uppercase font-bold tracking-wider whitespace-nowrap" style={{ color: "#D4A800" }}>✦ FOR PROGRAMME BOARD CONSIDERATION POST GO-LIVE IF NEEDED</span>
-          <div className="flex-1 h-px bg-slate-200" />
-        </div>
-
-        {/* 8. Gold Standard Panel */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-          {/* Gold ribbon */}
-          <div className="h-[3px]" style={{ background: "linear-gradient(90deg, #F5C518, #D4A800, #F5C518)" }} />
-
-          <div className="p-5 space-y-4">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-3">
-                <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-sm" style={{ backgroundColor: "#FDF8E1" }}>✦</div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-bold text-[14px] text-slate-900">Notewell AI — Live Dashboard System</h3>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold" style={{ backgroundColor: "#FDF8E1", border: "1px solid #F0DC82", color: "#92400E" }}>Gold Standard Option</span>
-                </div>
-              </div>
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold" style={{ backgroundColor: "#FDF8E1", border: "1px solid #F0DC82", color: "#92400E" }}>⏳ Subject to Programme Board approval</span>
-            </div>
-
-            {/* Body text */}
-            <p className="text-sm text-slate-600 leading-relaxed">
-              This is not a requirement of the NRES project. The Excel workbook above provides everything needed to run the service. However, should the Programme Board consider that gold standard management of the operational detail would benefit the programme, a live web-based system could replace the Excel over time — providing real-time dashboards, automated compliance alerts, audit trails, and multi-user access with role-based permissions. This would be a decision for the board based on perceived value, not a project dependency.
-            </p>
-
-            {/* Screen preview strip */}
-            <div className="rounded-lg p-4" style={{ backgroundColor: "#FAFBFC" }}>
-              <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-3">What the system could look like — 6 interactive sections</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                {thumbnails.map((thumb, i) => (
-                  <div
-                    key={i}
-                    className="group rounded-lg border border-slate-200 overflow-hidden transition-all hover:border-[#7C3AED] hover:-translate-y-0.5 cursor-pointer"
-                    style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px rgba(124,58,237,0.15)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)"; }}
-                  >
-                    <div className="h-[72px] relative p-2" style={{ background: thumb.bg }}>
-                      {/* Mini chart graphics per thumbnail */}
-                      {i === 0 && (
-                        <div className="flex items-end gap-1 h-full">
-                          <div className="w-3 h-6 rounded-sm" style={{ backgroundColor: "#003087" }} />
-                          <div className="w-3 h-8 rounded-sm" style={{ backgroundColor: "#005EB8" }} />
-                          <div className="w-3 h-5 rounded-sm" style={{ backgroundColor: "#0D9488" }} />
-                          <div className="ml-auto w-6 h-6 rounded-full border-2" style={{ borderColor: "#10B981" }} />
-                        </div>
-                      )}
-                      {i === 1 && (
-                        <div className="flex flex-col gap-[2px] h-full justify-center">
-                          {[...Array(5)].map((_, r) => (
-                            <div key={r} className="flex gap-[2px]">
-                              <div className="w-3 h-2 rounded-[1px]" style={{ backgroundColor: "#2563EB", opacity: 0.6 }} />
-                              <div className="w-4 h-2 rounded-[1px] bg-slate-200" />
-                              <div className="w-2 h-2 rounded-[1px]" style={{ backgroundColor: r < 3 ? "#10B981" : r < 4 ? "#F59E0B" : "#EF4444", opacity: 0.7 }} />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {i === 2 && (
-                        <div className="flex items-end gap-[3px] h-full">
-                          {[70, 85, 60, 90, 75, 80, 30].map((h, bi) => (
-                            <div key={bi} className="flex-1 rounded-t-sm" style={{ height: `${h}%`, backgroundColor: bi === 6 ? "#EF4444" : "#0D9488", opacity: 0.7 }} />
-                          ))}
-                        </div>
-                      )}
-                      {i === 3 && (
-                        <div className="flex items-center justify-center gap-3 h-full">
-                          {[0, 1, 2].map((d) => (
-                            <div key={d} className="relative">
-                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#7C3AED" }} />
-                              {d < 2 && <div className="absolute top-1/2 left-full w-4 h-[2px] -translate-y-1/2" style={{ backgroundColor: "#C4B5FD" }} />}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {i === 4 && (
-                        <div className="flex flex-col gap-[4px] h-full justify-center">
-                          {[100, 80, 60, 45].map((w, bi) => (
-                            <div key={bi} className="h-2 rounded-full" style={{ width: `${w}%`, backgroundColor: ["#4F46E5", "#7C3AED", "#0D9488", "#2563EB"][bi], opacity: 0.6 }} />
-                          ))}
-                        </div>
-                      )}
-                      {i === 5 && (
-                        <div className="flex items-center justify-center gap-2 h-full">
-                          {[{ fill: "#D4A800", opacity: 1 }, { fill: "#2563EB", opacity: 0.4 }, { fill: "#10B981", opacity: 0.4 }].map((d, di) => (
-                            <div key={di} className="relative">
-                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.fill, opacity: d.opacity }} />
-                              {di < 2 && <div className="absolute top-1/2 left-full w-3 h-[1px] -translate-y-1/2 bg-slate-300" />}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {/* Badge */}
-                      <span className="absolute top-1 right-1 text-[8px] font-semibold px-1 py-0.5 rounded bg-white/90 text-slate-500">{thumb.badge}</span>
-                    </div>
-                    <div className="p-1.5 text-center">
-                      <p className="text-[10px] font-medium text-slate-600">{thumb.label}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Preview button */}
-              <div className="flex justify-center mt-4">
-                <button
-                  onClick={() => setPreviewOpen(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2 rounded-md text-white text-xs font-bold hover:opacity-90 transition-opacity"
-                  style={{ backgroundColor: "#7C3AED" }}
-                >
-                  <Play className="w-3 h-3" /> Open Interactive Preview
-                </button>
-              </div>
-            </div>
-
-            {/* Functional Spec Reference Doc */}
-            <div className="bg-white rounded-lg border border-slate-200 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#EFF6FF" }}>
-                <FileText className="w-5 h-5" style={{ color: "#2563EB" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm text-slate-900">Functional Specification v2.3</h3>
-                <p className="text-xs text-slate-500">Technical reference — appointment targets, buy-back logic, compliance reporting. Describes both Excel and potential future system.</p>
-              </div>
-              <Button variant="outline" size="sm" asChild className="flex-shrink-0">
-                <a href="/documents/NRES_SDA_Rota_Spec_v2.3.docx" download>
-                  <Download className="h-4 w-4 mr-1" />
-                  Word
-                </a>
-              </Button>
-            </div>
-
-            {/* Gold footer note */}
-            <div className="rounded-lg p-3 flex items-start gap-2" style={{ backgroundColor: "#FDF8E1", borderTop: "1px solid #F0DC82" }}>
-              <span className="flex-shrink-0 text-sm">✦</span>
-              <p className="text-xs leading-relaxed" style={{ color: "#92400E" }}>
-                <span className="font-semibold">Programme Board decision only.</span> The interactive preview above shows what a live system could deliver. This is offered as an option for the board to consider if they feel it would add value — it is not a dependency, not currently budgeted, and the Excel workbook is fully sufficient to operate the NRES programme.
-              </p>
-            </div>
-          </div>
         </div>
 
       </div>
