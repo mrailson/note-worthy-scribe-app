@@ -68,10 +68,15 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
   const [bulkDeleteUntil, setBulkDeleteUntil] = useState<number | null>(null);
   const [bulkTimeLeft, setBulkTimeLeft] = useState<string>('');
   const [showNewOnly, setShowNewOnly] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const IMAGES_PER_PAGE = 18;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const batchFileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
   const preVoiceTextRef = useRef<string>('');
+
+  // Reset pagination when filters change
+  useEffect(() => { setCurrentPage(1); }, [selectedCategory, searchQuery, showNewOnly]);
 
   const handleVoiceInput = useCallback((target: 'custom' | 'batch' = 'custom') => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -758,47 +763,76 @@ export const StockImageLibrary: React.FC<StockImageLibraryProps> = ({ onUseInStu
               </div>
             )}
           </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {displayImages.map(image => (
-            <div
-              key={image.id}
-              className="group relative rounded-lg overflow-hidden border bg-muted/30 cursor-pointer aspect-[4/3]"
-              onClick={(e) => {
-                // Don't open lightbox if delete button was clicked
-                if ((e.target as HTMLElement).closest('[data-delete-btn]')) return;
-                setLightboxImage(image);
-              }}
-            >
-              <img
-                src={image.image_url}
-                alt={image.title}
-                className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="absolute bottom-0 left-0 right-0 p-2">
-                  <p className="text-white text-xs font-medium truncate">{image.title}</p>
-                  <p className="text-white/70 text-[10px]">{image.category}</p>
+        ) : (() => {
+          const totalPages = Math.ceil(displayImages.length / IMAGES_PER_PAGE);
+          const safePage = Math.min(currentPage, totalPages);
+          const paginatedImages = displayImages.slice((safePage - 1) * IMAGES_PER_PAGE, safePage * IMAGES_PER_PAGE);
+          return (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {paginatedImages.map(image => (
+                <div
+                  key={image.id}
+                  className="group relative rounded-lg overflow-hidden border bg-muted/30 cursor-pointer aspect-[4/3]"
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest('[data-delete-btn]')) return;
+                    setLightboxImage(image);
+                  }}
+                >
+                  <img
+                    src={image.image_url}
+                    alt={image.title}
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 p-2">
+                      <p className="text-white text-xs font-medium truncate">{image.title}</p>
+                      <p className="text-white/70 text-[10px]">{image.category}</p>
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <button
+                       data-delete-btn
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         e.preventDefault();
+                         handleDelete(image);
+                       }}
+                       className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                     >
+                       <X className="h-3 w-3" />
+                     </button>
+                  )}
                 </div>
+              ))}
               </div>
-              {isAdmin && (
-                <button
-                   data-delete-btn
-                   onClick={(e) => {
-                     e.stopPropagation();
-                     e.preventDefault();
-                     handleDelete(image);
-                   }}
-                   className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                 >
-                   <X className="h-3 w-3" />
-                 </button>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safePage <= 1}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Page {safePage} of {totalPages} ({displayImages.length} images)
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safePage >= totalPages}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  >
+                    Next
+                  </Button>
+                </div>
               )}
-            </div>
-          ))}
-        </div>
-        );
+            </>
+          );
+        })();
       })()}
 
       {/* Lightbox */}
