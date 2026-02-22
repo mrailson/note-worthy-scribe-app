@@ -9,6 +9,7 @@ import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
 import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
 
 const NRESOverviewPreview = lazy(() => import("@/components/sda/NRESOverviewPreview"));
+const NRESReportingRequirements = lazy(() => import("@/components/sda/NRESReportingRequirements"));
 
 // Digital Task and Finish Action Log Data
 const digitalTfActions = [
@@ -57,6 +58,7 @@ export const SDADigitalIntegration = () => {
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string; title: string } | null>(null);
   const [tabExplorerOpen, setTabExplorerOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [reportingPreviewOpen, setReportingPreviewOpen] = useState(false);
 
   const handleDownloadImage = () => {
     if (!lightboxImage) return;
@@ -82,6 +84,20 @@ export const SDADigitalIntegration = () => {
           </div>
           <Suspense fallback={<div className="flex items-center justify-center h-screen text-slate-400">Loading preview…</div>}>
             <NRESOverviewPreview />
+          </Suspense>
+        </div>
+      )}
+      {/* Reporting Requirements Fullscreen Modal */}
+      {reportingPreviewOpen && (
+        <div className="fixed inset-0 z-[200] bg-white overflow-auto">
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 bg-white border-b border-slate-200 shadow-sm">
+            <span className="text-sm font-semibold text-slate-700">ICB Reporting Requirements Explorer</span>
+            <Button variant="outline" size="sm" onClick={() => setReportingPreviewOpen(false)}>
+              <X className="h-4 w-4 mr-1" /> Close Preview
+            </Button>
+          </div>
+          <Suspense fallback={<div className="flex items-center justify-center h-screen text-slate-400">Loading preview…</div>}>
+            <NRESReportingRequirements />
           </Suspense>
         </div>
       )}
@@ -362,6 +378,36 @@ export const SDADigitalIntegration = () => {
         
       >
         <div className="space-y-6">
+          {/* Interactive Reporting Requirements Explorer */}
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-5 border border-amber-200">
+            <div className="flex items-start gap-4">
+              <div className="bg-amber-100 rounded-lg p-2.5 mt-0.5">
+                <BarChart3 className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-slate-900 text-lg mb-1">Interactive ICB Reporting Requirements Explorer</h4>
+                <p className="text-sm text-slate-600 mb-3">
+                  A comprehensive interactive guide covering all ICB reporting requirements extracted from the SDA specification. 
+                  Explore 10 reporting domains including activity & performance, quality & safety, referrals, prescribing, workforce, 
+                  Part B complex care, financial reporting, innovator site duties, and governance compliance — with direct quotes, 
+                  mandatory status indicators, and data field specifications.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <span className="bg-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-medium">30+ Mandatory Requirements</span>
+                  <span className="bg-purple-100 text-purple-700 text-xs px-2.5 py-1 rounded-full font-medium">10 Reporting Domains</span>
+                  <span className="bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-medium">ICB Specification Quotes</span>
+                  <span className="bg-emerald-100 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-medium">v1.7</span>
+                </div>
+                <Button 
+                  onClick={() => setReportingPreviewOpen(true)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white shadow-md"
+                >
+                  <Play className="h-4 w-4 mr-2" /> Open Interactive Preview
+                </Button>
+              </div>
+            </div>
+          </div>
+
           {/* Document reference */}
           <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
             <FileText className="w-5 h-5 text-[#005EB8]" />
