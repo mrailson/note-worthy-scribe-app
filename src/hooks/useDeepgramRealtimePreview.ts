@@ -25,6 +25,7 @@ const MAX_RECONNECT_DELAY = 30000; // 30 seconds
 const KEEPALIVE_INTERVAL_MS = 15000; // 15s keepalive ping
 const isIOSDevice = detectDevice().isIOS;
 
+// Hook must be called unconditionally - all useState/useRef at top level
 export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn => {
   const [liveTranscript, setLiveTranscript] = useState<string>("");
   const [fullTranscript, setFullTranscript] = useState<string>("");
