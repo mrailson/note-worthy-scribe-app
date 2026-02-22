@@ -511,14 +511,11 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
           return;
         }
 
-        // On iOS, Safari sends code 1000 when backgrounding/locking the screen.
-        // We must still reconnect in that case. On desktop, code 1000 is a genuine
-        // clean close so we only reconnect if we still have a meetingId (i.e. recording
-        // is supposed to be active).
-        const shouldReconnect = event.code !== 1000 || (isIOSDevice && meetingIdRef.current);
-
-        if (shouldReconnect) {
-          console.log(`🔄 Deepgram: ${event.code === 1000 ? 'iOS background' : 'Unexpected'} disconnection, attempting reconnect...`);
+        // Reconnect on ANY unexpected close (including code 1000 from server-side
+        // edge function timeout or idle shutdown) as long as we have an active meeting.
+        if (meetingIdRef.current) {
+          const reason = event.code === 1000 ? 'clean close (server timeout)' : `unexpected (${event.code})`;
+          console.log(`🔄 Deepgram: ${reason} disconnection, attempting reconnect...`);
           attemptReconnect();
         } else {
           setStatus('stopped');
@@ -575,10 +572,8 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
     setReconnectAttempts(0);
   }, []);
 
-  // iOS visibility change listener — reconnect Deepgram when page resumes from background
+  // Visibility change listener — reconnect when page resumes from background (all devices)
   useEffect(() => {
-    if (!isIOSDevice) return;
-
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
       if (intentionalStopRef.current || !meetingIdRef.current) return;
@@ -588,13 +583,13 @@ export const useDeepgramRealtimePreview = (): UseDeepgramRealtimePreviewReturn =
       const isDead = !ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING;
 
       if (isDead) {
-        console.log('📱 Deepgram iOS: Page resumed from background, WebSocket dead — reconnecting...');
+        console.log('📡 Deepgram: Page resumed from background, WebSocket dead — reconnecting...');
         // Reset reconnect counter so we get fresh attempts after resume
         reconnectAttemptsRef.current = 0;
         setReconnectAttempts(0);
         attemptReconnect();
       } else {
-        console.log('📱 Deepgram iOS: Page resumed, WebSocket still alive ✅');
+        console.log('📡 Deepgram: Page resumed, WebSocket still alive ✅');
       }
     };
 
