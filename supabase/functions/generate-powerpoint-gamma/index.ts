@@ -227,16 +227,15 @@ serve(async (req) => {
       additionalInstructions += ` Colours: Primary ${localThemeStyle.primaryColor}, Secondary ${localThemeStyle.secondaryColor}, Accent ${localThemeStyle.accentColor}. Apply on headings, backgrounds, key elements.`;
     }
 
-    // Font style — always specify standard Office fonts to prevent "Save with Fonts" warning on Windows
-    // CRITICAL: Gamma defaults to Inter which is NOT available in PowerPoint — must be explicitly banned
+    // Font style — always specify standard Office fonts to prevent "Save with Fonts" warning
     const fontMap: Record<string, string> = {
-      'professional': 'Calibri for body text and Arial for headings',
-      'modern': 'Calibri for body text and Segoe UI for headings',
-      'elegant': 'Cambria for body text and Georgia for headings',
-      'clean': 'Arial for all text',
+      'professional': 'Use Calibri or Arial fonts only',
+      'modern': 'Use Calibri or Segoe UI fonts only',
+      'elegant': 'Use Georgia or Cambria serif fonts only',
+      'clean': 'Use Arial or Calibri fonts only',
     };
-    const fontChoice = fontMap[fontStyle] || 'Calibri for body text and Arial for headings';
-    additionalInstructions += ` CRITICAL FONT RULE: Use ONLY ${fontChoice}. NEVER use Inter, Inter Bold, Inter Light, Inter Regular, or any variant of the Inter font family. These fonts are not available in Microsoft PowerPoint and will cause save errors. Only use fonts bundled with Microsoft Office.`;
+    const fontInstruction = fontMap[fontStyle] || 'Use Calibri or Arial fonts only — do not use Inter or any non-standard fonts';
+    additionalInstructions += ` FONTS: ${fontInstruction}.`;
 
     // Branding (condensed)
     if (branding) {
