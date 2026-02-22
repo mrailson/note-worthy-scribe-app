@@ -172,10 +172,7 @@ export const useMeetingPowerPoint = () => {
       
       setCurrentPhase('generating');
 
-      // Use Promise.race for timeout since Supabase client doesn't support AbortController
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('PowerPoint generation timed out after 120 seconds. Please try again.')), 120000);
-      });
+      // Build custom instructions
 
       const customInstructions = `PRESENTATION STYLE: ${stylePrompt}
 
@@ -183,7 +180,7 @@ CONTENT FOCUS: ${contentPrompt}
 
 Create exactly ${slideCount} slides. Focus on key decisions, action items with owners, and next steps. Create a professional executive summary suitable for board presentation. Include metrics and outcomes where available. Keep slides concise and impactful. Use British English spelling throughout.`;
 
-      const invokePromise = supabase.functions.invoke('generate-powerpoint-gamma', {
+      const { data: startData, error: startError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
         body: {
           topic: `Executive Summary: ${data.meetingTitle}`,
           presentationType: options?.style === 'training' ? 'Training Session' : 
@@ -193,26 +190,77 @@ Create exactly ${slideCount} slides. Focus on key decisions, action items with o
           supportingContent,
           customInstructions,
           audience: 'healthcare professionals and NHS executives',
+          useStockLibraryImages: true,
         },
       });
 
-      const { data: response, error: fnError } = await Promise.race([invokePromise, timeoutPromise]);
-
-      if (fnError) {
-        throw new Error(fnError.message || 'Failed to generate presentation');
+      if (startError) {
+        throw new Error(startError.message || 'Failed to generate presentation');
       }
 
-      if (!response?.success) {
+      let response = startData;
+
+      // If we got a direct result (legacy path), use it
+      if (response?.success && response?.downloadUrl) {
+        // Already complete
+      } else if (response?.generationId) {
+        // Poll for completion
+        const generationId = response.generationId;
+        console.log(`[MeetingPowerPoint] Generation started: ${generationId} — polling...`);
+
+        const maxPollDuration = slideCount > 10
+          ? 60_000 + slideCount * 10_000
+          : 180_000;
+        const basePollInterval = 10_000;
+        let currentInterval = basePollInterval;
+        const pollStart = Date.now();
+
+        const sleepWithJitter = (ms: number) =>
+          new Promise(r => setTimeout(r, ms * (0.9 + Math.random() * 0.2)));
+
+        response = null;
+
+        while (Date.now() - pollStart < maxPollDuration) {
+          await sleepWithJitter(currentInterval);
+
+          const { data: pollData, error: pollError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
+            body: { action: 'poll', generationId },
+          });
+
+          if (pollError) {
+            const errMsg = pollError.message || '';
+            if (errMsg.includes('ThrottlerException') || errMsg.includes('429')) {
+              console.warn('[MeetingPowerPoint] Rate limited — backing off');
+              currentInterval = Math.min(currentInterval * 2, 120_000);
+              continue;
+            }
+            console.warn('[MeetingPowerPoint] Poll failed, retrying...', pollError);
+            continue;
+          }
+
+          if (pollData?.status === 'completed') {
+            response = pollData;
+            break;
+          }
+
+          if (pollData?.status === 'failed') {
+            throw new Error(pollData.error || 'Gamma generation failed');
+          }
+
+          console.log(`[MeetingPowerPoint] Still generating... (${Math.round((Date.now() - pollStart) / 1000)}s elapsed)`);
+        }
+
+        if (!response) {
+          throw new Error(`Generation timed out after ${Math.round(maxPollDuration / 1000)}s`);
+        }
+      } else if (!response?.success) {
         throw new Error(response?.error || 'Generation failed');
       }
 
       setCurrentPhase('downloading');
 
       // Download the file
-      // Note: Gamma export URLs often do not allow CORS fetch() from the browser.
-      // Trigger a direct navigation download instead.
       if (response.downloadUrl) {
-        // Clean filename
         const safeTitle = data.meetingTitle
           .replace(/[^a-zA-Z0-9\s-]/g, '')
           .replace(/\s+/g, '_')
