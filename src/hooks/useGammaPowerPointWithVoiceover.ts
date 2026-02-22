@@ -72,7 +72,8 @@ export const useGammaPowerPointWithVoiceover = () => {
     content: string, 
     title?: string,
     voiceId: string = 'JBFqnCBsd6RMkjVDRZzb', // George - British Male Professional
-    slideCount: number = 4
+    slideCount: number = 4,
+    useStockLibraryImages: boolean = true
   ) => {
     if (!content?.trim()) {
       toast.error('No content to generate presentation from');
@@ -99,6 +100,7 @@ export const useGammaPowerPointWithVoiceover = () => {
           presentationType: 'Professional Healthcare Presentation',
           audience: 'healthcare professionals',
           includeSpeakerNotes: true,
+          useStockLibraryImages,
         },
       });
 
