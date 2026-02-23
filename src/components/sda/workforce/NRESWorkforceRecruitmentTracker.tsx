@@ -680,7 +680,7 @@ const NRESWorkforceRecruitmentTracker = () => {
               <div className="text-sm text-gray-500">sessions/week</div>
             </div>
             <div className="bg-green-50 rounded-xl p-4 shadow-sm border border-green-200">
-              <div className="text-sm text-green-600 mb-1">Filled (Recruited/Offered)</div>
+              <div className="text-sm text-green-600 mb-1">Filled (Recruited/Offered/Buy-Back)</div>
               <div className="text-3xl font-bold text-green-700">{neighbourhoodTotals.totalFilled}</div>
               <div className="text-sm text-green-600">{neighbourhoodTotals.filledPercent}% secured</div>
             </div>
