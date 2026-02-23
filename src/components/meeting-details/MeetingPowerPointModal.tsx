@@ -89,16 +89,33 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
       // Start the generation with options
       generatePowerPoint(meetingData, options).then((result) => {
         if (result.success) {
-          setDownloadUrl(result.downloadUrl ?? null);
+          const url = result.downloadUrl ?? null;
+          setDownloadUrl(url);
           setIsComplete(true);
           toast.success('PowerPoint generated successfully');
+          
+          // Auto-download immediately
+          if (url) {
+            const safeTitle = meetingData.meetingTitle
+              .replace(/[^a-zA-Z0-9\s-]/g, '')
+              .replace(/\s+/g, '_')
+              .substring(0, 50);
+            const link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.download = `${safeTitle}_Executive_Summary.pptx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }
         } else {
           setHasFailed(true);
           toast.error(result.error || 'Failed to generate presentation');
         }
       });
     }
-  }, [isOpen, hasStarted, isComplete, generatePowerPoint, meetingData, options, onClose]);
+  }, [isOpen, hasStarted, isComplete, generatePowerPoint, meetingData, options]);
 
   // Countdown timer
   useEffect(() => {
@@ -185,7 +202,7 @@ export const MeetingPowerPointModal: React.FC<MeetingPowerPointModalProps> = ({
 
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && (isComplete || hasFailed)) handleClose(); }}>
       <DialogContent className="max-w-md p-0 gap-0 overflow-hidden [&>button]:hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/10 to-accent/10">
