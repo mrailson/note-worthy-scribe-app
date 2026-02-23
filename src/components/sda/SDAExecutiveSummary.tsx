@@ -349,6 +349,26 @@ export const SDAExecutiveSummary = () => {
                       className="h-20 w-auto object-contain"
                     />
                   </div>
+                  {/* Working Days Countdown */}
+                  {(() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const goLive = new Date(2026, 3, 1); // 1st April 2026
+                    let count = 0;
+                    const d = new Date(today);
+                    while (d < goLive) {
+                      d.setDate(d.getDate() + 1);
+                      const day = d.getDay();
+                      if (day !== 0 && day !== 6) count++;
+                    }
+                    return (
+                      <div className="text-center py-2">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Working Days to Go-Live</p>
+                        <p className="text-2xl font-bold text-[#005EB8]">{count}</p>
+                        <p className="text-[10px] text-slate-500">1st April 2026</p>
+                      </div>
+                    );
+                  })()}
                   <div className="flex-1" />
                   <Card className="bg-slate-50 border border-slate-200 hover:border-[#005EB8] transition-colors">
                     <CardContent className="p-3">
