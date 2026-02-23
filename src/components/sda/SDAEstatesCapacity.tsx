@@ -2,10 +2,14 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Info } from "lucide-react";
+import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, CalendarRange, ArrowUpDown, ArrowUp, ArrowDown, ChevronUp, ChevronDown, Info, Pencil, Save, X } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { TravelTimesThumbnail, TravelTimesSlideshow } from "./TravelTimesSlideshow";
+import { useEstatesConfig, RoomRow, PRACTICE_KEYS, PracticeKey } from "@/hooks/useEstatesConfig";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
 type SortDirection = "asc" | "desc";
@@ -16,61 +20,25 @@ type Season = "nonWinter" | "winter" | "total";
 type DurationDisplayMode = "perSession" | "perDay" | "perWeek";
 type ApptsDisplayMode = "perSession" | "perHour" | "perDay";
 
-// Room availability data by session
-const sessionData = [
-  { session: "Monday AM", theParks: 1, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 0, towcester: 1, total: 7 },
-  { session: "Monday PM", theParks: 3, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 0, towcester: 3, total: 11 },
-  { session: "Tuesday AM", theParks: 5, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 1, towcester: 0, total: 11 },
-  { session: "Tuesday PM", theParks: 6, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 1, towcester: 2, total: 14 },
-  { session: "Wednesday AM", theParks: 0, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 0, towcester: 1, total: 6 },
-  { session: "Wednesday PM", theParks: 0, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 0, towcester: 4, total: 9 },
-  { session: "Thursday AM", theParks: 4, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 0, towcester: 0, total: 9 },
-  { session: "Thursday PM", theParks: 4, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 1, towcester: 0, total: 10 },
-  { session: "Friday AM", theParks: 3, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 0, towcester: 2, total: 10 },
-  { session: "Friday PM", theParks: 3, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 0, towcester: 4, total: 12 },
-];
-
 // Practice summary data with list sizes (matching Executive Summary population data)
 const practiceSummary = [
   { 
     practice: "The Parks MC", 
     subPractices: ["Roade", "Blisworth", "Grange Park", "Hanslope"],
-    totalSessions: 29,
     listSize: 22827,
     role: "HUB",
-    system: "SystmOne"
+    system: "SystmOne",
+    key: "theParks" as PracticeKey,
   },
-  { practice: "Brackley MC", totalSessions: 20, listSize: 16212, role: "HUB", system: "SystmOne", note: "Non-GMS rent required" },
-  { practice: "Springfield", totalSessions: 10, listSize: 12611, role: "SPOKE", system: "EMIS" },
-  { practice: "Towcester MC", totalSessions: 17, listSize: 11748, role: "SPOKE", system: "EMIS" },
-  { practice: "Bugbrooke", totalSessions: 10, listSize: 10788, role: "SPOKE", system: "SystmOne" },
-  { practice: "Brook Health", totalSessions: 10, listSize: 9069, role: "TBC", system: "SystmOne", note: "Awaiting NHFT meeting (15 Jan) - will report to board" },
-  { practice: "Denton Village", totalSessions: 3, listSize: 6329, role: "SPOKE", system: "SystmOne", note: "Tue/Fri full day, Thu PM" },
+  { practice: "Brackley MC", listSize: 16212, role: "HUB", system: "SystmOne", note: "Non-GMS rent required", key: "brackley" as PracticeKey },
+  { practice: "Springfield", listSize: 12611, role: "SPOKE", system: "EMIS", key: "springfield" as PracticeKey },
+  { practice: "Towcester MC", listSize: 11748, role: "SPOKE", system: "EMIS", key: "towcester" as PracticeKey },
+  { practice: "Bugbrooke", listSize: 10788, role: "SPOKE", system: "SystmOne", key: "bugbrooke" as PracticeKey },
+  { practice: "Brook Health", listSize: 9069, role: "TBC", system: "SystmOne", note: "Awaiting NHFT meeting (15 Jan) - will report to board", key: "brook" as PracticeKey },
+  { practice: "Denton Village", listSize: 6329, role: "SPOKE", system: "SystmOne", note: "Tue/Fri full day, Thu PM", key: "denton" as PracticeKey },
 ];
 
 const totalListSize = practiceSummary.reduce((sum, p) => sum + p.listSize, 0);
-
-// Capacity planning data
-const capacityData = {
-  nonWinter: {
-    rate: "15.2 per 1,000",
-    weeks: 39,
-    apptsPerWeek: 1362,
-    sessionsPerWeek: 113.5,
-    sessionLength: "4h 10m",
-    f2fRequired: 56.75,
-    remoteRequired: 56.75
-  },
-  winter: {
-    rate: "18.2 per 1,000",
-    weeks: 13,
-    apptsPerWeek: 1630,
-    sessionsPerWeek: 135.9,
-    sessionLength: "4h 10m",
-    f2fRequired: 67.95,
-    remoteRequired: 67.95
-  }
-};
 
 const getCellColor = (value: number) => {
   if (value === 0) return "bg-red-100 text-red-700";
@@ -78,17 +46,15 @@ const getCellColor = (value: number) => {
   return "bg-amber-50 text-amber-700";
 };
 
-const practiceCapacityData = [
-  { practice: "The Parks MC", listSize: 22827, role: "HUB", system: "SystmOne", pct: 25.5, monthly: 50086, budget75: 450776, wklyNonWinter: 347.0, f2fNW: 173.5, remoteNW: 173.5, wklyWinter: 415.5, f2fW: 207.7, remoteW: 207.7, annualTarget: 18933 },
-  { practice: "Brackley MC", listSize: 16212, role: "HUB", system: "SystmOne", pct: 18.1, monthly: 35572, budget75: 320146, wklyNonWinter: 246.4, f2fNW: 123.2, remoteNW: 123.2, wklyWinter: 295.1, f2fW: 147.5, remoteW: 147.5, annualTarget: 13446 },
-  { practice: "Springfield Surgery", listSize: 12611, role: "SPOKE", system: "EMIS", pct: 14.1, monthly: 27671, budget75: 249036, wklyNonWinter: 191.7, f2fNW: 95.8, remoteNW: 95.8, wklyWinter: 229.5, f2fW: 114.8, remoteW: 114.8, annualTarget: 10460 },
-  { practice: "Towcester MC", listSize: 11748, role: "SPOKE", system: "EMIS", pct: 13.1, monthly: 25777, budget75: 231994, wklyNonWinter: 178.6, f2fNW: 89.3, remoteNW: 89.3, wklyWinter: 213.8, f2fW: 106.9, remoteW: 106.9, annualTarget: 9744 },
-  { practice: "Bugbrooke Surgery", listSize: 10788, role: "SPOKE", system: "SystmOne", pct: 12.0, monthly: 23671, budget75: 213036, wklyNonWinter: 164.0, f2fNW: 82.0, remoteNW: 82.0, wklyWinter: 196.3, f2fW: 98.2, remoteW: 98.2, annualTarget: 8948 },
-  { practice: "Brook Health Centre", listSize: 9069, role: "SPOKE", system: "SystmOne", pct: 10.1, monthly: 19899, budget75: 179090, wklyNonWinter: 137.8, f2fNW: 68.9, remoteNW: 68.9, wklyWinter: 165.1, f2fW: 82.5, remoteW: 82.5, annualTarget: 7522 },
-  { practice: "Denton Village Surgery", listSize: 6329, role: "SPOKE", system: "SystmOne", pct: 7.1, monthly: 13887, budget75: 124982, wklyNonWinter: 96.2, f2fNW: 48.1, remoteNW: 48.1, wklyWinter: 115.2, f2fW: 57.6, remoteW: 57.6, annualTarget: 5249 },
-];
-
 export const SDAEstatesCapacity = () => {
+  const { isSystemAdmin } = useAuth();
+  const { roomData, f2fSplitPct, updatedAt, isLoading, updateConfig } = useEstatesConfig();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editRoomData, setEditRoomData] = useState<RoomRow[]>([]);
+  const [editF2fSplit, setEditF2fSplit] = useState(50);
+  const [isSaving, setIsSaving] = useState(false);
+
   const [season, setSeason] = useState<Season>("winter");
   const [viewMode, setViewMode] = useState<"sessions" | "appointments">("sessions");
   const [practiceSortField, setPracticeSortField] = useState<PracticeSortField>("listSize");
@@ -98,42 +64,152 @@ export const SDAEstatesCapacity = () => {
   const [listSizeOpen, setListSizeOpen] = useState(true);
   const [appointmentsOpen, setAppointmentsOpen] = useState(true);
   
-  // Top banner display modes
   const [sitesDisplayMode, setSitesDisplayMode] = useState<SitesDisplayMode>("total");
   const [sessionsDisplayMode, setSessionsDisplayMode] = useState<SessionsDisplayMode>("total");
   const [durationDisplayMode, setDurationDisplayMode] = useState<DurationDisplayMode>("perSession");
   const [apptsDisplayMode, setApptsDisplayMode] = useState<ApptsDisplayMode>("perSession");
-  
-  // Full-year "Total" view: NW 39wks + Winter 13wks combined annual figures averaged to a weekly equivalent for display
-  const totalCapacity = {
+
+  // Use the active data source (edit draft or saved)
+  const activeRoomData = isEditing ? editRoomData : roomData;
+  const activeSplit = isEditing ? editF2fSplit : f2fSplitPct;
+  const remoteSplitPct = 100 - activeSplit;
+
+  // Compute totals from room data
+  const sessionDataWithTotals = useMemo(() => {
+    return activeRoomData.map(row => ({
+      ...row,
+      total: PRACTICE_KEYS.reduce((sum, key) => sum + (row[key] || 0), 0),
+    }));
+  }, [activeRoomData]);
+
+  // Compute practice column totals
+  const practiceColumnTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    PRACTICE_KEYS.forEach(key => {
+      totals[key] = activeRoomData.reduce((sum, row) => sum + (row[key] || 0), 0);
+    });
+    return totals;
+  }, [activeRoomData]);
+
+  // Practice summary with dynamic totalSessions from room data
+  const practiceSummaryWithSessions = useMemo(() => {
+    return practiceSummary.map(p => ({
+      ...p,
+      totalSessions: practiceColumnTotals[p.key] || 0,
+    }));
+  }, [practiceColumnTotals]);
+
+  const totalWeeklySessions = sessionDataWithTotals.reduce((sum, row) => sum + row.total, 0);
+
+  // Capacity data derived from split
+  const capacityData = useMemo(() => ({
+    nonWinter: {
+      rate: "15.2 per 1,000",
+      weeks: 39,
+      apptsPerWeek: 1362,
+      sessionsPerWeek: 113.5,
+      sessionLength: "4h 10m",
+      f2fRequired: 113.5 * (activeSplit / 100),
+      remoteRequired: 113.5 * (remoteSplitPct / 100),
+    },
+    winter: {
+      rate: "18.2 per 1,000",
+      weeks: 13,
+      apptsPerWeek: 1630,
+      sessionsPerWeek: 135.9,
+      sessionLength: "4h 10m",
+      f2fRequired: 135.9 * (activeSplit / 100),
+      remoteRequired: 135.9 * (remoteSplitPct / 100),
+    },
+  }), [activeSplit, remoteSplitPct]);
+
+  const totalCapacity = useMemo(() => ({
     rate: "15.2–18.2 per 1,000",
     weeks: 52,
-    // Annual totals: NW 1362×39 + Winter 1630×13 = 53118 + 21190 = 74308 ≈ 74,301 authoritative
     annualAppts: 74301,
-    // Weekly average across full year
     apptsPerWeek: Math.round(74301 / 52),
     sessionsPerWeek: Math.round(74301 / 52 / 12 * 10) / 10,
     sessionLength: "4h 10m",
-    f2fRequired: Math.round(74301 / 52 / 12 / 2 * 10) / 10,
-    remoteRequired: Math.round(74301 / 52 / 12 / 2 * 10) / 10,
-  };
+    f2fRequired: Math.round(74301 / 52 / 12 * (activeSplit / 100) * 10) / 10,
+    remoteRequired: Math.round(74301 / 52 / 12 * (remoteSplitPct / 100) * 10) / 10,
+  }), [activeSplit, remoteSplitPct]);
 
   const currentCapacity = season === "winter" 
     ? capacityData.winter 
     : season === "total" 
       ? totalCapacity 
       : capacityData.nonWinter;
-  const totalWeeklySessions = sessionData.reduce((sum, row) => sum + row.total, 0);
+
   const multiplier = viewMode === "appointments" ? 12 : 1;
   const unitLabel = viewMode === "appointments" ? "appointments" : "sessions";
+
+  // Practice capacity breakdown (dynamic)
+  const practiceCapacityData = useMemo(() => {
+    return practiceSummaryWithSessions.map(p => {
+      const pct = Math.round((p.listSize / totalListSize) * 1000) / 10;
+      const monthly = Math.round(p.listSize * 2.19); // approximate
+      const budget75 = Math.round(monthly * 9);
+      const wklyNonWinter = Math.round(capacityData.nonWinter.apptsPerWeek * (p.listSize / totalListSize) * 10) / 10;
+      const wklyWinter = Math.round(capacityData.winter.apptsPerWeek * (p.listSize / totalListSize) * 10) / 10;
+      const annualTarget = Math.round(74301 * (p.listSize / totalListSize));
+      return {
+        practice: p.practice,
+        listSize: p.listSize,
+        role: p.role,
+        system: p.system,
+        pct,
+        monthly,
+        budget75,
+        wklyNonWinter,
+        f2fNW: Math.round(wklyNonWinter * (activeSplit / 100) * 10) / 10,
+        remoteNW: Math.round(wklyNonWinter * (remoteSplitPct / 100) * 10) / 10,
+        wklyWinter,
+        f2fW: Math.round(wklyWinter * (activeSplit / 100) * 10) / 10,
+        remoteW: Math.round(wklyWinter * (remoteSplitPct / 100) * 10) / 10,
+        annualTarget,
+      };
+    });
+  }, [practiceSummaryWithSessions, capacityData, activeSplit, remoteSplitPct]);
+
+  // Edit handlers
+  const startEditing = () => {
+    setEditRoomData(JSON.parse(JSON.stringify(roomData)));
+    setEditF2fSplit(f2fSplitPct);
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditRoomData([]);
+    setEditF2fSplit(50);
+  };
+
+  const handleCellChange = (rowIndex: number, key: PracticeKey, value: string) => {
+    const num = parseInt(value, 10);
+    if (value !== '' && (isNaN(num) || num < 0)) return;
+    setEditRoomData(prev => {
+      const updated = [...prev];
+      updated[rowIndex] = { ...updated[rowIndex], [key]: value === '' ? 0 : num };
+      return updated;
+    });
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    const success = await updateConfig(editRoomData, editF2fSplit);
+    setIsSaving(false);
+    if (success) {
+      setIsEditing(false);
+    }
+  };
 
   // Badge display calculations
   const getBadgeDisplay = () => {
     const baseTotal = totalWeeklySessions;
-    const winterSessions = Math.round(baseTotal * 1.2); // 20% more in winter
+    const winterSessions = Math.round(baseTotal * 1.2);
     const nonWinterSessions = baseTotal;
-    const onsiteSessions = baseTotal; // All matrix sessions are on-site
-    const remoteSessions = Math.round(baseTotal * 0.5); // 50% remote capacity
+    const onsiteSessions = baseTotal;
+    const remoteSessions = Math.round(baseTotal * (remoteSplitPct / 100));
     
     switch (badgeDisplayMode) {
       case "winter":
@@ -154,40 +230,33 @@ export const SDAEstatesCapacity = () => {
   const cycleBadgeMode = () => {
     const modes: BadgeDisplayMode[] = ["total", "winter", "nonWinter", "onsite", "remote"];
     const currentIndex = modes.indexOf(badgeDisplayMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setBadgeDisplayMode(modes[nextIndex]);
+    setBadgeDisplayMode(modes[(currentIndex + 1) % modes.length]);
   };
 
-  // Top banner cycling functions
   const cycleSitesMode = () => {
     const modes: SitesDisplayMode[] = ["total", "hub", "spoke", "tbc"];
     const currentIndex = modes.indexOf(sitesDisplayMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setSitesDisplayMode(modes[nextIndex]);
+    setSitesDisplayMode(modes[(currentIndex + 1) % modes.length]);
   };
 
   const cycleSessionsMode = () => {
     const modes: SessionsDisplayMode[] = ["total", "winter", "nonWinter", "onsite", "remote"];
     const currentIndex = modes.indexOf(sessionsDisplayMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setSessionsDisplayMode(modes[nextIndex]);
+    setSessionsDisplayMode(modes[(currentIndex + 1) % modes.length]);
   };
 
   const cycleDurationMode = () => {
     const modes: DurationDisplayMode[] = ["perSession", "perDay", "perWeek"];
     const currentIndex = modes.indexOf(durationDisplayMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setDurationDisplayMode(modes[nextIndex]);
+    setDurationDisplayMode(modes[(currentIndex + 1) % modes.length]);
   };
 
   const cycleApptsMode = () => {
     const modes: ApptsDisplayMode[] = ["perSession", "perDay"];
     const currentIndex = modes.indexOf(apptsDisplayMode);
-    const nextIndex = (currentIndex + 1) % modes.length;
-    setApptsDisplayMode(modes[nextIndex]);
+    setApptsDisplayMode(modes[(currentIndex + 1) % modes.length]);
   };
 
-  // Top banner display values
   const getSitesDisplay = () => {
     const hubCount = practiceSummary.filter(p => p.role === "HUB").length;
     const spokeCount = practiceSummary.filter(p => p.role === "SPOKE").length;
@@ -264,8 +333,8 @@ export const SDAEstatesCapacity = () => {
         ...practice,
         percentage,
         sessionsWeek: displayValue,
-        f2f: displayValue / 2,
-        remote: displayValue / 2
+        f2f: displayValue * (activeSplit / 100),
+        remote: displayValue * (remoteSplitPct / 100),
       };
     });
 
@@ -312,10 +381,70 @@ export const SDAEstatesCapacity = () => {
         ? (aVal as number) - (bVal as number) 
         : (bVal as number) - (aVal as number);
     });
-  }, [practiceSortField, practiceSortDirection, currentCapacity.sessionsPerWeek, viewMode]);
+  }, [practiceSortField, practiceSortDirection, currentCapacity.sessionsPerWeek, viewMode, activeSplit, remoteSplitPct]);
+
+  // Footer totals for practice capacity breakdown
+  const footerTotals = useMemo(() => {
+    const totalMonthly = practiceCapacityData.reduce((s, p) => s + p.monthly, 0);
+    const totalBudget = practiceCapacityData.reduce((s, p) => s + p.budget75, 0);
+    const totalNW = practiceCapacityData.reduce((s, p) => s + p.wklyNonWinter, 0);
+    const totalF2fNW = practiceCapacityData.reduce((s, p) => s + p.f2fNW, 0);
+    const totalRemoteNW = practiceCapacityData.reduce((s, p) => s + p.remoteNW, 0);
+    const totalW = practiceCapacityData.reduce((s, p) => s + p.wklyWinter, 0);
+    const totalF2fW = practiceCapacityData.reduce((s, p) => s + p.f2fW, 0);
+    const totalRemoteW = practiceCapacityData.reduce((s, p) => s + p.remoteW, 0);
+    const totalAnnual = practiceCapacityData.reduce((s, p) => s + p.annualTarget, 0);
+    return { totalMonthly, totalBudget, totalNW, totalF2fNW, totalRemoteNW, totalW, totalF2fW, totalRemoteW, totalAnnual };
+  }, [practiceCapacityData]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Admin Edit Controls */}
+      {isSystemAdmin && (
+        <div className="flex items-center justify-end gap-2">
+          {isEditing ? (
+            <>
+              {/* F2F Split Control */}
+              <div className="flex items-center gap-3 mr-4 bg-slate-50 rounded-lg px-4 py-2 border">
+                <span className="text-sm font-medium text-slate-700 whitespace-nowrap">F2F / Remote Split:</span>
+                <Slider
+                  value={[editF2fSplit]}
+                  onValueChange={(v) => setEditF2fSplit(v[0])}
+                  min={0}
+                  max={100}
+                  step={5}
+                  className="w-32"
+                />
+                <span className="text-sm font-bold text-green-700 whitespace-nowrap">{editF2fSplit}%</span>
+                <span className="text-sm text-slate-400">/</span>
+                <span className="text-sm font-bold text-blue-700 whitespace-nowrap">{100 - editF2fSplit}%</span>
+              </div>
+              <Button size="sm" variant="outline" onClick={cancelEditing} disabled={isSaving}>
+                <X className="w-4 h-4 mr-1" />
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                <Save className="w-4 h-4 mr-1" />
+                {isSaving ? "Saving..." : "Save Changes"}
+              </Button>
+            </>
+          ) : (
+            <Button size="sm" variant="outline" onClick={startEditing}>
+              <Pencil className="w-4 h-4 mr-1" />
+              Edit Data
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card 
@@ -423,36 +552,51 @@ export const SDAEstatesCapacity = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sessionData.map((row, index) => {
+              {sessionDataWithTotals.map((row, index) => {
                 const mult = viewMode === "appointments" ? 12 : 1;
                 return (
                   <TableRow key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
                     <TableCell className="font-medium">{row.session}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.theParks)}`}>{row.theParks * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.springfield)}`}>{row.springfield * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.brackley)}`}>{row.brackley * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.brook)}`}>{row.brook * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.bugbrooke)}`}>{row.bugbrooke * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.denton)}`}>{row.denton * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.towcester)}`}>{row.towcester * mult}</TableCell>
-                    <TableCell className="text-center font-bold bg-slate-100">{row.total * mult}</TableCell>
+                    {PRACTICE_KEYS.map(key => (
+                      <TableCell key={key} className={`text-center font-semibold ${getCellColor(row[key])}`}>
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            min="0"
+                            value={row[key]}
+                            onChange={(e) => handleCellChange(index, key, e.target.value)}
+                            className="w-12 h-7 text-center rounded border border-slate-300 bg-white/80 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        ) : (
+                          row[key] * mult
+                        )}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center font-bold bg-slate-100">
+                      {isEditing ? row.total : row.total * mult}
+                    </TableCell>
                   </TableRow>
                 );
               })}
               <TableRow className="bg-slate-100 font-bold">
                 <TableCell>Weekly Total</TableCell>
-                <TableCell className="text-center">{29 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{20 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{3 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{17 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center bg-[#005EB8] text-white">{totalWeeklySessions * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                {PRACTICE_KEYS.map(key => (
+                  <TableCell key={key} className="text-center">
+                    {practiceColumnTotals[key] * (viewMode === "appointments" && !isEditing ? 12 : 1)}
+                  </TableCell>
+                ))}
+                <TableCell className="text-center bg-[#005EB8] text-white">
+                  {totalWeeklySessions * (viewMode === "appointments" && !isEditing ? 12 : 1)}
+                </TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </div>
+        {updatedAt && (
+          <p className="text-xs text-slate-400 mt-2">
+            Last updated: {new Date(updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          </p>
+        )}
       </CollapsibleCard>
 
       {/* Practice Summary */}
@@ -534,7 +678,7 @@ export const SDAEstatesCapacity = () => {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {practiceSummary.map((practice, index) => {
+          {practiceSummaryWithSessions.map((practice, index) => {
             const displayValue = viewMode === "appointments" 
               ? practice.totalSessions * 12 
               : practice.totalSessions;
@@ -589,7 +733,7 @@ export const SDAEstatesCapacity = () => {
           
           {/* Remote Sessions Balance Box */}
           {(() => {
-            const totalOnsiteSessions = practiceSummary.reduce((sum, p) => sum + p.totalSessions, 0);
+            const totalOnsiteSessions = practiceSummaryWithSessions.reduce((sum, p) => sum + p.totalSessions, 0);
             const totalRequired = Math.round(currentCapacity.sessionsPerWeek);
             const remoteBalance = Math.max(0, totalRequired - totalOnsiteSessions);
             const remoteBalanceAppts = remoteBalance * 12;
@@ -758,14 +902,14 @@ export const SDAEstatesCapacity = () => {
             </h4>
             <p className="text-3xl font-bold text-green-700">
               {season === "total"
-                ? Math.round(74301 / 2).toLocaleString()
+                ? Math.round(74301 * (activeSplit / 100)).toLocaleString()
                 : viewMode === "appointments" 
                   ? Math.round(currentCapacity.f2fRequired * 12).toLocaleString()
-                  : currentCapacity.f2fRequired
+                  : currentCapacity.f2fRequired.toFixed(1)
               }
             </p>
             <p className="text-sm text-green-600">
-              {season === "total" ? "appointments per year (50% split)" : `${unitLabel} per week (50% split)`}
+              {season === "total" ? `appointments per year (${activeSplit}% split)` : `${unitLabel} per week (${activeSplit}% split)`}
             </p>
           </div>
           <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
@@ -774,14 +918,14 @@ export const SDAEstatesCapacity = () => {
             </h4>
             <p className="text-3xl font-bold text-blue-700">
               {season === "total"
-                ? Math.round(74301 / 2).toLocaleString()
+                ? Math.round(74301 * (remoteSplitPct / 100)).toLocaleString()
                 : viewMode === "appointments" 
                   ? Math.round(currentCapacity.remoteRequired * 12).toLocaleString()
-                  : currentCapacity.remoteRequired
+                  : currentCapacity.remoteRequired.toFixed(1)
               }
             </p>
             <p className="text-sm text-blue-600">
-              {season === "total" ? "appointments per year (50% split)" : `${unitLabel} per week (50% split)`}
+              {season === "total" ? `appointments per year (${remoteSplitPct}% split)` : `${unitLabel} per week (${remoteSplitPct}% split)`}
             </p>
           </div>
         </div>
@@ -836,7 +980,7 @@ export const SDAEstatesCapacity = () => {
                     onClick={() => togglePracticeSort("f2f")}
                   >
                     <div className="flex items-center justify-end">
-                      F2F (50%)
+                      F2F ({activeSplit}%)
                       {getSortIcon("f2f")}
                     </div>
                   </TableHead>
@@ -845,7 +989,7 @@ export const SDAEstatesCapacity = () => {
                     onClick={() => togglePracticeSort("remote")}
                   >
                     <div className="flex items-center justify-end">
-                      Remote (50%)
+                      Remote ({remoteSplitPct}%)
                       {getSortIcon("remote")}
                     </div>
                   </TableHead>
@@ -880,13 +1024,13 @@ export const SDAEstatesCapacity = () => {
                   <TableCell className="text-right text-green-700">
                     {viewMode === "appointments" 
                       ? Math.round(currentCapacity.f2fRequired * 12).toLocaleString()
-                      : currentCapacity.f2fRequired
+                      : currentCapacity.f2fRequired.toFixed(1)
                     }
                   </TableCell>
                   <TableCell className="text-right text-blue-700">
                     {viewMode === "appointments" 
                       ? Math.round(currentCapacity.remoteRequired * 12).toLocaleString()
-                      : currentCapacity.remoteRequired
+                      : currentCapacity.remoteRequired.toFixed(1)
                     }
                   </TableCell>
                 </TableRow>
@@ -967,7 +1111,7 @@ export const SDAEstatesCapacity = () => {
                 <tfoot>
                   <tr className="bg-[#005EB8] text-white font-bold">
                     <td className="px-4 py-2.5">TOTAL</td>
-                    <td className="px-4 py-2.5 text-right font-mono">89,584</td>
+                    <td className="px-4 py-2.5 text-right font-mono">{totalListSize.toLocaleString()}</td>
                     <td colSpan={2}></td>
                     <td className="px-4 py-2.5 text-right font-mono">100.0%</td>
                   </tr>
@@ -1014,11 +1158,11 @@ export const SDAEstatesCapacity = () => {
                   </tr>
                   <tr>
                     <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 border-l-2 border-white/30 text-xs">Wkly Min</th>
-                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 text-xs">F2F 50%</th>
-                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 text-xs">Remote 50%</th>
+                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 text-xs">F2F {activeSplit}%</th>
+                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#0072CE]/80 text-xs">Remote {remoteSplitPct}%</th>
                     <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 border-l-2 border-white/30 text-xs">Wkly Min</th>
-                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 text-xs">F2F 50%</th>
-                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 text-xs">Remote 50%</th>
+                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 text-xs">F2F {activeSplit}%</th>
+                    <th className="px-3 py-2 text-right font-semibold text-white bg-[#AE2573]/80 text-xs">Remote {remoteSplitPct}%</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1045,15 +1189,15 @@ export const SDAEstatesCapacity = () => {
                 <tfoot>
                   <tr className="bg-[#005EB8] text-white font-bold">
                     <td className="px-3 py-3 font-bold">NEIGHBOURHOOD TOTAL</td>
-                    <td className="px-3 py-3 text-right font-mono">£196,562</td>
-                    <td className="px-3 py-3 text-right font-mono">£1,769,060</td>
-                    <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60 border-l-2 border-white/20">1,361.7</td>
-                    <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60">680.8</td>
-                    <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60">680.8</td>
-                    <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60 border-l-2 border-white/20">1,630.4</td>
-                    <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60">815.2</td>
-                    <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60">815.2</td>
-                    <td className="px-3 py-3 text-right font-mono bg-[#003087]/80 border-l-2 border-white/20">74,301</td>
+                    <td className="px-3 py-3 text-right font-mono">£{footerTotals.totalMonthly.toLocaleString()}</td>
+                    <td className="px-3 py-3 text-right font-mono">£{footerTotals.totalBudget.toLocaleString()}</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60 border-l-2 border-white/20">{footerTotals.totalNW.toFixed(1)}</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60">{footerTotals.totalF2fNW.toFixed(1)}</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#0072CE]/60">{footerTotals.totalRemoteNW.toFixed(1)}</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60 border-l-2 border-white/20">{footerTotals.totalW.toFixed(1)}</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60">{footerTotals.totalF2fW.toFixed(1)}</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#AE2573]/60">{footerTotals.totalRemoteW.toFixed(1)}</td>
+                    <td className="px-3 py-3 text-right font-mono bg-[#003087]/80 border-l-2 border-white/20">{footerTotals.totalAnnual.toLocaleString()}</td>
                     <td className="bg-[#003087]/40"></td>
                   </tr>
                 </tfoot>
@@ -1064,7 +1208,7 @@ export const SDAEstatesCapacity = () => {
 
         <p className="text-xs text-slate-400 flex items-center gap-1">
           <Info className="w-3 h-3" />
-          Based on Jan 2026 list sizes. Wkly Min = weekly minimum appointment requirement. F2F and Remote each at 50% of total.
+          Based on Jan 2026 list sizes. Wkly Min = weekly minimum appointment requirement. F2F and Remote each at {activeSplit}% / {remoteSplitPct}% of total.
         </p>
       </CollapsibleCard>
 

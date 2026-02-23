@@ -7022,6 +7022,30 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_estates_config: {
+        Row: {
+          f2f_split_pct: number
+          id: string
+          room_data: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          f2f_split_pct?: number
+          id?: string
+          room_data?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          f2f_split_pct?: number
+          id?: string
+          room_data?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       nres_expenses: {
         Row: {
           amount: number
