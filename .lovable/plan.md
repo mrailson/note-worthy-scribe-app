@@ -1,44 +1,44 @@
 
+# Fix: Stock Image Layout Issues and Increase Pool Variety
 
-# Fix: Inconsistent PowerPoint Slide Layouts (Tiny Text and Excessive Spacing)
+## Problem
 
-## Root Cause
+Three issues are causing inconsistent slide layouts when stock library images are used:
 
-Two issues in `supabase/functions/generate-powerpoint-gamma/index.ts` are causing Gamma to produce slides with tiny, cramped text on some slides while others look fine:
+1. **Conflicting image instructions**: Line 203 says "Every slide must include a high-quality photorealistic image" but when stock images are enabled, line 310 sets `imageOptions: { source: 'noImages' }` which disables Gamma's AI image generation. This creates a tug-of-war — Gamma tries to place images on every slide but only has 5 URLs to work with, resulting in oversized images on some slides and empty space on others.
 
-### 1. Overly Restrictive Font Instructions (Line 237)
-The font instruction explicitly tells Gamma: `"Use Calibri or Arial fonts only -- do not use Inter or any non-standard fonts"`. Project memory confirms this exact approach previously "resulted in unreadably small font sizes and was subsequently rolled back" -- but the code still contains it. When Gamma tries to force all content into Calibri/Arial at its default sizing, complex slides (tables, multi-column layouts, icon grids like slide 11) end up with tiny text to fit the constrained font metrics.
+2. **No randomisation**: The query `.limit(5)` with no ordering always returns the same 5 images in database insertion order. Every presentation uses the identical image pool.
 
-### 2. Stock Image URL Injection Overloads the Prompt (Lines 287-319)
-When `useStockLibraryImages` is enabled (which meeting PowerPoints always set to `true`), the code injects **15 markdown image references** directly into `inputText`. This bloats the prompt content significantly. On slides where Gamma tries to render both these image references AND dense content (e.g. the ICB Reporting Requirements slide with 6 content blocks + 9 logos), it compresses the text to fit everything, resulting in tiny fonts and awkward spacing.
+3. **Too few images**: Only 5 images are provided to cover 10-15 slides, so Gamma reuses the same images repeatedly or leaves slides bare.
 
-## Fix
+## Solution
 
-### Change 1: Soften Font Instructions
-In `supabase/functions/generate-powerpoint-gamma/index.ts`, replace the restrictive font-banning instruction with a softer preference that doesn't force Gamma into layout compromises:
+All changes are in `supabase/functions/generate-powerpoint-gamma/index.ts`:
 
-- **Line 237**: Change the default from `'Use Calibri or Arial fonts only -- do not use Inter or any non-standard fonts'` to `'Prefer standard Office fonts such as Calibri or Arial'`
-- **Lines 231-236**: Soften the fontMap entries similarly (e.g. `'Prefer Calibri or Arial'` instead of `'Use Calibri or Arial fonts only'`)
+### Change 1: Increase stock pool to 30 with random ordering
+- Change `.limit(5)` to `.limit(30)` 
+- Add `.order('id', { ascending: false })` is insufficient for randomness — instead, use Supabase's random function via `.order('created_at', { ascending: false })` won't randomise either. The proper approach is to fetch a larger pool (e.g. 60) and then shuffle and pick 30 in code using a Fisher-Yates shuffle.
 
-### Change 2: Limit Stock Image Injection
-Reduce the number of stock images injected from 15 to 5, and add an instruction telling Gamma to use a maximum of one image per slide rather than trying to cram multiple images onto a single slide:
+### Change 2: Remove conflicting "every slide" image instruction when stock is active
+- Line 203 currently always adds: "Every slide must include a high-quality photorealistic image relevant to the topic. No slide without a visual."
+- When `useStockLibraryImages` is true, this instruction should be replaced with a stock-specific instruction: "Use the provided stock library images where relevant. Place images as accent visuals alongside content — never let an image dominate or push text to the bottom. Not every slide needs an image."
 
-- **Line 297**: Change `.limit(15)` to `.limit(5)`
-- **Line 308**: Add a note in the injected text: `"Use at most one image per slide. Select the most relevant image for each slide's topic."`
-
-### Change 3: Add Minimum Font Size Instruction
-Add a layout quality instruction to `additionalInstructions` to prevent Gamma from shrinking text:
-
-- After line 211 (data integrity), add: `"LAYOUT: Body text must be at least 16pt. Headings at least 24pt. Never shrink text to fit more content -- split across slides instead."`
+### Change 3: Improve image placement instructions
+- Update the injected instruction (currently at line 309) to be more explicit about layout: "Place each image as a small accent visual (no wider than 40% of the slide). Content text must remain the primary focus. Never allow an image to push content below the fold."
 
 ## Technical Details
 
-| File | Line(s) | Change |
-|------|---------|--------|
-| `supabase/functions/generate-powerpoint-gamma/index.ts` | 231-237 | Soften font instructions from "only" to "prefer" |
-| `supabase/functions/generate-powerpoint-gamma/index.ts` | 297 | Reduce stock image limit from 15 to 5 |
-| `supabase/functions/generate-powerpoint-gamma/index.ts` | 308 | Add "one image per slide" instruction |
-| `supabase/functions/generate-powerpoint-gamma/index.ts` | ~212 | Add minimum font size instruction |
+| Area | Current | New |
+|------|---------|-----|
+| Stock pool size | 5 | 30 (from 60 fetched, randomly shuffled) |
+| Randomisation | None (same images every time) | Fisher-Yates shuffle in code |
+| Image instruction (stock mode) | "Every slide must include image" + "noImages" (conflict) | "Use stock images as accent visuals where relevant" |
+| Placement guidance | "Use at most one image per slide" | "Small accent visual, max 40% width, never push text down" |
 
-All changes are in a single edge function file. Redeploy required after editing.
+### Implementation steps
 
+1. Fetch 60 active stock images instead of 5
+2. Shuffle the results array using Fisher-Yates and take the first 30
+3. Conditionally modify line 203's image instruction based on `useStockLibraryImages`
+4. Replace the image injection instruction with stronger layout guidance
+5. Redeploy the `generate-powerpoint-gamma` edge function
